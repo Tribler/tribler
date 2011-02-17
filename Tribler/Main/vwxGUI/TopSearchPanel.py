@@ -79,6 +79,28 @@ class TopSearchPanel(bgPanel):
     
     def OnStats(self, event):
         self._selectPage('stats')
+        
+    def NextPage(self):
+        self._DoPage(1)
+    def PrevPage(self):
+        self._DoPage(-1)
+        
+    def _DoPage(self, increment):
+        pages = [self.home.GetValue(), self.results.GetValue(), self.channels.GetValue(), self.settings.GetValue(), self.my_files.GetValue()]
+        curPage = 0
+        for i in range(len(pages)):
+            if pages[i]:
+                curPage = i
+                break
+        
+        curPage = (curPage + increment) % len(pages)
+        if curPage < 0:
+            curPage = len(pages) - 1
+        if increment > 0:
+            pageNames = ['home', 'search_results', 'channels', 'my_files', 'my_files']
+        else:
+            pageNames = ['home', 'search_results', 'channels', 'channels', 'my_files']
+        self._selectPage(pageNames[curPage])
     
     def _selectPage(self, page):
         if self.guiUtility.guiPage != page:

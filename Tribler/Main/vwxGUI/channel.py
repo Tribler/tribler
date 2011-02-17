@@ -11,12 +11,12 @@ from list_details import *
 from __init__ import *
 
 class ChannelManager():
-    channel_req_columns = ['infohash', 'CollectedTorrent.name', 'ChannelTorrents.name', 'ChannelTorrents.id', 'description', 'created', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
-    playlist_req_columns = ['id', 'name', 'description']
+    channel_req_columns = ['infohash', 'CollectedTorrent.name', 'ChannelTorrents.name', 'ChannelTorrents.id', 'description', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
+    playlist_req_columns = ['id', 'channel_id', 'name', 'description']
     
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
+        self.list.SetId(0)
         
         self.guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
@@ -27,7 +27,7 @@ class ChannelManager():
     def refresh(self, id = None):
         if id:
             self.list.Reset()
-            self.list.id = id
+            self.list.SetId(id)
             
             vote = self.channelsearch_manager.getMyVote(id)
             self.list.footer.SetStates(vote == -1, vote == 2, id == self.channel_id)
@@ -77,21 +77,71 @@ class SelectedChannelList(SearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        List.__init__(self, columns, LIST_GREY, [7,7], True)
+        List.__init__(self, columns, LIST_GREY, [0,0], True, borders = False)
         
-    def CreateHeader(self):
-        header = ChannelHeader(self, self.columns)
-        header.SetEvents(self.OnBack)
-        return header
+    def _PostInit(self):
+        self.uelog = UserEventLogDBHandler.getInstance()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.header = ChannelHeader(self, self, [])
+        self.header.SetEvents(self.OnBack)
+        sizer.Add(self.header, 0, wx.EXPAND|wx.BOTTOM, 3)
+        
+        self.notebook = wx.Notebook(self, style = wx.NB_LEFT|wx.NO_BORDER)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
+        
+        list = wx.Panel(self.notebook)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.subheader = self.CreateHeader(list)
+        self.subheader.SetBackgroundColour(self.background)
+        self.header.ResizeColumn = self.subheader.ResizeColumn
+        vSizer.Add(self.subheader, 0, wx.EXPAND)
+                
+        self.list = self.CreateList(list)
+        vSizer.Add(self.list, 1, wx.EXPAND)
+        
+        list.SetSizer(vSizer)
+        self.notebook.AddPage(list, "Contents")
+        
+        self.commentList = CommentList(self.notebook)
+        self.notebook.AddPage(self.commentList, "Comments")
+        self.activityList = ActivityList(self.notebook, self)
+        self.notebook.AddPage(self.activityList, "Activity")
+        
+        sizer.Add(self.notebook, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+        
+        self.footer = self.CreateFooter(self)
+        sizer.Add(self.footer, 0, wx.EXPAND)
+        
+        self.SetBackgroundColour(self.background)
+        
+        self.SetSizer(sizer)
+        self.Layout()
+        
+        self.list.Bind(wx.EVT_SIZE, self.OnSize)
+        self.ready = True
+        
+    def CreateHeader(self, parent):
+        return ListHeader(parent, self, self.columns, radius = 0)
     
-    def CreateList(self):
-        list = SearchList.CreateList(self)
+    def CreateList(self, parent):
+        list = SearchList.CreateList(self, parent)
         return list
    
-    def CreateFooter(self):
-        footer = ChannelFooter(self)
+    def CreateFooter(self, parent):
+        footer = ChannelFooter(parent)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote, self.OnManage)
         return footer
+
+    def SetId(self, id):
+        self.id = id
+        
+        manager = self.commentList.GetManager()
+        manager.SetIds(channel_id = id)
+        
+        manager = self.activityList.GetManager()
+        manager.SetIds(channel_id = id)
         
     def SetTitle(self, title, description):
         self.title = title
@@ -112,7 +162,7 @@ class SelectedChannelList(SearchList):
         List.SetData(self, torrents)
         
         data = [(playlist['id'],[playlist['name'], playlist['description'], playlist['nr_torrents']], playlist, PlaylistItem) for playlist in playlists]
-        data += [(file['infohash'],[file['name'], file['created'], file['length'], 0, 0], file) for file in torrents]
+        data += [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in torrents]
         return self.list.SetData(data)
     
     def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
@@ -128,13 +178,20 @@ class SelectedChannelList(SearchList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data['infohash'],[data['name'], data['created'], data['length'], 0, 0], data)
+        data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
         self.list.RefreshData(key, data)
         
         item = self.list.GetItem(key)
         panel = item.GetExpandedPanel()
         if panel:
             panel.UpdateStatus()
+        
+        manager = self.activityList.GetManager()
+        manager.refresh()
+    
+    def Reset(self):
+        SearchList.Reset(self)
+        self.notebook.ChangeSelection(0)
     
     def OnExpand(self, item):
         if isinstance(item, PlaylistItem):
@@ -147,12 +204,13 @@ class SelectedChannelList(SearchList):
 
     def OnCollapse(self, item, panel):
         if not isinstance(item, PlaylistItem):
-            #detect changes
-            changes = panel.GetChanged()
-            if len(changes)>0:
-                dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
-                if dlg.ShowModal() == wx.ID_YES:
-                    self.channelsearch_manager.updateTorrent(item.original_data['ChannelTorrents.id'], changes)
+            if panel:
+                #detect changes
+                changes = panel.GetChanged()
+                if len(changes)>0:
+                    dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                    if dlg.ShowModal() == wx.ID_YES:
+                        self.channelsearch_manager.updateTorrent(item.original_data['ChannelTorrents.id'], changes)
             SearchList.OnCollapse(self, item, panel)
         
     def OnRemoveVote(self, event):
@@ -182,6 +240,36 @@ class SelectedChannelList(SearchList):
     def OnBack(self, event):
         self.guiutility.GoBack(self.id)
         
+    def OnSize(self, event):
+        diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
+        self.subheader.SetSpacerRight(diff)
+        self.footer.SetSpacerRight(diff)
+        event.Skip()
+        
+    def OnChange(self, event):
+        page = event.GetSelection()
+        if page == 1:
+            self.commentList.Show()
+            self.commentList.SetFocus()
+        elif page == 2:
+            self.activityList.Show()
+            self.activityList.SetFocus()
+        event.Skip()
+        
+    def OnCommentCreated(self, channel_id):
+        if channel_id == self.id:
+            manager = self.commentList.GetManager()
+            manager.refresh()
+            
+            manager = self.activityList.GetManager()
+            manager.refresh()
+        
+    def Select(self, key, raise_event = True):
+        SearchList.Select(self, key, raise_event)
+        
+        self.notebook.ChangeSelection(0)
+        self.ScrollToId(key)
+            
     def StartDownload(self, torrent):
         states = self.footer.GetStates()
         if not states[1]:
@@ -231,11 +319,52 @@ class Playlist(SelectedChannelList):
             self.manager = PlaylistManager(self) 
         return self.manager
     
+    def SetTitle(self, title, description):
+        self.title = title
+        self.header.SetTitle(title)
+        self.header.SetStyle(description)
+        self.Layout()
+    
     def Set(self, data):
         self.SetTitle(data['name'], data['description'])
         
         manager = self.GetManager()
         manager.SetPlaylistId(data['id'])
+
+        manager = self.commentList.GetManager()
+        manager.SetIds(channel_id = data['channel_id'], playlist_id = data['id'])
+        
+        manager = self.activityList.GetManager()
+        manager.SetIds(channel_id = data['channel_id'], playlist_id = data['id'])
+    
+class PlaylistItem(ListItem):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
+        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        titleRow = wx.BoxSizer(wx.HORIZONTAL)
+        if leftSpacer > 0:
+            titleRow.AddSpacer((leftSpacer, -1))
+        
+        self.icontype = 'tree'
+        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
+        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        
+        self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+        self.title.SetMinSize((1, -1))
+        titleRow.Add(self.title, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        self.nrTorrents = wx.StaticText(self, -1, "%d Torrents"%self.data[2], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+        titleRow.Add(self.nrTorrents, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+
+        if rightSpacer > 0:
+            titleRow.AddSpacer((rightSpacer, -1))
+        self.vSizer.Add(titleRow, 0, wx.EXPAND)
+        
+        self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+        self.desc.SetMinSize((1, -1))
+        self.hSizer.AddSpacer((40, -1))
+        self.hSizer.Add(self.desc, 1, wx.ALL, 3)
+        self.AddEvents(self)
     
 class ManageChannelFilesManager():
     def __init__(self, list):
@@ -320,7 +449,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.SetBackgroundColour(LIST_BLUE)
         boxSizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.header = ManageChannelHeader(self)
+        self.header = ManageChannelHeader(self, self)
         self.header.SetBackgroundColour(LIST_BLUE)
         boxSizer.Add(self.header, 0, wx.EXPAND)
         
@@ -596,11 +725,11 @@ class ManageChannelFilesList(List):
    
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
     
-    def CreateHeader(self):
-        return ListHeader(self, self.columns, 0)
+    def CreateHeader(self, parent):
+        return ListHeader(parent, self, self.columns, 0)
     
-    def CreateFooter(self):
-        return ManageChannelFilesFooter(self, self.OnRemoveAll, self.OnRemoveSelected)
+    def CreateFooter(self, parent):
+        return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -610,7 +739,7 @@ class ManageChannelFilesList(List):
     def SetData(self, data):
         List.SetData(self, data)
         
-        data = [(file['infohash'],[file['name'],file['created']], file) for file in data]
+        data = [(file['infohash'],[file['name'],file['time_stamp']], file) for file in data]
         
         if len(data) > 0:
             return self.list.SetData(data)
@@ -639,8 +768,8 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
     
-    def CreateFooter(self):
-        return ManageChannelPlaylistFooter(self, self.OnNew)
+    def CreateFooter(self, parent):
+        return ManageChannelPlaylistFooter(parent, self.OnNew)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -764,7 +893,83 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         if selected:
             dlg.list.SetChecked(selected)
 
-class PlaylistItem(ListItem):
+class CommentManager:
+    comment_req_columns = ['id', 'name', 'Peer.peer_id', 'comment', 'time_stamp']
+    
+    def __init__(self, list):
+        self.list = list
+        self.list.id = 0
+        
+        self.channel_id = None
+        self.playlist_id = None
+        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+    
+    def SetIds(self, channel_id = None, playlist_id = None):
+        if channel_id != self.channel_id:
+            self.channel_id = channel_id
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Comments for this Channel')
+        
+        if playlist_id != self.playlist_id:
+            self.playlist_id = playlist_id
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Comments for this Playlist')
+    
+    def refresh(self):
+        if self.playlist_id:
+            total_items, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, CommentManager.comment_req_columns)
+        else:
+            total_items, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, CommentManager.comment_req_columns)
+        self.list.SetData(commentList)
+        
+    def addComment(self, comment):
+        if self.playlist_id:
+            self.channelsearch_manager.addComment(comment, self.channel_id, playlist_id = self.playlist_id)
+        else:
+            self.channelsearch_manager.addComment(comment, self.channel_id)
+
+class CommentList(List):
+    def __init__(self, parent):
+        List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
+    
+    def CreateHeader(self, parent):
+        return TitleHeader(self, parent, [], 0, radius = 0)
+    
+    def CreateFooter(self, parent):
+        return CommentFooter(parent, self.OnNew)
+
+    def GetManager(self):
+        if getattr(self, 'manager', None) == None:
+            self.manager = CommentManager(self) 
+        return self.manager
+    
+    def SetData(self, data):
+        List.SetData(self, data)
+        
+        data = [(comment['id'],[comment['name'], comment['comment']], comment, CommentItem) for comment in data]
+        
+        if len(data) > 0:
+            return self.list.SetData(data)
+        self.list.ShowMessage('No comments are found.')
+        return 0
+    
+    def OnExpand(self, item):
+        self.footer.SetReply(True)
+        return True
+    
+    def OnCollapse(self, item, panel):
+        List.OnCollapse(self, item, panel)
+        self.footer.SetReply(False)
+
+    def OnNew(self, event):
+        comment = self.footer.GetComment()
+        self.GetManager().addComment(comment)
+        
+        self.footer.SetComment('')
+
+class CommentItem(ListItem):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
         
@@ -773,22 +978,110 @@ class PlaylistItem(ListItem):
         if leftSpacer > 0:
             titleRow.AddSpacer((leftSpacer, -1))
         
-        self.icontype = 'tree'
-        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
-        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-        
-        self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
-        self.title.SetMinSize((1, -1))
-        titleRow.Add(self.title, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-        self.nrTorrents = wx.StaticText(self, -1, "%d Torrents"%self.data[2], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
-        titleRow.Add(self.nrTorrents, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        titleRow.Add(wx.StaticText(self, -1, self.data[0]))
+        #DATE? titleRow.Add(wx.StaticText(self, -1, self.data[1]))
 
         if rightSpacer > 0:
             titleRow.AddSpacer((rightSpacer, -1))
         self.vSizer.Add(titleRow, 0, wx.EXPAND)
-        
         self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.desc.SetMinSize((1, -1))
         self.hSizer.AddSpacer((40, -1))
         self.hSizer.Add(self.desc, 1, wx.ALL, 3)
+        self.AddEvents(self)
+
+class ActivityManager:
+    def __init__(self, list):
+        self.list = list
+        self.list.id = 0
+        
+        self.channel_id = None
+        self.playlist_id = None
+        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+    def SetIds(self, channel_id = None, playlist_id = None):
+        if channel_id != self.channel_id:
+            self.channel_id = channel_id
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Recent activity in this Channel')
+            
+        
+        if playlist_id != self.playlist_id:
+            self.playlist_id = playlist_id
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Recent activity in this Playlist')
+    
+    def refresh(self):
+        if self.playlist_id:
+            _, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, CommentManager.comment_req_columns, limit = 10)
+            _, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, ChannelManager.channel_req_columns, limit = 10)
+            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, ChannelManager.channel_req_columns  + ['inserted'], limit = 10)
+        else:
+            _, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, CommentManager.comment_req_columns, limit = 10)
+            _, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, ChannelManager.channel_req_columns, limit = 10)
+            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, ChannelManager.channel_req_columns + ['inserted'], limit = 10)
+        
+        self.list.SetData(commentList, torrentList, recentTorrentList)        
+
+class ActivityList(List):
+    def __init__(self, parent, parent_list):
+        List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
+        self.parent_list = parent_list
+    
+    def CreateHeader(self, parent):
+        return TitleHeader(self, parent, [], 0, radius = 0)
+    
+    def CreateFooter(self, parent):
+        return None
+
+    def GetManager(self):
+        if getattr(self, 'manager', None) == None:
+            self.manager = ActivityManager(self) 
+        return self.manager
+    
+    def SetData(self, comments, torrents, recent_torrents):
+        List.SetData(self, torrents)
+        def genCommentActivity(comment):
+            return "new comment received", self.format_time(comment['time_stamp']), comment['name'] + "  " + comment['comment']
+        
+        def genNewTorrentActivity(torrent):
+            return "new torrent received", self.format_time(torrent['time_stamp']), torrent['name']
+    
+        def genTorrentActivity(torrent):
+            return "discovered a torrent", self.format_time(torrent['inserted']), torrent['name']
+        
+        data =  [(comment['time_stamp'], (comment['id'],genCommentActivity(comment), comment, ActivityItem)) for comment in comments]
+        data += [(file['time_stamp'], (file['infohash'],genNewTorrentActivity(file), file, ActivityItem)) for file in torrents]
+        data += [(file['inserted'], (file['infohash'],genTorrentActivity(file), file, ActivityItem)) for file in recent_torrents]
+        
+        data.sort(reverse = True)
+        data = [item for _, item in data]
+        
+        if len(data) > 0:
+            return self.list.SetData(data)
+        self.list.ShowMessage('No recent activity is found.')
+        return 0
+    
+    def OnExpand(self, item):
+        if 'infohash' in item.original_data: #is this a torrent?
+            self.parent_list.Select(item.original_data['infohash'])
+    
+class ActivityItem(ListItem):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
+        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        titleRow = wx.BoxSizer(wx.HORIZONTAL)
+        if leftSpacer > 0:
+            titleRow.AddSpacer((leftSpacer, -1))
+        
+        titleRow.Add(wx.StaticText(self, -1, self.data[1] + " : " +self.data[0].capitalize()))
+
+        if rightSpacer > 0:
+            titleRow.AddSpacer((rightSpacer, -1))
+        self.vSizer.Add(titleRow, 0, wx.EXPAND|wx.TOP, 3)
+        self.hSizer.AddSpacer((40, -1))
+        self.hSizer.Add(wx.StaticText(self, -1, self.data[2]), 0, wx.BOTTOM, 3)
         self.AddEvents(self)

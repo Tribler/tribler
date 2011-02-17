@@ -51,9 +51,9 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, columns, radius = LIST_RADIUS):
+    def __init__(self, parent, parent_list, columns, radius = LIST_RADIUS):
         wx.Panel.__init__(self, parent)
-        self.parent = parent
+        self.parent_list = parent_list
         self.columnHeaders = []
         
         self.columns = columns
@@ -62,6 +62,8 @@ class ListHeader(wx.Panel):
         self.sortedColumn = -1
         self.defaultSort = -1
         self.sortedDirection = False
+        
+        self.scrollBar = None
 
         self.AddComponents(columns)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -135,24 +137,27 @@ class ListHeader(wx.Panel):
                 item.SetSize((width, -1))
             else:
                 item.SetSpacer((width, -1))
-            self.scrollBar.sizer.Layout()
+            
+            if self.scrollBar:
+                self.scrollBar.sizer.Layout()
 
     def SetSpacerRight(self, right):
-        if right > 0:
-            dirty = False
-            if self.scrollBar.GetSize()[0] != right:
-                self.scrollBar.SetSpacer((right, 0))
-                dirty = True
-            if not self.scrollBar.IsShown():
-                self.scrollBar.Show(True)
-                dirty = True
-            
-            if dirty:
-                self.scrollBar.sizer.Layout()
-        else:
-            if self.scrollBar.IsShown():
-                self.scrollBar.Show(False)
-                self.scrollBar.sizer.Layout()
+        if self.scrollBar:
+            if right > 0:
+                dirty = False
+                if self.scrollBar.GetSize()[0] != right:
+                    self.scrollBar.SetSpacer((right, 0))
+                    dirty = True
+                if not self.scrollBar.IsShown():
+                    self.scrollBar.Show(True)
+                    dirty = True
+                
+                if dirty:
+                    self.scrollBar.sizer.Layout()
+            else:
+                if self.scrollBar.IsShown():
+                    self.scrollBar.Show(False)
+                    self.scrollBar.sizer.Layout()
     
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
@@ -205,7 +210,7 @@ class ListHeader(wx.Panel):
         else:
             newDirection = self.columns[newColumn].get('sortAsc', False)
         
-        self.GetParent().OnSort(newColumn, newDirection)
+        self.parent_list.OnSort(newColumn, newDirection)
         self._SetSortedIcon(newColumn, newDirection)
     
     def ShowSortedBy(self, column):
@@ -274,14 +279,15 @@ class ListHeader(wx.Panel):
         event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):
+    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius = LIST_RADIUS):
         self.font_increment = font_increment
         self.fontweight = fontweight
-        ListHeader.__init__(self, parent, columns)
+        ListHeader.__init__(self, parent, parent_list, columns, radius = radius)
     
     def AddComponents(self, columns):
         vSizer = wx.BoxSizer(wx.VERTICAL)
-
+        vSizer.AddSpacer((-1, 3))
+        
         self.title = wx.StaticText(self)
         font = self.title.GetFont()
         font.SetPointSize(font.GetPointSize() + self.font_increment)
@@ -325,7 +331,7 @@ class TitleHeader(ListHeader):
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.AddColumns(hSizer, self, columns)
             vSizer.AddSpacer((-1, 3))
-            vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius + 3)
+            vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius)
         self.SetSizer(vSizer)
     
     def GetTitlePanel(self, parent):
@@ -400,8 +406,8 @@ class ButtonHeader(TitleHeader):
             self.delete.SetToolTip(None)
         
 class ManageChannelHeader(SubTitleHeader):
-    def __init__(self, parent):
-        TitleHeader.__init__(self, parent, [])
+    def __init__(self, parent, parent_list):
+        TitleHeader.__init__(self, parent, parent_list, [])
         
     def SetName(self, name):
         name = 'Management interface for %s\'s Channel'%name
@@ -457,7 +463,7 @@ class FamilyFilterHeader(TitleHeader):
             self.ffbutton.SetBackgroundColour(colour)
         
     def toggleFamilyFilter(self, event):
-        self.parent.toggleFamilyFilter()
+        self.parent_list.toggleFamilyFilter()
     
     def _SetLabels(self):
         self.Freeze()
@@ -506,7 +512,7 @@ class SearchHeader(FamilyFilterHeader):
             self.SetSubTitle('Discovered %d after filter'%nr)
     
     def OnKey(self, event):
-        self.parent.OnFilter(self.filter.GetValue().strip())
+        self.parent_list.OnFilter(self.filter.GetValue().strip())
     
     def Reset(self):
         FamilyFilterHeader.Reset(self)
@@ -593,10 +599,10 @@ class ChannelHeader(SearchHeader):
             self.descriptionPanel.Hide()
             
 class PlayerHeader(TitleHeader):
-    def __init__(self, parent, background, columns, minimize, maximize):
+    def __init__(self, parent, parent_list, background, columns, minimize, maximize):
         self.minimize = minimize
         self.maximize = maximize
-        TitleHeader.__init__(self, parent, columns)
+        TitleHeader.__init__(self, parent, parent_list, columns)
         self.SetBackgroundColour(background)
         self.SetTitle('Player')
         
@@ -617,9 +623,9 @@ class PlayerHeader(TitleHeader):
     
     def OnClick(self, event):
         if self.minimize.IsShown():
-            self.parent.OnMinimize()
+            self.parent_list.OnMinimize()
         else:
-            self.parent.OnMaximize()
+            self.parent_list.OnMaximize()
         
     def ShowMinimized(self, minimized):
         self.Freeze()

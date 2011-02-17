@@ -355,6 +355,7 @@ class EditStaticText(wx.Panel):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         self.text = wx.StaticText(self, -1, text)
+        self.text.SetMinSize((1, -1))
         vSizer.Add(self.text, 0, wx.EXPAND)
         
         if multiLine:
@@ -362,6 +363,7 @@ class EditStaticText(wx.Panel):
         else:    
             self.edit = wx.TextCtrl(self, -1, text)
         self.edit.Show(False)
+        self.edit.SetMinSize((1, -1))
         vSizer.Add(self.edit, 0, wx.EXPAND)
         self.SetSizer(vSizer)
     

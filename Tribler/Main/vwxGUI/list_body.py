@@ -72,6 +72,7 @@ class ListItem(wx.Panel):
         self.highlightTimer = None
         self.selected = False
         self.expanded = False
+        self.expandedPanel = None
         self.SetBackgroundColour(self.list_deselected)
         self.SetForegroundColour(parent_list.GetForegroundColour())
         self.SetFont(parent_list.GetFont())
@@ -312,6 +313,8 @@ class ListItem(wx.Panel):
                 self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 0))
         
     def Expand(self, panel):
+        self.expandedPanel = panel
+        
         if getattr(panel, 'SetCursor', False):
             panel.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
             #panel.SetFont(panel.GetDefaultAttributes().font)
@@ -321,28 +324,26 @@ class ListItem(wx.Panel):
         self.Layout()
         
     def GetExpandedPanel(self):
-        if len(self.vSizer.GetChildren()) > 1:
-            return self.vSizer.GetChildren()[1].GetWindow()
+        return self.expandedPanel
 
     def Collapse(self):
         if self.expanded:
             self.expanded = False
             self.ShowSelected()
             
-            if len(self.vSizer.GetChildren()) > 1:
-                item = self.vSizer.GetItem(1).GetWindow()
-                item.Hide()
+            if self.expandedPanel:
+                self.expandedPanel.Hide()
                 
-                self.vSizer.Detach(1)
+                self.vSizer.Detach(self.expandedPanel)
                 self.vSizer.Layout()
-                return item
+                return self.expandedPanel
         
 class AbstractListBody():
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
-        self.parent_list = parent
+        self.parent_list = parent_list
         self.singleExpanded = singleExpanded
         self.showChange = showChange
         self.list_selected = LIST_SELECTED
@@ -803,9 +804,9 @@ class AbstractListBody():
             item.Deselect()
  
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         
         homeId = wx.NewId()
         endId = wx.NewId()
@@ -822,9 +823,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         event.Skip()
     
 class FixedListBody(wx.Panel, AbstractListBody):
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
     
     def Scroll(self, x, y):
         pass

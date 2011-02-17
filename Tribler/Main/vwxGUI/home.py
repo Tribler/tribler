@@ -115,7 +115,7 @@ class HomePanel(wx.Panel):
         self.Layout()
         
     def CreateHeader(self):
-        return TitleHeader(self, [])
+        return TitleHeader(self, self, [])
     def CreatePanel(self):
         pass
     def CreateFooter(self):
@@ -362,7 +362,7 @@ class BuzzPanel(HomePanel):
         self.timer.Start(1000, False)
     
     def CreateHeader(self):
-        header = FamilyFilterHeader(self, [])
+        header = FamilyFilterHeader(self, self, [])
         header.SetFF(self.guiutility.getFamilyFilter())
         return header
 

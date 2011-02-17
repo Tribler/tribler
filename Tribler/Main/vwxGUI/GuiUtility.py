@@ -1,31 +1,33 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat 
 # see LICENSE.txt for license information
 
-import wx, os
-from wx import xrc
-from traceback import print_exc
-from threading import Event, Thread
-import urllib
-import webbrowser
-import random
-from webbrowser import open_new
-
-from time import time
-
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Category.Category import Category
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager
-from Tribler.Main.vwxGUI.bgPanel import *
-from Tribler.Main.Utility.constants import *
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-
-
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.simpledefs import *
+from Tribler.Main.Utility.constants import *
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, \
+    ChannelSearchGridManager
+from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.__init__ import LIBRARYNAME
+from threading import Event, Thread
+from time import time
+from traceback import print_exc
+from webbrowser import open_new
+from wx import xrc
+import random
+import urllib
+import webbrowser
+import wx
+import os
+
+
+
+
 
 
 DEBUG = False
@@ -111,13 +113,6 @@ class GUIUtility:
                 
             self.frame.Freeze()
             
-            #show channel selector on these pages
-            if page in ['channels','selectedchannel','mychannel', 'playlist', 'managechannel']:
-                if self.guiPage not in ['channels','selectedchannel','mychannel', 'playlist', 'managechannel']:
-                    self.frame.channelselector.Show()
-            else:
-                self.frame.channelselector.Show(False)
-            
             if page == 'search_results':
                 #Show animation
                 if self.frame.top_bg.ag.IsPlaying():
@@ -138,6 +133,8 @@ class GUIUtility:
                     self.frame.searchlist.Show(False)
             
             if page == 'channels':
+                self.frame.channelselector.Show()
+                
                 selectedcat = self.frame.channelcategories.GetSelectedCategory()
                 if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage[:-1] == 'mychannel':
                     self.frame.channellist.Show()
@@ -148,6 +145,7 @@ class GUIUtility:
                     page = 'selectedchannel'
             elif self.guiPage == 'channels':
                 self.frame.channellist.Show(False)
+                self.frame.channelselector.Show(False)
             
             if page == 'mychannel':
                 self.frame.channelcategories.Quicktip('This is your channel, other Tribler users can find this channel by searching for your username')
@@ -223,7 +221,7 @@ class GUIUtility:
                 self.frame.selectedchannellist.Focus()
             elif page =='my_files':
                 self.frame.librarylist.Focus()
-                
+
     def GoBack(self, scrollTo = None):
         topage = self.oldpage.pop()
         

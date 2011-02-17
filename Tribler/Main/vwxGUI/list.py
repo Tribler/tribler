@@ -192,6 +192,9 @@ class List(XRCPanel):
         self.showChange = showChange
         self.borders = borders
         self.dirty = False
+        self.parent = parent
+        
+        self.leftLine = self.rightLine = None
         XRCPanel.__init__(self, parent)
     
     def _PostInit(self):
@@ -200,10 +203,11 @@ class List(XRCPanel):
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
         
-        self.header = self.CreateHeader()
-        vSizer.Add(self.header, 0, wx.EXPAND)
+        self.header = self.CreateHeader(self)
+        if self.header:
+            vSizer.Add(self.header, 0, wx.EXPAND)
         
-        self.list = self.CreateList()
+        self.list = self.CreateList(self)
 
         #left and right borders
         if self.borders:
@@ -216,11 +220,11 @@ class List(XRCPanel):
             listSizer.Add(self.rightLine, 0, wx.EXPAND)
             vSizer.Add(listSizer, 1, wx.EXPAND)
         else:
-            self.leftLine = self.rightLine = None
             vSizer.Add(self.list, 1, wx.EXPAND)
         
-        self.footer = self.CreateFooter()
-        vSizer.Add(self.footer, 0, wx.EXPAND)
+        self.footer = self.CreateFooter(self)
+        if self.footer:
+            vSizer.Add(self.footer, 0, wx.EXPAND)
         
         self.SetBackgroundColour(self.background)
         self.SetSizer(vSizer)
@@ -242,20 +246,21 @@ class List(XRCPanel):
         size = (val/1048576.0)
         return "%.0f MB"%size
     
-    def CreateHeader(self):
-        return ListHeader(self, self.columns)
+    def CreateHeader(self, parent):
+        return ListHeader(parent, self, self.columns)
     
-    def CreateList(self):
-        return ListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
+    def CreateList(self, parent):
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
-    def CreateFooter(self):
-        return ListFooter(self)
+    def CreateFooter(self, parent):
+        return ListFooter(parent)
     
     def OnSize(self, event):
         assert self.ready, "List not ready"
-        diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
-        self.header.SetSpacerRight(diff)
-        self.footer.SetSpacerRight(diff)
+        if self.header and self.footer:
+            diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
+            self.header.SetSpacerRight(diff)
+            self.footer.SetSpacerRight(diff)
         event.Skip()
         
     def OnSort(self, column, reverse):
@@ -265,9 +270,11 @@ class List(XRCPanel):
     
     def Reset(self):
         assert self.ready, "List not ready"
-        self.header.Reset()
+        if self.header:
+            self.header.Reset()
         self.list.Reset()
-        self.footer.Reset()
+        if self.footer:
+            self.footer.Reset()
         self.dirty = False
         
         self.Layout()
@@ -381,11 +388,11 @@ class SearchList(List):
             self.manager = RemoteSearchManager(self) 
         return self.manager
     
-    def CreateHeader(self):
-        return SearchHeader(self, self.columns)
+    def CreateHeader(self, parent):
+        return SearchHeader(parent, self, self.columns)
 
-    def CreateFooter(self):
-        footer = ChannelResultFooter(self)
+    def CreateFooter(self, parent):
+        footer = ChannelResultFooter(parent)
         footer.SetEvents(self.OnChannelResults)
         return footer 
     
@@ -521,13 +528,13 @@ class LibaryList(List):
             self.manager = LocalSearchManager(self) 
         return self.manager
     
-    def CreateHeader(self):
-        header = SearchHeader(self, self.columns)
+    def CreateHeader(self, parent):
+        header = SearchHeader(parent, self, self.columns)
         header.SetTitle('Library')
         return header
     
-    def CreateFooter(self):
-        footer = TotalFooter(self, self.columns)
+    def CreateFooter(self, parent):
+        footer = TotalFooter(parent, self.columns)
         footer.SetTotal(0, 'Totals:')
         return footer
     
@@ -754,8 +761,8 @@ class ChannelList(List):
             return "New"
         return str(val)
     
-    def CreateHeader(self):
-        return SubTitleHeader(self, self.columns)
+    def CreateHeader(self, parent):
+        return SubTitleHeader(parent, self, self.columns)
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -828,13 +835,13 @@ class ChannelCategoriesList(List):
     
         List.__init__(self, columns, LIST_GREY, [7,7], True)
     
-    def CreateHeader(self):
-        title = TitleHeader(self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
+    def CreateHeader(self, parent):
+        title = TitleHeader(parent, self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
         title.SetTitle('Categories')
         return title
     
-    def CreateList(self):
-        return FixedListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
+    def CreateList(self, parent):
+        return FixedListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
     
     def _PostInit(self):
         List._PostInit(self)

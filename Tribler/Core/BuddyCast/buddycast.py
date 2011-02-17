@@ -394,8 +394,9 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers,waitt)
             
             #Nitin: While booting up, we try to update the channels that we are subscribed to
-            #       after 6 seconds initially and later, at every 2 hour interval
-            self.overlay_bridge.add_task(self.channelcast_core.updateMySubscribedChannels, 6)
+            #       after 30 seconds initially and later, at every 2 hour interval
+            #Niels: Changed this to 30 to prevent to much going on at startup 
+            self.overlay_bridge.add_task(self.channelcast_core.updateMySubscribedChannels, 30)
             
             print >> sys.stderr, "BuddyCast starts up",waitt
         

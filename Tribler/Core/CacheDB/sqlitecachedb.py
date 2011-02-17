@@ -1226,7 +1226,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               channel_id            integer         NOT NULL,
               name                  text,
               description           text,
-              created               integer,
+              time_stamp            integer,
               inserted              integer         DEFAULT (strftime('%s','now')),
               UNIQUE (torrent_id, channel_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
@@ -1256,6 +1256,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               channel_id            integer         NOT NULL,
               comment               text            NOT NULL,
               reply_to_id           integer,
+              reply_after_id        integer         NOT NULL DEFAULT(-1),
+              time_stamp            integer,
+              inserted              integer         DEFAULT (strftime('%s','now')),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);
@@ -1466,7 +1469,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             insert_channel = "INSERT INTO Channels (dispersy_id, peer_id, name, description) VALUES (?,?,?,?)"
             select_new_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
-            insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, created, inserted) VALUES (?,?,?,?,?)"
+            insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
             channels = self.fetchall(select_channels)
             for peer_id, publisher_id, latest_update in channels:

@@ -432,7 +432,7 @@ CREATE TABLE IF NOT EXISTS ChannelTorrents (
   channel_id            integer         NOT NULL,
   name                  text,
   description           text,
-  created               integer,
+  time_stamp            integer,
   inserted              integer         DEFAULT (strftime('%s','now')),
   UNIQUE (torrent_id, channel_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
@@ -462,6 +462,9 @@ CREATE TABLE IF NOT EXISTS Comments (
   channel_id            integer         NOT NULL,
   comment               text            NOT NULL,
   reply_to_id           integer,
+  reply_after_id        integer         NOT NULL DEFAULT(-1),
+  time_stamp            integer,
+  inserted              integer         DEFAULT (strftime('%s','now')),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);

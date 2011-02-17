@@ -58,7 +58,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             
             images = ("minimize.png", "maximize.png")
             images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-            self.header  = PlayerHeader(self, bg, [], images[0], images[1])
+            self.header = PlayerHeader(self, self, bg, [], images[0], images[1])
             
             vSizer.Add(self.header, 0, wx.EXPAND)
             

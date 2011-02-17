@@ -192,10 +192,16 @@ class MainFrame(wx.Frame):
         
         findId = wx.NewId()
         quitId = wx.NewId()
+        nextId = wx.NewId()
+        prevId = wx.NewId()
         self.Bind(wx.EVT_MENU, self.OnFind, id = findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id = quitId)
+        self.Bind(wx.EVT_MENU, self.OnNext, id = nextId)
+        self.Bind(wx.EVT_MENU, self.OnPrev, id = prevId)
         
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
+        accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
+        accelerators.append((wx.ACCEL_CTRL|wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
         if sys.platform == 'linux2':
             accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
             accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
@@ -565,6 +571,10 @@ class MainFrame(wx.Frame):
     
     def OnFind(self, event):
         self.guiUtility.frame.top_bg.SearchFocus()
+    def OnNext(self, event):
+        self.guiUtility.frame.top_bg.NextPage()
+    def OnPrev(self, event):
+        self.guiUtility.frame.top_bg.PrevPage()
 
 
     #######################################

@@ -387,6 +387,7 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
 
         # set port number in GuiUtility
         if DEBUG:
@@ -744,6 +745,14 @@ class ABCApp(wx.App):
             self.frame.managechannel.playlistCreated(objectID)
         else:
             self.frame.managechannel.playlistUpdated(objectID)
+            
+    def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
+        if self.ready and self.frame.ready:
+            wx.CallAfter(self.gui_ntfy_commentupdates,subject,changeType,objectID, *args)
+            
+    def gui_ntfy_commentupdates(self, subject, changeType, objectID, *args):
+        self.frame.selectedchannellist.OnCommentCreated(objectID)
+        self.frame.playlist.OnCommentCreated(objectID)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

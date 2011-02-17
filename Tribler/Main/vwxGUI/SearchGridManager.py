@@ -779,6 +779,7 @@ class ChannelSearchGridManager:
             raise RuntimeError, "ChannelSearchGridManager is singleton"
         ChannelSearchGridManager.__single = self
         self.guiUtility = guiUtility
+        self.utility = guiUtility.utility
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
@@ -865,35 +866,27 @@ class ChannelSearchGridManager:
         data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']
         return data
     
-    def getTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True):
-        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys)
-        
-        if filterTorrents:
-            nrFiltered, hits = self._applyFF(hits)
-        else:
-            nrFiltered = 0
-        
-        #Prefer channeltorrents name, but use collectedtorrent as backup
-        for data in hits:
-            data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']   
-        return  len(hits), nrFiltered, hits
+    def getTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys, limit)
+        return self._fix_torrents(hits, filterTorrents)
+    
+    def getRecentTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys, limit)
+        return self._fix_torrents(hits, filterTorrents)
 
     def getTorrentsNotInPlaylist(self, channel_id, keys, filterTorrents = True):
         hits = self.channelcast_db.getTorrentsNotInPlaylist(channel_id, keys)
-        
-        if filterTorrents:
-            nrFiltered, hits = self._applyFF(hits)
-        else:
-            nrFiltered = 0
-        
-        #Prefer channeltorrents name, but use collectedtorrent as backup
-        for data in hits:
-            data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']   
-        return  len(hits), nrFiltered, hits
+        return self._fix_torrents(hits, filterTorrents)
     
-    def getTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True):
-        hits = self.channelcast_db.getTorrentsFromPlaylist(playlist_id, keys)
+    def getTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getTorrentsFromPlaylist(playlist_id, keys, limit)
+        return self._fix_torrents(hits, filterTorrents)
+    
+    def getRecentTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist_id, keys, limit)
+        return self._fix_torrents(hits, filterTorrents)
         
+    def _fix_torrents(self, hits, filterTorrents):
         if filterTorrents:
             nrFiltered, hits = self._applyFF(hits)
         else:
@@ -903,7 +896,7 @@ class ChannelSearchGridManager:
         for data in hits:
             data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']  
         return len(hits), nrFiltered, hits
-        
+    
     def _applyFF(self, hits):
         enabledcattuples = self.category.getCategoryNames()
         enabledcatslow = ["other"]
@@ -937,6 +930,24 @@ class ChannelSearchGridManager:
     def getPlaylistsFromChannelId(self, channel_id, keys):
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
         return len(hits), hits
+    
+    def getCommentsFromChannelId(self, channel_id, keys, limit = None):
+        hits = self.channelcast_db.getCommentsFromChannelId(channel_id, keys, limit)
+        return self._fix_my_name(hits)
+    
+    def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
+        hits = self.channelcast_db.getCommentsFromPlayListId(playlist_id, keys, limit)
+        return self._fix_my_name(hits)
+        
+    def _fix_my_name(self, hits):
+        for hit in hits:
+            if hit['Peer.peer_id'] == self.channelcast_db.my_peerid:
+                hit['name'] = self.utility.session.get_nickname()
+        
+        return len(hits), hits
+    
+    def addComment(self, comment, channel_id, playlist_id = None, channeltorrent_id = None):
+        self.channelcast_db.addComment(comment, channel_id, playlist_id, channeltorrent_id)
     
     def getChannel(self, channel_id):
         return self.channelcast_db.getChannel(channel_id)

@@ -213,14 +213,13 @@ class TorrentDetails(AbstractDetails):
         else:
             _, self.status = self._add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
             
-        if self.torrent.get('description', '') or finished:
-            if self.torrent.get('description', None) == None:
-                description = 'No description found, be the first to add a description.'
-            else:
-                description = self.torrent['description']
+        if self.torrent.get('description', None) == None:
+            description = 'No description found, be the first to add a description.'
+        else:
+            description = self.torrent['description']
             
-            self.isEditable['description'] = EditStaticText(overview, description, multiLine = True)
-            self._add_row(overview, vSizer, "Description", self.isEditable['description'])
+        self.isEditable['description'] = EditStaticText(overview, description, multiLine = True)
+        self._add_row(overview, vSizer, "Description", self.isEditable['description'])
         
         torrentSizer.Add(vSizer, 0, wx.EXPAND)
         
@@ -1204,8 +1203,8 @@ class MyChannelTabs(wx.Panel):
         #shared files page
         filespage = wx.Panel(notebook)
         filespage.SetBackgroundColour(LIST_DESELECTED)
-        self.header = ListHeader(filespage, columns, 0)
-        self.list = ListBody(filespage, columns, spacers[0], spacers[1], singleSelect)
+        self.header = ListHeader(filespage, filespage, columns, 0)
+        self.list = ListBody(filespage, filespage, columns, spacers[0], spacers[1], singleSelect)
         self.list.SetBackgroundColour(background)
         
         #small onexpand hack

@@ -19,6 +19,7 @@ import base64
 from random import randint, sample
 import math
 import re
+from sets import Set
 
 from maxflow import Network
 from math import atan, pi
@@ -3004,9 +3005,9 @@ class ChannelCastDBHandler:
         
     def addReceivedInfohashes(self, torrents):
         #torrents is a list of tuples (channel_id, channel_name, infohash, time_stamp
-        select_max = "SELECT max(created) FROM ChannelTorrents WHERE channel_id = ?"
+        select_max = "SELECT max(time_stamp) FROM ChannelTorrents WHERE channel_id = ?"
         update_name = "UPDATE Channels SET name = ? WHERE id = ?" 
-        insert_torrent = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, created) VALUES (?,?,?,?)"
+        insert_torrent = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
         
         max_update = {}
         latest_update = {}
@@ -3057,17 +3058,17 @@ class ChannelCastDBHandler:
     def OnChannelTorrent(self, message):
         pass
     
-    def _OnChannelTorrent(self, channel_id, torrent_id, dispersy_id, name, description, created):
+    def _OnChannelTorrent(self, channel_id, torrent_id, dispersy_id, name, description, time_stamp):
         if __debug__:
             assert isinstance(channel_id, int), "channel_id has invalid type: %s" % type(channel_id)
             assert isinstance(torrent_id, int), "torrent_id has invalid type: %s" % type(torrent_id)
             assert isinstance(name, unicode), "NAME has invalid type: %s" % type(name)
             assert isinstance(description, unicode), "DESCRIPTION has invalid type: %s" % type(description)
-            assert isinstance(created, int), "CREATED has invalid type: %s" % type(created)
+            assert isinstance(time_stamp, int), "CREATED has invalid type: %s" % type(time_stamp)
             
         #unique constraint on torrent_id, channel_id will allow us to update this way
-        sql = "INSERT OR UPDATE ChannelTorrents (torrent_id, channel_id, dispersy_id, name, description, created) VALUES (?,?,?,?,?,?)"
-        self._db.execute_write(sql, (torrent_id, channel_id, dispersy_id, name, description, created))
+        sql = "INSERT OR UPDATE ChannelTorrents (torrent_id, channel_id, dispersy_id, name, description, time_stamp) VALUES (?,?,?,?,?,?)"
+        self._db.execute_write(sql, (torrent_id, channel_id, dispersy_id, name, description, time_stamp))
     
     def selectTorrentsToCollect(self, channel_id = None):
         if channel_id:
@@ -3103,7 +3104,7 @@ class ChannelCastDBHandler:
     def getRecentAndRandomTorrents(self,NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10):
         allrecords = []
         
-        sql = "select * from ChannelTorrents where channel_id==? order by created desc limit ?"
+        sql = "select * from ChannelTorrents where channel_id==? order by time_stamp desc limit ?"
         myrecenttorrents = self._db.fetchall(sql, (self.channel_id, NUM_OWN_RECENT_TORRENTS))
         allrecords.extend(myrecenttorrents)
         
@@ -3140,18 +3141,36 @@ class ChannelCastDBHandler:
         result = self._db.fetchone(sql, (channel_id, bin2str(infohash)))
         return self.__fixTorrents(keys, [result])[0]        
     
-    def getTorrentsFromChannelId(self, channel_id, keys):
-        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY created DESC"
+    def getTorrentsFromChannelId(self, channel_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY time_stamp DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
     
-    def getTorrentsFromPlaylist(self, playlist_id, keys):
-        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents, PlaylistTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? ORDER BY created DESC"
+    def getRecentTorrentsFromChannelId(self, channel_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (channel_id,))
+        return self.__fixTorrents(keys, results)
+    
+    def getTorrentsFromPlaylist(self, playlist_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents, PlaylistTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? ORDER BY time_stamp DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (playlist_id,))
+        return self.__fixTorrents(keys, results)
+    
+    def getRecentTorrentsFromPlaylist(self, playlist_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents, PlaylistTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? ORDER BY inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (playlist_id,))
         return self.__fixTorrents(keys, results)
     
     def getTorrentsNotInPlaylist(self, channel_id, keys):
-        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY created DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY time_stamp DESC"
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
     
@@ -3177,9 +3196,48 @@ class ChannelCastDBHandler:
         return dict(zip(keys,result))
     
     def _getPlaylists(self, playlistdicts):
-        sql = "Select count(*) from PlaylistTorrents Where playlist_id = ?"
+        sql = "SELECT count(*) FROM PlaylistTorrents WHERE playlist_id = ?"
         for dict in playlistdicts:
             dict['nr_torrents'] = self._db.fetchone(sql, (dict['id'],))
+            
+    def getCommentsFromChannelId(self, channel_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, Peer WHERE Comments.peer_id = Peer.peer_id AND channel_id = ? ORDER BY time_stamp DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (channel_id, ))
+        
+        commentlist = [dict(zip(keys,result)) for result in results]
+        return commentlist
+
+    def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentPlaylist, Peer WHERE Comments.id = CommentPlaylist.comment_id AND Comments.peer_id = Peer.peer_id AND playlist_id = ? ORDER BY time_stamp DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (playlist_id, ))
+        
+        commentlist = [dict(zip(keys,result)) for result in results]
+        return commentlist
+    
+    def addComment(self, comment, channel_id, playlist_id = None, channeltorrent_id = None):
+        #TODO: dispersy integration, time() should be time of injector
+        sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, time_stamp) VALUES (?, ?, ?, ?, ?)"
+        self._db.execute_write(sql, (channel_id, -1, self.my_peerid, comment, int(time())))
+        
+        if playlist_id or channeltorrent_id:
+            sql = "SELECT id FROM Comments Where channel_id = ? And dispersy_id = ? And peer_id = ? And comment = ?"
+            #TODO: remove name, description after dispersy integration
+            comment_id = self._db.fetchone(sql, (channel_id, -1, self.my_peerid, comment))
+            
+            if playlist_id:
+                sql = "INSERT INTO CommentPlaylist (comment_id, playlist_id) VALUES (?, ?)"
+                self._db.execute_write(sql, (comment_id, playlist_id))
+                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, playlist_id)
+                
+            if channeltorrent_id:
+                sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
+                self._db.execute_write(sql, (comment_id, channeltorrent_id))
+        
+        self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
         
     def savePlaylist(self, channel_id, name, description, torrent_ids, playlist_id = None):
         #TODO: dispersy integration?
@@ -3230,13 +3288,13 @@ class ChannelCastDBHandler:
             sql = sql[:-3]
                    
             channels = self._db.fetchall(sql)
-            select_torrents = "SELECT infohash, ChannelTorrents.name, CollectedTorrent.name, created from ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY created DESC LIMIT 20"
+            select_torrents = "SELECT infohash, ChannelTorrents.name, CollectedTorrent.name, time_stamp from ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY time_stamp DESC LIMIT 20"
             
             results = []
             for channel_id, name in channels:
                 torrents = self._db.fetchall(select_torrents, (channel_id, ))
-                for infohash, ChTname, CoTname, created in torrents:
-                    results.append((channel_id, name, infohash, ChTname or CoTname, created))
+                for infohash, ChTname, CoTname, time_stamp in torrents:
+                    results.append((channel_id, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []
         
@@ -3350,7 +3408,7 @@ class ChannelCastDBHandler:
             #finally compare nr_torrents
             return cmp(a[4], b[4])
         
-        sql = "Select Channels.id, Channels.name FROM Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id GROUP BY Channels.id Order By max(created) DESC Limit ?"
+        sql = "Select Channels.id, Channels.name FROM Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id GROUP BY Channels.id Order By max(time_stamp) DESC Limit ?"
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
@@ -3366,7 +3424,7 @@ class ChannelCastDBHandler:
         channels = []
         results = self._db.fetchall(sql, args)
         
-        select_nr_torrents = "Select count(*), max(created) FROM ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? AND status_id <> ? LIMIT 1"
+        select_nr_torrents = "Select count(*), max(time_stamp) FROM ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? AND status_id <> ? LIMIT 1"
         
         for channel_id, channel_name in results:
             nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)

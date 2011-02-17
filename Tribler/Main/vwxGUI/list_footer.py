@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
 from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
+from list_details import AbstractDetails
 
 class ListFooter(wx.Panel):
     def __init__(self, parent, radius = LIST_RADIUS):
@@ -21,6 +22,8 @@ class ListFooter(wx.Panel):
         
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnResize)
+        
+        self.background = wx.Brush(self.GetBackgroundColour())
         
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
@@ -194,10 +197,6 @@ class ChannelResultFooter(ListFooter):
         
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):
-        self.manage = wx.Button(self, -1, 'Edit this Channel')
-        self.manage.Show(False)
-        hSizer.Add(self.manage, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
-        
         self.message = wx.StaticText(self)
         self.message.SetMinSize((1,-1))
         font = self.message.GetFont()
@@ -206,8 +205,12 @@ class ChannelFooter(ListFooter):
         self.message.SetFont(font)
         hSizer.Add(self.message, 1, wx.TOP|wx.BOTTOM|wx.ALIGN_BOTTOM, 3)
         
+        self.manage = wx.Button(self, -1, 'Edit this Channel')
+        self.manage.Show(False)
         self.spam = wx.Button(self, -1, 'Mark as Spam')
         self.favorite = wx.Button(self, -1, 'Mark as Favorite')
+        
+        hSizer.Add(self.manage, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.spam, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.favorite, 0, wx.TOP|wx.BOTTOM, 3)
         
@@ -221,27 +224,33 @@ class ChannelFooter(ListFooter):
         self.Freeze()
         if manage != None:
             self.manage.Show(manage)
-
-        if spam:
-            self.spam.SetLabel('This is not Spam')
-            self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
-        else:
-            self.spam.SetLabel('Mark as Spam')
-            self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
+            self.spam.Show(not manage)
+            self.favorite.Show(not manage)
             
-        if favorite:
-            self.favorite.SetLabel('Remove Favorite')
-            self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
-        else:
-            self.favorite.SetLabel('Mark as Favorite')
-            self.favorite.Bind(wx.EVT_BUTTON, self.favorite_eventhandler)
-            
-        if spam:
-            self.message.SetLabel("You have marked this Channel as Spam.")
-        elif favorite:
-            self.message.SetLabel("Thank you for marking this Channel as your Favorite.")
-        else:
-            self.message.SetLabel("What do you think of this Channel? Mark it as Spam or as a Favorite.")
+            if manage:
+                self.message.SetLabel("You can edit this channel")
+        
+        if self.spam.IsShown():
+            if spam:
+                self.spam.SetLabel('This is not Spam')
+                self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+            else:
+                self.spam.SetLabel('Mark as Spam')
+                self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
+                
+            if favorite:
+                self.favorite.SetLabel('Remove Favorite')
+                self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+            else:
+                self.favorite.SetLabel('Mark as Favorite')
+                self.favorite.Bind(wx.EVT_BUTTON, self.favorite_eventhandler)
+                
+            if spam:
+                self.message.SetLabel("You have marked this Channel as Spam.")
+            elif favorite:
+                self.message.SetLabel("Thank you for marking this Channel as your Favorite.")
+            else:
+                self.message.SetLabel("What do you think of this Channel? Mark it as Spam or as a Favorite.")
         
         self.Layout()
         self.Thaw()
@@ -279,3 +288,36 @@ class ManageChannelPlaylistFooter(ListFooter):
         hSizer.Add(self.addnew, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.removesel, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)
+        
+class CommentFooter(ListFooter, AbstractDetails):
+    def __init__(self, parent, createnew):
+        ListFooter.__init__(self, parent, 0)
+        
+        self.addnew.Bind(wx.EVT_BUTTON, createnew)
+    
+    def GetMidPanel(self, sizer):
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        self._add_header(self, vSizer, 'Post a comment')
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.commentbox = wx.TextCtrl(self, style = wx.TE_MULTILINE)
+        
+        hSizer.Add(self.commentbox, 1, wx.EXPAND)
+        
+        self.addnew = wx.Button(self, -1, 'Post')
+        hSizer.Add(self.addnew, 0, wx.ALIGN_BOTTOM|wx.LEFT, 3)
+        vSizer.Add(hSizer, 0, wx.EXPAND|wx.ALL, 3)
+        sizer.Add(vSizer, 1, wx.EXPAND)
+    
+    def GetComment(self):
+        return self.commentbox.GetValue()
+    
+    def SetComment(self, value):
+        self.commentbox.SetValue(value)
+    
+    def SetReply(self, reply):
+        if reply:
+            self.addnew.SetLabel('Reply')
+        else:
+            self.addnew.SetLabel('Post')
+        self.Layout()
