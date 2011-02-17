@@ -137,14 +137,18 @@ class ListItem(wx.Panel):
         self.AddEvents(self)
     
     def AddEvents(self, control):
-        control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        if not isinstance(control, wx.Button):
+            control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        else:
+            control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
+            control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
         control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         func = getattr(control, 'GetChildren', False)
         if func:
             for child in func():
                 self.AddEvents(child)
-      
+          
     def GetIcon(self, background, state):
         return ListIcon.getInstance().getBitmap(self, self.icontype, background, state)
         

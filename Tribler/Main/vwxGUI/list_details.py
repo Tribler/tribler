@@ -35,6 +35,7 @@ class TorrentDetails(wx.Panel):
         self.uelog = UserEventLogDBHandler.getInstance()
         self.parent = parent
         self.torrent = torrent
+        self.type = None
         
         self.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -302,44 +303,50 @@ class TorrentDetails(wx.Panel):
     
     def ShowPanel(self, type = None):
         if getattr(self, 'buttonSizer', False):
-            self.buttonPanel.Freeze()
-            self.buttonSizer.ShowItems(False)
-            self.buttonSizer.DeleteWindows()
-            self.buttonSizer.Clear()
-            
-            in_progress = finished = False
-            
             if type is None:
+                type = 0
+                
                 #Decide which panel should be shown
                 ds = self.torrent.get('ds', False)
                 if ds:
-                    in_progress = True
-                    finished = ds.get_progress() == 1.0
+                    if ds.get_progress() == 1.0:
+                        type = 2
+                    else:
+                        type = 1
                 else:
-                    finished = self.torrent.get('progress', 0) == 100
-                    
-            elif type == 1:
-                in_progress = True
-            elif type == 2:
-                finished = True
+                    progress = self.torrent.get('progress', 0)
+                    if progress == 100:
+                        type = 2
+                    elif progress > 0:
+                        type = 1
             
-            if finished:
-                self.torrent['progress'] = 100
-                self._ShowDone()
-            elif in_progress:
-                self._ShowDownloadProgress()
-            else:
-                self._ShowTorrentDetails()
+            if type != self.type:    
+                self.type = type
                 
-            if getattr(self.parent, 'button', False):
-                self.parent.button.Enable(not finished and not in_progress)
+                self.buttonPanel.Freeze()
+                self.buttonSizer.ShowItems(False)
+                self.buttonSizer.DeleteWindows()
+                self.buttonSizer.Clear()
             
-            self.buttonPanel.Show()
-            self.buttonPanel.Layout()
-            self.buttonPanel.Thaw()
+                in_progress = finished = False
+            
+                if type == 2:
+                    self.torrent['progress'] = 100
+                    self._ShowDone()
+                elif type == 1:
+                    self._ShowDownloadProgress()
+                else:
+                    self._ShowTorrentDetails()
+                
+                if getattr(self.parent, 'button', False):
+                    self.parent.button.Enable(not finished and not in_progress)
+            
+                self.buttonPanel.Show()
+                self.buttonPanel.Layout()
+                self.buttonPanel.Thaw()
         else:
             #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
-            wx.CallAfter(self.ShowPanel)
+            wx.CallAfter(self.ShowPanel, type)
         
     def ShowChannelAd(self, show):
         if self.isReady:
@@ -748,6 +755,10 @@ class TorrentDetails(wx.Panel):
                 self.downloadText.Refresh()
             self.buttonPanel.Show()
             
+        else:
+            self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
+            self.ShowPanel(2)
+            
     def __del__(self):
         self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
 
@@ -767,14 +778,11 @@ class LibraryDetails(TorrentDetails):
                
         self.notebook.AddPage(self.peerList, "Peers")
     
-    def _ShowDone(self):
-        TorrentDetails._ShowDone(self)
+    def _Refresh(self, ds):
+        TorrentDetails._Refresh(self, ds)
         
         #register callback for peerlist update
         self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
-    
-    def _Refresh(self, ds):
-        TorrentDetails._Refresh(self, ds)
         
         self.peerList.Freeze()
         def downsort(a, b):
