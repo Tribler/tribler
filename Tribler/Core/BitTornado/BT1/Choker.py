@@ -15,7 +15,7 @@ except:
 DEBUG = False
 
 class Choker:
-    def __init__(self, config, schedule, picker, seeding_selector, done = lambda: False):
+    def __init__(self, config, schedule, picker, done = lambda: False):
         self.config = config
         self.round_robin_period = config['round_robin_period']
         self.schedule = schedule
