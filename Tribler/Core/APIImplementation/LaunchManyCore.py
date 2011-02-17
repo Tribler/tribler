@@ -10,6 +10,7 @@ import time as timemod
 from threading import Event,Thread,enumerate
 from traceback import print_exc, print_stack
 
+from Tribler.Community.allchannel.community import AllChannelCommunity
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
@@ -331,12 +332,22 @@ class TriblerLaunchMany(Thread):
         self._dispersy = Dispersy.get_instance(self._dispersy_rawserver, os.path.join(config['state_dir'], u"sqlite"))
         self._dispersy.socket = DispersySocket(self._dispersy_rawserver, self._dispersy, config['dispersy_port'])
 
-        # # test script for the AllChannel community
-        # from Tribler.Core.dispersy.script import Script
-        # from Tribler.Community.allchannel.script import AllChannelScript
-        # script = Script.get_instance(self._dispersy_rawserver)
-        # script.add("allchannel", AllChannelScript)
-        # script.load("allchannel")
+        from Tribler.Core.Overlay.permid import read_keypair
+        keypair = read_keypair(self.session.get_permid_keypair_filename())
+
+        from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
+        from Tribler.Core.dispersy.member import MyMember
+        my_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+
+        # start AllChannelCommunity
+        self._all_channel_community, = AllChannelCommunity.load_communities(my_member)
+
+        # test script for the AllChannelCommunity
+        from Tribler.Core.dispersy.script import Script
+        from Tribler.Community.allchannel.script import AllChannelScript
+        script = Script.get_instance(self._dispersy_rawserver)
+        script.add("allchannel", AllChannelScript)
+        script.load("allchannel")
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

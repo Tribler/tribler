@@ -231,10 +231,43 @@ class DropMessageByProof(DropMessage):
         return self._proof
 
 #
+# packet
+#
+
+class Packet(MetaObject.Implementation):
+    def __init__(self, meta, packet):
+        assert isinstance(packet, str)
+        super(Packet, self).__init__(meta)
+        self._packet = packet
+
+        @property
+        def community(self):
+            return self._meta._community
+
+        @property
+        def name(self):
+            return self._meta._name
+
+        @property
+        def database_id(self):
+            return self._meta._database_id
+
+        @property
+        def resolution(self):
+            return self._meta._resolution
+
+        @property
+        def packet(self):
+            return self._packet
+
+        def __str__(self):
+            return "<{0.meta.__class__.__name__}.{0.__class__.__name__} {0.name} {1}>".format(self, len(self._packet))
+
+#
 # message
 #
 class Message(MetaObject):
-    class Implementation(MetaObject.Implementation):
+    class Implementation(Packet):
         def __init__(self, meta, authentication, distribution, destination, payload, conversion=None, packet=""):
             if __debug__:
                 from payload import Payload
@@ -246,7 +279,7 @@ class Message(MetaObject):
             assert isinstance(payload, meta._payload.Implementation), "PAYLOAD has invalid type '{0}'".format(type(payload))
             assert conversion is None or isinstance(conversion, Conversion), "CONVERSION has invalid type '{0}'".format(type(conversion))
             assert isinstance(packet, str)
-            super(Message.Implementation, self).__init__(meta)
+            super(Message.Implementation, self).__init__(meta, packet)
             self._authentication = authentication
             self._distribution = distribution
             self._destination = destination
@@ -266,9 +299,7 @@ class Message(MetaObject):
             else:
                 self._conversion = meta._community.get_conversion()
 
-            if packet:
-                self._packet = packet
-            else:
+            if not packet:
                 self._packet = self._conversion.encode_message(self)
 
         @property

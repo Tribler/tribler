@@ -244,7 +244,7 @@ class PrivateMember(Private, Member):
             else:
                 # set private key
                 database = DispersyDatabase.get_instance()
-                database.execute(u"INSERT INTO key(public_key, private_key) VALUES(?, ?)", (buffer(public_key), buffer(private_key)))
+                database.execute(u"INSERT OR IGNORE INTO key(public_key, private_key) VALUES(?, ?)", (buffer(public_key), buffer(private_key)))
 
         if private_key is None:
             ec = ec_from_public_bin(public_key)

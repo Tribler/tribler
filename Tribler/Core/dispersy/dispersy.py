@@ -944,7 +944,7 @@ class Dispersy(Singleton):
 
         if response_func:
             meta = community.get_meta_message(u"dispersy-routing-response")
-            footprint = meta.generate_footprint(payload=sha1(request.packet).digest())
+            footprint = meta.generate_footprint(payload=(sha1(request.packet).digest(),))
             self.await_message(footprint, response_func, response_args, timeout, max_responses)
 
         return request

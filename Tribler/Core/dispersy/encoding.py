@@ -173,7 +173,7 @@ def decode(stream, offset=0):
         index = offset + 1
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        return _a_decode_mapping[stream[index]](stream, index+1, int(stream[offset+1:index]), _a_decode_mapping)[1]
+        return _a_decode_mapping[stream[index]](stream, index+1, int(stream[offset+1:index]), _a_decode_mapping)
 
     raise ValueError("Unknown version found")
 
