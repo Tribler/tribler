@@ -259,12 +259,7 @@ class ABCApp(wx.App):
                 wx.CallAfter(self.frame.top_bg.Layout)
             else:
                 self.frame.top_bg.Layout()
-            
-            # reputation
-            self.guiserver.add_task(self.guiservthread_update_reputation, .2)
           
-            self.setDBStats()
-            
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
 
@@ -290,6 +285,7 @@ class ABCApp(wx.App):
             
             wx.CallAfter(self.startWithRightView)
             wx.CallAfter(self.loadSessionCheckpoint)
+            wx.CallAfter(self.set_reputation)
             
             # start the torrent feed thread
             self.torrentfeed = TorrentFeedThread.getInstance()
@@ -379,8 +375,6 @@ class ABCApp(wx.App):
 
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
@@ -471,7 +465,10 @@ class ABCApp(wx.App):
 
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
-        wx.CallAfter(self.gui_states_callback,dslist)
+        def guiCall():
+            wx.CallAfter(self.gui_states_callback, dslist)
+        
+        self.guiserver.add_task(guiCall, id="DownloadStateCallback")
         return(1.0, True)
     
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
@@ -499,31 +496,18 @@ class ABCApp(wx.App):
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         return bc_db.total_up
 
-
     def set_reputation(self):
         """ set the reputation in the GUI"""
-        self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
-
-    def guiservthread_update_reputation(self):
-        """ update the reputation"""
-        # 26/10/09 boudewijn: the guiservthread_update_reputation will
-        # use parameters from self.frame.top_bg that have not yet been
-        # created. They are eventually created when the UI thread is
-        # ready for it. Therefore, we will set an 'init_ready'
-        # parameter when it is ready.
-        if self.frame.top_bg.init_ready:
-            wx.CallAfter(self.set_reputation)
-            self.guiserver.add_task(self.guiservthread_update_reputation,10.0)
-        else:
-            self.guiserver.add_task(self.guiservthread_update_reputation,.2)
+        if self.ready and self.frame.ready:
+            self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
+            
+        wx.CallLater(10000, self.set_reputation)
         
     def gui_states_callback(self,dslist):
-        """ Called by MainThread  """
+        """ Called by GUITHREAD  """
         if DEBUG: 
-            print >>sys.stderr,"main: Stats:"
-        torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-        if DEBUG:
+            torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+            peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
             print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
             
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
@@ -622,12 +606,6 @@ class ABCApp(wx.App):
             if adjustspeeds:
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
-                
-            # Update stats in lower right overview box
-            # self.guiUtility.refreshTorrentStats(dslist)
-            
-            # Upload overall upload states
-            # self.guiUtility.refreshUploadStats(dslist)
             
 # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance
@@ -671,35 +649,6 @@ class ABCApp(wx.App):
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
-
-
-    def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):
-        """ Called by SessionCallback thread """
-        wx.CallAfter(self.setDBStats)
-        # Test
-        #if subject == NTFY_PEERS:
-        #    self.frame.friendsmgr.sesscb_friendship_callback(objectID,{})
-        
-    def setDBStats(self):
-        """ Set total # peers and torrents discovered """
-        
-        # Arno: GUI thread accessing database
-        now = time()
-        if now - self.last_update < self.update_freq:
-            return  
-        self.last_update = now
-        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
-        npeers = peer_db.getNumberPeers()
-        torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        nfiles = torrent_db.getNumberTorrents()
-        if nfiles > 30 and npeers > 30:
-            self.update_freq = 2
-        # Arno: not closing db connections, assuming main thread's will be 
-        # closed at end.
-                
-        #self.frame.numberPersons.SetLabel('%d' % npeers)
-        #self.frame.numberFiles.SetLabel('%d' % nfiles)
-        # print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
         # Called by SessionCallback thread
@@ -713,14 +662,18 @@ class ABCApp(wx.App):
 
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
+            def guiCall():
+                wx.CallAfter(self.gui_ntfy_channelupdates, objectID)
+            
+            #wrap in guiserver to prevent multiple refreshes
+            self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
     
-    def gui_ntfy_channelupdates(self,subject,changeType,objectID,*args):
+    def gui_ntfy_channelupdates(self, channel_id):
         manager = self.frame.channellist.GetManager()
-        manager.channelUpdated(objectID)
+        manager.channelUpdated(channel_id)
         
         manager = self.frame.selectedchannellist.GetManager()
-        manager.channelUpdated(objectID)
+        manager.channelUpdated(channel_id)
         
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
