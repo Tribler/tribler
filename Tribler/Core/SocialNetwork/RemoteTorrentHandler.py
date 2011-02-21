@@ -181,7 +181,7 @@ class MagnetRequester():
         self.metadatahandler = metadatahandler
         self.remoteTorrentHandler = remoteTorrentHandler
         self.overlay_bridge = overlay_bridge
-        self.session = session
+        self.torrent_db = session.open_dbhandler('torrents')
         
         self.listLock = threading.RLock()
         self.list = []
@@ -218,16 +218,20 @@ class MagnetRequester():
                     if len(self.list) == 0:
                             return
                     prio, infohash = self.list.pop(0)
-                    torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
-                    
                     if infohash in self.requestedInfohashes:
                         if DEBUG:
                             print >> sys.stderr, 'magnetrequester: magnet already requested', bin2str(infohash)
-                    elif os.path.isfile(torrent_filename):
+                        continue
+                
+                    torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'])
+                    torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
+                    torrent_alt_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
+                    
+                    if os.path.isfile(torrent_filename) or os.path.isfile(torrent_alt_filename):
                         if DEBUG:
                             print >> sys.stderr, 'magnetrequester: magnet already on disk', bin2str(infohash)
                     else:
-                        break
+                        break #do request
             else: #requesting max_concurrent
                 return
         except:
@@ -257,12 +261,12 @@ class MagnetRequester():
             self.requestedInfohashes.remove(infohash)
         
             #save torrent
-            torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
+            torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'])
+            torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
             tdef.save(torrent_filename)
             
             #add this new torrent to db
-            torrent_db = self.session.open_dbhandler('torrents')
-            torrent_db.addExternalTorrent(tdef)
+            self.torrent_db.addExternalTorrent(tdef)
             
             #notify all
             self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
