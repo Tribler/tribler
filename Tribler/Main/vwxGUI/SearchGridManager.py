@@ -865,6 +865,13 @@ class ChannelSearchGridManager:
         #Prefer channeltorrents name, but use collectedtorrent as backup
         data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']
         return data
+
+    def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
+        data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, keys)
+        
+        #Prefer channeltorrents name, but use collectedtorrent as backup
+        data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']
+        return data
     
     def getTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys, limit)
@@ -931,12 +938,30 @@ class ChannelSearchGridManager:
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
         return len(hits), hits
     
-    def getCommentsFromChannelId(self, channel_id, keys, limit = None):
+    def getCommentsFromChannelId(self, channel_id, keys, limit = None, resolve_names = True):
+        keys += ['playlist_id', 'channeltorrent_id']
+        
         hits = self.channelcast_db.getCommentsFromChannelId(channel_id, keys, limit)
-        return self._fix_my_name(hits)
+        nrhits, hits = self._fix_my_name(hits)
+        
+        if resolve_names:
+            for hit in hits:
+                if hit.get('channeltorrent_id', None):
+                    torrent = self.getTorrentFromChannelTorrentId(hit['channeltorrent_id'], ['ChannelTorrents.name', 'CollectedTorrent.name'])
+                    hit['torrent_name'] = torrent['name'] 
+                
+                if hit.get('playlist_id', None):
+                    playlist = self.getPlaylist(hit['playlist_id'], ['name'])
+                    hit['playlist_name'] = playlist['name']
+                    
+        return nrhits, hits
     
     def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
         hits = self.channelcast_db.getCommentsFromPlayListId(playlist_id, keys, limit)
+        return self._fix_my_name(hits)
+    
+    def getCommentsFromChannelTorrentId(self, channel_torrent_id, keys, limit = None):
+        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent_id, keys, limit)
         return self._fix_my_name(hits)
         
     def _fix_my_name(self, hits):

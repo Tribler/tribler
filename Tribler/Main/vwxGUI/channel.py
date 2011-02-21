@@ -11,8 +11,7 @@ from list_details import *
 from __init__ import *
 
 class ChannelManager():
-    channel_req_columns = ['infohash', 'CollectedTorrent.name', 'ChannelTorrents.name', 'ChannelTorrents.id', 'description', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
-    playlist_req_columns = ['id', 'channel_id', 'name', 'description']
+    
     
     def __init__(self, list):
         self.list = list
@@ -40,8 +39,8 @@ class ChannelManager():
         
     def _refresh_list(self):
         #TODO: should we filter out children?
-        nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, ChannelManager.playlist_req_columns)
-        total_items, nrfiltered, torrents  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id, ChannelManager.channel_req_columns)
+        nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
+        total_items, nrfiltered, torrents  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id, CHANNEL_REQ_COLUMNS)
         torrents = self.torrentsearch_manager.addDownloadStates(torrents)
         
         if self.list.SetData(playlists, torrents) < total_items: #some items are filtered by quickfilter (do not update total_items)
@@ -58,7 +57,7 @@ class ChannelManager():
 
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
-            data = self.channelsearch_manager.getTorrentFromChannelId(self.list.id, infohash, ChannelManager.channel_req_columns)
+            data = self.channelsearch_manager.getTorrentFromChannelId(self.list.id, infohash, CHANNEL_REQ_COLUMNS)
             self.list.RefreshData(infohash, data)
             
     def channelUpdated(self, permid):
@@ -263,6 +262,13 @@ class SelectedChannelList(SearchList):
             
             manager = self.activityList.GetManager()
             manager.refresh()
+            
+        else: #maybe channel_id is a channeltorrent_id
+            panel = self.list.GetExpandedItem()
+            if panel:
+                torDetails = panel.GetExpandedPanel()
+                if torDetails:
+                    torDetails.OnCommentCreated(channel_id)
         
     def Select(self, key, raise_event = True):
         SearchList.Select(self, key, raise_event)
@@ -373,7 +379,7 @@ class ManageChannelFilesManager():
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
     def refresh(self):
-        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, ChannelManager.channel_req_columns, filterTorrents = False)
+        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
         self.list.SetData(torrentList)
     
     def SetChannelId(self, channel_id):
@@ -406,7 +412,7 @@ class ManageChannelPlaylistsManager():
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
     def refresh(self):
-        total_items, playlistList = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, ChannelManager.playlist_req_columns)
+        total_items, playlistList = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
         self.list.SetData(playlistList)
     
     def SetChannelId(self, channel_id):
@@ -415,11 +421,11 @@ class ManageChannelPlaylistsManager():
             self.list.dirty = True
     
     def GetTorrentsFromChannel(self):
-        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, ChannelManager.channel_req_columns, filterTorrents = False)
+        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
         return torrentList
         
     def GetTorrentsFromPlaylist(self, playlist_id):
-        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(playlist_id, ChannelManager.channel_req_columns, filterTorrents = False)
+        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(playlist_id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
         return torrentList
     
     def createPlaylist(self, name, description, torrent_ids):
@@ -433,7 +439,7 @@ class ManageChannelPlaylistsManager():
     
     def playlistUpdated(self, playlist_id):
         if self.list.InList(playlist_id):
-            data = self.channelsearch_manager.getPlaylist(playlist_id, ChannelManager.playlist_req_columns)
+            data = self.channelsearch_manager.getPlaylist(playlist_id, PLAYLIST_REQ_COLUMNS)
             self.list.RefreshData(playlist_id, data)
 
 class ManageChannel(XRCPanel, AbstractDetails):
@@ -894,8 +900,6 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             dlg.list.SetChecked(selected)
 
 class CommentManager:
-    comment_req_columns = ['id', 'name', 'Peer.peer_id', 'comment', 'time_stamp']
-    
     def __init__(self, list):
         self.list = list
         self.list.id = 0
@@ -919,9 +923,9 @@ class CommentManager:
     
     def refresh(self):
         if self.playlist_id:
-            total_items, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, CommentManager.comment_req_columns)
+            total_items, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS)
         else:
-            total_items, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, CommentManager.comment_req_columns)
+            total_items, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS)
         self.list.SetData(commentList)
         
     def addComment(self, comment):
@@ -948,7 +952,7 @@ class CommentList(List):
     def SetData(self, data):
         List.SetData(self, data)
         
-        data = [(comment['id'],[comment['name'], comment['comment']], comment, CommentItem) for comment in data]
+        data = [(comment['id'],[comment['name'], comment['comment'], self.format_time(comment['time_stamp'])], comment, CommentItem) for comment in data]
         
         if len(data) > 0:
             return self.list.SetData(data)
@@ -978,8 +982,14 @@ class CommentItem(ListItem):
         if leftSpacer > 0:
             titleRow.AddSpacer((leftSpacer, -1))
         
-        titleRow.Add(wx.StaticText(self, -1, self.data[0]))
-        #DATE? titleRow.Add(wx.StaticText(self, -1, self.data[1]))
+        title = "Posted %s by %s"%(self.data[2], self.data[0])
+        if self.original_data.get('channeltorrent_id'):
+            title += ' in %s'%self.original_data['torrent_name']
+        elif self.original_data.get('playlist_id'):
+            title += ' in %s'%self.original_data['playlist_name']
+            
+        title = wx.StaticText(self, -1, title)
+        titleRow.Add(title)
 
         if rightSpacer > 0:
             titleRow.AddSpacer((rightSpacer, -1))
@@ -1015,13 +1025,13 @@ class ActivityManager:
     
     def refresh(self):
         if self.playlist_id:
-            _, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, CommentManager.comment_req_columns, limit = 10)
-            _, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, ChannelManager.channel_req_columns, limit = 10)
-            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, ChannelManager.channel_req_columns  + ['inserted'], limit = 10)
+            _, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS, limit = 10)
+            _, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS, limit = 10)
+            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS  + ['inserted'], limit = 10)
         else:
-            _, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, CommentManager.comment_req_columns, limit = 10)
-            _, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, ChannelManager.channel_req_columns, limit = 10)
-            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, ChannelManager.channel_req_columns + ['inserted'], limit = 10)
+            _, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS, limit = 10)
+            _, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS, limit = 10)
+            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS + ['inserted'], limit = 10)
         
         self.list.SetData(commentList, torrentList, recentTorrentList)        
 

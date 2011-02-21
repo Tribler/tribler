@@ -193,6 +193,7 @@ class List(XRCPanel):
         self.borders = borders
         self.dirty = False
         self.parent = parent
+        self.id = 0
         
         self.leftLine = self.rightLine = None
         XRCPanel.__init__(self, parent)

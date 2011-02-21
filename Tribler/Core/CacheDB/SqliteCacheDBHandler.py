@@ -3139,7 +3139,13 @@ class ChannelCastDBHandler:
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? AND infohash = ?"
         result = self._db.fetchone(sql, (channel_id, bin2str(infohash)))
-        return self.__fixTorrents(keys, [result])[0]        
+        return self.__fixTorrents(keys, [result])[0]
+    
+    def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
+        sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = ?"
+        result = self._db.fetchone(sql, (channeltorrent_id,))
+        
+        return self.__fixTorrents(keys, [result])[0]
     
     def getTorrentsFromChannelId(self, channel_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY time_stamp DESC"
@@ -3177,9 +3183,12 @@ class ChannelCastDBHandler:
     def __fixTorrents(self, keys, results):
         torrent_list = [dict(zip(keys,result)) for result in results]
         for torrent in torrent_list:
-            torrent['infohash'] = str2bin(torrent['infohash'])
-            torrent['category'] = [self.torrent_db.id2category[torrent['category_id']]]
-            torrent['status'] = self.torrent_db.id2status[torrent['status_id']]
+            if 'infohash' in torrent:
+                torrent['infohash'] = str2bin(torrent['infohash'])
+            if 'category_id' in torrent:
+                torrent['category'] = [self.torrent_db.id2category[torrent['category_id']]]
+            if 'status_id' in torrent:
+                torrent['status'] = self.torrent_db.id2status[torrent['status_id']]
         return torrent_list
 
     def getPlaylistsFromChannelId(self, channel_id, keys):
@@ -3201,7 +3210,7 @@ class ChannelCastDBHandler:
             dict['nr_torrents'] = self._db.fetchone(sql, (dict['id'],))
             
     def getCommentsFromChannelId(self, channel_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) + " FROM Comments, Peer WHERE Comments.peer_id = Peer.peer_id AND channel_id = ? ORDER BY time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, Peer LEFT JOIN CommentPlaylist On Comments.id = CommentPlaylist.comment_id LEFT JOIN CommentTorrent On Comments.id = CommentTorrent.comment_id WHERE Comments.peer_id = Peer.peer_id AND channel_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (channel_id, ))
@@ -3214,6 +3223,15 @@ class ChannelCastDBHandler:
         if limit:
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (playlist_id, ))
+        
+        commentlist = [dict(zip(keys,result)) for result in results]
+        return commentlist
+    
+    def getCommentsFromChannelTorrentId(self, channeltorrent_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentTorrent, Peer WHERE Comments.id = CommentTorrent.comment_id AND Comments.peer_id = Peer.peer_id AND channeltorrent_id = ? ORDER BY time_stamp DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (channeltorrent_id, ))
         
         commentlist = [dict(zip(keys,result)) for result in results]
         return commentlist
@@ -3236,6 +3254,7 @@ class ChannelCastDBHandler:
             if channeltorrent_id:
                 sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
                 self._db.execute_write(sql, (comment_id, channeltorrent_id))
+                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channeltorrent_id)
         
         self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
         

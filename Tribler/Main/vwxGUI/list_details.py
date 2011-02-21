@@ -30,7 +30,7 @@ from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 
 
 class AbstractDetails(wx.Panel):
-    def _create_tab(self, notebook, tabname, header = None, onEdit = None):
+    def _create_tab(self, notebook, tabname, header = None, onEdit = None, spacer = 3):
         panel = wx.lib.scrolledpanel.ScrolledPanel(notebook)
         themeColour = self.notebook.GetThemeBackgroundColour()
         if themeColour.IsOk():
@@ -55,14 +55,14 @@ class AbstractDetails(wx.Panel):
             edit = wx.BitmapButton(panel, -1, bitmaps[0])
             edit.state = 0
             edit.Bind(wx.EVT_BUTTON, OnClick)
-            hSizer.Add(edit)
+            hSizer.Add(edit, 0, wx.LEFT, 3)
             
             panel.SetSizer(hSizer)
         else:
             panel.SetSizer(vSizer)
         
         if header:
-            self._add_header(panel, vSizer, header)
+            self._add_header(panel, vSizer, header, spacer)
         
         return panel, vSizer
 
@@ -82,13 +82,14 @@ class AbstractDetails(wx.Panel):
             name.SetFont(font)
             sizer.Add(name, 0, wx.LEFT, 10)
         
-        if isinstance(value, basestring):
-            try:
-                value = wx.StaticText(parent, -1, unicode(value))
-            except:
-                value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
-            value.SetMinSize((1,-1))
-        sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
+        if value:
+            if isinstance(value, basestring):
+                try:
+                    value = wx.StaticText(parent, -1, unicode(value))
+                except:
+                    value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
+                value.SetMinSize((1,-1))
+            sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
         
         return name, value
 
@@ -160,7 +161,9 @@ class TorrentDetails(AbstractDetails):
         self.messagePanel.Show(False)
         
         self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         self._addTabs(ds)
+        self.details.Add(self.notebook, 65, wx.EXPAND)
         
         self.buttonPanel = wx.Panel(self)
         self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
@@ -169,7 +172,7 @@ class TorrentDetails(AbstractDetails):
         self.ShowPanel()
         
         self.buttonPanel.SetSizer(self.buttonSizer)
-        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+        self.details.Add(self.buttonPanel,  35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
         self.details.Layout()
         
         self.parent.parent_list.OnChange()
@@ -192,9 +195,22 @@ class TorrentDetails(AbstractDetails):
         
         self.isEditable['name'] = EditStaticText(overview, self.torrent['name'])
         self._add_row(overview, vSizer, "Name", self.isEditable['name'])
+        
+        if self.torrent.get('description', None) == None:
+            description = 'No description yet, be the first to add a description.'
+        else:
+            description = self.torrent['description']
+            
+        self.isEditable['description'] = EditStaticText(overview, description, multiLine = True)
+        self._add_row(overview, vSizer, "Description", self.isEditable['description'])
+        
         self._add_row(overview, vSizer, "Type", category.capitalize())
         self._add_row(overview, vSizer, "Uploaded", date.fromtimestamp(self.torrent['creation_date']).strftime('%Y-%m-%d'))
-        self._add_row(overview, vSizer, "Filesize", self.guiutility.utility.size_format(self.torrent['length']) + " in " + str(len(self.information[2])) + " files")
+        
+        filesize = "%s in %d file"%(self.guiutility.utility.size_format(self.torrent['length']), len(self.information[2]))
+        if len(self.information[2]) > 1:
+            filesize += "s"
+        self._add_row(overview, vSizer, "Filesize", filesize)
         
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
@@ -212,19 +228,37 @@ class TorrentDetails(AbstractDetails):
             _, self.status = self._add_row(overview, vSizer, "Status", "Unknown")
         else:
             _, self.status = self._add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
-            
-        if self.torrent.get('description', None) == None:
-            description = 'No description found, be the first to add a description.'
-        else:
-            description = self.torrent['description']
-            
-        self.isEditable['description'] = EditStaticText(overview, description, multiLine = True)
-        self._add_row(overview, vSizer, "Description", self.isEditable['description'])
         
         torrentSizer.Add(vSizer, 0, wx.EXPAND)
         
         if diff > 1800: #force update if last update more than 30 minutes ago
             TorrentChecking(self.torrent['infohash']).start()
+            
+        #Create torrent overview
+        if self.torrent.get('ChannelTorrents.id', False):
+            panel = wx.Panel(self.notebook)
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            
+            self.commentPanel = wx.lib.scrolledpanel.ScrolledPanel(panel)
+            self.commentPanel.SetBackgroundColour(wx.WHITE)
+            self.commentSizer = wx.BoxSizer(wx.VERTICAL)
+            self.commentPanel.SetSizer(self.commentSizer)
+            
+            vSizer.Add(self.commentPanel, 1, wx.EXPAND)
+            
+            nrcomments = self._AddComments(self.commentPanel, self.commentSizer)
+            
+            def addComment(event):
+                comment = commentFooter.GetComment()
+                commentFooter.SetComment('')
+                self.guiutility.channelsearch_manager.addComment(comment, self.torrent['ChannelTorrents.channel_id'], channeltorrent_id = self.torrent['ChannelTorrents.id'])
+            
+            from list_footer import CommentFooter
+            commentFooter = CommentFooter(panel, addComment)
+            commentFooter.SetBackgroundColour(LIST_GREY)
+            vSizer.Add(commentFooter, 0, wx.EXPAND)
+            panel.SetSizer(vSizer)
+            self.notebook.AddPage(panel, 'Comments(%d)'%nrcomments)
         
         #Create filelist
         if len(self.information[2]) > 0:
@@ -337,10 +371,12 @@ class TorrentDetails(AbstractDetails):
                     self._add_row(subtitlePanel, vSizer, None, "After you finished downloading this torrent you can select one to used with our player.")
         
         #Create description
+        """
         if self.torrent.get('comment', 'None') != 'None' and self.torrent['comment'] != '':
             descriptionPanel, vSizer = self._create_tab(self.notebook, "Description", "Comment")
             self._add_row(descriptionPanel, vSizer, None, self.torrent['comment'])
             descriptionPanel.SetupScrolling(rate_y = 5)
+        """
         
         #Create trackerlist
         if self.torrent.get('trackers', 'None') != 'None':
@@ -355,8 +391,6 @@ class TorrentDetails(AbstractDetails):
                 for tracker in tracker_list:
                     self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
-        
-        self.details.Add(self.notebook, 6, wx.EXPAND)
         
         bestSize = torrentSizer.GetSize()[1]
         overview.SetMinSize((-1, bestSize))
@@ -577,6 +611,18 @@ class TorrentDetails(AbstractDetails):
         vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
         sizer.Add(vSizer, 0,wx.EXPAND, 3)
     
+    def _AddComments(self, parent, sizer):
+        nrcomments, commentList = self.guiutility.channelsearch_manager.getCommentsFromChannelTorrentId(self.torrent['ChannelTorrents.id'], COMMENT_REQ_COLUMNS)
+        if len(commentList) == 0:
+            self._add_row(parent, sizer, 'No comments yet, be the first to add a comment.', None)
+        else:
+            for comment in commentList:
+                self._add_row(parent, sizer, comment['name'], comment['comment'])
+                
+        parent.SetupScrolling(rate_y = 5)
+        sizer.AddStretchSpacer()
+        return nrcomments
+    
     def _GetPath(self, file = None):
         ds = self.torrent.get('ds', False)
         if ds:
@@ -595,6 +641,35 @@ class TorrentDetails(AbstractDetails):
         
         self.notebook.SetMinSize((-1, self.notebook.GetBestSize()[1]))
         self.parent.parent_list.OnChange()
+    
+    def OnChange(self, event):
+        page = event.GetSelection()
+        title = self.notebook.GetPageText(page)
+        
+        minHeight = self.notebook.GetMinHeight()
+        if title.startswith('Comments'):
+            newHeight = 300
+        else:
+            newHeight = self.notebook.GetBestSize()[1]
+        
+        if minHeight != newHeight:
+            self.notebook.SetMinSize((-1, newHeight))
+            self.parent.parent_list.OnChange()
+        event.Skip()
+        
+    def OnCommentCreated(self, channeltorrent_id):
+        if self.torrent.get('ChannelTorrents.id', False) == channeltorrent_id:
+            
+            self.commentPanel.Freeze()
+            self.commentSizer.ShowItems(False)
+            self.commentSizer.DeleteWindows()
+            self.commentSizer.Clear()
+            
+            nrcomments = self._AddComments(self.commentPanel, self.commentSizer)
+            
+            self.notebook.SetPageText(1, 'Comments(%d)'%nrcomments)
+            self.commentPanel.Layout()
+            self.commentPanel.Thaw()
             
     def GetChanged(self):
         newValues = {}
