@@ -595,7 +595,8 @@ class MainFrame(wx.Frame):
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
                 self.tbicon.updateIcon(True)
-                self.Show(False)
+                #Niels, 2011-02-21: on Win7 hiding window is not consistent with default behaviour 
+                #self.Show(False)
         else:
             videoplayer = VideoPlayer.getInstance()
             embed = videoplayer.videoframe.get_videopanel()
