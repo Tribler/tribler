@@ -698,7 +698,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 nr_imported += 1
         
         if nr_imported > 0:
-            self.parent.manager.refresh()
             if nr_imported == 1:
                 self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
             else:
