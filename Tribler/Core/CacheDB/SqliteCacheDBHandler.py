@@ -2968,11 +2968,11 @@ class ChannelCastDBHandler:
         self.session = session
         row = self._db.fetchone('SELECT id, Peer.peer_id FROM Channels, Peer WHERE Channels.peer_id = Peer.peer_id AND permid = ? LIMIT 1', (bin2str(session.get_permid()),))
         if row:
-            self.channel_id, self.my_peerid = row 
+            self.channel_id, self.my_peerid = row
         else:
             self.channel_id = None
             self.my_peerid = self._db.fetchone('SELECT peer_id FROM Peer WHERE permid = ? LIMIT 1', (bin2str(session.get_permid()),))
-            
+       
         if DEBUG:
             print >> sys.stderr, "Channels: my channel is", self.channel_id, "my permid is", self.my_permid
     
@@ -3288,12 +3288,14 @@ class ChannelCastDBHandler:
             self._db.executemany(sql, args)
         
     def updatePlaylist(self, playlist_id, name, description):
+        #dispersy integration
         sql = "UPDATE Playlists Set name=?, description=? Where id = ?"
         self._db.execute_write(sql, (name, description, playlist_id))
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
         
     def updateChannel(self, channel_id, name, description):
+        #dispersy integration
         sql = "UPDATE Channels Set name=?, description=? Where id = ?"
         self._db.execute_write(sql, (name, description, channel_id))
         

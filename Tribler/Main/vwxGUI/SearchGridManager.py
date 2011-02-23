@@ -939,7 +939,7 @@ class ChannelSearchGridManager:
         return len(hits), hits
     
     def getCommentsFromChannelId(self, channel_id, keys, limit = None, resolve_names = True):
-        keys += ['playlist_id', 'channeltorrent_id']
+        keys = keys + ['playlist_id', 'channeltorrent_id']
         
         hits = self.channelcast_db.getCommentsFromChannelId(channel_id, keys, limit)
         nrhits, hits = self._fix_my_name(hits)

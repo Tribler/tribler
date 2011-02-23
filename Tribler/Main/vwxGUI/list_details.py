@@ -74,13 +74,13 @@ class AbstractDetails(wx.Panel):
         sizer.Add(header, 0, wx.LEFT|wx.BOTTOM, spacer)
         return header
         
-    def _add_row(self, parent, sizer, name, value):
+    def _add_row(self, parent, sizer, name, value, spacer = 10):
         if name:
             name = wx.StaticText(parent, -1, name)
             font = name.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             name.SetFont(font)
-            sizer.Add(name, 0, wx.LEFT, 10)
+            sizer.Add(name, 0, wx.LEFT, spacer)
         
         if value:
             if isinstance(value, basestring):
@@ -89,7 +89,7 @@ class AbstractDetails(wx.Panel):
                 except:
                     value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
                 value.SetMinSize((1,-1))
-            sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
+            sizer.Add(value, 0, wx.EXPAND|wx.LEFT, spacer)
         
         return name, value
 
@@ -236,29 +236,14 @@ class TorrentDetails(AbstractDetails):
             
         #Create torrent overview
         if self.torrent.get('ChannelTorrents.id', False):
-            panel = wx.Panel(self.notebook)
-            vSizer = wx.BoxSizer(wx.VERTICAL)
+            from channel import CommentList
+            self.commentList = CommentList(self.notebook, canReply = True)
             
-            self.commentPanel = wx.lib.scrolledpanel.ScrolledPanel(panel)
-            self.commentPanel.SetBackgroundColour(wx.WHITE)
-            self.commentSizer = wx.BoxSizer(wx.VERTICAL)
-            self.commentPanel.SetSizer(self.commentSizer)
+            manager = self.commentList.GetManager()
+            manager.SetIds(self.torrent['ChannelTorrents.channel_id'], channeltorrent_id = self.torrent['ChannelTorrents.id'])
+            nrcomments = manager.getNrComments()
             
-            vSizer.Add(self.commentPanel, 1, wx.EXPAND)
-            
-            nrcomments = self._AddComments(self.commentPanel, self.commentSizer)
-            
-            def addComment(event):
-                comment = commentFooter.GetComment()
-                commentFooter.SetComment('')
-                self.guiutility.channelsearch_manager.addComment(comment, self.torrent['ChannelTorrents.channel_id'], channeltorrent_id = self.torrent['ChannelTorrents.id'])
-            
-            from list_footer import CommentFooter
-            commentFooter = CommentFooter(panel, addComment)
-            commentFooter.SetBackgroundColour(LIST_GREY)
-            vSizer.Add(commentFooter, 0, wx.EXPAND)
-            panel.SetSizer(vSizer)
-            self.notebook.AddPage(panel, 'Comments(%d)'%nrcomments)
+            self.notebook.AddPage(self.commentList, 'Comments(%d)'%nrcomments)
         
         #Create filelist
         if len(self.information[2]) > 0:
@@ -611,18 +596,6 @@ class TorrentDetails(AbstractDetails):
         vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
         sizer.Add(vSizer, 0,wx.EXPAND, 3)
     
-    def _AddComments(self, parent, sizer):
-        nrcomments, commentList = self.guiutility.channelsearch_manager.getCommentsFromChannelTorrentId(self.torrent['ChannelTorrents.id'], COMMENT_REQ_COLUMNS)
-        if len(commentList) == 0:
-            self._add_row(parent, sizer, 'No comments yet, be the first to add a comment.', None)
-        else:
-            for comment in commentList:
-                self._add_row(parent, sizer, comment['name'], comment['comment'])
-                
-        parent.SetupScrolling(rate_y = 5)
-        sizer.AddStretchSpacer()
-        return nrcomments
-    
     def _GetPath(self, file = None):
         ds = self.torrent.get('ds', False)
         if ds:
@@ -648,6 +621,9 @@ class TorrentDetails(AbstractDetails):
         
         minHeight = self.notebook.GetMinHeight()
         if title.startswith('Comments'):
+            self.commentList.Show()
+            self.commentList.SetFocus()
+            
             newHeight = 300
         else:
             newHeight = self.notebook.GetBestSize()[1]
@@ -659,18 +635,11 @@ class TorrentDetails(AbstractDetails):
         
     def OnCommentCreated(self, channeltorrent_id):
         if self.torrent.get('ChannelTorrents.id', False) == channeltorrent_id:
+            manager = self.commentList.GetManager()
+            nrcomments = manager.refresh()
             
-            self.commentPanel.Freeze()
-            self.commentSizer.ShowItems(False)
-            self.commentSizer.DeleteWindows()
-            self.commentSizer.Clear()
-            
-            nrcomments = self._AddComments(self.commentPanel, self.commentSizer)
-            
-            self.notebook.SetPageText(1, 'Comments(%d)'%nrcomments)
-            self.commentPanel.Layout()
-            self.commentPanel.Thaw()
-            
+            self.notebook.SetPageText(1, "Comments(%d)"%nrcomments)
+                        
     def GetChanged(self):
         newValues = {}
         for key, editable in self.isEditable.iteritems():

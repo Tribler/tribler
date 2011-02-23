@@ -11,8 +11,6 @@ from list_details import *
 from __init__ import *
 
 class ChannelManager():
-    
-    
     def __init__(self, list):
         self.list = list
         self.list.SetId(0)
@@ -607,10 +605,18 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.fileslist.GetManager().SetChannelId(channel_id)
         self.playlistlist.GetManager().SetChannelId(channel_id)
         
-        id, name, timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, description = self.channelsearch_manager.getChannel(channel_id)
+        if channel_id:
+            id, name, timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, description = self.channelsearch_manager.getChannel(channel_id)
+        else: #your channel?
+            name = ''
+            nr_favorites = 0
+            nr_torrents = 0
+            nr_spam = 0
+            my_vote = 0
+            description = ''
+            
         self.header.SetName(name)
         self.header.SetNrTorrents(nr_torrents, nr_favorites)
-        
         self.name.SetValue(name)
         self.name.originalValue = name
         self.description.SetValue(description)
@@ -906,9 +912,10 @@ class CommentManager:
         
         self.channel_id = None
         self.playlist_id = None
+        self.channeltorrent_id = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
-    def SetIds(self, channel_id = None, playlist_id = None):
+    def SetIds(self, channel_id = None, playlist_id = None, channeltorrent_id = None):
         if channel_id != self.channel_id:
             self.channel_id = channel_id
             self.list.dirty = True
@@ -920,23 +927,45 @@ class CommentManager:
             self.list.dirty = True
             
             self.list.header.SetTitle('Comments for this Playlist')
+            
+        elif channeltorrent_id != self.channeltorrent_id:
+            self.channeltorrent_id = channeltorrent_id
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Comments for this Torrent')
     
     def refresh(self):
         if self.playlist_id:
             total_items, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS)
+        elif self.channeltorrent_id:
+            total_items, commentList = self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id, COMMENT_REQ_COLUMNS)
         else:
             total_items, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS)
         self.list.SetData(commentList)
+        return total_items
+        
+    def getNrComments(self):
+        if self.playlist_id:
+            total_items, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS)
+        elif self.channeltorrent_id:
+            total_items, commentList = self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id, COMMENT_REQ_COLUMNS)
+        else:
+            total_items, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS)
+        return total_items
         
     def addComment(self, comment):
         if self.playlist_id:
             self.channelsearch_manager.addComment(comment, self.channel_id, playlist_id = self.playlist_id)
+        elif self.channeltorrent_id:
+            self.channelsearch_manager.addComment(comment, self.channel_id, channeltorrent_id = self.channeltorrent_id)
         else:
             self.channelsearch_manager.addComment(comment, self.channel_id)
 
 class CommentList(List):
-    def __init__(self, parent):
+    def __init__(self, parent, canReply = False):
         List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
+        
+        self.canReply = canReply
     
     def CreateHeader(self, parent):
         return TitleHeader(self, parent, [], 0, radius = 0)
@@ -960,7 +989,8 @@ class CommentList(List):
         return 0
     
     def OnExpand(self, item):
-        self.footer.SetReply(True)
+        if self.canReply:
+            self.footer.SetReply(True)
         return True
     
     def OnCollapse(self, item, panel):
@@ -982,7 +1012,7 @@ class CommentItem(ListItem):
         if leftSpacer > 0:
             titleRow.AddSpacer((leftSpacer, -1))
         
-        title = "Posted %s by %s"%(self.data[2], self.data[0])
+        title = "Posted %s by %s"%(self.data[2].lower(), self.data[0])
         if self.original_data.get('channeltorrent_id'):
             title += ' in %s'%self.original_data['torrent_name']
         elif self.original_data.get('playlist_id'):
