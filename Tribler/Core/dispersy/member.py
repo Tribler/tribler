@@ -212,11 +212,23 @@ class Member(Public, Parameterized1Singleton):
         length = length or len(data)
         return self._signature_length == len(signature) and ec_verify(self._ec, sha1(data[offset:offset+length]).digest(), signature)
 
+    def __eq__(self, member):
+        assert isinstance(member, Member)
+        return self._public_key.__eq__(member._public_key)
+
+    def __ne__(self, member):
+        assert isinstance(member, Member)
+        return self._public_key.__ne__(member._public_key)
+
+    def __cmp__(self, member):
+        assert isinstance(member, Member)
+        return self._public_key.__cmp__(member._public_key)
+
     def __hash__(self):
         """
         Allows Member classes to be used as keys in a dictionary.
         """
-        return self._database_id
+        return self._public_key.__hash__()
 
     def __str__(self):
         """
@@ -247,11 +259,9 @@ class PrivateMember(Private, Member):
                 database.execute(u"INSERT OR IGNORE INTO key(public_key, private_key) VALUES(?, ?)", (buffer(public_key), buffer(private_key)))
 
         if private_key is None:
-            ec = ec_from_public_bin(public_key)
-        else:
-            ec = ec_from_private_bin(private_key)
+            raise ValueError("The private key is unavailable")
 
-        super(PrivateMember, self).__init__(public_key, ec, sync_with_database)
+        super(PrivateMember, self).__init__(public_key, ec_from_private_bin(private_key), sync_with_database)
         self._private_key = private_key
 
     @property
@@ -265,7 +275,10 @@ class PrivateMember(Private, Member):
         assert not self._private_key is None
         return ec_sign(self._ec, sha1(data[offset:length or len(data)]).digest())
 
-class MasterMember(PrivateMember):
+class MasterMember(Member):
+    pass
+
+class ElevatedMasterMember(MasterMember, PrivateMember):
     pass
 
 class MyMember(PrivateMember):

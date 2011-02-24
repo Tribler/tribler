@@ -143,9 +143,7 @@ class Database(Singleton):
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
         assert isinstance(bindings, (tuple, list, dict)), "The bindinds must be a tuple, list, or dictionary"
         assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
-        if __debug__:
-            changes_before = self._connection.total_changes
-            dprint(statements, " <-- ", bindings)
+        if __debug__: dprint(statements, " <-- ", bindings)
         try:
             return self._cursor.execute(statements, bindings)
 
@@ -153,7 +151,6 @@ class Database(Singleton):
             if __debug__:
                 dprint(exception=True, level="warning")
                 dprint("Filename: ", self._debug_file_path, level="warning")
-                dprint("Changes (UPDATE, INSERT, DELETE): ", self._connection.total_changes - changes_before, level="warning")
                 dprint(statements, level="warning")
                 dprint(bindings, level="warning")
             raise
@@ -161,9 +158,7 @@ class Database(Singleton):
     def executescript(self, statements):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
-        if __debug__:
-            changes_before = self._connection.total_changes
-            dprint(statements)
+        if __debug__: dprint(statements)
         try:
             return self._cursor.executescript(statements)
 
@@ -171,7 +166,6 @@ class Database(Singleton):
             if __debug__:
                 dprint(exception=True, level="warning")
                 dprint("Filename: ", self._debug_file_path, level="warning")
-                dprint("Changes (UPDATE, INSERT, DELETE): ", self._connection.total_changes - changes_before, level="warning")
                 dprint(statements, level="warning")
             raise
 
@@ -205,9 +199,7 @@ class Database(Singleton):
         assert isinstance(sequenceofbindings, (tuple, list))
         assert not filter(lambda x: isinstance(x, (tuple, list, dict)), sequenceofbindings)
         assert not filter(lambda x: not filter(lambda y: isinstance(y, str), bindings), sequenceofbindings), "None of the bindings may be string type"
-        if __debug__:
-            changes_before = self._connection.total_changes
-            dprint(statements)
+        if __debug__: dprint(statements)
         try:
             return self._cursor.executemany(statements, sequenceofbindings)
 
@@ -215,7 +207,6 @@ class Database(Singleton):
             if __debug__:
                 dprint(exception=True)
                 dprint("Filename: ", self._debug_file_path)
-                dprint("Changes (UPDATE, INSERT, DELETE): ", self._connection.total_changes - changes_before)
                 dprint(statements)
             raise
 

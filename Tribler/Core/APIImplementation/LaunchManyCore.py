@@ -11,6 +11,7 @@ from threading import Event,Thread,enumerate
 from traceback import print_exc, print_stack
 
 from Tribler.Community.allchannel.community import AllChannelCommunity
+from Tribler.Community.channel.community import ChannelCommunity
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
@@ -292,14 +293,15 @@ class TriblerLaunchMany(Thread):
             # initialise the first instance
             MagnetHandler.get_instance(self.rawserver)
 
-        self._dispersy = None
+        self.dispersy = None
+        self.session.dispersy_member = None
         if config['dispersy']:
             # Dispersy needs to run on a thread.  We use a RawServer instance.
-            self._dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
-            self._dispersy_rawserver.add_task(self._start_dispersy)
-            Thread(target=self._dispersy_rawserver.listen_forever, args=(None,)).start()
+            self.dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
+            self.dispersy_rawserver.add_task(self.start_dispersy)
+            Thread(target=self.dispersy_rawserver.listen_forever, args=(None,)).start()
 
-    def _start_dispersy(self):
+    def start_dispersy(self):
         class DispersySocket(object):
             def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
                 while True:
@@ -329,25 +331,30 @@ class TriblerLaunchMany(Thread):
                         self.rawserver.add_task(self.process_sendqueue, 0.1)
 
         config = self.session.sessconfig
-        self._dispersy = Dispersy.get_instance(self._dispersy_rawserver, os.path.join(config['state_dir'], u"sqlite"))
-        self._dispersy.socket = DispersySocket(self._dispersy_rawserver, self._dispersy, config['dispersy_port'])
+        self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, os.path.join(config['state_dir'], u"sqlite"))
+        self.dispersy.socket = DispersySocket(self.dispersy_rawserver, self.dispersy, config['dispersy_port'])
 
         from Tribler.Core.Overlay.permid import read_keypair
         keypair = read_keypair(self.session.get_permid_keypair_filename())
 
         from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
         from Tribler.Core.dispersy.member import MyMember
-        my_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        self.session.dispersy_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # start AllChannelCommunity
-        self._all_channel_community, = AllChannelCommunity.load_communities(my_member)
+        AllChannelCommunity.load_communities(self.session.dispersy_member)
 
-        # test script for the AllChannelCommunity
-        from Tribler.Core.dispersy.script import Script
-        from Tribler.Community.allchannel.script import AllChannelScript
-        script = Script.get_instance(self._dispersy_rawserver)
-        script.add("allchannel", AllChannelScript)
-        script.load("allchannel")
+        # start each ChannelCommunity that we joined
+        communities = ChannelCommunity.load_communities()
+
+        # # test script for the AllChannelCommunity
+        # from Tribler.Core.dispersy.script import Script
+        # from Tribler.Community.allchannel.script import AllChannelScript
+        # from Tribler.Community.channel.script import ChannelScript
+        # script = Script.get_instance(self.dispersy_rawserver)
+        # script.add("allchannel", AllChannelScript)
+        # script.add("channel", ChannelScript)
+        # script.load("channel")
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

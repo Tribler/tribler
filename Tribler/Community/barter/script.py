@@ -86,6 +86,9 @@ class BarterScript(ScriptBase):
         except StopIteration:
             assert False
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def test_create_barter_record(self):
         """
         1. Create a single signed barter record
@@ -131,6 +134,9 @@ class BarterScript(ScriptBase):
                                         (community.database_id, message.distribution.global_time, node.my_member.database_id, community._my_member.database_id, 10, 2)).next()
         except StopIteration:
             assert False
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
 class BarterScenarioScript(ScriptBase):
     def __init__(self, terminator, name, rawserver, **kargs):

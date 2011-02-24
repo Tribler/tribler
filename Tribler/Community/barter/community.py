@@ -23,21 +23,14 @@ class BarterCommunity(Community):
     def __init__(self, cid):
         super(BarterCommunity, self).__init__(cid)
 
+        # storage
         self._database = BarterDatabase.get_instance()
-
-        # mapping
-        self._incoming_message_map = {u"barter-record":self.on_barter_record}
-
-        # add the Dispersy message handlers to the _incoming_message_map
-        for message, handler in self._dispersy.get_message_handlers(self):
-            assert message.name not in self._incoming_message_map
-            self._incoming_message_map[message.name] = handler
 
         # available conversions
         self.add_conversion(BarterCommunityConversion(self), True)
 
     def initiate_meta_messages(self):
-        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.on_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload())]
+        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.on_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
 
     def create_barter_record(self, second_member, first_upload, second_upload, store_and_forward=True):
         """
@@ -127,6 +120,9 @@ class BarterCommunity(Community):
             # close the transfer
             if __debug__: dprint("Signature request timeout")
 
+    def check_barter_record(self, address, message):
+        pass
+
     def on_barter_record(self, address, message):
         """ I handle received barter records
 
@@ -164,11 +160,3 @@ class BarterCommunity(Community):
                                         second_member,
                                         message.payload.first_upload,
                                         message.payload.second_upload))
-
-    def on_message(self, address, message):
-        """ Decide which function to feed the message to.
-        """
-        if self._timeline.check(message):
-            self._incoming_message_map[message.name](address, message)
-        else:
-            raise DropMessage("TODO: implement delay by proof")

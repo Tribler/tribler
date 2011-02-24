@@ -424,3 +424,4 @@ class DiscoverySyncScript(ScriptBase):
 
         else:
             assert False
+

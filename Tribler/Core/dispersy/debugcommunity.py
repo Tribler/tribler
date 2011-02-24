@@ -164,50 +164,25 @@ class DebugCommunity(Community):
     Community to debug Dispersy related messages and policies.
     """
     def initiate_meta_messages(self):
-        return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), TextPayload()),
-                Message(self, u"last-9-nosequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload()),
+        return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"last-9-nosequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 # Message(self, u"last-9-sequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload()),
-                Message(self, u"double-signed-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_double_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload()),
-                Message(self, u"triple-signed-text", MultiMemberAuthentication(count=3, allow_signature_func=self.allow_triple_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload()),
-                Message(self, u"taste-aware-record", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), SimilarityDestination(cluster=1, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload()),
-                Message(self, u"taste-aware-record-last", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), SimilarityDestination(cluster=2, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload()),
-                Message(self, u"full-sync-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload()),
-                Message(self, u"in-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload()),
-                Message(self, u"out-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), TextPayload()),
-                Message(self, u"random-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TextPayload()),
-                Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), SubjectiveDestination(cluster=1, node_count=10), TextPayload()),
+                Message(self, u"double-signed-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_double_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"triple-signed-text", MultiMemberAuthentication(count=3, allow_signature_func=self.allow_triple_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"taste-aware-record", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), SimilarityDestination(cluster=1, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
+                Message(self, u"taste-aware-record-last", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), SimilarityDestination(cluster=2, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
+                Message(self, u"full-sync-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"in-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"out-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"random-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
                 ]
 
     def __init__(self, cid):
         super(DebugCommunity, self).__init__(cid)
 
-        # mapping
-        self._incoming_message_map = {u"last-1-test":self.on_text,
-                                      u"last-9-nosequence-test":self.on_text,
-                                      # u"last-9-sequence-test":self.on_text,
-                                      u"double-signed-text":self.on_text,
-                                      u"triple-signed-text":self.on_text,
-                                      u"taste-aware-record":self.on_taste_aware_record,
-                                      u"taste-aware-record-last":self.on_taste_aware_record,
-                                      u"full-sync-text":self.on_text,
-                                      u"in-order-text":self.on_text,
-                                      u"out-order-text":self.on_text,
-                                      u"random-order-text":self.on_text,
-                                      u"subjective-set-text":self.on_text}
-
-        # add the Dispersy message handlers to the _incoming_message_map
-        for message, handler in self._dispersy.get_message_handlers(self):
-            assert message.name not in self._incoming_message_map
-            self._incoming_message_map[message.name] = handler
-
         # available conversions
         self.add_conversion(DebugCommunityConversion(self), True)
-
-    def on_message(self, address, message):
-        if self._timeline.check(message):
-            self._incoming_message_map[message.name](address, message)
-        else:
-            raise DelayMessageByProof()
 
     #
     # double-signed-text
@@ -276,6 +251,10 @@ class DebugCommunity(Community):
     #
     # any text-payload
     #
+
+    def check_text(self, address, message):
+        if not self._timeline.check(message):
+            raise RuntimeError()
 
     def on_text(self, address, message):
         """

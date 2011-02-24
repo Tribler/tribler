@@ -22,7 +22,7 @@ from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
 from encoding import encode
-from member import Private, MasterMember, MyMember, Member
+from member import Private, ElevatedMasterMember, MasterMember, MyMember, Member
 from message import Message, DropMessage
 from resolution import PublicResolution
 from timeline import Timeline
@@ -65,7 +65,7 @@ class Community(object):
 
         database = DispersyDatabase.get_instance()
         with database as execute:
-            execute(u"INSERT INTO community (user, cid, public_key) VALUES(?, ?, ?)", (my_member.database_id, buffer(cid), buffer(public_key)))
+            execute(u"INSERT INTO community (user, cid, classification, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, buffer(cid), cls.get_classification(), buffer(public_key)))
             database_id = database.last_insert_rowid
             execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(public_key)))
             execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(public_key), buffer(private_key)))
@@ -126,8 +126,8 @@ class Community(object):
         assert isinstance(my_member, MyMember)
         cid = sha1(master_key).digest()
         database = DispersyDatabase.get_instance()
-        database.execute(u"INSERT INTO community(user, cid, public_key) VALUES(?, ?, ?)",
-                         (my_member.database_id, buffer(cid), buffer(master_key)))
+        database.execute(u"INSERT INTO community(user, cid, classification, public_key) VALUES(?, ?, ?, ?)",
+                         (my_member.database_id, buffer(cid), cls.get_classification(), buffer(master_key)))
 
         # new community instance
         community = cls(cid, *args, **kargs)
@@ -137,8 +137,8 @@ class Community(object):
 
         return community
 
-    @staticmethod
-    def load_communities():
+    @classmethod
+    def load_communities(cls, *args, **kargs):
         """
         Load all joined or created communities of this type.
 
@@ -148,7 +148,9 @@ class Community(object):
         @return: A list with zero or more Community instances.
         @rtype: list
         """
-        raise NotImplementedError()
+        database = DispersyDatabase.get_instance()
+        cids = [cid for cid, in database.execute(u"SELECT cid FROM community WHERE classification = ?", (cls.get_classification(),))]
+        return [cls(str(cid), *args, **kargs) for cid in cids]
 
     def __init__(self, cid):
         """
@@ -187,7 +189,10 @@ class Community(object):
             raise ValueError(u"Community not found in database")
         self._database_id = community_id
         self._my_member = MyMember.get_instance(user_public_key)
-        self._master_member = MasterMember.get_instance(master_key)
+        try:
+            self._master_member = ElevatedMasterMember.get_instance(master_key)
+        except ValueError:
+            self._master_member = MasterMember.get_instance(master_key)
 
         # define all available messages
         self._meta_messages = {}
@@ -203,7 +208,7 @@ class Community(object):
         # list.
         self._bloom_filter_step = 1000
         self._bloom_filter_size = (10, 512) # 10, 512 -> 640 bytes
-        self._bloom_filters = [(1, self._bloom_filter_step, BloomFilter(*self._bloom_filter_size))]
+        self._bloom_filters = [(1, self._bloom_filter_step + 1, BloomFilter(*self._bloom_filter_size))]
 
         # dictionary containing available conversions.  currently only contains one conversion.
         self._conversions = {}
@@ -218,6 +223,56 @@ class Community(object):
         # the subjective sets.  the dictionary contains all our, most recent, subjective sets per
         # cluster.  These are made when a meta message uses the SubjectiveDestination policy.
         # self._subjective_sets = self.get_subjective_sets(self._my_member)
+
+    @classmethod
+    def get_classification(cls):
+        """
+        Describes the community type.  Should be the same across compatible versions.
+        @rtype: unicode
+        """
+        return cls.__name__.decode("UTF-8")
+
+    @property
+    def dispersy_routing_request_interval(self):
+        """
+        The interval between sending dispersy-routing-request messages.
+        """
+        return 60.0
+
+    @property
+    def dispersy_routing_age_range(self):
+        """
+        The valid age range, in seconds, that an entry in the routing table must be in order to be
+        forwarded in a dispersy-routing-request or dispersy-routing-response message.
+        @rtype: (float, float)
+        """
+        return (0.0, 120.0)
+
+    @property
+    def dispersy_routing_request_member_count(self):
+        """
+        The number of members that a dispersy-routing-request message is sent to each interval.
+        @rtype: int
+        """
+        return 10
+
+    @property
+    def dispersy_routing_request_destination_diff_range(self):
+        """
+        The difference between last-incoming and last-outgoing time, for the selection of a
+        destination node, when sending a dispersy-routing-request message.
+        @rtype: (float, float)
+        """
+        return (0.0, 30.0)
+
+    @property
+    def dispersy_routing_request_destination_age_range(self):
+        """
+        The difference between the last-incoming and current time, for the selection of a
+        destination node, when sending a dispersy-routing-request message.
+        @rtype: (float, float)
+        """
+        return (300.0, 900.0)
 
     @property
     def dispersy_sync_interval(self):
@@ -573,32 +628,6 @@ class Community(object):
     @documentation(Dispersy.create_subjective_set)
     def create_dispersy_subjective_set(self, cluster, members, reset=True, update_locally=True, store_and_forward=True):
         return self._dispersy.create_subjective_set(self, cluster, members, reset, update_locally, store_and_forward)
-
-    def on_message(self, address, message):
-        """
-        Process a permit (regular) message.
-
-        This method is called to process an unknown permit message.  This message is either received
-        from an external source or locally generated.
-
-        When the message is locally generated the address will be set to ('', -1).
-
-        This is an abstract method that must be implemented in community specific code.
-
-        @param address: The address from where we received this message.
-        @type address: (string, int)
-
-        @param message: The received message.
-        @type message: Message.Implementation
-        @raise DropMessage: When unable to verify that this message is valid.
-        @todo: We should raise a DelayMessageByProof to ensure that we request the proof for this
-         message immediately.
-        """
-        if __debug__:
-            from message import Message
-        assert isinstance(address, (type(None), tuple))
-        assert isinstance(message, Message.Implementation)
-        raise NotImplementedError()
 
     def on_dispersy_destroy_community(self, address, message):
         """

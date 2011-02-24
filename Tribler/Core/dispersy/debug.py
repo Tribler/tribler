@@ -92,7 +92,7 @@ class Node(object):
             assert self._community, "Community needs to be set to routing"
             source_address = self._socket.getsockname()
             destination_address = self._community._dispersy.socket.get_address()
-            message = self.create_dispersy_routing_request_message(source_address, destination_address, 1)
+            message = self.create_dispersy_routing_request_message(source_address, destination_address, self._community.get_conversion().version, [], 1)
             self.send_message(message, destination_address)
 
     @property
@@ -192,7 +192,7 @@ class Node(object):
                               meta.destination.implement(),
                               meta.payload.implement(address))
 
-    def create_dispersy_routing_request_message(self, source_address, destination_address, global_time):
+    def create_dispersy_routing_request_message(self, source_address, destination_address, source_default_conversion, routes, global_time):
         assert isinstance(source_address, tuple)
         assert len(source_address) == 2
         assert isinstance(source_address[0], str)
@@ -201,12 +201,22 @@ class Node(object):
         assert len(destination_address) == 2
         assert isinstance(destination_address[0], str)
         assert isinstance(destination_address[1], int)
+        assert isinstance(source_default_conversion, str)
+        assert len(source_default_conversion) == 2
+        assert isinstance(routes, (tuple, list))
+        assert not filter(lambda route: not isinstance(route, tuple), routes)
+        assert not filter(lambda route: not len(route) == 2, routes)
+        assert not filter(lambda route: not isinstance(route[0], tuple), routes)
+        assert not filter(lambda route: not len(route[0]) == 2, routes)
+        assert not filter(lambda route: not isinstance(route[0][0], str), routes)
+        assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
+        assert not filter(lambda route: not isinstance(route[1], float), routes)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(u"dispersy-routing-request")
         return meta.implement(meta.authentication.implement(self._my_member),
                               meta.distribution.implement(global_time),
                               meta.destination.implement(destination_address),
-                              meta.payload.implement(source_address, destination_address))
+                              meta.payload.implement(source_address, destination_address, source_default_conversion, routes))
 
     def create_dispersy_sync_message(self, time_low, time_high, bloom_packets, global_time):
         assert isinstance(time_low, (int, long))

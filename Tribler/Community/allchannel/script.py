@@ -66,6 +66,9 @@ class AllChannelScript(ScriptBase):
         # _, message = node.receive_message(addresses=[address], message_names=[u"torrent-request"])
         # assert message.payload.infohash == infohash
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def test_outgoing_propagate_torrents(self):
         """
         We will send a 'propagate-torrents' message from SELF to NODE.
@@ -100,6 +103,9 @@ class AllChannelScript(ScriptBase):
 
         dprint(map(lambda infohash: infohash.encode("HEX"), message.payload.infohashes), lines=1)
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def test_incoming_channel_search_request(self):
         """
         We will send a 'channel-search-request' message from NODE to SELF.
@@ -120,6 +126,9 @@ class AllChannelScript(ScriptBase):
         # send a 'channel-search-message' message from NODE to SELF
         global_time = 10
         node.send_message(node.create_channel_search_request([], [u"foo", u"bar"], u"simple-any-keyword", global_time), address)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def test_outgoing_channel_search_request(self):
         """
@@ -148,6 +157,9 @@ class AllChannelScript(ScriptBase):
         _, request = node.receive_message(addresses=[address], message_names=[u"channel-search-request"])
         assert request.payload.search == (u"foo", u"bar"), request.payload.search
         assert request.payload.method == u"simple-any-keyword", request.payload.method
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     # def test_incoming_torrent_request(self):
     #     """

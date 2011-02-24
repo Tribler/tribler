@@ -1,3 +1,4 @@
+from time import time
 from hashlib import sha1
 
 from meta import MetaObject
@@ -124,7 +125,7 @@ class MissingSequencePayload(Payload):
 
 class RoutingPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, source_address, destination_address):
+        def __init__(self, meta, source_address, destination_address, source_default_conversion, routes):
             assert isinstance(source_address, tuple)
             assert len(source_address) == 2
             assert isinstance(source_address[0], str)
@@ -133,9 +134,21 @@ class RoutingPayload(Payload):
             assert len(destination_address) == 2
             assert isinstance(destination_address[0], str)
             assert isinstance(destination_address[1], int)
+            assert isinstance(source_default_conversion, str)
+            assert len(source_default_conversion) == 2
+            assert isinstance(routes, (tuple, list))
+            assert not filter(lambda route: not isinstance(route, tuple), routes)
+            assert not filter(lambda route: not len(route) == 2, routes)
+            assert not filter(lambda route: not isinstance(route[0], tuple), routes)
+            assert not filter(lambda route: not len(route[0]) == 2, routes)
+            assert not filter(lambda route: not isinstance(route[0][0], str), routes)
+            assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
+            assert not filter(lambda route: not isinstance(route[1], float), routes)
             super(RoutingPayload.Implementation, self).__init__(meta)
             self._source_address = source_address
             self._destination_address = destination_address
+            self._source_default_conversion = source_default_conversion
+            self._routes = routes
 
         @property
         def source_address(self):
@@ -145,16 +158,36 @@ class RoutingPayload(Payload):
         def destination_address(self):
             return self._destination_address
 
+        @property
+        def source_default_conversion(self):
+            return self._source_default_conversion
+
+        @property
+        def routes(self):
+            return self._routes
+        #     now = time()
+        #     return [(address, age + now - stamp) for stamp, address, age in self._routes]
+
+        # def add_route(self, address, age):
+        #     assert isinstance(address, tuple)
+        #     assert len(address) == 2
+        #     assert isinstance(address[0], str)
+        #     assert isinstance(address[1], int)
+        #     assert isinstance(age, float)
+        #     assert age >= 0.0
+        #     assert len(self._routes) < 50
+        #     self._routes.append(time(), address, age)
+
 class RoutingRequestPayload(RoutingPayload):
     class Implementation(RoutingPayload.Implementation):
         pass
 
 class RoutingResponsePayload(RoutingPayload):
     class Implementation(RoutingPayload.Implementation):
-        def __init__(self, meta, request_identifier, source_address, destination_address):
+        def __init__(self, meta, request_identifier, source_address, destination_address, source_default_conversion, routes):
             assert isinstance(request_identifier, str)
             assert len(request_identifier) == 20
-            super(RoutingResponsePayload.Implementation, self).__init__(meta, source_address, destination_address)
+            super(RoutingResponsePayload.Implementation, self).__init__(meta, source_address, destination_address, source_default_conversion, routes)
             self._request_identifier = request_identifier
 
         @property

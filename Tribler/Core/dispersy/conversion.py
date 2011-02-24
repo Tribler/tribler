@@ -189,19 +189,40 @@ class BinaryConversion(Conversion):
         return len(data), meta_message.payload.implement(data[offset:offset+20], data[offset+20:])
 
     def _encode_routing_request(self, message):
-        return inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]), inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1])
+        bytes = [inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
+                 inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
+                 message.payload.source_default_conversion]
+        for address, age in message.payload.routes:
+            bytes.extend((inet_aton(address[0]), pack("!HB", address[1], int(min(255, age)))))
+        return bytes
 
     def _decode_routing_request(self, meta_message, offset, data):
-        if len(data) < offset + 12:
+        if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
         source_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-        destination_address = (inet_ntoa(data[offset+6:offset+10]), unpack_from("!H", data, offset+10)[0])
+        offset += 6
+        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+        source_default_conversion = data[offset:offset+2]
+        offset += 2
 
-        return offset + 12, meta_message.payload.implement(source_address, destination_address)
+        routes = []
+        while len(data) >= offset + 7:
+            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HB", data, offset+4))
+            offset += 7
+            routes.append(((host, port), float(age)))
+
+        return offset, meta_message.payload.implement(source_address, destination_address, source_default_conversion, routes)
 
     def _encode_routing_response(self, message):
-        return message.payload.request_identifier, inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]), inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1])
+        bytes = [message.payload.request_identifier,
+                 inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
+                 inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
+                 message.payload.source_default_conversion]
+        for address, age in message.payload.routes:
+            bytes.extend((inet_aton(address[0]), pack("!HB", address[1], int(min(255, age)))))
+        return bytes
 
     def _decode_routing_response(self, meta_message, offset, data):
         if len(data) < offset + 32:
@@ -213,8 +234,16 @@ class BinaryConversion(Conversion):
         offset += 6
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
+        source_default_conversion = data[offset:offset+2]
+        offset += 2
 
-        return offset, meta_message.payload.implement(request_identifier, source_address, destination_address)
+        routes = []
+        while len(data) >= offset + 7:
+            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HB", data, offset+4))
+            offset += 7
+            routes.append(((host, port), float(age)))
+
+        return offset, meta_message.payload.implement(request_identifier, source_address, destination_address, source_default_conversion, routes)
 
     def _encode_identity(self, message):
         return inet_aton(message.payload.address[0]), pack("!H", message.payload.address[1])

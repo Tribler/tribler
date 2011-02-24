@@ -174,6 +174,10 @@ class Dispersy(Singleton):
             self._my_external_address = socket.get_address()
 
     @property
+    def rawserver(self):
+        return self._rawserver
+
+    @property
     def database(self):
         """
         The Dispersy database singleton.
@@ -202,47 +206,21 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-routing-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), RoutingRequestPayload()),
-                Message(community, u"dispersy-routing-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), RoutingResponsePayload()),
-                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload()),
-                Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload()),
-                Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload()),
-                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload()),
-                Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload()),
-                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload()),
-                Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload()),
-                Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload()),
-                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload()),
-                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload()),
-                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload()),
-                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload()),
-                Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload())]
-
-    def get_message_handlers(self, community):
-        """
-        Returns the methods that will handle the different messages.
-
-        @note: This method may be removed in the near future where the meta message will hold the
-        handler themselves.
-
-        @param community: The community that has the handlers.
-        @type community: Community
-        """
-        return [(community.get_meta_message(u"dispersy-routing-request"), self.on_routing_request),
-                (community.get_meta_message(u"dispersy-routing-response"), self.on_routing_response),
-                (community.get_meta_message(u"dispersy-identity"), self.on_identity),
-                (community.get_meta_message(u"dispersy-identity-request"), self.on_identity_request),
-                (community.get_meta_message(u"dispersy-sync"), self.on_sync_message),
-                (community.get_meta_message(u"dispersy-missing-sequence"), self.on_missing_sequence),
-                (community.get_meta_message(u"dispersy-signature-request"), self.on_signature_request),
-                (community.get_meta_message(u"dispersy-signature-response"), self.on_ignore_message),
-                (community.get_meta_message(u"dispersy-similarity"), self.on_similarity_message),
-                (community.get_meta_message(u"dispersy-similarity-request"), self.on_similarity_request),
-                (community.get_meta_message(u"dispersy-authorize"), self.on_authorize),
-                (community.get_meta_message(u"dispersy-revoke"), self.on_revoke),
-                (community.get_meta_message(u"dispersy-destroy-community"), self.on_destroy_community),
-                (community.get_meta_message(u"dispersy-subjective-set"), self.on_subjective_set),
-                (community.get_meta_message(u"dispersy-subjective-set-request"), self.on_subjective_set_request)]
+        return [Message(community, u"dispersy-routing-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), RoutingRequestPayload(), self.check_routing_request, self.on_routing_request),
+                Message(community, u"dispersy-routing-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), RoutingResponsePayload(), self.check_routing_response, self.on_routing_response),
+                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity),
+                Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self.check_identity_request, self.on_identity_request),
+                Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync),
+                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence),
+                Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
+                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response),
+                Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity),
+                Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request),
+                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize),
+                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke),
+                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community),
+                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set),
+                Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self.check_subjective_set_request, self.on_subjective_set_request)]
 
     def add_community(self, community):
         """
@@ -271,7 +249,10 @@ class Dispersy(Singleton):
                 community.get_bloom_filter(global_time).add(str(packet))
 
         # periodically send dispery-sync messages
-        self._rawserver.add_task(lambda: self._periodically_disperse(community), community.dispersy_sync_interval)
+        self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval)
+
+        # periodically send dispery-routing-request messages
+        self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval)
 
     def get_community(self, cid):
         """
@@ -289,6 +270,12 @@ class Dispersy(Singleton):
         assert isinstance(cid, str)
         assert len(cid) == 20
         return self._communities[cid]
+
+    def get_communities(self):
+        """
+        Returns a list with all known Community instances.
+        """
+        return self._communities.values()
 
     def _check_incoming_full_sync_distribution(self, address, message):
         """
@@ -607,8 +594,8 @@ class Dispersy(Singleton):
             # filter messages based on distribution (usually duplicate or old messages)
             self._incoming_distribution_map.get(type(message.distribution), self._check_incoming_OTHER_distribution)(address, message)
 
-            # allow community code to handle the message
-            message.community.on_message(address, message)
+            # allow community code to test the message
+            message.check_callback(address, message)
 
         except DropMessage as exception:
             if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
@@ -625,6 +612,9 @@ class Dispersy(Singleton):
             # sync messages need to be stored (so they can be synced later)
             if isinstance(message.distribution, SyncDistribution.Implementation):
                 self._sync_distribution_store(message)
+
+            # allow community code to handle the message
+            message.handle_callback(address, message)
 
             if __debug__: log("dispersy.log", "handled", address=address, packet=message.packet, message=message.name)
 
@@ -698,9 +688,47 @@ class Dispersy(Singleton):
                      isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
                      buffer(message.packet)))
 
+            # ensure that we can reference this packet
+            message.packet_id = self._database.last_insert_rowid
+
+            # link one or more users to this packet
+            # todo: add more when this is MultiMemberAuthentication
             execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
                     (message.authentication.member.database_id,
-                     self._database.last_insert_rowid))
+                     message.packet_id))
+
+    def _select_routing_addresses(self, community_id, address_count, diff_range, age_range):
+        assert isinstance(community_id, (int, long))
+        assert community_id >= 0
+        assert isinstance(address_count, int)
+        assert address_count > 0
+        assert isinstance(diff_range, tuple)
+        assert len(diff_range) == 2
+        assert isinstance(diff_range[0], float)
+        assert isinstance(diff_range[1], float)
+        assert 0.0 <= diff_range[0] <= diff_range[1]
+        assert isinstance(age_range, tuple)
+        assert len(age_range) == 2
+        assert isinstance(age_range[0], float)
+        assert isinstance(age_range[1], float)
+        assert 0.0 <= age_range[0] <= age_range[1]
+
+        # todo: we can remove the returning diff and age from the query since it is not used
+        # (especially in the 2nd query)
+
+        # the theory behind the address selection is:
+        # a. we want to keep contact with those who are online, hence we send messages to those that
+        #    have a small diff.
+        # b. we want to get connections to those that have been away for some time, hence we send
+        #    messages to those that have a high age.
+        sql = u"""SELECT host, port, ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) AS diff, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+                  FROM routing
+                  WHERE community = ? AND (diff BETWEEN ? AND ? OR age BETWEEN ? AND ?)
+                  ORDER BY RANDOM()
+                  LIMIT ?"""
+        return [((str(host), port), diff, age)
+                for host, port, diff, age
+                in self._database.execute(sql, (community_id, diff_range[0], diff_range[1], age_range[0], age_range[1], address_count))]
 
     def store_and_forward(self, messages):
         """
@@ -749,27 +777,17 @@ class Dispersy(Singleton):
                 # todo: we can remove the returning diff and age from the query since it is not used
                 # (especially in the 2nd query)
 
-                # the theory behind the address selection is:
-                # a) we want to keep contact with those who are online, hence we send messages to
-                #    those that have a small diff.
-                # b) we want to get connections to those that have been away for some time, hence we
-                #    send messages to those that have a high age.
-                sql = u"""SELECT ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) AS diff, STRFTIME('%s', DATETIME()) - STRFTIME('%s', outgoing_time) AS age, host, port
-                          FROM routing
-                          WHERE community = ? AND (diff < 30 OR age > 300)
-                          ORDER BY RANDOM()
-                          LIMIT ?"""
-                addresses = [(str(host), port) for _, _, host, port in self._database.execute(sql, (message.community.database_id, message.destination.node_count))]
+                addresses = [address for address, _, __ in self._select_routing_addresses(message.community.database_id, message.destination.node_count, (0.0, 30.0), (120.0, 300.0))]
 
                 if not addresses:
                     # we need to fallback to something... just pick some addresses within this
                     # community.
-                    sql = u"""SELECT ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) AS diff, STRFTIME('%s', DATETIME()) - STRFTIME('%s', outgoing_time) AS age, host, port
+                    sql = u"""SELECT host, port
                               FROM routing
                               WHERE community = ?
                               ORDER BY RANDOM()
                               LIMIT ?"""
-                    addresses = [(str(host), port) for _, _, host, port in self._database.execute(sql, (message.community.database_id, message.destination.node_count))]
+                    addresses = [(str(host), port) for host, port in self._database.execute(sql, (message.community.database_id, message.destination.node_count))]
 
                 if not addresses:
                     # we need to fallback to something else... just pick some addresses.
@@ -885,13 +903,14 @@ class Dispersy(Singleton):
         self._triggers.append(trigger)
         self._rawserver.add_task(trigger.on_timeout, timeout)
 
-    def create_routing_request(self, community, address, response_func=None, response_args=(), timeout=10.0, max_responses=1, store_and_forward=True):
+    def create_routing_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store_and_forward=True):
         """
         Create a dispersy-routing-request message.
 
         The dispersy-routing-request and -response messages are used to keep track of the address
-        where a member can be found.  It can also be used to check if the member is still alive
-        because it triggers a response message.
+        where a member can be found.  It is also used to check if the member is still alive because
+        it triggers a response message.  Finally, it is used to spread addresses of other members
+        aswell.
 
         The optional response_func is used to obtain a callback for this specific request.  The
         parameters response_func, response_args, timeout, and max_responses are all related to this
@@ -926,6 +945,14 @@ class Dispersy(Singleton):
         assert isinstance(address, tuple)
         assert isinstance(address[0], str)
         assert isinstance(address[1], int)
+        assert isinstance(routes, (tuple, list))
+        assert not filter(lambda route: not isinstance(route, tuple), routes)
+        assert not filter(lambda route: not len(route) == 2, routes)
+        assert not filter(lambda route: not isinstance(route[0], tuple), routes)
+        assert not filter(lambda route: not len(route[0]) == 2, routes)
+        assert not filter(lambda route: not isinstance(route[0][0], str), routes)
+        assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
+        assert not filter(lambda route: not isinstance(route[1], float), routes)
         assert hasattr(response_func, "__call__")
         assert isinstance(response_args, tuple)
         assert isinstance(timeout, float)
@@ -937,7 +964,7 @@ class Dispersy(Singleton):
         request = meta.implement(meta.authentication.implement(community.my_member),
                                  meta.distribution.implement(meta.community._timeline.global_time),
                                  meta.destination.implement(address),
-                                 meta.payload.implement(self._my_external_address, address))
+                                 meta.payload.implement(self._my_external_address, address, community.get_conversion(), routes))
 
         if store_and_forward:
             self.store_and_forward([request])
@@ -948,6 +975,10 @@ class Dispersy(Singleton):
             self.await_message(footprint, response_func, response_args, timeout, max_responses)
 
         return request
+
+    def check_routing_request(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_routing_request(self, address, message):
         """
@@ -975,16 +1006,39 @@ class Dispersy(Singleton):
         if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
         self._my_external_address = message.payload.destination_address
 
+        # update or insert the member who sent the request
         # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
         #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
 
+        # add routes in our routing table
+        with self._database as execute:
+            for route, age in message.payload.routes:
+                age = u"-{0} seconds".format(age)
+                execute(u"UPDATE routing SET outgoing_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
+                        (age, message.community.database_id, unicode(route[0]), route[1]))
+                if self._database.changes == 0:
+                    execute(u"INSERT INTO routing(community, host, port, outgoing_time) VALUES(?, ?, ?, DATETIME('now', ?))",
+                            (message.community.database_id, unicode(route[0]), route[1], age))
+
         # send response
+        minimal_age, maximal_age = message.community.dispersy_routing_age_range
+        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+                  FROM routing
+                  WHERE community = ? AND age BETWEEN ? AND ?
+                  ORDER BY age
+                  LIMIT 30"""
+        routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (message.community.database_id, minimal_age, maximal_age))]
+
         meta = message.community.get_meta_message(u"dispersy-routing-response")
-        message = meta.implement(meta.authentication.implement(message.community.my_member),
-                                 meta.distribution.implement(meta.community._timeline.global_time),
-                                 meta.destination.implement(address),
-                                 meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, address))
-        self.store_and_forward([message])
+        response = meta.implement(meta.authentication.implement(meta.community.my_member),
+                                  meta.distribution.implement(meta.community._timeline.global_time),
+                                  meta.destination.implement(address),
+                                  meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, address, meta.community.get_conversion().version, routes))
+        self.store_and_forward([response])
+
+    def check_routing_response(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_routing_response(self, address, message):
         """
@@ -1048,7 +1102,12 @@ class Dispersy(Singleton):
                                  meta.payload.implement(self._my_external_address))
         if store_and_forward:
             self.store_and_forward([message])
+
         return message
+
+    def check_identity(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_identity(self, address, message):
         """
@@ -1116,7 +1175,12 @@ class Dispersy(Singleton):
                                  meta.payload.implement(mid))
         if store_and_forward:
             self.store_and_forward([message])
+
         return message
+
+    def check_identity_request(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_identity_request(self, address, message):
         """
@@ -1167,20 +1231,28 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(cluster, subjective_set))
 
-        if update_locally:
-            assert community._timeline.check(message)
-            community.on_message(("", -1), message)
-
         if store_and_forward:
             self.store_and_forward([message])
 
+        if update_locally:
+            assert community._timeline.check(message)
+            message.handle_callback(("", -1), message)
+
         return message
+
+    def check_subjective_set(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_subjective_set(self, address, message):
         # we do not need to do anything here for now because we retrieve all information directly
         # from the database each time we need it.  Hence no in-memory actions needs to occur.  Note
         # that this data is immediately stored in the database when this method returns.
         pass
+
+    def check_subjective_set_request(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_subjective_set_request(self, address, message):
         """
@@ -1245,7 +1317,7 @@ class Dispersy(Singleton):
 
     #     if update_locally:
     #         assert community._timeline.check(message)
-    #         community.on_message(("", -1), message)
+    #         message.handle_callback(("", -1), message)
 
     #     if store_and_forward:
     #         self.store_and_forward([message])
@@ -1328,16 +1400,20 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(meta_message.destination.identifier, similarity))
 
-        if update_locally:
-            assert community._timeline.check(message)
-            community.on_message(("", -1), message)
-
         if store_and_forward:
             self.store_and_forward([message])
 
+        if update_locally:
+            assert community._timeline.check(message)
+            message.handle_callback(("", -1), message)
+
         return message
 
-    def on_similarity_message(self, address, message):
+    def check_similarity(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
+
+    def on_similarity(self, address, message):
         """
         We received a dispersy-similarity message.
 
@@ -1420,6 +1496,10 @@ class Dispersy(Singleton):
 
     # todo: implement a create_similarity_request method
     # def create_similarity_request(self,
+
+    def check_similarity_request(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_similarity_request(self, address, message):
         """
@@ -1522,9 +1602,43 @@ class Dispersy(Singleton):
         # set callback and timeout
         identifier = sha1(request.packet).digest()
         footprint = community.get_meta_message(u"dispersy-signature-response").generate_footprint(payload=(identifier,))
-        self.await_message(footprint, self.on_signature_response, (request, response_func, response_args), timeout, len(members))
+        self.await_message(footprint, self._on_signature_response, (request, response_func, response_args), timeout, len(members))
 
         return request
+
+    def check_similarity_request(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
+
+        # submsg contains the message that should receive multiple signatures
+        submsg = message.payload.message
+
+        has_private_member = False
+        for is_signed, member in submsg.authentication.signed_members:
+            # Security: do NOT allow to accidentally sign with MasterMember.
+            if isinstance(member, MasterMember):
+                raise DropMessage("You may never ask for a MasterMember signature")
+
+            # is this signature missing, and could we provide it
+            if not is_signed and isinstance(member, PrivateMember):
+                has_private_member = True
+                break
+
+        # we must be one of the members that needs to sign
+        if not has_private_member:
+            raise DropMessage("Nothing to sign")
+
+        # the message must be valid
+        if not submsg.community._timeline.check(submsg):
+            raise DropMessage("Doesn't fit timeline")
+
+        # the community must allow this signature
+        if not submsg.authentication.allow_signature_func(submsg):
+            raise DropMessage("We choose not to add our signature")
+
+    def check_signature_request(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_signature_request(self, address, message):
         """
@@ -1566,28 +1680,28 @@ class Dispersy(Singleton):
         # submsg contains the message that should receive multiple signatures
         submsg = message.payload.message
 
-        has_private_member = False
-        for is_signed, member in submsg.authentication.signed_members:
-            # Security: do NOT allow to accidentally sign with MasterMember.
-            if isinstance(member, MasterMember):
-                raise DropMessage("You may never ask for a MasterMember signature")
+        # has_private_member = False
+        # for is_signed, member in submsg.authentication.signed_members:
+        #     # Security: do NOT allow to accidentally sign with MasterMember.
+        #     if isinstance(member, MasterMember):
+        #         raise DropMessage("You may never ask for a MasterMember signature")
 
-            # is this signature missing, and could we provide it
-            if not is_signed and isinstance(member, PrivateMember):
-                has_private_member = True
-                break
+        #     # is this signature missing, and could we provide it
+        #     if not is_signed and isinstance(member, PrivateMember):
+        #         has_private_member = True
+        #         break
 
-        # we must be one of the members that needs to sign
-        if not has_private_member:
-            raise DropMessage("Nothing to sign")
+        # # we must be one of the members that needs to sign
+        # if not has_private_member:
+        #     raise DropMessage("Nothing to sign")
 
-        # the message must be valid
-        if not submsg.community._timeline.check(submsg):
-            raise DropMessage("Doesn't fit timeline")
+        # # the message must be valid
+        # if not submsg.community._timeline.check(submsg):
+        #     raise DropMessage("Doesn't fit timeline")
 
-        # the community must allow this signature
-        if not submsg.authentication.allow_signature_func(submsg):
-            raise DropMessage("We choose not to add our signature")
+        # # the community must allow this signature
+        # if not submsg.authentication.allow_signature_func(submsg):
+        #     raise DropMessage("We choose not to add our signature")
 
         # create signature(s) and reply
         identifier = sha1(message.packet).digest()
@@ -1604,7 +1718,14 @@ class Dispersy(Singleton):
                                          meta.payload.implement(identifier, signature))
                 self.store_and_forward([message])
 
-    def on_signature_response(self, address, response, request, response_func, response_args):
+    def check_signature_response(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
+
+    def on_signature_response(self, address, message):
+        pass
+
+    def _on_signature_response(self, address, response, request, response_func, response_args):
         """
         A Trigger matched a received dispersy-signature-response message.
 
@@ -1665,23 +1786,27 @@ class Dispersy(Singleton):
                     # assuming this signature only matches one member, we can break
                     break
 
-    def on_ignore_message(self, address, message):
-        """
-        Ignores the received message.
+    # def on_ignore_message(self, address, message):
+    #     """
+    #     Ignores the received message.
 
-        This message handler is used when the incoming message can be ignored.  This can happen, for
-        instance, when the message is already handled using a trigger set using self.await_message.
+    #     This message handler is used when the incoming message can be ignored.  This can happen, for
+    #     instance, when the message is already handled using a trigger set using self.await_message.
 
-        @param address: The sender address.
-        @type address: (string, int)
+    #     @param address: The sender address.
+    #     @type address: (string, int)
 
-        @param message: A received message.
-        @type message: Message.Implementation
-        """
-        if __debug__:
-            i = len([trigger for trigger in self._triggers if trigger._match and trigger._match(message.footprint)])
-            j = len(self._triggers)
-            dprint("Ignored ", message.name, " (matches ", i, "/", j, " triggers)")
+    #     @param message: A received message.
+    #     @type message: Message.Implementation
+    #     """
+    #     if __debug__:
+    #         i = len([trigger for trigger in self._triggers if trigger._match and trigger._match(message.footprint)])
+    #         j = len(self._triggers)
+    #         dprint("Ignored ", message.name, " (matches ", i, "/", j, " triggers)")
+
+    def check_missing_sequence(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_missing_sequence(self, address, message):
         """
@@ -1721,7 +1846,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("Bandwidth throttle")
                 break
 
-    def on_sync_message(self, address, message):
+    def check_sync(self, address, message):
         """
         We received a dispersy-sync message.
 
@@ -1804,6 +1929,9 @@ class Dispersy(Singleton):
             for tup in self._database.execute(sql, (community_id, time_low, time_high)):
                 yield tup
 
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
+
         # we limit the response by byte_limit bytes
         byte_limit = self._total_send + message.community.dispersy_sync_response_limit
 
@@ -1818,9 +1946,11 @@ class Dispersy(Singleton):
         bloom_filter = message.payload.bloom_filter
         time_high = message.payload.time_high if message.payload.has_time_high else message.community._timeline.global_time
         packets = []
+
         for packet, meta_message_id, packet_public_key in get_packets(message.community.database_id, message.payload.time_low, time_high):
             packet = str(packet)
             packet_public_key = str(packet_public_key)
+
             if not packet in bloom_filter:
                 # check if the packet uses the SubjectiveDestination policy
                 packet_meta = meta_messages[meta_message_id]
@@ -1859,6 +1989,10 @@ class Dispersy(Singleton):
 
         if packets:
             self._send([address], packets)
+
+    def on_sync(self, address, message):
+        # everything has already been done in check_sync.
+        pass
 
     def create_authorize(self, community, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
         """
@@ -1920,14 +2054,18 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
-        if update_locally:
-            assert community._timeline.check(message)
-            community.on_message(("", -1), message)
-
         if store_and_forward:
             self.store_and_forward([message])
 
+        if update_locally:
+            assert community._timeline.check(message)
+            message.handle_callback(("", -1), message)
+
         return message
+
+    def check_authorize(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_authorize(self, address, message):
         """
@@ -1947,8 +2085,8 @@ class Dispersy(Singleton):
         @todo: We should raise a DelayMessageByProof to ensure that we request the proof for this
          message immediately.
         """
-        if not message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets):
-            raise DropMessage("TODO: implement delay of proof")
+
+        message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
         """
@@ -2009,14 +2147,18 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
-        if update_locally:
-            assert community._timeline.check(message)
-            community.on_message(("", -1), message)
-
         if store_and_forward:
             self.store_and_forward([message])
 
+        if update_locally:
+            assert community._timeline.check(message)
+            message.handle_callback(("", -1), message)
+
         return message
+
+    def check_revoke(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_revoke(self, address, message):
         """
@@ -2036,8 +2178,7 @@ class Dispersy(Singleton):
         @todo: We should raise a DelayMessageByProof to ensure that we request the proof for this
          message immediately.
         """
-        if not message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets):
-            raise DropMessage("TODO: implement delay of proof")
+        message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
     def create_destroy_community(self, community, degree, update_locally=True, store_and_forward=True):
         if __debug__:
@@ -2052,14 +2193,18 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(degree))
 
-        if update_locally:
-            assert community._timeline.check(message)
-            community.on_message(("", -1), message)
-
         if store_and_forward:
             self.store_and_forward([message])
 
+        if update_locally:
+            assert community._timeline.check(message)
+            message.handle_callback(("", -1), message)
+
         return message
+
+    def check_destroy_community(self, address, message):
+        if not message.community._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_destroy_community(self, address, message):
         if __debug__:
@@ -2104,7 +2249,10 @@ class Dispersy(Singleton):
                 # 2. cleanup the identity table.  we should no longer need anything there
                 execute(u"DELETE FROM identity WHERE community = ?", (community.database_id,))
 
-    def _periodically_disperse(self, community):
+                # 3. cleanup the routing table.  we need nothing here anymore
+                execute(u"DELETE FROM routing WHERE community = ?", (community.database_id,))
+
+    def _periodically_create_sync(self, community):
         """
         Periodically disperse the latest bloom filters for this community.
 
@@ -2113,7 +2261,7 @@ class Dispersy(Singleton):
 
         Note that there are several magic numbers involved:
 
-         1. The frequency of calling _periodically_disperse.  This is determined by
+         1. The frequency of calling _periodically_create_sync.  This is determined by
             self.dispersy_sync_interval.  This defaults to 20.0 (currently).
 
          2. Each interval up to L bloom filters are selected and sent in seperate dispersy-sync
@@ -2134,8 +2282,31 @@ class Dispersy(Singleton):
                     for time_low, time_high, bloom_filter
                     in community.dispersy_sync_bloom_filters]
         self.store_and_forward(messages)
+        self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval)
 
-        self._rawserver.add_task(lambda: self._periodically_disperse(community), community.dispersy_sync_interval)
+    def _periodically_create_routing_request(self, community):
+        minimal_age, maximal_age = community.dispersy_routing_age_range
+        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+                  FROM routing
+                  WHERE community = ? AND age BETWEEN ? AND ?
+                  ORDER BY age
+                  LIMIT 30"""
+        routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
+
+        meta = community.get_meta_message(u"dispersy-routing-request")
+        requests = []
+        for address, _, __ in self._select_routing_addresses(community.database_id,
+                                                             community.dispersy_routing_request_member_count,
+                                                             community.dispersy_routing_request_destination_diff_range,
+                                                             community.dispersy_routing_request_destination_age_range):
+            requests.append(meta.implement(meta.authentication.implement(community.my_member),
+                                           meta.distribution.implement(community._timeline.global_time),
+                                           meta.destination.implement(address),
+                                           meta.payload.implement(self._my_external_address, address, community.get_conversion().version, routes)))
+        if requests:
+            self.store_and_forward(requests)
+
+        self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval)
 
     def _periodically_stats(self):
         """

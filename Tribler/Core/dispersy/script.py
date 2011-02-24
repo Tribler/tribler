@@ -102,10 +102,152 @@ class ScriptBase(object):
     def run():
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
 
+class DispersyRoutingScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.incoming_routing_request)
+        self.caller(self.outgoing_routing_response)
+        self.caller(self.outgoing_routing_request)
+
+    def incoming_routing_request(self):
+        """
+        Sending a dispersy-routing-request from NODE to SELF.
+
+        - Test that SELF stores the routes in its database.
+        - TODO: Test that duplicate routes are updated (timestamp)
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        conversion_version = community.get_conversion().version
+        address = self._dispersy.socket.get_address()
+
+        # create node
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(routing=False)
+        yield 0.01
+
+        # send a dispersy-routing-request message
+        routes = [(("123.123.123.123", 123), 60.0),
+                  (("124.124.124.124", 124), 120.0)]
+        node.send_message(node.create_dispersy_routing_request_message(node.socket.getsockname(), address, conversion_version, routes, 10), address)
+        yield 0.01
+
+        # routes must be placed in the database
+        items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', outgoing_time) AS age FROM routing WHERE community = ?", (community.database_id,))]
+        for route in routes:
+            off_by_one_second = (route[0], route[1]+1)
+            assert route in items or off_by_one_second in items
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def outgoing_routing_response(self):
+        """
+        Sending a dispersy-routing-request from NODE to SELF must result in a
+        dispersy-routing-response from SELF to NODE.
+
+        - Test that some routes in SELF database are part of the response.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        conversion_version = community.get_conversion().version
+        address = self._dispersy.socket.get_address()
+
+        # create node
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(routing=False)
+        yield 0.01
+
+        routes = [(u"1.2.3.4", 5),
+                  (u"2.3.4.5", 6)]
+
+        # put some routes in the database that we expect back
+        with self._dispersy_database as execute:
+            for host, port in routes:
+                execute(u"INSERT INTO routing (community, host, port, incoming_time, outgoing_time) VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))", (community.database_id, host, port))
+
+        # send a dispersy-routing-request message
+        node.send_message(node.create_dispersy_routing_request_message(node.socket.getsockname(), address, conversion_version, [], 10), address)
+        yield 0.01
+
+        # catch dispersy-routing-response message
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-response"])
+        dprint(message.payload.routes, lines=1)
+        for route in routes:
+            assert (route, 0.0) in message.payload.routes
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def outgoing_routing_request(self):
+        """
+        SELF must send a dispersy-routing-request every community.dispersy_routing_request_interval
+        seconds.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_routing_request_interval(self):
+                return 3.0
+
+            @property
+            def dispersy_routing_request_member_count(self):
+                return 10
+
+            @property
+            def dispersy_routing_request_destination_diff_range(self):
+                return (0.0, 30.0)
+
+            @property
+            def dispersy_routing_request_destination_age_range(self):
+                return (0.0, 30.0)
+
+        community = TestCommunity.create_community(self._my_member)
+        conversion_version = community.get_conversion().version
+        address = self._dispersy.socket.get_address()
+
+        # create node
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(routing=False)
+
+        # wait interval
+        yield 3.0 + 0.1
+
+        # receive dispersy-routing-request
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+
+        for _ in range(3):
+            # do NOT receive dispersy-routing-request
+            try:
+                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+            except:
+                pass
+            else:
+                assert False
+
+            # wait interval
+            yield 1.0
+
+        yield 0.1
+
+        # receive dispersy-routing-request from 2nd interval
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        # todo: test that after a hard-kill, all new incoming messages are dropped.
+        # todo: test that after a hard-kill, nothing is added to the routing table anymore
 
         self.caller(self.hard_kill)
 
@@ -142,7 +284,11 @@ class DispersyDestroyCommunityScript(ScriptBase):
         assert not message.payload.is_soft_kill
         assert message.payload.is_hard_kill
 
-        # the database should be cleaned
+        # the routing table must be empty
+        assert not list(self._dispersy_database.execute(u"SELECT * FROM routing WHERE community = ?", (community.database_id,)))
+
+        # the database should have been cleaned
+        # todo
 
 class DispersyMemberTagScript(ScriptBase):
     def run(self):
@@ -199,6 +345,9 @@ class DispersyMemberTagScript(ScriptBase):
         times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert sorted(times) == [10, 20, 30], times
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def drop_test(self):
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -248,6 +397,9 @@ class DispersyMemberTagScript(ScriptBase):
         assert len(times) == 2
         assert global_time in times
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
 class DispersySyncScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -291,6 +443,9 @@ class DispersySyncScript(ScriptBase):
             _, message = node.receive_message(addresses=[address], message_names=[u"in-order-text"])
             assert message.distribution.global_time == global_time
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def out_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -320,6 +475,9 @@ class DispersySyncScript(ScriptBase):
         for global_time in reversed(global_times):
             _, message = node.receive_message(addresses=[address], message_names=[u"out-order-text"])
             assert message.distribution.global_time == global_time
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def random_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -363,6 +521,9 @@ class DispersySyncScript(ScriptBase):
 
         dprint(lists, lines=True)
         assert len(lists) > 1
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def mixed_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -437,6 +598,9 @@ class DispersySyncScript(ScriptBase):
         dprint(lists, lines=True)
         assert len(lists) > 1
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def last_1_test(self):
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -494,6 +658,9 @@ class DispersySyncScript(ScriptBase):
         times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def last_9_nosequence_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -558,6 +725,9 @@ class DispersySyncScript(ScriptBase):
             times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             dprint(sorted(times))
             assert sorted(times) == match_times, sorted(times)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     # def last_9_sequence_test(self):
     #     community = DebugCommunity.create_community(self._my_member)
@@ -628,6 +798,9 @@ class DispersySyncScript(ScriptBase):
     #         dprint(sorted(times))
     #         assert sorted(times) == match_times, sorted(times)
 
+    #     # cleanup
+    #     community.create_dispersy_destroy_community(u"hard-kill")
+
 class DispersySignatureScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -666,6 +839,9 @@ class DispersySignatureScript(ScriptBase):
         yield 4.0
 
         assert container["timeout"] == 1, container["timeout"]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def double_signed_response(self):
         ec = ec_generate_key(u"low")
@@ -708,6 +884,9 @@ class DispersySignatureScript(ScriptBase):
 
         assert container["response"] == 1, container["response"]
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def triple_signed_timeout(self):
         ec = ec_generate_key(u"low")
         my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
@@ -746,6 +925,9 @@ class DispersySignatureScript(ScriptBase):
         yield 4.0
 
         assert container["timeout"] == 1, container["timeout"]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def triple_signed_response(self):
         ec = ec_generate_key(u"low")
@@ -846,6 +1028,9 @@ class DispersySubjectiveSetScript(ScriptBase):
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [global_time]
 
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
     def full_sync(self):
         """
         Using full sync check that:
@@ -881,6 +1066,9 @@ class DispersySubjectiveSetScript(ScriptBase):
         yield 0.01
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert message.distribution.global_time == global_time
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def subjective_set_request(self):
         """

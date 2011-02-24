@@ -264,7 +264,7 @@ class MultiMemberAuthentication(Authentication):
             assert not signatures or len(signatures) == meta._count
             super(MultiMemberAuthentication.Implementation, self).__init__(meta)
             self._members = members
-            self._generate_packet_func = None
+            self._regenerate_packet_func = None
 
             # will contain the list of signatures as they are received
             # from dispersy-signature-response messages
@@ -342,13 +342,13 @@ class MultiMemberAuthentication(Authentication):
             assert member in self._members
             assert member.signature_length == len(signature)
             self._signatures[self._members.index(member)] = signature
-            self._generate_packet_func()
+            self._regenerate_packet_func()
 
         def setup(self, message_impl):
             if __debug__:
                 from message import Message
             assert isinstance(message_impl, Message.Implementation)
-            self._generate_packet_func = message_impl.generate_packet
+            self._regenerate_packet_func = message_impl.regenerate_packet
 
         @property
         def footprint(self):

@@ -2,7 +2,7 @@ def _a_encode_int(value, mapping):
     """
     42 --> ('2', 'i', '42')
     """
-    assert isinstance(value, int), "VALUE has invalid type: %s" % type(value)
+    assert isinstance(value, (int, long)), "VALUE has invalid type: %s" % type(value)
     value = str(value).encode("UTF-8")
     return (str(len(value)).encode("UTF-8"), "i", value)
 
@@ -56,6 +56,7 @@ def _a_encode_dictionary(values, mapping):
     return encoded
 
 _a_encode_mapping = {int:_a_encode_int,
+                     long:_a_encode_int,
                      float:_a_encode_float,
                      unicode:_a_encode_unicode,
                      str:_a_encode_bytes,

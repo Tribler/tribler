@@ -43,6 +43,7 @@ CREATE TABLE identity(
 CREATE TABLE community(
  id INTEGER PRIMARY KEY AUTOINCREMENT,          -- local counter for database optimization
  user INTEGER REFERENCES user(id),              -- my member that is used to sign my messages
+ classification TEXT,                           -- the community type, typically the class name
  cid BLOB,                                      -- community identifier (sha1 of public_key)
  public_key BLOB,                               -- community master key (public part)
  UNIQUE(user, cid));
@@ -54,10 +55,10 @@ CREATE TABLE key(
 
 CREATE TABLE routing(
  community INTEGER REFERENCES community(id),
- host TEXT,                                     -- IP address
- port INTEGER,                                  -- port number
- incoming_time TEXT,                            -- time when received data
- outgoing_time TEXT,                            -- time when data send
+ host TEXT,                                             -- IP address
+ port INTEGER,                                          -- port number
+ incoming_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when received data
+ outgoing_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when data send OR when we heared about this address from 3rd party
  UNIQUE(community, host, port));
 
 CREATE TABLE name(
@@ -141,4 +142,4 @@ class DispersyDatabase(Database):
         public_key = "3081a7301006072a8648ce3d020106052b810400270381920004015f83ac4e8fe506c4035853096187814b93dbe566dbb24f98c51252c3d3a346a1c5813c7db8ece549f92c5ca9fd1cd58018a60e92432bcc12a610760f35b5907094cb6d7cd4e67001a1ab08b3a626a3884ebb5fe69969c47aba087075c72a326ae62046867aa435d71b59a388b5ecbf100896d1ed36131a0c4f6c5c3cb4f19a341919e87976eb03cdea8d6d85704370".decode("HEX")
         mid = "3a4abd4ebb317172c057728799a5e5ea88c6bffa".decode("HEX")
         self.execute(u"INSERT INTO user(mid, public_key) VALUES(?, ?)", (buffer(mid), buffer(public_key)))
-        self.execute(u"INSERT INTO routing(community, host, port, incoming_time, outgoing_time) VALUES(0, ?, ?, '2010-01-01 00:00:00', '2010-01-01 00:00:00')", (host, port))
+        self.execute(u"INSERT INTO routing(community, host, port) VALUES(0, ?, ?)", (host, port))

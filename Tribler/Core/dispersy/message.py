@@ -239,29 +239,50 @@ class Packet(MetaObject.Implementation):
         assert isinstance(packet, str)
         super(Packet, self).__init__(meta)
         self._packet = packet
+        self._packet_id = 0
 
-        @property
-        def community(self):
-            return self._meta._community
+    @property
+    def community(self):
+        return self._meta._community
 
-        @property
-        def name(self):
-            return self._meta._name
+    @property
+    def name(self):
+        return self._meta._name
 
-        @property
-        def database_id(self):
-            return self._meta._database_id
+    @property
+    def database_id(self):
+        return self._meta._database_id
 
-        @property
-        def resolution(self):
-            return self._meta._resolution
+    @property
+    def resolution(self):
+        return self._meta._resolution
 
-        @property
-        def packet(self):
-            return self._packet
+    @property
+    def check_callback(self):
+        return self._meta._check_callback
 
-        def __str__(self):
-            return "<{0.meta.__class__.__name__}.{0.__class__.__name__} {0.name} {1}>".format(self, len(self._packet))
+    @property
+    def handle_callback(self):
+        return self._meta._handle_callback
+
+    @property
+    def packet(self):
+        return self._packet
+
+    @property
+    def packet_id(self):
+        return self._packet_id
+
+    @packet_id.setter
+    def packet_id(self, packet_id):
+        assert isinstance(packet_id, (int, long))
+        self._packet_id = packet_id
+
+    def load_message(self):
+        return self._meta.community.get_conversion(self._packet[:22]).decode_message(self._packet)
+
+    def __str__(self):
+        return "<{0.meta.__class__.__name__}.{0.__class__.__name__} {0.name} {1}>".format(self, len(self._packet))
 
 #
 # message
@@ -296,27 +317,19 @@ class Message(MetaObject):
 
             if conversion:
                 self._conversion = conversion
+            elif packet:
+                self._conversion = meta._community.get_conversion(packet[:22])
             else:
                 self._conversion = meta._community.get_conversion()
 
-            if not packet:
+            if packet:
+                self._packet = packet
+            else:
                 self._packet = self._conversion.encode_message(self)
 
         @property
-        def community(self):
-            return self._meta._community
-
-        @property
-        def name(self):
-            return self._meta._name
-
-        @property
-        def database_id(self):
-            return self._meta._database_id
-
-        @property
-        def resolution(self):
-            return self._meta._resolution
+        def conversion(self):
+            return self._conversion
 
         @property
         def authentication(self):
@@ -331,22 +344,21 @@ class Message(MetaObject):
             return self._destination
 
         @property
-        def conversion(self):
-            return self._conversion
-
-        @property
         def payload(self):
             return self._payload
-
-        @property
-        def packet(self):
-            return self._packet
 
         @property
         def footprint(self):
             return self._footprint
 
-        def generate_packet(self, packet=""):
+        @property
+        def packet(self):
+            return self._packet
+
+        def load_message(self):
+            return self
+
+        def regenerate_packet(self, packet=""):
             if packet:
                 self._packet = packet
             else:
@@ -355,7 +367,7 @@ class Message(MetaObject):
         def __str__(self):
             return "<{0.meta.__class__.__name__}.{0.__class__.__name__} {0.name} {1}>".format(self, len(self._packet))
 
-    def __init__(self, community, name, authentication, resolution, distribution, destination, payload):
+    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback):
         if __debug__:
             from community import Community
             from authentication import Authentication
@@ -370,6 +382,8 @@ class Message(MetaObject):
         assert isinstance(distribution, Distribution), "DISTRIBUTION has invalid type '{0}'".format(type(distribution))
         assert isinstance(destination, Destination), "DESTINATION has invalid type '{0}'".format(type(destination))
         assert isinstance(payload, Payload), "PAYLOAD has invalid type '{0}'".format(type(payload))
+        assert hasattr(check_callback, "__call__")
+        assert hasattr(handle_callback, "__call__")
         assert self.check_policy_combination(authentication, resolution, distribution, destination)
         self._community = community
         self._name = name
@@ -378,6 +392,8 @@ class Message(MetaObject):
         self._distribution = distribution
         self._destination = destination
         self._payload = payload
+        self._check_callback = check_callback
+        self._handle_callback = handle_callback
 
         # setup
         database = community.dispersy.database
@@ -429,6 +445,14 @@ class Message(MetaObject):
     @property
     def payload(self):
         return self._payload
+
+    @property
+    def check_callback(self):
+        return self._check_callback
+
+    @property
+    def handle_callback(self):
+        return self._handle_callback
 
     def generate_footprint(self, authentication=(), distribution=(), destination=(), payload=()):
         assert isinstance(authentication, tuple)

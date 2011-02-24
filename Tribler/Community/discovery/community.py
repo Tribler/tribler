@@ -33,22 +33,13 @@ class DiscoveryCommunity(Community, Singleton):
         # discovery storage
         self._database = DiscoveryDatabase.get_instance()
 
-        # mapping
-        self._incoming_message_map = {u"user-metadata":self.on_user_metadata,
-                                      u"community-metadata":self.on_community_metadata}
-
-        # add the Dispersy message handlers to the
-        # _incoming_privilege_map
-        for message, handler in self._dispersy.get_message_handlers(self):
-            assert message.name not in self._incoming_message_map
-            self._incoming_message_map[message.name] = handler
-
+        # available conversions
         self.add_conversion(DiscoveryBinaryConversion02(self), True)
 
     def initiate_meta_messages(self):
-        return [Message(self, u"user-metadata", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), UserMetadataPayload()),
+        return [Message(self, u"user-metadata", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), UserMetadataPayload(), self.check_user_metadata, self.on_user_metadata),
                 # todo: create a MasterMemberAuthentication, or parameter to MemberAuthentication
-                Message(self, u"community-metadata", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), CommunityMetadataPayload())]
+                Message(self, u"community-metadata", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), CommunityMetadataPayload(), self.check_community_metadata, self.on_community_metadata)]
 
     def create_user_metadata(self, address, alias, comment, update_locally=True, store_and_forward=True):
         meta = self.get_meta_message(u"user-metadata")
@@ -59,7 +50,7 @@ class DiscoveryCommunity(Community, Singleton):
 
         if update_locally:
             assert self._timeline.check(message)
-            self.on_message(("", -1), message)
+            message.handle_callback(("", -1), message)
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
@@ -75,15 +66,16 @@ class DiscoveryCommunity(Community, Singleton):
 
         if update_locally:
             assert self._timeline.check(message)
-            self.on_message(("", -1), message)
+            message.handle_callback(("", -1), message)
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
 
         return message
 
-    def on_message(self, address, message):
-        self._incoming_message_map[message.name](address, message)
+    def check_user_metadata(self, address, message):
+        if not self._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_user_metadata(self, address, message):
         payload = message.payload
@@ -95,6 +87,10 @@ class DiscoveryCommunity(Community, Singleton):
         user_metadata = UserMetadata.has_instance(message.authentication.member)
         if user_metadata:
             user_metadata.update()
+
+    def check_community_metadata(self, address, message):
+        if not self._timeline.check(message):
+            raise DropMessage("TODO: implement delay of proof")
 
     def on_community_metadata(self, address, message):
         payload = message.payload

@@ -39,20 +39,23 @@ class AllChannelCommunity(Community):
         Since there is one global AllChannelCommunity, we will return one using a static public
         master member key.
         """
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
-        cid = "1aa96a9347f58450a91aeebad5d511f3bfb2e3fa".decode("HEX")
+        communities = super(AllChannelCommunity, cls).load_communities(*args, **kargs)
 
-        dispersy_database = DispersyDatabase.get_instance()
-        dispersy_database.execute(u"INSERT OR IGNORE INTO community (user, cid, public_key) VALUES (?, ?, ?)",
-                         (my_member.database_id, buffer(cid), buffer(master_key)))
+        if not communities:
+            master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
+            cid = sha1(master_key).digest()
 
-        # new community instance
-        community = cls(cid, *args, **kargs)
+            dispersy_database = DispersyDatabase.get_instance()
+            dispersy_database.execute(u"INSERT OR IGNORE INTO community (user, cid, classification, public_key) VALUES (?, ?, ?, ?)",
+                                      (my_member.database_id, buffer(cid), cls.get_classification(), buffer(master_key)))
 
-        # send out my initial dispersy-identity
-        # community.create_identity()
+            # new community instance
+            communities = [cls(cid, *args, **kargs)]
 
-        return [community]
+            # send out my initial dispersy-identity
+            # community.create_identity()
+
+        return communities
 
     def __init__(self, cid):
         super(AllChannelCommunity, self).__init__(cid)
@@ -67,19 +70,6 @@ class AllChannelCommunity(Community):
         # self._torrent_request_queue = []
         # self._torrent_request_outstanding = False
 
-        # mapping
-        self._incoming_message_map = {u"propagate-torrents":self.on_propagate_torrents,
-                                      # u"torrent-request":self.on_torrent_request,
-                                      # u"torrent-response":self.on_torrent_response,
-                                      u"channel-search-request":self.on_channel_search_request,
-                                      u"channel-search-response":self.on_channel_search_response,
-                                      }
-
-        # add the Dispersy message handlers to the _incoming_message_map
-        for message, handler in self._dispersy.get_message_handlers(self):
-            assert message.name not in self._incoming_message_map
-            self._incoming_message_map[message.name] = handler
-
         # available conversions
         self.add_conversion(AllChannelConversion(self), True)
 
@@ -89,11 +79,11 @@ class AllChannelCommunity(Community):
         return 3600.0
 
     def initiate_meta_messages(self):
-        return [Message(self, u"propagate-torrents", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), PropagateTorrentsPayload()),
+        return [Message(self, u"propagate-torrents", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), PropagateTorrentsPayload(), self.check_propagate_torrents, self.on_propagate_torrents),
                 # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
                 # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
-                Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload()),
-                Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload()),
+                Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
+                Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
                 ]
 
     def create_propagate_torrents(self, store_and_forward=True):
@@ -121,6 +111,10 @@ class AllChannelCommunity(Community):
             self._dispersy.store_and_forward([message])
 
         return message
+
+    def check_propagate_torrents(self, address, message):
+        if not self._timeline.check(message):
+            raise DropMessage("TODO: implement delay by proof")
 
     def on_propagate_torrents(self, address, message):
         """
@@ -268,6 +262,10 @@ class AllChannelCommunity(Community):
 
         return request
 
+    def check_channel_search_request(self, address, message):
+        if not self._timeline.check(message):
+            raise DropMessage("TODO: implement delay by proof")
+
     def on_channel_search_request(self, address, request):
         """
         Received a 'channel-search-request' message.
@@ -293,18 +291,13 @@ class AllChannelCommunity(Community):
 
         self._dispersy.store_and_forward([response])
 
+    def check_channel_search_response(self, address, message):
+        if not self._timeline.check(message):
+            raise DropMessage("TODO: implement delay by proof")
+
     def on_channel_search_response(self, address, message):
         """
         Received a 'channel-search-response' message.
         """
         # we ignore this message because we get a different callback to match it to the request
         pass
-
-    def on_message(self, address, message):
-        """
-        Decide which function to feed the message to.
-        """
-        if self._timeline.check(message):
-            self._incoming_message_map[message.name](address, message)
-        else:
-            raise DropMessage("TODO: implement delay by proof")

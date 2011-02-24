@@ -2972,14 +2972,33 @@ class ChannelCastDBHandler:
         else:
             self.channel_id = None
             self.my_peerid = self._db.fetchone('SELECT peer_id FROM Peer WHERE permid = ? LIMIT 1', (bin2str(session.get_permid()),))
-       
+
         if DEBUG:
             print >> sys.stderr, "Channels: my channel is", self.channel_id, "my permid is", self.my_permid
     
-    def addNewTorrent(self, torrentdef):
-        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
+    def addOwnTorrent(self, torrentdef):
+        print >> sys.stderr, "Channels: addnewtorrent"
+        # todo: niels, shoudn't there be a channel_id parameter?
         #TODO, connect with dispersy
-    
+
+        def dispersy_thread():
+            # find, or create, our own ChannelCommunity
+            for community in dispersy.get_communities():
+                if isinstance(community, ChannelCommunity) and isinstance(community.my_member, MyMember):
+                    break
+            else:
+                # did not break, hence there is no ChannelCommunity that we own.  create one!
+                community = ChannelCommunity.create_community(self.session.dispersy_member)
+
+            assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
+            community.create_torrent(torrentdef.get_infohash(), long(time()))
+        
+        from Tribler.Community.channel.community import ChannelCommunity
+        from Tribler.Core.dispersy.dispersy import Dispersy
+        from Tribler.Core.dispersy.member import MyMember
+        dispersy = Dispersy.get_instance()
+        dispersy.rawserver.add_task(dispersy_thread)
+
     def addReceivedTorrent(self, channel_id, torrentdef):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         
@@ -3002,7 +3021,13 @@ class ChannelCastDBHandler:
 
         return flag
         """
-        
+
+    def on_torrent_from_dispersy(self, channel_id, dispersy_id, infohash, timestamp):
+        print >> sys.stderr, "Channels: on_torrent_from_dispersy", channel_id, dispersy_id, infohash.encode("HEX"), timestamp
+
+    def on_torrent_modification_from_dispersy(self, channel_id, dispersy_id, dic):
+        print >> sys.stderr, "Channels: on_torrent_modification_from_dispersy", channel_id, dispersy_id, dic
+
     def addReceivedInfohashes(self, torrents):
         #torrents is a list of tuples (channel_id, channel_name, infohash, time_stamp
         select_max = "SELECT max(time_stamp) FROM ChannelTorrents WHERE channel_id = ?"
@@ -3027,33 +3052,106 @@ class ChannelCastDBHandler:
         
     def deleteTorrent(self, channel_id, torrent_id):
         #TODO, connect with dispersy
-        
+        raise NotImplementedError()
         """
         sql = 'Delete From ChannelCast where infohash=? and publisher_id=?'
         self._db.execute_write(sql,(bin2str(infohash),bin2str(self.my_permid),))
         """
-        
-    def updateChannelName(self, channel_id, name):
+
+    def _get_message_from_channel_id(self, dispersy, channel_id):
+        assert isinstance(channel_id, (int, long))
+        # 1. get the dispersy identifier from the channel_id
+        dispersy_id = self.torrent_db.fetchone(u"SELECT dispersy_id FROM Channels WHERE id = ?", (channel_id,))
+
+        # 2. get the packet
+        try:
+            cid, packet = dispersy.database.execute(u"SELECT community.cid, sync.packet FROM community JOIN sync USING sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+        except StopIteration:
+            raise RuntimeError("Unknown channel_id")
+
+        # 3. get the community instance from the 20 byte identifier
+        try:
+            community = dispersy.get_community(cid)
+        except KeyError:
+            raise RuntimeError("Unknown community identifier")
+
+        # 4. convert packet into a Message instance
+        try:
+            message = community.get_conversion(packet[:22]).decode_message(packet)
+        except ValueError:
+            raise RuntimeError("Unable to decode packet")
+
+        # 5. check
+        assert message.name == "channel", "Expecting a 'channel' message"
+
+        return message
+
+    def updateChannelName(self, channel_id, dict_changes):
+        def dispersy_thread():
+            message = self._get_message_from_channel_id(dispersy, channel_id)
+            message.community.create_modification(message, dict_changes)
+
+        from Tribler.Core.dispersy.dispersy import Dispersy
+        dispersy = Dispersy.get_instance()
+        dispersy.rawserver.add_task(dispersy_thread)
+
         #TODO, connect with dispersy
         """
         sql = "update ChannelCast set publisher_name==? where publisher_id==?"
         self._db.execute_write(sql,(name,bin2str(self.my_permid),))
         """
-        
+
+    def _get_message_from_torrent_id(self, dispersy, torrent_id):
+        assert isinstance(torrent_id, (int, long))
+
+        # 1. get the dispersy identifier from the channel_id
+        dispersy_id = self.torrent_db.fetchone(u"SELECT dispersy_id FROM ChannelTorrents WHERE id = ?", (torrent_id,))
+
+        # 2. get the packet
+        try:
+            cid, packet = dispersy.database.execute(u"SELECT community.cid, sync.packet FROM community JOIN sync USING sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+        except StopIteration:
+            raise RuntimeError("Unknown channel_id")
+
+        # 3. get the community instance from the 20 byte identifier
+        try:
+            community = dispersy.get_community(cid)
+        except KeyError:
+            raise RuntimeError("Unknown community identifier")
+
+        # 4. convert packet into a Message instance
+        try:
+            message = community.get_conversion(packet[:22]).decode_message(packet)
+        except ValueError:
+            raise RuntimeError("Unable to decode packet")
+
+        # 5. check
+        assert message.name == "torrent", "Expecting a 'torrent' message"
+
+        return message
+
     def updateTorrent(self, channeltorrent_id, dict_changes):
+        def dispersy_thread():
+            message = self._get_message_from_torrent_id(channeltorrent_id)
+            message.community.create_modification(message, dict_changes)
+
+        from Tribler.Core.dispersy.dispersy import Dispersy
+        dispersy = Dispersy.get_instance()
+        dispersy.rawserver.add_task(dispersy_thread)
+
         #TODO, connect with dispersy
-        keys = [key for key in dict_changes.keys() if key in ['name', 'description']]
-        if len(keys) > 0:
-            sql = "Update ChannelTorrents Set " + " = ?, ".join(keys) + " = ? Where id = ?"
+        # keys = [key for key in dict_changes.keys() if key in ['name', 'description']]
+        # if len(keys) > 0:
+        #     sql = "Update ChannelTorrents Set " + " = ?, ".join(keys) + " = ? Where id = ?"
             
-            args = [dict_changes[key] for key in keys]
-            args += [channeltorrent_id]
+        #     args = [dict_changes[key] for key in keys]
+        #     args += [channeltorrent_id]
             
-            self._db.execute_write(sql, args)
+        #     self._db.execute_write(sql, args)
             
-            sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
-            infohash = str2bin(self._db.fetchone(sql, (channeltorrent_id, )))
-            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+        #     sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
+        #     infohash = str2bin(self._db.fetchone(sql, (channeltorrent_id, )))
+        #     self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
     
     def OnChannelTorrent(self, message):
         pass
@@ -3236,6 +3334,9 @@ class ChannelCastDBHandler:
         commentlist = [dict(zip(keys,result)) for result in results]
         return commentlist
     
+    def on_comment_from_dispersy(self, channel_id, dispersy_id, text, timestamp, reply_to=None, reply_after=None):
+        pass
+
     def addComment(self, comment, channel_id, playlist_id = None, channeltorrent_id = None):
         #TODO: dispersy integration, time() should be time of injector
         sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, time_stamp) VALUES (?, ?, ?, ?, ?)"
@@ -3258,6 +3359,12 @@ class ChannelCastDBHandler:
         
         self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
         
+    def on_playlist_from_dispersy(self, channel_id, dispersy_id, name, description):
+        pass
+
+    def on_playlist_modification_from_dispersy(self, channel_id, dispersy_id, dict):
+        pass
+
     def savePlaylist(self, channel_id, name, description, torrent_ids, playlist_id = None):
         #TODO: dispersy integration?
         new = playlist_id == None
