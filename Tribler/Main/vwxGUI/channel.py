@@ -457,11 +457,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.header.SetBackgroundColour(LIST_BLUE)
         boxSizer.Add(self.header, 0, wx.EXPAND)
         
-        notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-        notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
+        self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
         #overview page intro
-        overviewpage = wx.Panel(notebook)
+        overviewpage = wx.Panel(self.notebook)
         overviewpage.SetBackgroundColour(LIST_DESELECTED)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -480,6 +480,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
         overviewtext = wx.StaticText(overviewpage, -1, text)
         vSizer.Add(overviewtext, 0, wx.EXPAND|wx.ALL, 10)
         
+        text = "Currently your channel is not created. Please fill in  a name and description and click the create button to start spreading your torrents."
+        self.createText = wx.StaticText(overviewpage, -1, text)
+        self.createText.Hide()
+        vSizer.Add(self.createText, 0, wx.EXPAND|wx.ALL, 10)
+        
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
         gridSizer.AddGrowableRow(1)
@@ -494,19 +499,21 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self._add_row(overviewpage, gridSizer, 'Description', self.description)
         vSizer.Add(gridSizer, 0, wx.EXPAND|wx.RIGHT, 10)
         
+        self.saveButton = wx.Button(overviewpage, -1, 'Save Changes')
+        self.saveButton.Bind(wx.EVT_BUTTON, self.Save)
+        vSizer.Add(self.saveButton, 0, wx.ALIGN_RIGHT|wx.ALL, 10)
+        
         overviewpage.SetSizer(vSizer)
-        notebook.AddPage(overviewpage, "Overview")
+        self.notebook.AddPage(overviewpage, "Overview")
         
         #shared files page
-        self.fileslist = ManageChannelFilesList(notebook)
-        notebook.AddPage(self.fileslist, "Manage torrents")
+        self.fileslist = ManageChannelFilesList(self.notebook)
         
         #playlist page
-        self.playlistlist = ManageChannelPlaylistList(notebook)
-        notebook.AddPage(self.playlistlist, "Manage playlists")
+        self.playlistlist = ManageChannelPlaylistList(self.notebook)
         
         #manage page
-        self.managepage = wx.Panel(notebook)
+        self.managepage = wx.Panel(self.notebook)
         self.managepage.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddSpacer((-1, 10))
@@ -529,9 +536,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         vSizer.Add(self.gridSizer, 1, wx.EXPAND|wx.ALL, 10)
         self.managepage.SetSizer(vSizer)
-        notebook.AddPage(self.managepage, "Manage")
         
-        boxSizer.Add(notebook, 1, wx.EXPAND|wx.ALL, 5)
+        boxSizer.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
         self.SetSizer(boxSizer)
         self.Layout()
     
@@ -607,13 +613,28 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         if channel_id:
             id, name, timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, description = self.channelsearch_manager.getChannel(channel_id)
-        else: #your channel?
+            
+            if self.notebook.GetPageCount() == 1:
+                self.notebook.AddPage(self.fileslist, "Manage torrents")
+                self.notebook.AddPage(self.playlistlist, "Manage playlists")
+                self.notebook.AddPage(self.managepage, "Manage")
+                
+                self.createText.Hide()
+                self.saveButton.SetLabel('Save Changes')
+        else:
             name = ''
             nr_favorites = 0
             nr_torrents = 0
             nr_spam = 0
             my_vote = 0
             description = ''
+            
+            #disable all other tabs
+            for i in range(1, self.notebook.GetPageCount()):
+                self.notebook.RemovePage(i)
+                
+            self.createText.Show()
+            self.saveButton.SetLabel('Create Channel')
             
         self.header.SetName(name)
         self.header.SetNrTorrents(nr_torrents, nr_favorites)
@@ -713,12 +734,21 @@ class ManageChannel(XRCPanel, AbstractDetails):
             if self.IsChanged():
                 dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this channel?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
-                    name = self.name.GetValue()
-                    description = self.description.GetValue()
-                    
-                    self.channelsearch_manager.updateChannel(self.channel_id, name, description)
+                    self.Save()
             
         XRCPanel.Show(self, show)
+    
+    def Save(self, event = None):
+        name = self.name.GetValue()
+        description = self.description.GetValue()
+        
+        if self.channel_id:
+            self.channelsearch_manager.updateChannel(self.channel_id, name, description)
+        else:
+            self.channelsearch_manager.createChannel(name, description)
+        
+        self.name.originalValue = name
+        self.description.originalValue = description
     
     def playlistCreated(self, channel_id):
         if channel_id == self.channel_id:

@@ -977,6 +977,9 @@ class ChannelSearchGridManager:
     def getChannel(self, channel_id):
         return self.channelcast_db.getChannel(channel_id)
 
+    def createChannel(self, name, description):
+        return self.channelcast_db.createChannel(name, description)
+
     def updateChannel(self, channel_id, name, description):
         return self.channelcast_db.updateChannel(channel_id, name, description)
     

@@ -1790,8 +1790,10 @@ class TorrentDBHandler(BasicDBHandler):
             
         results = self._db.fetchall(mainsql)
         t2 = time()
-        sql = "select mod_id, sum(vote), count(*) from VoteCast group by mod_id order by 2 desc"
-        votecast_records = self._db.fetchall(sql)         
+        #TODO: votecast replacement
+        #sql = "select mod_id, sum(vote), count(*) from VoteCast group by mod_id order by 2 desc"
+        #votecast_records = self._db.fetchall(sql)
+        votecast_records = []         
         
         votes = {}
         for vote in votecast_records:
@@ -2987,8 +2989,8 @@ class ChannelCastDBHandler:
                 if isinstance(community, ChannelCommunity) and isinstance(community.my_member, MyMember):
                     break
             else:
-                # did not break, hence there is no ChannelCommunity that we own.  create one!
-                community = ChannelCommunity.create_community(self.session.dispersy_member)
+                # did not break, hence there is no ChannelCommunity that we own.
+                raise RuntimeError('Could not find channel that we own')
 
             assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
             community.create_torrent(torrentdef.get_infohash(), long(time()))
@@ -3118,6 +3120,29 @@ class ChannelCastDBHandler:
         sql = "update ChannelCast set publisher_name==? where publisher_id==?"
         self._db.execute_write(sql,(name,bin2str(self.my_permid),))
         """
+        
+    def createChannel(self, name, description):
+        def dispersy_thread():
+            community = ChannelCommunity.create_community(self.session.dispersy_member)
+            community.create_channel(name, description)
+            
+            get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
+            channel_id = self._db.fetchone(get_channel, (community.cid,))
+            self.channel_id = channel_id
+        
+        from Tribler.Community.channel.community import ChannelCommunity
+        from Tribler.Core.dispersy.dispersy import Dispersy
+        
+        dispersy = Dispersy.get_instance()
+        dispersy.rawserver.add_task(dispersy_thread)
+        
+    def on_channel_from_dispersy(self, dispersy_cid, name, description):
+        insert_channel = "INSERT OR IGNORE INTO Channels (dispersy_cid, name, description) VALUES (?, ?, ?)"
+        self._db.execute_write(insert_channel, (dispersy_cid, name, description))
+        
+        get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
+        channel_id = self._db.fetchone(get_channel, (dispersy_cid,))
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
 
     def _get_message_from_torrent_id(self, dispersy, torrent_id):
         assert isinstance(torrent_id, (int, long))
@@ -3438,7 +3463,7 @@ class ChannelCastDBHandler:
         self._db.execute_write(sql, (name, description, playlist_id))
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
-        
+    
     def updateChannel(self, channel_id, name, description):
         #dispersy integration
         sql = "UPDATE Channels Set name=?, description=? Where id = ?"
