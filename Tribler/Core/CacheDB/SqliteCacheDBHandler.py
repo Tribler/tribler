@@ -3024,9 +3024,27 @@ class ChannelCastDBHandler:
 
     def on_torrent_from_dispersy(self, channel_id, dispersy_id, infohash, timestamp):
         print >> sys.stderr, "Channels: on_torrent_from_dispersy", channel_id, dispersy_id, infohash.encode("HEX"), timestamp
+        insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
+        
+        torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
+        self._db.execute_write(insert_torrent, (dispersy_id, torrent_id, channel_id, timestamp))
+        
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
     def on_torrent_modification_from_dispersy(self, channel_id, dispersy_id, dic):
         print >> sys.stderr, "Channels: on_torrent_modification_from_dispersy", channel_id, dispersy_id, dic
+        allowed_keys = ['name','description']
+        modified_keys = [key for key in dic.keys() if key.lower() in allowed_keys]
+        
+        if len(modified_keys) > 0:
+            update_torrent = "UPDATE ChannelTorrents SET " + " = ? ".join(modified_keys) + " = ? WHERE dispersy_id = ?"
+            
+            args = [dic[key] for key in modified_keys]
+            args.append(dispersy_id) 
+            
+            self._db.execute_write(update_torrent, args)
+        else:
+            print >> sys.stderr, "Torrent not modified, but on_torrent_modification called"
 
     def addReceivedInfohashes(self, torrents):
         #torrents is a list of tuples (channel_id, channel_name, infohash, time_stamp
@@ -3335,6 +3353,8 @@ class ChannelCastDBHandler:
         return commentlist
     
     def on_comment_from_dispersy(self, channel_id, dispersy_id, text, timestamp, reply_to=None, reply_after=None):
+        sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, time_stamp) VALUES (?, ?, ?, ?, ?)"
+        #need peer_id too!
         pass
 
     def addComment(self, comment, channel_id, playlist_id = None, channeltorrent_id = None):
@@ -3360,10 +3380,28 @@ class ChannelCastDBHandler:
         self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
         
     def on_playlist_from_dispersy(self, channel_id, dispersy_id, name, description):
-        pass
-
-    def on_playlist_modification_from_dispersy(self, channel_id, dispersy_id, dict):
-        pass
+        sql = "INSERT INTO Playlists (channel_id, dispersy_id,  name, description) VALUES (?, ?, ?, ?)"
+        self._db.execute_write(sql, (channel_id, dispersy_id, name, description))
+        
+        self.notifier.notify(NTFY_PLAYLISTS, NTFY_INSERT, channel_id)
+        
+    def on_playlist_modification_from_dispersy(self, channel_id, dispersy_id, dic):
+        allowed_keys = ['name','description']
+        modified_keys = [key for key in dic.keys() if key.lower() in allowed_keys]
+        
+        if len(modified_keys) > 0:
+            update_playlist = "UPDATE Playlists Set " + " = ? ".join(modified_keys) + " = ? WHERE dispersy_id = ?"
+            args = [dic[key] for key in modified_keys]
+            args.append(dispersy_id)
+            
+            self._db.execute_write(update_playlist, args)
+            
+            get_playlist = "SELECT id FROM Playlists WHERE dispersy_id = ?"
+            playlist_id = self._db.fetchone(get_playlist, (dispersy_id, ))
+            
+            self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
+        else:
+            print >> sys.stderr, "Playlist not modified, but on_torrent_modification called"
 
     def savePlaylist(self, channel_id, name, description, torrent_ids, playlist_id = None):
         #TODO: dispersy integration?
