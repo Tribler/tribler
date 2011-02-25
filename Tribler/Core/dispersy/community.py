@@ -206,9 +206,7 @@ class Community(object):
         # the list with bloom filters.  the list will grow as the global time increases.  older time
         # ranges are at higher indexes in the list, new time ranges are inserted at the start of the
         # list.
-        self._bloom_filter_step = 1000
-        self._bloom_filter_size = (10, 512) # 10, 512 -> 640 bytes
-        self._bloom_filters = [(1, self._bloom_filter_step + 1, BloomFilter(*self._bloom_filter_size))]
+        self._bloom_filters = [(1, 1 + self.dispersy_sync_bloom_filter_step, BloomFilter(*self.dispersy_sync_bloom_filter_size))]
 
         # dictionary containing available conversions.  currently only contains one conversion.
         self._conversions = {}
@@ -281,6 +279,34 @@ class Community(object):
         @rtype: float
         """
         return 20.0
+
+    @property
+    def dispersy_sync_bloom_filter_size(self):
+        """
+        Each sync bloomfilter is created using capacity and error_rate parameters.  Increasing the
+        capacity, or lowering the error_rate, will result in larger bloom filters.
+
+        Aim to have a dispersy-sync message that fits into a single IP packet, take this into
+        account when choosing these parameters.
+
+        Capacity 1000 with a 0.01 error_rate results in a 1198 byte bloom filter.
+
+        @rtype: (int, float)
+        """
+        return (1000, 0.01)
+
+    @property
+    def dispersy_sync_bloom_filter_step(self):
+        """
+        The time thange that each sync bloomfilter is responsible for.
+
+        This parameter will be removed in the future when we implement code to dynamically change
+        the range that a sync bloomfilter is responsible for depending on the number of packet in
+        that range.
+
+        @rtype: int
+        """
+        return 1000
 
     @property
     def dispersy_sync_bloom_filters(self):
@@ -386,6 +412,10 @@ class Community(object):
         """
         return self._dispersy
 
+    @property
+    def bloom_filter_count(self):
+        return len(self._bloom_filters)
+
     def get_bloom_filter(self, global_time):
         """
         Returns the bloom filter associated to global-time.
@@ -401,20 +431,19 @@ class Community(object):
         """
         # iter existing bloom filters
         for time_low, time_high, bloom_filter in self._bloom_filters:
-            if time_low <= global_time <= time_high:
+            if time_low <= global_time < time_high:
                 return bloom_filter
 
         # create as many filter as needed to reach global_time
-        for time_low in xrange(time_low + self._bloom_filter_step, global_time, self._bloom_filter_step):
-            time_high = time_low + self._bloom_filter_step
-            bloom_filter = BloomFilter(*self._bloom_filter_size)
+        for time_low in xrange(self._bloom_filters[0][0] + self.dispersy_sync_bloom_filter_step, global_time+1, self.dispersy_sync_bloom_filter_step):
+            time_high = time_low + self.dispersy_sync_bloom_filter_step
+            bloom_filter = BloomFilter(*self.dispersy_sync_bloom_filter_size)
             self._bloom_filters.insert(0, (time_low, time_high, bloom_filter))
+            if __debug__: dprint("new ", bloom_filter.size/8, " byte filter created for range ", time_low, " <= t < ", time_high)
             if time_low <= global_time <= time_high:
                 return bloom_filter
 
-    @property
-    def bloom_filter_count(self):
-        return len(self._bloom_filters)
+        assert False, "May not reach here"
 
     def get_current_bloom_filter(self, index=0):
         """

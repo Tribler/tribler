@@ -114,13 +114,15 @@ class Node(object):
 
     def send_packet(self, packet, address):
         dprint(len(packet), " bytes to ", address[0], ":", address[1])
-        return self._socket.sendto(packet, address)
+        self._socket.sendto(packet, address)
+        return packet
 
     def send_message(self, message, address):
         assert isinstance(message, Message.Implementation)
         self.encode_message(message)
         dprint(message.name, " (", len(message.packet), " bytes) to ", address[0], ":", address[1])
-        return self.send_packet(message.packet, address)
+        self.send_packet(message.packet, address)
+        return message
 
     def receive_packet(self, timeout=None, addresses=None, packets=None):
         assert timeout is None, "The parameter TIMEOUT is depricated and must be None"

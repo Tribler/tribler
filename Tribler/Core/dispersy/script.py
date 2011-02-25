@@ -405,6 +405,10 @@ class DispersySyncScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
+        # scaling: when we have to many messages in the sync bloom filter
+        self.caller(self.large_sync)
+
+        # different sync policies
         self.caller(self.in_order_test)
         self.caller(self.out_order_test)
         self.caller(self.random_order_test)
@@ -412,6 +416,54 @@ class DispersySyncScript(ScriptBase):
         self.caller(self.last_1_test)
         self.caller(self.last_9_nosequence_test)
         # self.caller(self.last_9_sequence_test)
+
+    def large_sync(self):
+        """
+        The sync bloomfilter covers a certain global-time range.  Hence, as time goes on, multiple
+        bloomfilters should be generated and periodically synced.
+
+        We use a dispersy_sync_bloom_filter_step off 25.  Hence each bloom filter must cover ranges:
+        1-25, 26-50, 51-75, etc.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_step(self):
+                return 25
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.01
+
+        # create a few messages in each sync bloomfilter range
+        messages = []
+        messages.append(node.send_message(node.create_in_order_text_message("Range 1 <= 24 <= 25", 24), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 1 <= 25 <= 25", 25), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 26 <= 50", 26), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 49 <= 50", 49), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 50 <= 50", 50), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 51 <= 75", 51), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 74 <= 75", 74), address))
+        yield 0.01
+        messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 75 <= 75", 75), address))
+        yield 0.01
+
+        for message in messages:
+            assert message.packet in community.get_bloom_filter(message.distribution.global_time)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
     def in_order_test(self):
         community = DebugCommunity.create_community(self._my_member)

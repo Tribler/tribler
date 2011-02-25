@@ -672,4 +672,4 @@ if __debug__:
         # _test_occurrence()
         # _test_documentation()
 
-        print BloomFilter._init_size
+        print BloomFilter(1000, 0.01).size / 8.0
