@@ -64,8 +64,8 @@ class ChannelCommunity(Community):
 
     def on_channel(self, address, message):
         if __debug__: dprint(message)
-        
-        self._channelcast_db.on_channel_from_dispersy(self._cid, message.payload.name, message.payload.description)
+        # niels: broken, need fix
+        # self._channelcast_db.on_channel_from_dispersy(self._cid, message.payload.name, message.payload.description)
 
     def create_torrent(self, infohash, timestamp, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)

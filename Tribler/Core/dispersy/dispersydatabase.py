@@ -34,11 +34,11 @@ INSERT INTO tag (key, value) VALUES (1, 'in-order');
 INSERT INTO tag (key, value) VALUES (2, 'out-order');
 INSERT INTO tag (key, value) VALUES (3, 'random-order');
 
-CREATE TABLE identity(
- user INTEGER REFERENCES user(id),
- community INTEGER REFERENCES community(id),
- packet BLOB,
- UNIQUE(user, community));
+--CREATE TABLE identity(
+-- user INTEGER REFERENCES user(id),
+-- community INTEGER REFERENCES community(id),
+-- packet BLOB,
+-- UNIQUE(user, community));
 
 CREATE TABLE community(
  id INTEGER PRIMARY KEY AUTOINCREMENT,          -- local counter for database optimization

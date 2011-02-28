@@ -252,7 +252,7 @@ class Dispersy(Singleton):
         self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval)
 
         # periodically send dispery-routing-request messages
-        self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval)
+        self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay)
 
     def get_community(self, cid):
         """
@@ -726,9 +726,23 @@ class Dispersy(Singleton):
                   WHERE community = ? AND (diff BETWEEN ? AND ? OR age BETWEEN ? AND ?)
                   ORDER BY RANDOM()
                   LIMIT ?"""
-        return [((str(host), port), diff, age)
-                for host, port, diff, age
-                in self._database.execute(sql, (community_id, diff_range[0], diff_range[1], age_range[0], age_range[1], address_count))]
+        addresses = [((str(host), port), diff, age)
+                     for host, port, diff, age
+                     in self._database.execute(sql, (community_id, diff_range[0], diff_range[1], age_range[0], age_range[1], address_count))]
+
+        if len(addresses) >= address_count:
+            return addresses
+
+        sql = u"""SELECT host, port, ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) AS diff, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+                  FROM routing
+                  WHERE community = 0
+                  ORDER BY RANDOM()
+                  LIMIT ?"""
+        addresses.extend([((str(host), port), diff, age)
+                          for host, port, diff, age
+                          in self._database.execute(sql, (address_count - len(addresses),))])
+
+        return addresses
 
     def store_and_forward(self, messages):
         """
@@ -829,6 +843,12 @@ class Dispersy(Singleton):
         """
         assert isinstance(addresses, (tuple, list))
         assert isinstance(packets, (tuple, list))
+
+        if __debug__:
+            if not addresses:
+                dprint("no addresses given (wanted to send ", len(packets), " packets)", level="error")
+            if not packets:
+                dprint("no packets given (wanted to send to ", len(addresses), " addresses)", level="error")
 
         # update statistics
         self._total_send += len(addresses) * sum([len(packet) for packet in packets])
@@ -1200,7 +1220,15 @@ class Dispersy(Singleton):
         assert message.name == u"dispersy-identity-request"
         if __debug__: dprint(message)
         # todo: we are assuming here that no more than 10 members have the same sha1 digest.
-        sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
+        # sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
+        sql = u"""SELECT sync.packet
+                  FROM sync
+                  JOIN reference_user_sync ON reference_user_sync.sync = sync.id
+                  JOIN user ON user.id = reference_user_sync.user
+                  JOIN name ON name.id = sync.name
+                  WHERE sync.community = ? AND user.mid = ? AND name.value = 'dispersy-identity'
+                  LIMIT 10
+                  """
         self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, buffer(message.payload.mid)))])
 
     def create_subjective_set(self, community, cluster, members, reset=True, update_locally=True, store_and_forward=True):
@@ -2246,8 +2274,9 @@ class Dispersy(Singleton):
                 # 1. remove all except the dispersy-destroy-community and dispersy-identity messages
                 execute(u"DELETE FROM sync WHERE community = ? AND NOT (name = ? OR name = ?)", (community.database_id, message.database_id, identity_message_id))
 
-                # 2. cleanup the identity table.  we should no longer need anything there
-                execute(u"DELETE FROM identity WHERE community = ?", (community.database_id,))
+                # TODO: probably bugged...
+                # 2. cleanup the reference_user_sync table.  however, we should keep the ones that are still referenced
+                execute(u"DELETE FROM reference_user_sync JOIN sync ON sync.id = reference_user_sync.sync WHERE community = ? and sync.id is None", (community.database_id,))
 
                 # 3. cleanup the routing table.  we need nothing here anymore
                 execute(u"DELETE FROM routing WHERE community = ?", (community.database_id,))

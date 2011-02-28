@@ -231,6 +231,10 @@ class Community(object):
         return cls.__name__.decode("UTF-8")
 
     @property
+    def dispersy_routing_request_initial_delay(self):
+        return 2.0
+
+    @property
     def dispersy_routing_request_interval(self):
         """
         The interval between sending dispersy-routing-request messages.

@@ -3125,10 +3125,11 @@ class ChannelCastDBHandler:
         def dispersy_thread():
             community = ChannelCommunity.create_community(self.session.dispersy_member)
             community.create_channel(name, description)
-            
-            get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
-            channel_id = self._db.fetchone(get_channel, (community.cid,))
-            self.channel_id = channel_id
+
+            # niels: broken, needs fix
+            # get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
+            # channel_id = self._db.fetchone(get_channel, (community.cid,))
+            # self.channel_id = channel_id
         
         from Tribler.Community.channel.community import ChannelCommunity
         from Tribler.Core.dispersy.dispersy import Dispersy
