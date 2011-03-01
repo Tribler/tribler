@@ -121,19 +121,19 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'reply-to-global-time' type")
 
         try:
-            packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.packet, name.value
+            packet_id, packet, message_name = self._dispersy_database.execute(u"""
+                SELECT sync.id, sync.packet, name.value
                 FROM sync
                 JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
                 JOIN user ON (user.id = reference_user_sync.user)
                 JOIN name ON (name.id = sync.name)
                 WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                      (self._community.database_id, reply_to_global_time, reply_to_mid)).next()
+                                                                              (self._community.database_id, reply_to_global_time, reply_to_mid)).next()
         except StopIteration:
             # todo: delay packet instead!
             raise DropPacket("Missing previous message")
 
-        reply_to = Packet(self._community.get_meta_message(message_name), packet)
+        reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
         #
         # reply_from
@@ -152,19 +152,19 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'reply-from-global-time' type")
 
         try:
-            packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.packet, name.value
+            packet_id, packet, message_name = self._dispersy_database.execute(u"""
+                SELECT sync.id, sync.packet, name.value
                 FROM sync
                 JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
                 JOIN user ON (user.id = reference_user_sync.user)
                 JOIN name ON (name.id = sync.name)
                 WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                      (self._community.database_id, reply_from_global_time, reply_from_mid)).next()
+                                                                              (self._community.database_id, reply_from_global_time, reply_from_mid)).next()
         except StopIteration:
             # todo: delay packet instead!
             raise DropPacket("Missing previous message")
 
-        reply_from = Packet(self._community.get_meta_message(message_name), packet)
+        reply_from = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
         return offset, meta_message.payload.implement(text, reply_to, reply_from)
 
@@ -203,8 +203,8 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'modification-on-global-time' type")
 
         try:
-            packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.packet, name.value
+            packet.id, packet, message_name = self._dispersy_database.execute(u"""
+                SELECT sync.id, sync.packet, name.value
                 FROM sync
                 JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
                 JOIN user ON (user.id = reference_user_sync.user)
@@ -215,6 +215,6 @@ class ChannelConversion(BinaryConversion):
             # todo: delay packet instead!
             raise DropPacket("Missing previous message")
 
-        modification_on = Packet(self._community.get_meta_message(message_name), packet)
+        modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
         return offset, meta_message.payload.implement(modification, modification_on)

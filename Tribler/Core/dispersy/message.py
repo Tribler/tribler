@@ -235,11 +235,12 @@ class DropMessageByProof(DropMessage):
 #
 
 class Packet(MetaObject.Implementation):
-    def __init__(self, meta, packet):
+    def __init__(self, meta, packet, packet_id):
         assert isinstance(packet, str)
+        assert isinstance(packet_id, (int, long))
         super(Packet, self).__init__(meta)
         self._packet = packet
-        self._packet_id = 0
+        self._packet_id = packet_id
 
     @property
     def community(self):
@@ -289,7 +290,7 @@ class Packet(MetaObject.Implementation):
 #
 class Message(MetaObject):
     class Implementation(Packet):
-        def __init__(self, meta, authentication, distribution, destination, payload, conversion=None, packet=""):
+        def __init__(self, meta, authentication, distribution, destination, payload, conversion=None, packet="", packet_id=0):
             if __debug__:
                 from payload import Payload
                 from conversion import Conversion
@@ -300,7 +301,7 @@ class Message(MetaObject):
             assert isinstance(payload, meta._payload.Implementation), "PAYLOAD has invalid type '{0}'".format(type(payload))
             assert conversion is None or isinstance(conversion, Conversion), "CONVERSION has invalid type '{0}'".format(type(conversion))
             assert isinstance(packet, str)
-            super(Message.Implementation, self).__init__(meta, packet)
+            super(Message.Implementation, self).__init__(meta, packet, packet_id)
             self._authentication = authentication
             self._distribution = distribution
             self._destination = destination
