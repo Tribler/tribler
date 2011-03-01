@@ -726,9 +726,9 @@ class Dispersy(Singleton):
                   WHERE community = ? AND (diff BETWEEN ? AND ? OR age BETWEEN ? AND ?)
                   ORDER BY RANDOM()
                   LIMIT ?"""
-        addresses = [((str(host), port), diff, age)
-                     for host, port, diff, age
-                     in self._database.execute(sql, (community_id, diff_range[0], diff_range[1], age_range[0], age_range[1], address_count))]
+        addresses = set((str(host), port)
+                        for host, port, diff, age
+                        in self._database.execute(sql, (community_id, diff_range[0], diff_range[1], age_range[0], age_range[1], address_count)))
 
         if len(addresses) >= address_count:
             return addresses
@@ -738,7 +738,7 @@ class Dispersy(Singleton):
                   WHERE community = 0
                   ORDER BY RANDOM()
                   LIMIT ?"""
-        addresses.extend([((str(host), port), diff, age)
+        addresses.update([(str(host), port)
                           for host, port, diff, age
                           in self._database.execute(sql, (address_count - len(addresses),))])
 
@@ -791,7 +791,7 @@ class Dispersy(Singleton):
                 # todo: we can remove the returning diff and age from the query since it is not used
                 # (especially in the 2nd query)
 
-                addresses = [address for address, _, __ in self._select_routing_addresses(message.community.database_id, message.destination.node_count, (0.0, 30.0), (120.0, 300.0))]
+                addresses = list(self._select_routing_addresses(message.community.database_id, message.destination.node_count, (0.0, 30.0), (120.0, 300.0)))
 
                 if not addresses:
                     # we need to fallback to something... just pick some addresses within this
@@ -2327,10 +2327,10 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-routing-request")
         requests = []
-        for address, _, __ in self._select_routing_addresses(community.database_id,
-                                                             community.dispersy_routing_request_member_count,
-                                                             community.dispersy_routing_request_destination_diff_range,
-                                                             community.dispersy_routing_request_destination_age_range):
+        for address in self._select_routing_addresses(community.database_id,
+                                                      community.dispersy_routing_request_member_count,
+                                                      community.dispersy_routing_request_destination_diff_range,
+                                                      community.dispersy_routing_request_destination_age_range):
             requests.append(meta.implement(meta.authentication.implement(community.my_member),
                                            meta.distribution.implement(community._timeline.global_time),
                                            meta.destination.implement(address),
