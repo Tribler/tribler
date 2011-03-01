@@ -203,7 +203,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'modification-on-global-time' type")
 
         try:
-            packet.id, packet, message_name = self._dispersy_database.execute(u"""
+            packet_id, packet, message_name = self._dispersy_database.execute(u"""
                 SELECT sync.id, sync.packet, name.value
                 FROM sync
                 JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
