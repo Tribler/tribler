@@ -55,7 +55,13 @@ class Database(Singleton):
 
         # get version from required 'option' table
         try:
-            version, = self.execute(u"SELECT value FROM option WHERE key == 'database_version' LIMIT 1").next()
+            version, = self.execute(u"""
+            -- Check if the database exists.
+            --
+            -- If it does NOT exist this query will fail as there is no option table.  This can
+            -- safely be ignored.
+            --
+            SELECT value FROM option WHERE key == 'database_version' LIMIT 1""").next()
         except sqlite3.Error:
             # the 'option' table probably hasn't been created yet
             version = u"0"

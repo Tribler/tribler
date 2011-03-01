@@ -1150,9 +1150,9 @@ class Dispersy(Singleton):
         with self._database as execute:
             execute(u"INSERT OR IGNORE INTO routing(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
             execute(u"UPDATE user SET host = ?, port = ? WHERE id = ?", (unicode(host), port, message.authentication.member.database_id))
-            execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
-            if self._database.changes == 0:
-                execute(u"INSERT INTO identity(user, community, packet) VALUES(?, ?, ?)", (message.authentication.member.database_id, message.community.database_id, buffer(message.packet)))
+            # execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
+            # if self._database.changes == 0:
+            #     execute(u"INSERT INTO identity(user, community, packet) VALUES(?, ?, ?)", (message.authentication.member.database_id, message.community.database_id, buffer(message.packet)))
         message.authentication.member.update()
 
     def create_identity_request(self, community, mid, address, store_and_forward=True):
@@ -1219,17 +1219,20 @@ class Dispersy(Singleton):
         """
         assert message.name == u"dispersy-identity-request"
         if __debug__: dprint(message)
+
+        meta = message.community.get_meta_message(u"dispersy-identity")
+
         # todo: we are assuming here that no more than 10 members have the same sha1 digest.
         # sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
         sql = u"""SELECT sync.packet
                   FROM sync
                   JOIN reference_user_sync ON reference_user_sync.sync = sync.id
                   JOIN user ON user.id = reference_user_sync.user
-                  JOIN name ON name.id = sync.name
-                  WHERE sync.community = ? AND user.mid = ? AND name.value = 'dispersy-identity'
+                  WHERE sync.community = ? AND user.mid = ? AND sync.name = ?
                   LIMIT 10
                   """
-        self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, buffer(message.payload.mid)))])
+
+        self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, buffer(message.payload.mid), meta.database_id))])
 
     def create_subjective_set(self, community, cluster, members, reset=True, update_locally=True, store_and_forward=True):
         if __debug__:

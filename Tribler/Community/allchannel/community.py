@@ -50,10 +50,13 @@ class AllChannelCommunity(Community):
                                       (my_member.database_id, buffer(cid), cls.get_classification(), buffer(master_key)))
 
             # new community instance
-            communities = [cls(cid, *args, **kargs)]
+            community = cls(cid, *args, **kargs)
 
             # send out my initial dispersy-identity
-            # community.create_identity()
+            community.create_identity()
+
+            # add new community
+            communities.append(community)
 
         return communities
 
