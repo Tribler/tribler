@@ -159,7 +159,8 @@ sessdefaults.update(trackerdefaults)
 # History: 
 #  Version 2: as released in Tribler 4.5.0
 #  Version 3: 
-DLDEFAULTS_VERSION = 3
+#  Version 4: allow users to specify a download directory every time
+DLDEFAULTS_VERSION = 4
 dldefaults = {}
 dldefaults['version'] = DLDEFAULTS_VERSION
 dldefaults['max_uploads'] = 7
@@ -172,6 +173,7 @@ dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fa
 dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
 dldefaults['saveas'] = None # Set to get_default_destdir()
+dldefaults['showsaveas'] = False # Allow users to choose directory for every new download
 dldefaults['max_slice_length'] = 2 ** 17
 dldefaults['max_rate_period'] = 20.0
 dldefaults['upload_rate_fudge'] = 5.0

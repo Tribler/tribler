@@ -256,13 +256,9 @@ class TorrentDetails(wx.Panel):
                     title = wx.StaticText(subtitlePanel, -1, "Available subtitles:")
                 title.SetMinSize((1,-1))
                 hSizer.Add(title, 1, wx.ALIGN_CENTER_VERTICAL)
-                subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
-                subtitleChoice.items = curlang
-                
-                if finished:
-                    subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
-                
-                hSizer.Add(subtitleChoice)
+                self.subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
+                self.subtitleChoice.items = curlang
+                hSizer.Add(self.subtitleChoice)
                 vSizer.Add(hSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
                 
                 vSizer.AddStretchSpacer()
@@ -539,6 +535,9 @@ class TorrentDetails(wx.Panel):
                 channeltext.channel = channel
                 channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                 self.buttonSizer.Add(channeltext, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
+             
+        if getattr(self, 'subtitleChoice', None):   
+            self.subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
     
     def _GetPath(self, file = None):
         ds = self.torrent.get('ds', False)

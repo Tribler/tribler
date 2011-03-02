@@ -38,6 +38,7 @@ class SettingsDialog(wx.Dialog):
                              'sixhundreddDown', \
                              'unlimitedDown', \
                              'diskLocationCtrl', \
+                             'diskLocationChoice', \
                              'portChange', \
                              'externalplayer',\
                              'batchstart',\
@@ -79,6 +80,8 @@ class SettingsDialog(wx.Dialog):
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
         #Bind event listeners
+        self.elements['diskLocationChoice'].Bind(wx.EVT_CHECKBOX, self.OnDownloadChoice)
+        
         self.elements['zeroUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(0, event))
         self.elements['fiftyUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(50, event))
         self.elements['hundredUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(100, event))
@@ -147,6 +150,8 @@ class SettingsDialog(wx.Dialog):
         
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
+        self.elements['diskLocationCtrl'].Enable(not self.defaultDLConfig.get_show_saveas())
+        self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
         
         wx.CallAfter(self.Refresh)
     
@@ -160,6 +165,10 @@ class SettingsDialog(wx.Dialog):
             self.Refresh()
         except:
             pass
+    
+    def OnDownloadChoice(self, event):
+        checked = self.elements['diskLocationChoice'].IsChecked()
+        self.elements['diskLocationCtrl'].Enable(not checked)
 
     def setUp(self, value, event = None):
         self.resetUploadDownloadCtrlColour()
@@ -241,6 +250,11 @@ class SettingsDialog(wx.Dialog):
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
             
+            showSave = self.elements['diskLocationChoice'].IsChecked()
+            if showSave != self.defaultDLConfig.get_show_saveas():
+                self.defaultDLConfig.set_show_saveas(showSave)
+                self.saveDefaultDownloadConfig()
+                
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
                 self.saveDefaultDownloadConfig()

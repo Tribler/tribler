@@ -280,46 +280,60 @@ class MainFrame(wx.Frame):
                 tdef = TorrentDef.load(torrentfilename)
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            if destdir is not None:
-                dscfg.set_dest_dir(destdir)
-        
-            # ProxyService_
-            if proxymode is not None:
-                dscfg.set_proxy_mode(proxymode)
-            # _ProxyService
-        
-            videofiles = tdef.get_files(exts=videoextdefaults)
-            if vodmode and len(videofiles) == 0:
-                vodmode = False
-
-            if vodmode or tdef.get_live():
-                print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
-                videoplayer = VideoPlayer.getInstance()
-                result = videoplayer.start_and_play(tdef,dscfg)
-
-                # 02/03/09 boudewijn: feedback to the user when there
-                # are no playable files in the torrent
-                if not result:
-                    dlg = wx.MessageDialog(None,
-                               self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
-                               self.utility.lang.get("invalid_torrent_no_playable_files_title"),
-                               wx.OK|wx.ICON_ERROR)
-                    dlg.ShowModal()
-                    dlg.Destroy()
-            else:
-                print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
-                result = self.utility.session.start_download(tdef,dscfg)
             
-            if result:
-                self.show_saved()
+            cancelDownload = False
+            useDefault = not dscfg.get_show_saveas()
+            if not useDefault and not destdir:
+                dlg = wx.DirDialog(self, 'Please select a directory where to save %s.'%tdef.get_name())
+                dlg.SetPath(dscfg.get_dest_dir())
+                
+                if dlg.ShowModal() == wx.ID_OK:
+                    destdir = dlg.GetPath()
+                else:
+                    cancelDownload = True
+                dlg.Destroy()
             
-            # store result because we want to store clicklog data
-            # right after download was started, then return result
-            if clicklog is not None:
-                mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+            if not cancelDownload:
+                if destdir is not None:
+                    dscfg.set_dest_dir(destdir)
+            
+                # ProxyService_
+                if proxymode is not None:
+                    dscfg.set_proxy_mode(proxymode)
+                # _ProxyService
+            
+                videofiles = tdef.get_files(exts=videoextdefaults)
+                if vodmode and len(videofiles) == 0:
+                    vodmode = False
+    
+                if vodmode or tdef.get_live():
+                    print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
+                    videoplayer = VideoPlayer.getInstance()
+                    result = videoplayer.start_and_play(tdef,dscfg)
+    
+                    # 02/03/09 boudewijn: feedback to the user when there
+                    # are no playable files in the torrent
+                    if not result:
+                        dlg = wx.MessageDialog(None,
+                                   self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
+                                   self.utility.lang.get("invalid_torrent_no_playable_files_title"),
+                                   wx.OK|wx.ICON_ERROR)
+                        dlg.ShowModal()
+                        dlg.Destroy()
+                else:
+                    print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
+                    result = self.utility.session.start_download(tdef,dscfg)
+                
+                if result:
+                    self.show_saved()
+                
+                # store result because we want to store clicklog data
+                # right after download was started, then return result
+                if clicklog is not None:
+                    mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+                    mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
 
-            return result  
+                return result  
 
         except DuplicateDownloadException:
             # show nice warning dialog

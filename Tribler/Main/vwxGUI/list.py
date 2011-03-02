@@ -1025,7 +1025,7 @@ class MyChannelList(List):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True}, \
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}]
    
         List.__init__(self, columns, LIST_BLUE, [7,7])

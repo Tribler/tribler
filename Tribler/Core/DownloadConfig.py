@@ -62,6 +62,17 @@ class DownloadConfigInterface:
         """ Gets the directory where to save this Download.
         """
         return self.dlconfig['saveas']
+    
+    def get_show_saveas(self):
+        """ Gets the boolean indicating if we should show a dialog where to save a torrent
+        """
+        return self.dlconfig['showsaveas']
+    
+    def set_show_saveas(self, show):
+        """ Sets the boolean indicating if we should show a dialog where to save a torrent
+        @param show Boolean to show a dialog
+        """
+        self.dlconfig['showsaveas'] = show
 
     def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Download the torrent in Video-On-Demand mode or as live stream.
