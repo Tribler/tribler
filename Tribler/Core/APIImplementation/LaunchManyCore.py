@@ -806,7 +806,7 @@ class TriblerLaunchMany(Thread):
         if self.overlay_apps and self.overlay_apps.metadata_handler:
             ntorrents = self.overlay_apps.metadata_handler.num_torrents
             if ntorrents > 0:
-                self.torrent_checking_period = min(max(86400/ntorrents, 15), 300)
+                self.torrent_checking_period = min(max(86400/ntorrents, 30), 300)
         #print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
         #self.torrent_checking_period = 1    ### DEBUG, remove it before release!!    
 
