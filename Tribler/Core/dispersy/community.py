@@ -232,7 +232,7 @@ class Community(object):
 
     @property
     def dispersy_routing_request_initial_delay(self):
-        return 2.0
+        return 0.0
 
     @property
     def dispersy_routing_request_interval(self):
@@ -275,6 +275,10 @@ class Community(object):
         @rtype: (float, float)
         """
         return (300.0, 900.0)
+
+    @property
+    def dispersy_sync_initial_delay(self):
+        return 10.0
 
     @property
     def dispersy_sync_interval(self):

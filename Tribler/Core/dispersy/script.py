@@ -136,7 +136,7 @@ class DispersyRoutingScript(ScriptBase):
         yield 0.01
 
         # routes must be placed in the database
-        items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', outgoing_time) AS age FROM routing WHERE community = ?", (community.database_id,))]
+        items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) AS age FROM routing WHERE community = ?", (community.database_id,))]
         for route in routes:
             off_by_one_second = (route[0], route[1]+1)
             assert route in items or off_by_one_second in items
@@ -178,7 +178,7 @@ class DispersyRoutingScript(ScriptBase):
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-response"])
         dprint(message.payload.routes, lines=1)
         for route in routes:
-            assert (route, 0.0) in message.payload.routes
+            assert (route, 0.0) in message.payload.routes, (route, message.payload.routes)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -190,8 +190,12 @@ class DispersyRoutingScript(ScriptBase):
         """
         class TestCommunity(DebugCommunity):
             @property
+            def dispersy_routing_request_initial_delay(self):
+                return 5.0
+
+            @property
             def dispersy_routing_request_interval(self):
-                return 3.0
+                return 7.0
 
             @property
             def dispersy_routing_request_member_count(self):
@@ -215,13 +219,27 @@ class DispersyRoutingScript(ScriptBase):
         node.set_community(community)
         node.init_my_member(routing=False)
 
-        # wait interval
-        yield 3.0 + 0.1
+        # wait initial delay
+        for counter in range(community.dispersy_routing_request_initial_delay):
+            dprint("waiting... ", community.dispersy_routing_request_initial_delay - counter)
+            # do NOT receive dispersy-routing-request
+            try:
+                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+            except:
+                pass
+            else:
+                assert False
+
+            # wait interval
+            yield 1.0
+        yield 0.1
 
         # receive dispersy-routing-request
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
 
-        for _ in range(3):
+        # wait interval
+        for counter in range(community.dispersy_routing_request_interval):
+            dprint("waiting... ", community.dispersy_routing_request_interval - counter)
             # do NOT receive dispersy-routing-request
             try:
                 _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
@@ -299,6 +317,12 @@ class DispersyMemberTagScript(ScriptBase):
         self.caller(self.drop_test)
 
     def ignore_test(self):
+        """
+        Test the must_ignore = True feature.
+
+        When we ignore a specific member we will still accept messages from that member and store
+        them in our database.  However, the GUI may choose not to display any messages from them.
+        """
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"full-sync-text")
@@ -349,6 +373,12 @@ class DispersyMemberTagScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
 
     def drop_test(self):
+        """
+        Test the must_drop = True feature.
+
+        When we 'drop' a specific member we will no longer accept or store messages from that
+        member.  No callback will be given to the community code.
+        """
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"full-sync-text")

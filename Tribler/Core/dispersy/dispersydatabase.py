@@ -58,7 +58,8 @@ CREATE TABLE routing(
  host TEXT,                                             -- IP address
  port INTEGER,                                          -- port number
  incoming_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when received data
- outgoing_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when data send OR when we heared about this address from 3rd party
+ outgoing_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when data send
+ external_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when we heared about this address from 3rd party
  UNIQUE(community, host, port));
 
 CREATE TABLE name(

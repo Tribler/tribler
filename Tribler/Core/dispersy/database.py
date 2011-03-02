@@ -56,6 +56,7 @@ class Database(Singleton):
         # get version from required 'option' table
         try:
             version, = self.execute(u"""
+            --
             -- Check if the database exists.
             --
             -- If it does NOT exist this query will fail as there is no option table.  This can

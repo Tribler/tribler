@@ -163,6 +163,22 @@ class DebugCommunity(Community):
     """
     Community to debug Dispersy related messages and policies.
     """
+    def __init__(self, cid):
+        super(DebugCommunity, self).__init__(cid)
+
+        # available conversions
+        self.add_conversion(DebugCommunityConversion(self), True)
+
+    @property
+    def dispersy_routing_request_initial_delay(self):
+        # disable routing
+        return 0.0
+
+    @property
+    def dispersy_sync_initial_delay(self):
+        # disable sync
+        return 0.0
+
     def initiate_meta_messages(self):
         return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"last-9-nosequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
@@ -177,12 +193,6 @@ class DebugCommunity(Community):
                 Message(self, u"random-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
                 ]
-
-    def __init__(self, cid):
-        super(DebugCommunity, self).__init__(cid)
-
-        # available conversions
-        self.add_conversion(DebugCommunityConversion(self), True)
 
     #
     # double-signed-text

@@ -249,10 +249,12 @@ class Dispersy(Singleton):
                 community.get_bloom_filter(global_time).add(str(packet))
 
         # periodically send dispery-sync messages
-        self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval)
+        if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
+            self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_initial_delay)
 
         # periodically send dispery-routing-request messages
-        self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay)
+        if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
+            self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay)
 
     def get_community(self, cid):
         """
@@ -511,6 +513,11 @@ class Dispersy(Singleton):
             if __debug__: dprint(address[0], ":", address[1], ": ", len(packet), " bytes were received")
             self._total_received += len(packet)
 
+            # is it from an external source
+            if not self._is_valid_external_address(address):
+                if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", address[0], ":", address[1])
+                continue
+
             # find associated community
             try:
                 community = self.get_community(packet[:20])
@@ -721,27 +728,60 @@ class Dispersy(Singleton):
         #    have a small diff.
         # b. we want to get connections to those that have been away for some time, hence we send
         #    messages to those that have a high age.
-        sql = u"""SELECT host, port, ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) AS diff, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+        sql = u"""SELECT host, port
                   FROM routing
-                  WHERE community = ? AND (diff BETWEEN ? AND ? OR age BETWEEN ? AND ?)
+                  WHERE community = ? AND (ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) BETWEEN ? AND ?
+                                           OR STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) BETWEEN ? AND ?)
                   ORDER BY RANDOM()
                   LIMIT ?"""
         addresses = set((str(host), port)
-                        for host, port, diff, age
+                        for host, port
                         in self._database.execute(sql, (community_id, diff_range[0], diff_range[1], age_range[0], age_range[1], address_count)))
 
         if len(addresses) >= address_count:
             return addresses
 
-        sql = u"""SELECT host, port, ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) AS diff, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+        # we will try a few addresses from external sources (3rd party).  note that selecting these
+        # will add a value to the outgoing_time column because we will sent something to this
+        # address.
+        sql = u"""SELECT host, port
+                  FROM routing
+                  WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', external_time) BETWEEN ? AND ?
+                  ORDER BY RANDOM()
+                  LIMIT ?"""
+        addresses.update([(str(host), port)
+                          for host, port
+                          in self._database.execute(sql, (community_id, age_range[0], age_range[1], address_count - len(addresses)))])
+
+        if len(addresses) >= address_count:
+            return addresses
+
+        # at this point we do not have sufficient nodes that were online recently.  as an
+        # alternative we will add the addresses of dispersy routers that should always be online
+        sql = u"""SELECT host, port
                   FROM routing
                   WHERE community = 0
                   ORDER BY RANDOM()
                   LIMIT ?"""
         addresses.update([(str(host), port)
-                          for host, port, diff, age
+                          for host, port
                           in self._database.execute(sql, (address_count - len(addresses),))])
 
+        if len(addresses) >= address_count:
+            return addresses
+
+        # fallback to just picking random addresses within this community.  unfortunately it is
+        # likely that the addresses will contain nodes that are offline
+        sql = u"""SELECT host, port
+                  FROM routing
+                  WHERE community = ?
+                  ORDER BY RANDOM()
+                  LIMIT ?"""
+        addresses.update([(str(host), port)
+                          for host, port
+                          in self._database.execute(sql, (community_id, address_count - len(addresses)))])
+
+        # return what we have
         return addresses
 
     def store_and_forward(self, messages):
@@ -788,33 +828,10 @@ class Dispersy(Singleton):
 
             # Forward
             if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
-                # todo: we can remove the returning diff and age from the query since it is not used
-                # (especially in the 2nd query)
-
-                addresses = list(self._select_routing_addresses(message.community.database_id, message.destination.node_count, (0.0, 30.0), (120.0, 300.0)))
-
-                if not addresses:
-                    # we need to fallback to something... just pick some addresses within this
-                    # community.
-                    sql = u"""SELECT host, port
-                              FROM routing
-                              WHERE community = ?
-                              ORDER BY RANDOM()
-                              LIMIT ?"""
-                    addresses = [(str(host), port) for host, port in self._database.execute(sql, (message.community.database_id, message.destination.node_count))]
-
-                if not addresses:
-                    # we need to fallback to something else... just pick some addresses.
-                    sql = u"""SELECT host, port
-                              FROM routing
-                              WHERE community = 0
-                              ORDER BY RANDOM()
-                              LIMIT ?"""
-                    addresses = [(str(host), port) for host, port in self._database.execute(sql, (message.destination.node_count,))]
-
-                # if __debug__:
-                #     addresses = [(host, port) for host, port in addresses if not (host == "130.161.158.222" and port == self._my_external_address[1])]
-
+                addresses = self._select_routing_addresses(message.community.database_id,
+                                                           message.destination.node_count,
+                                                           (0.0, 30.0),
+                                                           (120.0, 300.0))
                 if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("{0[0]}:{0[1]}".format(address) for address in addresses))
                 self._send(addresses, [message.packet])
 
@@ -841,8 +858,8 @@ class Dispersy(Singleton):
         @patam packets: A sequence with one or more packets.
         @type packets: string
         """
-        assert isinstance(addresses, (tuple, list))
-        assert isinstance(packets, (tuple, list))
+        assert isinstance(addresses, (tuple, list, set)), type(addresses)
+        assert isinstance(packets, (tuple, list, set)), type(packets)
 
         if __debug__:
             if not addresses:
@@ -859,6 +876,12 @@ class Dispersy(Singleton):
                 assert isinstance(address, tuple)
                 assert isinstance(address[0], str)
                 assert isinstance(address[1], int)
+
+                if not self._is_valid_external_address(address):
+                    # this is a programming bug.  apparently an invalid address is being used
+                    if __debug__: dprint("aborted sending a ", len(packet), " byte packet (invalid external address) to ", address[0], ":", address[1], level="error")
+                    continue
+
                 for packet in packets:
                     assert isinstance(packet, str)
                     if __debug__: dprint(len(packet), " bytes to ", address[0], ":", address[1])
@@ -1000,6 +1023,39 @@ class Dispersy(Singleton):
         if not message.community._timeline.check(message):
             raise DropMessage("TODO: implement delay of proof")
 
+    def _is_valid_external_address(self, address):
+        # if address[0] in ("0.0.0.0", "127.0.0.1"):
+        #     return False
+
+        # if address[0].endswith(".255"):
+        #     return False
+
+        return True
+
+    def _update_routes_from_external_source(self, community, routes):
+        assert isinstance(routes, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, tuple), routes)
+        assert not filter(lambda x: not len(x) == 2, routes)
+        assert not filter(lambda x: not isinstance(x[0], tuple), routes), "(host, ip) tuple"
+        assert not filter(lambda x: not isinstance(x[1], float), routes), "age in seconds"
+
+        with self._database as execute:
+            for address, age in routes:
+                if self._is_valid_external_address(address):
+                    if __debug__: dprint("update routing table for ", address[0], ":", address[1])
+
+                    # TODO: we are overwriting our own age... first check that if we have this
+                    # address, that our age is higher before updating
+                    age = u"-%d seconds" % age
+                    execute(u"UPDATE routing SET external_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
+                            (age, community.database_id, unicode(address[0]), address[1]))
+                    if self._database.changes == 0:
+                        execute(u"INSERT INTO routing(community, host, port, external_time) VALUES(?, ?, ?, DATETIME('now', ?))",
+                                (community.database_id, unicode(address[0]), address[1], age))
+
+                elif __debug__:
+                    dprint("dropping invalid route ", address[0], ":", address[1], level="warning")
+
     def on_routing_request(self, address, message):
         """
         We received a dispersy-routing-request message.
@@ -1031,14 +1087,7 @@ class Dispersy(Singleton):
         #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
 
         # add routes in our routing table
-        with self._database as execute:
-            for route, age in message.payload.routes:
-                age = u"-{0} seconds".format(age)
-                execute(u"UPDATE routing SET outgoing_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
-                        (age, message.community.database_id, unicode(route[0]), route[1]))
-                if self._database.changes == 0:
-                    execute(u"INSERT INTO routing(community, host, port, outgoing_time) VALUES(?, ?, ?, DATETIME('now', ?))",
-                            (message.community.database_id, unicode(route[0]), route[1], age))
+        self._update_routes_from_external_source(message.community, message.payload.routes)
 
         # send response
         minimal_age, maximal_age = message.community.dispersy_routing_age_range
@@ -1090,6 +1139,9 @@ class Dispersy(Singleton):
 
         # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
         #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
+
+        # add routes in our routing table
+        self._update_routes_from_external_source(message.community, message.payload.routes)
 
     def create_identity(self, community, store_and_forward=True):
         """
@@ -1147,8 +1199,10 @@ class Dispersy(Singleton):
         assert message.name == u"dispersy-identity"
         if __debug__: dprint(message)
         host, port = message.payload.address
+        # TODO: we should drop messages that contain invalid addresses... or at the very least we
+        # should ignore the address part.
         with self._database as execute:
-            execute(u"INSERT OR IGNORE INTO routing(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
+            # execute(u"INSERT OR IGNORE INTO routing(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
             execute(u"UPDATE user SET host = ?, port = ? WHERE id = ?", (unicode(host), port, message.authentication.member.database_id))
             # execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
             # if self._database.changes == 0:
@@ -2277,9 +2331,8 @@ class Dispersy(Singleton):
                 # 1. remove all except the dispersy-destroy-community and dispersy-identity messages
                 execute(u"DELETE FROM sync WHERE community = ? AND NOT (name = ? OR name = ?)", (community.database_id, message.database_id, identity_message_id))
 
-                # TODO: probably bugged...
                 # 2. cleanup the reference_user_sync table.  however, we should keep the ones that are still referenced
-                execute(u"DELETE FROM reference_user_sync JOIN sync ON sync.id = reference_user_sync.sync WHERE community = ? and sync.id is None", (community.database_id,))
+                execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND sync.id = reference_user_sync.sync)", (community.database_id,))
 
                 # 3. cleanup the routing table.  we need nothing here anymore
                 execute(u"DELETE FROM routing WHERE community = ?", (community.database_id,))
