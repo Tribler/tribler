@@ -797,7 +797,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     
     logmsgs = ds.get_log_messages()
     logmsg = None
-    if len(logmsgs) > 0:
+    if DEBUG and len(logmsgs) > 0:
         print >>sys.stderr,"main: Log",logmsgs[0]
         logmsg = logmsgs[-1][1]
         
