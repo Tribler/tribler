@@ -43,14 +43,13 @@ class AllChannelCommunity(Community):
 
         if not communities:
             master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
-            cid = sha1(master_key).digest()
 
             dispersy_database = DispersyDatabase.get_instance()
-            dispersy_database.execute(u"INSERT OR IGNORE INTO community (user, cid, classification, public_key) VALUES (?, ?, ?, ?)",
-                                      (my_member.database_id, buffer(cid), cls.get_classification(), buffer(master_key)))
+            dispersy_database.execute(u"INSERT OR IGNORE INTO community (user, classification, public_key) VALUES (?, ?, ?)",
+                                      (my_member.database_id, cls.get_classification(), buffer(master_key)))
 
             # new community instance
-            community = cls(cid, *args, **kargs)
+            community = cls(master_key, *args, **kargs)
 
             # send out my initial dispersy-identity
             community.create_identity()
@@ -60,8 +59,8 @@ class AllChannelCommunity(Community):
 
         return communities
 
-    def __init__(self, cid):
-        super(AllChannelCommunity, self).__init__(cid)
+    def __init__(self, master_key):
+        super(AllChannelCommunity, self).__init__(master_key)
 
         # tribler torrent database
         self._torrent_database = TorrentDBHandler.getInstance()
