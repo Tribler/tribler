@@ -984,8 +984,6 @@ def parse_playtime_to_secs(hhmmss):
 def return_feasible_playback_modes(syspath):
     l = []
     try:
-        raise Exception('spam', 'eggs')
-
         import vlc
 
         if USE_VLC_RAW_INTERFACE:
