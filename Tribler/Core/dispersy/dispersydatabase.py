@@ -44,9 +44,8 @@ CREATE TABLE community(
  id INTEGER PRIMARY KEY AUTOINCREMENT,          -- local counter for database optimization
  user INTEGER REFERENCES user(id),              -- my member that is used to sign my messages
  classification TEXT,                           -- the community type, typically the class name
- cid BLOB,                                      -- community identifier (sha1 of public_key)
  public_key BLOB,                               -- community master key (public part)
- UNIQUE(user, cid));
+ UNIQUE(user, public_key));
 
 CREATE TABLE key(
  public_key BLOB,                               -- public part

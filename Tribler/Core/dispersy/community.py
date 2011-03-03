@@ -61,13 +61,12 @@ class Community(object):
         ec = ec_generate_key(u"high")
         public_key = ec_to_public_bin(ec)
         private_key = ec_to_private_bin(ec)
-        cid = sha1(public_key).digest()
 
         database = DispersyDatabase.get_instance()
         with database as execute:
-            execute(u"INSERT INTO community (user, cid, classification, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, buffer(cid), cls.get_classification(), buffer(public_key)))
+            execute(u"INSERT INTO community (user, classification, public_key) VALUES(?, ?, ?)", (my_member.database_id, cls.get_classification(), buffer(public_key)))
             database_id = database.last_insert_rowid
-            execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(public_key)))
+            execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key)))
             execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(public_key), buffer(private_key)))
             execute(u"INSERT INTO routing (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM routing WHERE community = 0", (database_id,))
 
@@ -125,8 +124,8 @@ class Community(object):
         assert isinstance(master_key, str)
         assert isinstance(my_member, MyMember)
         database = DispersyDatabase.get_instance()
-        database.execute(u"INSERT INTO community(user, cid, classification, public_key) VALUES(?, ?, ?, ?)",
-                         (my_member.database_id, buffer(sha1(master_key).digest()), cls.get_classification(), buffer(master_key)))
+        database.execute(u"INSERT INTO community(user, classification, public_key) VALUES(?, ?, ?)",
+                         (my_member.database_id, cls.get_classification(), buffer(master_key)))
 
         # new community instance
         community = cls(master_key, *args, **kargs)
