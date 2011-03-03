@@ -101,8 +101,6 @@ class Dispersy(Singleton):
         """
         # the raw server
         self._rawserver = rawserver
-        if __debug__:
-            self._rawserver.add_task(self._periodically_stats, 1.0)
 
         # where we store all data
         self._working_directory = abspath(working_directory)
@@ -142,9 +140,15 @@ class Dispersy(Singleton):
         self._incoming_distribution_map = {FullSyncDistribution.Implementation:self._check_incoming_full_sync_distribution,
                                            LastSyncDistribution.Implementation:self._check_incoming_last_sync_distribution}
 
+
+        # cleanup the database periodically
+        self._rawserver.add_task(self._periodically_cleanup_database, 120.0)
+
         # statistics...
         self._total_send = 0
         self._total_received = 0
+        if __debug__:
+            self._rawserver.add_task(self._periodically_stats, 1.0)
 
     @property
     def working_directory(self):
@@ -2380,6 +2384,14 @@ class Dispersy(Singleton):
 
         if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
             self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval, "id:routing-" + community.cid)
+
+    def _periodically_cleanup_database(self):
+        # cleannup routing tables
+        with self._database as execute:
+            for community in self._communities.itervalues():
+                execute(u"DELETE FROM routing WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) > ?",
+                        (community.database_id, community.dispersy_routing_cleanup_age_threshold))
+        self._rawserver.add_task(self._periodically_cleanup_database, 120.0)
 
     def _periodically_stats(self):
         """

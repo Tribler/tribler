@@ -296,6 +296,15 @@ class Community(object):
         return (300.0, 900.0)
 
     @property
+    def dispersy_routing_cleanup_age_threshold(self):
+        """
+        Once an entry in the routing table becomes older than the threshold, the entry is deleted
+        from the database.
+        @rtype: float
+        """
+        return 1800.0
+
+    @property
     def dispersy_sync_initial_delay(self):
         return 10.0
 
