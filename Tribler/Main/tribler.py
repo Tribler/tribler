@@ -372,6 +372,13 @@ class ABCApp(wx.App):
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
         
+        # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
+        #only seen on windows
+        install_dir = __file__
+        if install_dir.find('library.zip') >= 0:
+            install_dir = install_dir[:install_dir.find('library.zip') - 1]
+            self.sconfig.set_install_dir(install_dir)
+        
         s = Session(self.sconfig)
         self.utility.session = s
 
