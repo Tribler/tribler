@@ -857,7 +857,7 @@ class ChannelSearchGridManager:
         return [len(lchannels), lchannels]
     
     def getMyVote(self, channel_id):
-        return self.votecastdb.getVote(channel_id, bin2str(self.votecastdb.my_permid))
+        return self.votecastdb.getVote(channel_id, None)
     
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, keys)
@@ -931,8 +931,8 @@ class ChannelSearchGridManager:
         hits = filter(deadFilter, hits)
         return nrFiltered, hits
     
-    def updateTorrent(self, channeltorrent_id, dict_changes):
-        self.channelcast_db.updateTorrent(channeltorrent_id, dict_changes)
+    def modifyTorrent(self, channeltorrent_id, dict_changes):
+        self.channelcast_db.modifyTorrent(channeltorrent_id, dict_changes)
     
     def getPlaylistsFromChannelId(self, channel_id, keys):
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
@@ -971,8 +971,8 @@ class ChannelSearchGridManager:
         
         return len(hits), hits
     
-    def addComment(self, comment, channel_id, playlist_id = None, channeltorrent_id = None):
-        self.channelcast_db.addComment(comment, channel_id, playlist_id, channeltorrent_id)
+    def addComment(self, comment, channel_id, reply_after, reply_to = None, playlist_id = None, channeltorrent_id = None):
+        self.channelcast_db.addComment(comment, channel_id, reply_after, reply_to, playlist_id, channeltorrent_id)
     
     def getChannel(self, channel_id):
         return self.channelcast_db.getChannel(channel_id)
@@ -980,8 +980,9 @@ class ChannelSearchGridManager:
     def createChannel(self, name, description):
         return self.channelcast_db.createChannel(name, description)
 
-    def updateChannel(self, channel_id, name, description):
-        return self.channelcast_db.updateChannel(channel_id, name, description)
+    def modifyChannel(self, channel_id, name, description):
+        dict = {'name':name, 'description':description}
+        return self.channelcast_db.modifyChannel(channel_id, dict)
     
     def spam(self, publisher_id):
         self.votecastdb.spam(publisher_id)
@@ -1003,10 +1004,11 @@ class ChannelSearchGridManager:
         return self.channelcast_db.getPlaylist(playlist_id, keys)
     
     def createPlaylist(self, channel_id, name, description, torrent_ids):
-        return self.channelcast_db.savePlaylist(channel_id, name, description, torrent_ids)
+        return self.channelcast_db.createPlaylist(channel_id, name, description)
     
-    def updatePlaylist(self, playlist_id, name, description):
-        return self.channelcast_db.updatePlaylist(playlist_id, name, description)
+    def modifyPlaylist(self, playlist_id, name, description):
+        dict = {'name':name, 'description':description}
+        return self.channelcast_db.modifyPlaylist(playlist_id, dict)
     
     def savePlaylistTorrents(self, playlist_id, torrent_ids):
         return self.channelcast_db.savePlaylistTorrents(playlist_id, torrent_ids)

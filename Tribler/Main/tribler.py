@@ -382,7 +382,7 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
@@ -514,7 +514,7 @@ class ABCApp(wx.App):
         # created. They are eventually created when the UI thread is
         # ready for it. Therefore, we will set an 'init_ready'
         # parameter when it is ready.
-        if self.frame.top_bg.init_ready:
+        if self.ready and self.frame.ready:
             wx.CallAfter(self.set_reputation)
             self.guiserver.add_task(self.guiservthread_update_reputation,10.0)
         else:
@@ -724,6 +724,12 @@ class ABCApp(wx.App):
         
         manager = self.frame.selectedchannellist.GetManager()
         manager.channelUpdated(objectID)
+        
+        if changeType == NTFY_CREATE:
+            self.frame.channellist.SetMyChannelId(objectID)
+            self.frame.managechannel.SetMyChannelId(objectID)
+            
+        self.frame.managechannel.channelUpdated(objectID)
         
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:

@@ -44,8 +44,8 @@ class VoteCastCore:
         self.peerdb = PeerDBHandler.getInstance()
         self.votecastdb = VoteCastDBHandler.getInstance()
         
-        self.my_permid = self.votecastdb.my_permid
         self.session = session
+        self.my_permid = session.get_permid()
         self.max_length = SINGLE_VOTECAST_LENGTH * (session.get_votecast_random_votes() + session.get_votecast_recent_votes())       
 
         #Reference to buddycast-core, set by the buddycast-core (as it is created by the

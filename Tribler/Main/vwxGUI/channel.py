@@ -207,7 +207,7 @@ class SelectedChannelList(SearchList):
                 if len(changes)>0:
                     dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg.ShowModal() == wx.ID_YES:
-                        self.channelsearch_manager.updateTorrent(item.original_data['ChannelTorrents.id'], changes)
+                        self.channelsearch_manager.modifyTorrent(item.original_data['ChannelTorrents.id'], changes)
             SearchList.OnCollapse(self, item, panel)
         
     def OnRemoveVote(self, event):
@@ -379,6 +379,7 @@ class ManageChannelFilesManager():
     def refresh(self):
         total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
         self.list.SetData(torrentList)
+        return total_items
     
     def SetChannelId(self, channel_id):
         if channel_id !=  self.list.id:
@@ -430,7 +431,7 @@ class ManageChannelPlaylistsManager():
         self.channelsearch_manager.createPlaylist(self.list.id, name, description, torrent_ids)
     
     def savePlaylist(self, playlist_id, name, description):
-        self.channelsearch_manager.updatePlaylist(playlist_id, name, description)
+        self.channelsearch_manager.modifyPlaylist(playlist_id, name, description)
     
     def savePlaylistTorrents(self, playlist_id, torrent_ids):
         self.channelsearch_manager.savePlaylistTorrents(playlist_id, torrent_ids)
@@ -447,7 +448,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
         self.torrentfeed = TorrentFeedThread.getInstance()
-        self.torrentfeed.addCallback(self.OnRssItem)
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         
         self.SetBackgroundColour(LIST_BLUE)
@@ -455,6 +455,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         self.header = ManageChannelHeader(self, self)
         self.header.SetBackgroundColour(LIST_BLUE)
+        self.header.SetEvents(self.OnBack)
         boxSizer.Add(self.header, 0, wx.EXPAND)
         
         self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
@@ -621,8 +622,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 
                 self.createText.Hide()
                 self.saveButton.SetLabel('Save Changes')
+                
+            header = 'Management interface for %s\'s Channel'%name
         else:
             name = ''
+            header = 'Create your own channel'
             nr_favorites = 0
             nr_torrents = 0
             nr_spam = 0
@@ -636,7 +640,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.createText.Show()
             self.saveButton.SetLabel('Create Channel')
             
-        self.header.SetName(name)
+        self.header.SetName(header)
         self.header.SetNrTorrents(nr_torrents, nr_favorites)
         self.name.SetValue(name)
         self.name.originalValue = name
@@ -644,6 +648,10 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.description.originalValue = description
         
         self.RebuildRssPanel()
+        
+    def SetMyChannelId(self, channel_id):
+        if not self.channel_id:
+            self.SetChannelId(channel_id)
     
     def IsChanged(self):
         return self.name.GetValue() != self.name.originalValue or self.description.GetValue() != self.description.originalValue
@@ -658,6 +666,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.playlistlist.Show()
             self.playlistlist.SetFocus() 
         event.Skip()
+    
+    def OnBack(self, event):
+        self.guiutility.GoBack()
     
     def OnAddRss(self, event):
         item = event.GetEventObject()
@@ -743,7 +754,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         description = self.description.GetValue()
         
         if self.channel_id:
-            self.channelsearch_manager.updateChannel(self.channel_id, name, description)
+            self.channelsearch_manager.modifyChannel(self.channel_id, name, description)
         else:
             self.channelsearch_manager.createChannel(name, description)
         
@@ -758,6 +769,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def playlistUpdated(self, playlist_id):
         manager = self.playlistlist.GetManager()
         manager.playlistUpdated(playlist_id)
+        
+    def channelUpdated(self, channel_id):
+        if channel_id == self.channel_id:
+            manager = self.fileslist.GetManager()
+            
+            nr_torrents = manager.refresh()
+            self.header.SetNrTorrents(nr_torrents)
 
 class ManageChannelFilesList(List):
     def __init__(self, parent):
@@ -788,7 +806,7 @@ class ManageChannelFilesList(List):
         return 0
     
     def OnExpand(self, item):
-        return MyChannelDetails(item, item.original_data, self.GetManager().channel_id)
+        return MyChannelDetails(item, item.original_data, self.id)
     
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
@@ -983,12 +1001,18 @@ class CommentManager:
         return total_items
         
     def addComment(self, comment):
+        reply_after = None
+        
+        items = self.list.GetItems().values()
+        if len(items) > 0:
+            reply_after = items[-1].original_data['dispersy_id']
+        
         if self.playlist_id:
-            self.channelsearch_manager.addComment(comment, self.channel_id, playlist_id = self.playlist_id)
+            self.channelsearch_manager.addComment(comment, self.channel_id, reply_after, playlist_id = self.playlist_id)
         elif self.channeltorrent_id:
-            self.channelsearch_manager.addComment(comment, self.channel_id, channeltorrent_id = self.channeltorrent_id)
+            self.channelsearch_manager.addComment(comment, self.channel_id, reply_after, channeltorrent_id = self.channeltorrent_id)
         else:
-            self.channelsearch_manager.addComment(comment, self.channel_id)
+            self.channelsearch_manager.addComment(comment, self.channel_id, reply_after)
 
 class CommentList(List):
     def __init__(self, parent, canReply = False):

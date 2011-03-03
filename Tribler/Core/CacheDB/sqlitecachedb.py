@@ -1214,7 +1214,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             """
             CREATE TABLE IF NOT EXISTS Channels (
               id                    integer         PRIMARY KEY ASC,
-              dispersy_cid          text            UNIQUE,
+              dispersy_cid          text,
               peer_id               integer,
               name                  text            NOT NULL,
               description           text
@@ -1467,12 +1467,16 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ?"
             select_channel_contents = "SELECT torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash"
             
-            insert_channel = "INSERT INTO Channels (dispersy_id, peer_id, name, description) VALUES (?,?,?,?)"
+            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?,?,?,?)"
             select_new_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
             insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
             channels = self.fetchall(select_channels)
             for peer_id, publisher_id, latest_update in channels:
+                #do check if me?
+                #store_and_forward = False
+                
+                
                 channel_name = self.fetchone(select_channel_name, (publisher_id, latest_update))
                 
                 #create channel

@@ -410,17 +410,26 @@ class ManageChannelHeader(SubTitleHeader):
         TitleHeader.__init__(self, parent, parent_list, [])
         
     def SetName(self, name):
-        name = 'Management interface for %s\'s Channel'%name
         self.SetTitle(name)
         
-    def SetNrTorrents(self, nr, nr_favorites):
+    def GetRightTitlePanel(self, parent):
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.AddStretchSpacer()
+        self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
+        hSizer.Add(self.back, 0, wx.LEFT, 5)
+        return hSizer
+
+    def SetEvents(self, back):
+        self.back.Bind(wx.EVT_BUTTON, back)
+        
+    def SetNrTorrents(self, nr, nr_favorites = None):
         subtitle = ''
         if nr == 1:
             subtitle = 'Sharing %d torrent'%nr
         else:
             subtitle = 'Sharing %d torrents'%nr
         
-        if nr > 0:    
+        if nr > 0 and nr_favorites:
             if nr_favorites == 0:
                 subtitle += ', but not marked as a favorite yet.'
             elif nr_favorites == 1:

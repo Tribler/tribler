@@ -177,13 +177,16 @@ class ChannelCastCore:
         listOfAdditions = list()
         
         # a single read from the db is more efficient
-        all_spam_channels = self.votecastdb.getChannelsWithNegVote(bin2str(self.session.get_permid()))
+        all_spam_channels = self.votecastdb.getChannelsWithNegVote(None)
         permid_channel_id = self.channelcastdb.getPermChannelIdDict()
         
         for k,v in hits.items():
-            #add local channel_id to all messages
-            if bin2str(v['publisher_id']) in permid_channel_id:
-                v['channel_id'] = permid_channel_id[bin2str(v['publisher_id'])]
+            #create new channel if not found
+            if v['publisher_id'] not in permid_channel_id:
+                permid_channel_id[v['publisher_id']] = self.channelcastdb.on_channel_from_channelcast(v['publisher_id'], v['publisher_name'])
+            
+            #add local channel_id to all messages    
+            v['channel_id'] = permid_channel_id[v['publisher_id']]
             
                 #check if the record belongs to a channel who we have "reported spam" (negative vote)
                 if v['channel_id'] in all_spam_channels:
@@ -193,6 +196,7 @@ class ChannelCastCore:
                 # make everything into "string" format, if "binary"
                 hit = (v['channel_id'],v['publisher_name'],v['infohash'],'NAME UNKNOWN',v['time_stamp'])
                 listOfAdditions.append(hit)
+            
         
         # Arno, 2010-06-11: We're on the OverlayThread
         self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)

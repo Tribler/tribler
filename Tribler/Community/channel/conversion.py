@@ -84,13 +84,15 @@ class ChannelConversion(BinaryConversion):
         return offset, meta_message.payload.implement(name, description)
 
     def _encode_comment(self, message):
+        #TODO: reply_to and reply_after are optional
         reply_to = message.payload.reply_to.load_message()
         reply_after = message.payload.reply_after.load_message()
         return encode({"text":message.payload.text,
+                       "timestamp":message.paylist.timestamp,
                        "reply-to-mid":reply_to.authentication.member.mid,
                        "reply-to-global-time":reply_to.distribution.global_time,
                        "reply-from-mid":reply_from.authentication.member.mid,
-                       "reply-from-global-time":reply_from.distribution.global_time})
+                       "reply-from-global-time":reply_from.distribution.global_time}),
 
     def _decode_comment(self, meta_message, offset, data):
         try:
@@ -103,6 +105,12 @@ class ChannelConversion(BinaryConversion):
         text = dic["text"]
         if not (isinstance(text, unicode) and len(text) < 2^16):
             raise DropPacket("Invalid 'text' type or value")
+        
+        if not "timestamp" in dic:
+            raise DropPacket("Missing 'timestamp'")
+        timestamp = dic["timestamp"]
+        if not isinstance(timestamp, (int, long)):
+            raise DropPacket("Invalid 'timestamp' type or value")
 
         #
         # reply_to
@@ -166,13 +174,13 @@ class ChannelConversion(BinaryConversion):
 
         reply_from = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
-        return offset, meta_message.payload.implement(text, reply_to, reply_from)
+        return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_from)
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
         return encode({"modification":message.payload.modification,
                        "modification-on-mid":modification_on.authentication.member.mid,
-                       "modification-on-global-time":modification_on.distribution.global_time})
+                       "modification-on-global-time":modification_on.distribution.global_time}),
 
     def _decode_modification(self, meta_message, offset, data):
         try:

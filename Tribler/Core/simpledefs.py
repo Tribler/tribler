@@ -84,6 +84,7 @@ NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
 NTFY_UPDATE = 'update'         # data is updated
 NTFY_INSERT = 'insert'         # new data is inserted
 NTFY_DELETE = 'delete'         # data is deleted
+NTFY_CREATE = 'create'         # new data is created, meaning in the case of Channels your own channel is created
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
 NTFY_CONNECTION = 'connection' # connection made or broken
 

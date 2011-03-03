@@ -59,19 +59,25 @@ class PlaylistPayload(Payload):
 
 class CommentPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, text, reply_to, reply_after):
+        def __init__(self, meta, text, timestamp, reply_to, reply_after):
             assert isinstance(text, unicode)
             assert len(text) < 2^16
-            assert isinstance(reply_to, Packet)
-            assert isinstance(reply_after, Packet)
+            assert isinstance(timestamp, (int, long)) 
+            assert not reply_to or isinstance(reply_to, Packet)
+            assert not reply_after or isinstance(reply_after, Packet)
             super(CommentPayload.Implementation, self).__init__(meta)
             self._text = text
+            self._timestamp = timestamp
             self._reply_to = reply_to
             self._reply_after = reply_after
 
         @property
         def text(self):
             return self._text
+        
+        @property
+        def timestamp(self):
+            return self._timestamp
 
         @property
         def reply_to(self):

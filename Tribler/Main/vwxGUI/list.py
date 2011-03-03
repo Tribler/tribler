@@ -827,6 +827,13 @@ class ChannelList(List):
                 self.header.SetSubTitle("Discovered %d channel" % nr)
             else:
                 self.header.SetSubTitle("Discovered %d channels" % nr)
+    
+    def SetMyChannelId(self, channel_id):
+        self.my_id = channel_id
+        
+        #to reset icons we have to reset the complete list :(
+        self.list.Reset()        
+        self.GetManager().refresh()
           
 class ChannelCategoriesList(List):
     def __init__(self):

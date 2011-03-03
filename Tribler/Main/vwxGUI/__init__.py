@@ -14,4 +14,4 @@ LIST_RADIUS = 7
 
 CHANNEL_REQ_COLUMNS = ['infohash', 'CollectedTorrent.name', 'ChannelTorrents.name', 'ChannelTorrents.id', 'ChannelTorrents.channel_id', 'description', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
 PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
-COMMENT_REQ_COLUMNS = ['id', 'name', 'Peer.peer_id', 'comment', 'time_stamp']
+COMMENT_REQ_COLUMNS = ['id', 'dispersy_id', 'name', 'Peer.peer_id', 'comment', 'time_stamp']
