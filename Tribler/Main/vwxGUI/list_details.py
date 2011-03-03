@@ -28,6 +28,8 @@ from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 
+VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
+
 class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent):
         wx.Panel.__init__(self, parent)
@@ -110,23 +112,26 @@ class TorrentDetails(wx.Panel):
         
         return panel, vSizer
         
-    def _add_row(self, parent, sizer, name, value):
+    def _add_row(self, parent, sizer, name, value, spacer = 10):
         if name:
             name = wx.StaticText(parent, -1, name)
             font = name.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             name.SetFont(font)
-            sizer.Add(name, 0, wx.LEFT, 10)
+            sizer.Add(name, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, spacer)
         
-        try:
-            value = wx.StaticText(parent, -1, unicode(value))
-        except:
-            value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
-            
-        value.SetMinSize((1,-1))
-        sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
+        if value:
+            if isinstance(value, basestring):
+                try:
+                    value = wx.StaticText(parent, -1, unicode(value))
+                except:
+                    value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
+                value.SetMinSize((1,-1))
+                sizer.Add(value, 0, wx.EXPAND|wx.LEFT, spacer)
+            else:
+                sizer.Add(value, 0, wx.LEFT, spacer)
         
-        return name, value    
+        return name, value
 
     def _addTabs(self, ds):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -230,46 +235,67 @@ class TorrentDetails(wx.Panel):
                     curlang.sort()
                     strlang = [lang[0] for lang in curlang]
             
-            vlc_supported = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
-            
             internalSubs = []
             for filename, size in self.information[2]:
                 root, extension = os.path.splitext(filename)
-                if extension in vlc_supported:
+                if extension in VLC_SUPPORTED_SUBTITLES:
                     internalSubs.append(filename)
             internalSubs.sort()
             
             for filename in internalSubs:
-                strlang.append(filename)
+                _, nicefilename = os.path.split(filename)
+                strlang.append(nicefilename)
                 curlang.append([filename])
+                
+            foundSubtitles = len(curlang) > 0
             
-            if len(curlang) > 0:
+            if not finished:
+                title = 'After you finished downloading this torrent you can select a subtitle'
+            else:
+                title = 'You can now select a subtitle'
+            
+            if foundSubtitles:
+                title += ' found by Tribler or'
+            title += ' specified by you to be used with our player.'
+            subtitlePanel, vSizer = self._create_tab("Subtitles", title)
+            vSizer.AddStretchSpacer()
+            
+            gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+            gridSizer.AddGrowableCol(0)
+            if foundSubtitles:
                 curlang.insert(0, ('','',''))
                 strlang.insert(0, '')
                 
-                subtitlePanel, vSizer = self._create_tab("Subtitles", "Discovered Subtitles")
-                hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                
-                if finished:
-                    title = wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?")
-                else:
-                    title = wx.StaticText(subtitlePanel, -1, "Available subtitles:")
-                title.SetMinSize((1,-1))
-                hSizer.Add(title, 1, wx.ALIGN_CENTER_VERTICAL)
                 self.subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
+                self.subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
+                self.subtitleChoice.SetMinSize((300, -1))
+                self.subtitleChoice.Enable(False)
                 self.subtitleChoice.items = curlang
-                hSizer.Add(self.subtitleChoice)
-                vSizer.Add(hSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
                 
-                vSizer.AddStretchSpacer()
-                if finished:
-                    self._add_row(subtitlePanel, vSizer, None, "Please select a subtitle and click play.")
-                    
-                    self.requestingSub = wx.StaticText(subtitlePanel)
-                    self.requestingSub.Show(False)
-                    vSizer.Add(self.requestingSub, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
-                else:
-                    self._add_row(subtitlePanel, vSizer, None, "After you finished downloading this torrent you can select one to used with our player.")
+                self.requestingSub = wx.StaticText(subtitlePanel)
+                self.requestingSub.Show(False)
+                
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.Add(self.subtitleChoice)
+                hSizer.Add(self.requestingSub, 0, wx.ALIGN_CENTER_VERTICAL)
+                self.requestingSub.sizer = hSizer
+                
+                self._add_row(subtitlePanel, gridSizer, "Which subtitle do you want to use?", hSizer)
+            
+            self.subtitleBrowse = wx.Button(subtitlePanel, -1, "Browse")
+            self.subtitleBrowse.Enable(False)
+            self.subtitleBrowse.Bind(wx.EVT_BUTTON, self.OnSubtitleBrowse)
+            
+            self.removeSubtitle = wx.Button(subtitlePanel, -1, "Remove Subtitle")
+            self.removeSubtitle.Enable(False)
+            self.removeSubtitle.Bind(wx.EVT_BUTTON, self.RemoveSubtitle)
+            
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            hSizer.Add(self.subtitleBrowse, 0, wx.RIGHT, 10)
+            hSizer.Add(self.removeSubtitle)
+            
+            self._add_row(subtitlePanel, gridSizer, "Use your own subtitle", hSizer)
+            vSizer.Add(gridSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         #Create description
         if self.torrent.get('comment', 'None') != 'None' and self.torrent['comment'] != '':
@@ -536,8 +562,11 @@ class TorrentDetails(wx.Panel):
                 channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                 self.buttonSizer.Add(channeltext, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
              
-        if getattr(self, 'subtitleChoice', None):   
-            self.subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
+        if getattr(self, 'subtitleChoice', None):
+            self.subtitleChoice.Enable(True)
+        if getattr(self, 'subtitleBrowse', None):
+            self.subtitleBrowse.Enable(True)
+            self.removeSubtitle.Enable(True)
     
     def _GetPath(self, file = None):
         ds = self.torrent.get('ds', False)
@@ -612,46 +641,67 @@ class TorrentDetails(wx.Panel):
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
                     startfile(file)
-                    
+    
+    def _ToggleSubtitleChoice(self, showChoice = None):
+        if not showChoice:
+            showChoice = not self.subtitleChoice.IsShown()
+        
+        self.subtitleChoice.Show(showChoice)
+        self.requestingSub.Show(not showChoice)
+        self.requestingSub.sizer.Layout()
+                   
     def OnSubtitle(self, event):
-        choice = event.GetEventObject()
-        selected = choice.GetSelection()
+        selected = self.subtitleChoice.GetSelection()
         if selected > 0 and selected != wx.NOT_FOUND:
-            if len(choice.items[selected]) > 1:
-                (lang, channelid, subtitleinfo) = choice.items[selected]
+            if len(self.subtitleChoice.items[selected]) > 1:
+                (lang, channelid, subtitleinfo) = self.subtitleChoice.items[selected]
                 
-                self.requestingSub.SetLabel('Requesting subtitle from peers, please wait.')
-                self.requestingSub.Show()
+                self.requestingSub.SetLabel('Requesting subtitle from peers...')
+                self._ToggleSubtitleChoice(False)
                                 
                 subsupport = SubtitlesSupport.getInstance()
                 subsupport.retrieveSubtitleContent(channelid, self.torrent['infohash'], subtitleinfo, self.OnRetrieveSubtitle)
                 
                 def subTimeout():
                     if self.requestingSub.IsShown():
-                        self.requestingSub.SetLabel('Did not receive subtitle yet, it probably failed. Mark channel as favorite for improved support.')
-                        wx.CallLater(3000, self.requestingSub.Show, False)
+                        self.requestingSub.SetLabel('Request failed, no peer responded with subtitle')
+                        wx.CallLater(3000, self._ToggleSubtitleChoice, True)
                 wx.CallLater(10000, subTimeout)
             else:
-                file = self._GetPath(choice.items[selected][0])
+                file = self._GetPath(self.subtitleChoice.items[selected][0])
+                self.uelog.addEvent(message="Subtitles: user choose a internal subtitle", type = 2)
                 self.SetSubtitle(file)
         else:
             self.RemoveSubtitle()
     
     def OnRetrieveSubtitle(self, subtitleinfo):
         self.SetSubtitle(subtitleinfo.getPath())
+        self.uelog.addEvent(message="Subtitles: user retrieved a subtitle", type = 2)
+        self.requestingSub.SetLabel('Got subtitle from peers')
+        wx.CallLater(3000, self._ToggleSubtitleChoice, True)
+            
+    def OnSubtitleBrowse(self, event):
+        wildcard = "*" + ";*".join(VLC_SUPPORTED_SUBTITLES)
+        wildcard = "Subtitles (%s) | %s"%(wildcard, wildcard)
         
-        if self.requestingSub.IsShown():
-            self.requestingSub.SetLabel('Got subtitle from peers.')
-            wx.CallLater(3000, self.requestingSub.Show, False)
+        dlg = wx.FileDialog(self, 'Please select your subtitle.', wildcard = wildcard, style = wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.uelog.addEvent(message="Subtitles: user choose his own subtitle", type = 2)
+            
+            file = dlg.GetPath()
+            self.SetSubtitle(file)
+        dlg.Destroy()
         
     def SetSubtitle(self, file):
-        #get largest playable file
-        (size, filename) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
+        _, ext = os.path.splitext(file)
+        if ext.lower() in VLC_SUPPORTED_SUBTITLES:
+            #get largest playable file
+            (size, filename) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
+            
+            filename = os.path.join(self._GetPath(), filename[0:filename.rfind(".")] + ext)
+            shutil.copy(file, filename)
         
-        filename = os.path.join(self._GetPath(), filename[0:filename.rfind(".")] + ".srt")
-        shutil.copy(file, filename)
-        
-    def RemoveSubtitle(self):
+    def RemoveSubtitle(self, event = None):
         (size, filename) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
         if filename[0:filename.rfind(".")] + ".srt" not in self.information[2]: #only actually remove this subtitle if it not in the .torrent
             filename = os.path.join(self._GetPath(), filename[0:filename.rfind(".")] + ".srt")
