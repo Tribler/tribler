@@ -348,7 +348,7 @@ class DownloadState(Serializable):
         dictionary contains the keys:
         <pre>
         'id' = PeerID or 'http seed'
-        'extended_version' = Peer client version
+        'extended_version' = Peer client version, as received during the extend handshake message
         'ip' = IP address as string or URL of httpseed
         'port' = Port
         'pex_received' = True/False

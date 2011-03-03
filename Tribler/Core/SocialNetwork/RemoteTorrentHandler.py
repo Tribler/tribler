@@ -48,23 +48,35 @@ class RemoteTorrentHandler:
         self.session = session
     
     def download_torrent(self,permid,infohash,usercallback, prio = 1):
+        """ The user has selected a torrent referred to by a peer in a query 
+        reply or channelcast has discovered a new torrent. Try to obtain the actual .torrent file from the peer
+        """
         if self.registered:
-            """ The user has selected a torrent referred to by a peer in a query 
-            reply. Try to obtain the actual .torrent file from the peer and then 
-            start the actual download. 
-            """
+            # Called by GUI thread 
             assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
             assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-            
-            self.callbacks[infohash] = usercallback
-            
-            if prio not in self.requesters:
-                self.requesters[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
-            
-            self.requesters[prio].add_source(infohash, permid)
-            
-            if DEBUG:
-                print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
+    
+            # Arno, 2011-02-25: Thread safety: Only OverlayThread can touch data structs
+            olthread_remote_torrent_download_lambda = lambda:self.olthread_download_torrent_callback(permid,infohash,usercallback,prio)
+            self.overlay_bridge.add_task(olthread_remote_torrent_download_lambda,0)
+    
+    
+    def olthread_download_torrent_callback(self,permid,infohash,usercallback, prio = 1):
+        """ The user has selected a torrent referred to by a peer in a query 
+        reply or channelcast has discovered a new torrent. Try to obtain the actual .torrent file from the peer
+        """
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+        
+        self.callbacks[infohash] = usercallback
+        
+        if prio not in self.requesters:
+            self.requesters[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
+        
+        self.requesters[prio].add_source(infohash, permid)
+        
+        if DEBUG:
+            print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
     
     def metadatahandler_got_torrent(self,infohash,metadata,filename):
         """ Called by MetadataHandler when the requested torrent comes in """
@@ -155,7 +167,7 @@ class TorrentRequester():
                 if self.prio <= 1 or (self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD and infohash not in self.sources):
                     self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*(self.prio+1), infohash)
 
-            #Make sure exceptions wont crash this requesting thread
+            #Make sure exceptions wont crash this requesting loop
             except: 
                 if DEBUG:
                     print_exc()
@@ -183,7 +195,6 @@ class MagnetRequester():
         self.overlay_bridge = overlay_bridge
         self.torrent_db = session.open_dbhandler('torrents')
         
-        self.listLock = threading.RLock()
         self.list = []
         self.requestedInfohashes = set()
         
@@ -201,16 +212,13 @@ class MagnetRequester():
         if DEBUG:
             print >> sys.stderr, "magnetrequestor: new magnet request", len(self.requestedInfohashes)
         
-        self.listLock.acquire()
         self.list.append((prio, infohash))
         self.list.sort()
-        self.listLock.release()
           
         if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
             self.overlay_bridge.add_task(self.__requestMagnet, 0) #do new request now
             
     def __requestMagnet(self):
-        self.listLock.acquire()
         try:
             if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
                 #request new infohash from queue
@@ -223,7 +231,7 @@ class MagnetRequester():
                             print >> sys.stderr, 'magnetrequester: magnet already requested', bin2str(infohash)
                         continue
                 
-                    torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'])
+                    torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'], include_mypref = False)
                     torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
                     torrent_alt_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
                     
@@ -236,8 +244,6 @@ class MagnetRequester():
                 return
         except:
             print_exc()
-        finally:
-            self.listLock.release()
         
         #try magnet link
         magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)

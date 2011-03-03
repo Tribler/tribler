@@ -4,9 +4,12 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.7, Aug 2010. Import this to use the API """
+""" Tribler Core API v1.0.8, Mar 2011. Import this to use the API """
 
 # History:
+# 1.0.8      Added: query_peers to Session, allows you to query a subset of peers
+#            which if not connected will connected to. Otherwise equal to 
+#            query_connected_peers
 #
 # 1.0.7      Released with Next-Share M32
 #
