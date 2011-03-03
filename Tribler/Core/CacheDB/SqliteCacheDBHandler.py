@@ -2889,7 +2889,24 @@ class VoteCastDBHandler(BasicDBHandler):
                 neg_votes +=1
         return (pos_votes, neg_votes)
     
-
+    def getAllPosNegVotes(self):
+        votes = {}
+        
+        sql = 'select mod_id, count(*) from VoteCast where vote == 2 group by mod_id'
+        records = self._db.fetchall(sql)
+        for mod_id, pos_votes in records:
+            votes[mod_id] = [pos_votes, 0]
+        
+        sql = 'select mod_id, count(*) from VoteCast where vote == -1 group by mod_id'
+        records = self._db.fetchall(sql)
+        for mod_id, neg_votes in records:
+            if mod_id not in votes:
+                votes[mod_id] = [0, neg_votes]
+            else:
+                votes[mod_id][1] = neg_votes
+        
+        return votes
+        
     def hasVote(self, permid, voter_peerid):
         sql = 'select mod_id, voter_id from VoteCast where mod_id==? and voter_id==?'
         item = self._db.fetchone(sql,(permid,voter_peerid,))
@@ -3248,7 +3265,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                       'comment',
                       'time_stamp'] 
         
-        where = "T.infohash == C.infohash AND publisher_id=='%s' AND t.infohash=='%s' AND name<>''"% (publisher_id, infohash)
+        where = "T.infohash == C.infohash AND publisher_id=='%s' AND t.infohash=='%s' AND name<>''"% (publisher_id, bin2str(infohash))
         
         result = self._db.getOne('Torrent T, ChannelCast C', value_name, where)
         value_name[1] = 'infohash'
@@ -3413,15 +3430,20 @@ class ChannelCastDBHandler(BasicDBHandler):
         return False
    
     def getChannel(self, permid):
-        sql = "Select publisher_id FROM ChannelCast WHERE publisher_id == ?"
+        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id == ?"
         channels = self._getChannels(sql, (permid,))
         if len(channels) > 0:
             return channels[0]
+    
+    def getChannels(self, permids):
+        publishers = str(permids).replace('[','(').replace(']',')')
+        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id IN " + publishers
+        return self._getChannels(sql)
    
     def getAllChannels(self):
         """ Returns all the channels """
         sql = "Select distinct publisher_id FROM ChannelCast"
-        return self._getChannels(sql)
+        return self._getChannels(sql, allChannels = True)
     
     def getNewChannels(self, updated_since = None):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
@@ -3471,7 +3493,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = 'Select min(time_stamp), max(time_stamp), count(infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
         return  self._db.fetchone(sql, (publisher_id,))
     
-    def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None):
+    def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None, allChannels = False):
         """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
@@ -3479,8 +3501,16 @@ class ChannelCastDBHandler(BasicDBHandler):
         sqla = "Select count(distinct ChannelCast.infohash), max(ChannelCast.time_stamp) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND status_id <> ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
         sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
         
+        if allChannels:
+            votedict = self.votecast_db.getAllPosNegVotes()
+        else:
+            votedict = {}
+            
         for result in results:
-            nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(result[0])
+            if result[0] not in votedict:
+                votedict[result[0]] = self.votecast_db.getPosNegVotes(result[0])
+            
+            nr_favorites, nr_spam = votedict[result[0]]    
             nr_votes = nr_favorites + nr_spam
             if nr_votes >= minvotes and nr_votes <= maxvotes:
                 nr_torrents, max_timestamp = self._db.fetchone(sqla, (result[0], self.torrent_db.status_table['dead']))
@@ -3518,7 +3548,7 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getSubscribersCount(self,permid):
         """returns the number of subscribers in integer format"""
         sql = "select count(*) from VoteCast where mod_id==? and vote=2"
-        numrecords = self._db.fetchone(sql, (permid,))
+        numrecords = self._db.fetchone(sql, (bin2str(permid),))
         return numrecords
 
     def getMostPopularChannelFromTorrent(self, infohash): ##

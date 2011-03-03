@@ -354,6 +354,7 @@ class AbstractListBody():
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
         self.messagePanel.SetBackgroundColour(wx.WHITE)
+        self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
@@ -577,19 +578,31 @@ class AbstractListBody():
             self.Scroll(-1, 0)
     
     def ShowMessage(self, message):
-        self.Freeze()
-        
-        self.messageText.SetLabel(message)
-        self.loadNext.Hide()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
-
-        self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-        self.messagePanel.Layout()
-        self.messagePanel.Show()
-        
-        self.OnChange()
-        self.Thaw()
+        if not self.messagePanel.IsShown():
+            self.Freeze()
+            
+            self.messageText.SetLabel(message)
+            self.loadNext.Hide()
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
+    
+            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+            self.messagePanel.Layout()
+            self.messagePanel.Show()
+            
+            self.OnChange()
+            self.Thaw()
+        else:
+            self.messageText.SetLabel(message)
+            self.messagePanel.Layout()
+    
+    def ShowLoading(self):
+        self.ShowMessage('Loading, please wait.')
+        #Try to yield, allows us to show loading text
+        try:
+            wx.Yield()
+        except:
+            pass
     
     def RefreshData(self, key, data):
         if key in self.items:
@@ -649,13 +662,7 @@ class AbstractListBody():
             if len(self.items) == 0:
                 #new data
                 if len(data) > LIST_ITEM_BATCH_SIZE:
-                    self.ShowMessage('Loading, please wait.')
-                    
-                    #Try to yield, allows us to show loading text
-                    try:
-                        wx.Yield()
-                    except:
-                        pass
+                    self.ShowLoading()
                 self.highlightSet = set()
             else:
                 cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])

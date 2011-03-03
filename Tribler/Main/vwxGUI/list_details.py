@@ -108,7 +108,8 @@ class TorrentDetails(wx.Panel):
             font = header.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             header.SetFont(font)
-            vSizer.Add(header, 0, wx.LEFT|wx.BOTTOM, 3)
+            header.SetMinSize((1,-1))
+            vSizer.Add(header, 0, wx.LEFT|wx.BOTTOM|wx.EXPAND, 3)
         
         return panel, vSizer
         
@@ -249,6 +250,9 @@ class TorrentDetails(wx.Panel):
                 
             foundSubtitles = len(curlang) > 0
             
+            subtitlePanel, vSizer = self._create_tab("Subtitles")
+            vSizer.AddSpacer((-1, 3))
+            
             if not finished:
                 title = 'After you finished downloading this torrent you can select a subtitle'
             else:
@@ -257,7 +261,8 @@ class TorrentDetails(wx.Panel):
             if foundSubtitles:
                 title += ' found by Tribler or'
             title += ' specified by you to be used with our player.'
-            subtitlePanel, vSizer = self._create_tab("Subtitles", title)
+            self._add_row(subtitlePanel, vSizer, None, title)
+            
             vSizer.AddStretchSpacer()
             
             gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
@@ -732,7 +737,7 @@ class TorrentDetails(wx.Panel):
         
         torrentfeed = TorrentFeedThread.getInstance()
         torrentfeed.addFile(torrent_filename)
-        self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+        self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
         self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
     
     def UpdateStatus(self):
@@ -1039,7 +1044,7 @@ class ProgressPanel(wx.Panel):
             elif havedigest:
                 self.pb.set_pieces(havedigest)
             elif progress > 0:
-                self.pb.setNormalPercentage(progress*100.0) # Show as having some
+                self.pb.setNormalPercentage(progress) # Show as having some
             else:
                 self.pb.reset(colour=0) # Show as having none
             self.pb.Refresh()
@@ -1304,16 +1309,16 @@ class MyChannelTabs(wx.Panel):
                 nr_imported += 1
         
         if nr_imported > 0:
-            self.parent.manager.refresh()
+            self.parent.manager.OnNewTorrent()
             if nr_imported == 1:
-                self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+                self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
             else:
-                self.guiutility.frame.top_bg.Notify('Added %d torrents to your Channel'%nr_imported, wx.ART_INFORMATION)
+                self.guiutility.Notify('Added %d torrents to your Channel'%nr_imported, wx.ART_INFORMATION)
     
     def OnRssItem(self, rss_url, infohash, torrent_data):
         #this is called from another non-gui thread, thus we wrap it using wx.callafter
         self.parent.GetManager()
-        wx.CallAfter(self.parent.manager.refresh)
+        wx.CallAfter(self.parent.manager.OnNewTorrent)
 
 class MyChannelDetails(wx.Panel):
     def __init__(self, parent, torrent, my_permid):

@@ -173,6 +173,7 @@ class MainFrame(wx.Frame):
             pass
 
         # Don't update GUI as often when iconized
+        self.GUIupdate = True
         self.oldframe = None
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
@@ -256,7 +257,7 @@ class MainFrame(wx.Frame):
 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
-            self.top_bg.Notify("Download from magnet failed", wx.ART_WARNING)
+            self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
             return False
         return True
     
@@ -268,7 +269,7 @@ class MainFrame(wx.Frame):
                 return True
         except:
             print_exc()
-        self.top_bg.Notify("Download from url failed", wx.ART_WARNING)
+        self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,proxymode=None):
@@ -363,9 +364,8 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self._wx_show_saved)
 
     def _wx_show_saved(self):
-        self.top_bg.Notify("Download started", wx.ART_INFORMATION)
+        self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
         self.librarylist.GetManager().refresh()
-
        
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
@@ -591,6 +591,8 @@ class MainFrame(wx.Frame):
         
         if self.tbicon is not None:
             self.tbicon.updateIcon(False)
+            
+        self.GUIupdate = True
 
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
@@ -611,6 +613,8 @@ class MainFrame(wx.Frame):
                 self.tbicon.updateIcon(True)
                 #Niels, 2011-02-21: on Win7 hiding window is not consistent with default behaviour 
                 #self.Show(False)
+                
+            self.GUIupdate = False
         else:
             videoplayer = VideoPlayer.getInstance()
             embed = videoplayer.videoframe.get_videopanel()
@@ -618,6 +622,8 @@ class MainFrame(wx.Frame):
                 embed.ppbtn.setToggled(False)
                 embed.vlcwin.setloadingtext('')
                 embed.vlcwrap.resume()
+                
+            self.GUIupdate = True
         if event is not None:
             event.Skip()
 
@@ -633,6 +639,7 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: onSize:",self.GetSize()
             else:
                 print  >> sys.stderr,"main: onSize: None"
+        self.GUIupdate = True
         if event is not None:
             if event.GetEventType() == wx.EVT_MAXIMIZE:
                 self.window.SetClientSize(self.GetClientSize())
@@ -721,11 +728,10 @@ class MainFrame(wx.Frame):
                 print_exc()
             
         self.utility.abcquitting = True
+        self.GUIupdate = False
         
         videoplayer = VideoPlayer.getInstance()
         videoplayer.stop_playback()
-        
-        self.guiUtility.guiOpen.clear()
 
         try:
             # Restore the window before saving size and position

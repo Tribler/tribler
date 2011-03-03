@@ -57,8 +57,6 @@ class GUIUtility:
 
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
-
-        self.guiOpen = Event()
      
         self.mainColour = wx.Colour(216,233,240) # main color theme used throughout the interface      
 
@@ -251,7 +249,7 @@ class GUIUtility:
         else:
             wantkeywords = split_into_keywords(input)
             if len(' '.join(wantkeywords))  == 0:
-                self.frame.top_bg.Notify('Please enter a search term', wx.ART_INFORMATION)
+                self.Notify('Please enter a search term', wx.ART_INFORMATION)
             else:
                 self.frame.top_bg.StartSearch()
                 
@@ -360,6 +358,9 @@ class GUIUtility:
         if curkeywords == wantkeywords and (hits + filtered) == 0:
             uelog = UserEventLogDBHandler.getInstance()
             uelog.addEvent(message="Search: nothing found for query: "+" ".join(wantkeywords), type = 2)
+            
+    def Notify(self, msg, icon= -1):
+        self.frame.top_bg.Notify(msg, icon)
      
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 

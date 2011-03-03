@@ -186,10 +186,10 @@ class ProgressBar(wx.Panel):
         self.blocks = blocks
         
     def setNormalPercentage(self, perc):
-        maxBlocks = self.GetClientRect().width
+        maxBlocks = max(self.GetClientRect().width, 100)
         
         sblocks = [2] * int(perc * maxBlocks)
-        sblocks += [0] * (maxBlocks-len(self.blocks))
+        sblocks += [0] * (maxBlocks-len(sblocks))
         self.set_blocks(sblocks)
 
     def reset(self,colour=0):

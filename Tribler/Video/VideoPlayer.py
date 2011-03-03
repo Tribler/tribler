@@ -984,6 +984,8 @@ def parse_playtime_to_secs(hhmmss):
 def return_feasible_playback_modes(syspath):
     l = []
     try:
+        raise Exception('spam', 'eggs')
+
         import vlc
 
         if USE_VLC_RAW_INTERFACE:
@@ -994,6 +996,7 @@ def return_feasible_playback_modes(syspath):
             # pylint: enable-msg=E1101
         vlcpath = os.path.join(syspath,"vlc")
         if sys.platform == 'win32':
+            
             if os.path.isdir(vlcpath):
                 l.append(PLAYBACKMODE_INTERNAL)
         else:

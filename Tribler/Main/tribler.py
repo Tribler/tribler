@@ -108,7 +108,6 @@ class ABCApp(wx.App):
         self.state_dir = None
         self.error = None
         self.last_update = 0
-        self.update_freq = 0    # how often to update #peers/#torrents
         self.ready = False
 
         self.guiserver = GUITaskQueue.getInstance()
@@ -116,7 +115,6 @@ class ABCApp(wx.App):
         self.decodeprogress = 0
 
         self.old_reputation = 0
-        self.lastchannelrefresh = -1.0
         
         # ProxyService 90s Test_
         self.proxytest_reported = False
@@ -447,6 +445,7 @@ class ABCApp(wx.App):
         self.seedingstats_interval = self.seedingstats_settings[0][1]
         
         # Only allow updates to come in after we defined ratelimiter
+        self.prevActiveDownloads = []
         s.set_download_states_callback(self.sesscb_states_callback)
         
         # Load friends from friends.txt
@@ -513,7 +512,7 @@ class ABCApp(wx.App):
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Print stats on Console
-            if True:
+            if DEBUG:
                 if self.rateprintcount % 5 == 0:
                     for ds in dslist:
                         safename = `ds.get_download().get_def().get_name()`
@@ -579,7 +578,20 @@ class ABCApp(wx.App):
                 #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
                 playds.vod_status_msg = text
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+            
+            # Check to see if a download has finished
+            newActiveDownloads = []
+            for ds in dslist:
+                state = ds.get_status() 
+                safename = ds.get_download().get_def().get_name()
                 
+                if state == DLSTATUS_DOWNLOADING:
+                    newActiveDownloads.append(safename)
+                elif state == DLSTATUS_SEEDING:
+                    if safename in self.prevActiveDownloads:
+                        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+                        
+            self.prevActiveDownloads = newActiveDownloads
             
             # Pass DownloadStates to libaryView
             try:

@@ -19,6 +19,7 @@ from list_body import *
 from list_details import *
 from __init__ import *
 
+DEBUG = False
 
 class RemoteSearchManager:
     def __init__(self, list):
@@ -76,36 +77,67 @@ class ChannelSearchManager:
         self.list = list
         self.category = ''
         
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
-
-    def refresh(self, search_results = None):
-        data = []
-        if search_results == None:
-            if self.category == 'New':
-                [total_items,data] = self.channelsearch_manager.getNewChannels()
-                self.list.SetTitle('New Channels', total_items)
-            elif self.category == 'Popular':
-                [total_items,data] = self.channelsearch_manager.getPopularChannels()
-                self.list.SetTitle('Popular Channels', total_items)
-            elif self.category == 'Updated':
-                [total_items,data] = self.channelsearch_manager.getUpdatedChannels()
-                self.list.SetTitle('Updated Channels', total_items)
-            elif self.category == 'All':
-                [total_items,data] = self.channelsearch_manager.getAllChannels()
-                self.list.SetTitle('All Channels', total_items)
-            elif self.category == 'Favorites':
-                [total_items,data] = self.channelsearch_manager.getSubscriptions()
-                self.list.SetTitle('Your Favorites', total_items)
+        guiutility = GUIUtility.getInstance()
+        self.channelsearch_manager = guiutility.channelsearch_manager
+        self.guiserver = guiutility.frame.guiserver
+        self.dirtyset = set()
+    
+    def refreshDirty(self):
+        if 'COMPLETE_REFRESH' in self.dirtyset:
+            self.refresh()
         else:
-            self.list.select_popular = False
-            total_items = len(search_results)
-            data = search_results
+            permids = list(self.dirtyset)
+            channels = self.channelsearch_manager.getChannels(permids)
+            for channel in channels:
+                self.list.RefreshData(channel[0], channel)
+        self.dirtyset.clear()
+        
+    def refresh(self, search_results = None):
+        if DEBUG:
+            print >> sys.stderr, "ChannelManager complete refresh"
+        
+        if search_results == None:
+            title = ''
+            if self.category == 'New':
+                title = 'New Channels'
+            elif self.category == 'Popular':
+                title = 'Popular Channels'
+            elif self.category == 'Updated':
+                title = 'Updated Channels'
+            elif self.category == 'All':
+                title  = 'All Channels'
+            elif self.category == 'Favorites':
+                title = 'Your Favorites'
+            self.list.SetTitle(title, None)
             
+            def db_callback():
+                data = []
+                total_items = 0
+                if self.category == 'New':
+                    [total_items,data] = self.channelsearch_manager.getNewChannels()
+                elif self.category == 'Popular':
+                    [total_items,data] = self.channelsearch_manager.getPopularChannels()
+                elif self.category == 'Updated':
+                    [total_items,data] = self.channelsearch_manager.getUpdatedChannels()
+                elif self.category == 'All':
+                    [total_items,data] = self.channelsearch_manager.getAllChannels()
+                elif self.category == 'Favorites':
+                    [total_items,data] = self.channelsearch_manager.getSubscriptions()
+                wx.CallAfter(self._on_data, data, title, total_items)
+            
+            self.list.ShowLoading()
+            self.guiserver.add_task(db_callback, id = "ChannelSearchManager_refresh")
+        else:
+            total_items = len(search_results)
             keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
-            self.list.SetTitle('Search results for "%s"'%keywords, total_items)
-        
+            self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
+    
+    def _on_data(self, data, title, total_items):
         self.list.SetData(data)
-        
+        self.list.SetTitle(title, total_items)
+        if DEBUG:
+            print >> sys.stderr, "ChannelManager complete refresh done"
+      
     def SetCategory(self, category):
         if self.list.ready: 
             if category != self.category:
@@ -119,17 +151,22 @@ class ChannelSearchManager:
         
     def channelUpdated(self, permid):
         if self.list.ready: 
-            #only update when shown
-            if self.list.IsShownOnScreen():
-                if self.list.InList(permid):
+            if self.list.InList(permid): #one item updated
+                
+                if self.list.ShouldGuiUpdate(): #only update if shown
                     data = self.channelsearch_manager.getChannel(permid)
                     if data:
                         self.list.RefreshData(permid, data)
-                elif self.category in ['All', 'New']:
-                    #Show new channel, but only if we are not showing search results
-                    self.refresh()
-            elif self.category != 'searchresults':
-                self.list.dirty = True
+                else:    
+                    self.dirtyset.add(permid)
+                    self.list.dirty = True
+                    
+            elif self.category in ['All', 'New']:  #show new channel, but only if we are looking at all or new channels
+                    if self.list.ShouldGuiUpdate():
+                        self.refresh()
+                    else:
+                        self.dirtyset.add('COMPLETE_REFRESH')
+                        self.list.dirty = True
 
 class ChannelManager():
     _req_columns = ['infohash', 'name', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
@@ -138,8 +175,22 @@ class ChannelManager():
         self.list = list
         self.list.publisher_id = 0
         self.guiutility = GUIUtility.getInstance()
+        self.guiserver = self.guiutility.frame.guiserver
+        
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
+        
+        self.dirtyset = set()
+    
+    def refreshDirty(self):
+        if 'COMPLETE_REFRESH' in self.dirtyset:
+            self._refresh_list()
+        else:
+            for infohash in self.dirtyset:
+                data = self.channelsearch_manager.getTorrentFromPublisherId(self.list.publisher_id, infohash)
+                self.list.RefreshData(infohash, data)
+                
+        self.dirtyset.clear()
         
     def refresh(self, permid = None):
         if permid:
@@ -152,13 +203,26 @@ class ChannelManager():
         self._refresh_list()
         
     def _refresh_list(self):
-        [total_items, nrfiltered, torrentList]  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id, ChannelManager._req_columns)
+        if DEBUG:
+            print >> sys.stderr, "SelChannelManager complete refresh"
+        
+        def db_callback():
+            total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id, ChannelManager._req_columns)
+            wx.CallAfter(self._on_data, total_items, nrfiltered, torrentList)
+        
+        self.list.ShowLoading()
+        self.guiserver.add_task(db_callback, id = "ChannelManager_refresh_list")
+        
+    def _on_data(self, total_items, nrfiltered, torrentList):
         torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
         
         if self.list.SetData(torrentList) < total_items: #some items are filtered by quickfilter (do not update total_items)
             self.list.SetNrResults(None, nrfiltered, None, None)
         else:
             self.list.SetNrResults(total_items, nrfiltered, None, None)
+        
+        if DEBUG:    
+            print >> sys.stderr, "SelChannelManager complete refresh done"
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -169,24 +233,41 @@ class ChannelManager():
 
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
-            data = self.channelsearch_manager.getTorrentFromPublisherId(self.list.publisher_id, bin2str(infohash))
-            self.list.RefreshData(infohash, data)
+            if self.list.ShouldGuiUpdate():
+                data = self.channelsearch_manager.getTorrentFromPublisherId(self.list.publisher_id, infohash)
+                self.list.RefreshData(infohash, data)
+            else:
+                self.dirtyset.add(infohash)
+                self.list.dirty = True
             
     def channelUpdated(self, permid):
         if self.list.publisher_id == permid:
-            self._refresh_list()
+            if self.list.ShouldGuiUpdate():
+                self._refresh_list()
+            else:
+                self.dirtyset.add('COMPLETE_REFRESH')
+                self.list.dirty = True
 
 class MyChannelManager():
     def __init__(self, list):
         self.list = list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         self.my_permid = self.channelsearch_manager.channelcast_db.my_permid
-        
+    
+    def refreshDirty(self):
+        self.refresh()
+    
     def refresh(self):
-        nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(bin2str(self.my_permid))
+        nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(self.my_permid)
         [total_items, nr_filtered, torrentList] = self.channelsearch_manager.getTorrentsFromMyChannel()
         self.list.SetData(torrentList, nr_favorite)
-        
+    
+    def OnNewTorrent(self):
+        if self.list.ShouldGuiUpdate():
+            self.refresh()
+        else:
+            self.list.dirty = True
+    
     def RemoveItems(self, infohashes):
         for infohash in infohashes:
             self.channelsearch_manager.channelcast_db.deleteOwnTorrent(infohash)
@@ -393,6 +474,14 @@ class List(wx.Panel):
         assert self.ready, "List not ready"
         if self.ready:
             self.list.Select(key, raise_event)
+            
+    def ShouldGuiUpdate(self):
+        if not self.IsShownOnScreen():
+            return False
+        return self.guiutility.frame.GUIupdate
+
+    def ShowLoading(self):
+        self.list.ShowLoading()
         
     def Show(self):
         wx.Panel.Show(self)
@@ -401,7 +490,7 @@ class List(wx.Panel):
 
             manager = self.GetManager()
             if manager:
-                manager.refresh()
+                manager.refreshDirty()
     
 class SearchList(List):
     def __init__(self):
@@ -707,7 +796,7 @@ class LibaryList(List):
             self.SetData([])
     
     def RefreshItems(self, dslist):
-        if self.ready:
+        if self.ready and self.ShouldGuiUpdate():
             totals = {2:0, 3:0, 4:0}
             
             nr_seeding = 0
@@ -815,7 +904,6 @@ class ChannelList(List):
         self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mychannel.png"), wx.BITMAP_TYPE_ANY)
         self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         
-        self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
     
@@ -885,23 +973,30 @@ class ChannelList(List):
         
     def SetTitle(self, title, nr):
         self.header.SetTitle(title)
-        if title == 'Popular Channels':
-            self.header.SetSubTitle("Showing the %d most popular channels" % nr)
-        elif title == 'Your Favorites':
-            self.header.SetSubTitle("You marked %d channels as a favorite" % nr)
-        elif title == 'Updated Channels':
+        
+        if nr:
+            if title == 'Popular Channels':
+                self.header.SetSubTitle("Showing the %d most popular channels" % nr)
+            elif title == 'Your Favorites':
+                self.header.SetSubTitle("You marked %d channels as a favorite" % nr)
+            elif title == 'Updated Channels':
+                self.header.SetSubTitle("Showing the %d latest updated channels" % nr)
+            elif title == 'New Channels':
+                self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
+            else:
+                if nr == 1:
+                    self.header.SetSubTitle("Discovered %d channel" % nr)
+                else:
+                    self.header.SetSubTitle("Discovered %d channels" % nr)
+        else:
+            self.header.SetSubTitle('')
+        
+        if title == 'Updated Channels':
             self.header.ShowSortedBy(1)
-            self.header.SetSubTitle("Showing the %d latest updated channels" % nr)
         elif title == 'New Channels':
             self.header.ShowSortedBy(1)
-            self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
-        else:
-            if title.startswith('Search results'):
-                self.header.ShowSortedBy(3)
-            if nr == 1:
-                self.header.SetSubTitle("Discovered %d channel" % nr)
-            else:
-                self.header.SetSubTitle("Discovered %d channels" % nr)
+        elif title.startswith('Search results'):
+            self.header.ShowSortedBy(3)
         
 class SelectedChannelList(SearchList):
     def __init__(self):
@@ -976,6 +1071,10 @@ class SelectedChannelList(SearchList):
         panel = item.GetExpandedPanel()
         if panel:
             panel.UpdateStatus()
+    
+    def Reset(self):
+        SearchList.Reset(self)
+        self.publisher_id = 0
     
     def OnExpand(self, item):
         panel = SearchList.OnExpand(self, item)

@@ -894,6 +894,9 @@ class ChannelSearchGridManager:
     def getChannel(self, publisher_id):
         return self.channelcast_db.getChannel(publisher_id)
     
+    def getChannels(self, publisher_ids):
+        return self.channelcast_db.getChannels(publisher_ids)
+    
     def spam(self, publisher_id):
         self.votecastdb.spam(publisher_id)
         self.channelcast_db.deleteTorrentsFromPublisherId(publisher_id)
