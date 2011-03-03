@@ -43,10 +43,10 @@ class Script(Singleton):
             for name, (include_with_all, script, args) in self._scripts.iteritems():
                 if include_with_all:
                     dprint(name)
-                    script(self, name, self._rawserver, **args)
+                    script(self, name, **args)
 
         elif name in self._scripts:
-            self._scripts[name][1](self, name, self._rawserver, **self._scripts[name][2])
+            self._scripts[name][1](self, name, **self._scripts[name][2])
 
         else:
             for available in sorted(self._scripts):
@@ -86,10 +86,9 @@ class Script(Singleton):
             self._rawserver.shutdown()
 
 class ScriptBase(object):
-    def __init__(self, script, name, rawserver, **kargs):
+    def __init__(self, script, name, **kargs):
         self._script = script
         self._name = name
-        # self._rawserver = rawserver
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
         self.caller(self.run)
@@ -101,6 +100,108 @@ class ScriptBase(object):
 
     def run():
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
+
+class DispersyTimelineScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.succeed_check)
+        self.caller(self.fail_check)
+        self.caller(self.loading_community)
+
+    def succeed_check(self):
+        """
+        Create a community and perform check if a hard-kill message is accepted.
+
+        Whenever a community is created the owner message is authorized to use the
+        dispersy-destroy-community message.  Hence, this message should be accepted by the
+        timeline.check().
+        """
+        # create a community.
+        community = DebugCommunity.create_community(self._my_member)
+        # the master member must have given my_member all permissions for dispersy-destroy-community
+        yield 0.1
+
+        dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
+        dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
+
+        # check if we are still allowed to send the message
+        message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
+        assert message.authentication.member == self._my_member
+        try:
+            result = message.check_callback(("", -1), message)
+        except:
+            dprint(exception=1)
+            assert False
+        assert result is None, "check_... methods should return None, failure is indicated by throwing an exception"
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def fail_check(self):
+        """
+        Create a community and perform check if a hard-kill message is NOT accepted.
+
+        Whenever a community is created the owner message is authorized to use the
+        dispersy-destroy-community message.  We will first revoke the authorization (to use this
+        message) and ensure that the message is no longer accepted by the timeline.check().
+        """
+        # create a community.
+        community = DebugCommunity.create_community(self._my_member)
+        # the master member must have given my_member all permissions for dispersy-destroy-community
+        yield 0.1
+
+        dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
+        dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
+
+        # remove the right to hard-kill
+        community.create_dispersy_revoke([(community.my_member, community.get_meta_message(u"dispersy-destroy-community"), u"permit")], sign_with_master=True, store_and_forward=False)
+
+        # check if we are still allowed to send the message
+        message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
+        assert message.authentication.member == self._my_member
+        try:
+            result = message.check_callback(("", -1), message)
+        except:
+            dprint(exception=1)
+            pass
+        else:
+            assert False
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
+
+    def loading_community(self):
+        """
+        When a community is loaded it must load all available dispersy-authorize and dispersy-revoke
+        message from the database.
+        """
+        # load_communities will load all communities with the same classification
+        class LoadingCommunityTestCommunity(DebugCommunity):
+            pass
+
+        # create a community.  the master member must have given my_member all permissions for
+        # dispersy-destroy-community
+        community = LoadingCommunityTestCommunity.create_community(self._my_member)
+        master_key = community.master_member.public_key
+
+        dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
+        dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
+
+        self._dispersy.remove_community(community)
+        yield 0.1
+
+        # load the same community and see if the same permissions are loaded
+        communities = LoadingCommunityTestCommunity.load_communities()
+        assert len(communities) == 1
+
+        # check if we are still allowed to send the message
+        message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
+        assert community._timeline.check(message)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
 
 class DispersyRoutingScript(ScriptBase):
     def run(self):

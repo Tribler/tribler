@@ -33,13 +33,13 @@ class DiscoveryCommunity(Community, Singleton):
         # discovery storage
         self._database = DiscoveryDatabase.get_instance()
 
-        # available conversions
-        self.add_conversion(DiscoveryBinaryConversion02(self), True)
-
     def initiate_meta_messages(self):
         return [Message(self, u"user-metadata", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), UserMetadataPayload(), self.check_user_metadata, self.on_user_metadata),
                 # todo: create a MasterMemberAuthentication, or parameter to MemberAuthentication
                 Message(self, u"community-metadata", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), CommunityMetadataPayload(), self.check_community_metadata, self.on_community_metadata)]
+
+    def initiate_conversions(self):
+        return [DiscoveryBinaryConversion02(self)]
 
     def create_user_metadata(self, address, alias, comment, update_locally=True, store_and_forward=True):
         meta = self.get_meta_message(u"user-metadata")

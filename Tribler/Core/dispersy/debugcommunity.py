@@ -163,12 +163,6 @@ class DebugCommunity(Community):
     """
     Community to debug Dispersy related messages and policies.
     """
-    def __init__(self, cid):
-        super(DebugCommunity, self).__init__(cid)
-
-        # available conversions
-        self.add_conversion(DebugCommunityConversion(self), True)
-
     @property
     def dispersy_routing_request_initial_delay(self):
         # disable routing
@@ -178,6 +172,9 @@ class DebugCommunity(Community):
     def dispersy_sync_initial_delay(self):
         # disable sync
         return 0.0
+
+    def initiate_conversions(self):
+        return [DebugCommunityConversion(self)]
 
     def initiate_meta_messages(self):
         return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),

@@ -26,11 +26,11 @@ class BarterCommunity(Community):
         # storage
         self._database = BarterDatabase.get_instance()
 
-        # available conversions
-        self.add_conversion(BarterCommunityConversion(self), True)
-
     def initiate_meta_messages(self):
         return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.on_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
+
+    def initiate_conversions(self):
+        return [BarterCommunityConversion(self)]
 
     def create_barter_record(self, second_member, first_upload, second_upload, store_and_forward=True):
         """

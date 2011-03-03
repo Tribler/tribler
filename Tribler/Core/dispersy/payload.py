@@ -34,6 +34,8 @@ class AuthorizePayload(Payload):
             u'revoke'.
             """
             if __debug__:
+                from authentication import MemberAuthentication
+                from resolution import LinearResolution
                 from member import Member
                 from message import Message
                 for triplet in permission_triplets:
@@ -41,6 +43,8 @@ class AuthorizePayload(Payload):
                     assert len(triplet) == 3
                     assert isinstance(triplet[0], Member)
                     assert isinstance(triplet[1], Message)
+                    assert isinstance(triplet[1].resolution, LinearResolution)
+                    assert isinstance(triplet[1].authentication, MemberAuthentication)
                     assert isinstance(triplet[2], unicode)
                     assert triplet[2] in (u'permit', u'authorize', u'revoke')
             super(AuthorizePayload.Implementation, self).__init__(meta)
@@ -65,6 +69,8 @@ class RevokePayload(Payload):
             u'revoke'.
             """
             if __debug__:
+                from authentication import MemberAuthentication
+                from resolution import LinearResolution
                 from member import Member
                 from message import Message
                 for triplet in permission_triplets:
@@ -72,9 +78,11 @@ class RevokePayload(Payload):
                     assert len(triplet) == 3
                     assert isinstance(triplet[0], Member)
                     assert isinstance(triplet[1], Message)
+                    assert isinstance(triplet[1].resolution, LinearResolution)
+                    assert isinstance(triplet[1].authentication, MemberAuthentication)
                     assert isinstance(triplet[2], unicode)
                     assert triplet[2] in (u'permit', u'authorize', u'revoke')
-            super(AuthorizePayload.Implementation, self).__init__(meta)
+            super(RevokePayload.Implementation, self).__init__(meta)
             self._permission_triplets = permission_triplets
 
         @property

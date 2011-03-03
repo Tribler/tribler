@@ -10,6 +10,7 @@ from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistr
 from encoding import encode, decode
 from member import PrivateMember, MasterMember
 from message import DelayPacket, DelayPacketByMissingMember, DropPacket, Message
+from resolution import LinearResolution
 
 if __debug__:
     from dprint import dprint
@@ -391,6 +392,19 @@ class BinaryConversion(Conversion):
                     raise DropPacket("Unknown message id")
                 message = self._decode_message_map[message_id][0]
 
+                if not isinstance(message.resolution, LinearResolution):
+                    # it makes no sence to authorize a message that does not use the
+                    # LinearResolution policy.  currently we have two policies, PublicResolution
+                    # (where all messages are allowed regardless of authorization) and
+                    # LinearResolution.
+                    raise DropPacket("Invalid resolution policy")
+
+                if not isinstance(message.authentication, MemberAuthentication):
+                    # it makes no sence to authorize a message that does not use the
+                    # MemberAuthentication policy because without this policy it is impossible to
+                    # verify WHO created the message.
+                    raise DropPacket("Invalid authentication policy")
+
                 permission_bits, = unpack_from("!B", data, offset)
                 offset += 1
 
@@ -472,6 +486,19 @@ class BinaryConversion(Conversion):
                 if not message_id in self._decode_message_map:
                     raise DropPacket("Unknown message id")
                 message = self._decode_message_map[message_id][0]
+
+                if not isinstance(message.resolution, LinearResolution):
+                    # it makes no sence to authorize a message that does not use the
+                    # LinearResolution policy.  currently we have two policies, PublicResolution
+                    # (where all messages are allowed regardless of authorization) and
+                    # LinearResolution.
+                    raise DropPacket("Invalid resolution policy")
+
+                if not isinstance(message.authentication, MemberAuthentication):
+                    # it makes no sence to authorize a message that does not use the
+                    # MemberAuthentication policy because without this policy it is impossible to
+                    # verify WHO created the message.
+                    raise DropPacket("Invalid authentication policy")
 
                 permission_bits, = unpack_from("!B", data, offset)
                 offset += 1

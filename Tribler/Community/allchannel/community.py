@@ -73,9 +73,6 @@ class AllChannelCommunity(Community):
         # self._torrent_request_queue = []
         # self._torrent_request_outstanding = False
 
-        # available conversions
-        self.add_conversion(AllChannelConversion(self), True)
-
     @property
     def dispersy_sync_interval(self):
         # because there is nothing to sync in this community, we will only 'sync' once per hour
@@ -88,6 +85,9 @@ class AllChannelCommunity(Community):
                 Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
                 Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
                 ]
+
+    def initiate_conversions(self):
+        return [AllChannelConversion(self)]
 
     def create_propagate_torrents(self, store_and_forward=True):
         """

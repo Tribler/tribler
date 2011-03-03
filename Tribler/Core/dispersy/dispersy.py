@@ -240,21 +240,22 @@ class Dispersy(Singleton):
         assert not community.cid in self._communities
         self._communities[community.cid] = community
 
-        # update the community bloom filter
-        with self._database as execute:
-            for global_time, packet in execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time", (community.database_id,)):
-                community.get_bloom_filter(global_time).add(str(packet))
-
-            for global_time, packet in execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time", (community.database_id,)):
-                community.get_bloom_filter(global_time).add(str(packet))
-
         # periodically send dispery-sync messages
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
-            self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_initial_delay)
+            self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_initial_delay, "id:sync-" + community.cid)
 
         # periodically send dispery-routing-request messages
         if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
-            self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay)
+            self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay, "id:routing-" + community.cid)
+
+    def remove_community(self, community):
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert community.cid in self._communities
+        self._rawserver.kill_tasks("id:sync-" + community.cid)
+        self._rawserver.kill_tasks("id:routing-" + community.cid)
+        del self._communities[community.cid]
 
     def get_community(self, cid):
         """
@@ -1253,8 +1254,8 @@ class Dispersy(Singleton):
         return message
 
     def check_identity_request(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+        # we can not timeline.check this message because it uses the NoAuthentication policy
+        pass
 
     def on_identity_request(self, address, message):
         """
@@ -1722,8 +1723,34 @@ class Dispersy(Singleton):
             raise DropMessage("We choose not to add our signature")
 
     def check_signature_request(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+        # we can not timeline.check this message because it uses the NoAuthentication policy
+
+        # submsg contains the message that should receive multiple signatures
+        submsg = message.payload.message
+
+        has_private_member = False
+        for is_signed, member in submsg.authentication.signed_members:
+            # Security: do NOT allow to accidentally sign with MasterMember.
+            if isinstance(member, MasterMember):
+                raise DropMessage("You may never ask for a MasterMember signature")
+
+            # is this signature missing, and could we provide it
+            if not is_signed and isinstance(member, PrivateMember):
+                has_private_member = True
+                break
+
+        # we must be one of the members that needs to sign
+        if not has_private_member:
+            raise DropMessage("Nothing to sign")
+
+        # we can not timeline.check the submessage because it uses the MultiMemberAuthentication policy
+        # # the message that we are signing must be valid according to our timeline
+        # # if not message.community._timeline.check(submsg):
+        # #     raise DropMessage("Does not fit timeline")
+
+        # the community must allow this signature
+        if not submsg.authentication.allow_signature_func(submsg):
+            raise DropMessage("We choose not to add our signature")
 
     def on_signature_request(self, address, message):
         """
@@ -1765,29 +1792,6 @@ class Dispersy(Singleton):
         # submsg contains the message that should receive multiple signatures
         submsg = message.payload.message
 
-        # has_private_member = False
-        # for is_signed, member in submsg.authentication.signed_members:
-        #     # Security: do NOT allow to accidentally sign with MasterMember.
-        #     if isinstance(member, MasterMember):
-        #         raise DropMessage("You may never ask for a MasterMember signature")
-
-        #     # is this signature missing, and could we provide it
-        #     if not is_signed and isinstance(member, PrivateMember):
-        #         has_private_member = True
-        #         break
-
-        # # we must be one of the members that needs to sign
-        # if not has_private_member:
-        #     raise DropMessage("Nothing to sign")
-
-        # # the message must be valid
-        # if not submsg.community._timeline.check(submsg):
-        #     raise DropMessage("Doesn't fit timeline")
-
-        # # the community must allow this signature
-        # if not submsg.authentication.allow_signature_func(submsg):
-        #     raise DropMessage("We choose not to add our signature")
-
         # create signature(s) and reply
         identifier = sha1(message.packet).digest()
         first_signature_offset = len(submsg.packet) - sum([member.signature_length for member in submsg.authentication.members])
@@ -1804,8 +1808,8 @@ class Dispersy(Singleton):
                 self.store_and_forward([message])
 
     def check_signature_response(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+        # we can not timeline.check this message because it uses the NoAuthentication policy
+        pass
 
     def on_signature_response(self, address, message):
         pass
@@ -1870,24 +1874,6 @@ class Dispersy(Singleton):
 
                     # assuming this signature only matches one member, we can break
                     break
-
-    # def on_ignore_message(self, address, message):
-    #     """
-    #     Ignores the received message.
-
-    #     This message handler is used when the incoming message can be ignored.  This can happen, for
-    #     instance, when the message is already handled using a trigger set using self.await_message.
-
-    #     @param address: The sender address.
-    #     @type address: (string, int)
-
-    #     @param message: A received message.
-    #     @type message: Message.Implementation
-    #     """
-    #     if __debug__:
-    #         i = len([trigger for trigger in self._triggers if trigger._match and trigger._match(message.footprint)])
-    #         j = len(self._triggers)
-    #         dprint("Ignored ", message.name, " (matches ", i, "/", j, " triggers)")
 
     def check_missing_sequence(self, address, message):
         if not message.community._timeline.check(message):
@@ -2095,7 +2081,7 @@ class Dispersy(Singleton):
         >>> from Payload import Permit
         >>> bob = Member.get_instance(bob_public_key)
         >>> msg = self.get_meta_message(u"some-message")
-        >>> self.create_authorize(community, [(bob, msg, Permit)])
+        >>> self.create_authorize(community, [(bob, msg, u'permit')])
 
         @param community: The community where the permissions must be applied.
         @type sign_with_master: Community
@@ -2188,7 +2174,7 @@ class Dispersy(Singleton):
         >>> from Payload import Permit
         >>> bob = Member.get_instance(bob_public_key)
         >>> msg = self.get_meta_message(u"some-message")
-        >>> self.create_revoke(community, [(bob, msg, Permit)])
+        >>> self.create_revoke(community, [(bob, msg, u'permit')])
 
         @param community: The community where the permissions must be applied.
         @type sign_with_master: Community
@@ -2265,7 +2251,7 @@ class Dispersy(Singleton):
         """
         message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
-    def create_destroy_community(self, community, degree, update_locally=True, store_and_forward=True):
+    def create_destroy_community(self, community, degree, sign_with_master=False, update_locally=True, store_and_forward=True):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
@@ -2273,7 +2259,7 @@ class Dispersy(Singleton):
         assert degree in (u"soft-kill", u"hard-kill")
 
         meta = community.get_meta_message(u"dispersy-destroy-community")
-        message = meta.implement(meta.authentication.implement(community.my_member),
+        message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
                                  meta.distribution.implement(community._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(degree))
@@ -2367,7 +2353,8 @@ class Dispersy(Singleton):
                     for time_low, time_high, bloom_filter
                     in community.dispersy_sync_bloom_filters]
         self.store_and_forward(messages)
-        self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval)
+        if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
+            self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval, "id:sync-" + community.cid)
 
     def _periodically_create_routing_request(self, community):
         minimal_age, maximal_age = community.dispersy_routing_age_range
@@ -2391,7 +2378,8 @@ class Dispersy(Singleton):
         if requests:
             self.store_and_forward(requests)
 
-        self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval)
+        if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
+            self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval, "id:routing-" + community.cid)
 
     def _periodically_stats(self):
         """

@@ -29,9 +29,6 @@ class ChannelCommunity(Community):
         # tribler remote torrent handler
         self._remote_torrent_handler = RemoteTorrentHandler.getInstance()
 
-        # available conversions
-        self.add_conversion(ChannelConversion(self), True)
-
     def initiate_meta_messages(self):
         return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ChannelPayload(), self.check_channel, self.on_channel),
                 Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TorrentPayload(), self.check_torrent, self.on_torrent),
@@ -39,6 +36,9 @@ class ChannelCommunity(Community):
                 Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), CommentPayload(), self.check_comment, self.on_comment),
                 Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ModificationPayload(), self.check_modification, self.on_modification),
                 ]
+
+    def initiate_conversions(self):
+        return [ChannelConversion(self)]
 
     def create_channel(self, name, description, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
