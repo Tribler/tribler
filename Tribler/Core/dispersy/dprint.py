@@ -604,52 +604,52 @@ def dprint(*args, **kargs):
     Usage:
     from Tribler.Debug.Dprint import dprint
 
-    (Display a message "foo bar")                                   
-    | if __debug__: dprint("foo", "bar")                            
-    filename:1 <module> foo bar                                     
-    ---                                                             
-                                                                    
-    (Display a message in a function)                               
-    | def my_function():                                            
-    |     if __debug__: dprint("foo")                               
-    |     pass                                                      
-    | my_function()                                                 
-    filename:2 my_function foo                                      
-    ---                                                             
-                                                                    
-    (Display a value types)                                         
-    | if __debug__: dprint("foo", 123, 1.5, meta=1)                 
-    filename:1 <module> (StringType, len 3)    foo                  
-    filename:1 <module> (IntType)              123                  
-    filename:1 <module> (FloatType)            1.5                  
-    ---                                                             
-                                                                    
-    (Display a message with a callstack)                            
-    | def my_function():                                            
-    |     if __debug__: dprint("foo", stack=1)                      
-    |     pass                                                      
-    | my_function()                                                 
-    filename:2 my_function foo                                      
-    filename:2 my_function ---                                      
-    filename:2 my_function Stacktrace on thread: "MainThread"       
-    filename:2 my_function                 Dprint.py:470 <module>   
-    filename:2 my_function               filename.py:4   <module>   
-    filename:2 my_function               filename.py:2   my_function
-    ---                                                             
+    (Display a message "foo bar")
+    | if __debug__: dprint("foo", "bar")
+    filename:1 <module> foo bar
+    ---
 
-    (Display an exception)                                                  
-    | try:                                                                  
-    |     raise RuntimeError("Wrong")                                       
-    | except:                                                               
-    |     if __debug__: dprint("An exception occured", exception=1)         
-    |     pass                                                              
-    filename:4 <module> An exception occured                                
-    filename:4 <module> ---                                                 
-    filename:4 <module> --- Exception: <type 'exceptions.RuntimeError'> --- 
-    filename:4 <module> Wrong                                               
-    filename:4 <module> Traceback where the exception originated:           
-    filename:4 <module>               filename.py:2                         
-    ---                                                                     
+    (Display a message in a function)
+    | def my_function():
+    |     if __debug__: dprint("foo")
+    |     pass
+    | my_function()
+    filename:2 my_function foo
+    ---
+
+    (Display a value types)
+    | if __debug__: dprint("foo", 123, 1.5, meta=1)
+    filename:1 <module> (StringType, len 3)    foo
+    filename:1 <module> (IntType)              123
+    filename:1 <module> (FloatType)            1.5
+    ---
+
+    (Display a message with a callstack)
+    | def my_function():
+    |     if __debug__: dprint("foo", stack=1)
+    |     pass
+    | my_function()
+    filename:2 my_function foo
+    filename:2 my_function ---
+    filename:2 my_function Stacktrace on thread: "MainThread"
+    filename:2 my_function                 Dprint.py:470 <module>
+    filename:2 my_function               filename.py:4   <module>
+    filename:2 my_function               filename.py:2   my_function
+    ---
+
+    (Display an exception)
+    | try:
+    |     raise RuntimeError("Wrong")
+    | except:
+    |     if __debug__: dprint("An exception occured", exception=1)
+    |     pass
+    filename:4 <module> An exception occured
+    filename:4 <module> ---
+    filename:4 <module> --- Exception: <type 'exceptions.RuntimeError'> ---
+    filename:4 <module> Wrong
+    filename:4 <module> Traceback where the exception originated:
+    filename:4 <module>               filename.py:2
+    ---
 
     (Display a cpu-intensive message)
     | if __debug__:
