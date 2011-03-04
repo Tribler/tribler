@@ -8,6 +8,7 @@ from usermetadata import UserMetadata
 
 from Tribler.Core.dispersy.authentication import MemberAuthentication
 from Tribler.Core.dispersy.community import Community
+from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.destination import CommunityDestination
 from Tribler.Core.dispersy.distribution import DirectDistribution, LastSyncDistribution, FullSyncDistribution
 from Tribler.Core.dispersy.message import Message
@@ -39,7 +40,7 @@ class DiscoveryCommunity(Community, Singleton):
                 Message(self, u"community-metadata", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), CommunityMetadataPayload(), self.check_community_metadata, self.on_community_metadata)]
 
     def initiate_conversions(self):
-        return [DiscoveryBinaryConversion02(self)]
+        return [DefaultConversion(self), DiscoveryBinaryConversion02(self)]
 
     def create_user_metadata(self, address, alias, comment, update_locally=True, store_and_forward=True):
         meta = self.get_meta_message(u"user-metadata")

@@ -249,10 +249,12 @@ class Dispersy(Singleton):
         self._communities[community.cid] = community
 
         # periodically send dispery-sync messages
+        if __debug__: dprint("start in ", community.dispersy_sync_initial_delay, " every ", community.dispersy_sync_interval, " seconds call _periodically_create_sync")
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_initial_delay, "id:sync-" + community.cid)
 
         # periodically send dispery-routing-request messages
+        if __debug__: dprint("start in ", community.dispersy_routing_request_initial_delay, " every ", community.dispersy_routing_request_interval, " seconds call _periodically_create_routing_request")
         if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
             self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay, "id:routing-" + community.cid)
 
@@ -2363,6 +2365,7 @@ class Dispersy(Singleton):
                     in community.dispersy_sync_bloom_filters]
         self.store_and_forward(messages)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
+            # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_routing_request_interval, " seconds (interval)")
             self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval, "id:sync-" + community.cid)
 
     def _periodically_create_routing_request(self, community):
@@ -2388,6 +2391,7 @@ class Dispersy(Singleton):
             self.store_and_forward(requests)
 
         if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
+            # if __debug__: dprint("start _periodically_create_routing_request in ", community.dispersy_routing_request_interval, " seconds (interval)")
             self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval, "id:routing-" + community.cid)
 
     def _periodically_cleanup_database(self):

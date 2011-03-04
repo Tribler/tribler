@@ -6,6 +6,7 @@ from database import BarterDatabase
 from payload import BarterRecordPayload
 
 from Tribler.Core.dispersy.community import Community
+from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.message import Message, DropMessage
 from Tribler.Core.dispersy.authentication import MultiMemberAuthentication
 from Tribler.Core.dispersy.resolution import PublicResolution
@@ -33,7 +34,7 @@ class BarterCommunity(Community):
         return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.on_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
 
     def initiate_conversions(self):
-        return [BarterCommunityConversion(self)]
+        return [DefaultConversion(self), BarterCommunityConversion(self)]
 
     def create_barter_record(self, second_member, first_upload, second_upload, store_and_forward=True):
         """

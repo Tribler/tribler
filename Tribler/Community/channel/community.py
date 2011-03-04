@@ -9,6 +9,7 @@ from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
+from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.message import Message, DropMessage
 from Tribler.Core.dispersy.authentication import MemberAuthentication
 from Tribler.Core.dispersy.resolution import LinearResolution
@@ -44,7 +45,7 @@ class ChannelCommunity(Community):
                 ]
 
     def initiate_conversions(self):
-        return [ChannelConversion(self)]
+        return [DefaultConversion(self), ChannelConversion(self)]
 
     def create_channel(self, name, description, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
