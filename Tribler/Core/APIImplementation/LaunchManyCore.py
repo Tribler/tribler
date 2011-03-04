@@ -331,7 +331,10 @@ class TriblerLaunchMany(Thread):
                         self.rawserver.add_task(self.process_sendqueue, 0.1)
 
         config = self.session.sessconfig
-        self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, os.path.join(config['state_dir'], u"sqlite"))
+        sqlite_db_path = os.path.join(config['state_dir'], u"sqlite")
+        if not os.path.isdir(sqlite_db_path):
+            os.makedirs(sqlite_db_path)
+        self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, sqlite_db_path)
         self.dispersy.socket = DispersySocket(self.dispersy_rawserver, self.dispersy, config['dispersy_port'])
 
         from Tribler.Core.Overlay.permid import read_keypair

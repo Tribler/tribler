@@ -102,6 +102,7 @@ def main():
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
     sscfg.set_internal_tracker(False)
+    sscfg.set_dispersy(False)
     
     s = Session(sscfg)
 

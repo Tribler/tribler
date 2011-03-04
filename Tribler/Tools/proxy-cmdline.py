@@ -172,6 +172,7 @@ def main():
     session_startup_config.set_overlay(True)
     session_startup_config.set_dialback(True)
     session_startup_config.set_internal_tracker(False)
+    session_startup_config.set_dispersy(True)
     # ProxyDevel - turn DHT off
     #session_startup_config.set_mainline_dht(False)
     # ProxyDevel - turn buddycast off
