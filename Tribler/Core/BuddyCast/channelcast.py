@@ -188,14 +188,14 @@ class ChannelCastCore:
             #add local channel_id to all messages    
             v['channel_id'] = permid_channel_id[v['publisher_id']]
             
-                #check if the record belongs to a channel who we have "reported spam" (negative vote)
-                if v['channel_id'] in all_spam_channels:
-                    # if so, ignore the incoming record
-                    continue
-                
-                # make everything into "string" format, if "binary"
-                hit = (v['channel_id'],v['publisher_name'],v['infohash'],'NAME UNKNOWN',v['time_stamp'])
-                listOfAdditions.append(hit)
+            #check if the record belongs to a channel who we have "reported spam" (negative vote)
+            if v['channel_id'] in all_spam_channels:
+                # if so, ignore the incoming record
+                continue
+            
+            # make everything into "string" format, if "binary"
+            hit = (v['channel_id'],v['publisher_name'],v['infohash'],'NAME UNKNOWN',v['time_stamp'])
+            listOfAdditions.append(hit)
             
         
         # Arno, 2010-06-11: We're on the OverlayThread
