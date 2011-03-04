@@ -28,11 +28,11 @@ class DiscoveryNode(Node):
 class DiscoveryCommunityScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        master_key = ec_to_public_bin(ec)
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         ec = ec_generate_key(u"low")
-        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
-        self._discovery = DiscoveryCommunity.join_community(master_key, self._my_member)
+        master_key = ec_to_public_bin(ec)
+        self._discovery = DiscoveryCommunity.join_community(hashlib.sha1(master_key).digest(), master_key, self._my_member)
         self._discovery_database = DiscoveryDatabase.get_instance()
 
         self.caller(self.my_community_metadata)
@@ -229,11 +229,11 @@ class DiscoveryCommunityScript(ScriptBase):
 class DiscoveryUserScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        master_key = ec_to_public_bin(ec)
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         ec = ec_generate_key(u"low")
-        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
-        self._discovery = DiscoveryCommunity.join_community(master_key, self._my_member)
+        master_key = ec_to_public_bin(ec)
+        self._discovery = DiscoveryCommunity.join_community(hashlib.sha1(master_key).digest(), master_key, self._my_member)
         self._discovery_database = DiscoveryDatabase.get_instance()
 
         self.caller(self.my_user_metadata)
@@ -343,11 +343,11 @@ class DiscoveryUserScript(ScriptBase):
 class DiscoverySyncScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        master_key = ec_to_public_bin(ec)
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         ec = ec_generate_key(u"low")
-        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
-        self._discovery = DiscoveryCommunity.join_community(master_key, self._my_member)
+        master_key = ec_to_public_bin(ec)
+        self._discovery = DiscoveryCommunity.join_community(hashlib.sha1(master_key).digest(), master_key, self._my_member)
         self._discovery_database = DiscoveryDatabase.get_instance()
 
         self.caller(self.to_node)

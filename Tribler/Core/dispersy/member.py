@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 For each peer that we have the public key, we have one Member instance.  Each member instance is
 used to uniquely identify a peer.  Special Member subclasses exist to identify, for instance,
@@ -180,29 +183,32 @@ class Member(Public, Parameterized1Singleton):
             execute(u"UPDATE user SET tags = ? WHERE public_key = ?", (reduced, buffer(self._public_key),))
         return True
 
-    @property
-    def must_store(self):
+    # @property
+    def __get_must_store(self):
         return u"store" in self._tags
-
-    @must_store.setter
-    def must_store(self, value):
+    # @must_store.setter
+    def __set_must_store(self, value):
         return self._set_tag(u"store", value)
+    # .setter was introduced in Python 2.6
+    must_store = property(__get_must_store, __set_must_store)
 
-    @property
-    def must_ignore(self):
+    # @property
+    def __get_must_ignore(self):
         return u"ignore" in self._tags
-
-    @must_ignore.setter
-    def must_ignore(self, value):
+    # @must_ignore.setter
+    def __set_must_ignore(self, value):
         return self._set_tag(u"ignore", value)
+    # .setter was introduced in Python 2.6
+    must_ignore = property(__get_must_ignore, __set_must_ignore)
 
-    @property
-    def must_drop(self):
+    # @property
+    def __get_must_drop(self):
         return u"drop" in self._tags
-
-    @must_drop.setter
-    def must_drop(self, value):
+    # @must_drop.setter
+    def __set_must_drop(self, value):
         return self._set_tag(u"drop", value)
+    # .setter was introduced in Python 2.6
+    must_drop = property(__get_must_drop, __set_must_drop)
 
     def verify(self, data, signature, offset=0, length=0):
         assert isinstance(data, str)

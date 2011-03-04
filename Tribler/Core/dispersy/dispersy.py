@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 The Distributed Permission System, or Dispersy, is a platform to simplify the design of distributed
 communities.  At the heart of Dispersy lies a simple identity and message handling system where each
@@ -48,8 +51,8 @@ from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
 from member import PrivateMember, MasterMember
 from message import Message
-from message import DropPacket, DelayPacket, DelayPacketByMissingMember
-from message import DropMessage, DelayMessage, DelayMessageBySequence, DelayMessageBySubjectiveSet, DelayMessageBySimilarity
+from message import DropPacket, DelayPacket
+from message import DropMessage, DelayMessage, DelayMessageBySequence, DelayMessageBySubjectiveSet
 from payload import AuthorizePayload, RevokePayload
 from payload import MissingSequencePayload
 from payload import SyncPayload
@@ -116,17 +119,17 @@ class Dispersy(Singleton):
         except StopIteration:
             self._my_external_address = ("", -1)
 
-        try:
-            public_key, = self._database.execute(u"SELECT value FROM option WHERE key == 'my_public_key' LIMIT 1").next()
-            public_key = str(public_key)
-            private_key = None
-        except StopIteration:
-            # one of the keys was not found in the database, we need
-            # to generate a new one
-            ec = ec_generate_key(u"low")
-            public_key = ec_to_public_bin(ec)
-            private_key = ec_to_private_bin(ec)
-            self._database.execute(u"INSERT INTO option VALUES('my_public_key', ?)", (buffer(public_key),))
+#         try:
+#             public_key, = self._database.execute(u"SELECT value FROM option WHERE key == 'my_public_key' LIMIT 1").next()
+#             public_key = str(public_key)
+#             private_key = None
+#         except StopIteration:
+#             # one of the keys was not found in the database, we need
+#             # to generate a new one
+#             ec = ec_generate_key(u"low")
+#             public_key = ec_to_public_bin(ec)
+#             private_key = ec_to_private_bin(ec)
+#             self._database.execute(u"INSERT INTO option VALUES('my_public_key', ?)", (buffer(public_key),))
 
         # all available communities.  cid:Community pairs.
         self._communities = {}
@@ -158,16 +161,15 @@ class Dispersy(Singleton):
         """
         return self._working_directory
 
-    @property
-    def socket(self):
+    # @property
+    def __get_socket(self):
         """
         The socket object used to send packets.
         @rtype: Object with a send(address, data) method
         """
         return self._socket
-
-    @socket.setter
-    def socket(self, socket):
+    # @socket.setter
+    def __set_socket(self, socket):
         """
         Set a socket object.
         @param socket: The socket object.
@@ -176,6 +178,8 @@ class Dispersy(Singleton):
         self._socket = socket
         if self._my_external_address == ("", -1):
             self._my_external_address = socket.get_address()
+    # .setter was introduced in Python 2.6
+    socket = property(__get_socket, __set_socket)
 
     @property
     def rawserver(self):
@@ -218,8 +222,8 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response),
-                Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity),
-                Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request),
+#                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity),
+#                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request),
                 Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize),
                 Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke),
                 Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community),
@@ -322,7 +326,7 @@ class Dispersy(Singleton):
 
         else:
             # we have the previous message (drop)
-            raise DropMessage("duplicate message")
+            raise DropMessage("duplicate message (1)")
 
         if message.distribution.enable_sequence_number:
             try:
@@ -341,7 +345,7 @@ class Dispersy(Singleton):
 
             if sequence_number >= message.distribution.sequence_number:
                 # we already have this message (drop)
-                raise DropMessage("duplicate message")
+                raise DropMessage("duplicate message (2)")
 
             elif sequence_number + 1 == message.distribution.sequence_number:
                 # we have the previous message (process)
@@ -383,7 +387,7 @@ class Dispersy(Singleton):
                                                      message.distribution.history_size))]
 
         if message.distribution.global_time in times:
-            raise DropMessage("duplicate message")
+            raise DropMessage("duplicate message (3)")
 
         if len(times) >= message.distribution.history_size and min(times) > message.distribution.global_time:
             # the sender of this message is apparently missing one or more messages
@@ -449,7 +453,7 @@ class Dispersy(Singleton):
 
             if sequence_number >= message.distribution.sequence_number:
                 # we already have this message (drop)
-                raise DropMessage("duplicate message")
+                raise DropMessage("duplicate message (4)")
 
             elif sequence_number + 1 == message.distribution.sequence_number:
                 # we have the previous message (process)
@@ -527,25 +531,26 @@ class Dispersy(Singleton):
             try:
                 community = self.get_community(packet[:20])
             except KeyError:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1])
+                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], level="warning")
                 continue
 
             # find associated conversion
             try:
                 conversion = community.get_conversion(packet[:22])
             except KeyError:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown conversion) from ", address[0], ":", address[1])
+                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown conversion) from ", address[0], ":", address[1], level="warning")
+                raise
                 continue
 
             try:
                 # converty binary date to internal Message
                 message = conversion.decode_message(packet)
 
-            except DropPacket as exception:
+            except DropPacket, exception:
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
                 if __debug__: log("dispersy.log", "drop-packet", address=address, packet=packet, exception=str(exception))
 
-            except DelayPacket as delay:
+            except DelayPacket, delay:
                 if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(packet), " byte packet (", delay, ")")
                 trigger = TriggerPacket(delay.pattern, self.on_incoming_packets, [(address, packet)])
                 self._triggers.append(trigger)
@@ -609,11 +614,11 @@ class Dispersy(Singleton):
             # allow community code to test the message
             message.check_callback(address, message)
 
-        except DropMessage as exception:
+        except DropMessage, exception:
             if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
             if __debug__: log("dispersy.log", "drop-message", address=address, message=message.name, packet=message.packet, exception=str(exception))
 
-        except DelayMessage as delay:
+        except DelayMessage, delay:
             if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
             trigger = TriggerMessage(delay.pattern, self.on_incoming_message, address, message)
             self._triggers.append(trigger)
@@ -837,15 +842,15 @@ class Dispersy(Singleton):
                                                            message.destination.node_count,
                                                            (0.0, 30.0),
                                                            (120.0, 300.0))
-                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("{0[0]}:{0[1]}".format(address) for address in addresses))
+                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d}" % address for address in addresses))
                 self._send(addresses, [message.packet])
 
             elif isinstance(message.destination, AddressDestination.Implementation):
-                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("{0[0]}:{0[1]}".format(address) for address in message.destination.addresses))
+                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in message.destination.addresses))
                 self._send(message.destination.addresses, [message.packet])
 
             elif isinstance(message.destination, MemberDestination.Implementation):
-                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("{0[0]}:{0[1]}".format(member.address) for member in message.destination.members))
+                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
                 self._send([member.address for member in message.destination.members], [message.packet])
 
             else:
@@ -1281,7 +1286,7 @@ class Dispersy(Singleton):
 
         meta = message.community.get_meta_message(u"dispersy-identity")
 
-        # todo: we are assuming here that no more than 10 members have the same sha1 digest.
+        # todo: we are assuming that no more than 10 members have the same sha1 digest.
         # sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
         sql = u"""SELECT sync.packet
                   FROM sync
@@ -1414,213 +1419,213 @@ class Dispersy(Singleton):
 
     #     return message
 
-    def create_similarity(self, community, meta_message, keywords, update_locally=True, store_and_forward=True):
-        """
-        Create a dispersy-similarity message.
+#     def create_similarity(self, community, meta_message, keywords, update_locally=True, store_and_forward=True):
+#         """
+#         Create a dispersy-similarity message.
 
-        The SimilarityDestination policy allows messages to be disseminated between members that are
-        deemed to be similar.  Calculating how similar members are is done using similarity data
-        disseminated using dispersy-similarity messages.
+#         The SimilarityDestination policy allows messages to be disseminated between members that are
+#         deemed to be similar.  Calculating how similar members are is done using similarity data
+#         disseminated using dispersy-similarity messages.
 
-        A dispersy-similarity message contains a bitstream, in the form of a one slice bloom filter,
-        which is filled with items, in the form of keywords.  Each keyword sets one bit in the bloom
-        filter to True, assuming that this bit was previously False.
+#         A dispersy-similarity message contains a bitstream, in the form of a one slice bloom filter,
+#         which is filled with items, in the form of keywords.  Each keyword sets one bit in the bloom
+#         filter to True, assuming that this bit was previously False.
 
-        Each message that uses the SimilarityDestination policy can have its own similarity value
-        associated to it, depending on the value of the meta_message.destination.cluster parameter.
+#         Each message that uses the SimilarityDestination policy can have its own similarity value
+#         associated to it, depending on the value of the meta_message.destination.cluster parameter.
 
-        For example: we have a meta_message called 'forum-post' that uses the SimilarityDestination
-        policy.  First we define that we are similar to peers with the words 'candy', 'chips', and
-        'food' by calling create_similarity(meta_message, ['candy', 'chips', 'food']).  Now we can
-        send a forum-post message using meta_message.implement(...) that will be disseminated based
-        on our and their similarity.
+#         For example: we have a meta_message called 'forum-post' that uses the SimilarityDestination
+#         policy.  First we define that we are similar to peers with the words 'candy', 'chips', and
+#         'food' by calling create_similarity(meta_message, ['candy', 'chips', 'food']).  Now we can
+#         send a forum-post message using meta_message.implement(...) that will be disseminated based
+#         on our and their similarity.
 
-        The create_similarity method can me called repeatedly.  Each time a new dispersy-similarity
-        message will be generated and disseminated across the community.  Only the most recent value
-        is propagated.
+#         The create_similarity method can me called repeatedly.  Each time a new dispersy-similarity
+#         message will be generated and disseminated across the community.  Only the most recent value
+#         is propagated.
 
-        @param community: The community for wich the dispersy-similarity message will be created.
-        @type community: Community
+#         @param community: The community for wich the dispersy-similarity message will be created.
+#         @type community: Community
 
-        @param message: The meta message for which we are definding the similarity.
-        @type message: Message
+#         @param message: The meta message for which we are definding the similarity.
+#         @type message: Message
 
-        @param keywords: The keywords that are used to populate the similarity bitstring.
-        @type timeout: [string]
+#         @param keywords: The keywords that are used to populate the similarity bitstring.
+#         @type timeout: [string]
 
-        @param update_locally: When True the community.on_authorize_message is called with each
-         created message.  This parameter should (almost always) be True, its inclusion is mostly to
-         allow certain debugging scenarios.
-        @type update_locally: bool
+#         @param update_locally: When True the community.on_authorize_message is called with each
+#          created message.  This parameter should (almost always) be True, its inclusion is mostly to
+#          allow certain debugging scenarios.
+#         @type update_locally: bool
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+#         @param store_and_forward: When True the created messages are stored (as defined by the
+#          message distribution policy) in the local Dispersy database and the messages are forewarded
+#          to other peers (as defined by the message destination policy).  This parameter should
+#          (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
+#         @type store_and_forward: bool
 
-        @note: Multiple dispersy-similarity messages are not possible yet.  Hence using multiple
-         messages with the SimilarityDestination and different cluster values will not work.
-        """
-        assert isinstance(community, Community)
-        assert isinstance(meta_message, Message)
-        assert isinstance(keywords, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, str), keywords)
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+#         @note: Multiple dispersy-similarity messages are not possible yet.  Hence using multiple
+#          messages with the SimilarityDestination and different cluster values will not work.
+#         """
+#         assert isinstance(community, Community)
+#         assert isinstance(meta_message, Message)
+#         assert isinstance(keywords, (tuple, list))
+#         assert not filter(lambda x: not isinstance(x, str), keywords)
+#         assert isinstance(update_locally, bool)
+#         assert isinstance(store_and_forward, bool)
 
-        meta = community.get_meta_message(u"dispersy-similarity")
+#         meta = community.get_meta_message(u"dispersy-similarity")
 
-        # BloomFilter created with 1 slice and defined number of bits
-        similarity = BloomFilter(1, meta_message.destination.size)
-        map(similarity.add, keywords)
+#         # BloomFilter created with 1 slice and defined number of bits
+#         similarity = BloomFilter(1, meta_message.destination.size)
+#         map(similarity.add, keywords)
 
-        # store into db
-        self._database.execute(u"INSERT OR REPLACE INTO my_similarity(community, user, cluster, similarity) VALUES(?, ?, ?, ?)",
-                               (community.database_id,
-                                community.my_member.database_id,
-                                meta_message.destination.cluster,
-                                buffer(str(similarity))))
+#         # store into db
+#         self._database.execute(u"INSERT OR REPLACE INTO my_similarity(community, user, cluster, similarity) VALUES(?, ?, ?, ?)",
+#                                (community.database_id,
+#                                 community.my_member.database_id,
+#                                 meta_message.destination.cluster,
+#                                 buffer(str(similarity))))
 
-        similarity = self._regulate_similarity(community, meta_message.destination)
+#         similarity = self._regulate_similarity(community, meta_message.destination)
 
-        # implement the message
-        message = meta.implement(meta.authentication.implement(community.my_member),
-                                 meta.distribution.implement(community._timeline.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(meta_message.destination.identifier, similarity))
+#         # implement the message
+#         message = meta.implement(meta.authentication.implement(community.my_member),
+#                                  meta.distribution.implement(community._timeline.claim_global_time()),
+#                                  meta.destination.implement(),
+#                                  meta.payload.implement(meta_message.destination.identifier, similarity))
 
-        if store_and_forward:
-            self.store_and_forward([message])
+#         if store_and_forward:
+#             self.store_and_forward([message])
 
-        if update_locally:
-            assert community._timeline.check(message)
-            message.handle_callback(("", -1), message)
+#         if update_locally:
+#             assert community._timeline.check(message)
+#             message.handle_callback(("", -1), message)
 
-        return message
+#         return message
 
-    def check_similarity(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+#     def check_similarity(self, address, message):
+#         if not message.community._timeline.check(message):
+#             raise DropMessage("TODO: implement delay of proof")
 
-    def on_similarity(self, address, message):
-        """
-        We received a dispersy-similarity message.
+#     def on_similarity(self, address, message):
+#         """
+#         We received a dispersy-similarity message.
 
-        The message contains a bloom-filter with only one slice that represents the sphere of
-        influence of the creator of the message.
+#         The message contains a bloom-filter with only one slice that represents the sphere of
+#         influence of the creator of the message.
 
-        We store this bloomfilter in our database and later use it, when we receive a dispersy-sync
-        message, to check if we need to synchronize certain messages between members.
+#         We store this bloomfilter in our database and later use it, when we receive a dispersy-sync
+#         message, to check if we need to synchronize certain messages between members.
 
-        @see create_similarity
+#         @see create_similarity
 
-        @param address: The sender address.
-        @type address: (string, int)
+#         @param address: The sender address.
+#         @type address: (string, int)
 
-        @param message: The dispersy-similarity message.
-        @type message: Message.Implementation
-        """
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message.Implementation)
+#         @param message: The dispersy-similarity message.
+#         @type message: Message.Implementation
+#         """
+#         if __debug__:
+#             from message import Message
+#         assert isinstance(message, Message.Implementation)
 
-        self._database.execute(u"INSERT OR REPLACE INTO similarity(community, user, cluster, similarity, packet) VALUES(?, ?, ?, ?, ?)",
-                               (message.community.database_id,
-                                message.authentication.member.database_id,
-                                message.payload.cluster,
-                                buffer(str(message.payload.similarity)),
-                                buffer(message.packet)))
+#         self._database.execute(u"INSERT OR REPLACE INTO similarity(community, user, cluster, similarity, packet) VALUES(?, ?, ?, ?, ?)",
+#                                (message.community.database_id,
+#                                 message.authentication.member.database_id,
+#                                 message.payload.cluster,
+#                                 buffer(str(message.payload.similarity)),
+#                                 buffer(message.packet)))
 
-    def _regulate_similarity(self, community, similarity_destination):
-        """
-        Regulate the BloomFilter similarity by randomly inserting extra bits until the number of
-        bits is at least the minumum amound of bits as defined in similarity_destination
+#     def _regulate_similarity(self, community, similarity_destination):
+#         """
+#         Regulate the BloomFilter similarity by randomly inserting extra bits until the number of
+#         bits is at least the minumum amound of bits as defined in similarity_destination
 
-        @todo: figure out this method... is a bit messy and doesn't do anything yet.  Randomness
-         should be replaced by something usefull to promote semantic clustering.
-        """
-        # assert here
-        if __debug__:
-            from destination import SimilarityDestination
-        assert isinstance(similarity_destination, SimilarityDestination)
+#         @todo: figure out this method... is a bit messy and doesn't do anything yet.  Randomness
+#          should be replaced by something usefull to promote semantic clustering.
+#         """
+#         # assert here
+#         if __debug__:
+#             from destination import SimilarityDestination
+#         assert isinstance(similarity_destination, SimilarityDestination)
 
-        minimum_bits = similarity_destination.minimum_bits
-        maximum_bits = similarity_destination.maximum_bits
+#         minimum_bits = similarity_destination.minimum_bits
+#         maximum_bits = similarity_destination.maximum_bits
 
-        # fetch my_similarity from db
-        try:
-            my_similarity, = self._database.execute(u"SELECT similarity FROM my_similarity WHERE community == ? AND user == ? AND cluster == ? LIMIT 1",
-                                                    (community.database_id, community.my_member.database_id, similarity_destination.cluster)).next()
-        except StopIteration:
-            raise ValueError(u"Similarity not found in database")
+#         # fetch my_similarity from db
+#         try:
+#             my_similarity, = self._database.execute(u"SELECT similarity FROM my_similarity WHERE community == ? AND user == ? AND cluster == ? LIMIT 1",
+#                                                     (community.database_id, community.my_member.database_id, similarity_destination.cluster)).next()
+#         except StopIteration:
+#             raise ValueError(u"Similarity not found in database")
 
-        # the database returns <buffer> types, we use the binary
-        # <str> type internally
-        similarity = BloomFilter(str(my_similarity), 0)
+#         # the database returns <buffer> types, we use the binary
+#         # <str> type internally
+#         similarity = BloomFilter(str(my_similarity), 0)
 
-        # todo: make this into a bloomfilter method
-        # count the 1's
-        set_bits = 0
-        for c in similarity._bytes.tostring():
-            s = "{0:08d}".format(int(bin(ord(c))[2:]))
-            for bit in s:
-                if bit == '1':
-                    set_bits += 1
+#         # todo: make this into a bloomfilter method
+#         # count the 1's
+#         set_bits = 0
+#         for c in similarity._bytes.tostring():
+#             s = "{0:08d}".format(int(bin(ord(c))[2:]))
+#             for bit in s:
+#                 if bit == '1':
+#                     set_bits += 1
 
-        if set_bits > maximum_bits:
-            raise ValueError("To many bits set in the similarity")
+#         if set_bits > maximum_bits:
+#             raise ValueError("To many bits set in the similarity")
 
-        # todo: make this into a bloomfilter method (the setting of specific bits)
-        # add new bits
-        new_bits = 0
-        check = 0b1
-        while new_bits < minimum_bits - set_bits:
-            for b in range(len(similarity._bytes)):
-                if not similarity._bytes[b] & check:
-                    similarity._bytes[b] |= check
-                    new_bits += 1
-            check <<= 1
+#         # todo: make this into a bloomfilter method (the setting of specific bits)
+#         # add new bits
+#         new_bits = 0
+#         check = 0b1
+#         while new_bits < minimum_bits - set_bits:
+#             for b in range(len(similarity._bytes)):
+#                 if not similarity._bytes[b] & check:
+#                     similarity._bytes[b] |= check
+#                     new_bits += 1
+#             check <<= 1
 
-        return similarity
+#         return similarity
 
-    # todo: implement a create_similarity_request method
-    # def create_similarity_request(self,
+#     # todo: implement a create_similarity_request method
+#     # def create_similarity_request(self,
 
-    def check_similarity_request(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+#     def check_similarity_request(self, address, message):
+#         if not message.community._timeline.check(message):
+#             raise DropMessage("TODO: implement delay of proof")
 
-    def on_similarity_request(self, address, message):
-        """
-        We received a dispersy-similarity-request message.
+#     def on_similarity_request(self, address, message):
+#         """
+#         We received a dispersy-similarity-request message.
 
-        The dispersy-similarity-request message contains a list of members for which the similarity
-        is requested.  We will search out database for any similarity data that we can find and send
-        them back.
+#         The dispersy-similarity-request message contains a list of members for which the similarity
+#         is requested.  We will search out database for any similarity data that we can find and send
+#         them back.
 
-        @see: create_similarity_request
+#         @see: create_similarity_request
 
-        @param address: The sender address.
-        @type address: (string, int)
+#         @param address: The sender address.
+#         @type address: (string, int)
 
-        @param message: The dispersy-signature-request message.
-        @type message: Message.Implementation
-        """
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message.Implementation), type(message)
-        assert message.name == u"dispersy-similarity-request"
+#         @param message: The dispersy-signature-request message.
+#         @type message: Message.Implementation
+#         """
+#         if __debug__:
+#             from message import Message
+#         assert isinstance(message, Message.Implementation), type(message)
+#         assert message.name == u"dispersy-similarity-request"
 
-        for member in message.payload.members:
-            try:
-                packet, = self._database.execute(u"SELECT packet FROM similarity WHERE community = ? AND user = ? AND cluster = ? LIMIT 1",
-                                                 (message.community.database.id, member.database_id, message.payload.cluster)).next()
-            except StopIteration:
-                continue
+#         for member in message.payload.members:
+#             try:
+#                 packet, = self._database.execute(u"SELECT packet FROM similarity WHERE community = ? AND user = ? AND cluster = ? LIMIT 1",
+#                                                  (message.community.database.id, member.database_id, message.payload.cluster)).next()
+#             except StopIteration:
+#                 continue
 
-            self._send([address], [packet])
-            if __debug__: log("dispersy.log", "dispersy-missing-sequence - send back packet", length=len(packet), packet=packet, low=message.payload.missing_low, high=message.payload.missing_high)
+#             self._send([address], [packet])
+#             if __debug__: log("dispersy.log", "dispersy-missing-sequence - send back packet", length=len(packet), packet=packet, low=message.payload.missing_low, high=message.payload.missing_high)
 
     def create_signature_request(self, community, message, response_func, response_args=(), timeout=10.0, store_and_forward=True):
         """

@@ -76,7 +76,6 @@ class DelayPacketBySimilarity(DelayPacket):
         # the footprint that will trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-identity")
         footprint = meta.generate_footprint()
-        # footprint = "dispersy-identity Community:{0.cid} MemberAuthentication:{1.mid} LastSyncDistribution SimilarityDestination{2.cluster}".format(community, member, destination)
 
         # the request message that asks for the message that will
         # trigger the delayed packet
@@ -120,6 +119,34 @@ class DelayMessage(Exception):
     @property
     def request_packet(self):
         return self._request_packet
+
+class DelayMessageByMissingMember(DelayPacket):
+    """
+    A member id is the sha1 hash over the member's public key, hence
+    there is a small chance that members with different public keys
+    will have the same member id.
+
+    Raising this exception should result in a request for all public
+    keys associated to the missing member id.
+    """
+    def __init__(self, community, missing_member_id):
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(missing_member_id, str)
+        assert len(missing_member_id) == 20
+        # the footprint that will trigger the delayed packet
+        footprint = community.get_meta_message(u"dispersy-identity").generate_footprint(authentication=([missing_member_id],))
+
+        # the request message that asks for the message that will
+        # trigger the delayed packet
+        meta = community.get_meta_message(u"dispersy-identity-request")
+        message = meta.implement(meta.authentication.implement(),
+                                 meta.distribution.implement(community._timeline.global_time),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(missing_member_id))
+
+        super(DelayMessageByMissingMember, self).__init__("Missing member", footprint, message.packet)
 
 class DelayMessageBySequence(DelayMessage):
     """
@@ -270,20 +297,21 @@ class Packet(MetaObject.Implementation):
     def packet(self):
         return self._packet
 
-    @property
-    def packet_id(self):
+    # @property
+    def __get_packet_id(self):
         return self._packet_id
-
-    @packet_id.setter
-    def packet_id(self, packet_id):
+    # @packet_id.setter
+    def __set_packet_id(self, packet_id):
         assert isinstance(packet_id, (int, long))
         self._packet_id = packet_id
+    # .setter was introduced in Python 2.6
+    packet_id = property(__get_packet_id, __set_packet_id)
 
     def load_message(self):
         return self._meta.community.get_conversion(self._packet[:22]).decode_message(self._packet)
 
     def __str__(self):
-        return "<{0.meta.__class__.__name__}.{0.__class__.__name__} {0.name} {1}>".format(self, len(self._packet))
+        return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
 #
 # message
@@ -294,12 +322,12 @@ class Message(MetaObject):
             if __debug__:
                 from payload import Payload
                 from conversion import Conversion
-            assert isinstance(meta, Message), "META has invalid type '{0}'".format(type(meta))
-            assert isinstance(authentication, meta._authentication.Implementation), "AUTHENTICATION has invalid type '{0}'".format(type(authentication))
-            assert isinstance(distribution, meta._distribution.Implementation), "DISTRIBUTION has invalid type '{0}'".format(type(distribution))
-            assert isinstance(destination, meta._destination.Implementation), "DESTINATION has invalid type '{0}'".format(type(destination))
-            assert isinstance(payload, meta._payload.Implementation), "PAYLOAD has invalid type '{0}'".format(type(payload))
-            assert conversion is None or isinstance(conversion, Conversion), "CONVERSION has invalid type '{0}'".format(type(conversion))
+            assert isinstance(meta, Message), "META has invalid type '%s'" % type(meta)
+            assert isinstance(authentication, meta._authentication.Implementation), "AUTHENTICATION has invalid type '%s'" % type(authentication)
+            assert isinstance(distribution, meta._distribution.Implementation), "DISTRIBUTION has invalid type '%s'" % type(distribution)
+            assert isinstance(destination, meta._destination.Implementation), "DESTINATION has invalid type '%s'" % type(destination)
+            assert isinstance(payload, meta._payload.Implementation), "PAYLOAD has invalid type '%s'" % type(payload)
+            assert conversion is None or isinstance(conversion, Conversion), "CONVERSION has invalid type '%s'" % type(conversion)
             assert isinstance(packet, str)
             super(Message.Implementation, self).__init__(meta, packet, packet_id)
             self._authentication = authentication
@@ -366,7 +394,7 @@ class Message(MetaObject):
                 self._packet = self._conversion.encode_message(self)
 
         def __str__(self):
-            return "<{0.meta.__class__.__name__}.{0.__class__.__name__} {0.name} {1}>".format(self, len(self._packet))
+            return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
     def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback):
         if __debug__:
@@ -376,13 +404,13 @@ class Message(MetaObject):
             from destination import Destination
             from distribution import Distribution
             from payload import Payload
-        assert isinstance(community, Community), "COMMUNITY has invalid type '{0}'".format(type(community))
-        assert isinstance(name, unicode), "NAME has invalid type '{0}'".format(type(name))
-        assert isinstance(authentication, Authentication), "AUTHENTICATION has invalid type '{0}'".format(type(authentication))
-        assert isinstance(resolution, Resolution), "RESOLUTION has invalid type '{0}'".format(type(resolution))
-        assert isinstance(distribution, Distribution), "DISTRIBUTION has invalid type '{0}'".format(type(distribution))
-        assert isinstance(destination, Destination), "DESTINATION has invalid type '{0}'".format(type(destination))
-        assert isinstance(payload, Payload), "PAYLOAD has invalid type '{0}'".format(type(payload))
+        assert isinstance(community, Community), "COMMUNITY has invalid type '%s'" % type(community)
+        assert isinstance(name, unicode), "NAME has invalid type '%s'" % type(name)
+        assert isinstance(authentication, Authentication), "AUTHENTICATION has invalid type '%s'" % type(authentication)
+        assert isinstance(resolution, Resolution), "RESOLUTION has invalid type '%s'" % type(resolution)
+        assert isinstance(distribution, Distribution), "DISTRIBUTION has invalid type '%s'" % type(distribution)
+        assert isinstance(destination, Destination), "DESTINATION has invalid type '%s'" % type(destination)
+        assert isinstance(payload, Payload), "PAYLOAD has invalid type '%s'" % type(payload)
         assert hasattr(check_callback, "__call__")
         assert hasattr(handle_callback, "__call__")
         assert self.check_policy_combination(authentication, resolution, distribution, destination)
@@ -468,7 +496,7 @@ class Message(MetaObject):
                         " ", self._payload.generate_footprint(*payload)))
 
     def __str__(self):
-        return "<{0.__class__.__name__} {0.name}>".format(self)
+        return "<%s %s>" % (self.__class__.__name__, self._name)
 
     @staticmethod
     def check_policy_combination(authentication, resolution, distribution, destination):
@@ -484,7 +512,7 @@ class Message(MetaObject):
 
         def require(a, b, c):
             if not isinstance(b, c):
-                raise ValueError("{0.__class__.__name__} does not support {1.__class__.__name__}.  Allowed options are: {2}".format(a, b, ", ".join([x.__name__ for x in c])))
+                raise ValueError("%s does not support %s.  Allowed options are: %s" % (a.__class__.__name__, b.__class__.__name__, ", ".join([x.__name__ for x in c])))
 
         if isinstance(authentication, NoAuthentication):
             require(authentication, resolution, PublicResolution)
@@ -499,7 +527,7 @@ class Message(MetaObject):
             require(authentication, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
             require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination))
         else:
-            raise ValueError("{0.__class__.__name__} is not supported".format(authentication))
+            raise ValueError("%s is not supported" % authentication.__class_.__name__)
 
         if isinstance(resolution, PublicResolution):
             require(resolution, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
@@ -510,7 +538,7 @@ class Message(MetaObject):
             require(resolution, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
             require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination))
         else:
-            raise ValueError("{0.__class__.__name__} is not supported".format(resolution))
+            raise ValueError("%s is not supported" % resolution.__class_.__name__)
 
         if isinstance(distribution, RelayDistribution):
             require(distribution, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
@@ -525,15 +553,15 @@ class Message(MetaObject):
             require(distribution, resolution, (PublicResolution, LinearResolution))
             require(distribution, destination, (CommunityDestination, SubjectiveDestination, SimilarityDestination))
             if isinstance(authentication, MultiMemberAuthentication) and distribution.enable_sequence_number:
-                raise ValueError("{0.__class__.__name__} may not be used with {1.__class__.__name__} when sequence numbers are enabled".format(distribution, authentication))
+                raise ValueError("%s may not be used with %s when sequence numbers are enabled" % (distribution.__class__.__name__, authentication.__class__.__name__))
         elif isinstance(distribution, LastSyncDistribution):
             require(distribution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution))
             require(distribution, destination, (CommunityDestination, SubjectiveDestination, SimilarityDestination))
             if isinstance(authentication, MultiMemberAuthentication) and distribution.enable_sequence_number:
-                raise ValueError("{0.__class__.__name__} may not be used with {1.__class__.__name__} when sequence numbers are enabled".format(distribution, authentication))
+                raise ValueError("%s may not be used with %s when sequence numbers are enabled" % (distribution.__class__.__name__, authentication.__class__.__name__))
         else:
-            raise ValueError("{0.__class__.__name__} is not supported".format(distribution))
+            raise ValueError("%s is not supported" % distribution.__class_.__name__)
 
         if isinstance(destination, AddressDestination):
             require(destination, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
@@ -556,6 +584,6 @@ class Message(MetaObject):
             require(destination, resolution, (PublicResolution, LinearResolution))
             require(destination, distribution, (FullSyncDistribution, LastSyncDistribution))
         else:
-            raise ValueError("{0.__class__.__name__} is not supported".format(destination))
+            raise ValueError("%s is not supported" % destination.__class_.__name__)
 
         return True

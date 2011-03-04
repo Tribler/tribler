@@ -197,7 +197,7 @@ class DebugCommunity(Community):
 
     def create_double_signed_text(self, text, member, response_func, response_args=(), timeout=10.0, store_and_forward=True):
         meta = self.get_meta_message(u"double-signed-text")
-        message = meta.implement(meta.authentication.implement((self._my_member, member)),
+        message = meta.implement(meta.authentication.implement([self._my_member, member]),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(member),
                                  meta.payload.implement(text))
@@ -231,7 +231,7 @@ class DebugCommunity(Community):
 
     def create_triple_signed_text(self, text, member1, member2, response_func, response_args=(), timeout=10.0, store_and_forward=True):
         meta = self.get_meta_message(u"triple-signed-text")
-        message = meta.implement(meta.authentication.implement((self._my_member, member1, member2)),
+        message = meta.implement(meta.authentication.implement([self._my_member, member1, member2]),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(member1, member2),
                                  meta.payload.implement(text))

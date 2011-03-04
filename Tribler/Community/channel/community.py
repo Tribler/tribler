@@ -23,8 +23,8 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def __init__(self, cid):
-        super(ChannelCommunity, self).__init__(cid)
+    def __init__(self, cid, master_key):
+        super(ChannelCommunity, self).__init__(cid, master_key)
 
         # tribler torrent database
         self._channelcast_db = ChannelCastDBHandler.getInstance()

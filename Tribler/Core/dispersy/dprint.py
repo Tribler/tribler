@@ -11,14 +11,20 @@ report bugs in other modules.
 # from queue import Queue
 from pickle import dumps
 from os.path import dirname, basename, expanduser, isfile, join
-from sys import stdout, stderr, exc_info, maxsize
-from threading import current_thread, Thread, Lock
+from sys import stdout, stderr, exc_info
+# from threading import current_thread, Thread, Lock
 from time import time
 from traceback import extract_stack, print_exception, print_stack, format_list
 import inspect
 import re
 import socket
 from os import getcwd
+
+# maxsize is introduced in Python 2.6
+try:
+    from sys import maxsize
+except ImportError:
+    from sys import maxint as maxsize
 
 LEVEL_DEBUG = 0
 LEVEL_NORMAL = 128
@@ -126,8 +132,8 @@ def filter_chain_create(chain, policy):
     CHAIN must indicate a non-existing chain ("ENTRY" always exists)
     POLICY must be either accept, drop, or return
     """
-    assert not chain in _filters, "Chain \"{}\" already exists".format(chain)
-    assert policy in _filter_policy_map, "Invalid policy \"{}\"".format(policy)
+    assert not chain in _filters, "Chain \"%s\" already exists" % chain
+    assert policy in _filter_policy_map, "Invalid policy \"%s\"" % policy
     _filters[chain] = [_filter_policy_map[policy], []]
 
 def filter_chain_policy(chain, policy):
@@ -137,8 +143,8 @@ def filter_chain_policy(chain, policy):
     CHAIN must indicate an existing chain ("ENTRY" always exists)
     POLICY must be either accept, drop, or return
     """
-    assert chain in _filters, "Unknown chain \"{}\"".format(chain)
-    assert policy in _filter_policy_map, "Invalid policy \"{}\"".format(policy)
+    assert chain in _filters, "Unknown chain \"%s\"" % chain
+    assert policy in _filter_policy_map, "Invalid policy \"%s\"" % policy
     _filters[chain][0] = _filter_policy_map[policy]
 
 def filter_chain_remove(chain):
@@ -161,7 +167,7 @@ def filter_add(chain, function, target, jump=None, position=maxsize):
     """
     assert chain in _filters, chain
     assert hasattr(function, "__call__"), function
-    assert target == "jump" or target in _filter_target_map, "Invalid target [{}]".format(target)
+    assert target == "jump" or target in _filter_target_map, "Invalid target [%s]" % target
     assert target != "jump" or jump in _filters, jump
     assert type(position) is int, position
     if target in _filter_target_map:
@@ -213,7 +219,7 @@ def filter_add_by_source(chain, target, file=None, function=None, path=None, jum
         return result
     if not path is None:
         path = join(*path.split("."))
-    match.__name__ = "by_source({0}, {1}, {2})".format(file, function, path)
+    match.__name__ = "by_source(%s, %s, %s)" % (file, function, path)
     filter_add(chain, match, target, jump=jump, position=position)
 
 def filter_add_by_level(chain, target, exact=None, min=None, max=None, jump=None, position=maxsize):
@@ -250,7 +256,7 @@ def filter_add_by_level(chain, target, exact=None, min=None, max=None, jump=None
     else:
         def match(args, settings):
             return exact == settings["level"]
-    match.__name__ = "by_level({0}, {1}, {2})".format(exact, min, max)
+    match.__name__ = "by_level(%s, %s, %s)" % (exact, min, max)
     filter_add(chain, match, target, jump=jump, position=position)
 
 def filter_add_by_pattern(chain, target, pattern, jump=None, position=maxsize):
@@ -267,14 +273,14 @@ def filter_add_by_pattern(chain, target, pattern, jump=None, position=maxsize):
     # assert for TARGET is done in filter_add
     # assert for POSITION is done in filter_add
     # assert for JUMP is done in filter_add
-    assert type(pattern) is str, "Pattern must be a string [{}]".format(pattern)
+    assert type(pattern) is str, "Pattern must be a string [%s]" % pattern
     pattern = re.compile(pattern)
     def match(args, settings):
         for arg in args:
             if pattern.match(str(arg)):
                 return True
         return False
-    match.__name__ = "by_pattern({})".format(pattern.pattern)
+    match.__name__ = "by_pattern(%s)" % pattern.pattern
     filter_add(chain, match, target, jump=jump, position=position)
 
 def filter_print():
@@ -282,11 +288,11 @@ def filter_print():
     Print the filter-chains and filter-rules to the stdout.
     """
     for chain, policy in filter_chains_get():
-        print("Chain {} (policy {})".format(chain, policy))
+        print("Chain %s (policy %s)" % (chain, policy))
 
         for check, target, jump in filter_get(chain):
             if not jump: jump = ""
-            print("{:6} {:15} {}".format(target, jump, check))
+            print("%-6s %-15s %s" % (target, jump, check))
 
         print()
 
@@ -396,8 +402,8 @@ def _config_read():
                 _dprint_settings[before] = bool(re_true.match(after))
             elif before == "level":
                 _dprint_settings["level"] = int(level_map.get(after, after))
-        except Exception as e:
-            raise Exception("Error parsing line {0} \"{1}\"\n{2} {3!s}".format(line_number, line, type(e), e))
+        except Exception, e:
+            raise Exception("Error parsing line %s \"%s\"\n%s %s" % (line_number, line, type(e), str(e)))
 
     chains = []
     for section in sections:
@@ -425,103 +431,103 @@ def _config_read():
                         filter_add_by_level(chain, after, exact=exact, min=min_, max=max_, jump=jump)
                     elif type_ == "pattern":
                         filter_add_by_pattern(chain, after, before, jump=jump)
-            except Exception as e:
-                raise Exception("Error parsing line {0} \"{1}\"\n{2} {3!s}".format(line_number, line, type(e), e))
+            except Exception, e:
+                raise Exception("Error parsing line %s \"%s\"\n%s %s" % (line_number, line, type(e), str(e)))
             
 _config_read()
 
-class RemoteProtocol:
-    @staticmethod
-    def encode(key, value):
-        """
-        1 byte (reserved)
-        1 byte with len(key)
-        2 bytes with len(value)
-        n bytes with the key where n=len(key)
-        m bytes with the value where m=len(value)
-        """
-        assert type(key) is str
-        assert len(key) < 2**8
-        assert type(value) is str
-        assert len(value) < 2**16
-        m = len(value)
-        return "".join((chr(0),
-                        chr(len(key)),
-                        chr((m >> 8) & 0xFF), chr(m & 0xFF),
-                        key,
-                        value))
+# class RemoteProtocol:
+#     @staticmethod
+#     def encode(key, value):
+#         """
+#         1 byte (reserved)
+#         1 byte with len(key)
+#         2 bytes with len(value)
+#         n bytes with the key where n=len(key)
+#         m bytes with the value where m=len(value)
+#         """
+#         assert type(key) is str
+#         assert len(key) < 2**8
+#         assert type(value) is str
+#         assert len(value) < 2**16
+#         m = len(value)
+#         return "".join((chr(0),
+#                         chr(len(key)),
+#                         chr((m >> 8) & 0xFF), chr(m & 0xFF),
+#                         key,
+#                         value))
 
-    @staticmethod
-    def decode(data):
-        """
-        decode raw data.
+#     @staticmethod
+#     def decode(data):
+#         """
+#         decode raw data.
 
-        returns (data, messages) where data contains the remaining raw
-        data and messages is a list containing (key, message) tuples.
-        """
-        assert type(data) is str
-        size = len(data)
-        messages = []
-        while size >= 4:
-            n = ord(data[1])
-            m = ord(data[2]) << 8 | ord(data[3])
+#         returns (data, messages) where data contains the remaining raw
+#         data and messages is a list containing (key, message) tuples.
+#         """
+#         assert type(data) is str
+#         size = len(data)
+#         messages = []
+#         while size >= 4:
+#             n = ord(data[1])
+#             m = ord(data[2]) << 8 | ord(data[3])
 
-            # check if the entire message is available
-            if size - 4 >= n + m:
-                messages.append((data[4:4+n], (data[4+n:4+n+m], )))
-                data = data[4+n+m:]
-                size -= (4+n+m)
-            else:
-                break
+#             # check if the entire message is available
+#             if size - 4 >= n + m:
+#                 messages.append((data[4:4+n], (data[4+n:4+n+m], )))
+#                 data = data[4+n+m:]
+#                 size -= (4+n+m)
+#             else:
+#                 break
 
-        return data, messages
+#         return data, messages
 
-class RemoteConnection(RemoteProtocol):
-    __singleton = None
-    __lock = Lock()
+# class RemoteConnection(RemoteProtocol):
+#     __singleton = None
+#     __lock = Lock()
 
-    @classmethod
-    def get_instance(cls, *args, **kargs):
-        if not cls.__singleton:
-            cls.__lock.acquire()
-            try:
-                if not cls.__singleton:
-                    cls.__singleton = cls(*args, **kargs)
-            finally:
-                cls.__lock.release()
-        return cls.__singleton
+#     @classmethod
+#     def get_instance(cls, *args, **kargs):
+#         if not cls.__singleton:
+#             cls.__lock.acquire()
+#             try:
+#                 if not cls.__singleton:
+#                     cls.__singleton = cls(*args, **kargs)
+#             finally:
+#                 cls.__lock.release()
+#         return cls.__singleton
 
-    @classmethod
-    def send(cls, args, settings):
-        remote = cls.get_instance(settings["remote_host"], settings["remote_port"])
-        remote._queue.put(("dprint", (args, settings)))
+#     @classmethod
+#     def send(cls, args, settings):
+#         remote = cls.get_instance(settings["remote_host"], settings["remote_port"])
+#         remote._queue.put(("dprint", (args, settings)))
 
-    def __init__(self, host, port):
-        # thread protected write buffer
-        self._queue = Queue(0)
-        self._address = (host, port)
+#     def __init__(self, host, port):
+#         # thread protected write buffer
+#         self._queue = Queue(0)
+#         self._address = (host, port)
 
-        # start a thread to handle async socket communication
-        thread = Thread(target=self._loop)
-        thread.start()
+#         # start a thread to handle async socket communication
+#         thread = Thread(target=self._loop)
+#         thread.start()
 
-    def _loop(self):
-        # connect
-        connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        connection.setblocking(1)
-        try:
-            connection.connect(self._address)
-        except:
-            print >>stderr, "Could not connect to Dremote at", self._address
-            raise
+#     def _loop(self):
+#         # connect
+#         connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#         connection.setblocking(1)
+#         try:
+#             connection.connect(self._address)
+#         except:
+#             print >>stderr, "Could not connect to Dremote at", self._address
+#             raise
 
-        # handshake
-        connection.send(self.encode("protocol", "remote-dprint-1.0"))
+#         # handshake
+#         connection.send(self.encode("protocol", "remote-dprint-1.0"))
 
-        # send data from the queue
-        while True:
-            key, value = self._queue.get()
-            connection.send(self.encode(key, dumps(value)))
+#         # send data from the queue
+#         while True:
+#             key, value = self._queue.get()
+#             connection.send(self.encode(key, dumps(value)))
 
 def dprint_wrap(func):
     source_file = inspect.getsourcefile(func)
@@ -531,7 +537,7 @@ def dprint_wrap(func):
         dprint("PRE ", args, kargs, source_file=source_file, source_line=source_line, source_function=source_function)
         try:
             result = func(*args, **kargs)
-        except Exception as e:
+        except Exception, e:
             dprint("POST", e, source_file=source_file, source_line=source_line, source_function=source_function)
             raise
         else:
@@ -664,7 +670,7 @@ def dprint(*args, **kargs):
     # ensure that kargs contains only known options
     for key in kargs:
         if not key in _dprint_settings:
-            raise ValueError("Unknown options: {0}".format(key))
+            raise ValueError("Unknown options: %s" % key)
 
     # merge default dprint settings with kargs
     # todo: it might be faster to clone _dprint_settings and call update(kargs) on it
@@ -698,11 +704,11 @@ def dprint(*args, **kargs):
     else:
         short_source_file = join(basename(dirname(kargs["source_file"])), basename(kargs["source_file"]))
     if kargs["style"] == "short":
-        prefix = "{0} {1}:{2} {3} ".format(level_tag_map.get(kargs["level"], "U"), short_source_file, kargs["source_line"], kargs["source_function"])
+        prefix = "%s %s:%s %s " % (level_tag_map.get(kargs["level"], "U"), short_source_file, kargs["source_line"], kargs["source_function"])
     elif kargs["style"] == "column":
-        prefix = "{0:} {1:>25}:{2:<4} {3:<25} | ".format(level_tag_map.get(kargs["level"], "U"), short_source_file[-25:], kargs["source_line"], kargs["source_function"])
+        prefix = "%s %25s:%-4s %-25s | " % (level_tag_map.get(kargs["level"], "U"), short_source_file[-25:], kargs["source_line"], kargs["source_function"])
     else:
-        raise ValueError("Invalid/unknown style: \"{0}\"".format(kargs["style"]))
+        raise ValueError("Invalid/unknown style: \"%s\"" % kargs["style"])
     messages = []
 
     if kargs["callback"]:
@@ -711,7 +717,7 @@ def dprint(*args, **kargs):
     # print each variable in args
     if kargs["binary"]:
         string = kargs["glue"].join([str(v) for v in args])
-        messages.append(" ".join(["{0:08d}".format(int(bin(ord(char))[2:])) for char in string]))
+        messages.append(" ".join(["%08d" % int(bin(ord(char))[2:]) for char in string]))
         # for index, char in zip(xrange(len(string)), string):
         #     messages.append("{0:3d} {1:08d} \\x{2}".format(index, int(bin(ord(char))[2:]), char.encode("HEX")))
     elif kargs["meta"]:
@@ -719,7 +725,7 @@ def dprint(*args, **kargs):
     elif kargs["lines"] and len(args) == 1 and type(args[0]) in (list, tuple):
         messages.extend([str(v) for v in args[0]])
     elif kargs["lines"] and len(args) == 1 and type(args[0]) is dict:
-        messages.extend(["{0!s}: {1!s}".format(k, v) for k,v in args[0].items()])
+        messages.extend(["%s: %s".format(str(k), str(v)) for k,v in args[0].items()])
     elif kargs["lines"]:
         messages.extend([str(v) for v in args])
     else:
@@ -746,13 +752,13 @@ def dprint(*args, **kargs):
             #     for line in format_list(kargs["stack"][:kargs["stack_origin_modifier"]]):
             #         print >> stdout, line,
         if kargs["exception"]:
-            print_exception(*exc_info(), file=stdout)
+            print_exception(*exc_info(), **{"file":stdout})
     if kargs["stderr"]:
         print >> stderr, prefix + ("\n"+prefix).join([msg[:10000] for msg in messages])
         if kargs["stack"]:
             print_stack(file=stderr)
         if kargs["exception"]:
-            print_exception(*exc_info(), file=stderr)
+            print_exception(*exc_info(), **{"file":stderr})
     if kargs["remote"]:
         # todo: the remote_host and remote_port are values that may change
         # for each message. when this happens different connections should
@@ -764,7 +770,7 @@ def dprint(*args, **kargs):
         RemoteConnection.send(args, kargs)
 
 def dprint_format_variable(v):
-    return "{0:<22} {1}".format(type(v), str(v))
+    return "%22s %s" % (type(v), str(v))
 
     # t = type(v)
     # if t is BooleanType:                return "(BooleanType)          {!s}".format(v)

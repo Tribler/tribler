@@ -192,21 +192,31 @@ def rsa_from_public_pem(pem):
     return M2Crypto.RSA.load_pub_key_bio(M2Crypto.BIO.MemoryBuffer(pem))
 
 if __name__ == "__main__":
+    def EC_name(curve):
+        assert isinstance(curve, int)
+        for name in dir(M2Crypto.EC):
+            value = getattr(M2Crypto.EC, name)
+            if isinstance(value, int) and value == curve:
+                return name
+
     import math
+    import time
     for curve in [u"low", u"medium", u"high"]:
         ec = ec_generate_key(curve)
         private_pem = ec_to_private_pem(ec)
         public_pem = ec_to_public_pem(ec)
         public_bin = ec_to_public_bin(ec)
         private_bin = ec_to_private_bin(ec)
-        print "curve:", curve
-        print "len:", len(ec), "-->", ec_signature_length(ec)
+        print "generated:", time.ctime()
+        print "curve:", curve, "<<<", EC_name(_curves[curve]), ">>>"
+        print "len:", len(ec), "bits ~", ec_signature_length(ec), "bytes signature"
         print "pub:", len(public_bin), public_bin.encode("HEX")
         print "prv:", len(private_bin), private_bin.encode("HEX")
         print "pub-sha1", sha1(public_bin).digest().encode("HEX")
         print "prv-sha1", sha1(private_bin).digest().encode("HEX")
-        # print public_pem
-        # print private_pem
+        print public_pem.strip()
+        print private_pem.strip()
+        print
 
         ec2 = ec_from_public_pem(public_pem)
         assert ec_verify(ec2, "foo-bar", ec_sign(ec, "foo-bar"))

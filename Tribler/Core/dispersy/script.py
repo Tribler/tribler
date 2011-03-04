@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 Run some python code, usually to test one or more features.
 """
@@ -51,7 +54,7 @@ class Script(Singleton):
         else:
             for available in sorted(self._scripts):
                 dprint("available: ", available)
-            raise ValueError("Unknown script '{0}'".format(name))
+            raise ValueError("Unknown script '%s'" % name)
 
     def add_generator(self, call, call_generator):
         self._call_generators.append((call, call_generator))
@@ -60,7 +63,8 @@ class Script(Singleton):
             self._rawserver.add_task(self._process_generators, 0.0)
 
     def _start(self, call):
-        dprint("start ", call.__self__.__class__.__name__, ".", call.__name__, line=1)
+#         dprint("start ", call.__self__.__class__.__name__, ".", call.__name__, line=1)
+        dprint("start ", call, line=1)
         if call.__doc__:
             dprint(call.__doc__, box=1)
 
@@ -73,7 +77,8 @@ class Script(Singleton):
             except StopIteration:
                 self._call_generators.pop(0)
                 delay = 0.01
-                dprint("finished: ", call.__self__.__class__.__name__, ".", call.__name__)
+#                 dprint("finished: ", call.__self__.__class__.__name__, ".", call.__name__)
+                dprint("finished ", call)
                 if self._call_generators:
                     call, call_generator = self._call_generators[0]
                     self._start(call)
@@ -615,7 +620,7 @@ class DispersySyncScript(ScriptBase):
         # create some data
         global_times = range(10, 15)
         for global_time in global_times:
-            node.send_message(node.create_in_order_text_message("Message #{0}".format(global_time), global_time), address)
+            node.send_message(node.create_in_order_text_message("Message #%d" % global_time, global_time), address)
             yield 0.01
 
         # send an empty sync message to obtain all messages in-order
@@ -648,7 +653,7 @@ class DispersySyncScript(ScriptBase):
         # create some data
         global_times = range(10, 15)
         for global_time in global_times:
-            node.send_message(node.create_out_order_text_message("Message #{0}".format(global_time), global_time), address)
+            node.send_message(node.create_out_order_text_message("Message #%d" % global_time, global_time), address)
             yield 0.01
 
         # send an empty sync message to obtain all messages out-order
@@ -681,7 +686,7 @@ class DispersySyncScript(ScriptBase):
         # create some data
         global_times = range(10, 15)
         for global_time in global_times:
-            node.send_message(node.create_random_order_text_message("Message #{0}".format(global_time), global_time), address)
+            node.send_message(node.create_random_order_text_message("Message #%d" % global_time, global_time), address)
             yield 0.01
 
         def get_messages_back():
@@ -733,15 +738,15 @@ class DispersySyncScript(ScriptBase):
         random_order_times = []
         for global_time in global_times:
             in_order_times.append(global_time)
-            node.send_message(node.create_in_order_text_message("Message #{0}".format(global_time), global_time), address)
+            node.send_message(node.create_in_order_text_message("Message #%d" % global_time, global_time), address)
             yield 0.01
             global_time += 1
             out_order_times.append(global_time)
-            node.send_message(node.create_out_order_text_message("Message #{0}".format(global_time), global_time), address)
+            node.send_message(node.create_out_order_text_message("Message #%d" % global_time, global_time), address)
             yield 0.01
             global_time += 1
             random_order_times.append(global_time)
-            node.send_message(node.create_random_order_text_message("Message #{0}".format(global_time), global_time), address)
+            node.send_message(node.create_random_order_text_message("Message #%d" % global_time, global_time), address)
             yield 0.01
         out_order_times.sort(reverse=True)
         dprint("Total in:", len(in_order_times), "; out:", len(out_order_times), "; rand:", len(random_order_times))

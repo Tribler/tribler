@@ -44,8 +44,9 @@ CREATE TABLE community(
  id INTEGER PRIMARY KEY AUTOINCREMENT,          -- local counter for database optimization
  user INTEGER REFERENCES user(id),              -- my member that is used to sign my messages
  classification TEXT,                           -- the community type, typically the class name
- public_key BLOB,                               -- community master key (public part)
- UNIQUE(user, public_key));
+ cid BLOB,                                      -- the sha1 digest of the public_key
+ public_key BLOB DEFAULT '',                    -- community master key (public part) when available
+ UNIQUE(user, cid, public_key));
 
 CREATE TABLE key(
  public_key BLOB,                               -- public part
@@ -80,25 +81,25 @@ CREATE TABLE sync(
  destination_cluster INTEGER DEFAULT 0,         -- used for the similarity-destination policy
  packet BLOB);
 
-CREATE TABLE similarity(
- id INTEGER PRIMARY KEY AUTOINCREMENT,
- community INTEGER REFERENCES community(id),
- user INTEGER REFERENCES user(id),
- cluster INTEGER,
- similarity BLOB,
- packet BLOB,
- UNIQUE(community, user, cluster));
+--CREATE TABLE similarity(
+-- id INTEGER PRIMARY KEY AUTOINCREMENT,
+-- community INTEGER REFERENCES community(id),
+-- user INTEGER REFERENCES user(id),
+-- cluster INTEGER,
+-- similarity BLOB,
+-- packet BLOB,
+-- UNIQUE(community, user, cluster));
 
 -- TODO: remove id, community, user, and cluster columns and replace with refrence to similarity table
 -- my_similarity is used to store the similarity bits
 -- as set by the user *before* regulating
-CREATE TABLE my_similarity (
- id INTEGER PRIMARY KEY AUTOINCREMENT,
- community INTEGER REFERENCES community(id),
- user INTEGER REFERENCES user(id),
- cluster INTEGER,
- similarity BLOB,
- UNIQUE(community, user));
+--CREATE TABLE my_similarity (
+-- id INTEGER PRIMARY KEY AUTOINCREMENT,
+-- community INTEGER REFERENCES community(id),
+-- user INTEGER REFERENCES user(id),
+-- cluster INTEGER,
+-- similarity BLOB,
+-- UNIQUE(community, user));
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
 INSERT INTO option(key, value) VALUES('database_version', '1');
@@ -138,7 +139,7 @@ class DispersyDatabase(Database):
         bootstrap nodes are known.  Without these bootstrap nodes no other nodes will ever be found.
         """
         host = unicode(gethostbyname(u"dispersy1.tribler.org"))
-        port = 12345
+        port = 6421
         public_key = "3081a7301006072a8648ce3d020106052b810400270381920004015f83ac4e8fe506c4035853096187814b93dbe566dbb24f98c51252c3d3a346a1c5813c7db8ece549f92c5ca9fd1cd58018a60e92432bcc12a610760f35b5907094cb6d7cd4e67001a1ab08b3a626a3884ebb5fe69969c47aba087075c72a326ae62046867aa435d71b59a388b5ecbf100896d1ed36131a0c4f6c5c3cb4f19a341919e87976eb03cdea8d6d85704370".decode("HEX")
         mid = "3a4abd4ebb317172c057728799a5e5ea88c6bffa".decode("HEX")
         self.execute(u"INSERT INTO user(mid, public_key) VALUES(?, ?)", (buffer(mid), buffer(public_key)))

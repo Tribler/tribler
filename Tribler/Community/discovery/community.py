@@ -27,8 +27,8 @@ class DiscoveryCommunity(Community, Singleton):
     - user-metadata: sync user alias and description
     - community-metadata: sync community alias and description
     """
-    def __init__(self, cid):
-        super(DiscoveryCommunity, self).__init__(cid)
+    def __init__(self, cid, master_key):
+        super(DiscoveryCommunity, self).__init__(cid, master_key)
 
         # discovery storage
         self._database = DiscoveryDatabase.get_instance()

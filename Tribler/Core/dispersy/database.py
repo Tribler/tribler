@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 This module provides basic database functionalty and simple version control.
 
@@ -29,17 +32,18 @@ class Database(Singleton):
             self._debug_thread_ident = thread.get_ident()
             self._debug_file_path = file_path
 
-        self._connection = sqlite3.Connection(file_path)
+        self._connection = sqlite3.Connection(file_path, isolation_level=None)
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
 
-        # database configuration (pragma)
-        if __debug__:
-            cache_size, = self._cursor.execute(u"PRAGMA cache_size").next()
-            page_size, = self._cursor.execute(u"PRAGMA page_size").next()
-            page_count, = self._cursor.execute(u"PRAGMA page_count").next()
-            dprint("page_size: ", page_size, " (for currently ", page_count * page_size, " bytes in database)")
-            dprint("cache_size: ", cache_size, " (for maximal ", cache_size * page_size, " bytes in memory)")
+# some pragma commands are not available on old sqlite versions...
+#         # database configuration (pragma)
+#         if __debug__:
+#             cache_size, = self._cursor.execute(u"PRAGMA cache_size").next()
+#             page_size, = self._cursor.execute(u"PRAGMA page_size").next()
+#             page_count, = self._cursor.execute(u"PRAGMA page_count").next()
+#             dprint("page_size: ", page_size, " (for currently ", page_count * page_size, " bytes in database)")
+#             dprint("cache_size: ", cache_size, " (for maximal ", cache_size * page_size, " bytes in memory)")
 
         synchronous, = self._cursor.execute(u"PRAGMA synchronous").next()
         if __debug__: dprint("synchronous: ", synchronous, " (", {0:"OFF", 1:"NORMAL", 2:"FULL"}[synchronous])
@@ -53,21 +57,21 @@ class Database(Singleton):
             if __debug__: dprint("temp_store: ", temp_store, " (", {0:"DEFAULT", 1:"FILE", 2:"MEMORY"}[temp_store], ") --> 3 (MEMORY)")
             self._cursor.execute(u"PRAGMA temp_store = 3")
 
-        # get version from required 'option' table
+        # check is the database contains an 'option' table
         try:
-            version, = self.execute(u"""
-            --
-            -- Check if the database exists.
-            --
-            -- If it does NOT exist this query will fail as there is no option table.  This can
-            -- safely be ignored.
-            --
-            SELECT value FROM option WHERE key == 'database_version' LIMIT 1""").next()
-        except sqlite3.Error:
-            # the 'option' table probably hasn't been created yet
-            version = u"0"
+            count, = self.execute(u"SELECT COUNT(1) FROM sqlite_master WHERE type = 'table' AND name = 'option'").next()
         except StopIteration:
-            # the 'database_version' key was not found
+            raise RuntimeError()
+
+        if count:
+            # get version from required 'option' table
+            try:
+                version, = self.execute(u"SELECT value FROM option WHERE key == 'database_version' LIMIT 1").next()
+            except StopIteration:
+                # the 'database_version' key was not found
+                version = u"0"
+        else:
+            # the 'option' table probably hasn't been created yet
             version = u"0"
 
         self.check_database(version)
@@ -91,7 +95,9 @@ class Database(Singleton):
 
         @return: The method self.execute
         """
-        self._connection.__enter__()
+        # _connection.__enter__() introduced in Python 2.6
+        # self._connection.__enter__()
+        self._cursor.execute(u"BEGIN")
         return self.execute
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -100,7 +106,14 @@ class Database(Singleton):
 
         @see: _enter__
         """
-        return self._connection.__exit__(exc_type, exc_value, traceback)
+        # _connection.__exit__() introduced in Python 2.6
+        # return self._connection.__exit__(exc_type, exc_value, traceback)
+        if exc_type is None:
+            self._cursor.execute(u"COMMIT")
+            return True
+        else:
+            self._cursor.execute(u"ROLLBACK")
+            return False
 
     @property
     def last_insert_rowid(self):
@@ -241,3 +254,19 @@ class Database(Singleton):
         @type database_version: unicode
         """
         raise NotImplementedError()
+
+if __debug__:
+    if __name__ == "__main__":
+        class TestDatabase(Database):
+            def check_database(self, database_version):
+                pass
+
+        db = TestDatabase.get_instance(u"test.db")
+        db.execute(u"CREATE TABLE pair (key INTEGER, value TEXT)")
+        db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (1, u"foo"))
+        db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (2, u"bar"))
+        db.commit()
+
+        with db as execute:
+            execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
+            execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (4, u"milk"))

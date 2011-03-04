@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 from conversion import BarterCommunityConversion
 from database import BarterDatabase
 from payload import BarterRecordPayload
@@ -20,8 +23,8 @@ class BarterCommunity(Community):
     contributed and consumed from the community.
     """
 
-    def __init__(self, cid):
-        super(BarterCommunity, self).__init__(cid)
+    def __init__(self, cid, master_key):
+        super(BarterCommunity, self).__init__(cid, master_key)
 
         # storage
         self._database = BarterDatabase.get_instance()

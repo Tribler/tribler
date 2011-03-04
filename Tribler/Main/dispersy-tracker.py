@@ -4,6 +4,8 @@
 Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
 
+import hashlib
+import os
 import errno
 import socket
 import sys
@@ -12,10 +14,14 @@ import traceback
 import threading
 import optparse
 
+from Tribler.Core.Overlay.permid import read_keypair
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
+from Tribler.Core.dispersy.member import MyMember
+from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
+from Tribler.Core.dispersy.conversion import BinaryConversion
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -25,12 +31,34 @@ if sys.platform == 'win32':
 else:
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
+class TrackerConversion(BinaryConversion):
+    pass
+
 class TrackerCommunity(Community):
     """
     This community will only use dispersy-routing-request and dispersy-routing-response messages.
     """
-    def __init__(self, cid):
-        super(TrackerCommunity, self).__init__(cid)
+    @classmethod
+    def join_community(cls, cid, my_member, *args, **kargs):
+        assert isinstance(cid, str)
+        assert len(cid) == 20
+
+        database = DispersyDatabase.get_instance()
+        database.execute(u"INSERT INTO community(user, classification, cid) VALUES(?, ?, ?)",
+                         (my_member.database_id, cls.get_classification(), buffer(cid)))
+
+        print "Join community", cid.encode("HEX")
+
+        # new community instance
+        community = cls(cid, *args, **kargs)
+
+        # send out my initial dispersy-identity
+        community.create_identity()
+
+        return community
+
+    def __init__(self, public_key):
+        super(TrackerCommunity, self).__init__(public_key)
 
         # remove all messages that we should not be using
         meta_messages = self._meta_messages
@@ -43,35 +71,43 @@ class TrackerCommunity(Community):
             self._meta_messages[name] = meta_messages[name]
 
     @property
-    def dispersy_sync_interval(self):
-        # because there is nothing to sync in this community, we will only 'sync' once per hour
-        return 3600.0
+    def dispersy_sync_initial_delay(self):
+        # we should not sync ever as we will receive messages that we
+        # do not understand
+        return 0.0
+
+    def initiate_meta_messages(self):
+        return []
 
     def get_conversion(self, prefix=None):
-        # pick the default conversion if none match
         if not prefix in self._conversions:
-            assert None in self._conversions
-            prefix = None
+            self._conversions[prefix] = TrackerConversion(self, prefix[20:22])
+
+            # use highest version as default
+            if None in self._conversions:
+                if self._conversions[None].version < self._conversions[prefix].version:
+                    self._conversions[None] = self._conversions[prefix]
+            else:
+                self._conversions[None] = self._conversions[prefix]
+
         return self._conversions[prefix]
 
-    @classmethod
-    def join_community(cls, cid, my_member, *args, **kargs):
-        assert isinstance(cid, str)
-        assert len(cid) == 20
-        database = DispersyDatabase.get_instance()
-        database.execute(u"INSERT INTO community(user, cid, classification, public_key) VALUES(?, ?, ?, ?)",
-                         (my_member.database_id, buffer(cid), cls.get_classification(), buffer("-unknown-")))
-
-        # new community instance
-        community = cls(cid, *args, **kargs)
-
-        return community
-
 class TrackerDispersy(Dispersy):
+    @classmethod
+    def get_instance(cls, *args, **kargs):
+        kargs["singleton_superclass"] = Dispersy
+        return super(TrackerDispersy, cls).get_instance(*args, **kargs)
+
+    def __init__(self, rawserver, statedir):
+        super(TrackerDispersy, self).__init__(rawserver, statedir)
+
+        # get my_member, the key pair that we will use when we join a new community
+        keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
+        self._my_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+
     def get_community(self, cid):
-        # return an existing TrackerCommunity or create a new one
         if not cid in self._communities:
-            self._communities[cid] = TrackerCommunity.join_community(cid)
+            self._communities[cid] = TrackerCommunity.join_community(cid, self._my_member)
         return self._communities[cid]
 
 class DispersySocket(object):
@@ -80,7 +116,7 @@ class DispersySocket(object):
             if __debug__: dprint("Dispersy listening at ", port)
             try:
                 self.socket = rawserver.create_udpsocket(port, ip)
-            except socket.error as error:
+            except socket.error, error:
                 port += 1
                 continue
             break
@@ -113,9 +149,9 @@ def main():
         session_done_flag.set()
 
     command_line_parser = optparse.OptionParser()
-    command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=u".")
+    command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")
     command_line_parser.add_option("--ip", action="store", type="string", default="0.0.0.0", help="Dispersy uses this ip")
-    command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
+    command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=6421)
     command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=60.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
 
@@ -128,7 +164,7 @@ def main():
     rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
 
     # start Dispersy
-    dispersy = TrackerDispersy.get_instance(rawserver, opt.statedir)
+    dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
     dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
     # load the existing Tracker communities

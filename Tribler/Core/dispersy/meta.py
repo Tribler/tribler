@@ -12,16 +12,16 @@ class MetaObject(object):
             return self._meta
 
         def __str__(self):
-            return "<{0.meta.__class__.__name__}.{0.__class__.__name__}>".format(self)
+            return "<%s.%s>" % (self._meta.__class__.__name__, self.__class__.__name__)
 
     def __str__(self):
-        return "<{0.__class__.__name__}>".format(self)
+        return "<%s>" % self.__class__.__name__
 
     def implement(self, *args, **kargs):
         try:
             return self.Implementation(self, *args, **kargs)
         except TypeError:
-            dprint("TypeError in <{0.__class__.__name__}.{0.Implementation.__name__}>".format(self), level="error")
+            dprint("TypeError in ", self.__class__.__name__, ".", self.Implementation.__name__, level="error")
             dprint("self.Implementation takes: ", inspect.getargspec(self.Implementation.__init__), level="error")
             dprint("self.Implementation got: ", args, " ", kargs, level="error")
             raise

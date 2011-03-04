@@ -59,8 +59,8 @@ class AllChannelCommunity(Community):
 
         return communities
 
-    def __init__(self, master_key):
-        super(AllChannelCommunity, self).__init__(master_key)
+    def __init__(self, cid, master_key):
+        super(AllChannelCommunity, self).__init__(cid, master_key)
 
         # tribler torrent database
         self._torrent_database = TorrentDBHandler.getInstance()

@@ -31,7 +31,7 @@ def main():
                 if __debug__: dprint("Dispersy listening at ", port)
                 try:
                     self.socket = rawserver.create_udpsocket(port, ip)
-                except socket.error as error:
+                except socket.error, error:
                     port += 1
                     continue
                 break

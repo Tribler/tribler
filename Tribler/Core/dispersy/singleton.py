@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 Helper class to easily and cleanly use singleton objects
 """
@@ -28,31 +31,43 @@ class Singleton(object):
     _singleton_lock = RLock()
 
     @classmethod
-    def has_instance(cls):
+    def has_instance(cls, singleton_superclass=None):
         """
         Returns the existing singleton instance or None
         """
-        if hasattr(cls, "_singleton_instance"):
-            return getattr(cls, "_singleton_instance")
+        if not singleton_superclass is None:
+            cls = singleton_superclass
+
+        if hasattr(singleton_superclass, "_singleton_instance"):
+            return getattr(singleton_superclass, "_singleton_instance")
 
     @classmethod
     def get_instance(cls, *args, **kargs):
         """
         Returns the existing singleton instance or create one
         """
-        if hasattr(cls, "_singleton_instance"):
-            return getattr(cls, "_singleton_instance")
+        if "singleton_superclass" in kargs:
+            singleton_superclass = kargs["singleton_superclass"]
+            del kargs["singleton_superclass"]
+        else:
+            singleton_superclass = cls
+
+        if hasattr(singleton_superclass, "_singleton_instance"):
+            return getattr(singleton_superclass, "_singleton_instance")
 
         with cls._singleton_lock:
-            if not hasattr(cls, "_singleton_instance"):
-                setattr(cls, "_singleton_instance", cls(*args, **kargs))
-            return getattr(cls, "_singleton_instance")
+            if not hasattr(singleton_superclass, "_singleton_instance"):
+                setattr(singleton_superclass, "_singleton_instance", cls(*args, **kargs))
+            return getattr(singleton_superclass, "_singleton_instance")
 
     @classmethod
-    def del_instance(cls):
+    def del_instance(cls, singleton_superclass=None):
         """
         Removes the existing singleton instance
         """
+        if not singleton_superclass is None:
+            cls = singleton_superclass
+
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instance"):
                 delattr(cls, "_singleton_instance")

@@ -248,7 +248,7 @@ class MultiMemberAuthentication(Authentication):
 
             @param members: The members that will need to sign this message, in this order.  The
              first member will considered the owner of the message.
-            @type members: list or tuple containing Member instances
+            @type members: list containing Member instances
 
             @param signatures: The available, and verified, signatures for each member.  Should only
              be given when decoding a message.
@@ -256,7 +256,7 @@ class MultiMemberAuthentication(Authentication):
             """
             if __debug__:
                 from member import Member
-            assert isinstance(members, (tuple, list)), type(members)
+            assert isinstance(members, list), type(members)
             assert not filter(lambda x: not isinstance(x, Member), members)
             assert len(members) == meta._count
             assert isinstance(signatures, list)

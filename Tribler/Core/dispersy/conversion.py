@@ -27,9 +27,9 @@ class Conversion(object):
         VERSION is the conversion identifyer (on the wire version).
         """
         if __debug__: from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(version, str)
-        assert len(version) == 2
+        assert isinstance(community, Community), type(community)
+        assert isinstance(version, str), type(version)
+        assert len(version) == 2, version
 
         # the dispersy database
         self._dispersy_database = DispersyDatabase.get_instance()
@@ -92,21 +92,45 @@ class BinaryConversion(Conversion):
         self._encode_message_map = dict() # message.name : (byte, encode_payload_func)
         self._decode_message_map = dict() # byte : (message, decode_payload_func)
 
-        self.define_meta_message(chr(254), community.get_meta_message(u"dispersy-missing-sequence"), self._encode_missing_sequence, self._decode_missing_sequence)
-        self.define_meta_message(chr(253), community.get_meta_message(u"dispersy-sync"), self._encode_sync, self._decode_sync)
-        self.define_meta_message(chr(252), community.get_meta_message(u"dispersy-signature-request"), self._encode_signature_request, self._decode_signature_request)
-        self.define_meta_message(chr(251), community.get_meta_message(u"dispersy-signature-response"), self._encode_signature_response, self._decode_signature_response)
-        self.define_meta_message(chr(250), community.get_meta_message(u"dispersy-routing-request"), self._encode_routing_request, self._decode_routing_request)
-        self.define_meta_message(chr(249), community.get_meta_message(u"dispersy-routing-response"), self._encode_routing_response, self._decode_routing_response)
-        self.define_meta_message(chr(248), community.get_meta_message(u"dispersy-identity"), self._encode_identity, self._decode_identity)
-        self.define_meta_message(chr(247), community.get_meta_message(u"dispersy-identity-request"), self._encode_identity_request, self._decode_identity_request)
-        self.define_meta_message(chr(246), community.get_meta_message(u"dispersy-similarity"), self._encode_similarity, self._decode_similarity)
-        self.define_meta_message(chr(245), community.get_meta_message(u"dispersy-similarity-request"), self._encode_similarity_request, self._decode_similarity_request)
-        self.define_meta_message(chr(244), community.get_meta_message(u"dispersy-destroy-community"), self._encode_destroy_community, self._decode_destroy_community)
-        self.define_meta_message(chr(243), community.get_meta_message(u"dispersy-authorize"), self._encode_authorize, self._decode_authorize)
-        self.define_meta_message(chr(242), community.get_meta_message(u"dispersy-revoke"), self._encode_revoke, self._decode_revoke)
-        self.define_meta_message(chr(241), community.get_meta_message(u"dispersy-subjective-set"), self._encode_subjective_set, self._decode_subjective_set)
-        self.define_meta_message(chr(240), community.get_meta_message(u"dispersy-subjective-set-request"), self._encode_subjective_set_request, self._decode_subjective_set_request)
+        def define(value, name, encode, decode):
+            try:
+                meta = community.get_meta_message(name)
+            except KeyError:
+                if __debug__: dprint("unable to define non-available message ", name, level="warning")
+            else:
+                self.define_meta_message(chr(value), meta, encode, decode)
+
+        define(254, u"dispersy-missing-sequence", self._encode_missing_sequence, self._decode_missing_sequence)
+        define(253, u"dispersy-sync", self._encode_sync, self._decode_sync)
+        define(252, u"dispersy-signature-request", self._encode_signature_request, self._decode_signature_request)
+        define(251, u"dispersy-signature-response", self._encode_signature_response, self._decode_signature_response)
+        define(250, u"dispersy-routing-request", self._encode_routing_request, self._decode_routing_request)
+        define(249, u"dispersy-routing-response", self._encode_routing_response, self._decode_routing_response)
+        define(248, u"dispersy-identity", self._encode_identity, self._decode_identity)
+        define(247, u"dispersy-identity-request", self._encode_identity_request, self._decode_identity_request)
+#         define(246, u"dispersy-similarity", self._encode_similarity, self._decode_similarity)
+#         define(245, u"dispersy-similarity-request", self._encode_similarity_request, self._decode_similarity_request)
+        define(244, u"dispersy-destroy-community", self._encode_destroy_community, self._decode_destroy_community)
+        define(243, u"dispersy-authorize", self._encode_authorize, self._decode_authorize)
+        define(242, u"dispersy-revoke", self._encode_revoke, self._decode_revoke)
+        define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
+        define(240, u"dispersy-subjective-set-request", self._encode_subjective_set_request, self._decode_subjective_set_request)
+
+#         self.define_meta_message(chr(254), community.get_meta_message(u"dispersy-missing-sequence"), self._encode_missing_sequence, self._decode_missing_sequence)
+#         self.define_meta_message(chr(253), community.get_meta_message(u"dispersy-sync"), self._encode_sync, self._decode_sync)
+#         self.define_meta_message(chr(252), community.get_meta_message(u"dispersy-signature-request"), self._encode_signature_request, self._decode_signature_request)
+#         self.define_meta_message(chr(251), community.get_meta_message(u"dispersy-signature-response"), self._encode_signature_response, self._decode_signature_response)
+#         self.define_meta_message(chr(250), community.get_meta_message(u"dispersy-routing-request"), self._encode_routing_request, self._decode_routing_request)
+#         self.define_meta_message(chr(249), community.get_meta_message(u"dispersy-routing-response"), self._encode_routing_response, self._decode_routing_response)
+#         self.define_meta_message(chr(248), community.get_meta_message(u"dispersy-identity"), self._encode_identity, self._decode_identity)
+#         self.define_meta_message(chr(247), community.get_meta_message(u"dispersy-identity-request"), self._encode_identity_request, self._decode_identity_request)
+# #         self.define_meta_message(chr(246), community.get_meta_message(u"dispersy-similarity"), self._encode_similarity, self._decode_similarity)
+# #         self.define_meta_message(chr(245), community.get_meta_message(u"dispersy-similarity-request"), self._encode_similarity_request, self._decode_similarity_request)
+#         self.define_meta_message(chr(244), community.get_meta_message(u"dispersy-destroy-community"), self._encode_destroy_community, self._decode_destroy_community)
+#         self.define_meta_message(chr(243), community.get_meta_message(u"dispersy-authorize"), self._encode_authorize, self._decode_authorize)
+#         self.define_meta_message(chr(242), community.get_meta_message(u"dispersy-revoke"), self._encode_revoke, self._decode_revoke)
+#         self.define_meta_message(chr(241), community.get_meta_message(u"dispersy-subjective-set"), self._encode_subjective_set, self._decode_subjective_set)
+#         self.define_meta_message(chr(240), community.get_meta_message(u"dispersy-subjective-set-request"), self._encode_subjective_set_request, self._decode_subjective_set_request)
 
     def define_meta_message(self, byte, message, encode_payload_func, decode_payload_func):
         assert isinstance(byte, str)
@@ -114,7 +138,7 @@ class BinaryConversion(Conversion):
         assert isinstance(message, Message)
         assert 0 < ord(byte) < 255
         assert not message.name in self._encode_message_map
-        assert not byte in self._decode_message_map, "This byte has already been defined ({0})".format(ord(byte))
+        assert not byte in self._decode_message_map, "This byte has already been defined (%d)" % ord(byte)
         assert callable(encode_payload_func)
         assert callable(decode_payload_func)
         self._encode_message_map[message.name] = (byte, encode_payload_func)
@@ -800,7 +824,7 @@ class BinaryConversion(Conversion):
         assert isinstance(data, str)
         assert isinstance(verify_all_signatures, bool)
         assert len(data) >= 22
-        assert data[:22] == self._prefix
+        assert data[:22] == self._prefix, (data[:22].encode("HEX"), self._prefix.encode("HEX"))
 
         if len(data) < 100:
             DropPacket("Packet is to small to decode")
@@ -810,7 +834,7 @@ class BinaryConversion(Conversion):
         # meta_message
         meta_message, decode_payload_func = self._decode_message_map.get(data[offset], (None, None))
         if meta_message is None:
-            raise DropPacket("Invalid message byte")
+            raise DropPacket("Unknown message code %d" % ord(data[offset]))
         offset += 1
 
         # authentication

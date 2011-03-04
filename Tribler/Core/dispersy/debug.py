@@ -52,7 +52,7 @@ class Node(object):
             while True:
                 try:
                     s.bind(("localhost", port))
-                except socket.error as error:
+                except socket.error, error:
                     port = Node._socket_range[0] + Node._socket_counter % (Node._socket_range[1] - Node._socket_range[0])
                     Node._socket_counter += 1
                     continue

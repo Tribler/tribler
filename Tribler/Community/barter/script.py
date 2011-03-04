@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 from hashlib import sha1
 import time
 
@@ -14,7 +17,7 @@ from Tribler.Core.dispersy.dprint import dprint
 class BarterNode(Node):
     def create_barter_record(self, second_member, first_upload, second_upload, global_time):
         meta = self._community.get_meta_message(u"barter-record")
-        return meta.implement(meta.authentication.implement((self._my_member, second_member)),
+        return meta.implement(meta.authentication.implement([self._my_member, second_member]),
                               meta.distribution.implement(global_time),
                               meta.destination.implement(),
                               meta.payload.implement(first_upload, second_upload))
