@@ -39,26 +39,29 @@ class TrackerCommunity(Community):
     This community will only use dispersy-routing-request and dispersy-routing-response messages.
     """
     @classmethod
-    def join_community(cls, cid, my_member, *args, **kargs):
+    def join_community(cls, cid, master_key, my_member, *args, **kargs):
         assert isinstance(cid, str)
         assert len(cid) == 20
+        assert isinstance(master_key, str)
+        assert not master_key or cid == sha1(master_key).digest()
+        assert isinstance(my_member, MyMember)
 
         database = DispersyDatabase.get_instance()
-        database.execute(u"INSERT INTO community(user, classification, cid) VALUES(?, ?, ?)",
-                         (my_member.database_id, cls.get_classification(), buffer(cid)))
+        database.execute(u"INSERT INTO community(user, classification, cid, public_key) VALUES(?, ?, ?, ?)",
+                         (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_key)))
 
         print "Join community", cid.encode("HEX")
 
         # new community instance
-        community = cls(cid, *args, **kargs)
+        community = cls(cid, master_key, *args, **kargs)
 
         # send out my initial dispersy-identity
         community.create_identity()
 
         return community
 
-    def __init__(self, public_key):
-        super(TrackerCommunity, self).__init__(public_key)
+    def __init__(self, cid, master_key):
+        super(TrackerCommunity, self).__init__(cid, master_key)
 
         # remove all messages that we should not be using
         meta_messages = self._meta_messages
@@ -107,7 +110,7 @@ class TrackerDispersy(Dispersy):
 
     def get_community(self, cid):
         if not cid in self._communities:
-            self._communities[cid] = TrackerCommunity.join_community(cid, self._my_member)
+            self._communities[cid] = TrackerCommunity.join_community(cid, "", self._my_member)
         return self._communities[cid]
 
 class DispersySocket(object):
