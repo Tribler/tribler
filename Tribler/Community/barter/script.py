@@ -255,7 +255,7 @@ class BarterScenarioScript(ScriptBase):
 
         # create a dispersy-identity message for my_member and the
         # self._barter community.  This message will be sent to all
-        # the peers in the 'peers' file to (a) add them to our routing
+        # the peers in the 'peers' file to (a) add them to our candidate
         # table (b) let them know about our existance and our public
         # key
         meta = self._barter.get_meta_message(u"dispersy-identity")

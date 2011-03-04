@@ -9,7 +9,7 @@ from dprint import dprint
 from member import MyMember, Member
 from member import PrivateMember, MyMember
 from message import Message
-from payload import MissingSequencePayload, SyncPayload, SignatureResponsePayload, RoutingRequestPayload, IdentityPayload, SimilarityPayload
+from payload import MissingSequencePayload, SyncPayload, SignatureResponsePayload, CandidateRequestPayload, IdentityPayload, SimilarityPayload
 from resolution import PublicResolution, LinearResolution
 
 class DebugOnlyMembers(object):
@@ -70,7 +70,7 @@ class Node(object):
     def my_member(self):
         return self._my_member
 
-    def init_my_member(self, bits=None, sync_with_database=None, routing=True, identity=True):
+    def init_my_member(self, bits=None, sync_with_database=None, candidate=True, identity=True):
         assert bits is None, "The parameter bits is depricated and must be None"
         assert sync_with_database is None, "The parameter sync_with_database is depricated and must be None"
 
@@ -79,20 +79,20 @@ class Node(object):
 
         if identity:
             # update identity information
-            assert self._socket, "Socket needs to be set to routing"
-            assert self._community, "Community needs to be set to routing"
+            assert self._socket, "Socket needs to be set to candidate"
+            assert self._community, "Community needs to be set to candidate"
             source_address = self._socket.getsockname()
             destination_address = self._community._dispersy.socket.get_address()
             message = self.create_dispersy_identity_message(source_address, 2)
             self.send_message(message, destination_address)
 
-        if routing:
-            # update routing information
-            assert self._socket, "Socket needs to be set to routing"
-            assert self._community, "Community needs to be set to routing"
+        if candidate:
+            # update candidate information
+            assert self._socket, "Socket needs to be set to candidate"
+            assert self._community, "Community needs to be set to candidate"
             source_address = self._socket.getsockname()
             destination_address = self._community._dispersy.socket.get_address()
-            message = self.create_dispersy_routing_request_message(source_address, destination_address, self._community.get_conversion().version, [], 1)
+            message = self.create_dispersy_candidate_request_message(source_address, destination_address, self._community.get_conversion().version, [], 1)
             self.send_message(message, destination_address)
 
     @property
@@ -194,7 +194,7 @@ class Node(object):
                               meta.destination.implement(),
                               meta.payload.implement(address))
 
-    def create_dispersy_routing_request_message(self, source_address, destination_address, source_default_conversion, routes, global_time):
+    def create_dispersy_candidate_request_message(self, source_address, destination_address, source_default_conversion, routes, global_time):
         assert isinstance(source_address, tuple)
         assert len(source_address) == 2
         assert isinstance(source_address[0], str)
@@ -214,7 +214,7 @@ class Node(object):
         assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
         assert not filter(lambda route: not isinstance(route[1], float), routes)
         assert isinstance(global_time, (int, long))
-        meta = self._community.get_meta_message(u"dispersy-routing-request")
+        meta = self._community.get_meta_message(u"dispersy-candidate-request")
         return meta.implement(meta.authentication.implement(self._my_member),
                               meta.distribution.implement(global_time),
                               meta.destination.implement(destination_address),

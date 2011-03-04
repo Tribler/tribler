@@ -36,7 +36,7 @@ class TrackerConversion(BinaryConversion):
 
 class TrackerCommunity(Community):
     """
-    This community will only use dispersy-routing-request and dispersy-routing-response messages.
+    This community will only use dispersy-candidate-request and dispersy-candidate-response messages.
     """
     @classmethod
     def join_community(cls, cid, master_key, my_member, *args, **kargs):
@@ -66,8 +66,8 @@ class TrackerCommunity(Community):
         # remove all messages that we should not be using
         meta_messages = self._meta_messages
         self._meta_messages = {}
-        for name in [u"dispersy-routing-request",
-                     u"dispersy-routing-response",
+        for name in [u"dispersy-candidate-request",
+                     u"dispersy-candidate-response",
                      u"dispersy-identity",
                      u"dispersy-identity-request",
                      u"dispersy-destroy-community"]:

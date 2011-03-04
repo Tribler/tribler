@@ -164,8 +164,8 @@ class DebugCommunity(Community):
     Community to debug Dispersy related messages and policies.
     """
     @property
-    def dispersy_routing_request_initial_delay(self):
-        # disable routing
+    def dispersy_candidate_request_initial_delay(self):
+        # disable candidate
         return 0.0
 
     @property

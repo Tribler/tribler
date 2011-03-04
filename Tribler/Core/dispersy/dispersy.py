@@ -57,7 +57,7 @@ from payload import AuthorizePayload, RevokePayload
 from payload import MissingSequencePayload
 from payload import SyncPayload
 from payload import SignatureRequestPayload, SignatureResponsePayload
-from payload import RoutingRequestPayload, RoutingResponsePayload
+from payload import CandidateRequestPayload, CandidateResponsePayload
 from payload import IdentityPayload, IdentityRequestPayload
 from payload import SubjectiveSetPayload, SubjectiveSetRequestPayload
 from payload import SimilarityRequestPayload, SimilarityPayload
@@ -214,8 +214,8 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-routing-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), RoutingRequestPayload(), self.check_routing_request, self.on_routing_request),
-                Message(community, u"dispersy-routing-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), RoutingResponsePayload(), self.check_routing_response, self.on_routing_response),
+        return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request),
+                Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity),
                 Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self.check_identity_request, self.on_identity_request),
                 Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync),
@@ -253,10 +253,10 @@ class Dispersy(Singleton):
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_initial_delay, "id:sync-" + community.cid)
 
-        # periodically send dispery-routing-request messages
-        if __debug__: dprint("start in ", community.dispersy_routing_request_initial_delay, " every ", community.dispersy_routing_request_interval, " seconds call _periodically_create_routing_request")
-        if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
-            self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_initial_delay, "id:routing-" + community.cid)
+        # periodically send dispery-candidate-request messages
+        if __debug__: dprint("start in ", community.dispersy_candidate_request_initial_delay, " every ", community.dispersy_candidate_request_interval, " seconds call _periodically_create_candidate_request")
+        if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
+            self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_initial_delay, "id:candidate-" + community.cid)
 
     def remove_community(self, community):
         if __debug__:
@@ -264,7 +264,7 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         assert community.cid in self._communities
         self._rawserver.kill_tasks("id:sync-" + community.cid)
-        self._rawserver.kill_tasks("id:routing-" + community.cid)
+        self._rawserver.kill_tasks("id:candidate-" + community.cid)
         del self._communities[community.cid]
 
     def get_community(self, cid):
@@ -561,12 +561,12 @@ class Dispersy(Singleton):
                 if __debug__: log("dispersy.log", "delay-packet", address=address, packet=packet, pattern=delay.pattern)
 
             else:
-                # update routing table.  We know that some peer (not necessarily
+                # update candidate table.  We know that some peer (not necessarily
                 # message.authentication.member) exists at this address.
-                self._database.execute(u"UPDATE routing SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
+                self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
                                        (message.community.database_id, unicode(address[0]), address[1]))
                 if self._database.changes == 0:
-                    self._database.execute(u"INSERT INTO routing(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
+                    self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
                                            (message.community.database_id, unicode(address[0]), address[1]))
 
                 # handle the message
@@ -716,7 +716,7 @@ class Dispersy(Singleton):
                     (message.authentication.member.database_id,
                      message.packet_id))
 
-    def _select_routing_addresses(self, community_id, address_count, diff_range, age_range):
+    def _select_candidate_addresses(self, community_id, address_count, diff_range, age_range):
         assert isinstance(community_id, (int, long))
         assert community_id >= 0
         assert isinstance(address_count, int)
@@ -741,7 +741,7 @@ class Dispersy(Singleton):
         # b. we want to get connections to those that have been away for some time, hence we send
         #    messages to those that have a high age.
         sql = u"""SELECT host, port
-                  FROM routing
+                  FROM candidate
                   WHERE community = ? AND (ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) BETWEEN ? AND ?
                                            OR STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) BETWEEN ? AND ?)
                   ORDER BY RANDOM()
@@ -757,7 +757,7 @@ class Dispersy(Singleton):
         # will add a value to the outgoing_time column because we will sent something to this
         # address.
         sql = u"""SELECT host, port
-                  FROM routing
+                  FROM candidate
                   WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', external_time) BETWEEN ? AND ?
                   ORDER BY RANDOM()
                   LIMIT ?"""
@@ -771,7 +771,7 @@ class Dispersy(Singleton):
         # at this point we do not have sufficient nodes that were online recently.  as an
         # alternative we will add the addresses of dispersy routers that should always be online
         sql = u"""SELECT host, port
-                  FROM routing
+                  FROM candidate
                   WHERE community = 0
                   ORDER BY RANDOM()
                   LIMIT ?"""
@@ -785,7 +785,7 @@ class Dispersy(Singleton):
         # fallback to just picking random addresses within this community.  unfortunately it is
         # likely that the addresses will contain nodes that are offline
         sql = u"""SELECT host, port
-                  FROM routing
+                  FROM candidate
                   WHERE community = ?
                   ORDER BY RANDOM()
                   LIMIT ?"""
@@ -812,7 +812,7 @@ class Dispersy(Singleton):
            message.destination.members.
 
          - CommunityDestination causes a message to be sent to one or more addresses to be picked
-           from the database routing table.
+           from the database candidate table.
 
          - SubjectiveDestination is currently handled in the same way as CommunityDestination.
            Obviously this needs to be modified.
@@ -840,7 +840,7 @@ class Dispersy(Singleton):
 
             # Forward
             if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
-                addresses = self._select_routing_addresses(message.community.database_id,
+                addresses = self._select_candidate_addresses(message.community.database_id,
                                                            message.destination.node_count,
                                                            (0.0, 30.0),
                                                            (120.0, 300.0))
@@ -882,7 +882,7 @@ class Dispersy(Singleton):
         # update statistics
         self._total_send += len(addresses) * sum([len(packet) for packet in packets])
 
-        # update routing table and send packets
+        # update candidate table and send packets
         with self._database as execute:
             for address in addresses:
                 assert isinstance(address, tuple)
@@ -898,7 +898,7 @@ class Dispersy(Singleton):
                     assert isinstance(packet, str)
                     if __debug__: dprint(len(packet), " bytes to ", address[0], ":", address[1])
                     self._socket.send(address, packet)
-                execute(u"UPDATE routing SET outgoing_time = DATETIME() WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
+                execute(u"UPDATE candidate SET outgoing_time = DATETIME() WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
@@ -958,11 +958,11 @@ class Dispersy(Singleton):
         self._triggers.append(trigger)
         self._rawserver.add_task(trigger.on_timeout, timeout)
 
-    def create_routing_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store_and_forward=True):
+    def create_candidate_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store_and_forward=True):
         """
-        Create a dispersy-routing-request message.
+        Create a dispersy-candidate-request message.
 
-        The dispersy-routing-request and -response messages are used to keep track of the address
+        The dispersy-candidate-request and -response messages are used to keep track of the address
         where a member can be found.  It is also used to check if the member is still alive because
         it triggers a response message.  Finally, it is used to spread addresses of other members
         aswell.
@@ -971,7 +971,7 @@ class Dispersy(Singleton):
         parameters response_func, response_args, timeout, and max_responses are all related to this
         callback and are explained in the await_message method.
 
-        @param community: The community for wich the dispersy-routing-request message will be
+        @param community: The community for wich the dispersy-candidate-request message will be
          created.
         @type community: Community
 
@@ -1015,7 +1015,7 @@ class Dispersy(Singleton):
         assert isinstance(max_responses, (int, long))
         assert max_responses > 0
         assert isinstance(store_and_forward, bool)
-        meta = community.get_meta_message(u"dispersy-routing-request")
+        meta = community.get_meta_message(u"dispersy-candidate-request")
         request = meta.implement(meta.authentication.implement(community.my_member),
                                  meta.distribution.implement(meta.community._timeline.global_time),
                                  meta.destination.implement(address),
@@ -1025,13 +1025,13 @@ class Dispersy(Singleton):
             self.store_and_forward([request])
 
         if response_func:
-            meta = community.get_meta_message(u"dispersy-routing-response")
+            meta = community.get_meta_message(u"dispersy-candidate-response")
             footprint = meta.generate_footprint(payload=(sha1(request.packet).digest(),))
             self.await_message(footprint, response_func, response_args, timeout, max_responses)
 
         return request
 
-    def check_routing_request(self, address, message):
+    def check_candidate_request(self, address, message):
         if not message.community._timeline.check(message):
             raise DropMessage("TODO: implement delay of proof")
 
@@ -1054,29 +1054,29 @@ class Dispersy(Singleton):
         with self._database as execute:
             for address, age in routes:
                 if self._is_valid_external_address(address):
-                    if __debug__: dprint("update routing table for ", address[0], ":", address[1])
+                    if __debug__: dprint("update candidate table for ", address[0], ":", address[1])
 
                     # TODO: we are overwriting our own age... first check that if we have this
                     # address, that our age is higher before updating
                     age = u"-%d seconds" % age
-                    execute(u"UPDATE routing SET external_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
+                    execute(u"UPDATE candidate SET external_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
                             (age, community.database_id, unicode(address[0]), address[1]))
                     if self._database.changes == 0:
-                        execute(u"INSERT INTO routing(community, host, port, external_time) VALUES(?, ?, ?, DATETIME('now', ?))",
+                        execute(u"INSERT INTO candidate(community, host, port, external_time) VALUES(?, ?, ?, DATETIME('now', ?))",
                                 (community.database_id, unicode(address[0]), address[1], age))
 
                 elif __debug__:
                     dprint("dropping invalid route ", address[0], ":", address[1], level="warning")
 
-    def on_routing_request(self, address, message):
+    def on_candidate_request(self, address, message):
         """
-        We received a dispersy-routing-request message.
+        We received a dispersy-candidate-request message.
 
         This message contains the external address that the sender believes it has
         (message.payload.source_address), and our external address
         (message.payload.destination_address).
 
-        We should send a dispersy-routing-response message back.  Allowing us to inform them of
+        We should send a dispersy-candidate-response message back.  Allowing us to inform them of
         their external address.
 
         @param address: The sender address.
@@ -1087,7 +1087,7 @@ class Dispersy(Singleton):
         """
         if __debug__:
             from message import Message
-        assert message.name == u"dispersy-routing-request"
+        assert message.name == u"dispersy-candidate-request"
         assert isinstance(message, Message.Implementation)
         if __debug__: dprint(message)
 
@@ -1098,32 +1098,32 @@ class Dispersy(Singleton):
         # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
         #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
 
-        # add routes in our routing table
+        # add routes in our candidate table
         self._update_routes_from_external_source(message.community, message.payload.routes)
 
         # send response
-        minimal_age, maximal_age = message.community.dispersy_routing_age_range
+        minimal_age, maximal_age = message.community.dispersy_candidate_age_range
         sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
-                  FROM routing
+                  FROM candidate
                   WHERE community = ? AND age BETWEEN ? AND ?
                   ORDER BY age
                   LIMIT 30"""
         routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (message.community.database_id, minimal_age, maximal_age))]
 
-        meta = message.community.get_meta_message(u"dispersy-routing-response")
+        meta = message.community.get_meta_message(u"dispersy-candidate-response")
         response = meta.implement(meta.authentication.implement(meta.community.my_member),
                                   meta.distribution.implement(meta.community._timeline.global_time),
                                   meta.destination.implement(address),
                                   meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, address, meta.community.get_conversion().version, routes))
         self.store_and_forward([response])
 
-    def check_routing_response(self, address, message):
+    def check_candidate_response(self, address, message):
         if not message.community._timeline.check(message):
             raise DropMessage("TODO: implement delay of proof")
 
-    def on_routing_response(self, address, message):
+    def on_candidate_response(self, address, message):
         """
-        We received a dispersy-routing-response message.
+        We received a dispersy-candidate-response message.
 
         This message contains the external address that the sender believes it has
         (message.payload.source_address), and our external address
@@ -1137,12 +1137,12 @@ class Dispersy(Singleton):
         @param address: The sender address.
         @type address: (string, int)
 
-        @param message: The dispersy-routing-response message.
+        @param message: The dispersy-candidate-response message.
         @type message: Message.Implementation
         """
         if __debug__:
             from message import Message
-        assert message.name == u"dispersy-routing-response"
+        assert message.name == u"dispersy-candidate-response"
         assert isinstance(message, Message.Implementation)
         if __debug__: dprint(message)
 
@@ -1152,7 +1152,7 @@ class Dispersy(Singleton):
         # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
         #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
 
-        # add routes in our routing table
+        # add routes in our candidate table
         self._update_routes_from_external_source(message.community, message.payload.routes)
 
     def create_identity(self, community, store_and_forward=True):
@@ -1214,7 +1214,7 @@ class Dispersy(Singleton):
         # TODO: we should drop messages that contain invalid addresses... or at the very least we
         # should ignore the address part.
         with self._database as execute:
-            # execute(u"INSERT OR IGNORE INTO routing(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
+            # execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
             execute(u"UPDATE user SET host = ?, port = ? WHERE id = ?", (unicode(host), port, message.authentication.member.database_id))
             # execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
             # if self._database.changes == 0:
@@ -2331,8 +2331,8 @@ class Dispersy(Singleton):
                 # 2. cleanup the reference_user_sync table.  however, we should keep the ones that are still referenced
                 execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND sync.id = reference_user_sync.sync)", (community.database_id,))
 
-                # 3. cleanup the routing table.  we need nothing here anymore
-                execute(u"DELETE FROM routing WHERE community = ?", (community.database_id,))
+                # 3. cleanup the candidate table.  we need nothing here anymore
+                execute(u"DELETE FROM candidate WHERE community = ?", (community.database_id,))
 
     def _periodically_create_sync(self, community):
         """
@@ -2365,24 +2365,24 @@ class Dispersy(Singleton):
                     in community.dispersy_sync_bloom_filters]
         self.store_and_forward(messages)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
-            # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_routing_request_interval, " seconds (interval)")
+            # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_candidate_request_interval, " seconds (interval)")
             self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval, "id:sync-" + community.cid)
 
-    def _periodically_create_routing_request(self, community):
-        minimal_age, maximal_age = community.dispersy_routing_age_range
+    def _periodically_create_candidate_request(self, community):
+        minimal_age, maximal_age = community.dispersy_candidate_age_range
         sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
-                  FROM routing
+                  FROM candidate
                   WHERE community = ? AND age BETWEEN ? AND ?
                   ORDER BY age
                   LIMIT 30"""
         routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
 
-        meta = community.get_meta_message(u"dispersy-routing-request")
+        meta = community.get_meta_message(u"dispersy-candidate-request")
         requests = []
-        for address in self._select_routing_addresses(community.database_id,
-                                                      community.dispersy_routing_request_member_count,
-                                                      community.dispersy_routing_request_destination_diff_range,
-                                                      community.dispersy_routing_request_destination_age_range):
+        for address in self._select_candidate_addresses(community.database_id,
+                                                      community.dispersy_candidate_request_member_count,
+                                                      community.dispersy_candidate_request_destination_diff_range,
+                                                      community.dispersy_candidate_request_destination_age_range):
             requests.append(meta.implement(meta.authentication.implement(community.my_member),
                                            meta.distribution.implement(community._timeline.global_time),
                                            meta.destination.implement(address),
@@ -2390,16 +2390,16 @@ class Dispersy(Singleton):
         if requests:
             self.store_and_forward(requests)
 
-        if community.dispersy_routing_request_initial_delay > 0.0 and community.dispersy_routing_request_interval > 0.0:
-            # if __debug__: dprint("start _periodically_create_routing_request in ", community.dispersy_routing_request_interval, " seconds (interval)")
-            self._rawserver.add_task(lambda: self._periodically_create_routing_request(community), community.dispersy_routing_request_interval, "id:routing-" + community.cid)
+        if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
+            # if __debug__: dprint("start _periodically_create_candidate_request in ", community.dispersy_candidate_request_interval, " seconds (interval)")
+            self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_interval, "id:candidate-" + community.cid)
 
     def _periodically_cleanup_database(self):
-        # cleannup routing tables
+        # cleannup candidate tables
         with self._database as execute:
             for community in self._communities.itervalues():
-                execute(u"DELETE FROM routing WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) > ?",
-                        (community.database_id, community.dispersy_routing_cleanup_age_threshold))
+                execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) > ?",
+                        (community.database_id, community.dispersy_candidate_cleanup_age_threshold))
         self._rawserver.add_task(self._periodically_cleanup_database, 120.0)
 
     def _periodically_stats(self):

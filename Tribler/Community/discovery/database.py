@@ -64,6 +64,6 @@ class DiscoveryDatabase(Database):
     #     # normally this is done by Community.create_community(...),
     #     # however, because the Discovery community already exists
     #     # (there is on hardcoded) it needs to be done here.
-    #     dispersy_database.execute(u"INSERT INTO routing(community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM routing WHERE community = 0", (database_id,))
+    #     dispersy_database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
 
 

@@ -104,8 +104,8 @@ class BinaryConversion(Conversion):
         define(253, u"dispersy-sync", self._encode_sync, self._decode_sync)
         define(252, u"dispersy-signature-request", self._encode_signature_request, self._decode_signature_request)
         define(251, u"dispersy-signature-response", self._encode_signature_response, self._decode_signature_response)
-        define(250, u"dispersy-routing-request", self._encode_routing_request, self._decode_routing_request)
-        define(249, u"dispersy-routing-response", self._encode_routing_response, self._decode_routing_response)
+        define(250, u"dispersy-candidate-request", self._encode_candidate_request, self._decode_candidate_request)
+        define(249, u"dispersy-candidate-response", self._encode_candidate_response, self._decode_candidate_response)
         define(248, u"dispersy-identity", self._encode_identity, self._decode_identity)
         define(247, u"dispersy-identity-request", self._encode_identity_request, self._decode_identity_request)
 #         define(246, u"dispersy-similarity", self._encode_similarity, self._decode_similarity)
@@ -120,8 +120,8 @@ class BinaryConversion(Conversion):
 #         self.define_meta_message(chr(253), community.get_meta_message(u"dispersy-sync"), self._encode_sync, self._decode_sync)
 #         self.define_meta_message(chr(252), community.get_meta_message(u"dispersy-signature-request"), self._encode_signature_request, self._decode_signature_request)
 #         self.define_meta_message(chr(251), community.get_meta_message(u"dispersy-signature-response"), self._encode_signature_response, self._decode_signature_response)
-#         self.define_meta_message(chr(250), community.get_meta_message(u"dispersy-routing-request"), self._encode_routing_request, self._decode_routing_request)
-#         self.define_meta_message(chr(249), community.get_meta_message(u"dispersy-routing-response"), self._encode_routing_response, self._decode_routing_response)
+#         self.define_meta_message(chr(250), community.get_meta_message(u"dispersy-candidate-request"), self._encode_candidate_request, self._decode_candidate_request)
+#         self.define_meta_message(chr(249), community.get_meta_message(u"dispersy-candidate-response"), self._encode_candidate_response, self._decode_candidate_response)
 #         self.define_meta_message(chr(248), community.get_meta_message(u"dispersy-identity"), self._encode_identity, self._decode_identity)
 #         self.define_meta_message(chr(247), community.get_meta_message(u"dispersy-identity-request"), self._encode_identity_request, self._decode_identity_request)
 # #         self.define_meta_message(chr(246), community.get_meta_message(u"dispersy-similarity"), self._encode_similarity, self._decode_similarity)
@@ -213,7 +213,7 @@ class BinaryConversion(Conversion):
     def _decode_signature_response(self, meta_message, offset, data):
         return len(data), meta_message.payload.implement(data[offset:offset+20], data[offset+20:])
 
-    def _encode_routing_request(self, message):
+    def _encode_candidate_request(self, message):
         bytes = [inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
                  inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
                  message.payload.source_default_conversion]
@@ -221,7 +221,7 @@ class BinaryConversion(Conversion):
             bytes.extend((inet_aton(address[0]), pack("!HB", address[1], int(min(255, age)))))
         return bytes
 
-    def _decode_routing_request(self, meta_message, offset, data):
+    def _decode_candidate_request(self, meta_message, offset, data):
         if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
@@ -240,7 +240,7 @@ class BinaryConversion(Conversion):
 
         return offset, meta_message.payload.implement(source_address, destination_address, source_default_conversion, routes)
 
-    def _encode_routing_response(self, message):
+    def _encode_candidate_response(self, message):
         bytes = [message.payload.request_identifier,
                  inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
                  inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
@@ -249,7 +249,7 @@ class BinaryConversion(Conversion):
             bytes.extend((inet_aton(address[0]), pack("!HB", address[1], int(min(255, age)))))
         return bytes
 
-    def _decode_routing_response(self, meta_message, offset, data):
+    def _decode_candidate_response(self, meta_message, offset, data):
         if len(data) < offset + 32:
             raise DropPacket("Insufficient packet size")
 

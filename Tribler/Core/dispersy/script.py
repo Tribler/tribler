@@ -208,18 +208,18 @@ class DispersyTimelineScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
 
-class DispersyRoutingScript(ScriptBase):
+class DispersyCandidateScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        self.caller(self.incoming_routing_request)
-        self.caller(self.outgoing_routing_response)
-        self.caller(self.outgoing_routing_request)
+        self.caller(self.incoming_candidate_request)
+        self.caller(self.outgoing_candidate_response)
+        self.caller(self.outgoing_candidate_request)
 
-    def incoming_routing_request(self):
+    def incoming_candidate_request(self):
         """
-        Sending a dispersy-routing-request from NODE to SELF.
+        Sending a dispersy-candidate-request from NODE to SELF.
 
         - Test that SELF stores the routes in its database.
         - TODO: Test that duplicate routes are updated (timestamp)
@@ -232,17 +232,17 @@ class DispersyRoutingScript(ScriptBase):
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
-        node.init_my_member(routing=False)
+        node.init_my_member(candidate=False)
         yield 0.01
 
-        # send a dispersy-routing-request message
+        # send a dispersy-candidate-request message
         routes = [(("123.123.123.123", 123), 60.0),
                   (("124.124.124.124", 124), 120.0)]
-        node.send_message(node.create_dispersy_routing_request_message(node.socket.getsockname(), address, conversion_version, routes, 10), address)
+        node.send_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, routes, 10), address)
         yield 0.01
 
         # routes must be placed in the database
-        items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) AS age FROM routing WHERE community = ?", (community.database_id,))]
+        items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) AS age FROM candidate WHERE community = ?", (community.database_id,))]
         for route in routes:
             off_by_one_second = (route[0], route[1]+1)
             assert route in items or off_by_one_second in items
@@ -250,10 +250,10 @@ class DispersyRoutingScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
 
-    def outgoing_routing_response(self):
+    def outgoing_candidate_response(self):
         """
-        Sending a dispersy-routing-request from NODE to SELF must result in a
-        dispersy-routing-response from SELF to NODE.
+        Sending a dispersy-candidate-request from NODE to SELF must result in a
+        dispersy-candidate-response from SELF to NODE.
 
         - Test that some routes in SELF database are part of the response.
         """
@@ -265,7 +265,7 @@ class DispersyRoutingScript(ScriptBase):
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
-        node.init_my_member(routing=False)
+        node.init_my_member(candidate=False)
         yield 0.01
 
         routes = [(u"1.2.3.4", 5),
@@ -274,14 +274,14 @@ class DispersyRoutingScript(ScriptBase):
         # put some routes in the database that we expect back
         with self._dispersy_database as execute:
             for host, port in routes:
-                execute(u"INSERT INTO routing (community, host, port, incoming_time, outgoing_time) VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))", (community.database_id, host, port))
+                execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))", (community.database_id, host, port))
 
-        # send a dispersy-routing-request message
-        node.send_message(node.create_dispersy_routing_request_message(node.socket.getsockname(), address, conversion_version, [], 10), address)
+        # send a dispersy-candidate-request message
+        node.send_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, [], 10), address)
         yield 0.01
 
-        # catch dispersy-routing-response message
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-response"])
+        # catch dispersy-candidate-response message
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-response"])
         dprint(message.payload.routes, lines=1)
         for route in routes:
             assert (route, 0.0) in message.payload.routes, (route, message.payload.routes)
@@ -289,30 +289,30 @@ class DispersyRoutingScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
 
-    def outgoing_routing_request(self):
+    def outgoing_candidate_request(self):
         """
-        SELF must send a dispersy-routing-request every community.dispersy_routing_request_interval
+        SELF must send a dispersy-candidate-request every community.dispersy_candidate_request_interval
         seconds.
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_routing_request_initial_delay(self):
+            def dispersy_candidate_request_initial_delay(self):
                 return 5.0
 
             @property
-            def dispersy_routing_request_interval(self):
+            def dispersy_candidate_request_interval(self):
                 return 7.0
 
             @property
-            def dispersy_routing_request_member_count(self):
+            def dispersy_candidate_request_member_count(self):
                 return 10
 
             @property
-            def dispersy_routing_request_destination_diff_range(self):
+            def dispersy_candidate_request_destination_diff_range(self):
                 return (0.0, 30.0)
 
             @property
-            def dispersy_routing_request_destination_age_range(self):
+            def dispersy_candidate_request_destination_age_range(self):
                 return (0.0, 30.0)
 
         community = TestCommunity.create_community(self._my_member)
@@ -323,14 +323,14 @@ class DispersyRoutingScript(ScriptBase):
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
-        node.init_my_member(routing=False)
+        node.init_my_member(candidate=False)
 
         # wait initial delay
-        for counter in range(community.dispersy_routing_request_initial_delay):
-            dprint("waiting... ", community.dispersy_routing_request_initial_delay - counter)
-            # do NOT receive dispersy-routing-request
+        for counter in range(community.dispersy_candidate_request_initial_delay):
+            dprint("waiting... ", community.dispersy_candidate_request_initial_delay - counter)
+            # do NOT receive dispersy-candidate-request
             try:
-                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
             except:
                 pass
             else:
@@ -340,15 +340,15 @@ class DispersyRoutingScript(ScriptBase):
             yield 1.0
         yield 0.1
 
-        # receive dispersy-routing-request
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+        # receive dispersy-candidate-request
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
 
         # wait interval
-        for counter in range(community.dispersy_routing_request_interval):
-            dprint("waiting... ", community.dispersy_routing_request_interval - counter)
-            # do NOT receive dispersy-routing-request
+        for counter in range(community.dispersy_candidate_request_interval):
+            dprint("waiting... ", community.dispersy_candidate_request_interval - counter)
+            # do NOT receive dispersy-candidate-request
             try:
-                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
             except:
                 pass
             else:
@@ -359,8 +359,8 @@ class DispersyRoutingScript(ScriptBase):
 
         yield 0.1
 
-        # receive dispersy-routing-request from 2nd interval
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-routing-request"])
+        # receive dispersy-candidate-request from 2nd interval
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -371,7 +371,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         # todo: test that after a hard-kill, all new incoming messages are dropped.
-        # todo: test that after a hard-kill, nothing is added to the routing table anymore
+        # todo: test that after a hard-kill, nothing is added to the candidate table anymore
 
         self.caller(self.hard_kill)
 
@@ -408,8 +408,8 @@ class DispersyDestroyCommunityScript(ScriptBase):
         assert not message.payload.is_soft_kill
         assert message.payload.is_hard_kill
 
-        # the routing table must be empty
-        assert not list(self._dispersy_database.execute(u"SELECT * FROM routing WHERE community = ?", (community.database_id,)))
+        # the candidate table must be empty
+        assert not list(self._dispersy_database.execute(u"SELECT * FROM candidate WHERE community = ?", (community.database_id,)))
 
         # the database should have been cleaned
         # todo

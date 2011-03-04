@@ -89,7 +89,7 @@ def main():
 
     # load the script parser
     if opt.script:
-        from Tribler.Core.dispersy.script import Script, DispersyTimelineScript, DispersyRoutingScript, DispersyDestroyCommunityScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
+        from Tribler.Core.dispersy.script import Script, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
         from Tribler.Community.allchannel.script import AllChannelScript
         from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
         from Tribler.Community.discovery.script import DiscoveryUserScript, DiscoveryCommunityScript, DiscoverySyncScript
@@ -103,7 +103,7 @@ def main():
         script = Script.get_instance(rawserver)
         script.add("allchannel", AllChannelScript, include_with_all=False)
         script.add("dispersy-timeline", DispersyTimelineScript)
-        script.add("dispersy-routing", DispersyRoutingScript)
+        script.add("dispersy-candidate", DispersyCandidateScript)
         script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)
         script.add("dispersy-sync", DispersySyncScript)
         # script.add("dispersy-similarity", DispersySimilarityScript)

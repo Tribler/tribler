@@ -131,7 +131,7 @@ class MissingSequencePayload(Payload):
         def missing_high(self):
             return self._missing_high
 
-class RoutingPayload(Payload):
+class CandidatePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, source_address, destination_address, source_default_conversion, routes):
             assert isinstance(source_address, tuple)
@@ -152,7 +152,7 @@ class RoutingPayload(Payload):
             assert not filter(lambda route: not isinstance(route[0][0], str), routes)
             assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
             assert not filter(lambda route: not isinstance(route[1], float), routes)
-            super(RoutingPayload.Implementation, self).__init__(meta)
+            super(CandidatePayload.Implementation, self).__init__(meta)
             self._source_address = source_address
             self._destination_address = destination_address
             self._source_default_conversion = source_default_conversion
@@ -186,16 +186,16 @@ class RoutingPayload(Payload):
         #     assert len(self._routes) < 50
         #     self._routes.append(time(), address, age)
 
-class RoutingRequestPayload(RoutingPayload):
-    class Implementation(RoutingPayload.Implementation):
+class CandidateRequestPayload(CandidatePayload):
+    class Implementation(CandidatePayload.Implementation):
         pass
 
-class RoutingResponsePayload(RoutingPayload):
-    class Implementation(RoutingPayload.Implementation):
+class CandidateResponsePayload(CandidatePayload):
+    class Implementation(CandidatePayload.Implementation):
         def __init__(self, meta, request_identifier, source_address, destination_address, source_default_conversion, routes):
             assert isinstance(request_identifier, str)
             assert len(request_identifier) == 20
-            super(RoutingResponsePayload.Implementation, self).__init__(meta, source_address, destination_address, source_default_conversion, routes)
+            super(CandidateResponsePayload.Implementation, self).__init__(meta, source_address, destination_address, source_default_conversion, routes)
             self._request_identifier = request_identifier
 
         @property
@@ -204,12 +204,12 @@ class RoutingResponsePayload(RoutingPayload):
 
         @property
         def footprint(self):
-            return "RoutingResponsePayload:" + self._request_identifier.encode("HEX")
+            return "CandidateResponsePayload:" + self._request_identifier.encode("HEX")
 
     def generate_footprint(self, request_identifier):
         assert isinstance(request_identifier, str)
         assert len(request_identifier) == 20
-        return "RoutingResponsePayload:" + request_identifier.encode("HEX")
+        return "CandidateResponsePayload:" + request_identifier.encode("HEX")
 
 class SignatureRequestPayload(Payload):
     class Implementation(Payload.Implementation):

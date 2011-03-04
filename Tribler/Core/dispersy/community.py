@@ -72,7 +72,7 @@ class Community(object):
             database_id = database.last_insert_rowid
             execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(master_key)))
             execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(master_key), buffer(private_key)))
-            execute(u"INSERT INTO routing (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM routing WHERE community = 0", (database_id,))
+            execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
 
         # new community instance
         community = cls(cid, master_key, *args, **kargs)
@@ -287,55 +287,55 @@ class Community(object):
         return cls.__name__.decode("UTF-8")
 
     @property
-    def dispersy_routing_request_initial_delay(self):
+    def dispersy_candidate_request_initial_delay(self):
         return 0.1
 
     @property
-    def dispersy_routing_request_interval(self):
+    def dispersy_candidate_request_interval(self):
         """
-        The interval between sending dispersy-routing-request messages.
+        The interval between sending dispersy-candidate-request messages.
         """
         return 60.0
 
     @property
-    def dispersy_routing_age_range(self):
+    def dispersy_candidate_age_range(self):
         """
-        The valid age range, in seconds, that an entry in the routing table must be in order to be
-        forwarded in a dispersy-routing-request or dispersy-routing-response message.
+        The valid age range, in seconds, that an entry in the candidate table must be in order to be
+        forwarded in a dispersy-candidate-request or dispersy-candidate-response message.
         @rtype: (float, float)
         """
         return (0.0, 120.0)
 
     @property
-    def dispersy_routing_request_member_count(self):
+    def dispersy_candidate_request_member_count(self):
         """
-        The number of members that a dispersy-routing-request message is sent to each interval.
+        The number of members that a dispersy-candidate-request message is sent to each interval.
         @rtype: int
         """
         return 10
 
     @property
-    def dispersy_routing_request_destination_diff_range(self):
+    def dispersy_candidate_request_destination_diff_range(self):
         """
         The difference between last-incoming and last-outgoing time, for the selection of a
-        destination node, when sending a dispersy-routing-request message.
+        destination node, when sending a dispersy-candidate-request message.
         @rtype: (float, float)
         """
         return (0.0, 30.0)
 
     @property
-    def dispersy_routing_request_destination_age_range(self):
+    def dispersy_candidate_request_destination_age_range(self):
         """
         The difference between the last-incoming and current time, for the selection of a
-        destination node, when sending a dispersy-routing-request message.
+        destination node, when sending a dispersy-candidate-request message.
         @rtype: (float, float)
         """
         return (300.0, 900.0)
 
     @property
-    def dispersy_routing_cleanup_age_threshold(self):
+    def dispersy_candidate_cleanup_age_threshold(self):
         """
-        Once an entry in the routing table becomes older than the threshold, the entry is deleted
+        Once an entry in the candidate table becomes older than the threshold, the entry is deleted
         from the database.
         @rtype: float
         """
