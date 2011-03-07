@@ -402,6 +402,11 @@ class GUIUtility:
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
         wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,listOfAdditions)
+    
+    def ShouldGuiUpdate(self):
+        if self.frame.ready:
+            return self.frame.GUIupdate
+        return True
 
     #TODO: should be somewhere else
     def set_port_number(self, port_number):

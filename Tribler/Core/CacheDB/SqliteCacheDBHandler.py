@@ -3570,6 +3570,10 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql = "Select publisher_name From ChannelCast Where publisher_id = ? Order By time_stamp DESC LIMIT 1"
             publisher_name = self._db.fetchone(sql, (max_id,)) 
             return (max_id, publisher_name, maxvote, {})
+        
+    def getNrChannels(self):
+        sql = "select count(distinct publisher_id) from ChannelCast"
+        return self._db.fetchone(sql)
             
 class GUIDBHandler:
     """ All the functions of this class are only (or mostly) used by GUI.

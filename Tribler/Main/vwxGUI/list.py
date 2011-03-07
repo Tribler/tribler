@@ -63,14 +63,23 @@ class RemoteSearchManager:
 class LocalSearchManager:
     def __init__(self, list):
         self.list = list
-        self.torrentsearch_manager = GUIUtility.getInstance().torrentsearch_manager 
+        
+        guiutility = GUIUtility.getInstance()
+        self.guiserver = guiutility.frame.guiserver
+        self.torrentsearch_manager = guiutility.torrentsearch_manager 
     
     def expand(self, infohash):
         self.list.Select(infohash)
     
     def refresh(self):
-        [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
-        self.list.SetData(data_files)
+        def db_callback():
+            total_items, nrfiltered, data = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
+            wx.CallAfter(self._on_data, data, total_items, nrfiltered)
+
+        self.guiserver.add_task(db_callback, id = "LocalSearchManager_refresh")
+        
+    def _on_data(self, data, total_items, nrfiltered):
+        self.list.SetData(data)
         
 class ChannelSearchManager:
     def __init__(self, list):
@@ -251,15 +260,24 @@ class ChannelManager():
 class MyChannelManager():
     def __init__(self, list):
         self.list = list
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        guiutility = GUIUtility.getInstance()
+        
+        self.channelsearch_manager = guiutility.channelsearch_manager
+        self.guiserver = guiutility.frame.guiserver
         self.my_permid = self.channelsearch_manager.channelcast_db.my_permid
     
     def refreshDirty(self):
         self.refresh()
     
     def refresh(self):
-        nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(self.my_permid)
-        [total_items, nr_filtered, torrentList] = self.channelsearch_manager.getTorrentsFromMyChannel()
+        def db_callback():
+            nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(self.my_permid)
+            total_items, nr_filtered, torrentList = self.channelsearch_manager.getTorrentsFromMyChannel()
+            wx.CallAfter(self._on_data, torrentList, nr_favorite)
+            
+        self.guiserver.add_task(db_callback, id = "MyChannelManager_refresh")
+            
+    def _on_data(self, torrentList, nr_favorite):
         self.list.SetData(torrentList, nr_favorite)
     
     def OnNewTorrent(self):
@@ -478,7 +496,7 @@ class List(wx.Panel):
     def ShouldGuiUpdate(self):
         if not self.IsShownOnScreen():
             return False
-        return self.guiutility.frame.GUIupdate
+        return self.guiutility.ShouldGuiUpdate()
 
     def ShowLoading(self):
         self.list.ShowLoading()

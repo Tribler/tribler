@@ -2,6 +2,7 @@ import wx
 import sys
 import os
 import random
+from time import time, strftime
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
@@ -13,7 +14,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from __init__ import LIST_GREY, LIST_BLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 
@@ -145,6 +146,7 @@ class NetworkPanel(HomePanel):
         HomePanel.__init__(self, parent, 'Network info' , LIST_BLUE)
         
         self.torrentdb = TorrentDBHandler.getInstance()
+        self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
         self.timer = None
         
@@ -168,6 +170,7 @@ class NetworkPanel(HomePanel):
         self.nrFiles = wx.StaticText(panel)
         self.totalSize = wx.StaticText(panel)
         self.queueSize = wx.StaticText(panel)
+        self.nrChannels = wx.StaticText(panel)
         
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
@@ -180,6 +183,8 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.nrTorrents, 0, wx.EXPAND|wx.LEFT, 10)
         gridSizer.Add(wx.StaticText(panel, -1, 'Torrents in queue'), 0, wx.LEFT, 10)
         gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrChannels, 0, wx.EXPAND|wx.LEFT, 10)
         
         vSizer.Add(gridSizer, 0, wx.EXPAND)
         panel.SetSizer(vSizer)
@@ -196,6 +201,7 @@ class NetworkPanel(HomePanel):
         self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
+        self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
         
         if self.timer:
             self.timer.Restart(10000)
@@ -313,9 +319,10 @@ class ActivityPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Recent Activity' , LIST_BLUE)
 
     def onActivity(self, msg):
+        msg = strftime("%H:%M:%S ") + msg
         self.list.InsertStringItem(0, msg)
         size = self.list.GetItemCount()
-        if size > 20:
+        if size > 50:
             self.list.DeleteItem(size-1)
                 
 class BuzzPanel(HomePanel):
@@ -390,7 +397,7 @@ class BuzzPanel(HomePanel):
     def OnRefreshTimer(self, event = None):
         self.refresh -= 1
         if self.refresh <= 0:
-            if self.IsShownOnScreen():
+            if self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate():
                 # needs fine-tuning:
                 # (especially for cold-start/fresh Tribler install?)
                 samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
