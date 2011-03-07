@@ -45,6 +45,7 @@ class DownloadState(Serializable):
         self.vod_status_msg = None
         self.coopdl_helpers = coopdl_helpers
         self.coopdl_coordinator = coopdl_coordinator
+        self.seedingstats = None #SeedingManager will update downloadstate with seedings stats (version, total_up, total_down, time_seeding)
         
         # RePEX: stored swarmcache from Download and store current time
         if swarmcache is not None:
@@ -178,6 +179,18 @@ class DownloadState(Serializable):
             return self.stats['stats'].upTotal
         else:
             return self.stats['stats'].downTotal
+        
+    def set_seeding_statistics(self, seedingstats):
+        self.seedingstats = seedingstats
+        
+    def get_seeding_statistics(self):
+        """
+        Returns the seedings stats for this download. Will only be availible after
+        SeedingManager update_download_state is called. 
+        Contains if not null, version, total_up, total_down, time_seeding
+        All values are stored by the seedingmanager, thus will not only contain current download session values
+        """
+        return self.seedingstats
     
     def get_eta(self):
         """

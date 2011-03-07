@@ -593,6 +593,17 @@ class ABCApp(wx.App):
                         
             self.prevActiveDownloads = newActiveDownloads
             
+# SelectiveSeeding_
+            # Apply seeding policy every 60 seconds, for performance
+            # Boudewijn 12/01/10: apply seeding policies immediately
+            # applyseedingpolicy = False
+            # if self.seedingcount % 60 == 0:
+            #     applyseedingpolicy = True
+            # self.seedingcount += 1
+            # if applyseedingpolicy:
+            self.seedingmanager.apply_seeding_policy(dslist)
+# _SelectiveSeeding            
+            
             # Pass DownloadStates to libaryView
             try:
                 self.guiUtility.torrentsearch_manager.download_state_gui_callback(dslist)
@@ -618,17 +629,6 @@ class ABCApp(wx.App):
             if adjustspeeds:
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
-            
-# SelectiveSeeding_
-            # Apply seeding policy every 60 seconds, for performance
-            # Boudewijn 12/01/10: apply seeding policies immediately
-            # applyseedingpolicy = False
-            # if self.seedingcount % 60 == 0:
-            #     applyseedingpolicy = True
-            # self.seedingcount += 1
-            # if applyseedingpolicy:
-            self.seedingmanager.apply_seeding_policy(dslist)
-# _SelectiveSeeding
             
 # Crawling Seeding Stats_
             if self.seedingstats_enabled == 1:

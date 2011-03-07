@@ -860,8 +860,31 @@ class LibaryList(List):
                 
                 if ds:
                     item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))
-                    item.down.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
-                    item.up.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(UPLOAD)))
+                    if ds.get_seeding_statistics():
+                        stats = ds.get_seeding_statistics()
+                        dl = stats['total_down']
+                        ul = stats['total_up']
+                        
+                        if dl == 0L:
+                            ratio = 0
+                        else:
+                            ratio = 1.0*ul/dl
+                            
+                        tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f\nTime seeding: %s"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio, self.utility.eta_value(stats['time_seeding']))
+                        item.down.SetToolTipString(tooltip)
+                        item.up.SetToolTipString(tooltip)
+                    else:
+                        dl = ds.get_total_transferred(DOWNLOAD)
+                        ul = ds.get_total_transferred(UPLOAD)
+                        
+                        if dl == 0L:
+                            ratio = 0
+                        else:
+                            ratio = 1.0*ul/dl
+                        
+                        tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio)
+                        item.down.SetToolTipString(tooltip)
+                        item.up.SetToolTipString(tooltip)
                 else:
                     item.connections.SetToolTipString('')
                     item.down.SetToolTipString('')
