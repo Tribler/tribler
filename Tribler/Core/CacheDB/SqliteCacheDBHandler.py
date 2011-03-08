@@ -3436,8 +3436,8 @@ class ChannelCastDBHandler(BasicDBHandler):
             return channels[0]
     
     def getChannels(self, permids):
-        publishers = str(permids).replace('[','(').replace(']',')')
-        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id IN " + publishers
+        publishers = "','".join(permids)
+        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id IN ('" + publishers + "')"
         return self._getChannels(sql)
    
     def getAllChannels(self):
