@@ -82,6 +82,7 @@ class DownloaderFeedback:
                 a['completed'] = float(len(d.connection.download.have)-d.connection.download.have.numfalse)/float(len(d.connection.download.have))
             else:
                 a['completed'] = 1.0
+            a['have'] = d.connection.download.have
             # The total download speed of the peer as measured from its
             # HAVE messages.
             a['speed'] = d.connection.download.peermeasure.get_rate()

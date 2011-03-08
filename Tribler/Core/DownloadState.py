@@ -282,7 +282,41 @@ class DownloadState(Serializable):
             return []
         else:
             return self.haveslice
-
+        
+    def get_availability(self):
+        """ Return overall the availability of all pieces, using connected peers
+        Availability is defined as the number of complete copies of a piece, thus seeders
+        increment the availability by 1. Leechers provide a subset of piece thus we count the
+        overall availability of all pieces provided by the connected peers and use the minimum
+        of this + the average of all additional pieces.
+        """
+        nr_seeders_complete = 0
+        merged_bitfields = None
+        
+        peers = self.get_peerlist()
+        for peer in peers:
+            if peer['completed'] == 1 or peer['have'].complete():
+                nr_seeders_complete += 1
+            else:
+                boollist = peer['have'].toboollist()
+                if merged_bitfields == None:
+                    merged_bitfields = [0]*len(boollist)
+                
+                for i in range(len(boollist)):
+                    if boollist[i]:
+                        merged_bitfields[i] += 1
+        
+        if merged_bitfields:
+            #count the number of complete copies due to overlapping leecher bitfields 
+            nr_leechers_complete = min(merged_bitfields)
+            
+            #detect remainder of bitfields which are > 0
+            nr_more_than_min = len([x for x in merged_bitfields if x > nr_leechers_complete])
+            fraction_additonal = float(nr_more_than_min) / len(merged_bitfields)
+            
+            return nr_seeders_complete + nr_leechers_complete + fraction_additonal
+        return nr_seeders_complete
+        
     def get_vod_prebuffering_progress(self):
         """ Returns the percentage of prebuffering for Video-On-Demand already 
         completed.
@@ -380,6 +414,7 @@ class DownloadState(Serializable):
         'utotal' = Total uploaded from peer in KB
         'dtotal' = Total downloaded from peer in KB
         'completed' = Fraction of download completed by peer (0-1.0) 
+        'have' = Bitfield object for this peer if not complete
         'speed' = The peer's current total download speed (estimated)
         </pre>
         """

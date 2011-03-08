@@ -13,7 +13,6 @@ from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
@@ -55,7 +54,8 @@ class TorrentDetails(wx.Panel):
         self.isReady = False
         self.noChannel = False
         
-        self.loadTorrent()
+        #Load torrent using guitaskqueue
+        self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
         
     def loadTorrent(self):
         requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
@@ -66,6 +66,7 @@ class TorrentDetails(wx.Panel):
             self.parent.parent_list.OnChange()
     
     def showTorrent(self, torrent, information):
+        #switch back to gui thread
         wx.CallAfter(self._showTorrent, torrent, information)
         
     def _showTorrent(self, torrent, information):
@@ -261,7 +262,7 @@ class TorrentDetails(wx.Panel):
             if foundSubtitles:
                 title += ' found by Tribler or'
             title += ' specified by you to be used with our player.'
-            self._add_row(subtitlePanel, vSizer, None, title)
+            self._add_row(subtitlePanel, vSizer, None, title, spacer = 3)
             
             vSizer.AddStretchSpacer()
             
@@ -820,8 +821,10 @@ class LibraryDetails(TorrentDetails):
     
     def _addTabs(self, ds):
         TorrentDetails._addTabs(self, ds)
-        
-        self.peerList = SortedListCtrl(self.notebook, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        peersPanel = wx.Panel(self.notebook)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+         
+        self.peerList = SortedListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.peerList.InsertColumn(0, 'IP-address')
         self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
@@ -829,8 +832,19 @@ class LibraryDetails(TorrentDetails):
         self.peerList.setResizeColumn(0)
         self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
         self.peerList.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
-               
-        self.notebook.AddPage(self.peerList, "Peers")
+        vSizer.Add(self.peerList, 1, wx.EXPAND)
+        
+        finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
+        if not finished:
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.availability = wx.StaticText(peersPanel)
+            self._add_row(peersPanel, hSizer, 'Availability', self.availability, spacer = 3)
+            vSizer.Add(hSizer, 0, wx.EXPAND)
+        else:
+            self.availability = None
+
+        peersPanel.SetSizer(vSizer)
+        self.notebook.AddPage(peersPanel, "Peers")
     
     def _Refresh(self, ds):
         TorrentDetails._Refresh(self, ds)
@@ -888,6 +902,10 @@ class LibraryDetails(TorrentDetails):
                         print >> sys.stderr, "Could not format peer client version"
                 
                 index += 1
+                
+            if self.availability:
+                self.availability.SetLabel("%.2f"%ds.get_availability())
+            
         if index == 0:
             self.peerList.DeleteAllItems()
             self.peerList.InsertStringItem(index, "Not connected to any peers")
@@ -901,6 +919,7 @@ class LibraryDetails(TorrentDetails):
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
+        
     
     def _CopyToClipboard(self, event):
         if event.ControlDown():
