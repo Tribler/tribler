@@ -182,13 +182,54 @@ class Community(object):
         assert isinstance(master_key, str)
         assert not master_key or cid == sha1(master_key).digest()
 
-        # community identifier
-        self._cid = cid
-
         # dispersy
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
 
+        # community identifier
+        self._cid = cid
+        self._database_id = 0
+        self._my_member = None
+        self._master_member = None
+        self._initialize_master_member(cid, master_key)
+        assert isinstance(self._database_id, (int, long))
+        assert isinstance(self._my_member, MyMember)
+        assert self._master_member is None or isinstance(self._master_member, MasterMember)
+
+        # define all available messages
+        self._meta_messages = {}
+        for meta_message in self._dispersy.initiate_meta_messages(self):
+            assert meta_message.name not in self._meta_messages
+            self._meta_messages[meta_message.name] = meta_message
+        for meta_message in self.initiate_meta_messages():
+            assert meta_message.name not in self._meta_messages
+            self._meta_messages[meta_message.name] = meta_message
+
+        # define all available conversions
+        conversions = self.initiate_conversions()
+        assert len(conversions) > 0
+        self._conversions = dict((conversion.prefix, conversion) for conversion in conversions)
+        # the last conversion in the list will be used as the default conversion
+        self._conversions[None] = conversions[-1]
+
+        # the list with bloom filters.  the list will grow as the global time increases.  older time
+        # ranges are at higher indexes in the list, new time ranges are inserted at the start of the
+        # list.
+        self._bloom_filters = []
+        self._initialize_bloom_filters()
+
+        # initial timeline.  the timeline will keep track of member permissions
+        self._timeline = Timeline(self)
+        self._initialize_timeline()
+
+        # tell dispersy that there is a new community
+        self._dispersy.add_community(self)
+
+        # the subjective sets.  the dictionary contains all our, most recent, subjective sets per
+        # cluster.  These are made when a meta message uses the SubjectiveDestination policy.
+        # self._subjective_sets = self.get_subjective_sets(self._my_member)
+
+    def _initialize_master_member(self, cid, master_key):
         for community_id, db_master_key, user_public_key in self._dispersy_database.execute(u"""
             SELECT community.id, community.public_key, user.public_key
             FROM community
@@ -223,36 +264,25 @@ class Community(object):
                 # we have the private part of the master member
                 self._master_member = ElevatedMasterMember.get_instance(master_key, str(private_master_key))
         else:
-            # we do not have the master key (yet)
+            # we do not (yet) have the master member
             self._master_member = None
 
-        # define all available messages
-        self._meta_messages = {}
-        for meta_message in self._dispersy.initiate_meta_messages(self):
-            assert meta_message.name not in self._meta_messages
-            self._meta_messages[meta_message.name] = meta_message
-        for meta_message in self.initiate_meta_messages():
-            assert meta_message.name not in self._meta_messages
-            self._meta_messages[meta_message.name] = meta_message
+    def _initialize_bloom_filters(self):
+        assert isinstance(self._bloom_filters, list)
+        assert len(self._bloom_filters) == 0
 
-        # define all available conversions
-        conversions = self.initiate_conversions()
-        assert len(conversions) > 0
-        self._conversions = dict((conversion.prefix, conversion) for conversion in conversions)
-        # the last conversion in the list will be used as the default conversion
-        self._conversions[None] = conversions[-1]
+        # ensure that at least one bloom filter exists
+        self._bloom_filters.append((1, 1 + self.dispersy_sync_bloom_filter_step, BloomFilter(*self.dispersy_sync_bloom_filter_size)))
 
-        # the list with bloom filters.  the list will grow as the global time increases.  older time
-        # ranges are at higher indexes in the list, new time ranges are inserted at the start of the
-        # list.
-        self._bloom_filters = [(1, 1 + self.dispersy_sync_bloom_filter_step, BloomFilter(*self.dispersy_sync_bloom_filter_size))]
         # load all messages into the bloom filters
         with self._dispersy_database as execute:
             for global_time, packet in execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time", (self.database_id,)):
                 self.get_bloom_filter(global_time).add(str(packet))
 
-        # initial timeline.  the timeline will keep track of member permissions
-        self._timeline = Timeline(self)
+        # todo: maybe we can add a callback or event notifier to give a progress indication while
+        # loading millions of packets...
+
+    def _initialize_timeline(self):
         # load existing permissions from the database
         try:
             authorize = self.get_meta_message(u"dispersy-authorize")
@@ -270,13 +300,6 @@ class Community(object):
                     # all messages in the database again...
                     message = self.get_conversion(packet[:22]).decode_message(packet)
                     mapping[name](("", -1), message)
-
-        # tell dispersy that there is a new community
-        self._dispersy.add_community(self)
-
-        # the subjective sets.  the dictionary contains all our, most recent, subjective sets per
-        # cluster.  These are made when a meta message uses the SubjectiveDestination policy.
-        # self._subjective_sets = self.get_subjective_sets(self._my_member)
 
     @classmethod
     def get_classification(cls):
