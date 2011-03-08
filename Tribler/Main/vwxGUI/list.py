@@ -28,13 +28,19 @@ class RemoteSearchManager:
         self.data_channels = []
         
         self.guiutility = GUIUtility.getInstance()
+        self.guiserver = self.guiutility.frame.guiserver
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         
     def refresh(self):
-        [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
-        [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
+        def db_callback():
+            [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
+            [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
+            wx.CallAfter(self._on_refresh, data_files, total_items, nrfiltered, total_channels)
+
+        self.guiserver.add_task(db_callback, id = "RemoteSearchManager_refresh")
         
+    def _on_refresh(self, data_files, total_items, nrfiltered, total_channels):
         keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
         if self.oldkeywords != keywords:
             self.list.Reset()
@@ -45,7 +51,13 @@ class RemoteSearchManager:
         self.list.SetData(data_files)
         
     def refresh_channel(self):
-        [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
+        def db_callback():
+            [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
+            wx.CallAfter(self._on_refresh_channel, total_channels)
+        
+        self.guiserver.add_task(db_callback, id = "RemoteSearchManager_refresh_channel")
+        
+    def _on_refresh_channel(self, total_channels):
         keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
         self.list.SetNrResults(None, None, total_channels, keywords)
     
@@ -56,9 +68,15 @@ class RemoteSearchManager:
             torrent_details.ShowPanel(1)
             
     def torrentUpdated(self, infohash):
-        if self.list.InList(infohash):
+        def db_callback():
             data = self.torrentsearch_manager.torrent_db.getTorrent(infohash)
-            self.list.RefreshData(infohash, data)
+            wx.CallAfter(self._on_torrent_updated, infohash, data)
+        
+        if self.list.InList(infohash):
+            self.guiserver.add_task(db_callback, id = "RemoteSearchManager_torrentUpdated")
+            
+    def _on_torrent_updated(self, infohash, data):
+        self.list.RefreshData(infohash, data)
 
 class LocalSearchManager:
     def __init__(self, list):

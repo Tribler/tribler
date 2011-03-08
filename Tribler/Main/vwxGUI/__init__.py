@@ -1,7 +1,8 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
 # see LICENSE.txt for license information
 
-LIST_ITEM_BATCH_SIZE = 35
+#batch size should be a nice divider of max size
+LIST_ITEM_BATCH_SIZE = 36
 LIST_ITEM_MAX_SIZE = 250
 LIST_RATE_LIMIT = 1
 

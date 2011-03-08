@@ -358,7 +358,7 @@ class AbstractListBody():
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
-        self.loadNext = wx.Button(self.messagePanel, -1, "Show next %d items"%LIST_ITEM_MAX_SIZE)
+        self.loadNext = wx.Button(self.messagePanel)
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()
         
@@ -696,6 +696,7 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "ListBody: Creating items"
         
+        initial_nr_items_to_add = nr_items_to_add    
         done = True
         t1 = time()
 
@@ -709,18 +710,12 @@ class AbstractListBody():
         message = self.__GetFilterMessage()
         #Add created/cached items
         for key, item_data, original_data in self.data:
-            if nr_items_to_add > 0:
-                if key in self.items:
-                    item = self.items[key]
-                elif nr_items_to_create > 0:
-                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
-                    self.items[key] = item
-                    
+            if nr_items_to_add > 0 and nr_items_to_create > 0:
+                if key not in self.items:
+                    self.items[key] = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                     nr_items_to_create -= 1
-                else:
-                    done = False
-                    break
                 
+                item = self.items[key]
                 sizer = self.vSizer.GetItem(item)
                 if not sizer:
                     self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
@@ -731,15 +726,19 @@ class AbstractListBody():
                         self.highlightSet.remove(key)
                                             
                 nr_items_to_add -= 1
+            
             else:
                 if message != '':
                     message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
                 else:
                     message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
+                    
+                remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
+                self.loadNext.SetLabel("Show next %d items"%remainingItems)
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 
-                done = True
+                done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
                 break
        
         if message != '':
@@ -752,6 +751,7 @@ class AbstractListBody():
         self.OnChange()
         self.Thaw()
         self.done = done
+        print >> sys.stderr, self.done
         if DEBUG:
             print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1
         
