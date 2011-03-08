@@ -751,7 +751,6 @@ class AbstractListBody():
         self.OnChange()
         self.Thaw()
         self.done = done
-        print >> sys.stderr, self.done
         if DEBUG:
             print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1
         
