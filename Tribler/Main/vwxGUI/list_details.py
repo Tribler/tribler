@@ -79,6 +79,7 @@ class TorrentDetails(wx.Panel):
         
         self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
         self._addTabs(ds)
+        self.details.Add(self.notebook, 6, wx.EXPAND)
         
         self.buttonPanel = wx.Panel(self)
         self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
@@ -88,8 +89,11 @@ class TorrentDetails(wx.Panel):
         
         self.buttonPanel.SetSizer(self.buttonSizer)
         self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
-        self.details.Layout()
         
+        page0 = self.notebook.GetPage(0)
+        bestHeight = page0.GetBestVirtualSize()[1]
+        page0.SetMinSize((-1, bestHeight))
+                
         self.parent.parent_list.OnChange()
         self.Thaw()
         
@@ -97,7 +101,7 @@ class TorrentDetails(wx.Panel):
         self._Refresh(ds)
     
     def _create_tab(self, tabname, header = None):
-        panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook)
+        panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook, style = wx.VSCROLL)
         panel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
         self.notebook.AddPage(panel, tabname)
         
@@ -120,7 +124,7 @@ class TorrentDetails(wx.Panel):
             font = name.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             name.SetFont(font)
-            sizer.Add(name, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, spacer)
+            sizer.Add(name, 0, wx.LEFT, spacer)
         
         if value:
             if isinstance(value, basestring):
@@ -167,10 +171,11 @@ class TorrentDetails(wx.Panel):
             _, self.status = self._add_row(overview, vSizer, "Status", "Unknown")
         else:
             _, self.status = self._add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
-        torrentSizer.Add(vSizer, 0, wx.EXPAND)
+        torrentSizer.Add(vSizer, 1, wx.EXPAND)
         
         if diff > 1800: #force update if last update more than 30 minutes ago
             TorrentChecking(self.torrent['infohash']).start()
+        overview.SetupScrolling(rate_y = 5)
         
         #Create filelist
         if len(self.information[2]) > 0:
@@ -322,12 +327,6 @@ class TorrentDetails(wx.Panel):
                 for tracker in tracker_list:
                     self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
-        
-        self.details.Add(self.notebook, 6, wx.EXPAND)
-        
-        bestSize = torrentSizer.GetSize()[1]
-        overview.SetMinSize((-1, bestSize))
-        self.notebook.SetMinSize((-1, self.notebook.GetBestSize()[1]))
     
     def ShowPanel(self, type = None):
         if getattr(self, 'buttonSizer', False):
@@ -390,7 +389,9 @@ class TorrentDetails(wx.Panel):
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
         self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
-        self.buttonSizer.Add(wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent."), 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
+        subtitle = wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
+        subtitle.SetMinSize((1, -1))
+        self.buttonSizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
         
         self.buttonSizer.AddStretchSpacer()
         
@@ -430,6 +431,7 @@ class TorrentDetails(wx.Panel):
                 
                 self.channeltext = LinkStaticText(self.buttonPanel, label)
                 self.channeltext.SetToolTipString(tooltip)
+                self.channeltext.SetMinSize((1, -1))
                 self.channeltext.channel = channel
                 self.channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                 self.channeltext.target = 'channel'
@@ -824,7 +826,7 @@ class LibraryDetails(TorrentDetails):
         peersPanel = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
          
-        self.peerList = SortedListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.peerList = SortedListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = False)
         self.peerList.InsertColumn(0, 'IP-address')
         self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)

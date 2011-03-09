@@ -33,6 +33,12 @@ class RemoteSearchManager:
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         
     def refresh(self):
+        keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
+        if self.oldkeywords != keywords:
+            self.list.Reset()
+            self.oldkeywords = keywords
+            self.list.SetKeywords(keywords, None)
+        
         def db_callback():
             [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
             [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
@@ -41,12 +47,7 @@ class RemoteSearchManager:
         self.guiserver.add_task(db_callback, id = "RemoteSearchManager_refresh")
         
     def _on_refresh(self, data_files, total_items, nrfiltered, total_channels):
-        keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
-        if self.oldkeywords != keywords:
-            self.list.Reset()
-            self.oldkeywords = keywords
-         
-        self.list.SetNrResults(total_items, nrfiltered, total_channels, keywords)
+        self.list.SetNrResults(total_items, nrfiltered, total_channels, self.oldkeywords)
         self.list.SetFF(self.guiutility.getFamilyFilter())
         self.list.SetData(data_files)
         
@@ -555,7 +556,7 @@ class SearchList(List):
         footer.SetEvents(self.OnChannelResults)
         return footer 
     
-    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
+    def SetKeywords(self, keywords, nr = None):
         if isinstance(nr, int):
             if nr == 0:
                 self.header.SetTitle('No results for "%s"'%keywords)
@@ -564,6 +565,11 @@ class SearchList(List):
             else:
                 self.header.SetTitle('Got %d results for "%s"'%(nr, keywords))
             self.total_results = nr
+        else:
+            self.header.SetTitle('Searching for "%s"'%keywords)
+    
+    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
+        self.SetKeywords(keywords, nr)
         
         if isinstance(nr_filtered, int):
             self.header.SetFiltered(nr_filtered)

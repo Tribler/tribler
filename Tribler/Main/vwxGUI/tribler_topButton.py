@@ -327,7 +327,6 @@ class LinkStaticText(wx.Panel):
             self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
-            
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
@@ -354,17 +353,30 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         ListCtrlAutoWidthMixin.__init__(self)
 
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         
         ColumnSorterMixin.__init__(self, numColumns)
         ListCtrlAutoWidthMixin.__init__(self)
 
         self.itemDataMap = {}
+        if tooltip:
+            self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
     
     def GetListCtrl(self):
         return self
     
+    def OnMouseMotion(self, event):
+        row, _ = self.HitTest(event.GetPosition())
+        tooltip = ''
+        for col in xrange(self.GetColumnCount()):
+            tooltip += self.GetItem(row, col).GetText() + "\t"
+        
+        if len(tooltip) > 0:
+            tooltip = tooltip[:-1]
+        
+        self.SetToolTipString(tooltip)
+        
 class TextCtrlAutoComplete(wx.TextCtrl):
     def __init__ (self, parent, choices = [], entrycallback = None, selectcallback = None, **therest):
         '''
