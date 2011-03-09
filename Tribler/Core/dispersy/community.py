@@ -298,8 +298,8 @@ class Community(object):
                     packet = str(packet)
                     # TODO: when a packet conversion fails we must drop something, and preferably check
                     # all messages in the database again...
-                    message = self.get_conversion(packet[:22]).decode_message(packet)
-                    mapping[name](("", -1), message)
+                    message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+                    mapping[name]([message])
 
     @classmethod
     def get_classification(cls):
@@ -613,7 +613,7 @@ class Community(object):
             assert isinstance(packet, buffer)
             packet = str(packet)
             conversion = self.get_conversion(packet[:22])
-            message = conversion.decode_message(packet)
+            message = conversion.decode_message(("", -1), packet)
             assert message.name == "dispersy-subjective-set"
             assert not message.payload.cluster in existing_sets
             existing_sets[message.payload.cluster] = message.payload.subjective_set
@@ -758,7 +758,7 @@ class Community(object):
     def create_dispersy_subjective_set(self, cluster, members, reset=True, update_locally=True, store_and_forward=True):
         return self._dispersy.create_subjective_set(self, cluster, members, reset, update_locally, store_and_forward)
 
-    def on_dispersy_destroy_community(self, address, message):
+    def dispersy_cleanup_community(self, message):
         """
         A dispersy-destroy-community message is received.
 
@@ -782,8 +782,6 @@ class Community(object):
 
         @param message: The received message.
         @type message: Message.Implementation
-
-        @raise DropMessage: When unable to verify that this message is valid.
         """
         # override to implement community cleanup
         pass

@@ -205,7 +205,7 @@ class BinaryConversion(Conversion):
         return self.encode_message(message.payload.message),
 
     def _decode_signature_request(self, meta_message, offset, data):
-        return len(data), meta_message.payload.implement(self._decode_message(data[offset:], False))
+        return len(data), meta_message.payload.implement(self._decode_message(("", -1), data[offset:], False))
 
     def _encode_signature_response(self, message):
         return message.payload.identifier, message.payload.signature
@@ -810,7 +810,7 @@ class BinaryConversion(Conversion):
 
         return meta_message.destination.implement(my_similarity.bic_occurrence(sender_similarity))
 
-    def _decode_message(self, data, verify_all_signatures):
+    def _decode_message(self, address, data, verify_all_signatures):
         """
         Decode a binary string into a Message structure, with some
         Dispersy specific parameters.
@@ -871,13 +871,15 @@ class BinaryConversion(Conversion):
         assert isinstance(payload, Payload.Implementation), type(payload)
         assert isinstance(offset, (int, long))
 
-        return meta_message.implement(authentication_impl, distribution_impl, destination_impl, payload, conversion=self, packet=data)
+        return meta_message.implement(authentication_impl, distribution_impl, destination_impl, payload, conversion=self, address=address, packet=data)
 
-    def decode_message(self, data):
+    def decode_message(self, address, data):
         """
         Decode a binary string into a Message structure.
         """
-        return self._decode_message(data, True)
+        assert isinstance(address, tuple)
+        assert isinstance(data, str)
+        return self._decode_message(address, data, True)
 
 class DefaultConversion(BinaryConversion):
     """

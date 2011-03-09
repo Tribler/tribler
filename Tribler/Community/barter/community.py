@@ -31,7 +31,7 @@ class BarterCommunity(Community):
         self._database = BarterDatabase.get_instance()
 
     def initiate_meta_messages(self):
-        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.on_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
+        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), BarterCommunityConversion(self)]
@@ -68,7 +68,7 @@ class BarterCommunity(Community):
         if __debug__: log("barter.log", "created", second_member=second_member.mid, footprint=message.footprint, message=message.name)
         return self.create_signature_request(message, self.on_signature_response, store_and_forward=store_and_forward)
 
-    def on_signature_request(self, message):
+    def allow_signature_request(self, message):
         """ Decide whether to reply or not to a signature request
 
         Currently I always sign for testing proposes
@@ -79,14 +79,17 @@ class BarterCommunity(Community):
 
         is_signed, other_member = message.authentication.signed_members[0]
         if other_member == self._my_member:
-            raise DropMessage("We should be the first signer")
+            if __debug__: dprint("refuse signature: we should be the first signer", level="warning")
+            return False
 
         if not is_signed:
-            raise DropMessage("The other member did not sign it")
+            if __debug__: dprint("refuse signature: the other member did not sign it", level="warning")
+            return False
 
         my_member = message.authentication.members[1]
         if not my_member == self._my_member:
-            raise DropMessage("We should be the second signer")
+            if __debug__: dprint("refuse signature: we should be the second signer")
+            return False
 
         # todo: decide if we want to use add our signature to this # record
         if True:
@@ -124,43 +127,45 @@ class BarterCommunity(Community):
             # close the transfer
             if __debug__: dprint("Signature request timeout")
 
-    def check_barter_record(self, address, message):
-        pass
+    def check_barter_record(self, messages):
+        # stupidly accept everything...
+        return messages
 
-    def on_barter_record(self, address, message):
+    def on_barter_record(self, messages):
         """ I handle received barter records
 
         I create or update a row in my database
         """
-        if __debug__: dprint(message)
+        if __debug__: dprint("storing ", len(messages), " records")
         with self._database as execute:
-            # check if there is already a record about this pair
-            try:
-                first_member, second_member, global_time = \
-                              execute(u"SELECT first_member, second_member, global_time FROM \
-                              record WHERE (first_member = ? AND second_member = ?) OR \
-                              (first_member = ? AND second_member = ?)",
-                                      (message.authentication.members[0].database_id,
-                                       message.authentication.members[1].database_id,
-                                       message.authentication.members[1].database_id,
-                                       message.authentication.members[0].database_id)).next()
-            except StopIteration:
-                global_time = -1
-                first_member = message.authentication.members[0].database_id
-                second_member = message.authentication.members[1].database_id
+            for message in messages:
+                # check if there is already a record about this pair
+                try:
+                    first_member, second_member, global_time = \
+                                  execute(u"SELECT first_member, second_member, global_time FROM \
+                                  record WHERE (first_member = ? AND second_member = ?) OR \
+                                  (first_member = ? AND second_member = ?)",
+                                          (message.authentication.members[0].database_id,
+                                           message.authentication.members[1].database_id,
+                                           message.authentication.members[1].database_id,
+                                           message.authentication.members[0].database_id)).next()
+                except StopIteration:
+                    global_time = -1
+                    first_member = message.authentication.members[0].database_id
+                    second_member = message.authentication.members[1].database_id
 
-            if global_time >= message.distribution.global_time:
-                # ignore the message
-                if __debug__:
-                    dprint("Ignoring older message")
-            else:
-                self._database.execute(u"INSERT OR REPLACE INTO \
-                record(community, global_time, first_member, second_member, \
-                upload_first_member, upload_second_member) \
-                VALUES(?, ?, ?, ?, ?, ?)",
-                                       (self._database_id,
-                                        message.distribution.global_time,
-                                        first_member,
-                                        second_member,
-                                        message.payload.first_upload,
-                                        message.payload.second_upload))
+                if global_time >= message.distribution.global_time:
+                    # ignore the message
+                    if __debug__:
+                        dprint("Ignoring older message")
+                else:
+                    self._database.execute(u"INSERT OR REPLACE INTO \
+                    record(community, global_time, first_member, second_member, \
+                    upload_first_member, upload_second_member) \
+                    VALUES(?, ?, ?, ?, ?, ?)",
+                                           (self._database_id,
+                                            message.distribution.global_time,
+                                            first_member,
+                                            second_member,
+                                            message.payload.first_upload,
+                                            message.payload.second_upload))

@@ -290,7 +290,7 @@ class Dispersy(Singleton):
         """
         return self._communities.values()
 
-    def _check_incoming_full_sync_distribution(self, address, message):
+    def _check_incoming_full_sync_distribution(self, message):
         """
         Ensure that we do not yet have the message and that, if sequence numbers are enabled, we are
         not missing any previous messages.
@@ -357,7 +357,7 @@ class Dispersy(Singleton):
                 #  we do not have the previous message (delay and request)
                 raise DelayMessageBySequence(message, sequence_number+1, message.distribution.sequence_number-1)
 
-    def _check_incoming_last_sync_distribution(self, address, message):
+    def _check_incoming_last_sync_distribution(self, message):
         """
         Ensure that we do not yet have the message and that, if sequence numbers are enabled, we are
         not missing any previous messages.
@@ -410,8 +410,8 @@ class Dispersy(Singleton):
                     # previous query... but you never know
                     pass
                 else:
-                    if __debug__: dprint("prooving ", len(packet), " bytes from _check_incoming_last_sync_distribution to ", address[0], ":", address[1])
-                    self._send([address], [packet])
+                    if __debug__: dprint("prooving ", len(packet), " bytes from _check_incoming_last_sync_distribution to ", message.address[0], ":", message.address[1])
+                    self._send([message.address], [packet])
 
             elif message.distribution.enable_sequence_number:
                 # we limit the response by byte_limit bytes
@@ -429,8 +429,8 @@ class Dispersy(Singleton):
                                                       message.distribution.global_time)):
                     packet = str(packet)
 
-                    if __debug__: dprint("prooving ", len(packet), " bytes from _check_incoming_last_sync_distribution to ", address[0], ":", address[1])
-                    self._send([address], [packet])
+                    if __debug__: dprint("prooving ", len(packet), " bytes from _check_incoming_last_sync_distribution to ", message.address[0], ":", message.address[1])
+                    self._send([message.address], [packet])
 
                     if self._total_send > byte_limit:
                         if __debug__: dprint("bandwidth throttle")
@@ -465,7 +465,7 @@ class Dispersy(Singleton):
                 #  we do not have the previous message (delay and request)
                 raise DelayMessageBySequence(message, max(sequence_number+1, message.distribution.sequence_number-message.distribution.history_size), message.distribution.sequence_number-1)
 
-    def _check_incoming_OTHER_distribution(self, address, message):
+    def _check_incoming_OTHER_distribution(self, message):
         """
         Does not do anything.
 
@@ -483,7 +483,7 @@ class Dispersy(Singleton):
         @param message: Ignored.
         @type message: Message.Implementation assert isinstance(message, Message.Implementation)
         """
-        assert isinstance(message, Message.Implementation)
+        pass
 
     def on_incoming_packets(self, packets):
         """
@@ -515,14 +515,111 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
 
+        if __debug__:
+            for address, packet in packets:
+                dprint(len(packet), " bytes were received from ", address[0], ":", address[1])
+            dprint("there are ", len(packets), " incoming packets")
+        self._total_received += sum(len(packet) for _, packet in packets)
+
+        # convert packets into Message.Implementation instances
+        messages = list(self._convert_incoming_packets(packets))
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        if __debug__: dprint("after conversion we have ", len(messages), " messages remaining (down from ", len(packets), " packets)")
+        if not messages:
+            return
+
+        # update candidate table.  We know that some peer (not necessarily
+        # message.authentication.member) exists at this address.
+        with self._database as execute:
+            for database_id, (host, port) in set((message.community.database_id, message.address) for message in messages):
+                self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
+                                       (database_id, unicode(host), port))
+                if self._database.changes == 0:
+                    self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
+                                           (database_id, unicode(host), port))
+
+        # handle the incoming messages
+        self.on_incoming_messages(messages)
+
+    def on_incoming_messages(self, messages):
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+
+        # drop or delay all invalid messages
+        messages = list(self._check_incoming_messages(messages))
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        if __debug__: dprint("after check we have ", len(messages), " remaining")
+        if not messages:
+            return
+
+        # group all by message.meta (each message.meta is unique per community)
+        groups = dict()
+        for message in messages:
+            if message.meta in groups:
+                groups[message.meta].append(message)
+            else:
+                groups[message.meta] = [message]
+
+        if __debug__:
+            for meta, messages in groups.iteritems():
+                dprint("batch handling ", len(messages), " ", meta.name, " messages")
+
+        # list containing all handled messages
+        handled = []
+
+        for meta, messages in groups.iteritems():
+            # check all remaining messages on the community side.  may yield Message.Implementation,
+            # DropMessage, and DelayMessage instances
+            messages = list(meta.check_callback(messages))
+            assert len(messages) >= 0 # may return zero messages
+            assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
+
+            if __debug__:
+                i_message = len(list(message for message in messages if isinstance(message, Message.Implementation)))
+                i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
+                i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
+                dprint("batch check ", meta.name, " -> ", i_message, ":", i_delay, ":", i_drop, " (ok:delay:drop)")
+
+            # delay if needed
+            for delay in (message for message in messages if isinstance(message, DelayMessage)):
+                if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
+                trigger = TriggerMessage(delay.pattern, self.on_incoming_messages, [delay.delayed])
+                self._triggers.append(trigger)
+                self._rawserver.add_task(trigger.on_timeout, 10.0)
+                self._send([message.address], [delay.request.packet])
+
+            # remove DropMessage and DelayMessage instances
+            messages = [message for message in messages if isinstance(message, Message.Implementation)]
+            if messages:
+                # handle all remaining messages on the community side
+                meta.handle_callback(messages)
+                handled.extend(messages)
+
+        if handled:
+            # sync messages need to be stored (so they can be synced later)
+            if __debug__: dprint("batch storing ", len(handled), " potential messages")
+            self._sync_distribution_store(handled)
+
+            # this message may 'trigger' a previously delayed message
+            self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(handled)]
+
+    def _convert_incoming_packets(self, packets):
+        assert isinstance(packets, (tuple, list))
+        assert len(packets) > 0
+        assert not filter(lambda x: not len(x) == 2, packets)
+
+        unique = set()
         for address, packet in packets:
             assert isinstance(address, tuple)
             assert isinstance(address[0], str)
             assert isinstance(address[1], int)
             assert isinstance(packet, str)
 
-            if __debug__: dprint(address[0], ":", address[1], ": ", len(packet), " bytes were received")
-            self._total_received += len(packet)
+            # we may have receive this packet in this on_incoming_packets callback
+            if packet in unique:
+                if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1])
+                continue
 
             # is it from an external source
             if not self._is_valid_external_address(address):
@@ -541,12 +638,11 @@ class Dispersy(Singleton):
                 conversion = community.get_conversion(packet[:22])
             except KeyError:
                 if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown conversion) from ", address[0], ":", address[1], level="warning")
-                raise
                 continue
 
             try:
-                # converty binary date to internal Message
-                message = conversion.decode_message(packet)
+                # convert binary data to internal Message
+                yield conversion.decode_message(address, packet)
 
             except DropPacket, exception:
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
@@ -561,86 +657,106 @@ class Dispersy(Singleton):
                 if __debug__: log("dispersy.log", "delay-packet", address=address, packet=packet, pattern=delay.pattern)
 
             else:
-                # update candidate table.  We know that some peer (not necessarily
-                # message.authentication.member) exists at this address.
-                self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
-                                       (message.community.database_id, unicode(address[0]), address[1]))
-                if self._database.changes == 0:
-                    self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
-                                           (message.community.database_id, unicode(address[0]), address[1]))
+                unique.add(packet)
 
-                # handle the message
-                self.on_incoming_message(address, message)
+    def _check_incoming_messages(self, messages):
+        assert isinstance(messages, list)
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
 
-    def on_incoming_message(self, address, message):
-        """
-        Process one dispersy message.
-
-        This method is called to process one dispersy message.  This occurs when new message is
-        received, to attempt to process previously delayed message, or when a user explicitly
-        creates a message to process.  The last option should only occur for debugging purposes.
-
-        Each message is processed in the following way:
-
-         1. When the member is tagged with 'drop' the message is dropped.
-
-         2. The distribution policy is checked.  Failure occurs when this message is already
-            processed or when the message is to old.
-
-         3. The community is allowed to process the message though the on_message method.  Note that
-            even though the member may be tagged with 'ignore', these callbacks will take place.
-
-         4. If the message uses the SyncDistribution policy is may be stored in the database.
-
-         5. The message may match one of the existing Triggers causing a callback or a delayed
-            packet or message to be processed.
-
-        @param address: The address where we got this message from.  Will be ('', -1) when the
-         message was created locally.
-        @type address: (string, int)
-
-        @param message: The message.
-        @type message: Message.Implementation
-        """
-        if __debug__: dprint("incoming ", message.name, " (", len(message.packet), " bytes) from ", address[0], ":", address[1])
-        try:
+        for message in messages:
             # drop if this is a blacklisted member
             if isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop:
                 # todo: we currently do not add this message in the bloomfilter, hence we will
                 # continually receive this packet.
-                raise DropMessage("Packets from this member are explicitly dropped")
+                if __debug__: dprint(message.address[0], ":", message.address[1], ": drop a ", len(message.packet), " byte message (packets from this member are explicitly dropped)", level="warning")
+                continue
 
-            # filter messages based on distribution (usually duplicate or old messages)
-            self._incoming_distribution_map.get(type(message.distribution), self._check_incoming_OTHER_distribution)(address, message)
+            try:
+                # filter messages based on distribution (usually duplicate or old messages)
+                self._incoming_distribution_map.get(type(message.distribution), self._check_incoming_OTHER_distribution)(message)
 
-            # allow community code to test the message
-            message.check_callback(address, message)
+            except DropMessage, exception:
+                if __debug__: dprint(message.address[0], ":", message.address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
 
-        except DropMessage, exception:
-            if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
-            if __debug__: log("dispersy.log", "drop-message", address=address, message=message.name, packet=message.packet, exception=str(exception))
+            except DelayMessage, delay:
+                if __debug__: dprint(message.address[0], ":", message.address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
+                trigger = TriggerMessage(delay.pattern, self.on_incoming_messages, [delay.delayed])
+                self._triggers.append(trigger)
+                self._rawserver.add_task(trigger.on_timeout, 10.0)
+                self._send([message.address], [delay.request.packet])
 
-        except DelayMessage, delay:
-            if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
-            trigger = TriggerMessage(delay.pattern, self.on_incoming_message, address, message)
-            self._triggers.append(trigger)
-            self._rawserver.add_task(trigger.on_timeout, 10.0)
-            self._send([address], [delay.request_packet])
+            else:
+                yield message
 
-        else:
-            # sync messages need to be stored (so they can be synced later)
-            if isinstance(message.distribution, SyncDistribution.Implementation):
-                self._sync_distribution_store(message)
+    # def on_incoming_message(self, messages):
+    #     """
+    #     Process one dispersy message.
 
-            # allow community code to handle the message
-            message.handle_callback(address, message)
+    #     This method is called to process one dispersy message.  This occurs when new message is
+    #     received, to attempt to process previously delayed message, or when a user explicitly
+    #     creates a message to process.  The last option should only occur for debugging purposes.
 
-            if __debug__: log("dispersy.log", "handled", address=address, packet=message.packet, message=message.name)
+    #     Each message is processed in the following way:
 
-            # this message may 'trigger' a previously delayed message
-            self._triggers = [trigger for trigger in self._triggers if trigger.on_message(address, message)]
+    #      1. When the member is tagged with 'drop' the message is dropped.
 
-    def _sync_distribution_store(self, message):
+    #      2. The distribution policy is checked.  Failure occurs when this message is already
+    #         processed or when the message is to old.
+
+    #      3. The community is allowed to process the message though the on_message method.  Note that
+    #         even though the member may be tagged with 'ignore', these callbacks will take place.
+
+    #      4. If the message uses the SyncDistribution policy is may be stored in the database.
+
+    #      5. The message may match one of the existing Triggers causing a callback or a delayed
+    #         packet or message to be processed.
+
+    #     # @param address: The address where we got this message from.  Will be ('', -1) when the
+    #     #  message was created locally.
+    #     # @type address: (string, int)
+
+    #     # @param message: The message.
+    #     # @type message: Message.Implementation
+    #     """
+    #     if __debug__: dprint("incoming ", message.name, " (", len(message.packet), " bytes) from ", address[0], ":", address[1])
+    #     try:
+    #         # drop if this is a blacklisted member
+    #         if isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop:
+    #             # todo: we currently do not add this message in the bloomfilter, hence we will
+    #             # continually receive this packet.
+    #             raise DropMessage("Packets from this member are explicitly dropped")
+
+    #         # filter messages based on distribution (usually duplicate or old messages)
+    #         self._incoming_distribution_map.get(type(message.distribution), self._check_incoming_OTHER_distribution)(address, message)
+
+    #         # allow community code to test the message
+    #         message.check_callback(address, message)
+
+    #     except DropMessage, exception:
+    #         if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
+    #         if __debug__: log("dispersy.log", "drop-message", address=address, message=message.name, packet=message.packet, exception=str(exception))
+
+    #     except DelayMessage, delay:
+    #         if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
+    #         trigger = TriggerMessage(delay.pattern, self.on_incoming_message, address, message)
+    #         self._triggers.append(trigger)
+    #         self._rawserver.add_task(trigger.on_timeout, 10.0)
+    #         self._send([address], [delay.request_packet])
+
+    #     else:
+    #         # sync messages need to be stored (so they can be synced later)
+    #         if isinstance(message.distribution, SyncDistribution.Implementation):
+    #             self._sync_distribution_store(message)
+
+    #         # allow community code to handle the message
+    #         message.handle_callback(address, message)
+
+    #         if __debug__: log("dispersy.log", "handled", address=address, packet=message.packet, message=message.name)
+
+    #         # this message may 'trigger' a previously delayed message
+    #         self._triggers = [trigger for trigger in self._triggers if trigger.on_message(address, message)]
+
+    def _sync_distribution_store(self, messages):
         """
         Store a message in the database.
 
@@ -656,65 +772,70 @@ class Dispersy(Singleton):
         @param message: The unstored message with the SyncDistribution policy.
         @type message: Message.Implementation
         """
-        assert isinstance(message.distribution, SyncDistribution.Implementation)
-        assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
-        assert message.authentication.is_signed
-        # the signature must be set
-        assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
+        assert isinstance(messages, list)
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
 
-        # we do not store a message when it uses SubjectiveDestination and it is not in our set
-        if isinstance(message.destination, SubjectiveDestination.Implementation) and not message.destination.is_valid:
-            # however, ignore the SimilarityDestination when we are forced so store this message
-            if not message.authentication.member.must_store:
-                if __debug__: dprint("Not storing message")
-                return
+        messages = [message for message in messages if isinstance(message.distribution, SyncDistribution.Implementation)]
+        if messages:
+            with self._database as execute:
+                for message in messages:
+                    assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
+                    assert message.authentication.is_signed
 
-        # we do not store a message when it uses SimilarityDestination and it is not similar
-        if isinstance(message.destination, SimilarityDestination.Implementation) and not message.destination.is_similar:
-            # however, ignore the SimilarityDestination when we are forced so store this message
-            if not message.authentication.member.must_store:
-                if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
-                return
+                    # the signature must be set
+                    assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
 
-        # sync bloomfilter
-        message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
+                    # we do not store a message when it uses SubjectiveDestination and it is not in our set
+                    if isinstance(message.destination, SubjectiveDestination.Implementation) and not message.destination.is_valid:
+                        # however, ignore the SimilarityDestination when we are forced so store this message
+                        if not message.authentication.member.must_store:
+                            if __debug__: dprint("Not storing message")
+                            return
 
-        with self._database as execute:
+                    # we do not store a message when it uses SimilarityDestination and it is not similar
+                    if isinstance(message.destination, SimilarityDestination.Implementation) and not message.destination.is_similar:
+                        # however, ignore the SimilarityDestination when we are forced so store this message
+                        if not message.authentication.member.must_store:
+                            if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
+                            return
 
-            # delete packet if there are to many stored
-            if isinstance(message.distribution, LastSyncDistribution.Implementation):
-                for id_, in execute(u"""SELECT sync.id
-                                        FROM sync
-                                        JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                                        WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?
-                                        ORDER BY sync.global_time DESC
-                                        LIMIT 100 OFFSET ?""",
-                                    (message.community.database_id,
-                                     message.authentication.member.database_id,
-                                     message.database_id,
-                                     message.distribution.history_size - 1)):
-                    execute(u"DELETE FROM reference_user_sync WHERE user = ? AND sync = ?", (message.authentication.member.database_id, id_))
-                    execute(u"DELETE FROM sync WHERE id = ?", (id_,))
+                    # sync bloomfilter
+                    message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
 
-            # add packet to database
-            execute(u"INSERT INTO sync (community, name, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (message.community.database_id,
-                     message.database_id,
-                     message.distribution.global_time,
-                     message.distribution.synchronization_direction_id,
-                     isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
-                     # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
-                     isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
-                     buffer(message.packet)))
+                    # delete packet if there are to many stored
+                    if isinstance(message.distribution, LastSyncDistribution.Implementation):
+                        for id_, in execute(u"""SELECT sync.id
+                                                FROM sync
+                                                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
+                                                WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?
+                                                ORDER BY sync.global_time DESC
+                                                LIMIT 100 OFFSET ?""",
+                                            (message.community.database_id,
+                                             message.authentication.member.database_id,
+                                             message.database_id,
+                                             message.distribution.history_size - 1)):
+                            execute(u"DELETE FROM reference_user_sync WHERE user = ? AND sync = ?", (message.authentication.member.database_id, id_))
+                            execute(u"DELETE FROM sync WHERE id = ?", (id_,))
 
-            # ensure that we can reference this packet
-            message.packet_id = self._database.last_insert_rowid
+                    # add packet to database
+                    execute(u"INSERT INTO sync (community, name, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (message.community.database_id,
+                             message.database_id,
+                             message.distribution.global_time,
+                             message.distribution.synchronization_direction_id,
+                             isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
+                             # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
+                             isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
+                             buffer(message.packet)))
 
-            # link one or more users to this packet
-            # todo: add more when this is MultiMemberAuthentication
-            execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
-                    (message.authentication.member.database_id,
-                     message.packet_id))
+                    # ensure that we can reference this packet
+                    message.packet_id = self._database.last_insert_rowid
+
+                    # link one or more users to this packet
+                    # todo: add more when this is MultiMemberAuthentication
+                    execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
+                            (message.authentication.member.database_id,
+                             message.packet_id))
 
     def _select_candidate_addresses(self, community_id, address_count, diff_range, age_range):
         assert isinstance(community_id, (int, long))
@@ -832,13 +953,11 @@ class Dispersy(Singleton):
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
 
+        # Store
+        self._sync_distribution_store(messages)
+
+        # Forward
         for message in messages:
-
-            # Store
-            if isinstance(message.distribution, SyncDistribution.Implementation):
-                self._sync_distribution_store(message)
-
-            # Forward
             if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
                 addresses = self._select_candidate_addresses(message.community.database_id,
                                                            message.destination.node_count,
@@ -1031,16 +1150,19 @@ class Dispersy(Singleton):
 
         return request
 
-    def check_candidate_request(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_candidate_request(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
     def _is_valid_external_address(self, address):
-        # if address[0] in ("0.0.0.0", "127.0.0.1"):
-        #     return False
+        if address[0] in ("0.0.0.0", "127.0.0.1"):
+            return False
 
-        # if address[0].endswith(".255"):
-        #     return False
+        if address[0].endswith(".255"):
+            return False
 
         return True
 
@@ -1068,7 +1190,7 @@ class Dispersy(Singleton):
                 elif __debug__:
                     dprint("dropping invalid route ", address[0], ":", address[1], level="warning")
 
-    def on_candidate_request(self, address, message):
+    def on_candidate_request(self, messages):
         """
         We received a dispersy-candidate-request message.
 
@@ -1085,41 +1207,45 @@ class Dispersy(Singleton):
         @param message: The dispersy-sync message.
         @type message: Message.Implementation
         """
-        if __debug__:
-            from message import Message
-        assert message.name == u"dispersy-candidate-request"
-        assert isinstance(message, Message.Implementation)
-        if __debug__: dprint(message)
-
-        if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
-        self._my_external_address = message.payload.destination_address
-
-        # update or insert the member who sent the request
-        # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
-        #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
-
-        # add routes in our candidate table
-        self._update_routes_from_external_source(message.community, message.payload.routes)
-
-        # send response
-        minimal_age, maximal_age = message.community.dispersy_candidate_age_range
+        community = messages[0].community
+        meta = community.get_meta_message(u"dispersy-candidate-response")
+        minimal_age, maximal_age = community.dispersy_candidate_age_range
         sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
-                  FROM candidate
-                  WHERE community = ? AND age BETWEEN ? AND ?
-                  ORDER BY age
-                  LIMIT 30"""
-        routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (message.community.database_id, minimal_age, maximal_age))]
+            FROM candidate
+            WHERE community = ? AND age BETWEEN ? AND ?
+            ORDER BY age
+            LIMIT 30"""
+        routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
+        responses = []
 
-        meta = message.community.get_meta_message(u"dispersy-candidate-response")
-        response = meta.implement(meta.authentication.implement(meta.community.my_member),
-                                  meta.distribution.implement(meta.community._timeline.global_time),
-                                  meta.destination.implement(address),
-                                  meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, address, meta.community.get_conversion().version, routes))
-        self.store_and_forward([response])
+        for message in messages:
+            assert message.name == u"dispersy-candidate-request"
+            if __debug__: dprint(message)
 
-    def check_candidate_response(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+            if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
+            self._my_external_address = message.payload.destination_address
+
+            # update or insert the member who sent the request
+            # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
+            #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
+
+            # add routes in our candidate table
+            self._update_routes_from_external_source(community, message.payload.routes)
+
+            # send response
+            responses.append(meta.implement(meta.authentication.implement(community.my_member),
+                                            meta.distribution.implement(community._timeline.global_time),
+                                            meta.destination.implement(message.address),
+                                            meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, message.address, meta.community.get_conversion().version, routes)))
+
+        self.store_and_forward(responses)
+
+    def check_candidate_response(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
     def on_candidate_response(self, address, message):
         """
@@ -1189,11 +1315,14 @@ class Dispersy(Singleton):
 
         return message
 
-    def check_identity(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_identity(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
-    def on_identity(self, address, message):
+    def on_identity(self, messages):
         """
         We received a dispersy-identity message.
 
@@ -1205,21 +1334,22 @@ class Dispersy(Singleton):
         @param message: The dispersy-identity message.
         @type message: Message.Implementation
         """
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message.Implementation)
-        assert message.name == u"dispersy-identity"
-        if __debug__: dprint(message)
-        host, port = message.payload.address
-        # TODO: we should drop messages that contain invalid addresses... or at the very least we
-        # should ignore the address part.
         with self._database as execute:
-            # execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
-            execute(u"UPDATE user SET host = ?, port = ? WHERE id = ?", (unicode(host), port, message.authentication.member.database_id))
-            # execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
-            # if self._database.changes == 0:
-            #     execute(u"INSERT INTO identity(user, community, packet) VALUES(?, ?, ?)", (message.authentication.member.database_id, message.community.database_id, buffer(message.packet)))
-        message.authentication.member.update()
+            for message in messages:
+                assert message.name == u"dispersy-identity"
+                if __debug__: dprint(message)
+                host, port = message.payload.address
+                # TODO: we should drop messages that contain invalid addresses... or at the very least we
+                # should ignore the address part.
+
+                # execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
+                execute(u"UPDATE user SET host = ?, port = ? WHERE id = ?", (unicode(host), port, message.authentication.member.database_id))
+                # execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
+                # if self._database.changes == 0:
+                #     execute(u"INSERT INTO identity(user, community, packet) VALUES(?, ?, ?)", (message.authentication.member.database_id, message.community.database_id, buffer(message.packet)))
+
+        for message in messages:
+            message.authentication.member.update()
 
     def create_identity_request(self, community, mid, address, store_and_forward=True):
         """
@@ -1264,7 +1394,7 @@ class Dispersy(Singleton):
 
         return message
 
-    def check_identity_request(self, address, message):
+    def check_identity_request(self, messages):
         # we can not timeline.check this message because it uses the NoAuthentication policy
         pass
 
@@ -1333,23 +1463,29 @@ class Dispersy(Singleton):
 
         if update_locally:
             assert community._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         return message
 
-    def check_subjective_set(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_subjective_set(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
-    def on_subjective_set(self, address, message):
+    def on_subjective_set(self, messages):
         # we do not need to do anything here for now because we retrieve all information directly
         # from the database each time we need it.  Hence no in-memory actions needs to occur.  Note
         # that this data is immediately stored in the database when this method returns.
         pass
 
-    def check_subjective_set_request(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_subjective_set_request(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
     def on_subjective_set_request(self, address, message):
         """
@@ -1703,67 +1839,88 @@ class Dispersy(Singleton):
 
         return request
 
-    def check_similarity_request(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_similarity_request(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
 
-        # submsg contains the message that should receive multiple signatures
-        submsg = message.payload.message
+            # submsg contains the message that should receive multiple signatures
+            submsg = message.payload.message
 
-        has_private_member = False
-        for is_signed, member in submsg.authentication.signed_members:
-            # Security: do NOT allow to accidentally sign with MasterMember.
-            if isinstance(member, MasterMember):
-                raise DropMessage("You may never ask for a MasterMember signature")
+            has_private_member = False
+            try:
+                for is_signed, member in submsg.authentication.signed_members:
+                    # Security: do NOT allow to accidentally sign with MasterMember.
+                    if isinstance(member, MasterMember):
+                        raise DropMessage("You may never ask for a MasterMember signature")
 
-            # is this signature missing, and could we provide it
-            if not is_signed and isinstance(member, PrivateMember):
-                has_private_member = True
-                break
+                    # is this signature missing, and could we provide it
+                    if not is_signed and isinstance(member, PrivateMember):
+                        has_private_member = True
+                        break
+            except DropMessage, exception:
+                yield exception
+                continue
 
-        # we must be one of the members that needs to sign
-        if not has_private_member:
-            raise DropMessage("Nothing to sign")
+            # we must be one of the members that needs to sign
+            if not has_private_member:
+                yield DropMessage("Nothing to sign")
+                continue
 
-        # the message must be valid
-        if not submsg.community._timeline.check(submsg):
-            raise DropMessage("Doesn't fit timeline")
+            # the message must be valid
+            if not submsg.community._timeline.check(submsg):
+                yield DropMessage("Doesn't fit timeline")
+                continue
 
-        # the community must allow this signature
-        if not submsg.authentication.allow_signature_func(submsg):
-            raise DropMessage("We choose not to add our signature")
+            # the community must allow this signature
+            if not submsg.authentication.allow_signature_func(submsg):
+                yield DropMessage("We choose not to add our signature")
+                continue
 
-    def check_signature_request(self, address, message):
-        # we can not timeline.check this message because it uses the NoAuthentication policy
+            yield message
 
-        # submsg contains the message that should receive multiple signatures
-        submsg = message.payload.message
+    def check_signature_request(self, messages):
+        for message in messages:
+            # we can not timeline.check this message because it uses the NoAuthentication policy
 
-        has_private_member = False
-        for is_signed, member in submsg.authentication.signed_members:
-            # Security: do NOT allow to accidentally sign with MasterMember.
-            if isinstance(member, MasterMember):
-                raise DropMessage("You may never ask for a MasterMember signature")
+            # submsg contains the message that should receive multiple signatures
+            submsg = message.payload.message
 
-            # is this signature missing, and could we provide it
-            if not is_signed and isinstance(member, PrivateMember):
-                has_private_member = True
-                break
+            has_private_member = False
+            try:
+                for is_signed, member in submsg.authentication.signed_members:
+                    # Security: do NOT allow to accidentally sign with MasterMember.
+                    if isinstance(member, MasterMember):
+                        raise DropMessage("You may never ask for a MasterMember signature")
 
-        # we must be one of the members that needs to sign
-        if not has_private_member:
-            raise DropMessage("Nothing to sign")
+                    # is this signature missing, and could we provide it
+                    if not is_signed and isinstance(member, PrivateMember):
+                        has_private_member = True
+                        break
+            except DropMessage, exception:
+                yield exception
+                continue
 
-        # we can not timeline.check the submessage because it uses the MultiMemberAuthentication policy
-        # # the message that we are signing must be valid according to our timeline
-        # # if not message.community._timeline.check(submsg):
-        # #     raise DropMessage("Does not fit timeline")
+            # we must be one of the members that needs to sign
+            if not has_private_member:
+                yield DropMessage("Nothing to sign")
+                continue
 
-        # the community must allow this signature
-        if not submsg.authentication.allow_signature_func(submsg):
-            raise DropMessage("We choose not to add our signature")
+            # we can not timeline.check the submessage because it uses the MultiMemberAuthentication policy
+            # # the message that we are signing must be valid according to our timeline
+            # # if not message.community._timeline.check(submsg):
+            # #     raise DropMessage("Does not fit timeline")
 
-    def on_signature_request(self, address, message):
+            # the community must allow this signature
+            if not submsg.authentication.allow_signature_func(submsg):
+                yield DropMessage("We choose not to add our signature")
+                continue
+
+            # allow message
+            yield message
+
+    def on_signature_request(self, messages):
         """
         We received a dispersy-signature-request message.
 
@@ -1796,36 +1953,40 @@ class Dispersy(Singleton):
         if __debug__:
             from message import Message
             from authentication import MultiMemberAuthentication
-        assert isinstance(message, Message.Implementation), type(message)
-        assert isinstance(message.payload.message, Message.Implementation), type(message.payload.message)
-        assert isinstance(message.payload.message.authentication, MultiMemberAuthentication.Implementation), type(message.payload.message.authentication)
 
-        # submsg contains the message that should receive multiple signatures
-        submsg = message.payload.message
+        responses = []
+        for message in messages:
+            assert isinstance(message, Message.Implementation), type(message)
+            assert isinstance(message.payload.message, Message.Implementation), type(message.payload.message)
+            assert isinstance(message.payload.message.authentication, MultiMemberAuthentication.Implementation), type(message.payload.message.authentication)
 
-        # create signature(s) and reply
-        identifier = sha1(message.packet).digest()
-        first_signature_offset = len(submsg.packet) - sum([member.signature_length for member in submsg.authentication.members])
-        for member in submsg.authentication.members:
-            if isinstance(member, PrivateMember):
-                signature = member.sign(submsg.packet, 0, first_signature_offset)
+            # submsg contains the message that should receive multiple signatures
+            submsg = message.payload.message
 
-                # send response
-                meta = message.community.get_meta_message(u"dispersy-signature-response")
-                message = meta.implement(meta.authentication.implement(),
-                                         meta.distribution.implement(message.community._timeline.global_time),
-                                         meta.destination.implement(address,),
-                                         meta.payload.implement(identifier, signature))
-                self.store_and_forward([message])
+            # create signature(s) and reply
+            identifier = sha1(message.packet).digest()
+            first_signature_offset = len(submsg.packet) - sum([member.signature_length for member in submsg.authentication.members])
+            for member in submsg.authentication.members:
+                if isinstance(member, PrivateMember):
+                    signature = member.sign(submsg.packet, 0, first_signature_offset)
 
-    def check_signature_response(self, address, message):
+                    # send response
+                    meta = message.community.get_meta_message(u"dispersy-signature-response")
+                    responses.append(meta.implement(meta.authentication.implement(),
+                                                    meta.distribution.implement(message.community._timeline.global_time),
+                                                    meta.destination.implement(message.address,),
+                                                    meta.payload.implement(identifier, signature)))
+
+        self.store_and_forward(responses)
+
+    def check_signature_response(self, messages):
         # we can not timeline.check this message because it uses the NoAuthentication policy
+        return messages
+
+    def on_signature_response(self, messages):
         pass
 
-    def on_signature_response(self, address, message):
-        pass
-
-    def _on_signature_response(self, address, response, request, response_func, response_args):
+    def _on_signature_response(self, response, request, response_func, response_args):
         """
         A Trigger matched a received dispersy-signature-response message.
 
@@ -1857,9 +2018,9 @@ class Dispersy(Singleton):
         @param response_args: Optional arguments added when calling response_func.
         @type response_args: tuple
         """
-        assert isinstance(address, tuple)
-        assert isinstance(address[0], str)
-        assert isinstance(address[1], int)
+        # assert isinstance(address, tuple)
+        # assert isinstance(address[0], str)
+        # assert isinstance(address[1], int)
         assert response is None or isinstance(response, Message.Implementation)
         assert response is None or response.name == u"dispersy-signature-response"
         assert isinstance(request, Message.Implementation)
@@ -1869,7 +2030,7 @@ class Dispersy(Singleton):
 
         # check for timeout
         if response is None:
-            response_func(address, response, *response_args)
+            response_func(response, *response_args)
 
         else:
             # the multi signed message
@@ -1881,14 +2042,17 @@ class Dispersy(Singleton):
             for signature, member in submsg.authentication.signed_members:
                 if not signature and member.verify(body, response.payload.signature):
                     submsg.authentication.set_signature(member, response.payload.signature)
-                    response_func(address, submsg, *response_args)
+                    response_func(submsg, *response_args)
 
                     # assuming this signature only matches one member, we can break
                     break
 
-    def check_missing_sequence(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_missing_sequence(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
     def on_missing_sequence(self, address, message):
         """
@@ -1928,7 +2092,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("Bandwidth throttle")
                 break
 
-    def check_sync(self, address, message):
+    def check_sync(self, messages):
         """
         We received a dispersy-sync message.
 
@@ -1951,11 +2115,6 @@ class Dispersy(Singleton):
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message.Implementation)
-        assert message.name == u"dispersy-sync"
-
         # def get_similarity(cluster):
         #     try:
         #         similarity, = self._database.execute(u"SELECT similarity FROM similarity WHERE community = ? AND user = ? AND cluster = ?",
@@ -2011,68 +2170,71 @@ class Dispersy(Singleton):
             for tup in self._database.execute(sql, (community_id, time_low, time_high)):
                 yield tup
 
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
 
-        # we limit the response by byte_limit bytes
-        byte_limit = self._total_send + message.community.dispersy_sync_response_limit
+            # we limit the response by byte_limit bytes
+            byte_limit = self._total_send + message.community.dispersy_sync_response_limit
 
-        # similarity_cache = {}
+            # similarity_cache = {}
 
-        # obtain all subjective sets for the sender of the dispersy-sync message
-        subjective_sets = message.community.get_subjective_sets(message.authentication.member)
+            # obtain all subjective sets for the sender of the dispersy-sync message
+            subjective_sets = message.community.get_subjective_sets(message.authentication.member)
 
-        # obtain all available messages
-        meta_messages = dict((meta_message.database_id, meta_message) for meta_message in message.community.get_meta_messages())
+            # obtain all available messages
+            meta_messages = dict((meta_message.database_id, meta_message) for meta_message in message.community.get_meta_messages())
 
-        bloom_filter = message.payload.bloom_filter
-        time_high = message.payload.time_high if message.payload.has_time_high else message.community._timeline.global_time
-        packets = []
+            bloom_filter = message.payload.bloom_filter
+            time_high = message.payload.time_high if message.payload.has_time_high else message.community._timeline.global_time
+            packets = []
 
-        for packet, meta_message_id, packet_public_key in get_packets(message.community.database_id, message.payload.time_low, time_high):
-            packet = str(packet)
-            packet_public_key = str(packet_public_key)
+            for packet, meta_message_id, packet_public_key in get_packets(message.community.database_id, message.payload.time_low, time_high):
+                packet = str(packet)
+                packet_public_key = str(packet_public_key)
 
-            if not packet in bloom_filter:
-                # check if the packet uses the SubjectiveDestination policy
-                packet_meta = meta_messages[meta_message_id]
-                if isinstance(packet_meta.destination, SubjectiveDestination):
-                    packet_cluster = packet_meta.destination.cluster
+                if not packet in bloom_filter:
+                    # check if the packet uses the SubjectiveDestination policy
+                    packet_meta = meta_messages[meta_message_id]
+                    if isinstance(packet_meta.destination, SubjectiveDestination):
+                        packet_cluster = packet_meta.destination.cluster
 
-                    # we need the subjective set for this particular cluster
-                    if not packet_cluster in subjective_sets:
-                        if __debug__: dprint("Subjective set not available")
-                        raise DelayMessageBySubjectiveSet(message, packet_cluster)
+                        # we need the subjective set for this particular cluster
+                        if not packet_cluster in subjective_sets:
+                            if __debug__: dprint("Subjective set not available")
+                            yield DelayMessageBySubjectiveSet(message, packet_cluster)
+                            continue
 
-                    # is packet_public_key in the subjective set
-                    if not packet_public_key in subjective_sets[packet_cluster]:
-                        # do not send this packet: not in the requester's subjective set
-                        continue
+                        # is packet_public_key in the subjective set
+                        if not packet_public_key in subjective_sets[packet_cluster]:
+                            # do not send this packet: not in the requester's subjective set
+                            continue
 
-                # # check if the packet uses the SimilarityDestination policy
-                # if similarity_cluster:
-                #     similarity, threshold = similarity_cache.get(similarity_cluster, (None, None))
-                #     if similarity is None:
-                #         similarity, threshold = get_similarity(similarity_cluster)
-                #         similarity_cache[similarity_cluster] = (similarity, threshold)
+                    # # check if the packet uses the SimilarityDestination policy
+                    # if similarity_cluster:
+                    #     similarity, threshold = similarity_cache.get(similarity_cluster, (None, None))
+                    #     if similarity is None:
+                    #         similarity, threshold = get_similarity(similarity_cluster)
+                    #         similarity_cache[similarity_cluster] = (similarity, threshold)
 
-                #     if similarity.bic_occurrence(BloomFilter(str(packet_similarity), 0)) < threshold:
-                #         if __debug__: dprint("do not send this packet: not similar")
-                #         # do not send this packet: not similar
-                #         continue
+                    #     if similarity.bic_occurrence(BloomFilter(str(packet_similarity), 0)) < threshold:
+                    #         if __debug__: dprint("do not send this packet: not similar")
+                    #         # do not send this packet: not similar
+                    #         continue
 
-                if __debug__: dprint("syncing ", packet_meta.name, " (", len(packet), " bytes) to " , address[0], ":", address[1])
-                packets.append(packet)
+                    if __debug__: dprint("syncing ", packet_meta.name, " (", len(packet), " bytes) to " , message.address[0], ":", message.address[1])
+                    packets.append(packet)
 
-                byte_limit -= len(packet)
-                if byte_limit <= 0:
-                    if __debug__: dprint("bandwidth throttle")
-                    break
+                    byte_limit -= len(packet)
+                    if byte_limit <= 0:
+                        if __debug__: dprint("bandwidth throttle")
+                        break
 
-        if packets:
-            self._send([address], packets)
+            if packets:
+                self._send([message.address], packets)
 
-    def on_sync(self, address, message):
+    def on_sync(self, messages):
         # everything has already been done in check_sync.
         pass
 
@@ -2141,15 +2303,18 @@ class Dispersy(Singleton):
 
         if update_locally:
             assert community._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         return message
 
-    def check_authorize(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_authorize(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
-    def on_authorize(self, address, message):
+    def on_authorize(self, messages):
         """
         Process a dispersy-authorize message.
 
@@ -2167,8 +2332,8 @@ class Dispersy(Singleton):
         @todo: We should raise a DelayMessageByProof to ensure that we request the proof for this
          message immediately.
         """
-
-        message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
+        for message in messages:
+            message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
         """
@@ -2234,15 +2399,18 @@ class Dispersy(Singleton):
 
         if update_locally:
             assert community._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         return message
 
-    def check_revoke(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_revoke(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
-    def on_revoke(self, address, message):
+    def on_revoke(self, messages):
         """
         Process a dispersy-revoke message.
 
@@ -2260,7 +2428,8 @@ class Dispersy(Singleton):
         @todo: We should raise a DelayMessageByProof to ensure that we request the proof for this
          message immediately.
         """
-        message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
+        for message in messages:
+            message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
     def create_destroy_community(self, community, degree, sign_with_master=False, update_locally=True, store_and_forward=True):
         if __debug__:
@@ -2280,59 +2449,60 @@ class Dispersy(Singleton):
 
         if update_locally:
             assert community._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         return message
 
-    def check_destroy_community(self, address, message):
-        if not message.community._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_destroy_community(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+                continue
+            yield message
 
-    def on_destroy_community(self, address, message):
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message.Implementation)
-        assert message.name == u"dispersy-destroy-community"
-        if __debug__: dprint(message)
+    def on_destroy_community(self, messages):
+        for message in messages:
+            assert message.name == u"dispersy-destroy-community"
+            if __debug__: dprint(message)
 
-        community = message.community
+            community = message.community
 
-        # let the community code cleanup first.  This may also cause a DropMessage exception.
-        community.on_dispersy_destroy_community(address, message)
+            # let the community code cleanup first.
+            community.dispersy_cleanup_community(message)
 
-        # community cleanup is done.  Now we will cleanup the dispersy database.
+            # community cleanup is done.  Now we will cleanup the dispersy database.
 
-        if message.payload.is_soft_kill:
-            # soft-kill: The community is frozen.  Dispersy will retain the data it has obtained.
-            # However, no messages beyond the global-time of the dispersy-destroy-community message
-            # will be accepted.  Responses to dispersy-sync messages will be send like normal.
-            raise NotImplementedError()
+            if message.payload.is_soft_kill:
+                # soft-kill: The community is frozen.  Dispersy will retain the data it has obtained.
+                # However, no messages beyond the global-time of the dispersy-destroy-community message
+                # will be accepted.  Responses to dispersy-sync messages will be send like normal.
+                raise NotImplementedError()
 
-        elif message.payload.is_hard_kill:
-            # hard-kill: The community is destroyed.  Dispersy will throw away everything except the
-            # dispersy-destroy-community message and the authorize chain that is required to verify
-            # this message.  The community should also remove all its data and cleanup as much as
-            # possible.
+            elif message.payload.is_hard_kill:
+                # hard-kill: The community is destroyed.  Dispersy will throw away everything except the
+                # dispersy-destroy-community message and the authorize chain that is required to verify
+                # this message.  The community should also remove all its data and cleanup as much as
+                # possible.
 
-            # delete everything except (a) all dispersy-destroy-community messages (these both
-            # authorize and revoke the usage of this message) and (b) the associated
-            # dispersy-identity messages to verify the dispersy-destroy-community messages.
+                # delete everything except (a) all dispersy-destroy-community messages (these both
+                # authorize and revoke the usage of this message) and (b) the associated
+                # dispersy-identity messages to verify the dispersy-destroy-community messages.
 
-            # todo: this should be made more efficient.  not all dispersy-destroy-community messages
-            # need to be kept.  Just the ones in the chain to authorize the message that has just
-            # been received.
+                # todo: this should be made more efficient.  not all dispersy-destroy-community messages
+                # need to be kept.  Just the ones in the chain to authorize the message that has just
+                # been received.
 
-            identity_message_id = community.get_meta_message(u"dispersy-identity").database_id
+                identity_message_id = community.get_meta_message(u"dispersy-identity").database_id
 
-            with self._database as execute:
-                # 1. remove all except the dispersy-destroy-community and dispersy-identity messages
-                execute(u"DELETE FROM sync WHERE community = ? AND NOT (name = ? OR name = ?)", (community.database_id, message.database_id, identity_message_id))
+                with self._database as execute:
+                    # 1. remove all except the dispersy-destroy-community and dispersy-identity messages
+                    execute(u"DELETE FROM sync WHERE community = ? AND NOT (name = ? OR name = ?)", (community.database_id, message.database_id, identity_message_id))
 
-                # 2. cleanup the reference_user_sync table.  however, we should keep the ones that are still referenced
-                execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND sync.id = reference_user_sync.sync)", (community.database_id,))
+                    # 2. cleanup the reference_user_sync table.  however, we should keep the ones that are still referenced
+                    execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND sync.id = reference_user_sync.sync)", (community.database_id,))
 
-                # 3. cleanup the candidate table.  we need nothing here anymore
-                execute(u"DELETE FROM candidate WHERE community = ?", (community.database_id,))
+                    # 3. cleanup the candidate table.  we need nothing here anymore
+                    execute(u"DELETE FROM candidate WHERE community = ?", (community.database_id,))
 
     def _periodically_create_sync(self, community):
         """

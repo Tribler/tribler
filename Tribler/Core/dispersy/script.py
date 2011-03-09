@@ -21,7 +21,7 @@ from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution
 from dprint import dprint
 from member import Member, MyMember
-from message import Message
+from message import Message, DropMessage
 from resolution import PublicResolution
 from singleton import Singleton
 
@@ -134,12 +134,8 @@ class DispersyTimelineScript(ScriptBase):
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
         assert message.authentication.member == self._my_member
-        try:
-            result = message.check_callback(("", -1), message)
-        except:
-            dprint(exception=1)
-            assert False
-        assert result is None, "check_... methods should return None, failure is indicated by throwing an exception"
+        result = list(message.check_callback([message]))
+        assert result == [message], "check_... methods should return a generator with the accepted messages"
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -166,13 +162,9 @@ class DispersyTimelineScript(ScriptBase):
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
         assert message.authentication.member == self._my_member
-        try:
-            result = message.check_callback(("", -1), message)
-        except:
-            dprint(exception=1)
-            pass
-        else:
-            assert False
+        result = list(message.check_callback([message]))
+        assert len(result) == 1, "check_... methods should return a generator with the accepted messages"
+        assert isinstance(result[0], DropMessage), "check_... methods should return a generator with the accepted messages"
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
@@ -1012,8 +1004,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.01
 
         # SELF requests NODE to double sign
-        def on_response(address, response):
-            assert address == ("", -1)
+        def on_response(response):
             assert response is None
             container["timeout"] += 1
         request = community.create_double_signed_text("Accept=<does not reach this point>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
@@ -1046,9 +1037,8 @@ class DispersySignatureScript(ScriptBase):
         yield 0.01
 
         # SELF requests NODE to double sign
-        def on_response(address, response):
+        def on_response(response):
             assert container["response"] == 0, container["response"]
-            assert address == node.socket.getsockname(), address
             assert request.authentication.is_signed
             container["response"] += 1
         request = community.create_double_signed_text("Accept=False", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
@@ -1097,8 +1087,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.01
 
         # SELF requests NODE1 and NODE2 to double sign
-        def on_response(address, response):
-            assert address == ("", -1)
+        def on_response(response):
             assert response is None
             container["timeout"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
@@ -1139,7 +1128,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.2
 
         # SELF requests NODE1 and NODE2 to add their signature
-        def on_response(address, response):
+        def on_response(response):
             assert container["response"] == 0 or request.authentication.is_signed
             container["response"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)

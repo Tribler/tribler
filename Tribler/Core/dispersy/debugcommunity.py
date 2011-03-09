@@ -259,12 +259,15 @@ class DebugCommunity(Community):
     # any text-payload
     #
 
-    def check_text(self, address, message):
-        if not self._timeline.check(message):
-            raise RuntimeError()
+    def check_text(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                raise RuntimeError()
+            yield message
 
-    def on_text(self, address, message):
+    def on_text(self, messages):
         """
         Received a text message.
         """
-        dprint(message, " \"", message.payload.text, "\"")
+        for message in messages:
+            dprint(message, " \"", message.payload.text, "\"")

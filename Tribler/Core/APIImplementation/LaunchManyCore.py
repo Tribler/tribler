@@ -319,8 +319,13 @@ class TriblerLaunchMany(Thread):
             def get_address(self):
                 return self.socket.getsockname()
 
-            def data_came_in(self, address, data):
-                self.dispersy.on_incoming_packets([(address, data)])
+            def data_came_in(self, packets):
+                # the rawserver SUCKS.  every now and then exceptions are not shown
+                try:
+                    self.dispersy.on_incoming_packets(packets)
+                except:
+                    print_exc()
+                    raise
 
             def send(self, address, data):
                 try:
@@ -352,7 +357,7 @@ class TriblerLaunchMany(Thread):
 
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
-        
+
         # # test script for the AllChannelCommunity
         # from Tribler.Core.dispersy.script import Script
         # from Tribler.Community.allchannel.script import AllChannelScript

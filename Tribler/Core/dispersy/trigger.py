@@ -17,7 +17,7 @@ if __debug__:
     from dprint import dprint
 
 class Trigger(object):
-    def on_message(self, address, message):
+    def on_messages(self, messages):
         """
         Called with a received message.
 
@@ -61,16 +61,19 @@ class TriggerCallback(Trigger):
         self._response_args = response_args
         self._responses_remaining = max_responses
 
-    def on_message(self, address, message):
-        if __debug__:
-            if self._responses_remaining > 0:
-                dprint("Does it match? ", bool(self._responses_remaining > 0 and self._match(message.footprint)))
-                dprint("Expression: ", self._debug_pattern)
-                dprint(" Footprint: ", message.footprint)
-        if self._responses_remaining > 0 and self._match(message.footprint):
-            self._responses_remaining -= 1
-            # note: this callback may raise DelayMessage, etc
-            self._response_func(address, message, *self._response_args)
+    def on_messages(self, messages):
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        for message in messages:
+            if __debug__:
+                if self._responses_remaining > 0:
+                    dprint("Does it match? ", bool(self._responses_remaining > 0 and self._match(message.footprint)))
+                    dprint("Expression: ", self._debug_pattern)
+                    dprint(" Footprint: ", message.footprint)
+            if self._responses_remaining > 0 and self._match(message.footprint):
+                self._responses_remaining -= 1
+                # note: this callback may raise DelayMessage, etc
+                self._response_func(message, *self._response_args)
 
         # False to remove the Trigger
         return self._responses_remaining > 0
@@ -79,7 +82,7 @@ class TriggerCallback(Trigger):
         if self._responses_remaining > 0:
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
-            self._response_func(("", -1), None, *self._response_args)
+            self._response_func(None, *self._response_args)
 
 class TriggerPacket(Trigger):
     def __init__(self, pattern, on_incoming_packets, packets):
@@ -115,22 +118,25 @@ class TriggerPacket(Trigger):
         self._on_incoming_packets = on_incoming_packets
         self._packets = packets
 
-    def on_message(self, address, message):
+    def on_messages(self, messages):
+        assert isinstance(messages, list)
+        assert len(messages) > 0
         if self._match:
-            if __debug__:
-                dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
-                dprint("Expression: ", self._debug_pattern)
-                dprint(" Footprint: ", message.footprint)
-            if self._match(message.footprint):
-                # set self._match to None to avoid this regular expression again
-                self._match = None
+            for message in messages:
+                if __debug__:
+                    dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
+                    dprint("Expression: ", self._debug_pattern)
+                    dprint(" Footprint: ", message.footprint)
+                if self._match(message.footprint):
+                    # set self._match to None to avoid this regular expression again
+                    self._match = None
 
-                self._on_incoming_packets(self._packets)
-                # False to remove the Trigger, because we handled the Trigger
-                return False
-            else:
-                # True to keep the Trigger, because we did not handle the Trigger yet
-                return True
+                    self._on_incoming_packets(self._packets)
+                    # False to remove the Trigger, because we handled the Trigger
+                    return False
+                else:
+                    # True to keep the Trigger, because we did not handle the Trigger yet
+                    return True
         else:
             # False to remove the Trigger, because the Trigger timed-out
             return False
@@ -140,53 +146,53 @@ class TriggerPacket(Trigger):
             self._match = None
 
 class TriggerMessage(Trigger):
-    def __init__(self, pattern, on_incoming_message, address, message):
+    def __init__(self, pattern, on_incoming_messages, messages):
         """
         Receiving a message matching PATTERN triggers a call to the on_incoming_message message with
         ADDRESS and MESSAGE.
 
         PATTERN is a python regular expression string.
 
-        ON_INCOMING_MESSAGE is called when PATTERN matches the incoming message footprint.  The
-        first argument is ADDRESS, the second argument is MESSAGE.
+        ON_INCOMING_MESSAGES is called when PATTERN matches the incoming message footprint.  As an
+        argument it receives MESSAGES.
 
-        ADDRESS and MESSAGE are a Message.Implementation and the address from where this was
-        received.  This message is effectively delayed until a message matching PATTERN is received.
+        MESSAGES is a list with Message.Implementation instances.  These messages are effectively
+        delayed until a message matching PATTERN is received.
 
-        When a timeout is received this Trigger is removed MESSAGE is lost.
+        When a timeout is received this Trigger is removed MESSAGES are lost.
         """
         if __debug__:
             from message import Message
         assert isinstance(pattern, str)
-        assert hasattr(on_incoming_message, "__call__")
-        assert isinstance(address, tuple)
-        assert len(address) == 2
-        assert isinstance(address[0], str)
-        assert isinstance(address[1], int)
-        assert isinstance(message, Message.Implementation)
+        assert hasattr(on_incoming_messages, "__call__")
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
         if __debug__:
             self._debug_pattern = pattern
         self._match = expression_compile(pattern).match
-        self._on_incoming_message = on_incoming_message
-        self._address = address
-        self._message = message
+        self._on_incoming_messages = on_incoming_messages
+        self._messages = messages
 
-    def on_message(self, address, message):
+    def on_messages(self, messages):
+        assert isinstance(messages, list)
+        assert len(messages) > 0
         if self._match:
-            if __debug__:
-                dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
-                dprint("Expression: ", self._debug_pattern)
-                dprint(" Footprint: ", message.footprint)
-            if self._match(message.footprint):
-                # set self._match to None to avoid this regular expression again
-                self._match = None
+            for message in messages:
+                if __debug__:
+                    dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
+                    dprint("Expression: ", self._debug_pattern)
+                    dprint(" Footprint: ", message.footprint)
+                if self._match(message.footprint):
+                    # set self._match to None to avoid this regular expression again
+                    self._match = None
 
-                self._on_incoming_message(self._address, self._message)
-                # False to remove the Trigger, because we handled the Trigger
-                return False
-            else:
-                # True to keep the Trigger, because we did not handle the Trigger yet
-                return True
+                    self._on_incoming_messages(self._messages)
+                    # False to remove the Trigger, because we handled the Trigger
+                    return False
+                else:
+                    # True to keep the Trigger, because we did not handle the Trigger yet
+                    return True
         else:
             # False to remove the Trigger, because the Trigger timed-out
             return False

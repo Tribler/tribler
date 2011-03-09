@@ -244,7 +244,7 @@ class Multicast:
             return []
 
 
-    def data_came_in(self, addr, data):
+    def data_came_in(self, packets):
         """
         Callback function for arriving data.  This is non-blocking
         and will return immediately after queuing the operation for
@@ -252,74 +252,74 @@ class Multicast:
         """
         # Must queue this for actual processing, we're not allowed
         # to block here
-        process_data_func = lambda:self._data_came_in_callback(addr, data)
+        process_data_func = lambda:self._data_came_in_callback(packets)
         self.overlay_bridge.add_task(process_data_func, 0)
         
         
-    def _data_came_in_callback(self, addr, data):
+    def _data_came_in_callback(self, packets):
         """
         Handler function for when data arrives
         """
-        
-        self.log.debug("Got a message from %s"%str(addr))
-        # Look at message
-        try:
-            elements = data.split("\n")
+        for addr, data in packets:
+            self.log.debug("Got a message from %s"%str(addr))
+            # Look at message
+            try:
+                elements = data.split("\n")
 
-            if elements[0] == "NODE_DISCOVER":
-                if len(elements) < 3:
-                    raise Exception("Too few elements")
+                if elements[0] == "NODE_DISCOVER":
+                    if len(elements) < 3:
+                        raise Exception("Too few elements")
 
-                # Only reply if I'm announcing
-                if not self.config["multicast_announce"]:
-                    self.log.debug("Not announcing myself")
-                    return
+                    # Only reply if I'm announcing
+                    if not self.config["multicast_announce"]:
+                        self.log.debug("Not announcing myself")
+                        continue
 
-                remotePermID = elements[2]
-                self.log.debug("Got node discovery from %s"%remotePermID)
-                # TODO: Do we reply to any node?
+                    remotePermID = elements[2]
+                    self.log.debug("Got node discovery from %s"%remotePermID)
+                    # TODO: Do we reply to any node?
 
-                # Reply with information about me
-                permid_64 = base64.b64encode(self.config['permid']).replace("\n","")
-                msg = "NODE_ANNOUNCE\n%s"%permid_64
+                    # Reply with information about me
+                    permid_64 = base64.b64encode(self.config['permid']).replace("\n","")
+                    msg = "NODE_ANNOUNCE\n%s"%permid_64
 
-                # Add capabilities
-                if self.capabilities:
-                    for capability in self.capabilities:
-                        msg += "\nc:%s"%capability
-                try:
-                    self.sock.sendto(msg, addr)
-                except Exception,e:
-                    self.log.error("Could not send announce message to %s: %s"%(str(addr), e))
-                    return
-                
-            elif elements[0] == "ANNOUNCE":
-                self.handleAnnounce(addr, elements)
-            elif elements[0] == "NODE_ANNOUNCE":
-                # Some node announced itself - handle callbacks if
-                # the app wants it
-                if self.on_node_announce:
+                    # Add capabilities
+                    if self.capabilities:
+                        for capability in self.capabilities:
+                            msg += "\nc:%s"%capability
                     try:
-                        self.on_node_announce(elements[1], addr,
-                                              self._getCapabilities(elements))
+                        self.sock.sendto(msg, addr)
                     except Exception,e:
-                        self.log.exception("Exception handling node announce")
-            elif elements[0] == "PING":
-                permid = base64.b64decode(elements[1])
-                if permid == self.config["permid"]:
-                    # I should reply
-                    msg = "PONG\n%s\n%s"%(elements[1], elements[2])
-                    self._sendMulticast(msg)
-            elif elements[0] == "PONG":
-                nonce = int(elements[2])
-                if self.outstanding_pings.has_key(nonce):
-                    self.incoming_pongs[nonce] = time.time()
-            else:
-                self.log.warning("Got bad discovery message from %s"%str(addr))
-        except Exception,e:
-            self.log.exception("Illegal message '%s' from '%s'"%(data, addr[0]))
+                        self.log.error("Could not send announce message to %s: %s"%(str(addr), e))
+                        continue
 
-               
+                elif elements[0] == "ANNOUNCE":
+                    self.handleAnnounce(addr, elements)
+                elif elements[0] == "NODE_ANNOUNCE":
+                    # Some node announced itself - handle callbacks if
+                    # the app wants it
+                    if self.on_node_announce:
+                        try:
+                            self.on_node_announce(elements[1], addr,
+                                                  self._getCapabilities(elements))
+                        except Exception,e:
+                            self.log.exception("Exception handling node announce")
+                elif elements[0] == "PING":
+                    permid = base64.b64decode(elements[1])
+                    if permid == self.config["permid"]:
+                        # I should reply
+                        msg = "PONG\n%s\n%s"%(elements[1], elements[2])
+                        self._sendMulticast(msg)
+                elif elements[0] == "PONG":
+                    nonce = int(elements[2])
+                    if self.outstanding_pings.has_key(nonce):
+                        self.incoming_pongs[nonce] = time.time()
+                else:
+                    self.log.warning("Got bad discovery message from %s"%str(addr))
+            except Exception,e:
+                self.log.exception("Illegal message '%s' from '%s'"%(data, addr[0]))
+
+
     def _send(self, addr, msg):
         """
         Send a message - internal function

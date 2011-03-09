@@ -116,23 +116,27 @@ class AllChannelCommunity(Community):
 
         return message
 
-    def check_propagate_torrents(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_propagate_torrents(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_propagate_torrents(self, address, message):
+    def on_propagate_torrents(self, messages):
         """
         Received a 'propagate-torrents' message.
         """
-        if __debug__: dprint(message)
-        for infohash in message.payload.infohashes:
-            # self._torrent_request_queue.append((address, infohash))
-            # if __debug__: dprint("there are ", len(self._torrent_request_queue), " infohashes in the queue")
+        for message in messages:
+            if __debug__: dprint(message)
+            for infohash in message.payload.infohashes:
+                # self._torrent_request_queue.append((address, infohash))
+                # if __debug__: dprint("there are ", len(self._torrent_request_queue), " infohashes in the queue")
 
-            pass
-            # todo: niels? select the infohashes that we want to download
-            # for infohash in message.payload.infohashes:
-            #     self._remote_torrent_handler.download_torrent(permid, infohash, lambda *args: pass)
+                pass
+                # todo: niels? select the infohashes that we want to download
+                # for infohash in message.payload.infohashes:
+                #     self._remote_torrent_handler.download_torrent(permid, infohash, lambda *args: pass)
 
     #         self._start_torrent_request_queue()
 
@@ -266,40 +270,48 @@ class AllChannelCommunity(Community):
 
         return request
 
-    def check_channel_search_request(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_channel_search_request(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_channel_search_request(self, address, request):
+    def on_channel_search_request(self, messages):
         """
         Received a 'channel-search-request' message.
         """
-        # we need to find channels matching the search criteria
+        responses = []
+        for request in messages:
+            # we need to find channels matching the search criteria
 
-        packets = []
+            packets = []
 
-        # todo: niels?
-        # packets = [packets]
+            # todo: niels?
+            # packets = [packets]
 
-        # we need to find, optionally, some meta data such as associated 'torrent', and 'modify'
-        # messages.
+            # we need to find, optionally, some meta data such as associated 'torrent', and 'modify'
+            # messages.
 
-        # todo: niels?
-        # packets = [packets]
+            # todo: niels?
+            # packets = [packets]
 
-        meta = self.get_meta_message(u"channel-search-response")
-        response = meta.implement(meta.authentication.implement(),
-                                  meta.distribution.implement(self._timeline.global_time),
-                                  meta.destination.implement(address),
-                                  meta.payload.implement(sha1(request.packet).digest(), packets))
+            meta = self.get_meta_message(u"channel-search-response")
+            responses.append(meta.implement(meta.authentication.implement(),
+                                            meta.distribution.implement(self._timeline.global_time),
+                                            meta.destination.implement(address),
+                                            meta.payload.implement(sha1(request.packet).digest(), packets)))
 
-        self._dispersy.store_and_forward([response])
+        self._dispersy.store_and_forward(responses)
 
-    def check_channel_search_response(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_channel_search_response(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_channel_search_response(self, address, message):
+    def on_channel_search_response(self, messages):
         """
         Received a 'channel-search-response' message.
         """

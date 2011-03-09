@@ -43,8 +43,8 @@ def main():
         def get_address(self):
             return self.socket.getsockname()
 
-        def data_came_in(self, address, data):
-            self.dispersy.on_incoming_packets([(address, data)])
+        def data_came_in(self, packets):
+            self.dispersy.on_incoming_packets(packets)
 
         def send(self, address, data):
             try:

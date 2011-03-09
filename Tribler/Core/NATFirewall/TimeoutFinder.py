@@ -40,26 +40,27 @@ class TimeoutFinder:
             self.rawserver.add_task(self.ping, 1)
 
 
-    def data_came_in(self, address, data):
-        if len(data) != 12:
-            return
-        #FIXME: the address should be checked, but that can only be done if
-        # the address is in dotted-decimal notation
-        #~ if address != TimeoutFinder.PINGBACK_ADDRESS:
-            #~ return
+    def data_came_in(self, packets):
+        for address, data in packets:
+            if len(data) != 12:
+                continue
+            #FIXME: the address should be checked, but that can only be done if
+            # the address is in dotted-decimal notation
+            #~ if address != TimeoutFinder.PINGBACK_ADDRESS:
+                #~ return
 
-        timeout = struct.unpack("!Id", data)
-        if timeout[0] == 0:
-            to_find = int(timeout[1])
-            for i in range(0, len(TimeoutFinder.PINGBACK_TIMES)):
-                if to_find == TimeoutFinder.PINGBACK_TIMES[i]:
-                    self.sockets[i].sendto(struct.pack("!Id", to_find, time.time()), TimeoutFinder.PINGBACK_ADDRESS)
-                    break
-        else:
-            if DEBUG:
-                print >>sys.stderr, ("Received ping with %d delay" % (timeout[0]))
-            self.timeout_found = timeout[0]
-            #FIXME: log reception of packet
+            timeout = struct.unpack("!Id", data)
+            if timeout[0] == 0:
+                to_find = int(timeout[1])
+                for i in range(0, len(TimeoutFinder.PINGBACK_TIMES)):
+                    if to_find == TimeoutFinder.PINGBACK_TIMES[i]:
+                        self.sockets[i].sendto(struct.pack("!Id", to_find, time.time()), TimeoutFinder.PINGBACK_ADDRESS)
+                        break
+            else:
+                if DEBUG:
+                    print >>sys.stderr, ("Received ping with %d delay" % (timeout[0]))
+                self.timeout_found = timeout[0]
+                #FIXME: log reception of packet
 
     def report_done(self):
         for i in self.sockets:

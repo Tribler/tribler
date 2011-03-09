@@ -58,28 +58,32 @@ class ChannelCommunity(Community):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
 
         return message
 
-    def check_channel(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_channel(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_channel(self, address, message):
-        if __debug__: dprint(message)
-        
-        authentication_member = message.authentication.member
-        if isinstance(authentication_member, MyMember):
-            peer_id = None
-        else:
-            peer_id = self._get_peerid_from_mid(authentication_member.public_key)
-        
-        self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
-        self.channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
+    def on_channel(self, messages):
+        for message in messages:
+            if __debug__: dprint(message)
+
+            authentication_member = message.authentication.member
+            if isinstance(authentication_member, MyMember):
+                peer_id = None
+            else:
+                peer_id = self._get_peerid_from_mid(authentication_member.public_key)
+
+            self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
+            self.channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
 
     def create_torrent(self, infohash, timestamp, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
@@ -95,20 +99,22 @@ class ChannelCommunity(Community):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         return message
 
-    def check_torrent(self, address, message):
-        dprint(message)
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_torrent(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_torrent(self, address, message):
-        if __debug__: dprint(message)
-
-        dispersy_id = message.packet_id
-        self._channelcast_db.on_torrent_from_dispersy(self.channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp)
+    def on_torrent(self, messages):
+        for message in messages:
+            if __debug__: dprint(message)
+            dispersy_id = message.packet_id
+            self._channelcast_db.on_torrent_from_dispersy(self.channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp)
 
     def create_playlist(self, name, description, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
@@ -121,21 +127,24 @@ class ChannelCommunity(Community):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
 
         return message
 
-    def check_playlist(self, address, message):
-        dprint(message)
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_playlist(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_playlist(self, address, message):
-        if __debug__: dprint(message)
-        # --> Channelcastdbhandler.on_playlist_from_dispersy
+    def on_playlist(self, message):
+        for message in messages:
+            if __debug__: dprint(message)
+            # --> Channelcastdbhandler.on_playlist_from_dispersy
 
     def create_comment(self, text, timestamp, reply_to, reply_after, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
@@ -148,27 +157,31 @@ class ChannelCommunity(Community):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
 
         return message
 
-    def check_comment(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_comment(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
     
     def _get_peerid_from_mid(self, mid):
         return self._channelcast_db._db.fetchone(u"SELECT peer_id FROM Peer WHERE permid = ?", (bin2str(mid),))
     
-    def on_comment(self, address, message):
-        if __debug__: dprint(message)
-        
-        dispersy_id = message.packet_id
-        peer_id = self._get_peerid_from_mid(message.member.mid)
-        
-        self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after)
+    def on_comment(self, messages):
+        for message in messages:
+            if __debug__: dprint(message)
+
+            dispersy_id = message.packet_id
+            peer_id = self._get_peerid_from_mid(message.member.mid)
+
+            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after)
         
     def create_modification(self, modification, modification_on, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
@@ -184,26 +197,30 @@ class ChannelCommunity(Community):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         return message
 
-    def check_modification(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay by proof")
+    def check_modification(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay by proof")
+                continue
+            yield message
 
-    def on_modification(self, address, message):
-        if __debug__: dprint(message)
-        message_name = message.payload.modification_on.name
-        
-        modification_dict = message.payload.modification
-        modifying_dispersy_id = message.payload.modification_on.packet_id
-        
-        if message_name ==  u"torrent":
-            self._channelcast_db.on_torrent_modification_from_dispersy(modifying_dispersy_id, modification_dict)
-        
-        elif message_name == u"playlist":
-            self._channelcast_db.on_playlist_modification_from_dispersy(modifying_dispersy_id, modification_dict)
-        
-        elif message_name == u"channel":
-            self._channelcast_db.on_channel_modification_from_dispersy(self._cid, modification_dict)
+    def on_modification(self, messages):
+        for message in messages:
+            if __debug__: dprint(message)
+            message_name = message.payload.modification_on.name
+
+            modification_dict = message.payload.modification
+            modifying_dispersy_id = message.payload.modification_on.packet_id
+
+            if message_name ==  u"torrent":
+                self._channelcast_db.on_torrent_modification_from_dispersy(modifying_dispersy_id, modification_dict)
+
+            elif message_name == u"playlist":
+                self._channelcast_db.on_playlist_modification_from_dispersy(modifying_dispersy_id, modification_dict)
+
+            elif message_name == u"channel":
+                self._channelcast_db.on_channel_modification_from_dispersy(self._cid, modification_dict)

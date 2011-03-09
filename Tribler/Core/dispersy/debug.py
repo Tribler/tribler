@@ -157,7 +157,7 @@ class Node(object):
             address, packet = self.receive_packet(timeout, addresses, packets)
 
             try:
-                message = self._community.get_conversion(packet[:22]).decode_message(packet)
+                message = self._community.get_conversion(packet[:22]).decode_message(address, packet)
             except KeyError:
                 # not for this community
                 dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])

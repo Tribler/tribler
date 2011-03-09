@@ -51,7 +51,7 @@ class DiscoveryCommunity(Community, Singleton):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
@@ -67,39 +67,47 @@ class DiscoveryCommunity(Community, Singleton):
 
         if update_locally:
             assert self._timeline.check(message)
-            message.handle_callback(("", -1), message)
+            message.handle_callback([message])
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
 
         return message
 
-    def check_user_metadata(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_user_metadata(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+            yield message
 
-    def on_user_metadata(self, address, message):
-        payload = message.payload
-        if __debug__: dprint("Alias:", payload.alias, "; Comment:", payload.comment, "; Address:", payload.address[0], ":", payload.address[1])
-        self._database.execute(u"INSERT OR REPLACE INTO user_metadata(user, host, port, alias, comment) VALUES(?, ?, ?, ?, ?)",
-                               (message.authentication.member.database_id, buffer(payload.address[0]), payload.address[1], payload.alias, payload.comment))
+    def on_user_metadata(self, messages):
+        with self._database as execute:
+            for message in messages:
+                payload = message.payload
+                if __debug__: dprint("Alias:", payload.alias, "; Comment:", payload.comment, "; Address:", payload.address[0], ":", payload.address[1])
+                execute(u"INSERT OR REPLACE INTO user_metadata(user, host, port, alias, comment) VALUES(?, ?, ?, ?, ?)",
+                        (message.authentication.member.database_id, buffer(payload.address[0]), payload.address[1], payload.alias, payload.comment))
 
-        # update from database if there is an instance
-        user_metadata = UserMetadata.has_instance(message.authentication.member)
-        if user_metadata:
-            user_metadata.update()
+                # update from database if there is an instance
+                user_metadata = UserMetadata.has_instance(message.authentication.member)
+                if user_metadata:
+                    user_metadata.update()
 
-    def check_community_metadata(self, address, message):
-        if not self._timeline.check(message):
-            raise DropMessage("TODO: implement delay of proof")
+    def check_community_metadata(self, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                yield DropMessage("TODO: implement delay of proof")
+            yield message
 
-    def on_community_metadata(self, address, message):
-        payload = message.payload
-        if __debug__: dprint("Alias:", payload.alias, "; Comment:", payload.comment)
-        self._database.execute(u"INSERT OR REPLACE INTO community_metadata(cid, alias, comment) VALUES(?, ?, ?)",
-                               (buffer(payload.cid), payload.alias, payload.comment))
+    def on_community_metadata(self, messages):
+        with self._database as execute:
+            for message in messages:
+                payload = message.payload
+                if __debug__: dprint("Alias:", payload.alias, "; Comment:", payload.comment)
+                execute(u"INSERT OR REPLACE INTO community_metadata(cid, alias, comment) VALUES(?, ?, ?)",
+                        (buffer(payload.cid), payload.alias, payload.comment))
 
-        # update from database if there is an instance
-        community_metadata = CommunityMetadata.has_instance(payload.cid)
-        if community_metadata:
-            community_metadata.update()
+                # update from database if there is an instance
+                community_metadata = CommunityMetadata.has_instance(payload.cid)
+                if community_metadata:
+                    community_metadata.update()
