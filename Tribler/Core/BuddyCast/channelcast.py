@@ -219,7 +219,7 @@ class ChannelCastCore:
             if channel_id in channel_ids:
                 self.updateAChannel(channel_id, [query_permid])
             
-        self.channelcastdb.addReceivedInfohashes(listOfAdditions)
+        self.channelcastdb.on_torrents_from_channelcast(listOfAdditions)
         missing_infohashes = {}
         for channel_id in channel_ids:
             for infohash in self.channelcastdb.selectTorrentsToCollect(channel_id):

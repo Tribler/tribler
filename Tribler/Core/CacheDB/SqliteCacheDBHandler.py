@@ -1140,6 +1140,15 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_id = self._db.getTorrentID(infohash)
         return torrent_id
 
+    def addOrGetTorrentIDS(self, infohashes):
+        torrent_ids = self._db.getTorrentIDS(infohashes)
+        for i in range(len(torrent_ids)):
+            torrent_id = torrent_ids[i]
+            if torrent_id is None:
+                self._db.insert('Torrent', commit=True, infohash=bin2str(infohashes[i]))
+                torrent_ids[i] = self._db.getTorrentID(infohashes[i])
+        return torrent_ids
+
     def _getStatusID(self, status):
         return self.status_table.get(status.lower(), 0)
 
@@ -2928,7 +2937,7 @@ class VoteCastDBHandler(BasicDBHandler):
             return self._db.fetchall(sql,(voter_id,))
         
         sql = "select channel_id from ChannelVotes where voter_id ISNULL and vote = -1"
-        return self._db.fetchone(sql)
+        return self._db.fetchall(sql)
     
     def getChannelsWithPosVote(self, voter_id):
         ''' return the publisher_ids having a negative vote from subscriber_id '''
@@ -2975,14 +2984,14 @@ class ChannelCastDBHandler:
             self.notifier = Notifier.getInstance()
         except:
             print >> sys.stderr, "Channels: could not make a connection to table"
-    
-    def registerSession(self, session):
-        self.session = session
         
         self.channel_id = self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
         self.my_dispersy_cid = None
         if DEBUG:
             print >> sys.stderr, "Channels: my channel is", self.channel_id, "my permid is", self.my_permid
+    
+    def registerSession(self, session):
+        self.session = session
             
     #dispersy helper functions
     def _get_message_from_channel_id(self, dispersy, channel_id):
@@ -3091,15 +3100,16 @@ class ChannelCastDBHandler:
         return community
     
     def _get_my_dispersy_cid(self):
-        from Tribler.Community.channel.community import ChannelCommunity
-        from Tribler.Core.dispersy.dispersy import Dispersy
-        from Tribler.Core.dispersy.member import MyMember
-        dispersy = Dispersy.get_instance()
-        
-        for community in dispersy.get_communities():
-            if isinstance(community, ChannelCommunity) and isinstance(community.my_member, MyMember):
-                self.my_dispersy_cid = community.cid
-                break
+        if not self.my_dispersy_cid:
+            from Tribler.Community.channel.community import ChannelCommunity
+            from Tribler.Core.dispersy.dispersy import Dispersy
+            from Tribler.Core.dispersy.member import MyMember
+            dispersy = Dispersy.get_instance()
+            
+            for community in dispersy.get_communities():
+                if isinstance(community, ChannelCommunity) and isinstance(community.my_member, MyMember):
+                    self.my_dispersy_cid = community.cid
+                    break
         
         return self.my_dispersy_cid
     
@@ -3128,23 +3138,32 @@ class ChannelCastDBHandler:
     
     def on_channel_from_channelcast(self, publisher_permid, name):
         peer_id = self._db.getPeerID(publisher_permid)
-        self.on_channel_from_dispersy(-1, peer_id, name, '')
+        return self.on_channel_from_dispersy(None, peer_id, name, '')
             
     def on_channel_from_dispersy(self, dispersy_cid, peer_id, name, description):
+        if dispersy_cid:
+            dispersy_cid = buffer(dispersy_cid)
+        else:
+            dispersy_cid = -1
+        
         #for now fix channels to one per peer_id
+        get_channel = "SELECT id FROM Channels Where peer_id = ?"
+        channel_id = self._db.fetchone(get_channel, (peer_id,))
         
-        
-        insert_channel = "INSERT OR IGNORE INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?)"
-        self._db.execute_write(insert_channel, (buffer(dispersy_cid), peer_id, name, description))
-        
-        get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
-        channel_id = self._db.fetchone(get_channel, (buffer(dispersy_cid),))
-        
+        if channel_id: #update this channel
+            update_channel = "UPDATE Channels SET dispersy_cid = ?, name = ?, description = ? WHERE id = ?"
+            self._db.execute_write(update_channel, (dispersy_cid, name, description, channel_id))
+            
+        else: #insert channel
+            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
+            channel_id = self._db.fetchone(insert_channel, (dispersy_cid, peer_id, name, description))
+            
         if not self.channel_id and self._get_my_dispersy_cid() == dispersy_cid:
             self.channel_id = channel_id
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_CREATE, channel_id)
         
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
+        return channel_id
         
     def on_channel_modification_from_dispersy(self, dispersy_cid, dic):
         allowed_keys = ['name','description']
@@ -3165,16 +3184,20 @@ class ChannelCastDBHandler:
             print >> sys.stderr, "Channel not modified, but on_channel_modification_from_dispersy called"
     
     #dispersy adding, modifying and receiving torrents
-    def addOwnTorrent(self, torrentdef):
+    def addOwnTorrentDef(self, torrentdef):
         print >> sys.stderr, "Channels: addnewtorrent"
+        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
+        self.addOwnTorrent(torrentdef.get_infohash(), long(time()))
+        
+    def addOwnTorrent(self, infohash, timestamp, store_and_forward = True):
+        _sf = store_and_forward
         def dispersy_thread():
-            assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
-            
             community = dispersy.get_community(self._get_my_dispersy_cid())
-            community.create_torrent(torrentdef.get_infohash(), long(time()))
+            community.create_torrent(infohash, timestamp, store_and_forward = _sf)
+            
         from Tribler.Core.dispersy.dispersy import Dispersy
         dispersy = Dispersy.get_instance()
-        dispersy.rawserver.add_task(dispersy_thread)   
+        dispersy.rawserver.add_task(dispersy_thread)
 
     def modifyTorrent(self, channeltorrent_id, dict_changes):
         def dispersy_thread():
@@ -3201,6 +3224,25 @@ class ChannelCastDBHandler:
         self._db.execute_write(insert_torrent, (dispersy_id, torrent_id, channel_id, timestamp))
         
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+    
+    def on_torrents_from_dispersy(self, torrentlist):
+        infohashes = [infohash for _,_,infohash,_ in torrentlist]
+        torrentids = self.torrent_db.addOrGetTorrentIDS(infohashes)
+        channel_ids = set()
+        
+        insert_data = []
+        for i in range(len(torrentlist)):
+            channel_id, dispersy_id, infohash, timestamp = torrentlist[i]
+            torrent_id = torrentids[i]
+            channel_ids.add(channel_id)
+            
+            insert_data.append((dispersy_id, torrent_id, channel_id, timestamp))
+
+        insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
+        self._db.executemany(insert_torrent, insert_data)
+                
+        for channel_id in channel_ids:
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
     def on_torrent_modification_from_dispersy(self, dispersy_id, dic):
         print >> sys.stderr, "Channels: on_torrent_modification_from_dispersy", dispersy_id, dic
@@ -3223,7 +3265,7 @@ class ChannelCastDBHandler:
             print >> sys.stderr, "Torrent not modified, but on_torrent_modification called"
     
     #Old code used by channelcast
-    def addReceivedInfohashes(self, torrents):
+    def on_torrents_from_channelcast(self, torrents):
         #torrents is a list of tuples (channel_id, channel_name, infohash, time_stamp
         select_max = "SELECT max(time_stamp) FROM ChannelTorrents WHERE channel_id = ?"
         update_name = "UPDATE Channels SET name = ? WHERE id = ?" 

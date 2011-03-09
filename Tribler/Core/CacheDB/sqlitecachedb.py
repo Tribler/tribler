@@ -4,12 +4,12 @@
 
 import sys
 import os
-from time import sleep
+from time import sleep, time
 from base64 import encodestring, decodestring
 import threading
 from traceback import print_exc, print_stack
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_DISPERSY, NTFY_STARTED
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.Utilities.unicode import dunno2unicode
 
@@ -860,12 +860,16 @@ class SQLiteCacheDBBase:
             if not infohash in self.infohash_id:
                 to_select.append(bin2str(infohash))
         
-        if len(to_select) > 0:
-            parameters = '?,'*len(to_select)
+        while len(to_select) > 0:
+            nrToQuery = min(len(to_select), 50)
+            parameters = '?,'*nrToQuery
             sql_get_torrent_ids = "SELECT torrent_id, infohash FROM Torrent WHERE infohash IN ("+parameters[:-1]+")"
-            torrents = self.fetchall(sql_get_torrent_ids, to_select)
+            
+            torrents = self.fetchall(sql_get_torrent_ids, to_select[:nrToQuery])
             for torrent_id, infohash in torrents:
                 self.infohash_id[str2bin(infohash)] = torrent_id
+                
+            to_select = to_select[nrToQuery:]
         
         to_return = []
         for infohash in infohashes:
@@ -1434,8 +1438,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     WHERE TF1.term = ? AND TF2.term = ?"""
             
             if DEBUG:
-                import time
-                dbg_ts1 = time.time()
+                dbg_ts1 = time()
             
             records = self.fetchall(sql)
             termcount = {}
@@ -1458,66 +1461,125 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.commit()
             
             if DEBUG:
-                dbg_ts2 = time.time()
+                dbg_ts2 = time()
                 print >>sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2-dbg_ts1)
         
         if fromver < 8:
-            #start converting channelcastdb to new format
-            select_channels = "SELECT peer_id, publisher_id, max(time_stamp) FROM ChannelCast, Peer WHERE publisher_id = permid GROUP BY publisher_id"
-            select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ?"
-            select_channel_contents = "SELECT torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash"
+            from Tribler.Core.Session import Session
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+            session = Session.get_instance()
             
-            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?,?,?,?)"
-            select_new_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
+            my_permid = session.get_permid()
+            if my_permid:
+                my_permid = bin2str(my_permid)
+            
+            #start converting channelcastdb to new format
+            select_channels = "SELECT distinct publisher_id FROM ChannelCast"
+            select_channel_torrent = "SELECT CollectedTorrent.infohash, time_stamp, publisher_name FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash Order By time_stamp DESC"
+            
+            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
             insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
+            #placeholders for dispersy channel conversion
+            my_channel_name = None
+            my_torrents = []
+            
             channels = self.fetchall(select_channels)
-            for peer_id, publisher_id, latest_update in channels:
-                #do check if me?
-                #store_and_forward = False
-                
-                
-                channel_name = self.fetchone(select_channel_name, (publisher_id, latest_update))
-                
-                #create channel
-                self.execute_write(insert_channel, (-1, peer_id, channel_name, ''))
-                channel_id = self.fetchone(select_new_channel_id, (peer_id, ))
-                
-                #insert torrents
-                torrents = self.fetchall(select_channel_contents, (publisher_id, ))
-                to_be_inserted = []
-                for torrent_id, time_stamp in torrents:
-                    to_be_inserted.append((-1, torrent_id, channel_id, time_stamp, time_stamp))
-                self.executemany(insert_channel_contents, to_be_inserted)
-            
-            drop_channelcast = "DROP TABLE ChannelCast"
-            #self.execute_write(drop_channelcast)
-            
-            #start converting votecastdb to new format
-            select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast"
-            select_channel_id = "SELECT id FROM Channels, Peer Where Channels.peer_id = Peer.peer_id AND permid = ?"
-            select_peerid = "SELECT peer_id FROM Peer WHERE permid = ?"
-            
-            insert_vote = "INSERT INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
-            to_be_inserted = []
-            
-            channeldict = {}
-            peerdict = {}
-            votes = self.fetchall(select_votes)
-            for mod_id, voter_id, vote, time_stamp in votes:
-                if not mod_id in channeldict:
-                    channeldict[mod_id] = self.fetchone(select_channel_id, (mod_id,))
+            for publisher_id,  in channels:
+                torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
+                if len(torrents) > 0:
+                    channel_name = torrents[0][2]
                     
-                if not voter_id in peerdict:
-                    peerdict[voter_id] = self.fetchone(select_peerid, (voter_id,))
-                
-                #do we know peer and channel?
-                if channeldict[mod_id] and peerdict[voter_id]:
-                    to_be_inserted.append((channeldict[mod_id], peerdict[voter_id], -1, vote, time_stamp))
+                    #using this strange construction to let the torrent id to be cached.
+                    infohashes = [infohash for infohash, _, _ in torrents] 
+                    torrent_ids = self.getTorrentIDS([str2bin(infohash) for infohash in infohashes])
+                    
+                    if publisher_id == my_permid:
+                        my_channel_name = channel_name
+                        my_torrents = []
+                        for infohash, timestamp, _ in torrents:
+                            timestamp = long(timestamp)
+                            infohash = str2bin(infohash)
+                            my_torrents.append((infohash, timestamp))
+                    else:
+                        peer_id = self.getPeerID(str2bin(publisher_id))
+                        channel_id = self.fetchone(insert_channel, (-1, peer_id, channel_name, ''))
+                        
+                        infohash_dict = {}
+                        for i in range(len(infohashes)):
+                            infohash_dict[infohashes[i]] = torrent_ids[i]
+                        
+                        to_be_inserted = []
+                        for infohash, time_stamp, _ in torrents:
+                            torrent_id = infohash_dict[infohash]
+                            to_be_inserted.append((-1, torrent_id, channel_id, time_stamp, time_stamp))
+                        self.executemany(insert_channel_contents, to_be_inserted, commit = False)
             
-            self.executemany(insert_vote, to_be_inserted)
-            drop_votecast = "DROP TABLE VoteCast"
-            #self.execute_write(drop_votecast)
+            self.commit()
+            
+            def convert_votes():
+                #start converting votecastdb to new format
+                select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
+                select_channel_id = "SELECT id FROM Channels, Peer Where Channels.peer_id = Peer.peer_id AND permid = ?"
+                select_peerid = "SELECT peer_id FROM Peer WHERE permid = ?"
+                
+                insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+                to_be_inserted = []
+                
+                channeldict = {}
+                peerdict = {}
+                
+                #set my_channel id
+                if my_channel_name:
+                    peerdict[my_permid] = None
+
+                    channelcastdb = ChannelCastDBHandler.getInstance()
+                    if channelcastdb.channel_id:
+                        channeldict[my_permid] = channelcastdb.channel_id
+                
+                votes = self.fetchall(select_votes)
+                for mod_id, voter_id, vote, time_stamp in votes:
+                    if not mod_id in channeldict:
+                        channeldict[mod_id] = self.fetchone(select_channel_id, (mod_id,))
+                        
+                    if not voter_id in peerdict:
+                        peerdict[voter_id] = self.fetchone(select_peerid, (voter_id,))
+                        if not peerdict[voter_id]:
+                            peerdict[voter_id] = -1
+                    
+                    #do we know peer and channel?
+                    if channeldict[mod_id] and (peerdict[voter_id] > 0 or peerdict[voter_id] == None):
+                        to_be_inserted.append((channeldict[mod_id], peerdict[voter_id], -1, vote, time_stamp))
+                
+                self.executemany(insert_vote, to_be_inserted)
+                drop_votecast = "DROP TABLE VoteCast"
+                #self.execute_write(drop_votecast)
+            
+            def create_my_channel(subject,changeType,objectID):
+                if my_channel_name and len(my_torrents) > 0:
+                    channelcastdb = ChannelCastDBHandler.getInstance()
+                    channelcastdb.createChannel(my_channel_name, u'')
+                    
+                    nr_torrents = len(my_torrents)
+                    for i in range(nr_torrents):
+                        infohash, timestamp = my_torrents[i]
+                        
+                        last_torrent = (i + 1 == nr_torrents)
+                        channelcastdb.addOwnTorrent(infohash, timestamp, store_and_forward = True)
+                    
+                session.remove_observer(create_my_channel)
+                drop_channelcast = "DROP TABLE ChannelCast"
+                #self.execute_write(drop_channelcast)
+                
+                convert_votes()
+            
+            if my_channel_name:
+                session.add_observer(create_my_channel,NTFY_DISPERSY,[NTFY_STARTED])
+            else:
+                drop_channelcast = "DROP TABLE ChannelCast"
+                #self.execute_write(drop_channelcast)
+                
+                convert_votes()
 
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

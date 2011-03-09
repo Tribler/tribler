@@ -350,6 +350,9 @@ class TriblerLaunchMany(Thread):
         # start each ChannelCommunity that we joined
         communities = ChannelCommunity.load_communities()
 
+        # notify dispersy finished loading
+        self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+        
         # # test script for the AllChannelCommunity
         # from Tribler.Core.dispersy.script import Script
         # from Tribler.Community.allchannel.script import AllChannelScript

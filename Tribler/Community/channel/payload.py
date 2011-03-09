@@ -23,8 +23,8 @@ class ChannelPayload(Payload):
 class TorrentPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, infohash, timestamp):
-            assert isinstance(infohash, str)
-            assert len(infohash) == 20
+            assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
+            assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
             assert isinstance(timestamp, (int, long))
             super(TorrentPayload.Implementation, self).__init__(meta)
             self._infohash = infohash

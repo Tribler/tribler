@@ -79,6 +79,7 @@ NTFY_TERM= 'clicklogterm'
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
+NTFY_DISPERSY = 'dispersy'     # an notification regarding dispersy
 
 # changeTypes
 NTFY_UPDATE = 'update'         # data is updated
@@ -87,6 +88,7 @@ NTFY_DELETE = 'delete'         # data is deleted
 NTFY_CREATE = 'create'         # new data is created, meaning in the case of Channels your own channel is created
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
 NTFY_CONNECTION = 'connection' # connection made or broken
+NTFY_STARTED = 'started'
 
 # object IDs for NTFY_ACTIVITIES subject 
 NTFY_ACT_NONE = 0
