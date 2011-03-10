@@ -1,5 +1,5 @@
 from conversion import ChannelConversion
-from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload
+from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -42,6 +42,7 @@ class ChannelCommunity(Community):
                 Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistPayload(), self.check_playlist, self.on_playlist),
                 Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), CommentPayload(), self.check_comment, self.on_comment),
                 Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ModificationPayload(), self.check_modification, self.on_modification),
+                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self.check_playlist_torrent, self.on_playlist_torrent),
                 ]
 
     def initiate_conversions(self):
@@ -56,13 +57,14 @@ class ChannelCommunity(Community):
                                  meta.destination.implement(),
                                  meta.payload.implement(name, description))
 
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
 
         if store_and_forward:
             self._dispersy.store_and_forward([message])
 
+        if update_locally:
+            assert self._timeline.check(message)
+            message.handle_callback([message])
+            
         return message
 
     def check_channel(self, messages):
@@ -125,13 +127,13 @@ class ChannelCommunity(Community):
                                  meta.destination.implement(),
                                  meta.payload.implement(name, description))
 
+        if store_and_forward:
+            self._dispersy.store_and_forward([message])
+        
         if update_locally:
             assert self._timeline.check(message)
             message.handle_callback([message])
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
+        
         return message
 
     def check_playlist(self, messages):
@@ -141,10 +143,11 @@ class ChannelCommunity(Community):
                 continue
             yield message
 
-    def on_playlist(self, message):
+    def on_playlist(self, messages):
         for message in messages:
             if __debug__: dprint(message)
-            # --> Channelcastdbhandler.on_playlist_from_dispersy
+            dispersy_id = message.packet_id
+            self._channelcast_db.on_playlist_from_dispersy(self.channel_id, dispersy_id, message.payload.name, message.payload.description)
 
     def create_comment(self, text, timestamp, reply_to, reply_after, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
@@ -155,12 +158,12 @@ class ChannelCommunity(Community):
                                  meta.destination.implement(),
                                  meta.payload.implement(text, timestamp, reply_to, reply_after))
 
+        if store_and_forward:
+            self._dispersy.store_and_forward([message])
+            
         if update_locally:
             assert self._timeline.check(message)
             message.handle_callback([message])
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
 
         return message
 
@@ -212,15 +215,45 @@ class ChannelCommunity(Community):
         for message in messages:
             if __debug__: dprint(message)
             message_name = message.payload.modification_on.name
-
+        
             modification_dict = message.payload.modification
             modifying_dispersy_id = message.payload.modification_on.packet_id
-
+        
             if message_name ==  u"torrent":
                 self._channelcast_db.on_torrent_modification_from_dispersy(modifying_dispersy_id, modification_dict)
-
+        
             elif message_name == u"playlist":
                 self._channelcast_db.on_playlist_modification_from_dispersy(modifying_dispersy_id, modification_dict)
-
+        
             elif message_name == u"channel":
                 self._channelcast_db.on_channel_modification_from_dispersy(self._cid, modification_dict)
+            
+    def create_playlist_torrent(self, infohash, playlistmessage, update_locally=True, store_and_forward=True):
+        assert isinstance(update_locally, bool)
+        assert isinstance(store_and_forward, bool)
+        meta = self.get_meta_message(u"playlist_torrent")
+        message = meta.implement(meta.authentication.implement(self._my_member),
+                                 meta.distribution.implement(self._timeline.global_time),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(infohash, playlistmessage))
+
+        if store_and_forward:
+            self._dispersy.store_and_forward([message])
+
+        if update_locally:
+            assert self._timeline.check(message)
+            message.handle_callback([message])
+
+        return message
+    
+    def check_playlist_torrent(self, address, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                raise DropMessage("TODO: implement delay by proof")
+            yield message
+    
+    def on_playlist_torrent(self, address, messages):
+        for message in messages:
+            
+            playlist_dispersy_id = message.payload.playlist.packet_id
+            self._channelcast_db.on_playlist_torrent(playlist_dispersy_id, message.payload.infohash)

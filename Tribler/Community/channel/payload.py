@@ -45,7 +45,7 @@ class PlaylistPayload(Payload):
             assert len(name) < 255
             assert isinstance(description, unicode)
             assert len(description) < 1024
-            super(ChannelPayload.Implementation, self).__init__(meta)
+            super(PlaylistPayload.Implementation, self).__init__(meta)
             self._name = name
             self._description = description
 
@@ -103,4 +103,22 @@ class ModificationPayload(Payload):
         @property
         def modification_on(self):
             return self._modification_on
+
+class PlaylistTorrentPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, infohash, playlist):
+            assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
+            assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
+            assert isinstance(playlist, Packet)
+            super(PlaylistTorrentPayload.Implementation, self).__init__(meta)
+            self._infohash = infohash
+            self._playlist = playlist
+
+        @property
+        def infohash(self):
+            return self._infohash
+
+        @property
+        def playlist(self):
+            return self._playlist
 

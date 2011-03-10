@@ -10,6 +10,7 @@ class ChannelConversion(BinaryConversion):
         self.define_meta_message(chr(3), community.get_meta_message(u"playlist"), self._encode_playlist, self._decode_playlist)
         self.define_meta_message(chr(4), community.get_meta_message(u"comment"), self._encode_comment, self._decode_comment)
         self.define_meta_message(chr(5), community.get_meta_message(u"modification"), self._encode_modification, self._decode_modification)
+        self.define_meta_message(chr(6), community.get_meta_message(u"playlist_torrent"), self._encode_playlist_torrent, self._decode_playlist_torrent)
 
     def _encode_channel(self, message):
         return encode({"name":message.payload.name,
@@ -226,3 +227,49 @@ class ChannelConversion(BinaryConversion):
         modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
         return offset, meta_message.payload.implement(modification, modification_on)
+
+    def _encode_playlist_torrent(self, message):
+        playlist = message.payload.playlist.load_message()
+        return encode({"infohash":message.payload.infohash,
+                       "playlist-mid":playlist.authentication.member.mid,
+                       "playlist-global-time":playlist.distribution.global_time}),
+
+    def _decode_playlist_torrent(self, meta_message, offset, data):
+        try:
+            offset, dic = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the payload")
+
+        if not "infohash" in dic:
+            raise DropPacket("Missing 'infohash'")
+        infohash = dic["infohash"]
+        if not (isinstance(infohash, str) and len(infohash) == 20):
+            raise DropPacket("Invalid 'infohash' type or value")
+
+        if not "playlist-mid" in dic:
+            raise DropPacket("Missing 'playlist-mid'")
+        playlist_mid = dic["playlist-mid"]
+        if not (isinstance(playlist_mid, str) and len(playlist_mid) == 20):
+            raise DropPacket("Invalid 'playlist-mid' type or value")
+        
+        if not "playlist-global-time" in dic:
+            raise DropPacket("Missing 'playlist-global-time'")
+        playlist_global_time = dic["playlist-global-time"]
+        if not isinstance(playlist_global_time, (int, long)):
+            raise DropPacket("Invalid 'playlist-global-time' type")
+        
+        try:
+            packet_id, packet, message_name = self._dispersy_database.execute(u"""
+                SELECT sync.id, sync.packet, name.value
+                FROM sync
+                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
+                JOIN user ON (user.id = reference_user_sync.user)
+                JOIN name ON (name.id = sync.name)
+                WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
+                                                      (self._community.database_id, playlist_global_time, playlist_mid)).next()
+        except StopIteration:
+            # todo: delay packet instead!
+            raise DropPacket("Missing previous message")
+        
+        playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        return offset, meta_message.payload.implement(infohash, playlist)

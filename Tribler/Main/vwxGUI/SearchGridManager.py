@@ -1003,15 +1003,15 @@ class ChannelSearchGridManager:
     def getPlaylist(self, playlist_id, keys):
         return self.channelcast_db.getPlaylist(playlist_id, keys)
     
-    def createPlaylist(self, channel_id, name, description, torrent_ids):
-        return self.channelcast_db.createPlaylist(channel_id, name, description)
+    def createPlaylist(self, channel_id, name, description, infohashes = []):
+        return self.channelcast_db.createPlaylist(channel_id, name, description, infohashes)
     
     def modifyPlaylist(self, playlist_id, name, description):
         dict = {'name':name, 'description':description}
         return self.channelcast_db.modifyPlaylist(playlist_id, dict)
     
-    def savePlaylistTorrents(self, playlist_id, torrent_ids):
-        return self.channelcast_db.savePlaylistTorrents(playlist_id, torrent_ids)
+    def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
+        return self.channelcast_db.savePlaylistTorrents(channel_id, playlist_id, infohashes)
         
     def setSearchKeywords(self, wantkeywords):
         self.searchkeywords = wantkeywords

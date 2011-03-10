@@ -158,9 +158,15 @@ class SelectedChannelList(SearchList):
     def SetData(self, playlists, torrents):
         List.SetData(self, torrents)
         
-        data = [(playlist['id'],[playlist['name'], playlist['description'], playlist['nr_torrents']], playlist, PlaylistItem) for playlist in playlists]
-        data += [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in torrents]
-        return self.list.SetData(data)
+        if len(playlists) > 0 or len(torrents) > 0:
+            data = [(playlist['id'],[playlist['name'], playlist['description'], playlist['nr_torrents']], playlist, PlaylistItem) for playlist in playlists]
+            data += [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in torrents]
+            return self.list.SetData(data)
+        
+        message =  'No torrents or playlists found.\n'
+        message += 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
+        self.list.ShowMessage(message)
+        return 0
     
     def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
         if isinstance(nr, int):
@@ -301,12 +307,15 @@ class PlaylistManager():
     
     def SetPlaylistId(self, playlist_id):
         if playlist_id != self.list.id:
+            self.list.Reset()
             self.list.id = playlist_id
+            self.list.SetFF(self.guiutility.getFamilyFilter())
+            
             self._refresh_list()
     
     def _refresh_list(self):
         #TODO: Should look for children of this playlist
-        total_items, nrfiltered, torrents = self.channelsearch_manager.getTorrentsFromPlaylist(self.list.id, ChannelManager.channel_req_columns)
+        total_items, nrfiltered, torrents = self.channelsearch_manager.getTorrentsFromPlaylist(self.list.id, CHANNEL_REQ_COLUMNS)
         torrents = self.torrentsearch_manager.addDownloadStates(torrents)
         
         if self.list.SetData([], torrents) < total_items: #some items are filtered by quickfilter (do not update total_items)
@@ -427,14 +436,14 @@ class ManageChannelPlaylistsManager():
         total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(playlist_id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
         return torrentList
     
-    def createPlaylist(self, name, description, torrent_ids):
-        self.channelsearch_manager.createPlaylist(self.list.id, name, description, torrent_ids)
+    def createPlaylist(self, name, description, infohashes):
+        self.channelsearch_manager.createPlaylist(self.list.id, name, description, infohashes)
     
     def savePlaylist(self, playlist_id, name, description):
         self.channelsearch_manager.modifyPlaylist(playlist_id, name, description)
     
-    def savePlaylistTorrents(self, playlist_id, torrent_ids):
-        self.channelsearch_manager.savePlaylistTorrents(playlist_id, torrent_ids)
+    def savePlaylistTorrents(self, playlist_id, infohashes):
+        self.channelsearch_manager.savePlaylistTorrents(self.list.id, playlist_id, infohashes)
     
     def playlistUpdated(self, playlist_id):
         if self.list.InList(playlist_id):
@@ -875,10 +884,10 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         dlg.SetSizer(vSizer)
         if dlg.ShowModal() == wx.ID_OK:
-            name, description, torrent_ids = playlistdetails.GetInfo()
+            name, description, infohashes = playlistdetails.GetInfo()
             
             manager = self.GetManager()
-            manager.createPlaylist(name, description, torrent_ids)
+            manager.createPlaylist(name, description, infohashes)
         dlg.Destroy()
     
     def OnEdit(self, playlist):
@@ -892,12 +901,12 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         dlg = wx.Dialog(self, -1, 'Manage the torrents for this playlist', size = (500, 600), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
         dlg.contents = manager.GetTorrentsFromChannel()
-        dlg.torrent_ids = [data['ChannelTorrents.id'] for data in dlg.contents]
+        dlg.torrent_infohashes = [data['infohash'] for data in dlg.contents]
         
         names = [data['name'] for data in dlg.contents]
         
         if playlist.get('id', False):
-            selected = [dlg.torrent_ids.index(data['ChannelTorrents.id']) for data in manager.GetTorrentsFromPlaylist(playlist['id'])]
+            selected = [dlg.torrent_infohashes.index(data['infohash']) for data in manager.GetTorrentsFromPlaylist(playlist['id'])]
         else:
             selected = None
         
@@ -918,7 +927,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         dlg.SetSizer(vSizer)
         
         if dlg.ShowModal() == wx.ID_OK:
-            return_val = [dlg.torrent_ids[index] for index in dlg.list.GetChecked()]
+            return_val = [dlg.torrent_infohashes[index] for index in dlg.list.GetChecked()]
         else:
             return_val = None
             
@@ -927,7 +936,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
     def OnKey(self, event):
         dlg = self.filter.GetParent()
-        sel_torrent_ids = [dlg.torrent_ids[index] for index in dlg.list.GetChecked()]
+        sel_torrents = [dlg.torrent_infohashes[index] for index in dlg.list.GetChecked()]
         
         keyword = self.filter.GetValue().strip()
         try:
@@ -937,18 +946,18 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         if len(keyword) > 0:
             def match(item):
-                if item['ChannelTorrents.id'] in sel_torrent_ids:
+                if item['infohash'] in sel_torrents:
                     return True
                 return re.search(keyword, item['name'].lower())
             filtered_contents = filter(match, dlg.contents)
         else:
             filtered_contents = dlg.contents
              
-        dlg.torrent_ids = [data['ChannelTorrents.id'] for data in filtered_contents]
+        dlg.torrent_infohashes = [data['infohash'] for data in filtered_contents]
         names = [data['name'] for data in filtered_contents]
         
         dlg.list.SetItems(names)
-        selected = [dlg.torrent_ids.index(torrent_id) for torrent_id in sel_torrent_ids]
+        selected = [dlg.torrent_infohashes.index(torrent_id) for torrent_id in sel_torrents]
         if selected:
             dlg.list.SetChecked(selected)
 

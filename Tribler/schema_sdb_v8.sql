@@ -420,7 +420,7 @@ CREATE TABLE UserEventLog (
 
 CREATE TABLE IF NOT EXISTS Channels (
   id                    integer         PRIMARY KEY ASC,
-  dispersy_cid          text            UNIQUE,       
+  dispersy_cid          text,       
   peer_id               integer,
   name                  text            NOT NULL,
   description           text
