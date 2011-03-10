@@ -3210,6 +3210,15 @@ class ChannelCastDBHandler:
         from Tribler.Core.dispersy.dispersy import Dispersy
         dispersy = Dispersy.get_instance()
         dispersy.rawserver.add_task(dispersy_thread)
+        
+    def addOwnTorrents(self, torrentlist, store=True, forward=True):
+        def dispersy_thread():
+            community = dispersy.get_community(self._get_my_dispersy_cid())
+            community.create_torrents(torrentlist, store=store, forward=forward)
+            
+        from Tribler.Core.dispersy.dispersy import Dispersy
+        dispersy = Dispersy.get_instance()
+        dispersy.rawserver.add_task(dispersy_thread)
 
     def modifyTorrent(self, channeltorrent_id, dict_changes):
         def dispersy_thread():
@@ -3238,6 +3247,8 @@ class ChannelCastDBHandler:
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
     
     def on_torrents_from_dispersy(self, torrentlist):
+        print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
+        
         infohashes = [infohash for _,_,infohash,_ in torrentlist]
         torrentids = self.torrent_db.addOrGetTorrentIDS(infohashes)
         channel_ids = set()

@@ -1474,112 +1474,150 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 my_permid = bin2str(my_permid)
             
             #start converting channelcastdb to new format
-            select_channels = "SELECT distinct publisher_id FROM ChannelCast"
-            select_channel_torrent = "SELECT CollectedTorrent.infohash, time_stamp, publisher_name FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash Order By time_stamp DESC"
+            select_channels = "SELECT publisher_id, max(time_stamp) FROM ChannelCast WHERE publisher_name <> '' GROUP BY publisher_id"
+            select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ? LIMIT 1"
             
-            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
+            select_channel_torrent = "SELECT CollectedTorrent.torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash Order By time_stamp DESC"
+            select_mychannel_torrent = "SELECT CollectedTorrent.infohash, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash AND CollectedTorrent.torrent_id NOT IN (SELECT torrent_id FROM ChannelTorrents WHERE channel_id = ?) ORDER BY time_stamp DESC LIMIT ?"
+            
+            select_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
+            select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
+            
+            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?)"
             insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
             #placeholders for dispersy channel conversion
             my_channel_name = None
-            my_torrents = []
+            
+            #create channels
+            to_be_inserted = []
+            accepted_channels = set()
+            channel_permid_cid = {}
+            
+            t1 = time()
             
             channels = self.fetchall(select_channels)
-            for publisher_id,  in channels:
-                torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
-                if len(torrents) > 0:
-                    channel_name = torrents[0][2]
-                    
-                    #using this strange construction to let the torrent id to be cached.
-                    infohashes = [infohash for infohash, _, _ in torrents] 
-                    torrent_ids = self.getTorrentIDS([str2bin(infohash) for infohash in infohashes])
-                    
-                    if publisher_id == my_permid:
-                        my_channel_name = channel_name
-                        my_torrents = []
-                        for infohash, timestamp, _ in torrents:
-                            timestamp = long(timestamp)
-                            infohash = str2bin(infohash)
-                            my_torrents.append((infohash, timestamp))
-                    else:
-                        peer_id = self.getPeerID(str2bin(publisher_id))
-                        channel_id = self.fetchone(insert_channel, (-1, peer_id, channel_name, ''))
-                        
-                        infohash_dict = {}
-                        for i in range(len(infohashes)):
-                            infohash_dict[infohashes[i]] = torrent_ids[i]
-                        
-                        to_be_inserted = []
-                        for infohash, time_stamp, _ in torrents:
-                            torrent_id = infohash_dict[infohash]
-                            to_be_inserted.append((-1, torrent_id, channel_id, time_stamp, time_stamp))
-                        self.executemany(insert_channel_contents, to_be_inserted, commit = False)
+            for publisher_id, timestamp in channels:
+                channel_name = self.fetchone(select_channel_name, (publisher_id, timestamp))
+                
+                if publisher_id == my_permid:
+                    accepted_channels.add(publisher_id)
+                    my_channel_name = channel_name
+                    continue
+                
+                peer_id = self.getPeerID(str2bin(publisher_id))
+                if peer_id:
+                    accepted_channels.add(publisher_id)
+                    to_be_inserted.append((-1, peer_id, channel_name, ''))
             
-            self.commit()
+            self.executemany(insert_channel, to_be_inserted)
             
-            def convert_votes():
-                #start converting votecastdb to new format
-                select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
-                select_channel_id = "SELECT id FROM Channels, Peer Where Channels.peer_id = Peer.peer_id AND permid = ?"
-                select_peerid = "SELECT peer_id FROM Peer WHERE permid = ?"
-                
-                insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
-                to_be_inserted = []
-                
-                channeldict = {}
-                peerdict = {}
-                
-                #set my_channel id
-                if my_channel_name:
-                    peerdict[my_permid] = None
+            #insert torrents
+            to_be_inserted = []
+            for publisher_id in accepted_channels:
+                if publisher_id != my_permid:
+                    torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
 
-                    channelcastdb = ChannelCastDBHandler.getInstance()
-                    if channelcastdb.channel_id:
-                        channeldict[my_permid] = channelcastdb.channel_id
-                
-                votes = self.fetchall(select_votes)
-                for mod_id, voter_id, vote, time_stamp in votes:
-                    if not mod_id in channeldict:
-                        channeldict[mod_id] = self.fetchone(select_channel_id, (mod_id,))
-                        
-                    if not voter_id in peerdict:
-                        peerdict[voter_id] = self.fetchone(select_peerid, (voter_id,))
-                        if not peerdict[voter_id]:
-                            peerdict[voter_id] = -1
+                    peer_id = self.getPeerID(str2bin(publisher_id))
+                    channel_id = self.fetchone(select_channel_id, (peer_id,))
                     
-                    #do we know peer and channel?
-                    if channeldict[mod_id] and (peerdict[voter_id] > 0 or peerdict[voter_id] == None):
-                        to_be_inserted.append((channeldict[mod_id], peerdict[voter_id], -1, vote, time_stamp))
-                
-                self.executemany(insert_vote, to_be_inserted)
-                drop_votecast = "DROP TABLE VoteCast"
-                #self.execute_write(drop_votecast)
+                    channel_permid_cid[publisher_id] = channel_id
+                    
+                    for torrent_id, time_stamp in torrents:
+                        to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
             
-            def create_my_channel(subject,changeType,objectID):
-                if my_channel_name and len(my_torrents) > 0:
-                    channelcastdb = ChannelCastDBHandler.getInstance()
-                    channelcastdb.createChannel(my_channel_name, u'')
-                    
-                    nr_torrents = len(my_torrents)
-                    for i in range(nr_torrents):
-                        infohash, timestamp = my_torrents[i]
-                        
-                        last_torrent = (i + 1 == nr_torrents)
-                        channelcastdb.addOwnTorrent(infohash, timestamp, forward=False)
-                    
-                session.remove_observer(create_my_channel)
-                drop_channelcast = "DROP TABLE ChannelCast"
-                #self.execute_write(drop_channelcast)
-                
-                convert_votes()
+            self.executemany(insert_channel_contents, to_be_inserted, commit = False)
             
+            #convert votes
+            select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
+            select_votes_for_me = "SELECT voter_id, vote, time_stamp FROM VoteCast WHERE mod_id = ? Order By time_stamp ASC"
+            select_channel_id = "SELECT id FROM Channels, Peer Where Channels.peer_id = Peer.peer_id AND permid = ?"
+                
+            insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+            
+            to_be_inserted = []
+            votes = self.fetchall(select_votes)
+            for mod_id, voter_id, vote, time_stamp in votes:
+                if mod_id != my_permid: #cannot yet convert votes on my channel 
+                
+                    channel_id = channel_permid_cid.get(mod_id, None)
+                    
+                    if channel_id:
+                        if voter_id == my_permid:
+                            to_be_inserted.append((channel_id, None, -1, vote, time_stamp))
+                        else:
+                            peer_id = self.getPeerID(str2bin(voter_id))
+                            if peer_id:
+                                to_be_inserted.append((channel_id, peer_id, -1, vote, time_stamp))
+            
+            self.executemany(insert_vote, to_be_inserted)
+            
+            print >> sys.stderr, "Converting took", time() - t1
+                        
             if my_channel_name:
-                session.add_observer(create_my_channel,NTFY_DISPERSY,[NTFY_STARTED])
-            else:
-                drop_channelcast = "DROP TABLE ChannelCast"
-                #self.execute_write(drop_channelcast)
+                def dispersy_started(subject,changeType,objectID):
+                    def create_my_channel():
+                        if my_channel_name:
+                            channelcastdb = ChannelCastDBHandler.getInstance()
+                            channelcastdb.createChannel(my_channel_name, u'')
+                            
+                            tqueue.add_task(insert_my_torrents, 10)
+                        
+                    def insert_my_torrents():
+                        channelcastdb = ChannelCastDBHandler.getInstance()
+                        
+                        channel_id = self.fetchone(select_mychannel_id)
+                        if channel_id:
+                            batch_insert = 100
+                            
+                            to_be_inserted = []
+                            torrents = self.fetchall(select_mychannel_torrent, (my_permid, channel_id, batch_insert))
+                            for infohash, timestamp in torrents:
+                                timestamp = long(timestamp)
+                                infohash = str2bin(infohash)
+                                to_be_inserted.append((infohash, timestamp))
+                            
+                            if len(to_be_inserted) > 0:
+                                channelcastdb.addOwnTorrents(to_be_inserted, forward=False)
+                                tqueue.add_task(insert_my_torrents, 5)
+                            
+                            else: #done
+                                insert_votes_for_me(channel_id)
+                        else:
+                            tqueue.add_task(insert_my_torrents, 5)
+                    
+                    def insert_votes_for_me(my_channel_id):
+                        to_be_inserted = []
+                        
+                        votes = self.fetchall(select_votes_for_me, (my_permid, ))
+                        for voter_id, vote, time_stamp in votes:
+                            peer_id = self.getPeerID(str2bin(voter_id))
+                            if peer_id:
+                                to_be_inserted.append((my_channel_id, peer_id, -1, vote, time_stamp))
+                                
+                        if len(to_be_inserted) > 0:
+                            self.executemany(insert_vote, to_be_inserted)
+                        tqueue.add_task('stop')
+                        
+                        drop_channelcast = "DROP TABLE ChannelCast"
+                        #self.execute_write(drop_channelcast)
                 
-                convert_votes()
+                        drop_votecast = "DROP TABLE VoteCast"
+                        #self.execute_write(drop_votecast)
+                    
+                    from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+                    tqueue = TimedTaskQueue("UpgradeDB")
+                    tqueue.add_task(create_my_channel, 10)
+                    
+                    session.remove_observer(dispersy_started)
+                
+                session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+        else:
+            drop_channelcast = "DROP TABLE ChannelCast"
+            #self.execute_write(drop_channelcast)
+                
+            drop_votecast = "DROP TABLE VoteCast"
+            #self.execute_write(drop_votecast)
 
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

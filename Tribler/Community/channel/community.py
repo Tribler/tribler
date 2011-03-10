@@ -85,6 +85,19 @@ class ChannelCommunity(Community):
                                  meta.payload.implement(infohash, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
+    
+    def create_torrents(self, torrentlist, store=True, update=True, forward=True):
+        messages = []
+        
+        meta = self.get_meta_message(u"torrent")
+        for infohash, timestamp in torrentlist:
+            message = meta.implement(meta.authentication.implement(self._my_member),
+                                     meta.distribution.implement(self._timeline.global_time),
+                                     meta.destination.implement(),
+                                     meta.payload.implement(infohash, timestamp))
+            messages.append(message)
+        self._dispersy.store_update_forward(messages, store, update, forward)
+        return messages
 
     def check_torrent(self, messages):
         for message in messages:
@@ -94,10 +107,12 @@ class ChannelCommunity(Community):
             yield message
 
     def on_torrent(self, messages):
+        torrentlist = []
         for message in messages:
             if __debug__: dprint(message)
             dispersy_id = message.packet_id
-            self._channelcast_db.on_torrent_from_dispersy(self.channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp)
+            torrentlist.append((self.channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp))
+        self._channelcast_db.on_torrents_from_dispersy(torrentlist)
 
     def create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
