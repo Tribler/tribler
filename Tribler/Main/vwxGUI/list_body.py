@@ -386,6 +386,9 @@ class AbstractListBody():
             if self.columns[i].get('sizeCol', False):
                 self.filtersizecolumn = i
                 break
+            
+        #sorting
+        self.sortcolumn = None
         
         #queue lists
         self.done = True
@@ -411,26 +414,32 @@ class AbstractListBody():
         self.Scroll(-1, 0)
         self.Freeze()
         
-        def sortby(b, a):
-            if a[0] in self.items:
-                a = self.items[a[0]].data[column]
-            else:
-                a = a[1][column]
-                
-            if b[0] in self.items:
-                b = self.items[b[0]].data[column]
-            else:
-                b = b[1][column] 
-            
-            return cmp(a, b)
-
-        self.data = sorted(self.data, cmp = sortby, reverse=reverse)
+        self.sortcolumn = column
+        self.sortreverse = reverse
+        self.DoSort()
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
         self.CreateItems()
         
         self.Thaw()
+        
+    def DoSort(self):
+        def sortby(b, a):
+            if a[0] in self.items:
+                a = self.items[a[0]].data[self.sortcolumn]
+            else:
+                a = a[1][self.sortcolumn]
+                
+            if b[0] in self.items:
+                b = self.items[b[0]].data[self.sortcolumn]
+            else:
+                b = b[1][self.sortcolumn] 
+            
+            return cmp(a, b)
+        
+        if self.sortcolumn != None:
+            self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
     
     def FilterItems(self, keyword, column = 0):
         new_filter = keyword.lower().strip()
@@ -552,6 +561,7 @@ class AbstractListBody():
         self.filter = ''
         self.sizefiler = None
         self.filtercolumn = 0
+        self.sortcolumn = None
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
@@ -669,6 +679,7 @@ class AbstractListBody():
                 self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
 
             self.data = data
+            self.DoSort()
             self.done = False
             
             self.CreateItems()
