@@ -59,17 +59,23 @@ class PlaylistPayload(Payload):
 
 class CommentPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, text, timestamp, reply_to, reply_after):
+        def __init__(self, meta, text, timestamp, reply_to, reply_after, playlist, infohash):
             assert isinstance(text, unicode)
             assert len(text) < 2^16
             assert isinstance(timestamp, (int, long)) 
             assert not reply_to or isinstance(reply_to, Packet)
             assert not reply_after or isinstance(reply_after, Packet)
+            assert not playlist or isinstance(playlist, Packet)
+            assert not infohash or isinstance(infohash, str), 'infohash is a %s'%type(infohash)
+            assert not infohash or len(infohash) == 20, 'infohash has length %d'%len(infohash)
+            
             super(CommentPayload.Implementation, self).__init__(meta)
             self._text = text
             self._timestamp = timestamp
             self._reply_to = reply_to
             self._reply_after = reply_after
+            self._playlist = playlist
+            self._infohash = infohash
 
         @property
         def text(self):
@@ -86,6 +92,15 @@ class CommentPayload(Payload):
         @property
         def reply_after(self):
             return self._reply_after
+        
+        @property
+        def playlist(self):
+            return self._playlist
+        
+        @property
+        def infohash(self):
+            return self._infohash
+        
 
 class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):

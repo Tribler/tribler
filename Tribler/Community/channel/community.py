@@ -72,7 +72,7 @@ class ChannelCommunity(Community):
             if isinstance(authentication_member, MyMember):
                 peer_id = None
             else:
-                peer_id = self._get_peerid_from_mid(authentication_member.public_key)
+                peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
 
             self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
             self.channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
@@ -136,12 +136,12 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             self._channelcast_db.on_playlist_from_dispersy(self.channel_id, dispersy_id, message.payload.name, message.payload.description)
 
-    def create_comment(self, text, timestamp, reply_to, reply_after, store=True, update=True, forward=True):
+    def create_comment(self, text, timestamp, reply_to, reply_after, playlist, infohash, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"comment")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
-                                 meta.payload.implement(text, timestamp, reply_to, reply_after))
+                                 meta.payload.implement(text, timestamp, reply_to, reply_after, playlist, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -152,17 +152,20 @@ class ChannelCommunity(Community):
                 continue
             yield message
     
-    def _get_peerid_from_mid(self, mid):
-        return self._channelcast_db._db.fetchone(u"SELECT peer_id FROM Peer WHERE permid = ?", (bin2str(mid),))
-    
     def on_comment(self, messages):
         for message in messages:
             if __debug__: dprint(message)
 
             dispersy_id = message.packet_id
-            peer_id = self._get_peerid_from_mid(message.member.mid)
-
-            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after)
+            
+            authentication_member = message.authentication.member
+            if isinstance(authentication_member, MyMember):
+                peer_id = None
+            else:
+                peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
+                
+            
+            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after, message.payload.playlist, message.payload.infohash)
         
     def create_modification(self, modification, modification_on, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"modification")

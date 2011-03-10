@@ -237,8 +237,8 @@ class ChannelCastCore:
     def updateMySubscribedChannels(self):
         #TODO: DETECT DISPERSY CHANNELS
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
-        for channel_id, _, _, _, _, _, _ in subscribed_channels:
-            permid = self.channelcastdb.getPermidForChannel(channel_id)
+        for channel in subscribed_channels:
+            permid = self.channelcastdb.getPermidForChannel(channel[0])
             self.updateAChannel(permid)
         
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    

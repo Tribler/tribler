@@ -966,12 +966,12 @@ class ChannelSearchGridManager:
         
     def _fix_my_name(self, hits):
         for hit in hits:
-            if hit['Peer.peer_id'] == self.channelcast_db.my_peerid:
+            if hit['Peer.peer_id'] == None:
                 hit['name'] = self.utility.session.get_nickname()
         
         return len(hits), hits
     
-    def addComment(self, comment, channel_id, reply_after, reply_to = None, playlist_id = None, channeltorrent_id = None):
+    def addComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
         self.channelcast_db.addComment(comment, channel_id, reply_after, reply_to, playlist_id, channeltorrent_id)
     
     def getChannel(self, channel_id):

@@ -85,15 +85,32 @@ class ChannelConversion(BinaryConversion):
         return offset, meta_message.payload.implement(name, description)
 
     def _encode_comment(self, message):
-        #TODO: reply_to and reply_after are optional
-        reply_to = message.payload.reply_to.load_message()
-        reply_after = message.payload.reply_after.load_message()
-        return encode({"text":message.payload.text,
-                       "timestamp":message.paylist.timestamp,
-                       "reply-to-mid":reply_to.authentication.member.mid,
-                       "reply-to-global-time":reply_to.distribution.global_time,
-                       "reply-from-mid":reply_from.authentication.member.mid,
-                       "reply-from-global-time":reply_from.distribution.global_time}),
+        dict = {"text":message.payload.text,
+                "timestamp":message.payload.timestamp}
+        
+        reply_to = message.payload.reply_to
+        reply_after = message.payload.reply_after
+        playlist = message.payload.playlist
+        infohash = message.payload.infohash
+        
+        if reply_to:
+            message = reply_to.load_message()
+            dict["reply-to-mid"] = message.authentication.member.mid
+            dict["reply-to-global-time"] = message.distribution.global_time
+            
+        if reply_after:
+            message = reply_after.load_message()
+            dict["reply-after-mid"] = message.authentication.member.mid,
+            dict["reply-after-global-time"] = message.distribution.global_time
+            
+        if playlist:
+            message = playlist.load_message()
+            dict["playlist-mid"] = message.authentication.member.mid,
+            dict["playlist-global-time"] = message.distribution.global_time
+            
+        if infohash:
+            dict['infohash'] = infohash
+        return encode(dict),
 
     def _decode_comment(self, meta_message, offset, data):
         try:
@@ -113,69 +130,52 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(timestamp, (int, long)):
             raise DropPacket("Invalid 'timestamp' type or value")
 
-        #
-        # reply_to
-        #
-
-        if not "reply-to-mid" in dic:
-            raise DropPacket("Missing 'reply-to-mid'")
-        reply_to_mid = dic["reply-to-mid"]
-        if not (isinstance(reply_to_mid, str) and len(reply_to_mid) == 20):
+        reply_to_mid = dic.get("reply-to-mid", None)
+        if reply_to_mid and not (isinstance(reply_to_mid, str) and len(reply_to_mid) == 20):
             raise DropPacket("Invalid 'reply-to-mid' type or value")
-
-        if not "reply-to-global-time" in dic:
-            raise DropPacket("Missing 'reply-to-global-time'")
-        reply_to_global_time = dic["reply-to-global-time"]
-        if not isinstance(reply_to_global_time, (int, long)):
+        
+        reply_to_global_time = dic.get("reply-to-global-time", None)
+        if reply_to_global_time and not isinstance(reply_to_global_time, (int, long)):
             raise DropPacket("Invalid 'reply-to-global-time' type")
 
-        try:
-            packet_id, packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.id, sync.packet, name.value
-                FROM sync
-                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                JOIN user ON (user.id = reference_user_sync.user)
-                JOIN name ON (name.id = sync.name)
-                WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                                              (self._community.database_id, reply_to_global_time, reply_to_mid)).next()
-        except StopIteration:
-            # todo: delay packet instead!
-            raise DropPacket("Missing previous message")
+        if reply_to_mid and reply_to_global_time:
+            packet_id, packet, message_name = self._get_message(reply_to_global_time, reply_to_mid)
+            reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        else:
+            reply_to = None
 
-        reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-
-        #
-        # reply_from
-        #
-
-        if not "reply-from-mid" in dic:
-            raise DropPacket("Missing 'reply-from-mid'")
-        reply_from_mid = dic["reply-from-mid"]
-        if not (isinstance(reply_from_mid, str) and len(reply_from_mid) == 20):
-            raise DropPacket("Invalid 'reply-from-mid' type or value")
-
-        if not "reply-from-global-time" in dic:
-            raise DropPacket("Missing 'reply-from-global-time'")
-        reply_from_global_time = dic["reply-from-global-time"]
-        if not isinstance(reply_from_global_time, (int, long)):
-            raise DropPacket("Invalid 'reply-from-global-time' type")
-
-        try:
-            packet_id, packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.id, sync.packet, name.value
-                FROM sync
-                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                JOIN user ON (user.id = reference_user_sync.user)
-                JOIN name ON (name.id = sync.name)
-                WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                                              (self._community.database_id, reply_from_global_time, reply_from_mid)).next()
-        except StopIteration:
-            # todo: delay packet instead!
-            raise DropPacket("Missing previous message")
-
-        reply_from = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-
-        return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_from)
+        reply_after_mid = dic.get("reply-after-mid", None)
+        if reply_after_mid and not (isinstance(reply_after_mid, str) and len(reply_after_mid) == 20):
+            raise DropPacket("Invalid 'reply-after-mid' type or value")
+        
+        reply_after_global_time = dic.get("reply-after-global-time", None)
+        if reply_after_global_time and not isinstance(reply_after_global_time, (int, long)):
+            raise DropPacket("Invalid 'reply-after-global-time' type")
+        
+        if reply_after_mid and reply_after_global_time:
+            packet_id, packet, message_name = self._get_message(reply_after_global_time, reply_after_mid)
+            reply_after = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        else:
+            reply_after = None
+            
+        playlist_mid = dic.get("playlist-mid", None)
+        if playlist_mid and not (isinstance(playlist_mid, str) and len(playlist_mid) == 20):
+            raise DropPacket("Invalid 'playlist-mid' type or value")
+        
+        playlist_global_time = dic.get("playlist-global-time", None)
+        if playlist_global_time and not isinstance(playlist_global_time, (int, long)):
+            raise DropPacket("Invalid 'playlist-global-time' type")
+        
+        if playlist_mid and playlist_global_time:
+            packet_id, packet, message_name = self._get_message(playlist_mid, playlist_global_time)
+            playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        else:
+            playlist = None
+        
+        infohash = dic.get("infohash", None)
+        if infohash and not (isinstance(infohash, str) and len(infohash) == 20):
+            raise DropPacket("Invalid 'infohash' type or value")
+        return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_after, playlist, infohash)
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
@@ -210,20 +210,8 @@ class ChannelConversion(BinaryConversion):
         modification_on_global_time = dic["modification-on-global-time"]
         if not isinstance(modification_on_global_time, (int, long)):
             raise DropPacket("Invalid 'modification-on-global-time' type")
-
-        try:
-            packet_id, packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.id, sync.packet, name.value
-                FROM sync
-                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                JOIN user ON (user.id = reference_user_sync.user)
-                JOIN name ON (name.id = sync.name)
-                WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                      (self._community.database_id, modification_on_global_time, modification_on_mid)).next()
-        except StopIteration:
-            # todo: delay packet instead!
-            raise DropPacket("Missing previous message")
-
+        
+        packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
         modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
         return offset, meta_message.payload.implement(modification, modification_on)
@@ -258,6 +246,11 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(playlist_global_time, (int, long)):
             raise DropPacket("Invalid 'playlist-global-time' type")
         
+        packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+        playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        return offset, meta_message.payload.implement(infohash, playlist)
+    
+    def _get_message(self, global_time, mid):
         try:
             packet_id, packet, message_name = self._dispersy_database.execute(u"""
                 SELECT sync.id, sync.packet, name.value
@@ -266,10 +259,8 @@ class ChannelConversion(BinaryConversion):
                 JOIN user ON (user.id = reference_user_sync.user)
                 JOIN name ON (name.id = sync.name)
                 WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                      (self._community.database_id, playlist_global_time, playlist_mid)).next()
+                                                      (self._community.database_id, global_time, mid)).next()
         except StopIteration:
-            # todo: delay packet instead!
             raise DropPacket("Missing previous message")
         
-        playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        return offset, meta_message.payload.implement(infohash, playlist)
+        return packet_id, packet, message_name

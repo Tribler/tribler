@@ -26,12 +26,12 @@ class ChannelManager():
             self.list.Reset()
             self.list.SetId(id)
             
-            vote = self.channelsearch_manager.getMyVote(id)
-            self.list.footer.SetStates(vote == -1, vote == 2, id == self.channel_id)
-            self.list.SetFF(self.guiutility.getFamilyFilter())
+            channel_id, channel_name, max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, isdispersy, description = self.channelsearch_manager.getChannel(id)
             
-            channel = self.channelsearch_manager.getChannel(id)
-            self.list.SetTitle(channel[1], channel[-1])
+            self.list.footer.SetStates(my_vote == -1, my_vote == 2, id == self.channel_id)
+            self.list.SetFF(self.guiutility.getFamilyFilter())
+            self.list.SetTitle(channel_name, description)
+            self.list.SetDispersy(isdispersy)
             
         self._refresh_list()
         
@@ -102,9 +102,7 @@ class SelectedChannelList(SearchList):
         self.notebook.AddPage(list, "Contents")
         
         self.commentList = CommentList(self.notebook)
-        self.notebook.AddPage(self.commentList, "Comments")
         self.activityList = ActivityList(self.notebook, self)
-        self.notebook.AddPage(self.activityList, "Activity")
         
         sizer.Add(self.notebook, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
         
@@ -139,6 +137,15 @@ class SelectedChannelList(SearchList):
         
         manager = self.activityList.GetManager()
         manager.SetIds(channel_id = id)
+        
+    def SetDispersy(self, isDispersy):
+        if isDispersy:
+            if self.notebook.GetPageCount() == 1:
+                self.notebook.AddPage(self.commentList, "Comments")
+                self.notebook.AddPage(self.activityList, "Activity")
+        else:
+            for i in range(1, self.notebook.GetPageCount()):
+                self.notebook.RemovePage(i)
         
     def SetTitle(self, title, description):
         self.title = title
@@ -194,6 +201,7 @@ class SelectedChannelList(SearchList):
     
     def Reset(self):
         SearchList.Reset(self)
+        self.SetId(0)
         self.notebook.ChangeSelection(0)
     
     def OnExpand(self, item):
@@ -622,7 +630,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.playlistlist.GetManager().SetChannelId(channel_id)
         
         if channel_id:
-            id, name, timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, description = self.channelsearch_manager.getChannel(channel_id)
+            id, name, timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, isDispersy, description = self.channelsearch_manager.getChannel(channel_id)
             
             if self.notebook.GetPageCount() == 1:
                 self.notebook.AddPage(self.fileslist, "Manage torrents")

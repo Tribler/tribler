@@ -3008,30 +3008,8 @@ class ChannelCastDBHandler:
         # 1. get the dispersy identifier from the channel_id
         dispersy_id = self._db.fetchone(u"SELECT dispersy_id FROM Channels WHERE id = ?", (channel_id,))
 
-        # 2. get the packet
-        try:
-            cid, packet, packet_id = dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
-        except StopIteration:
-            raise RuntimeError("Unknown channel_id")
-
-        cid = str(cid)
-        packet = str(packet)
-        # 3. get the community instance from the 20 byte identifier
-        try:
-            community = dispersy.get_community(cid)
-        except KeyError:
-            raise RuntimeError("Unknown community identifier")
-
-        # 4. convert packet into a Message instance
-        try:
-            message = community.get_conversion(packet[:22]).decode_message(packet)
-        except ValueError:
-            raise RuntimeError("Unable to decode packet")
-        message.packet_id = packet_id
-        
-        # 5. check
-        assert message.name == "channel", "Expecting a 'channel' message"
-
+        # 2. get the message
+        message = self._get_message_from_dispersy_id(dispersy, dispersy_id, 'channel')
         return message
 
     def _get_message_from_playlist_id(self, dispersy, playlist_id):
@@ -3039,30 +3017,8 @@ class ChannelCastDBHandler:
         # 1. get the dispersy identifier from the channel_id
         dispersy_id = self._db.fetchone(u"SELECT dispersy_id FROM Playlists WHERE id = ?", (playlist_id,))
 
-        # 2. get the packet
-        try:
-            cid, packet, packet_id = dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
-        except StopIteration:
-            raise RuntimeError("Unknown channel_id")
-        
-        cid = str(cid)
-        packet = str(packet)
-        # 3. get the community instance from the 20 byte identifier
-        try:
-            community = dispersy.get_community(cid)
-        except KeyError:
-            raise RuntimeError("Unknown community identifier")
-
-        # 4. convert packet into a Message instance
-        try:
-            message = community.get_conversion(packet[:22]).decode_message(packet)
-        except ValueError:
-            raise RuntimeError("Unable to decode packet")
-        message.packet_id = packet_id
-        
-        # 5. check
-        assert message.name == "playlist", "Expecting a 'playlist' message"
-
+        # 2. get the message
+        message = self._get_message_from_dispersy_id(dispersy, dispersy_id, 'playlist')
         return message
     
     def _get_message_from_torrent_id(self, dispersy, torrent_id):
@@ -3070,31 +3026,36 @@ class ChannelCastDBHandler:
 
         # 1. get the dispersy identifier from the channel_id
         dispersy_id = self._db.fetchone(u"SELECT dispersy_id FROM ChannelTorrents WHERE id = ?", (torrent_id,))
-
-        # 2. get the packet
+        
+        # 2. get the message
+        message = self._get_message_from_dispersy_id(dispersy, dispersy_id, "torrent")
+        return message
+    
+    def _get_message_from_dispersy_id(self, dispersy, dispersy_id, messagename):
+        # 1. get the packet
         try:
             cid, packet, packet_id = dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
-            raise RuntimeError("Unknown channel_id")
+            raise RuntimeError("Unknown dispersy_id")
         
         cid = str(cid)
         packet = str(packet)
-        # 3. get the community instance from the 20 byte identifier
+        # 2. get the community instance from the 20 byte identifier
         try:
             community = dispersy.get_community(cid)
         except KeyError:
             raise RuntimeError("Unknown community identifier")
 
-        # 4. convert packet into a Message instance
+        # 3. convert packet into a Message instance
         try:
             message = community.get_conversion(packet[:22]).decode_message(packet)
         except ValueError:
             raise RuntimeError("Unable to decode packet")
         message.packet_id = packet_id
         
-        # 5. check
-        assert message.name == "torrent", "Expecting a 'torrent' message"
-
+        # 4. check
+        assert message.name == messagename, "Expecting a '%s' message"%messagename
+       
         return message
     
     def _get_community_from_channel_id(self, dispersy, channel_id):
@@ -3312,23 +3273,38 @@ class ChannelCastDBHandler:
     
     #dispersy creating, receiving comments
     def addComment(self, comment, channel_id, reply_after, reply_to = None, playlist_id = None, channeltorrent_id = None):
+        if channeltorrent_id:
+            sql = "SELECT infohash FROM ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND ChannelTorrents.id = ?"
+            infohash = self._db.fetchone(sql, (channeltorrent_id, ))
+        else:
+            infohash = None
+        
         def dispersy_thread():
+            reply_to_message = reply_to
+            reply_after_message = reply_after
+            playlist_message = playlist_id
+            
+            if reply_to:
+                reply_to_message = self._get_message_from_dispersy_id(dispersy, reply_to, 'comment')
+            if reply_after:
+                reply_after_message = self._get_message_from_dispersy_id(dispersy, reply_after, 'comment')
+            if playlist_id:
+                playlist_message = self._get_message_from_playlist_id(playlist_id)
+                
             community = self._get_community_from_channel_id(dispersy, channel_id)
-            community.create_comment(comment, int(time()), reply_after, reply_to)
+            community.create_comment(comment, int(time()), reply_to_message, reply_after_message, playlist_message, infohash)
         
         from Tribler.Core.dispersy.dispersy import Dispersy
         dispersy = Dispersy.get_instance()
         dispersy.rawserver.add_task(dispersy_thread)
     
     def on_comment_from_dispersy(self, channel_id, dispersy_id, peer_id, comment, timestamp, reply_to, reply_after):
-        sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, time_stamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        self._db.execute_write(sql, (channel_id, dispersy_id, peer_id, comment, timestamp, reply_to, reply_after))
+        sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, reply_to_id, reply_after_id, time_stamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        self._db.execute_write(sql, (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, timestamp))
         
-        """
         if playlist_id or channeltorrent_id:
-            sql = "SELECT id FROM Comments Where channel_id = ? And dispersy_id = ? And peer_id = ? And comment = ?"
-            #TODO: remove name, description after dispersy integration
-            comment_id = self._db.fetchone(sql, (channel_id, -1, self.my_peerid, comment))
+            sql = "SELECT id FROM Comments Where dispersy_id = ?"
+            comment_id = self._db.fetchone(sql, (dispersy_id, ))
             
             if playlist_id:
                 sql = "INSERT INTO CommentPlaylist (comment_id, playlist_id) VALUES (?, ?)"
@@ -3339,7 +3315,7 @@ class ChannelCastDBHandler:
                 sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
                 self._db.execute_write(sql, (comment_id, channeltorrent_id))
                 self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channeltorrent_id)
-        """
+                
         self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
         
     #dispersy creating, modifying and receiving playlists
@@ -3566,7 +3542,7 @@ class ChannelCastDBHandler:
             dict['nr_torrents'] = self._db.fetchone(sql, (dict['id'],))
             
     def getCommentsFromChannelId(self, channel_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) + " FROM Comments, Peer LEFT JOIN CommentPlaylist On Comments.id = CommentPlaylist.comment_id LEFT JOIN CommentTorrent On Comments.id = CommentTorrent.comment_id WHERE Comments.peer_id = Peer.peer_id AND channel_id = ? ORDER BY time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id LEFT JOIN CommentPlaylist On Comments.id = CommentPlaylist.comment_id LEFT JOIN CommentTorrent On Comments.id = CommentTorrent.comment_id WHERE channel_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (channel_id, ))
@@ -3687,7 +3663,7 @@ class ChannelCastDBHandler:
         """
        
     def getChannel(self, channel_id):
-        sql = "Select id, name FROM Channels WHERE id = ?"
+        sql = "Select id, name, dispersy_cid FROM Channels WHERE id = ?"
         channels = self._getChannels(sql, (channel_id,))
         if len(channels) > 0:
             channel = list(channels[0])
@@ -3698,12 +3674,12 @@ class ChannelCastDBHandler:
    
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = "Select id, name FROM Channels"
+        sql = "Select id, name, dispersy_cid FROM Channels"
         return self._getChannels(sql)
     
     def getNewChannels(self, updated_since = 0):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
-        sql = "Select id, name FROM Channels"
+        sql = "Select id, name, dispersy_cid FROM Channels"
         return self._getChannels(sql, maxvotes = 0, updated_since = updated_since)
     
     def getLatestUpdated(self, max_nr = 20):
@@ -3722,15 +3698,15 @@ class ChannelCastDBHandler:
             #finally compare nr_torrents
             return cmp(a[4], b[4])
         
-        sql = "Select Channels.id, Channels.name FROM Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id GROUP BY Channels.id Order By max(time_stamp) DESC Limit ?"
+        sql = "Select Channels.id, Channels.name, Channels.dispersy_cid FROM Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id GROUP BY Channels.id Order By max(time_stamp) DESC Limit ?"
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        sql = "Select id, name FROM Channels"
+        sql = "Select id, name, dispersy_cid FROM Channels"
         return self._getChannels(sql)[:20]
 
     def getMySubscribedChannels(self):
-        sql = "SELECT id, name FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
+        sql = "SELECT id, name, dispersy_cid FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         return self._getChannels(sql)
     
     def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None, updated_since = 0):
@@ -3740,7 +3716,7 @@ class ChannelCastDBHandler:
         
         select_nr_torrents = "Select count(*), max(time_stamp) FROM ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? AND status_id <> ? LIMIT 1"
         
-        for channel_id, channel_name in results:
+        for channel_id, channel_name, dispersy_cid in results:
             nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)
             nr_votes = nr_favorites + nr_spam
             
@@ -3748,7 +3724,7 @@ class ChannelCastDBHandler:
                 nr_torrents, max_timestamp = self._db.fetchone(select_nr_torrents, (channel_id, self.torrent_db.status_table['dead']))
                 my_vote = self.votecast_db.getVote(channel_id, None)
                 
-                channels.append((channel_id, channel_name[:40], max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote))
+                channels.append((channel_id, channel_name[:40], max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, dispersy_cid != '-1'))
                 
         def channel_sort(a, b):
             #first compare local vote, spam -> return -1
