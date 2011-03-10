@@ -725,7 +725,7 @@ def dprint(*args, **kargs):
     elif kargs["lines"] and len(args) == 1 and type(args[0]) in (list, tuple):
         messages.extend([str(v) for v in args[0]])
     elif kargs["lines"] and len(args) == 1 and type(args[0]) is dict:
-        messages.extend(["%s: %s".format(str(k), str(v)) for k,v in args[0].items()])
+        messages.extend(["%s: %s" % (str(k), str(v)) for k, v in args[0].items()])
     elif kargs["lines"]:
         messages.extend([str(v) for v in args])
     else:
