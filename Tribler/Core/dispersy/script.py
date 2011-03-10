@@ -132,7 +132,7 @@ class DispersyTimelineScript(ScriptBase):
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
 
         # check if we are still allowed to send the message
-        message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
+        message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
         assert message.authentication.member == self._my_member
         result = list(message.check_callback([message]))
         assert result == [message], "check_... methods should return a generator with the accepted messages"
@@ -157,10 +157,10 @@ class DispersyTimelineScript(ScriptBase):
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
 
         # remove the right to hard-kill
-        community.create_dispersy_revoke([(community.my_member, community.get_meta_message(u"dispersy-destroy-community"), u"permit")], sign_with_master=True, store_and_forward=False)
+        community.create_dispersy_revoke([(community.my_member, community.get_meta_message(u"dispersy-destroy-community"), u"permit")], sign_with_master=True, store=False, forward=False)
 
         # check if we are still allowed to send the message
-        message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
+        message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
         assert message.authentication.member == self._my_member
         result = list(message.check_callback([message]))
         assert len(result) == 1, "check_... methods should return a generator with the accepted messages"
@@ -194,7 +194,7 @@ class DispersyTimelineScript(ScriptBase):
         assert len(communities) == 1
 
         # check if we are still allowed to send the message
-        message = community.create_dispersy_destroy_community(u"hard-kill", update_locally=False, store_and_forward=False)
+        message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
         assert community._timeline.check(message)
 
         # cleanup
@@ -992,6 +992,10 @@ class DispersySignatureScript(ScriptBase):
         self.caller(self.triple_signed_response)
 
     def double_signed_timeout(self):
+        """
+        SELF will request a signature from NODE.  Node will ignore this request and SELF should get
+        a timeout on the signature request after a few seconds.
+        """
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         container = {"timeout":0}
@@ -1003,20 +1007,24 @@ class DispersySignatureScript(ScriptBase):
         node.init_my_member()
         yield 0.01
 
-        # SELF requests NODE to double sign
+        dprint("SELF requests NODE to double sign")
         def on_response(response):
             assert response is None
             container["timeout"] += 1
         request = community.create_double_signed_text("Accept=<does not reach this point>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
         yield 0.01
 
-        # receive dispersy-signature-request message
+        dprint("NODE receives dispersy-signature-request message")
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         # do not send a response
 
         # should time out
-        yield 4.0
+        for counter in range(4):
+            dprint("waiting... ", 4 - counter)
+            yield 1.0
+        yield 0.1
 
+        dprint("SELF must have timed out by now")
         assert container["timeout"] == 1, container["timeout"]
 
         # cleanup
@@ -1058,7 +1066,10 @@ class DispersySignatureScript(ScriptBase):
         node.send_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address), address)
 
         # should not time out
-        yield 4.0
+        for counter in range(4):
+            dprint("waiting... ", 4 - counter)
+            yield 1.0
+        yield 0.1
 
         assert container["response"] == 1, container["response"]
 
@@ -1099,7 +1110,10 @@ class DispersySignatureScript(ScriptBase):
         # do not send a response
 
         # should time out
-        yield 4.0
+        for counter in range(4):
+            dprint("waiting... ", 4 - counter)
+            yield 1.0
+        yield 0.1
 
         assert container["timeout"] == 1, container["timeout"]
 
@@ -1162,7 +1176,10 @@ class DispersySignatureScript(ScriptBase):
         node2.send_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address), address)
 
         # should not time out
-        yield 4.0
+        for counter in range(4):
+            dprint("waiting... ", 4 - counter)
+            yield 1.0
+        yield 0.1
 
         assert container["response"] == 2, container["response"]
 

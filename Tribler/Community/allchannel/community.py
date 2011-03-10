@@ -54,7 +54,7 @@ class AllChannelCommunity(Community):
             community = cls(cid, master_key, *args, **kargs)
 
             # send out my initial dispersy-identity
-            community.create_identity()
+            community.create_dispersy_identity()
 
             # add new community
             communities.append(community)
@@ -90,14 +90,12 @@ class AllChannelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
-    def create_propagate_torrents(self, store_and_forward=True):
+    def create_propagate_torrents(self, store=True, forward=True):
         """
         Create a 'propagate-torrents' message.
 
         The message contains one or more infohashes that we want to propagate.
         """
-        assert isinstance(store_and_forward, bool)
-
         # N most recently received .torrent files
         # M random .torrent files
         # O most recent .torrent files, created by ourselves
@@ -110,10 +108,7 @@ class AllChannelCommunity(Community):
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(infohashes))
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
+        self._dispersy.store_update_forward([message], store, False, forward)
         return message
 
     def check_propagate_torrents(self, messages):
@@ -233,7 +228,7 @@ class AllChannelCommunity(Community):
     #     # we ignore this message because we get a different callback to match it to the request
     #     pass
 
-    def create_channel_search_request(self, skip, search, response_func, response_args=(), timeout=10.0, method=u"simple-any-keyword", store_and_forward=True):
+    def create_channel_search_request(self, skip, search, response_func, response_args=(), timeout=10.0, method=u"simple-any-keyword", store=True, forward=True):
         """
         Create a message to request a remote channel search.
         """
@@ -247,7 +242,6 @@ class AllChannelCommunity(Community):
         assert isinstance(response_args, tuple)
         assert isinstance(timeout, float)
         assert timeout > 0.0
-        assert isinstance(store_and_forward, bool)
 
         # todo: we need to set a max items in the bloom filter to limit the size.  the bloom filter
         # be no more than 1000 bytes large.
@@ -260,14 +254,12 @@ class AllChannelCommunity(Community):
                                  meta.destination.implement(),
                                  meta.payload.implement(skip_bloomfilter, search, method))
 
-        if store_and_forward:
-            self._dispersy.store_and_forward([request])
-
         if response_func:
             meta = self.get_meta_message(u"channel-search-response")
             footprint = meta.generate_footprint(payload=(sha1(request.packet).digest(),))
             self._dispersy.await_message(footprint, response_func, response_args, timeout)
 
+        self._dispersy.store_update_forward([request], store, False, forward)
         return request
 
     def check_channel_search_request(self, messages):
@@ -301,8 +293,7 @@ class AllChannelCommunity(Community):
                                             meta.distribution.implement(self._timeline.global_time),
                                             meta.destination.implement(address),
                                             meta.payload.implement(sha1(request.packet).digest(), packets)))
-
-        self._dispersy.store_and_forward(responses)
+        self._dispersy.store_update_forward(responses, False, False, True)
 
     def check_channel_search_response(self, messages):
         for message in messages:

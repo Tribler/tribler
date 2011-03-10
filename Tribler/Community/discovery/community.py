@@ -42,36 +42,22 @@ class DiscoveryCommunity(Community, Singleton):
     def initiate_conversions(self):
         return [DefaultConversion(self), DiscoveryBinaryConversion02(self)]
 
-    def create_user_metadata(self, address, alias, comment, update_locally=True, store_and_forward=True):
+    def create_user_metadata(self, address, alias, comment, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"user-metadata")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(address, alias, comment))
-
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
-    def create_community_metadata(self, cid, alias, comment, update_locally=True, store_and_forward=True):
+    def create_community_metadata(self, cid, alias, comment, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"community-metadata")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.claim_global_time(), meta.distribution.claim_sequence_number()),
                                  meta.destination.implement(),
                                  meta.payload.implement(cid, alias, comment))
-
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_user_metadata(self, messages):

@@ -48,23 +48,13 @@ class ChannelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
 
-    def create_channel(self, name, description, update_locally=True, store_and_forward=True):
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+    def create_channel(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"channel")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(name, description))
-
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-            
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_channel(self, messages):
@@ -87,22 +77,13 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
             self.channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
 
-    def create_torrent(self, infohash, timestamp, update_locally=True, store_and_forward=True):
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+    def create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(infohash, timestamp))
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_torrent(self, messages):
@@ -118,22 +99,13 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             self._channelcast_db.on_torrent_from_dispersy(self.channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp)
 
-    def create_playlist(self, name, description, update_locally=True, store_and_forward=True):
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+    def create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(name, description))
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-        
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-        
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_playlist(self, messages):
@@ -149,22 +121,13 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             self._channelcast_db.on_playlist_from_dispersy(self.channel_id, dispersy_id, message.payload.name, message.payload.description)
 
-    def create_comment(self, text, timestamp, reply_to, reply_after, update_locally=True, store_and_forward=True):
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+    def create_comment(self, text, timestamp, reply_to, reply_after, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"comment")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(text, timestamp, reply_to, reply_after))
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-            
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_comment(self, messages):
@@ -186,22 +149,13 @@ class ChannelCommunity(Community):
 
             self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after)
         
-    def create_modification(self, modification, modification_on, update_locally=True, store_and_forward=True):
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+    def create_modification(self, modification, modification_on, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"modification")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(modification, modification_on))
-
-        if store_and_forward:
-            self._dispersy.store_and_forward([message])
-
-        if update_locally:
-            assert self._timeline.check(message)
-            message.handle_callback([message])
-
+        self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_modification(self, messages):

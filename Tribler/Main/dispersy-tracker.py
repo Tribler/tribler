@@ -56,7 +56,7 @@ class TrackerCommunity(Community):
         community = cls(cid, master_key, *args, **kargs)
 
         # send out my initial dispersy-identity
-        community.create_identity()
+        community.create_dispersy_identity()
 
         return community
 

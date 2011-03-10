@@ -405,10 +405,17 @@ class Message(MetaObject):
             else:
                 self._packet = self._conversion.encode_message(self)
 
+        def __cmp__(self, other):
+            """
+            Gives priority ordering.
+            """
+            assert isinstance(other, Message.Implementation)
+            return other._meta._priority - self._meta._priority
+
         def __str__(self):
             return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
-    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback):
+    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, priority=128):
         if __debug__:
             from community import Community
             from authentication import Authentication
@@ -435,6 +442,7 @@ class Message(MetaObject):
         self._payload = payload
         self._check_callback = check_callback
         self._handle_callback = handle_callback
+        self._priority = priority # high value has high priority, i.e. is handled earlier
 
         # setup
         database = community.dispersy.database
@@ -495,6 +503,10 @@ class Message(MetaObject):
     def handle_callback(self):
         return self._handle_callback
 
+    @property
+    def priority(self):
+        return self._priority
+
     def generate_footprint(self, authentication=(), distribution=(), destination=(), payload=()):
         assert isinstance(authentication, tuple)
         assert isinstance(distribution, tuple)
@@ -506,6 +518,13 @@ class Message(MetaObject):
                         " ", self._distribution.generate_footprint(*distribution),
                         " ", self._destination.generate_footprint(*destination),
                         " ", self._payload.generate_footprint(*payload)))
+
+    def __cmp__(self, other):
+        """
+        Gives priority ordering.
+        """
+        assert isinstance(other, Message)
+        return other._priority - self._priority
 
     def __str__(self):
         return "<%s %s>" % (self.__class__.__name__, self._name)

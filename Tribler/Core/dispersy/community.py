@@ -87,7 +87,7 @@ class Community(object):
             community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
 
         # send out my initial dispersy-identity
-        community.create_identity()
+        community.create_dispersy_identity()
 
         return community
 
@@ -142,7 +142,7 @@ class Community(object):
         community = cls(cid, master_key, *args, **kargs)
 
         # send out my initial dispersy-identity
-        community.create_identity()
+        community.create_dispersy_identity()
 
         return community
 
@@ -731,32 +731,32 @@ class Community(object):
         self._conversions[conversion.prefix] = conversion
 
     @documentation(Dispersy.create_authorize)
-    def create_dispersy_authorize(self, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
-        return self._dispersy.create_authorize(self, permission_triplets, sign_with_master, update_locally, store_and_forward)
+    def create_dispersy_authorize(self, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
+        return self._dispersy.create_authorize(self, permission_triplets, sign_with_master, store, update, forward)
 
     @documentation(Dispersy.create_revoke)
-    def create_dispersy_revoke(self, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
-        return self._dispersy.create_revoke(self, permission_triplets, sign_with_master, update_locally, store_and_forward)
+    def create_dispersy_revoke(self, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
+        return self._dispersy.create_revoke(self, permission_triplets, sign_with_master, store, update, forward)
 
     @documentation(Dispersy.create_identity)
-    def create_identity(self, store_and_forward=True):
-        return self._dispersy.create_identity(self, store_and_forward)
+    def create_dispersy_identity(self, store=True, forward=True):
+        return self._dispersy.create_identity(self, store, forward)
 
     @documentation(Dispersy.create_signature_request)
-    def create_signature_request(self, message, response_func, response_args=(), timeout=10.0, store_and_forward=True):
-        return self._dispersy.create_signature_request(self, message, response_func, response_args, timeout, store_and_forward)
+    def create_dispersy_signature_request(self, message, response_func, response_args=(), timeout=10.0, store=True, forward=True):
+        return self._dispersy.create_signature_request(self, message, response_func, response_args, timeout, store, forward)
 
 #     @documentation(Dispersy.create_similarity)
-#     def create_similarity(self, message, keywords, update_locally=True, store_and_forward=True):
-#         return self._dispersy.create_similarity(self, message, keywords, update_locally, store_and_forward)
+#     def create_dispersy_similarity(self, message, keywords, store=True, update=True, forward=True):
+#         return self._dispersy.create_similarity(self, message, keywords, store, update, forward)
 
     @documentation(Dispersy.create_destroy_community)
-    def create_dispersy_destroy_community(self, degree, sign_with_master=False, update_locally=True, store_and_forward=True):
-        return self._dispersy.create_destroy_community(self, degree, sign_with_master, update_locally, store_and_forward)
+    def create_dispersy_destroy_community(self, degree, sign_with_master=False, store=True, update=True, forward=True):
+        return self._dispersy.create_destroy_community(self, degree, sign_with_master, store, update, forward)
 
     @documentation(Dispersy.create_subjective_set)
-    def create_dispersy_subjective_set(self, cluster, members, reset=True, update_locally=True, store_and_forward=True):
-        return self._dispersy.create_subjective_set(self, cluster, members, reset, update_locally, store_and_forward)
+    def create_dispersy_subjective_set(self, cluster, members, reset=True, store=True, update=True, forward=True):
+        return self._dispersy.create_subjective_set(self, cluster, members, reset, store, update, forward)
 
     def dispersy_cleanup_community(self, message):
         """

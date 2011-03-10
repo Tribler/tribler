@@ -3202,11 +3202,10 @@ class ChannelCastDBHandler:
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         self.addOwnTorrent(torrentdef.get_infohash(), long(time()))
         
-    def addOwnTorrent(self, infohash, timestamp, store_and_forward = True):
-        _sf = store_and_forward
+    def addOwnTorrent(self, infohash, timestamp, store=True, forward=True):
         def dispersy_thread():
             community = dispersy.get_community(self._get_my_dispersy_cid())
-            community.create_torrent(infohash, timestamp, store_and_forward = _sf)
+            community.create_torrent(infohash, timestamp, store=store, forward=forward)
             
         from Tribler.Core.dispersy.dispersy import Dispersy
         dispersy = Dispersy.get_instance()

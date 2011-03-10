@@ -36,7 +36,7 @@ class BarterCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), BarterCommunityConversion(self)]
 
-    def create_barter_record(self, second_member, first_upload, second_upload, store_and_forward=True):
+    def create_barter_record(self, second_member, first_upload, second_upload, store=True, forward=True):
         """
         Create and return a signature request for a new barter record.
 
@@ -58,7 +58,6 @@ class BarterCommunity(Community):
         assert not isinstance(second_member, Private)
         assert isinstance(first_upload, (int, long))
         assert isinstance(second_upload, (int, long))
-        assert isinstance(store_and_forward, bool)
 
         meta = self.get_meta_message(u"barter-record")
         message = meta.implement(meta.authentication.implement((self._my_member, second_member)),
@@ -66,7 +65,7 @@ class BarterCommunity(Community):
                                  meta.destination.implement(),
                                  meta.payload.implement(first_upload, second_upload))
         if __debug__: log("barter.log", "created", second_member=second_member.mid, footprint=message.footprint, message=message.name)
-        return self.create_signature_request(message, self.on_signature_response, store_and_forward=store_and_forward)
+        return self.create_dispersy_signature_request(message, self.on_signature_response, store=store, forward=forward)
 
     def allow_signature_request(self, message):
         """ Decide whether to reply or not to a signature request
@@ -114,13 +113,8 @@ class BarterCommunity(Community):
 
             if __debug__: dprint(message)
 
-            # send it to self
-            self.on_barter_record(('', -1), message)
-
-            # we need to decide if we want to spread this record
-            if True:
-                # send to everybody in this community
-                self._dispersy.store_and_forward([message])
+            # store, update, and forward to the community
+            self._dispersy.store_update_forward([message], True, True, True)
 
         else:
             # signature timeout

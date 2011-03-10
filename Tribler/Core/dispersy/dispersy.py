@@ -216,7 +216,7 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request),
                 Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response),
-                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity),
+                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity, priority=512),
                 Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self.check_identity_request, self.on_identity_request),
                 Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync),
                 Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence),
@@ -224,8 +224,8 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response),
 #                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity),
 #                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request),
-                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize),
-                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke),
+                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize, priority=504),
+                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504),
                 Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community),
                 Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set),
                 Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self.check_subjective_set_request, self.on_subjective_set_request)]
@@ -562,13 +562,10 @@ class Dispersy(Singleton):
                 groups[message.meta] = [message]
 
         if __debug__:
-            for meta, messages in groups.iteritems():
+            for meta, messages in sorted(groups.iteritems()):
                 dprint("batch handling ", len(messages), " ", meta.name, " messages")
 
-        # list containing all handled messages
-        handled = []
-
-        for meta, messages in groups.iteritems():
+        for meta, messages in sorted(groups.iteritems()):
             # check all remaining messages on the community side.  may yield Message.Implementation,
             # DropMessage, and DelayMessage instances
             messages = list(meta.check_callback(messages))
@@ -591,18 +588,13 @@ class Dispersy(Singleton):
 
             # remove DropMessage and DelayMessage instances
             messages = [message for message in messages if isinstance(message, Message.Implementation)]
+
             if messages:
-                # handle all remaining messages on the community side
-                meta.handle_callback(messages)
-                handled.extend(messages)
+                # store to disk and update locally
+                self.store_update_forward(messages, True, True, False)
 
-        if handled:
-            # sync messages need to be stored (so they can be synced later)
-            if __debug__: dprint("batch storing ", len(handled), " potential messages")
-            self._sync_distribution_store(handled)
-
-            # this message may 'trigger' a previously delayed message
-            self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(handled)]
+                # this message may 'trigger' a previously delayed message
+                self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
 
     def _convert_incoming_packets(self, packets):
         assert isinstance(packets, (tuple, list))
@@ -773,7 +765,10 @@ class Dispersy(Singleton):
         @type message: Message.Implementation
         """
         assert isinstance(messages, list)
+        assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
         messages = [message for message in messages if isinstance(message.distribution, SyncDistribution.Implementation)]
         if messages:
@@ -917,7 +912,57 @@ class Dispersy(Singleton):
         # return what we have
         return addresses
 
-    def store_and_forward(self, messages):
+    def store_update_forward(self, messages, store, update, forward):
+        """
+        Usually we need to do three things when we have a valid messages: (1) store it in our local
+        database, (2) process the message locally by calling the handle_callback method, and (3)
+        forward the message to other nodes in the community.  This method is a shorthand for doing
+        those three tasks.
+
+        For performance reasons messages are processed in batches, where each batch contains only
+        messages from the same community and the same meta message instance.  This methods, or more
+        specifically the methods that handle the actual storage, updating, and forwarding, assume
+        this clustering.
+
+        @param messages: A list with the messages that need to be stored, updated, and forwarded.
+         All messages need to be from the same community and meta message instance.
+        @type messages: [Message.Implementation]
+
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
+
+        @param update: When True the messages are passed to their handle_callback methods.  This
+         parameter should (almost always) be True, its inclusion is mostly to allow certain
+         debugging scenarios.
+        @type update: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
+        """
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert isinstance(store, bool)
+        assert isinstance(update, bool)
+        assert isinstance(forward, bool)
+
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+
+        if store:
+            self._sync_distribution_store(messages)
+
+        if update:
+            messages[0].handle_callback(messages)
+
+        if forward:
+            self._forward(messages)
+
+    def _forward(self, messages):
         """
         Queue a sequence of messages to be sent to other members.
 
@@ -953,10 +998,10 @@ class Dispersy(Singleton):
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
 
-        # Store
-        self._sync_distribution_store(messages)
+        # todo: we can optimize below code given the following two restrictions
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
-        # Forward
         for message in messages:
             if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
                 addresses = self._select_candidate_addresses(message.community.database_id,
@@ -1077,7 +1122,7 @@ class Dispersy(Singleton):
         self._triggers.append(trigger)
         self._rawserver.add_task(trigger.on_timeout, timeout)
 
-    def create_candidate_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store_and_forward=True):
+    def create_candidate_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store=True, forward=True):
         """
         Create a dispersy-candidate-request message.
 
@@ -1109,11 +1154,15 @@ class Dispersy(Singleton):
         @param max_responses: Maximal number of messages to match until the Trigger is removed.
         @type max_responses: int
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
         """
         assert isinstance(community, Community)
         assert isinstance(address, tuple)
@@ -1133,21 +1182,20 @@ class Dispersy(Singleton):
         assert timeout > 0.0
         assert isinstance(max_responses, (int, long))
         assert max_responses > 0
-        assert isinstance(store_and_forward, bool)
+        assert isinstance(store, bool)
+        assert isinstance(forward, bool)
         meta = community.get_meta_message(u"dispersy-candidate-request")
         request = meta.implement(meta.authentication.implement(community.my_member),
                                  meta.distribution.implement(meta.community._timeline.global_time),
                                  meta.destination.implement(address),
                                  meta.payload.implement(self._my_external_address, address, community.get_conversion(), routes))
 
-        if store_and_forward:
-            self.store_and_forward([request])
-
         if response_func:
             meta = community.get_meta_message(u"dispersy-candidate-response")
             footprint = meta.generate_footprint(payload=(sha1(request.packet).digest(),))
             self.await_message(footprint, response_func, response_args, timeout, max_responses)
 
+        self.store_update_forward([request], store, False, forward)
         return request
 
     def check_candidate_request(self, messages):
@@ -1158,11 +1206,11 @@ class Dispersy(Singleton):
             yield message
 
     def _is_valid_external_address(self, address):
-        if address[0] in ("0.0.0.0", "127.0.0.1"):
-            return False
+        # if address[0] in ("0.0.0.0", "127.0.0.1"):
+        #     return False
 
-        if address[0].endswith(".255"):
-            return False
+        # if address[0].endswith(".255"):
+        #     return False
 
         return True
 
@@ -1238,7 +1286,7 @@ class Dispersy(Singleton):
                                             meta.destination.implement(message.address),
                                             meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, message.address, meta.community.get_conversion().version, routes)))
 
-        self.store_and_forward(responses)
+        self.store_update_forward(responses, False, False, True)
 
     def check_candidate_response(self, messages):
         for message in messages:
@@ -1281,7 +1329,7 @@ class Dispersy(Singleton):
         # add routes in our candidate table
         self._update_routes_from_external_source(message.community, message.payload.routes)
 
-    def create_identity(self, community, store_and_forward=True):
+    def create_identity(self, community, store=True, forward=True):
         """
         Create a dispersy-identity message.
 
@@ -1295,24 +1343,27 @@ class Dispersy(Singleton):
         @param community: The community for wich the dispersy-identity message will be created.
         @type community: Community
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        assert isinstance(store_and_forward, bool)
+        assert isinstance(store, bool)
+        assert isinstance(forward, bool)
         meta = community.get_meta_message(u"dispersy-identity")
         message = meta.implement(meta.authentication.implement(community.my_member),
                                  meta.distribution.implement(community._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(self._my_external_address))
-        if store_and_forward:
-            self.store_and_forward([message])
-
+        self.store_update_forward([message], store, False, forward)
         return message
 
     def check_identity(self, messages):
@@ -1351,7 +1402,7 @@ class Dispersy(Singleton):
         for message in messages:
             message.authentication.member.update()
 
-    def create_identity_request(self, community, mid, address, store_and_forward=True):
+    def create_identity_request(self, community, mid, address, store=True, forward=True):
         """
         Create a dispersy-identity-request message.
 
@@ -1378,20 +1429,22 @@ class Dispersy(Singleton):
         @param address: The address to send the request to.
         @type address: (string, int)
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
         """
         meta = community.get_meta_message(u"dispersy-identity-request")
         message = meta.implement(meta.authentication.implement(),
                                  meta.distribution.implement(),
                                  meta.destination.implement(address),
                                  meta.payload.implement(mid))
-        if store_and_forward:
-            self.store_and_forward([message])
-
+        self.store_update_forward([message], store, False, forward)
         return message
 
     def check_identity_request(self, messages):
@@ -1430,7 +1483,7 @@ class Dispersy(Singleton):
 
         self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, buffer(message.payload.mid), meta.database_id))])
 
-    def create_subjective_set(self, community, cluster, members, reset=True, update_locally=True, store_and_forward=True):
+    def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
             from community import Community
             from member import Member
@@ -1439,8 +1492,9 @@ class Dispersy(Singleton):
         assert isinstance(members, (tuple, list))
         assert not filter(lambda member: not isinstance(member, Member), members)
         assert isinstance(reset, bool)
-        assert isinstance(update_locally, bool)
-        assert isinstance(store_and_forward, bool)
+        assert isinstance(store, bool)
+        assert isinstance(update, bool)
+        assert isinstance(forward, bool)
 
         # modify the subjective set (bloom filter)
         try:
@@ -1457,14 +1511,7 @@ class Dispersy(Singleton):
                                  meta.distribution.implement(community._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(cluster, subjective_set))
-
-        if store_and_forward:
-            self.store_and_forward([message])
-
-        if update_locally:
-            assert community._timeline.check(message)
-            message.handle_callback([message])
-
+        self.store_update_forward([message], store, update, forward)
         return message
 
     def check_subjective_set(self, messages):
@@ -1765,7 +1812,7 @@ class Dispersy(Singleton):
 #             self._send([address], [packet])
 #             if __debug__: log("dispersy.log", "dispersy-missing-sequence - send back packet", length=len(packet), packet=packet, low=message.payload.missing_low, high=message.payload.missing_high)
 
-    def create_signature_request(self, community, message, response_func, response_args=(), timeout=10.0, store_and_forward=True):
+    def create_signature_request(self, community, message, response_func, response_args=(), timeout=10.0, store=True, forward=True):
         """
         Create a dispersy-signature-request message.
 
@@ -1802,11 +1849,15 @@ class Dispersy(Singleton):
         @param timeout: How long before a timeout is generated.
         @type timeout: float
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
         """
         if __debug__:
             from community import Community
@@ -1816,7 +1867,8 @@ class Dispersy(Singleton):
         assert hasattr(response_func, "__call__")
         assert isinstance(response_args, tuple)
         assert isinstance(timeout, float)
-        assert isinstance(store_and_forward, bool)
+        assert isinstance(store, bool)
+        assert isinstance(forward, bool)
 
         # the members that need to sign
         members = [member for signature, member in message.authentication.signed_members if not (signature or isinstance(member, PrivateMember))]
@@ -1829,14 +1881,12 @@ class Dispersy(Singleton):
                                  meta.destination.implement(*members),
                                  meta.payload.implement(message))
 
-        if store_and_forward:
-            self.store_and_forward([request])
-
         # set callback and timeout
         identifier = sha1(request.packet).digest()
         footprint = community.get_meta_message(u"dispersy-signature-response").generate_footprint(payload=(identifier,))
         self.await_message(footprint, self._on_signature_response, (request, response_func, response_args), timeout, len(members))
 
+        self.store_update_forward([request], store, False, forward)
         return request
 
     def check_similarity_request(self, messages):
@@ -1977,7 +2027,7 @@ class Dispersy(Singleton):
                                                     meta.destination.implement(message.address,),
                                                     meta.payload.implement(identifier, signature)))
 
-        self.store_and_forward(responses)
+        self.store_update_forward(responses, False, False, True)
 
     def check_signature_response(self, messages):
         # we can not timeline.check this message because it uses the NoAuthentication policy
@@ -2238,7 +2288,7 @@ class Dispersy(Singleton):
         # everything has already been done in check_sync.
         pass
 
-    def create_authorize(self, community, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
+    def create_authorize(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         """
         Grant permissions to members in a community.
 
@@ -2267,16 +2317,20 @@ class Dispersy(Singleton):
          message.  Otherwise community.my_member is used.
         @type sign_with_master: bool
 
-        @param update_locally: When True the community.on_message is called with each created
-         message.  This parameter should (almost always) be True, its inclusion is mostly to allow
-         certain debugging scenarios.
-        @type update_locally: bool
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+        @param update: When True the messages are passed to their handle_callback methods.  This
+         parameter should (almost always) be True, its inclusion is mostly to allow certain
+         debugging scenarios.
+        @type update: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
         """
         if __debug__:
             from community import Community
@@ -2298,13 +2352,7 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
-        if store_and_forward:
-            self.store_and_forward([message])
-
-        if update_locally:
-            assert community._timeline.check(message)
-            message.handle_callback([message])
-
+        self.store_update_forward([message], store, update, forward)
         return message
 
     def check_authorize(self, messages):
@@ -2335,7 +2383,7 @@ class Dispersy(Singleton):
         for message in messages:
             message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
-    def create_revoke(self, community, permission_triplets, sign_with_master=False, update_locally=True, store_and_forward=True):
+    def create_revoke(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         """
         Revoke permissions from a members in a community.
 
@@ -2363,16 +2411,20 @@ class Dispersy(Singleton):
          message.  Otherwise community.my_member is used.
         @type sign_with_master: bool
 
-        @param update_locally: When True the community.on_message is called with each created
-         message.  This parameter should (almost always) be True, its inclusion is mostly to allow
-         certain debugging scenarios.
-        @type update_locally: bool
+        @param store: When True the messages are stored (as defined by their message distribution
+         policy) in the local dispersy database.  This parameter should (almost always) be True, its
+         inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
 
-        @param store_and_forward: When True the created messages are stored (as defined by the
-         message distribution policy) in the local Dispersy database and the messages are forewarded
-         to other peers (as defined by the message destination policy).  This parameter should
-         (almost always) be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store_and_forward: bool
+        @param update: When True the messages are passed to their handle_callback methods.  This
+         parameter should (almost always) be True, its inclusion is mostly to allow certain
+         debugging scenarios.
+        @type update: bool
+
+        @param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community.  This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        @type store: bool
         """
         if __debug__:
             from community import Community
@@ -2394,13 +2446,7 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
-        if store_and_forward:
-            self.store_and_forward([message])
-
-        if update_locally:
-            assert community._timeline.check(message)
-            message.handle_callback([message])
-
+        self.store_update_forward([message], store, update, forward)
         return message
 
     def check_revoke(self, messages):
@@ -2431,7 +2477,7 @@ class Dispersy(Singleton):
         for message in messages:
             message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
 
-    def create_destroy_community(self, community, degree, sign_with_master=False, update_locally=True, store_and_forward=True):
+    def create_destroy_community(self, community, degree, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
@@ -2444,13 +2490,14 @@ class Dispersy(Singleton):
                                  meta.destination.implement(),
                                  meta.payload.implement(degree))
 
-        if store_and_forward:
-            self.store_and_forward([message])
+        # in this special case we need to forward the message before processing it locally.
+        # otherwise the candidate table will have been cleaned and we won't have any destination
+        # addresses.
+        self.store_update_forward([message], False, False, forward)
 
-        if update_locally:
-            assert community._timeline.check(message)
-            message.handle_callback([message])
-
+        # now store and update without forwarding.  forwarding now will result in new entries in our
+        # candidate table that we just cleane.
+        self.store_update_forward([message], store, update, False)
         return message
 
     def check_destroy_community(self, messages):
@@ -2533,7 +2580,7 @@ class Dispersy(Singleton):
                                    meta.payload.implement(time_low, time_high, bloom_filter))
                     for time_low, time_high, bloom_filter
                     in community.dispersy_sync_bloom_filters]
-        self.store_and_forward(messages)
+        self.store_update_forward(messages, False, False, True)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_candidate_request_interval, " seconds (interval)")
             self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval, "id:sync-" + community.cid)
@@ -2557,9 +2604,7 @@ class Dispersy(Singleton):
                                            meta.distribution.implement(community._timeline.global_time),
                                            meta.destination.implement(address),
                                            meta.payload.implement(self._my_external_address, address, community.get_conversion().version, routes)))
-        if requests:
-            self.store_and_forward(requests)
-
+        self.store_update_forward(requests, False, False, True)
         if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_candidate_request in ", community.dispersy_candidate_request_interval, " seconds (interval)")
             self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_interval, "id:candidate-" + community.cid)

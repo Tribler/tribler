@@ -1565,7 +1565,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         infohash, timestamp = my_torrents[i]
                         
                         last_torrent = (i + 1 == nr_torrents)
-                        channelcastdb.addOwnTorrent(infohash, timestamp, store_and_forward = True)
+                        channelcastdb.addOwnTorrent(infohash, timestamp, forward=False)
                     
                 session.remove_observer(create_my_channel)
                 drop_channelcast = "DROP TABLE ChannelCast"
