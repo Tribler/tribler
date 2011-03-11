@@ -3048,7 +3048,7 @@ class ChannelCastDBHandler:
 
         # 3. convert packet into a Message instance
         try:
-            message = community.get_conversion(packet[:22]).decode_message(packet)
+            message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
         except ValueError:
             raise RuntimeError("Unable to decode packet")
         message.packet_id = packet_id
