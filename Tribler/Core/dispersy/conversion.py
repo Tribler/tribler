@@ -53,7 +53,17 @@ class Conversion(object):
     def prefix(self):
         return self._prefix
 
-    def decode_message(self, data):
+    def decode_meta_message(self, data):
+        """
+        Obtain the dispersy meta message from DATA.
+        @return: Message
+        """
+        assert isinstance(data, str)
+        assert len(data) >= 22
+        assert data[:22] == self._prefix
+        raise NotImplementedError("The subclass must implement decode_message")
+
+    def decode_message(self, address, data):
         """
         DATA is a string, where the first 20 bytes indicate the CID,
         the next 2 bytes the on-the-wite VERSION, and the rest forms
@@ -873,9 +883,26 @@ class BinaryConversion(Conversion):
 
         return meta_message.implement(authentication_impl, distribution_impl, destination_impl, payload, conversion=self, address=address, packet=data)
 
+    def decode_meta_message(self, data):
+        """
+        Decode a binary string into a Message instance.
+        """
+        assert isinstance(data, str)
+        assert data[:22] == self._prefix, (data[:22].encode("HEX"), self._prefix.encode("HEX"))
+
+        if len(data) < 23:
+            DropPacket("Packet is to small to decode")
+
+        # meta_message
+        meta_message, _ = self._decode_message_map.get(data[22], (None, None))
+        if meta_message is None:
+            raise DropPacket("Unknown message code %d" % ord(data[22]))
+
+        return meta_message
+
     def decode_message(self, address, data):
         """
-        Decode a binary string into a Message structure.
+        Decode a binary string into a Message.Implementation structure.
         """
         assert isinstance(address, tuple)
         assert isinstance(data, str)

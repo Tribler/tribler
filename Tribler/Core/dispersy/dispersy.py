@@ -487,26 +487,34 @@ class Dispersy(Singleton):
 
     def on_incoming_packets(self, packets):
         """
-        Process UDP packets.
+        Process incoming UDP packets.
 
         This method is called to process one or more UDP packets.  This occurs when new packets are
         received, to attempt to process previously delayed packets, or when a user explicitly
         creates a packet to process.  The last option should only occur for debugging purposes.
 
-        Each packet is processed in the following way:
+        All the received packets are processed in batches, a batch consists of all packets for the
+        same community and the same meta message.  Batches are formed with the following steps:
 
          1. The associated community is retrieved.  Failure results in packet drop.
 
          2. The associated converion is retrieved.  Failure results in packet drop, this probably
             indicates that we are running outdated software.
 
-         3. The packet is decoded into a Message.Implementation instance.  Failure results in either
+         3. The associated meta message is retrieved.  Failure results in a packet drop, this
+            probably indicates that we are running outdated software.
+
+        All remaining packets are used to update the candidate table.  This may result in invalid
+        entries when a packet is dropped, for whatever reason, in a later stage.
+
+        Following, the packets are grouped by their meta message, and we will continue to process
+        one 'batch' at a time, in the order defined by the meta message priority.  Each batch is
+        processed with the following steps:
+
+         1. The packet is decoded into a Message.Implementation instance.  Failure results in either
             a packet drop or a packet delay.
 
-         4. The on_incoming_message(...) method is called.
-
-        The packets are given as a sequence of (address, packet) tuples.  Where each address is a
-        (string, int) and each packet a string.
+         2. The on_message_batch(...) method is called.
 
         @param packets: The sequence of packets.
         @type packets: [(address, packet)]
@@ -518,85 +526,126 @@ class Dispersy(Singleton):
         if __debug__:
             for address, packet in packets:
                 dprint(len(packet), " bytes were received from ", address[0], ":", address[1])
-            dprint("there are ", len(packets), " incoming packets")
+            dprint(len(packets), " incoming packets worth ", sum(len(packet) for _, packet in packets), " bytes")
         self._total_received += sum(len(packet) for _, packet in packets)
 
-        # convert packets into Message.Implementation instances
-        messages = list(self._convert_incoming_packets(packets))
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        if __debug__: dprint("after conversion we have ", len(messages), " messages remaining (down from ", len(packets), " packets)")
-        if not messages:
-            return
+        batches = dict()
+        for meta, triplet in self._convert_packets_into_batch(packets):
+            if meta in batches:
+                batches[meta].append(triplet)
+            else:
+                batches[meta] = [triplet]
 
-        # update candidate table.  We know that some peer (not necessarily
-        # message.authentication.member) exists at this address.
-        with self._database as execute:
-            for database_id, (host, port) in set((message.community.database_id, message.address) for message in messages):
-                self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
-                                       (database_id, unicode(host), port))
-                if self._database.changes == 0:
-                    self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
-                                           (database_id, unicode(host), port))
+        if __debug__: dprint(sum(len(batch) for batch in batches.itervalues()), " incoming packets after simple check")
 
-        # handle the incoming messages
-        self.on_incoming_messages(messages)
+        if batches:
+            # update candidate table.  We know that some peer (not necessarily
+            # message.authentication.member) exists at this address.
+            with self._database as execute:
+                for meta, batch in batches.iteritems():
+                    for host, port in set(address for address, _, _ in batch):
+                        self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
+                                               (meta.community.database_id, unicode(host), port))
+                        if self._database.changes == 0:
+                            self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
+                                                   (meta.community.database_id, unicode(host), port))
 
-    def on_incoming_messages(self, messages):
+        # process the packets in priority order
+        for meta, batch in sorted(batches.iteritems()):
+            # convert binary packets into Message.Implementation instances
+            messages = list(self._convert_batch_into_messages(batch))
+            if __debug__: dprint(len(messages), " incoming ", meta.name, " messages after conversion")
+
+            # handle the incoming messages
+            self.on_message_batch(messages)
+
+    def on_message_batch(self, messages):
+        """
+        Process one batch of messages.
+
+        This method is called to process one or more Message.Implementation instances that all have
+        the same meta message.  This occurs when new packets are received, to attempt to process
+        previously delayed messages, or when a user explicitly creates a message to process.  The
+        last option should only occur for debugging purposes.
+
+        The messages are processed with the following steps:
+
+         1. Messages created by a member in our blacklist are droped.
+
+         2. Messages that are old or duplicate, based on their distribution policy, are dropped.
+
+         3. The meta.check_callback(...) is used to allow messages to be dropped or delayed.
+
+         4. Messages are stored, based on their distribution policy.
+
+         5. The meta.handle_callback(...) is used to process the messages.
+
+         6. A check is performed if any of these messages triggers a delayed action.
+
+        @param packets: The sequence of messages with the same meta message from the same community.
+        @type packets: [Message.Implementation]
+        """
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+
+        meta = messages[0].meta
 
         # drop or delay all invalid messages
-        messages = list(self._check_incoming_messages(messages))
+        messages = list(self._check_messages(messages))
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        if __debug__: dprint("after check we have ", len(messages), " remaining")
+        if __debug__: dprint(len(messages), " incoming ", meta.name, " messages after extensive check")
         if not messages:
             return
 
-        # group all by message.meta (each message.meta is unique per community)
-        groups = dict()
-        for message in messages:
-            if message.meta in groups:
-                groups[message.meta].append(message)
-            else:
-                groups[message.meta] = [message]
+        # check all remaining messages on the community side.  may yield Message.Implementation,
+        # DropMessage, and DelayMessage instances
+        messages = list(meta.check_callback(messages))
+        assert len(messages) >= 0 # may return zero messages
+        assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
 
         if __debug__:
-            for meta, messages in sorted(groups.iteritems()):
-                dprint("batch handling ", len(messages), " ", meta.name, " messages")
+            i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
+            dprint(i_messages, " incoming ", meta.name, " messages after community check")
 
-        for meta, messages in sorted(groups.iteritems()):
-            # check all remaining messages on the community side.  may yield Message.Implementation,
-            # DropMessage, and DelayMessage instances
-            messages = list(meta.check_callback(messages))
-            assert len(messages) >= 0 # may return zero messages
-            assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
+        # delay any DelayMessage instances that were returned
+        for delay in (message for message in messages if isinstance(message, DelayMessage)):
+            if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
+            trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
+            self._triggers.append(trigger)
+            self._rawserver.add_task(trigger.on_timeout, 10.0)
+            self._send([delay.delayed.address], [delay.request.packet])
 
-            if __debug__:
-                i_message = len(list(message for message in messages if isinstance(message, Message.Implementation)))
-                i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
-                i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-                dprint("batch check ", meta.name, " -> ", i_message, ":", i_delay, ":", i_drop, " (ok:delay:drop)")
+        # remove DropMessage and DelayMessage instances
+        messages = [message for message in messages if isinstance(message, Message.Implementation)]
 
-            # delay if needed
-            for delay in (message for message in messages if isinstance(message, DelayMessage)):
-                if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
-                trigger = TriggerMessage(delay.pattern, self.on_incoming_messages, [delay.delayed])
-                self._triggers.append(trigger)
-                self._rawserver.add_task(trigger.on_timeout, 10.0)
-                self._send([message.address], [delay.request.packet])
+        if messages:
+            # store to disk and update locally
+            self.store_update_forward(messages, True, True, False)
 
-            # remove DropMessage and DelayMessage instances
-            messages = [message for message in messages if isinstance(message, Message.Implementation)]
+            # try to 'trigger' zero or more previously delayed 'things'
+            self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
 
-            if messages:
-                # store to disk and update locally
-                self.store_update_forward(messages, True, True, False)
+    def _convert_packets_into_batch(self, packets):
+        """
+        Convert a list with one or more (address, data) tuples into a list with zero or more
+        (Message, (address, data)) tuples using a generator.
 
-                # this message may 'trigger' a previously delayed message
-                self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
+        Duplicate packets are removed.  This will result in drops when two we receive the exact same
+        binary packet from multiple nodes.  While this is usually not a problem, packets are usually
+        signed and hence unique, in rare cases this may result in invalid drops.
 
-    def _convert_incoming_packets(self, packets):
+        Packets from invalid sources are removed.  The _is_valid_external_address is used to
+        determine valid addresses.
+
+        Packets associated with an unknown community are removed.  Packets from a known community
+        encoded in an unknown conversion, are also removed.
+
+        The results can be used to easily create a dictionary batch using
+         > batch = dict(_convert_packets_into_batch(packets))
+        """
         assert isinstance(packets, (tuple, list))
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
@@ -633,12 +682,33 @@ class Dispersy(Singleton):
                 continue
 
             try:
+                # convert binary data into the meta message
+                yield conversion.decode_meta_message(packet), (address, packet, conversion)
+
+            except DropPacket, exception:
+                if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
+
+    def _convert_batch_into_messages(self, batch):
+        if __debug__:
+            from conversion import Conversion
+        assert isinstance(batch, list)
+        assert len(batch) > 0
+        assert not filter(lambda x: not isinstance(x, tuple), batch)
+        assert not filter(lambda x: not len(x) == 3, batch)
+
+        for address, packet, conversion in batch:
+            assert isinstance(address, tuple)
+            assert isinstance(address[0], str)
+            assert isinstance(address[1], int)
+            assert isinstance(packet, str)
+            assert isinstance(conversion, Conversion)
+
+            try:
                 # convert binary data to internal Message
                 yield conversion.decode_message(address, packet)
 
             except DropPacket, exception:
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
-                if __debug__: log("dispersy.log", "drop-packet", address=address, packet=packet, exception=str(exception))
 
             except DelayPacket, delay:
                 if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(packet), " byte packet (", delay, ")")
@@ -646,12 +716,8 @@ class Dispersy(Singleton):
                 self._triggers.append(trigger)
                 self._rawserver.add_task(trigger.on_timeout, 10.0)
                 self._send([address], [delay.request_packet])
-                if __debug__: log("dispersy.log", "delay-packet", address=address, packet=packet, pattern=delay.pattern)
 
-            else:
-                unique.add(packet)
-
-    def _check_incoming_messages(self, messages):
+    def _check_messages(self, messages):
         assert isinstance(messages, list)
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
 
@@ -672,7 +738,7 @@ class Dispersy(Singleton):
 
             except DelayMessage, delay:
                 if __debug__: dprint(message.address[0], ":", message.address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
-                trigger = TriggerMessage(delay.pattern, self.on_incoming_messages, [delay.delayed])
+                trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
                 self._triggers.append(trigger)
                 self._rawserver.add_task(trigger.on_timeout, 10.0)
                 self._send([message.address], [delay.request.packet])
@@ -2592,18 +2658,18 @@ class Dispersy(Singleton):
                   WHERE community = ? AND age BETWEEN ? AND ?
                   ORDER BY age
                   LIMIT 30"""
-        routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
+        candidates = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
 
         meta = community.get_meta_message(u"dispersy-candidate-request")
         requests = []
         for address in self._select_candidate_addresses(community.database_id,
-                                                      community.dispersy_candidate_request_member_count,
-                                                      community.dispersy_candidate_request_destination_diff_range,
-                                                      community.dispersy_candidate_request_destination_age_range):
+                                                        community.dispersy_candidate_request_member_count,
+                                                        community.dispersy_candidate_request_destination_diff_range,
+                                                        community.dispersy_candidate_request_destination_age_range):
             requests.append(meta.implement(meta.authentication.implement(community.my_member),
                                            meta.distribution.implement(community._timeline.global_time),
                                            meta.destination.implement(address),
-                                           meta.payload.implement(self._my_external_address, address, community.get_conversion().version, routes)))
+                                           meta.payload.implement(self._my_external_address, address, community.get_conversion().version, candidates)))
         self.store_update_forward(requests, False, False, True)
         if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_candidate_request in ", community.dispersy_candidate_request_interval, " seconds (interval)")
