@@ -318,7 +318,7 @@ class DispersyCandidateScript(ScriptBase):
         node.init_my_member(candidate=False)
 
         # wait initial delay
-        for counter in range(community.dispersy_candidate_request_initial_delay):
+        for counter in range(int(community.dispersy_candidate_request_initial_delay)):
             dprint("waiting... ", community.dispersy_candidate_request_initial_delay - counter)
             # do NOT receive dispersy-candidate-request
             try:
@@ -336,7 +336,7 @@ class DispersyCandidateScript(ScriptBase):
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
 
         # wait interval
-        for counter in range(community.dispersy_candidate_request_interval):
+        for counter in range(int(community.dispersy_candidate_request_interval)):
             dprint("waiting... ", community.dispersy_candidate_request_interval - counter)
             # do NOT receive dispersy-candidate-request
             try:
