@@ -112,6 +112,7 @@ class Database(Singleton):
             self._cursor.execute(u"COMMIT")
             return True
         else:
+            if __debug__: dprint("rollback", level="error")
             self._cursor.execute(u"ROLLBACK")
             return False
 

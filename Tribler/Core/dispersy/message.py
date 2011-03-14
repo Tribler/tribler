@@ -156,8 +156,7 @@ class DelayMessage(Exception):
 
 class DelayMessageBySequence(DelayMessage):
     """
-    Raised during Community.on_incoming_message or
-    Community.on_incoming_message.
+    Raised during Community.on_incoming_message or Community.on_incoming_message.
 
     Delaying until all missing sequence numbers have been received.
     """

@@ -66,6 +66,8 @@ CREATE TABLE name(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  value TEXT);
 
+-- when a message has multiple signatures, using the MultiMemberAuthentication policy, the
+-- reference_user_sync table contains an entry for each member
 CREATE TABLE reference_user_sync(
  user INTEGER REFERENCES user(id),
  sync INTEGER REFERENCES sync(id),
@@ -75,11 +77,13 @@ CREATE TABLE sync(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  community INTEGER REFERENCES community(id),
  name INTEGER REFERENCES name(id),
+ user INTEGER REFERENCES user(id),              -- the creator of the message
  global_time INTEGER,
  synchronization_direction INTEGER REFERENCES tag(key),
  distribution_sequence INTEGER DEFAULT 0,       -- used for the sync-distribution policy
  destination_cluster INTEGER DEFAULT 0,         -- used for the similarity-destination policy
- packet BLOB);
+ packet BLOB,
+ UNIQUE(community, user, global_time));
 
 --CREATE TABLE similarity(
 -- id INTEGER PRIMARY KEY AUTOINCREMENT,

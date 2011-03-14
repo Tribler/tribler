@@ -140,8 +140,9 @@ class Dispersy(Singleton):
         # triggers for incoming messages
         self._triggers = []
 
-        self._incoming_distribution_map = {FullSyncDistribution.Implementation:self._check_incoming_full_sync_distribution,
-                                           LastSyncDistribution.Implementation:self._check_incoming_last_sync_distribution}
+        self._check_distribution_batch_map = {DirectDistribution:self._check_direct_distribution_batch,
+                                              FullSyncDistribution:self._check_full_sync_distribution_batch,
+                                              LastSyncDistribution:self._check_last_sync_distribution_batch}
 
 
         # cleanup the database periodically
@@ -290,184 +291,188 @@ class Dispersy(Singleton):
         """
         return self._communities.values()
 
-    def _check_incoming_full_sync_distribution(self, message):
+    def _check_full_sync_distribution_batch(self, messages):
         """
-        Ensure that we do not yet have the message and that, if sequence numbers are enabled, we are
-        not missing any previous messages.
+        Ensure that we do not yet have the messages and that, if sequence numbers are enabled, we
+        are not missing any previous messages.
 
-        This method is called when a message with the FullSyncDistribution policy is received.
-        Duplicate messages result in the DropMessage exception.  And if enable_sequence_number is
-        True, missing messages result in the DelayMessageBySequence exception.
+        This method is called when a batch of messages with the FullSyncDistribution policy is
+        received.  Duplicate messages will yield DropMessage.  And if enable_sequence_number is
+        True, missing messages will yield the DelayMessageBySequence exception.
 
-        @param address: The address where we got this message from.  Will be ('', -1) when the
-         message was created locally.
-        @type address: (string, int)
+        @param messages: The messages that are to be checked.
+        @type message: [Message.Implementation]
 
-        @param message: The message that is to be checked.
-        @type message: Message.Implementation
-
-        @raise DropMessage: When duplicate.
-        @raise DelayMessageBySequence: When missing one or more previous messages.
+        @return: A generator with messages, DropMessage, or DelayMessageBySequence instances
+        @rtype: [Message.Implementation|DropMessage|DelayMessageBySequence]
         """
-        assert isinstance(message, Message.Implementation)
-        # check for duplicates based on global_time
-        try:
-            self._database.execute(
-                u"""SELECT 1
-                    FROM sync
-                    JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                    WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ? AND sync.global_time = ?
-                    LIMIT 1""",
-                (message.community.database_id,
-                 message.authentication.member.database_id,
-                 message.database_id,
-                 message.distribution.global_time)).next()
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
-        except StopIteration:
-            pass
+        execute = self._database.execute
+        enable_sequence_number = messages[0].meta.distribution.enable_sequence_number
+
+        # sort the messages by their (1) global_time and (2) binary packet
+        messages = sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
+
+        if enable_sequence_number:
+            # obtain the highest sequence_number from the database
+            highest = {}
+            for message in messages:
+                if not message.authentication.member in highest:
+                    try:
+                        seq, = execute(u"SELECT distribution_sequence FROM sync WHERE community = ? AND user = ? AND sync.name = ? ORDER BY distribution_sequence DESC LIMIT 1",
+                                       (message.community.database_id, message.authentication.member.database_id, message.database_id)).next()
+                    except StopIteration:
+                        seq = 0
+                    highest[message.authentication.member] = seq
+
+            # all messages must follow the sequence_number order
+            for message in messages:
+                seq = highest[message.authentication.member]
+
+                if seq >= message.distribution.sequence_number:
+                    # we already have this message (drop)
+                    yield DropMessage("drop duplicate message by sequence_number")
+
+                elif seq + 1 == message.distribution.sequence_number:
+                    # we have the previous message, check for duplicates based on community, user,
+                    # and global_time
+                    try:
+                        execute(u"SELECT 1 FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+
+                    except StopIteration:
+                        # we accept this message
+                        yield message
+                        highest[message.authentication.member] += 1
+
+                    else:
+                        # we have the previous message (drop)
+                        yield DropMessage("drop duplicate message by global_time (1)")
+
+                else:
+                    # we do not have the previous message (delay and request)
+                    yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
 
         else:
-            # we have the previous message (drop)
-            raise DropMessage("duplicate message (1)")
-
-        if message.distribution.enable_sequence_number:
-            try:
-                sequence_number, = self._database.execute(
-                    u"""SELECT sync.distribution_sequence
-                        FROM sync
-                        JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                        WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?
-                        ORDER BY sync.distribution_sequence DESC
-                        LIMIT 1""",
-                    (message.community.database_id,
-                     message.authentication.member.database_id,
-                     message.database_id)).next()
-            except StopIteration:
-                sequence_number = 0
-
-            if sequence_number >= message.distribution.sequence_number:
-                # we already have this message (drop)
-                raise DropMessage("duplicate message (2)")
-
-            elif sequence_number + 1 == message.distribution.sequence_number:
-                # we have the previous message (process)
-                pass
-
-            else:
-                #  we do not have the previous message (delay and request)
-                raise DelayMessageBySequence(message, sequence_number+1, message.distribution.sequence_number-1)
-
-    def _check_incoming_last_sync_distribution(self, message):
-        """
-        Ensure that we do not yet have the message and that, if sequence numbers are enabled, we are
-        not missing any previous messages.
-
-        This method is called when a message with the LastSyncDistribution policy is received.
-        Duplicate messages result in the DropMessage exception.  And if enable_sequence_number is
-        True, missing messages result in the DelayMessageBySequence exception.
-
-        @param address: The address where we got this message from.  Will be ('', -1) when the
-         message was created locally.
-        @type address: (string, int)
-
-        @param message: The message that is to be checked.
-        @type message: Message.Implementation
-
-        @raise DropMessage: When duplicate.
-        @raise DelayMessageBySequence: When missing one or more previous messages.
-        """
-        assert isinstance(message, Message.Implementation)
-        # check for duplicates based on global_time
-        times = [x for x, in self._database.execute(u"""SELECT sync.global_time
-                                                        FROM sync
-                                                        JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                                                        WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?
-                                                        LIMIT ?""",
-                                                    (message.community.database_id,
-                                                     message.authentication.member.database_id,
-                                                     message.database_id,
-                                                     message.distribution.history_size))]
-
-        if message.distribution.global_time in times:
-            raise DropMessage("duplicate message (3)")
-
-        if len(times) >= message.distribution.history_size and min(times) > message.distribution.global_time:
-            # the sender of this message is apparently missing one or more messages
-            if message.distribution.history_size == 1:
-                # we can sent back the one message that proves that the received message is old
+            for message in messages:
+                # check for duplicates based on community, user, and global_time
                 try:
-                    packet, = self._database.execute(u"""SELECT sync.packet
-                                                         FROM sync
-                                                         JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                                                         WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ? AND sync.global_time = ?""",
-                                                     (message.community.database_id,
-                                                      message.authentication.member.database_id,
-                                                      message.database_id,
-                                                      times[0])).next()
-                    packet = str(packet)
+                    execute(u"SELECT 1 FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                            (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+
                 except StopIteration:
-                    # should not occur, as we just selected the associated global_time in the
-                    # previous query... but you never know
-                    pass
+                    # we accept this message
+                    yield message
+
                 else:
-                    if __debug__: dprint("prooving ", len(packet), " bytes from _check_incoming_last_sync_distribution to ", message.address[0], ":", message.address[1])
-                    self._send([message.address], [packet])
+                    # we have the previous message (drop)
+                    yield DropMessage("drop duplicate message by global_time (2)")
 
-            elif message.distribution.enable_sequence_number:
-                # we limit the response by byte_limit bytes
-                byte_limit = self._total_send + message.community.dispersy_sync_response_limit
-
-                # we can sent back everything higher than message.distribution.global_time
-                for packet in self._database.execute(u"""SELECT sync.packet
-                                                         FROM sync
-                                                         JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                                                         WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ? AND sync.global_time > ?
-                                                         ORDER BY sync.global_time ASC""",
-                                                     (message.community.database_id,
-                                                      message.authentication.member.database_id,
-                                                      message.database_id,
-                                                      message.distribution.global_time)):
-                    packet = str(packet)
-
-                    if __debug__: dprint("prooving ", len(packet), " bytes from _check_incoming_last_sync_distribution to ", message.address[0], ":", message.address[1])
-                    self._send([message.address], [packet])
-
-                    if self._total_send > byte_limit:
-                        if __debug__: dprint("bandwidth throttle")
-                        break
-
-            raise DropMessage("old message")
-
-        if message.distribution.enable_sequence_number:
-            try:
-                sequence_number, = self._database.execute(
-                    u"""SELECT sync.distribution_sequence
-                        FROM sync
-                        JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                        WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?
-                        ORDER BY sync.distribution_sequence DESC
-                        LIMIT 1""",
-                    (message.community.database_id,
-                     message.authentication.member.database_id,
-                     message.database_id)).next()
-            except StopIteration:
-                sequence_number = 0
-
-            if sequence_number >= message.distribution.sequence_number:
-                # we already have this message (drop)
-                raise DropMessage("duplicate message (4)")
-
-            elif sequence_number + 1 == message.distribution.sequence_number:
-                # we have the previous message (process)
-                pass
-
-            else:
-                #  we do not have the previous message (delay and request)
-                raise DelayMessageBySequence(message, max(sequence_number+1, message.distribution.sequence_number-message.distribution.history_size), message.distribution.sequence_number-1)
-
-    def _check_incoming_OTHER_distribution(self, message):
+    def _check_last_sync_distribution_batch(self, messages):
         """
-        Does not do anything.
+        Ensure that we do not yet have the messages and that, if sequence numbers are enabled, we
+        are not missing any previous messages.
+
+        This method is called when a batch of messages with the LastSyncDistribution policy is
+        received.  Duplicate messages will yield DropMessage.  And if enable_sequence_number is
+        True, missing messages will yield the DelayMessageBySequence exception.
+
+        @param messages: The messages that are to be checked.
+        @type message: [Message.Implementation]
+
+        @return: A generator with messages, DropMessage, or DelayMessageBySequence instances
+        @rtype: [Message.Implementation|DropMessage|DelayMessageBySequence]
+        """
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+
+        execute = self._database.execute
+        enable_sequence_number = messages[0].meta.distribution.enable_sequence_number
+
+        # sort the messages by their (1) global_time and (2) binary packet
+        messages = sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
+
+        # obtain the available global_time from the database for each message owner
+        times = {}
+        for message in messages:
+            if not message.authentication.member in times:
+                times[message.authentication.member] = [global_time for global_time, in execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND sync.name = ? LIMIT ?",
+                                                                                                (message.community.database_id, message.authentication.member.database_id, message.database_id, message.distribution.history_size))]
+        if enable_sequence_number:
+            # obtain the highest sequence_number from the database
+            highest = {}
+            for message in messages:
+                if not message.authentication.member in highest:
+                    try:
+                        seq, = execute(u"SELECT distribution_sequence FROM sync WHERE community = ? AND user = ? AND sync.name = ? ORDER BY distribution_sequence DESC LIMIT 1",
+                                       (message.community.database_id, message.authentication.member.database_id, message.database_id)).next()
+                    except StopIteration:
+                        seq = 0
+                    highest[message.authentication.member] = seq
+
+            # all messages must follow the sequence_number order
+            for message in messages:
+                seq = highest[message.authentication.member]
+
+                if seq >= message.distribution.sequence_number:
+                    # we already have this message (drop)
+                    yield DropMessage("drop duplicate message by sequence_number")
+
+                elif seq + 1 == message.distribution.sequence_number:
+                    # we have the previous message, check for duplicates based on community, user,
+                    # and global_time
+                    tim = times[message.authentication.member]
+
+                    if message.distribution.global_time in tim:
+                        # we have the previous message (drop)
+                        yield DropMessage("drop duplicate message by global_time (3)")
+
+                    elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
+                        # we have newer messages (drop)
+                        yield DropMessage("drop old message by global_time (4)")
+                        # todo: if the history_size is one, we can sent that on message back because
+                        # apparently the sender does not have this message yet
+
+                    else:
+                        # we accept this message
+                        yield message
+                        tim.append(message.distribution.global_time)
+                        highest[message.authentication.member] += 1
+
+                else:
+                    # we do not have the previous message (delay and request)
+                    yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
+
+        else:
+            for message in messages:
+                tim = times[message.authentication.member]
+
+                if message.distribution.global_time in tim:
+                    # we have the previous message (drop)
+                    yield DropMessage("drop duplicate message by global_time (3)")
+
+                elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
+                    # we have newer messages (drop)
+                    yield DropMessage("drop old message by global_time (4)")
+                    # todo: if the history_size is one, we can sent that on message back because
+                    # apparently the sender does not have this message yet
+
+                else:
+                    # we accept this message
+                    yield message
+                    tim.append(message.distribution.global_time)
+
+    def _check_direct_distribution_batch(self, messages):
+        """
+        Returns the messages in the correct processing order.
 
         This method is called when a message with the DirectDistribution policy is received.  This
         message is not stored and hence we will not be able to see if we have already received this
@@ -476,14 +481,14 @@ class Dispersy(Singleton):
         Receiving the same DirectDistribution multiple times indicates that the sending -wanted- to
         send this message multiple times.
 
-        @param address: The address where we got this message from.  Will be ('', -1) when the
-         message was created locally.
-        @type address: (string, int)
+        @param messages: Ignored.
+        @type messages: [Message.Implementation]
 
-        @param message: Ignored.
-        @type message: Message.Implementation assert isinstance(message, Message.Implementation)
+        @return: All messages that are not dropped, i.e. all messages
+        @rtype: [Message.Implementation]
         """
-        pass
+        # sort the messages by their (1) global_time and (2) binary packet
+        return sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
 
     def on_incoming_packets(self, packets):
         """
@@ -593,22 +598,25 @@ class Dispersy(Singleton):
 
         meta = messages[0].meta
 
-        # drop or delay all invalid messages
-        messages = list(self._check_messages(messages))
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        if __debug__: dprint(len(messages), " incoming ", meta.name, " messages after extensive check")
+        # drop if this is a blacklisted member
+        messages = [message for message in messages if not (isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop)]
+        # todo: we currently do not add this message in the bloomfilter, hence we will
+        # continually receive this packet.
+        if __debug__: dprint(len(messages), " incoming ", meta.name, " messages after blacklisted members")
         if not messages:
             return
 
-        # check all remaining messages on the community side.  may yield Message.Implementation,
-        # DropMessage, and DelayMessage instances
-        messages = list(meta.check_callback(messages))
-        assert len(messages) >= 0 # may return zero messages
+        # drop all duplicate or old messages
+        assert type(meta.distribution) in self._check_distribution_batch_map
+        messages = list(self._check_distribution_batch_map[type(meta.distribution)](messages))
+        assert len(messages) > 0 # may return zero messages
         assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
 
         if __debug__:
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
-            dprint(i_messages, " incoming ", meta.name, " messages after community check")
+            i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
+            i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
+            dprint(i_messages, ":", i_delay, ":", i_drop, " incoming ", meta.name, " messages after distribution check")
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -620,13 +628,39 @@ class Dispersy(Singleton):
 
         # remove DropMessage and DelayMessage instances
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
+        if not messages:
+            return
 
-        if messages:
-            # store to disk and update locally
-            self.store_update_forward(messages, True, True, False)
+        # check all remaining messages on the community side.  may yield Message.Implementation,
+        # DropMessage, and DelayMessage instances
+        messages = list(meta.check_callback(messages))
+        assert len(messages) >= 0 # may return zero messages
+        assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
 
-            # try to 'trigger' zero or more previously delayed 'things'
-            self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
+        if __debug__:
+            i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
+            i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
+            i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
+            dprint(i_messages, ":", i_delay, ":", i_drop, " incoming ", meta.name, " messages after community check")
+
+        # delay any DelayMessage instances that were returned
+        for delay in (message for message in messages if isinstance(message, DelayMessage)):
+            if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
+            trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
+            self._triggers.append(trigger)
+            self._rawserver.add_task(trigger.on_timeout, 10.0)
+            self._send([delay.delayed.address], [delay.request.packet])
+
+        # remove DropMessage and DelayMessage instances
+        messages = [message for message in messages if isinstance(message, Message.Implementation)]
+        if not messages:
+            return
+
+        # store to disk and update locally
+        self.store_update_forward(messages, True, True, False)
+
+        # try to 'trigger' zero or more previously delayed 'things'
+        self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
 
     def _convert_packets_into_batch(self, packets):
         """
@@ -717,103 +751,6 @@ class Dispersy(Singleton):
                 self._rawserver.add_task(trigger.on_timeout, 10.0)
                 self._send([address], [delay.request_packet])
 
-    def _check_messages(self, messages):
-        assert isinstance(messages, list)
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-
-        for message in messages:
-            # drop if this is a blacklisted member
-            if isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop:
-                # todo: we currently do not add this message in the bloomfilter, hence we will
-                # continually receive this packet.
-                if __debug__: dprint(message.address[0], ":", message.address[1], ": drop a ", len(message.packet), " byte message (packets from this member are explicitly dropped)", level="warning")
-                continue
-
-            try:
-                # filter messages based on distribution (usually duplicate or old messages)
-                self._incoming_distribution_map.get(type(message.distribution), self._check_incoming_OTHER_distribution)(message)
-
-            except DropMessage, exception:
-                if __debug__: dprint(message.address[0], ":", message.address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
-
-            except DelayMessage, delay:
-                if __debug__: dprint(message.address[0], ":", message.address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
-                trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
-                self._triggers.append(trigger)
-                self._rawserver.add_task(trigger.on_timeout, 10.0)
-                self._send([message.address], [delay.request.packet])
-
-            else:
-                yield message
-
-    # def on_incoming_message(self, messages):
-    #     """
-    #     Process one dispersy message.
-
-    #     This method is called to process one dispersy message.  This occurs when new message is
-    #     received, to attempt to process previously delayed message, or when a user explicitly
-    #     creates a message to process.  The last option should only occur for debugging purposes.
-
-    #     Each message is processed in the following way:
-
-    #      1. When the member is tagged with 'drop' the message is dropped.
-
-    #      2. The distribution policy is checked.  Failure occurs when this message is already
-    #         processed or when the message is to old.
-
-    #      3. The community is allowed to process the message though the on_message method.  Note that
-    #         even though the member may be tagged with 'ignore', these callbacks will take place.
-
-    #      4. If the message uses the SyncDistribution policy is may be stored in the database.
-
-    #      5. The message may match one of the existing Triggers causing a callback or a delayed
-    #         packet or message to be processed.
-
-    #     # @param address: The address where we got this message from.  Will be ('', -1) when the
-    #     #  message was created locally.
-    #     # @type address: (string, int)
-
-    #     # @param message: The message.
-    #     # @type message: Message.Implementation
-    #     """
-    #     if __debug__: dprint("incoming ", message.name, " (", len(message.packet), " bytes) from ", address[0], ":", address[1])
-    #     try:
-    #         # drop if this is a blacklisted member
-    #         if isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop:
-    #             # todo: we currently do not add this message in the bloomfilter, hence we will
-    #             # continually receive this packet.
-    #             raise DropMessage("Packets from this member are explicitly dropped")
-
-    #         # filter messages based on distribution (usually duplicate or old messages)
-    #         self._incoming_distribution_map.get(type(message.distribution), self._check_incoming_OTHER_distribution)(address, message)
-
-    #         # allow community code to test the message
-    #         message.check_callback(address, message)
-
-    #     except DropMessage, exception:
-    #         if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(message.packet), " byte message (", exception, ")", level="warning")
-    #         if __debug__: log("dispersy.log", "drop-message", address=address, message=message.name, packet=message.packet, exception=str(exception))
-
-    #     except DelayMessage, delay:
-    #         if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(message.packet), " byte message (", delay, ")")
-    #         trigger = TriggerMessage(delay.pattern, self.on_incoming_message, address, message)
-    #         self._triggers.append(trigger)
-    #         self._rawserver.add_task(trigger.on_timeout, 10.0)
-    #         self._send([address], [delay.request_packet])
-
-    #     else:
-    #         # sync messages need to be stored (so they can be synced later)
-    #         if isinstance(message.distribution, SyncDistribution.Implementation):
-    #             self._sync_distribution_store(message)
-
-    #         # allow community code to handle the message
-    #         message.handle_callback(address, message)
-
-    #         if __debug__: log("dispersy.log", "handled", address=address, packet=message.packet, message=message.name)
-
-    #         # this message may 'trigger' a previously delayed message
-    #         self._triggers = [trigger for trigger in self._triggers if trigger.on_message(address, message)]
-
     def _sync_distribution_store(self, messages):
         """
         Store a message in the database.
@@ -836,52 +773,41 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
-        messages = [message for message in messages if isinstance(message.distribution, SyncDistribution.Implementation)]
-        if messages:
+        meta = messages[0].meta
+        if isinstance(meta.distribution, SyncDistribution):
+            is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
+            is_similarity_destination = isinstance(meta.destination, SimilarityDestination)
+            is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
+
             with self._database as execute:
                 for message in messages:
+                    # the signature must be set
                     assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
                     assert message.authentication.is_signed
-
-                    # the signature must be set
                     assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
 
                     # we do not store a message when it uses SubjectiveDestination and it is not in our set
-                    if isinstance(message.destination, SubjectiveDestination.Implementation) and not message.destination.is_valid:
+                    if is_subjective_destination and not message.destination.is_valid:
                         # however, ignore the SimilarityDestination when we are forced so store this message
                         if not message.authentication.member.must_store:
                             if __debug__: dprint("Not storing message")
-                            return
+                            continue
 
                     # we do not store a message when it uses SimilarityDestination and it is not similar
-                    if isinstance(message.destination, SimilarityDestination.Implementation) and not message.destination.is_similar:
+                    if is_similarity_destination and not message.destination.is_similar:
                         # however, ignore the SimilarityDestination when we are forced so store this message
                         if not message.authentication.member.must_store:
                             if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
-                            return
+                            continue
 
-                    # sync bloomfilter
+                    # update the bloomfilter
                     message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
 
-                    # delete packet if there are to many stored
-                    if isinstance(message.distribution, LastSyncDistribution.Implementation):
-                        for id_, in execute(u"""SELECT sync.id
-                                                FROM sync
-                                                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                                                WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?
-                                                ORDER BY sync.global_time DESC
-                                                LIMIT 100 OFFSET ?""",
-                                            (message.community.database_id,
-                                             message.authentication.member.database_id,
-                                             message.database_id,
-                                             message.distribution.history_size - 1)):
-                            execute(u"DELETE FROM reference_user_sync WHERE user = ? AND sync = ?", (message.authentication.member.database_id, id_))
-                            execute(u"DELETE FROM sync WHERE id = ?", (id_,))
-
                     # add packet to database
-                    execute(u"INSERT INTO sync (community, name, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                             (message.community.database_id,
                              message.database_id,
+                             message.authentication.member.database_id,
                              message.distribution.global_time,
                              message.distribution.synchronization_direction_id,
                              isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
@@ -891,12 +817,24 @@ class Dispersy(Singleton):
 
                     # ensure that we can reference this packet
                     message.packet_id = self._database.last_insert_rowid
+                    if __debug__: dprint("stored message in database with id ", message.packet_id)
 
-                    # link one or more users to this packet
-                    # todo: add more when this is MultiMemberAuthentication
-                    execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
-                            (message.authentication.member.database_id,
-                             message.packet_id))
+                    # link multiple members is needed
+                    if is_multi_member_authentication:
+                        for member in message.authentication.members:
+                            execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
+                                    (member.database_id, message.packet_id))
+
+                if isinstance(meta.distribution, LastSyncDistribution):
+                    # delete packets that have become obsolete
+                    for member in set(message.authentication.member for message in messages):
+                        execute(u"DELETE FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
+                                (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size))
+                        if __debug__: dprint("deleted ", self._database.changes, " entries")
+
+                        if is_multi_member_authentication:
+                            execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
+                                    (message.community.database_id, member.database_id))
 
     def _select_candidate_addresses(self, community_id, address_count, diff_range, age_range):
         assert isinstance(community_id, (int, long))
@@ -1012,12 +950,11 @@ class Dispersy(Singleton):
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
         assert isinstance(store, bool)
         assert isinstance(update, bool)
         assert isinstance(forward, bool)
-
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
         if store:
             self._sync_distribution_store(messages)
@@ -1539,15 +1476,13 @@ class Dispersy(Singleton):
 
         # todo: we are assuming that no more than 10 members have the same sha1 digest.
         # sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
-        sql = u"""SELECT sync.packet
+        sql = u"""SELECT packet
                   FROM sync
-                  JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                  JOIN user ON user.id = reference_user_sync.user
-                  WHERE sync.community = ? AND user.mid = ? AND sync.name = ?
+                  JOIN user ON user.id = sync.user
+                  WHERE sync.community = ? AND sync.name = ? AND user.mid = ?
                   LIMIT 10
                   """
-
-        self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, buffer(message.payload.mid), meta.database_id))])
+        self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))])
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
@@ -2251,36 +2186,27 @@ class Dispersy(Singleton):
 
         def get_packets(community_id, time_low, time_high):
             # first priority is to return the 'in-order' packets
-# sync.destination_cluster, similarity.similarity
-# JOIN similarity ON sync.community = similarity.community AND user.id = similarity.user AND sync.destination_cluster = similarity.cluster
             sql = u"""SELECT sync.packet, sync.name, user.public_key
                       FROM sync
-                      JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                      JOIN user ON user.id = reference_user_sync.user
+                      JOIN user ON user.id = sync.user
                       WHERE sync.community = ? AND synchronization_direction = 1 AND sync.global_time BETWEEN ? AND ?
                       ORDER BY sync.global_time ASC"""
             for tup in self._database.execute(sql, (community_id, time_low, time_high)):
                 yield tup
 
             # second priority is to return the 'out-order' packets
-# sync.destination_cluster, similarity.similarity
-# JOIN similarity ON sync.community = similarity.community AND user.id = similarity.user AND sync.destination_cluster = similarity.cluster
             sql = u"""SELECT sync.packet, sync.name, user.public_key
                       FROM sync
-                      JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                      JOIN user ON user.id = reference_user_sync.user
+                      JOIN user ON user.id = sync.user
                       WHERE sync.community = ? AND synchronization_direction = 2 AND sync.global_time BETWEEN ? AND ?
                       ORDER BY sync.global_time DESC"""
             for tup in self._database.execute(sql, (community_id, time_low, time_high)):
                 yield tup
 
             # third priority is to return the 'random-order' packets
-# sync.destination_cluster, similarity.similarity
-# JOIN similarity ON sync.community = similarity.community AND user.id = similarity.user AND sync.destination_cluster = similarity.cluster
             sql = u"""SELECT sync.packet, sync.name, user.public_key
                       FROM sync
-                      JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                      JOIN user ON user.id = reference_user_sync.user
+                      JOIN user ON user.id = sync.user
                       WHERE sync.community = ? AND synchronization_direction = 3 AND sync.global_time BETWEEN ? AND ?
                       ORDER BY RANDOM()"""
             for tup in self._database.execute(sql, (community_id, time_low, time_high)):
@@ -2318,7 +2244,7 @@ class Dispersy(Singleton):
 
                         # we need the subjective set for this particular cluster
                         if not packet_cluster in subjective_sets:
-                            if __debug__: dprint("Subjective set not available")
+                            if __debug__: dprint("Subjective set not available (not ", packet_cluster, " in ", subjective_sets.keys(), ")")
                             yield DelayMessageBySubjectiveSet(message, packet_cluster)
                             continue
 

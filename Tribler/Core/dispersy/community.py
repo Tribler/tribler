@@ -601,10 +601,7 @@ class Community(object):
         # retrieve all the subjective sets that were created by member
         meta_message = self.get_meta_message(u"dispersy-subjective-set")
         existing_sets = {}
-        sql = u"""SELECT sync.packet
-            FROM sync
-            JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-            WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?"""
+        sql = u"SELECT sync.packet FROM sync WHERE community = ? AND user = ? AND name = ?"
 
         # dprint(sql)
         # dprint((self._database_id, member.database_id, meta_message.database_id))

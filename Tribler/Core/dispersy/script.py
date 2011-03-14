@@ -380,14 +380,14 @@ class DispersyDestroyCommunityScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # send a message
         global_time = 10
         node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
@@ -433,14 +433,14 @@ class DispersyMemberTagScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # send a message
         global_time = 10
         node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [10], times
 
         # we now tag the member as ignore
@@ -454,7 +454,7 @@ class DispersyMemberTagScript(ScriptBase):
         global_time = 20
         node.send_message(node.create_full_sync_text_message("should be accepted (2)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert sorted(times) == [10, 20], times
 
         # we now tag the member not to ignore
@@ -464,7 +464,7 @@ class DispersyMemberTagScript(ScriptBase):
         global_time = 30
         node.send_message(node.create_full_sync_text_message("should be accepted (3)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert sorted(times) == [10, 20, 30], times
 
         # cleanup
@@ -489,14 +489,14 @@ class DispersyMemberTagScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # send a message
         global_time = 10
         node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
@@ -510,7 +510,7 @@ class DispersyMemberTagScript(ScriptBase):
         global_time = 20
         node.send_message(node.create_full_sync_text_message("should NOT be accepted (2)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time not in times
 
@@ -521,7 +521,7 @@ class DispersyMemberTagScript(ScriptBase):
         global_time = 30
         node.send_message(node.create_full_sync_text_message("should be accepted (3)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 2
         assert global_time in times
 
@@ -606,7 +606,7 @@ class DispersySyncScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # create some data
@@ -639,7 +639,7 @@ class DispersySyncScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # create some data
@@ -672,7 +672,7 @@ class DispersySyncScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # create some data
@@ -794,14 +794,14 @@ class DispersySyncScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
 
         # send a message
         global_time = 10
         node.send_message(node.create_last_1_test_message("should be accepted (1)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
@@ -809,25 +809,27 @@ class DispersySyncScript(ScriptBase):
         global_time = 11
         node.send_message(node.create_last_1_test_message("should be accepted (2)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
         # send a message (older: should be dropped)
         node.send_message(node.create_last_1_test_message("should be dropped (1)", 8), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
+        # 14/03/11 boudewijn: we no longer send this 'proof', might want to re-enable it at some point...
+        #
         # as proof for the drop, the newest message should be sent back
-        _, message = node.receive_message(addresses=[address], message_names=[u"last-1-test"])
-        assert message.distribution.global_time == 11
+        # _, message = node.receive_message(addresses=[address], message_names=[u"last-1-test"])
+        # assert message.distribution.global_time == 11
 
         # send a message (duplicate: should be dropped)
         node.send_message(node.create_last_1_test_message("should be dropped (2)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
@@ -835,7 +837,7 @@ class DispersySyncScript(ScriptBase):
         global_time = 12
         node.send_message(node.create_last_1_test_message("should be accepted (3)", global_time), address)
         yield 0.01
-        times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
@@ -855,7 +857,7 @@ class DispersySyncScript(ScriptBase):
         yield 0.01
 
         # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
+        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0
 
         number_of_messages = 0
@@ -867,7 +869,7 @@ class DispersySyncScript(ScriptBase):
             yield 0.01
             packet, = self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.global_time = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             assert str(packet) == message.packet
-            times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             dprint(sorted(times))
             assert len(times) == number_of_messages, (len(times), number_of_messages)
             assert global_time in times
@@ -877,7 +879,7 @@ class DispersySyncScript(ScriptBase):
             # send a message (older: should be dropped)
             node.send_message(node.create_last_9_nosequence_test_message(str(global_time), global_time), address)
             yield 0.01
-            times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             assert len(times) == 9, len(times)
             assert not global_time in times
 
@@ -888,7 +890,7 @@ class DispersySyncScript(ScriptBase):
             yield 0.01
             packet, = self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.global_time = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             assert not str(packet) == message.packet
-            times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             assert sorted(times) == range(20, 29), sorted(times)
 
         match_times = sorted(times[:])
@@ -902,7 +904,7 @@ class DispersySyncScript(ScriptBase):
             yield 0.01
             packet, = self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.global_time = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             assert str(packet) == message.packet
-            times = [x for x, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             dprint(sorted(times))
             assert sorted(times) == match_times, sorted(times)
 
@@ -1211,7 +1213,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         global_time = 10
         node.send_message(node.create_subjective_set_text_message("Must not be stored", global_time), address)
         yield 0.01
-        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [], times
 
         # node is in self._my_member's subjective set.  the message MUST be stored
@@ -1219,7 +1221,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         global_time = 20
         node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
         yield 0.01
-        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [global_time]
 
         # cleanup
@@ -1250,9 +1252,9 @@ class DispersySubjectiveSetScript(ScriptBase):
         # SELF will store and forward for NODE
         community.create_dispersy_subjective_set(meta_message.destination.cluster, [node.my_member])
         global_time = 20
-        node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
+        node.send_message(node.create_subjective_set_text_message("Must be synced", global_time), address)
         yield 0.01
-        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
+        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
         # a dispersy-sync message MUST return the message that was just sent
@@ -1291,7 +1293,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         global_time = 20
         node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
         yield 0.01
-        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
+        times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
