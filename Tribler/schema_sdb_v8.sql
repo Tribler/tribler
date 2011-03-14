@@ -458,11 +458,11 @@ CREATE TABLE IF NOT EXISTS PlaylistTorrents (
 CREATE TABLE IF NOT EXISTS Comments (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
-  peer_id               integer         NOT NULL,
+  peer_id               integer,
   channel_id            integer         NOT NULL,
   comment               text            NOT NULL,
   reply_to_id           integer,
-  reply_after_id        integer         NOT NULL DEFAULT(-1),
+  reply_after_id        integer,
   time_stamp            integer,
   inserted              integer         DEFAULT (strftime('%s','now')),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
@@ -482,7 +482,7 @@ CREATE TABLE IF NOT EXISTS Warnings (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   channel_id            integer         NOT NULL,
-  peer_id               integer         NOT NULL,
+  peer_id               integer,
   by_peer_id            integer         NOT NULL,
   severity              integer         NOT NULL DEFAULT (1),
   message               text            NOT NULL,
