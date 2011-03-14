@@ -692,6 +692,10 @@ class LibaryList(List):
      
         List.__init__(self, columns, LIST_GREY, [7,7], True)
     
+    def _PostInit(self):
+        List._PostInit(self)
+        self.list.SetBackgroundColour(wx.RED)
+        
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = LocalSearchManager(self) 
