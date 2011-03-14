@@ -549,10 +549,10 @@ class Dispersy(Singleton):
             with self._database as execute:
                 for meta, batch in batches.iteritems():
                     for host, port in set(address for address, _, _ in batch):
-                        self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME() WHERE community = ? AND host = ? AND port = ?",
+                        self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME('now') WHERE community = ? AND host = ? AND port = ?",
                                                (meta.community.database_id, unicode(host), port))
                         if self._database.changes == 0:
-                            self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')",
+                            self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME('now'), '2010-01-01 00:00:00')",
                                                    (meta.community.database_id, unicode(host), port))
 
         # process the packets in priority order
@@ -863,7 +863,7 @@ class Dispersy(Singleton):
         sql = u"""SELECT host, port
                   FROM candidate
                   WHERE community = ? AND (ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) BETWEEN ? AND ?
-                                           OR STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) BETWEEN ? AND ?)
+                                           OR STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) BETWEEN ? AND ?)
                   ORDER BY RANDOM()
                   LIMIT ?"""
         addresses = set((str(host), port)
@@ -878,7 +878,7 @@ class Dispersy(Singleton):
         # address.
         sql = u"""SELECT host, port
                   FROM candidate
-                  WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', external_time) BETWEEN ? AND ?
+                  WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) BETWEEN ? AND ?
                   ORDER BY RANDOM()
                   LIMIT ?"""
         addresses.update([(str(host), port)
@@ -1065,7 +1065,7 @@ class Dispersy(Singleton):
                     assert isinstance(packet, str)
                     if __debug__: dprint(len(packet), " bytes to ", address[0], ":", address[1])
                     self._socket.send(address, packet)
-                execute(u"UPDATE candidate SET outgoing_time = DATETIME() WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
+                execute(u"UPDATE candidate SET outgoing_time = DATETIME('now') WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
@@ -1261,7 +1261,7 @@ class Dispersy(Singleton):
         community = messages[0].community
         meta = community.get_meta_message(u"dispersy-candidate-response")
         minimal_age, maximal_age = community.dispersy_candidate_age_range
-        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
             FROM candidate
             WHERE community = ? AND age BETWEEN ? AND ?
             ORDER BY age
@@ -1396,7 +1396,7 @@ class Dispersy(Singleton):
                 # TODO: we should drop messages that contain invalid addresses... or at the very least we
                 # should ignore the address part.
 
-                # execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
+                # execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME('now'), '2010-01-01 00:00:00')", (message.community.database_id, unicode(host), port))
                 execute(u"UPDATE user SET host = ?, port = ? WHERE id = ?", (unicode(host), port, message.authentication.member.database_id))
                 # execute(u"UPDATE identity SET packet = ? WHERE user = ? AND community = ?", (buffer(message.packet), message.authentication.member.database_id, message.community.database_id))
                 # if self._database.changes == 0:
@@ -2579,7 +2579,7 @@ class Dispersy(Singleton):
 
     def _periodically_create_candidate_request(self, community):
         minimal_age, maximal_age = community.dispersy_candidate_age_range
-        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) AS age
+        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
                   FROM candidate
                   WHERE community = ? AND age BETWEEN ? AND ?
                   ORDER BY age
@@ -2605,7 +2605,7 @@ class Dispersy(Singleton):
         # cleannup candidate tables
         with self._database as execute:
             for community in self._communities.itervalues():
-                execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME()) - STRFTIME('%s', incoming_time) > ?",
+                execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) > ?",
                         (community.database_id, community.dispersy_candidate_cleanup_age_threshold))
         self._rawserver.add_task(self._periodically_cleanup_database, 120.0)
 
