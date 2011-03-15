@@ -2,7 +2,7 @@ from hashlib import sha1
 
 from conversion import AllChannelConversion
 from preview import PreviewChannelCommunity
-from payload import ChannelPropagatePayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
+from payload import ChannelCastPayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
 
 # from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 # from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -16,9 +16,15 @@ from Tribler.Core.dispersy.authentication import NoAuthentication
 from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.Core.dispersy.distribution import DirectDistribution
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+from distutils.util import execute
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
+
+
+CHANNELCAST_FIRST_MESSAGE = 30
+CHANNELCAST_INTERVAL = 150
 
 class AllChannelCommunity(Community):
     """
@@ -64,16 +70,12 @@ class AllChannelCommunity(Community):
 
     def __init__(self, cid, master_key):
         super(AllChannelCommunity, self).__init__(cid, master_key)
-
-        # # tribler torrent database
-        # self._torrent_database = TorrentDBHandler.getInstance()
-
-        # # tribler remote torrent handler
-        # self._remote_torrent_handler = RemoteTorrentHandler.getInstance()
-
-        # # a queue with infohashes that we might want to download in the near future
-        # self._torrent_request_queue = []
-        # self._torrent_request_outstanding = False
+        
+        # tribler channelcast database
+        self._channelcast_db = ChannelCastDBHandler.getInstance()
+        
+        self._rawserver = self.dispersy.rawserver.add_task
+        self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
 
     @property
     def dispersy_sync_interval(self):
@@ -83,7 +85,7 @@ class AllChannelCommunity(Community):
     def initiate_meta_messages(self):
         # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
         # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
-        return [Message(self, u"channel-propagate", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelPropagatePayload(), self.check_channel_propagate, self.on_channel_propagate),
+        return [Message(self, u"channelcast", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
                 Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
                 Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
                 ]
@@ -91,35 +93,16 @@ class AllChannelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
-    def create_channel_propagate(self, forward=True):
+    def create_channelcast(self, forward=True):
         with self._dispersy.database as execute:
-            # select random torrent messages
-            torrents = list(execute(u"""
-            SELECT community.id, sync.packet
-            FROM sync
-            JOIN community ON community.id = sync.community
-            JOIN name ON name.id = sync.name
-            WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'
-            ORDER BY RANDOM()
-            LIMIT 50"""))
+            sync_ids = self._channelcast_db.getRecentAndRandomTorrents()
 
-            # select channel messages (associated with the torrents)
-            community_ids = set(community_id for community_id, _ in torrents)
-            channels = [packet for packet, in execute(u"""
+            # select channel messages (associated with the sync_ids)
+            packets = [packet for packet, in execute(u"""
             SELECT sync.packet
             FROM sync
-            JOIN name ON name.id = sync.name
-            WHERE sync.community IN (?) AND name.value = 'channel'
-            ORDER BY RANDOM()
-            LIMIT 10""", (", ".join(map(str, community_ids)),))]
-
-            # TODO: select modificarion messages (associated with the channels)
-            modifications = []
-
-            packets = []
-            packets.extend([packet for _, packet in torrents])
-            packets.extend([packet for packet, in channels])
-            packets.extend(modifications)
+            WHERE sync.id IN (?)
+            """, (", ".join(map(str, sync_ids)),))]
 
             meta = self.get_meta_message(u"channel-propagate")
             message = meta.implement(meta.authentication.implement(),
@@ -127,13 +110,15 @@ class AllChannelCommunity(Community):
                                      meta.destination.implement(),
                                      meta.payload.implement(packets))
             self._dispersy.store_update_forward([message], False, False, forward)
+            
+            self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
             return message
 
-    def check_channel_propagate(self, messages):
+    def check_channelcast(self, messages):
         # no timeline check because NoAuthentication policy is used
         return messages
 
-    def on_channel_propagate(self, messages):
+    def on_channelcast(self, messages):
         incoming_packets = []
 
         for message in messages:

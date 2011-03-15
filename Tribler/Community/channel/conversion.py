@@ -179,9 +179,17 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
-        return encode({"modification":message.payload.modification,
-                       "modification-on-mid":modification_on.authentication.member.mid,
-                       "modification-on-global-time":modification_on.distribution.global_time}),
+        dict = {"modification":message.payload.modification,
+                "modification-on-mid":modification_on.authentication.member.mid,
+                "modification-on-global-time":modification_on.distribution.global_time}
+        
+        latest_modification = message.payload.latest_modification
+        if latest_modification:
+            message = latest_modification.load_message()
+            dict["latest-modification-mid"] = message.authentication.member.mid
+            dict["latest-modification-global-time"] = message.distribution.global_time
+        
+        return encode(dict),
 
     def _decode_modification(self, meta_message, offset, data):
         try:
@@ -213,8 +221,22 @@ class ChannelConversion(BinaryConversion):
         
         packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
         modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        
+        latest_modification_mid = dic.get("latest-modification-mid", None)
+        if latest_modification_mid and not (isinstance(latest_modification_mid, str) and len(latest_modification_mid) == 20):
+            raise DropPacket("Invalid 'latest-modification-mid' type or value")
+        
+        latest_modification_global_time = dic.get("latest-modification-global-time", None)
+        if latest_modification_global_time and not isinstance(latest_modification_global_time, (int, long)):
+            raise DropPacket("Invalid 'atest-modification-global-time' type")
+        
+        if latest_modification_mid and latest_modification_global_time:
+            packet_id, packet, message_name = self._get_message(latest_modification_mid, latest_modification_global_time)
+            latest_modification = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        else:
+            latest_modification = None
 
-        return offset, meta_message.payload.implement(modification, modification_on)
+        return offset, meta_message.payload.implement(modification, modification_on, latest_modification)
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()

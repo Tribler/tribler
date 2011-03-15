@@ -11,7 +11,7 @@ if __debug__:
 class AllChannelConversion(BinaryConversion):
     def __init__(self, community):
         super(AllChannelConversion, self).__init__(community, "\x00\x01")
-        self.define_meta_message(chr(1), community.get_meta_message(u"channel-propagate"), self._encode_channel_propagate, self._decode_channel_propagate)
+        self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
         self.define_meta_message(chr(2), community.get_meta_message(u"channel-search-request"), self._encode_channel_search_request, self._decode_channel_search_request)
         self.define_meta_message(chr(3), community.get_meta_message(u"channel-search-response"), self._encode_channel_search_response, self._decode_channel_search_response)
         # self.define_meta_message(chr(2), community.get_meta_message(u"torrent-request"),
@@ -19,11 +19,11 @@ class AllChannelConversion(BinaryConversion):
 
         self._address = ("", -1)
 
-    def _encode_channel_propagate(self, message):
+    def _encode_channelcast(self, message):
         return pack("!H", len(message.payload.packets)), \
                "".join([pack("!H", len(packet)) + packet for packet in message.payload.packets])
 
-    def _decode_channel_propagate(self, meta_message, offset, data):
+    def _decode_channelcast(self, meta_message, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size")
         num_packets, = unpack_from("!H", data, offset)

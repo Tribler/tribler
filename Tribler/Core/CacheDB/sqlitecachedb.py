@@ -1221,7 +1221,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               dispersy_cid          text,
               peer_id               integer,
               name                  text            NOT NULL,
-              description           text
+              description           text,
+              modified              integer         DEFAULT (strftime('%s','now')),
+              latest_dispersy_modifier text,
+              inserted              integer         DEFAULT (strftime('%s','now'))
             );
             CREATE TABLE IF NOT EXISTS ChannelTorrents (
               id                    integer         PRIMARY KEY ASC,
@@ -1231,6 +1234,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               name                  text,
               description           text,
               time_stamp            integer,
+              modified              integer         DEFAULT (strftime('%s','now')),
+              latest_dispersy_modifier text,
               inserted              integer         DEFAULT (strftime('%s','now')),
               UNIQUE (torrent_id, channel_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
@@ -1243,6 +1248,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               playlist_id           integer,
               name                  text            NOT NULL,
               description           text,
+              modified              integer         DEFAULT (strftime('%s','now')),
+              latest_dispersy_modifier text,
+              inserted              integer         DEFAULT (strftime('%s','now')),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);

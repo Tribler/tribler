@@ -1,5 +1,5 @@
 from conversion import ChannelConversion
-from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload
+from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -10,11 +10,11 @@ from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.message import Message, DropMessage
-from Tribler.Core.dispersy.authentication import MemberAuthentication
-from Tribler.Core.dispersy.resolution import LinearResolution
-from Tribler.Core.dispersy.distribution import FullSyncDistribution
-from Tribler.Core.dispersy.destination import CommunityDestination
+from Tribler.Core.dispersy.message import Message, DropMessage, DelayMessageReqChannelMessage
+from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
+from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution
+from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
+from Tribler.Core.dispersy.destination import CommunityDestination, AddressDestination
 from Tribler.Core.dispersy.member import MyMember
 
 if __debug__:
@@ -27,11 +27,8 @@ class ChannelCommunity(Community):
     def __init__(self, cid, master_key):
         super(ChannelCommunity, self).__init__(cid, master_key)
 
-        # tribler torrent database
+        # tribler channelcast database
         self._channelcast_db = ChannelCastDBHandler.getInstance()
-
-        # tribler remote torrent handler
-        self._remote_torrent_handler = RemoteTorrentHandler.getInstance()
 
         # tribler channel_id
         self.channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
@@ -43,6 +40,7 @@ class ChannelCommunity(Community):
                 Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), CommentPayload(), self.check_comment, self.on_comment),
                 Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ModificationPayload(), self.check_modification, self.on_modification),
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self.check_playlist_torrent, self.on_playlist_torrent),
+                Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self.check_missing_channel, self.on_missing_channel),
                 ]
 
     def initiate_conversions(self):
@@ -101,6 +99,10 @@ class ChannelCommunity(Community):
 
     def check_torrent(self, messages):
         for message in messages:
+            if not self.channel_id:
+                yield DelayMessageReqChannelMessage(message)
+                continue
+                
             if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
@@ -125,6 +127,10 @@ class ChannelCommunity(Community):
 
     def check_playlist(self, messages):
         for message in messages:
+            if not self.channel_id:
+                yield DelayMessageReqChannelMessage(message)
+                continue
+            
             if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
@@ -147,6 +153,10 @@ class ChannelCommunity(Community):
 
     def check_comment(self, messages):
         for message in messages:
+            if not self.channel_id:
+                yield DelayMessageReqChannelMessage(message)
+                continue
+            
             if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
@@ -163,21 +173,27 @@ class ChannelCommunity(Community):
                 peer_id = None
             else:
                 peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
-                
             
-            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after, message.payload.playlist, message.payload.infohash)
+            playlist_dispersy_id = None
+            if message.payload.playlist:
+                playlist_dispersy_id = message.payload.playlist.packet_id
+            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after, playlist_dispersy_id, message.payload.infohash)
         
-    def create_modification(self, modification, modification_on, store=True, update=True, forward=True):
+    def create_modification(self, modification, modification_on, latest_modification, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"modification")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.global_time),
                                  meta.destination.implement(),
-                                 meta.payload.implement(modification, modification_on))
+                                 meta.payload.implement(modification, modification_on, latest_modification))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
     def check_modification(self, messages):
         for message in messages:
+            if not self.channel_id:
+                yield DelayMessageReqChannelMessage(message)
+                continue
+            
             if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
@@ -190,15 +206,16 @@ class ChannelCommunity(Community):
         
             modification_dict = message.payload.modification
             modifying_dispersy_id = message.payload.modification_on.packet_id
+            latest_dispersy_modifier = message.packet_id
         
             if message_name ==  u"torrent":
-                self._channelcast_db.on_torrent_modification_from_dispersy(modifying_dispersy_id, modification_dict)
+                self._channelcast_db.on_torrent_modification_from_dispersy(modifying_dispersy_id, modification_dict, latest_dispersy_modifier)
         
             elif message_name == u"playlist":
-                self._channelcast_db.on_playlist_modification_from_dispersy(modifying_dispersy_id, modification_dict)
+                self._channelcast_db.on_playlist_modification_from_dispersy(modifying_dispersy_id, modification_dict, latest_dispersy_modifier)
         
             elif message_name == u"channel":
-                self._channelcast_db.on_channel_modification_from_dispersy(self._cid, modification_dict)
+                self._channelcast_db.on_channel_modification_from_dispersy(self._cid, modification_dict, latest_dispersy_modifier)
             
     def create_playlist_torrent(self, infohash, playlistmessage, update_locally=True, store_and_forward=True):
         assert isinstance(update_locally, bool)
@@ -220,6 +237,10 @@ class ChannelCommunity(Community):
     
     def check_playlist_torrent(self, address, messages):
         for message in messages:
+            if not self.channel_id:
+                yield DelayMessageReqChannelMessage(message)
+                continue
+            
             if not self._timeline.check(message):
                 raise DropMessage("TODO: implement delay by proof")
             yield message
@@ -229,3 +250,13 @@ class ChannelCommunity(Community):
             
             playlist_dispersy_id = message.payload.playlist.packet_id
             self._channelcast_db.on_playlist_torrent(playlist_dispersy_id, message.payload.infohash)
+            
+    def check_missing_channel(self, address, messages):
+        for message in messages:
+            if not self._timeline.check(message):
+                raise DropMessage("TODO: implement delay by proof")
+            yield message
+
+    def on_missing_channel(self, address, messages):
+        #send message?
+        pass

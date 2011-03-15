@@ -419,32 +419,40 @@ CREATE TABLE UserEventLog (
 -- v8: Open2Edit replacing ChannelCast tables
 
 CREATE TABLE IF NOT EXISTS Channels (
-  id                    integer         PRIMARY KEY ASC,
-  dispersy_cid          text,       
-  peer_id               integer,
-  name                  text            NOT NULL,
-  description           text
+  id                        integer         PRIMARY KEY ASC,
+  dispersy_cid              text,       
+  peer_id                   integer,
+  name                      text            NOT NULL,
+  description               text,
+  modified                  integer         DEFAULT (strftime('%s','now')),
+  latest_dispersy_modifier  text,
+  inserted                  integer         DEFAULT (strftime('%s','now'))
 );
 CREATE TABLE IF NOT EXISTS ChannelTorrents (
-  id                    integer         PRIMARY KEY ASC,
-  dispersy_id           integer,
-  torrent_id            integer         NOT NULL,
-  channel_id            integer         NOT NULL,
-  name                  text,
-  description           text,
-  time_stamp            integer,
-  inserted              integer         DEFAULT (strftime('%s','now')),
+  id                        integer         PRIMARY KEY ASC,
+  dispersy_id               integer,
+  torrent_id                integer         NOT NULL,
+  channel_id                integer         NOT NULL,
+  name                      text,
+  description               text,
+  time_stamp                integer,
+  modified                  integer         DEFAULT (strftime('%s','now')),
+  latest_dispersy_modifier  text,
+  inserted                  integer         DEFAULT (strftime('%s','now')),
   UNIQUE (torrent_id, channel_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
 CREATE TABLE IF NOT EXISTS Playlists (
-  id                    integer         PRIMARY KEY ASC,
-  channel_id            integer         NOT NULL,
-  dispersy_id           integer         NOT NULL,
-  playlist_id           integer,
-  name                  text            NOT NULL,
-  description           text,
+  id                        integer         PRIMARY KEY ASC,
+  channel_id                integer         NOT NULL,
+  dispersy_id               integer         NOT NULL,
+  playlist_id               integer,
+  name                      text            NOT NULL,
+  description               text,
+  modified                  integer         DEFAULT (strftime('%s','now')),
+  latest_dispersy_modifier  text,
+  inserted                  integer         DEFAULT (strftime('%s','now')),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);

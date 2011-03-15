@@ -17,17 +17,15 @@ class PropagateTorrentsPayload(Payload):
         def infohashes(self):
             return self._infohashes
 
-class ChannelPropagatePayload(Payload):
+class ChannelCastPayload(Payload):
     """
     Propagate semi random channel data.
 
-    One channel-propagate message contains a list with the following ChannelCommunity packets:
-
-     - channel (channel name and description)
-
-     - torrent (infohash and timestamp)
-
-     - modify (a channel message modification)
+    One channel-propagate message could contain a list with the following ChannelCommunity packets:
+     - channel
+     - torrent
+     - comment
+     - modify
     """
     class Implementation(Payload.Implementation):
         def __init__(self, meta, packets):
@@ -36,7 +34,7 @@ class ChannelPropagatePayload(Payload):
             assert isinstance(packets, list)
             assert not filter(lambda x: not isinstance(x, str), packets)
             assert not filter(lambda x: not len(x) >= 22, packets)
-            super(ChannelPropagatePayload.Implementation, self).__init__(meta)
+            super(ChannelCastPayload.Implementation, self).__init__(meta)
             self._packets = packets
 
         @property

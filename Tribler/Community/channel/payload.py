@@ -104,12 +104,14 @@ class CommentPayload(Payload):
 
 class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, modification, modification_on):
+        def __init__(self, meta, modification, modification_on, latest_modification):
             assert isinstance(modification, dict)
             assert isinstance(modification_on, Packet)
+            assert not latest_modification or isinstance(latest_modification, Packet)
             super(ModificationPayload.Implementation, self).__init__(meta)
             self._modification = modification
             self._modification_on = modification_on
+            self._latest_modification = latest_modification
 
         @property
         def modification(self):
@@ -118,6 +120,10 @@ class ModificationPayload(Payload):
         @property
         def modification_on(self):
             return self._modification_on
+        
+        @property
+        def latest_modification(self):
+            return self._latest_modification
 
 class PlaylistTorrentPayload(Payload):
     class Implementation(Payload.Implementation):
@@ -137,3 +143,5 @@ class PlaylistTorrentPayload(Payload):
         def playlist(self):
             return self._playlist
 
+class MissingChannelPayload(PlaylistTorrentPayload):
+    pass
