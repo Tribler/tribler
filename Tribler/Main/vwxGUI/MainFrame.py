@@ -78,11 +78,35 @@ class FileDropTarget(wx.FileDropTarget):
         self.frame = frame
       
     def OnDropFiles(self, x, y, filenames):
-        print >> sys.stderr, filenames
+        destdir = None
         for filename in filenames:
+            if not filename.endswith(".torrent"):
+                #lets see if we can find a .torrent in this directory
+                head, _ = os.path.split(filename)
+                files = os.listdir(head)
+                
+                found = False
+                for file in files:
+                    if file.endswith(".torrent"): #this is the .torrent, use head as destdir to start seeding
+                        filename = os.path.join(head, file)
+                        destdir = head
+                        
+                        found = True        
+                        break
+                
+                if not found:
+                    dlg = wx.FileDialog(None, "Tribler needs a .torrent file to start seeding, please select the associated .torrent file.", wildcard = "torrent (*.torrent)|*.torrent", style = wx.FD_OPEN)
+                    if dlg.ShowModal() == wx.ID_OK:
+                        filename = dlg.GetPath()
+                        
+                        destdir = head
+                        found = True
+                    dlg.Destroy()
+                if not found:
+                    break
             try:
                 self.FixTorrent(filename)
-                self.frame.startDownload(filename)
+                self.frame.startDownload(filename, destdir = destdir)
             except IOError:
                 dlg = wx.MessageDialog(None,
                            self.frame.utility.lang.get("filenotfound"),
