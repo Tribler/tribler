@@ -198,12 +198,7 @@ class Community(object):
 
         # define all available messages
         self._meta_messages = {}
-        for meta_message in self._dispersy.initiate_meta_messages(self):
-            assert meta_message.name not in self._meta_messages
-            self._meta_messages[meta_message.name] = meta_message
-        for meta_message in self.initiate_meta_messages():
-            assert meta_message.name not in self._meta_messages
-            self._meta_messages[meta_message.name] = meta_message
+        self._initialize_meta_messages()
 
         # define all available conversions
         conversions = self.initiate_conversions()
@@ -266,6 +261,20 @@ class Community(object):
         else:
             # we do not (yet) have the master member
             self._master_member = None
+
+    def _initialize_meta_messages(self):
+        assert isinstance(self._meta_messages, dict)
+        assert len(self._meta_messages) == 0
+
+        # obtain dispersy meta messages
+        for meta_message in self._dispersy.initiate_meta_messages(self):
+            assert meta_message.name not in self._meta_messages
+            self._meta_messages[meta_message.name] = meta_message
+
+        # obtain community meta messages
+        for meta_message in self.initiate_meta_messages():
+            assert meta_message.name not in self._meta_messages
+            self._meta_messages[meta_message.name] = meta_message
 
     def _initialize_bloom_filters(self):
         assert isinstance(self._bloom_filters, list)

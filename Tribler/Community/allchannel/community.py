@@ -1,10 +1,11 @@
 from hashlib import sha1
 
 from conversion import AllChannelConversion
-from payload import PropagateTorrentsPayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
+from preview import PreviewChannelCommunity
+from payload import ChannelPropagatePayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
-from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+# from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
+# from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
@@ -23,9 +24,9 @@ class AllChannelCommunity(Community):
     """
     A single community that all Tribler members join and use to disseminate .torrent files.
 
-    The dissemination of .torrent files, using 'propagate-torrents' messages, is NOT done using a
-    dispersy sync mechanism.  We prefer more specific dissemination mechanism than dispersy allows.
-    Dissemination occurs by periodically sending:
+    The dissemination of .torrent files, using 'community-propagate' messages, is NOT done using a
+    dispersy sync mechanism.  We prefer more specific dissemination mechanism than dispersy
+    provides.  Dissemination occurs by periodically sending:
 
      - N most recently received .torrent files
      - M random .torrent files
@@ -64,11 +65,11 @@ class AllChannelCommunity(Community):
     def __init__(self, cid, master_key):
         super(AllChannelCommunity, self).__init__(cid, master_key)
 
-        # tribler torrent database
-        self._torrent_database = TorrentDBHandler.getInstance()
+        # # tribler torrent database
+        # self._torrent_database = TorrentDBHandler.getInstance()
 
-        # tribler remote torrent handler
-        self._remote_torrent_handler = RemoteTorrentHandler.getInstance()
+        # # tribler remote torrent handler
+        # self._remote_torrent_handler = RemoteTorrentHandler.getInstance()
 
         # # a queue with infohashes that we might want to download in the near future
         # self._torrent_request_queue = []
@@ -80,9 +81,9 @@ class AllChannelCommunity(Community):
         return 3600.0
 
     def initiate_meta_messages(self):
-        return [Message(self, u"propagate-torrents", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), PropagateTorrentsPayload(), self.check_propagate_torrents, self.on_propagate_torrents),
-                # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
-                # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
+        # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
+        # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
+        return [Message(self, u"channel-propagate", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelPropagatePayload(), self.check_channel_propagate, self.on_channel_propagate),
                 Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
                 Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
                 ]
@@ -90,50 +91,64 @@ class AllChannelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
-    def create_propagate_torrents(self, store=True, forward=True):
-        """
-        Create a 'propagate-torrents' message.
+    def create_channel_propagate(self, forward=True):
+        with self._dispersy.database as execute:
+            # select random torrent messages
+            torrents = list(execute(u"""
+            SELECT community.id, sync.packet
+            FROM sync
+            JOIN community ON community.id = sync.community
+            JOIN name ON name.id = sync.name
+            WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'
+            ORDER BY RANDOM()
+            LIMIT 50"""))
 
-        The message contains one or more infohashes that we want to propagate.
-        """
-        # N most recently received .torrent files
-        # M random .torrent files
-        # O most recent .torrent files, created by ourselves
-        # P randomly choosen .torrent files, created by ourselves
-        infohashes = [infohash.decode("BASE64") for infohash, in self._torrent_database._db.fetchall(u"SELECT infohash FROM Torrent ORDER BY RANDOM() LIMIT 50")]
-        # todo: niels, please select the infohashes you want
+            # select channel messages (associated with the torrents)
+            community_ids = set(community_id for community_id, _ in torrents)
+            channels = [packet for packet, in execute(u"""
+            SELECT sync.packet
+            FROM sync
+            JOIN name ON name.id = sync.name
+            WHERE sync.community IN (?) AND name.value = 'channel'
+            ORDER BY RANDOM()
+            LIMIT 10""", (", ".join(map(str, community_ids)),))]
 
-        meta = self.get_meta_message(u"propagate-torrents")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(self._timeline.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(infohashes))
-        self._dispersy.store_update_forward([message], store, False, forward)
-        return message
+            # TODO: select modificarion messages (associated with the channels)
+            modifications = []
 
-    def check_propagate_torrents(self, messages):
+            packets = []
+            packets.extend([packet for _, packet in torrents])
+            packets.extend([packet for packet, in channels])
+            packets.extend(modifications)
+
+            meta = self.get_meta_message(u"channel-propagate")
+            message = meta.implement(meta.authentication.implement(),
+                                     meta.distribution.implement(self._timeline.global_time),
+                                     meta.destination.implement(),
+                                     meta.payload.implement(packets))
+            self._dispersy.store_update_forward([message], False, False, forward)
+            return message
+
+    def check_channel_propagate(self, messages):
+        # no timeline check because NoAuthentication policy is used
+        return messages
+
+    def on_channel_propagate(self, messages):
+        incoming_packets = []
+
         for message in messages:
-            if not self._timeline.check(message):
-                yield DropMessage("TODO: implement delay by proof")
-                continue
-            yield message
+            incoming_packets.extend((message.address, packet) for packet in message.payload.packets)
 
-    def on_propagate_torrents(self, messages):
-        """
-        Received a 'propagate-torrents' message.
-        """
-        for message in messages:
-            if __debug__: dprint(message)
-            for infohash in message.payload.infohashes:
-                # self._torrent_request_queue.append((address, infohash))
-                # if __debug__: dprint("there are ", len(self._torrent_request_queue), " infohashes in the queue")
+        for _, packet in incoming_packets:
+            # ensure that all the PreviewChannelCommunity instances exist
+            try:
+                self._dispersy.get_community(packet[:20])
+            except KeyError:
+                if __debug__: dprint("join_community ", packet[:20].encode("HEX"))
+                PreviewChannelCommunity.join_community(packet[:20], "", self._my_member)
 
-                pass
-                # todo: niels? select the infohashes that we want to download
-                # for infohash in message.payload.infohashes:
-                #     self._remote_torrent_handler.download_torrent(permid, infohash, lambda *args: pass)
-
-    #         self._start_torrent_request_queue()
+        # handle all packets
+        self._dispersy.on_incoming_packets(incoming_packets)
 
     # def _start_torrent_request_queue(self):
     #     # check that we are not working on a request already
@@ -244,7 +259,7 @@ class AllChannelCommunity(Community):
         assert timeout > 0.0
 
         # todo: we need to set a max items in the bloom filter to limit the size.  the bloom filter
-        # be no more than 1000 bytes large.
+        # be no more than +/- 1000 bytes large.
         skip_bloomfilter = BloomFilter(max(1, len(skip)), 0.1)
         map(skip_bloomfilter.add, (message.packet for message in skip))
 

@@ -68,6 +68,9 @@ def main():
     command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
     command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=60.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
+    command_line_parser.add_option("--enable-allchannel-script", action="store", type="string", help="Include allchannel scripts", default=True)
+    command_line_parser.add_option("--enable-barter-script", action="store", type="string", help="Include barter scripts", default=True)
+    command_line_parser.add_option("--enable-dispersy-script", action="store", type="string", help="Include dispersy scripts", default=True)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
 
@@ -89,32 +92,41 @@ def main():
 
     # load the script parser
     if opt.script:
-        from Tribler.Core.dispersy.script import Script, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
-#        from Tribler.Community.allchannel.script import AllChannelScript
-        from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
-        from Tribler.Community.discovery.script import DiscoveryUserScript, DiscoveryCommunityScript, DiscoverySyncScript
-
-        args = {}
-        if opt.script_args:
-            for arg in opt.script_args.split(','):
-                key, value = arg.split('=')
-                args[key] = value
-
+        from Tribler.Core.dispersy.script import Script
         script = Script.get_instance(rawserver)
-#        script.add("allchannel", AllChannelScript, include_with_all=False)
-        script.add("dispersy-timeline", DispersyTimelineScript)
-        script.add("dispersy-candidate", DispersyCandidateScript)
-        script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)
-        script.add("dispersy-sync", DispersySyncScript)
-        # script.add("dispersy-similarity", DispersySimilarityScript)
-        script.add("dispersy-signature", DispersySignatureScript)
-        script.add("dispersy-member-tag", DispersyMemberTagScript)
-        script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
-        script.add("discovery-user", DiscoveryUserScript)
-        script.add("discovery-community", DiscoveryCommunityScript)
-        script.add("discovery-sync", DiscoverySyncScript)
-        script.add("barter", BarterScript)
-        script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
+
+        if opt.enable_dispersy_script:
+            from Tribler.Core.dispersy.script import DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
+            from Tribler.Community.discovery.script import DiscoveryUserScript, DiscoveryCommunityScript, DiscoverySyncScript
+            script.add("dispersy-timeline", DispersyTimelineScript)
+            script.add("dispersy-candidate", DispersyCandidateScript)
+            script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)
+            script.add("dispersy-sync", DispersySyncScript)
+            # script.add("dispersy-similarity", DispersySimilarityScript)
+            script.add("dispersy-signature", DispersySignatureScript)
+            script.add("dispersy-member-tag", DispersyMemberTagScript)
+            script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
+            script.add("discovery-user", DiscoveryUserScript)
+            script.add("discovery-community", DiscoveryCommunityScript)
+            script.add("discovery-sync", DiscoverySyncScript)
+
+        if opt.enable_allchannel_script:
+            from Tribler.Community.allchannel.script import AllChannelScript
+            script = Script.get_instance(rawserver)
+            script.add("allchannel", AllChannelScript, include_with_all=False)
+
+        if opt.enable_barter_script:
+            from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
+
+            args = {}
+            if opt.script_args:
+                for arg in opt.script_args.split(','):
+                    key, value = arg.split('=')
+                    args[key] = value
+
+            script.add("barter", BarterScript)
+            script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
+
         script.load(opt.script)
 
     rawserver.listen_forever(None)

@@ -17,6 +17,32 @@ class PropagateTorrentsPayload(Payload):
         def infohashes(self):
             return self._infohashes
 
+class ChannelPropagatePayload(Payload):
+    """
+    Propagate semi random channel data.
+
+    One channel-propagate message contains a list with the following ChannelCommunity packets:
+
+     - channel (channel name and description)
+
+     - torrent (infohash and timestamp)
+
+     - modify (a channel message modification)
+    """
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, packets):
+            if __debug__:
+                from Tribler.Core.dispersy.message import Packet
+            assert isinstance(packets, list)
+            assert not filter(lambda x: not isinstance(x, str), packets)
+            assert not filter(lambda x: not len(x) >= 22, packets)
+            super(ChannelPropagatePayload.Implementation, self).__init__(meta)
+            self._packets = packets
+
+        @property
+        def packets(self):
+            return self._packets
+
 # class TorrentRequestPayload(Payload):
 #     """
 #     Request to download one .torrent files and metadata associated with a single infohash.

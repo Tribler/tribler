@@ -1,30 +1,52 @@
+from struct import pack, unpack_from
+
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket
 from Tribler.Core.dispersy.conversion import BinaryConversion
 
+if __debug__:
+    from Tribler.Core.dispersy.dprint import dprint
+
 class AllChannelConversion(BinaryConversion):
     def __init__(self, community):
         super(AllChannelConversion, self).__init__(community, "\x00\x01")
-        self.define_meta_message(chr(1), community.get_meta_message(u"propagate-torrents"), self._encode_propagate_torrents, self._decode_propagate_torrents)
+        self.define_meta_message(chr(1), community.get_meta_message(u"channel-propagate"), self._encode_channel_propagate, self._decode_channel_propagate)
         self.define_meta_message(chr(2), community.get_meta_message(u"channel-search-request"), self._encode_channel_search_request, self._decode_channel_search_request)
         self.define_meta_message(chr(3), community.get_meta_message(u"channel-search-response"), self._encode_channel_search_response, self._decode_channel_search_response)
         # self.define_meta_message(chr(2), community.get_meta_message(u"torrent-request"),
         # self._encode_torrent_request, self._decode_torrent_request)
 
-    def _encode_propagate_torrents(self, message):
-        return message.payload.infohashes
+        self._address = ("", -1)
 
-    def _decode_propagate_torrents(self, meta_message, offset, data):
-        if len(data) < offset + 20:
+    def _encode_channel_propagate(self, message):
+        return pack("!H", len(message.payload.packets)), \
+               "".join([pack("!H", len(packet)) + packet for packet in message.payload.packets])
+
+    def _decode_channel_propagate(self, meta_message, offset, data):
+        if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size")
+        num_packets, = unpack_from("!H", data, offset)
+        offset += 2
 
-        infohashes = []
-        while len(data) >= offset + 20:
-            infohashes.append(data[offset:offset+20])
-            offset += 20
+        packets = []
+        for _ in range(num_packets):
+            if len(data) < offset + 2:
+                raise DropPacket("Insufficient packet size")
+            length, = unpack_from("!H", data, offset)
+            if length < 22:
+                # must contain at least 20 bytes to identify the community and 2 bytes for the version
+                raise DropPacket("Packet to small")
+            offset += 2
+            if len(data) < offset + length:
+                raise DropPacket("Insufficient packet size")
 
-        return offset, meta_message.payload.implement(infohashes)
+            packet = data[offset:offset+length]
+            offset += length
+            dprint(len(packet))
+            packets.append(packet)
+
+        return offset, meta_message.payload.implement(packets)
 
     def _encode_channel_search_request(self, message):
         skip = str(message.payload.skip)
@@ -37,6 +59,9 @@ class AllChannelConversion(BinaryConversion):
             offset, dic = decode(data, offset)
         except ValueError:
             raise DropPacket("Unable to decode the payload")
+
+        if not isinstance(dic, dict):
+            raise DropPacket("Invalid payload type")
 
         if not "skip" in dic:
             raise DropPacket("Missing 'skip'")
@@ -72,6 +97,9 @@ class AllChannelConversion(BinaryConversion):
         except ValueError:
             raise DropPacket("Unable to decode the payload")
 
+        if not isinstance(dic, dict):
+            raise DropPacket("Invalid payload type")
+
         if not "request_identifier" in dic:
             raise DropPacket("Missing 'request-identifier'")
         request_identifier = dic["request-identifier"]
@@ -101,3 +129,7 @@ class AllChannelConversion(BinaryConversion):
     #     offset += 20
 
     #     return offset, meta_message.payload.implement(infohash)
+
+    def decode_message(self, address, data):
+        self._address = address
+        return super(AllChannelConversion, self).decode_message(address, data)

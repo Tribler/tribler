@@ -63,6 +63,9 @@ class TrackerCommunity(Community):
     def __init__(self, cid, master_key):
         super(TrackerCommunity, self).__init__(cid, master_key)
 
+    def _initialize_meta_messages(self):
+        super(TrackerCommunity, self)._initialize_meta_messages()
+
         # remove all messages that we should not be using
         meta_messages = self._meta_messages
         self._meta_messages = {}

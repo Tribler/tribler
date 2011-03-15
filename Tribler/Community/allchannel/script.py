@@ -8,12 +8,12 @@ from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
 
 class AllChannelNode(Node):
-    def create_propagate_torrents(self, infohashes, global_time):
-        meta = self._community.get_meta_message(u"propagate-torrents")
+    def create_channel_propagate(self, packets, global_time):
+        meta = self._community.get_meta_message(u"channel-propagate")
         return meta.implement(meta.authentication.implement(),
                               meta.distribution.implement(global_time),
                               meta.destination.implement(),
-                              meta.payload.implement(infohashes))
+                              meta.payload.implement(packets))
 
     def create_torrent_request(self, infohash, global_time):
         meta = self._community.get_meta_message(u"torrent-request")
@@ -36,12 +36,12 @@ class AllChannelScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        self.caller(self.test_incoming_propagate_torrents)
-        self.caller(self.test_outgoing_propagate_torrents)
+        self.caller(self.test_incoming_channel_propagate)
+        self.caller(self.test_outgoing_channel_propagate)
         self.caller(self.test_incoming_channel_search_request)
         self.caller(self.test_outgoing_channel_search_request)
 
-    def test_incoming_propagate_torrents(self):
+    def test_incoming_channel_propagate(self):
         """
         We will send a 'propagate-torrents' message from NODE to SELF with an infohash that is not
         in the local database, the associated .torrent should then be requested by SELF.
@@ -57,9 +57,9 @@ class AllChannelScript(ScriptBase):
         yield 0.1
 
         # send a 'propagate-torrents' message with an infohash that SELF does not have
-        infohash = "-this-is-not-an-existing-infohash-"[:20]
+        packets = ["a"*22 for _ in range(10)]
         global_time = 10
-        node.send_message(node.create_propagate_torrents([infohash], global_time), address)
+        node.send_message(node.create_channel_propagate(packets, global_time), address)
         yield 0.1
 
         # # wait for the 'torrent-request' message from SELF to NODE
@@ -69,7 +69,7 @@ class AllChannelScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
 
-    def test_outgoing_propagate_torrents(self):
+    def test_outgoing_channel_propagate(self):
         """
         We will send a 'propagate-torrents' message from SELF to NODE.
 
@@ -93,7 +93,7 @@ class AllChannelScript(ScriptBase):
         yield 0.01
 
         # send a 'propagate-torrents' message
-        community.create_propagate_torrents()
+        community.create_channel_propagate()
         yield 0.01
 
         # wait for the 'propagate-torrents' message from SELF to NODE
@@ -184,7 +184,7 @@ class AllChannelScript(ScriptBase):
 
     #     # send a 'torrent-request' message
     #     node.create_
-    #     community.create_propagate_torrents()
+    #     community.create_channel_propagate()
     #     yield 0.01
 
     #     # wait for the 'propagate-torrents' message from SELF to NODE
