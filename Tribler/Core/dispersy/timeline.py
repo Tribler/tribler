@@ -25,10 +25,8 @@ class Timeline(object):
         return self._global_time
 
     def claim_global_time(self):
-        try:
-            return self._global_time
-        finally:
-            self._global_time += 1
+        self._global_time += 1
+        return self._global_time
 
     def check(self, message, permission=u"permit"):
         """
