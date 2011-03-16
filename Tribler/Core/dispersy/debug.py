@@ -113,12 +113,15 @@ class Node(object):
         return packet
 
     def send_packet(self, packet, address):
+        assert isinstance(packet, str)
+        assert isinstance(address, tuple)
         dprint(len(packet), " bytes to ", address[0], ":", address[1])
         self._socket.sendto(packet, address)
         return packet
 
     def send_message(self, message, address):
         assert isinstance(message, Message.Implementation)
+        assert isinstance(address, tuple)
         self.encode_message(message)
         dprint(message.name, " (", len(message.packet), " bytes) to ", address[0], ":", address[1])
         self.send_packet(message.packet, address)

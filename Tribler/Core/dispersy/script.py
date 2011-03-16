@@ -528,6 +528,161 @@ class DispersyMemberTagScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
 
+class DispersyBatchScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        # duplicate messages are removed
+        self.caller(self.one_batch_binary_duplicate)
+        self.caller(self.two_batches_binary_duplicate)
+        self.caller(self.one_batch_user_global_time_duplicate)
+        self.caller(self.two_batches_user_global_time_duplicate)
+
+    def one_batch_binary_duplicate(self):
+        """
+        When multiple binary identical UDP packets are received, the duplicate packets need to be
+        reduced to one packet.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.01
+
+        global_time = 10
+        message = node.create_full_sync_text_message("duplicates", global_time)
+        for _ in range(10):
+            node.send_packet(message.packet, address)
+        yield 0.01
+
+        # only one message may be in the database
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        assert times == [global_time]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def two_batches_binary_duplicate(self):
+        """
+        When multiple binary identical UDP packets are received, the duplicate packets need to be
+        reduced to one packet.
+
+        The second batch needs to be dropped aswell, while the last unique packet of the second
+        batch is dropped when the when the database is consulted.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.01
+
+        global_time = 10
+        # first batch
+        message = node.create_full_sync_text_message("duplicates", global_time)
+        for _ in range(10):
+            node.send_packet(message.packet, address)
+        yield 0.01
+
+        # only one message may be in the database
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        assert times == [global_time]
+
+        # second batch
+        for _ in range(10):
+            node.send_packet(message.packet, address)
+        yield 0.01
+
+        # only one message may be in the database
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        assert times == [global_time]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def one_batch_user_global_time_duplicate(self):
+        """
+        A member can create invalid duplicate messages that are binary different.
+
+        For instance, two different messages that are created by the same member and have the same
+        global_time, will be binary different while they are still duplicates.  Because dispersy
+        uses the message creator and the global_time to uniquely identify messages.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        meta = community.get_meta_message(u"full-sync-text")
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.01
+
+        global_time = 10
+        for index in range(10):
+            node.send_message(node.create_full_sync_text_message("duplicates (%s)" % index, global_time), address)
+        yield 0.01
+
+        # only one message may be in the database
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
+        assert times == [global_time]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def two_batches_user_global_time_duplicate(self):
+        """
+        A member can create invalid duplicate messages that are binary different.
+
+        For instance, two different messages that are created by the same member and have the same
+        global_time, will be binary different while they are still duplicates.  Because dispersy
+        uses the message creator and the global_time to uniquely identify messages.
+
+        The second batch needs to be dropped aswell, while the last unique packet of the second
+        batch is dropped when the when the database is consulted.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        meta = community.get_meta_message(u"full-sync-text")
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.01
+
+        global_time = 10
+        # first batch
+        for index in range(10):
+            node.send_message(node.create_full_sync_text_message("duplicates (%s)" % index, global_time), address)
+        yield 0.01
+
+        # only one message may be in the database
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
+        assert times == [global_time]
+
+        # second batch
+        for index in range(10):
+            node.send_message(node.create_full_sync_text_message("duplicates (%s)" % index, global_time), address)
+        yield 0.01
+
+        # only one message may be in the database
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
+        assert times == [global_time]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
 class DispersySyncScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")

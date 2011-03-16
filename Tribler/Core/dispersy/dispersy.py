@@ -312,6 +312,9 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
+        # a message is considered unique when (creator, global-time), i.r. (authentication.member,
+        # distribution.global_time), is unique.
+        unique = set()
         execute = self._database.execute
         enable_sequence_number = messages[0].meta.distribution.enable_sequence_number
 
@@ -332,15 +335,48 @@ class Dispersy(Singleton):
 
             # all messages must follow the sequence_number order
             for message in messages:
-                seq = highest[message.authentication.member]
+                key = (message.authentication.member, message.distribution.global_time)
+                if key in unique:
+                    yield DropMessage("drop duplicate message by member^global_time")
 
-                if seq >= message.distribution.sequence_number:
-                    # we already have this message (drop)
-                    yield DropMessage("drop duplicate message by sequence_number")
+                else:
+                    unique.add(key)
+                    seq = highest[message.authentication.member]
 
-                elif seq + 1 == message.distribution.sequence_number:
-                    # we have the previous message, check for duplicates based on community, user,
-                    # and global_time
+                    if seq >= message.distribution.sequence_number:
+                        # we already have this message (drop)
+                        yield DropMessage("drop duplicate message by sequence_number")
+
+                    elif seq + 1 == message.distribution.sequence_number:
+                        # we have the previous message, check for duplicates based on community, user,
+                        # and global_time
+                        try:
+                            execute(u"SELECT 1 FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                    (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+
+                        except StopIteration:
+                            # we accept this message
+                            highest[message.authentication.member] += 1
+                            yield message
+
+                        else:
+                            # we have the previous message (drop)
+                            yield DropMessage("drop duplicate message by global_time (1)")
+
+                    else:
+                        # we do not have the previous message (delay and request)
+                        yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
+
+        else:
+            for message in messages:
+                key = (message.authentication.member, message.distribution.global_time)
+                if key in unique:
+                    yield DropMessage("drop duplicate message by member^global_time")
+
+                else:
+                    unique.add(key)
+
+                    # check for duplicates based on community, user, and global_time
                     try:
                         execute(u"SELECT 1 FROM sync WHERE community = ? AND user = ? AND global_time = ?",
                                 (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
@@ -348,30 +384,10 @@ class Dispersy(Singleton):
                     except StopIteration:
                         # we accept this message
                         yield message
-                        highest[message.authentication.member] += 1
 
                     else:
                         # we have the previous message (drop)
-                        yield DropMessage("drop duplicate message by global_time (1)")
-
-                else:
-                    # we do not have the previous message (delay and request)
-                    yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
-
-        else:
-            for message in messages:
-                # check for duplicates based on community, user, and global_time
-                try:
-                    execute(u"SELECT 1 FROM sync WHERE community = ? AND user = ? AND global_time = ?",
-                            (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
-
-                except StopIteration:
-                    # we accept this message
-                    yield message
-
-                else:
-                    # we have the previous message (drop)
-                    yield DropMessage("drop duplicate message by global_time (2)")
+                        yield DropMessage("drop duplicate message by global_time (2)")
 
     def _check_last_sync_distribution_batch(self, messages):
         """
@@ -394,6 +410,9 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
+        # a message is considered unique when (creator, global-time), i.r. (authentication.member,
+        # distribution.global_time), is unique.
+        unique = set()
         execute = self._database.execute
         enable_sequence_number = messages[0].meta.distribution.enable_sequence_number
 
@@ -420,15 +439,51 @@ class Dispersy(Singleton):
 
             # all messages must follow the sequence_number order
             for message in messages:
-                seq = highest[message.authentication.member]
+                key = (message.authentication.member, message.distribution.global_time)
+                if key in unique:
+                    yield DropMessage("drop duplicate message by member^global_time")
 
-                if seq >= message.distribution.sequence_number:
-                    # we already have this message (drop)
-                    yield DropMessage("drop duplicate message by sequence_number")
+                else:
+                    unique.add(key)
+                    seq = highest[message.authentication.member]
 
-                elif seq + 1 == message.distribution.sequence_number:
-                    # we have the previous message, check for duplicates based on community, user,
-                    # and global_time
+                    if seq >= message.distribution.sequence_number:
+                        # we already have this message (drop)
+                        yield DropMessage("drop duplicate message by sequence_number")
+
+                    elif seq + 1 == message.distribution.sequence_number:
+                        # we have the previous message, check for duplicates based on community, user,
+                        # and global_time
+                        tim = times[message.authentication.member]
+
+                        if message.distribution.global_time in tim:
+                            # we have the previous message (drop)
+                            yield DropMessage("drop duplicate message by global_time (3)")
+
+                        elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
+                            # we have newer messages (drop)
+                            yield DropMessage("drop old message by global_time (4)")
+                            # todo: if the history_size is one, we can sent that on message back because
+                            # apparently the sender does not have this message yet
+
+                        else:
+                            # we accept this message
+                            yield message
+                            tim.append(message.distribution.global_time)
+                            highest[message.authentication.member] += 1
+
+                    else:
+                        # we do not have the previous message (delay and request)
+                        yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
+
+        else:
+            for message in messages:
+                key = (message.authentication.member, message.distribution.global_time)
+                if key in unique:
+                    yield DropMessage("drop duplicate message by member^global_time")
+
+                else:
+                    unique.add(key)
                     tim = times[message.authentication.member]
 
                     if message.distribution.global_time in tim:
@@ -445,30 +500,6 @@ class Dispersy(Singleton):
                         # we accept this message
                         yield message
                         tim.append(message.distribution.global_time)
-                        highest[message.authentication.member] += 1
-
-                else:
-                    # we do not have the previous message (delay and request)
-                    yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
-
-        else:
-            for message in messages:
-                tim = times[message.authentication.member]
-
-                if message.distribution.global_time in tim:
-                    # we have the previous message (drop)
-                    yield DropMessage("drop duplicate message by global_time (3)")
-
-                elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
-                    # we have newer messages (drop)
-                    yield DropMessage("drop old message by global_time (4)")
-                    # todo: if the history_size is one, we can sent that on message back because
-                    # apparently the sender does not have this message yet
-
-                else:
-                    # we accept this message
-                    yield message
-                    tim.append(message.distribution.global_time)
 
     def _check_direct_distribution_batch(self, messages):
         """
@@ -528,18 +559,14 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
 
-        if __debug__:
-            for address, packet in packets:
-                dprint(len(packet), " bytes were received from ", address[0], ":", address[1])
-            dprint(len(packets), " incoming packets worth ", sum(len(packet) for _, packet in packets), " bytes")
+        if __debug__: dprint(len(packets), " incoming packets worth ", sum(len(packet) for _, packet in packets), " bytes")
         self._total_received += sum(len(packet) for _, packet in packets)
 
         batches = dict()
         for meta, triplet in self._convert_packets_into_batch(packets):
-            if meta in batches:
-                batches[meta].append(triplet)
-            else:
-                batches[meta] = [triplet]
+            if not meta in batches:
+                batches[meta] = set()
+            batches[meta].add(triplet)
 
         if __debug__: dprint(sum(len(batch) for batch in batches.itervalues()), " incoming packets after simple check")
 
@@ -725,7 +752,7 @@ class Dispersy(Singleton):
     def _convert_batch_into_messages(self, batch):
         if __debug__:
             from conversion import Conversion
-        assert isinstance(batch, list)
+        assert isinstance(batch, (list, set))
         assert len(batch) > 0
         assert not filter(lambda x: not isinstance(x, tuple), batch)
         assert not filter(lambda x: not len(x) == 3, batch)
@@ -772,69 +799,72 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
         assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+        assert not filter(lambda x: not isinstance(x.distribution, SyncDistribution.Implementation), messages)
+        # ensure no duplicate messages are present, this MUST HAVE been checked before calling this
+        # method!
+        assert len(messages) == len(set((message.authentication.member.database_id, message.distribution.global_time) for message in messages)), messages[0].name
 
         meta = messages[0].meta
-        if isinstance(meta.distribution, SyncDistribution):
-            is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
-            is_similarity_destination = isinstance(meta.destination, SimilarityDestination)
-            is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
+        is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
+        is_similarity_destination = isinstance(meta.destination, SimilarityDestination)
+        is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
 
-            with self._database as execute:
-                for message in messages:
-                    # the signature must be set
-                    assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
-                    assert message.authentication.is_signed
-                    assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
+        with self._database as execute:
+            for message in messages:
+                # the signature must be set
+                assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
+                assert message.authentication.is_signed
+                assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
 
-                    # we do not store a message when it uses SubjectiveDestination and it is not in our set
-                    if is_subjective_destination and not message.destination.is_valid:
-                        # however, ignore the SimilarityDestination when we are forced so store this message
-                        if not message.authentication.member.must_store:
-                            if __debug__: dprint("Not storing message")
-                            continue
+                # we do not store a message when it uses SubjectiveDestination and it is not in our set
+                if is_subjective_destination and not message.destination.is_valid:
+                    # however, ignore the SimilarityDestination when we are forced so store this message
+                    if not message.authentication.member.must_store:
+                        if __debug__: dprint("Not storing message")
+                        continue
 
-                    # we do not store a message when it uses SimilarityDestination and it is not similar
-                    if is_similarity_destination and not message.destination.is_similar:
-                        # however, ignore the SimilarityDestination when we are forced so store this message
-                        if not message.authentication.member.must_store:
-                            if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
-                            continue
+                # we do not store a message when it uses SimilarityDestination and it is not similar
+                if is_similarity_destination and not message.destination.is_similar:
+                    # however, ignore the SimilarityDestination when we are forced so store this message
+                    if not message.authentication.member.must_store:
+                        if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
+                        continue
 
-                    # update the bloomfilter
-                    message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
+                # update the bloomfilter
+                message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
 
-                    # add packet to database
-                    execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (message.community.database_id,
-                             message.database_id,
-                             message.authentication.member.database_id,
-                             message.distribution.global_time,
-                             message.distribution.synchronization_direction_id,
-                             isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
-                             # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
-                             isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
-                             buffer(message.packet)))
+                # add packet to database
+                execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (message.community.database_id,
+                         message.database_id,
+                         message.authentication.member.database_id,
+                         message.distribution.global_time,
+                         message.distribution.synchronization_direction_id,
+                         isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
+                         # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
+                         isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
+                         buffer(message.packet)))
 
-                    # ensure that we can reference this packet
-                    message.packet_id = self._database.last_insert_rowid
-                    if __debug__: dprint("stored message in database with id ", message.packet_id)
+                # ensure that we can reference this packet
+                message.packet_id = self._database.last_insert_rowid
+                if __debug__: dprint("stored message in database with id ", message.packet_id)
 
-                    # link multiple members is needed
+                # link multiple members is needed
+                if is_multi_member_authentication:
+                    for member in message.authentication.members:
+                        execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
+                                (member.database_id, message.packet_id))
+
+            if isinstance(meta.distribution, LastSyncDistribution):
+                # delete packets that have become obsolete
+                for member in set(message.authentication.member for message in messages):
+                    execute(u"DELETE FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
+                            (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size))
+                    if __debug__: dprint("deleted ", self._database.changes, " entries")
+
                     if is_multi_member_authentication:
-                        for member in message.authentication.members:
-                            execute(u"INSERT INTO reference_user_sync (user, sync) VALUES (?, ?)",
-                                    (member.database_id, message.packet_id))
-
-                if isinstance(meta.distribution, LastSyncDistribution):
-                    # delete packets that have become obsolete
-                    for member in set(message.authentication.member for message in messages):
-                        execute(u"DELETE FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
-                                (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size))
-                        if __debug__: dprint("deleted ", self._database.changes, " entries")
-
-                        if is_multi_member_authentication:
-                            execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
-                                    (message.community.database_id, member.database_id))
+                        execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
+                                (message.community.database_id, member.database_id))
 
     def _select_candidate_addresses(self, community_id, address_count, diff_range, age_range):
         assert isinstance(community_id, (int, long))
@@ -956,8 +986,8 @@ class Dispersy(Singleton):
         assert isinstance(update, bool)
         assert isinstance(forward, bool)
 
-        if store:
-            self._sync_distribution_store(messages)
+        if store and isinstance(messages[0].meta.distribution, SyncDistribution):
+                self._sync_distribution_store(messages)
 
         if update:
             messages[0].handle_callback(messages)
