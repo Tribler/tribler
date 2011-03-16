@@ -833,25 +833,17 @@ class Dispersy(Singleton):
                 # update the bloomfilter
                 message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
 
-                try:
-                    # add packet to database
-                    execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (message.community.database_id,
-                             message.database_id,
-                             message.authentication.member.database_id,
-                             message.distribution.global_time,
-                             message.distribution.synchronization_direction_id,
-                             isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
-                             # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
-                             isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
-                             buffer(message.packet)))
-                except IntegrityError:
-                    dprint("message: ", message.name, level="warning")
-                    dprint("community: ", message.community.database_id, level="warning")
-                    dprint("member: ", message.authentication.member.database_id, level="warning")
-                    dprint("global_time: ", message.distribution.global_time, level="warning")
-                    dprint(exception=1, level="warning")
-                    raise
+                # add packet to database
+                execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (message.community.database_id,
+                         message.database_id,
+                         message.authentication.member.database_id,
+                         message.distribution.global_time,
+                         message.distribution.synchronization_direction_id,
+                         isinstance(message.distribution, FullSyncDistribution.Implementation) and message.distribution.sequence_number or 0,
+                         # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
+                         isinstance(message.destination, SimilarityDestination.Implementation) and message.destination.cluster or 0,
+                         buffer(message.packet)))
 
                 # ensure that we can reference this packet
                 message.packet_id = self._database.last_insert_rowid
