@@ -94,25 +94,24 @@ class AllChannelCommunity(Community):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
     def create_channelcast(self, forward=True):
-        with self._dispersy.database as execute:
-            sync_ids = self._channelcast_db.getRecentAndRandomTorrents()
+        sync_ids = self._channelcast_db.getRecentAndRandomTorrents()
 
-            # select channel messages (associated with the sync_ids)
-            packets = [packet for packet, in execute(u"""
-            SELECT sync.packet
-            FROM sync
-            WHERE sync.id IN (?)
-            """, (u", ".join(map(unicode, sync_ids)),))]
+        # select channel messages (associated with the sync_ids)
+        packets = [packet for packet, in self._dispersy.database.execute(u"""
+        SELECT sync.packet
+        FROM sync
+        WHERE sync.id IN (?)
+        """, (u", ".join(map(unicode, sync_ids)),))]
 
-            meta = self.get_meta_message(u"channel-propagate")
-            message = meta.implement(meta.authentication.implement(),
-                                     meta.distribution.implement(self._timeline.global_time),
-                                     meta.destination.implement(),
-                                     meta.payload.implement(packets))
-            self._dispersy.store_update_forward([message], False, False, forward)
-            
-            self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
-            return message
+        meta = self.get_meta_message(u"channelcast")
+        message = meta.implement(meta.authentication.implement(),
+                                 meta.distribution.implement(self._timeline.global_time),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(packets))
+        self._dispersy.store_update_forward([message], False, False, forward)
+        
+        self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
+        return message
 
     def check_channelcast(self, messages):
         # no timeline check because NoAuthentication policy is used

@@ -932,7 +932,7 @@ class ChannelSearchGridManager:
         assert isinstance(channel_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_cid = self._db.fetchone(u"SELECT dispersy_cid FROM Channels WHERE id = ?", (channel_id,))
+        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
         dispersy_cid = str(dispersy_cid)
         
         # 2. get the community instance from the 20 byte identifier
@@ -974,7 +974,8 @@ class ChannelSearchGridManager:
     def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
         infohash = None
         if channeltorrent_id:
-            infohash = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash']) 
+            infohash_dict = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash'])
+            infohash = infohash_dict['infohash'] 
         
         community = self._get_community_from_channel_id(channel_id)
         community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)

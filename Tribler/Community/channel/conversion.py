@@ -281,7 +281,7 @@ class ChannelConversion(BinaryConversion):
                 JOIN user ON (user.id = reference_user_sync.user)
                 JOIN name ON (name.id = sync.name)
                 WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                      (self._community.database_id, global_time, mid)).next()
+                                                      (self._community.database_id, global_time, buffer(mid))).next()
         except StopIteration:
             raise DropPacket("Missing previous message")
         

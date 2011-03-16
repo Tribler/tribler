@@ -81,7 +81,7 @@ class ChannelCommunity(Community):
 
             self.channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
 
-    def create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
+    def _disp_create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.claim_global_time()),
@@ -90,7 +90,7 @@ class ChannelCommunity(Community):
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
     
-    def create_torrents(self, torrentlist, store=True, update=True, forward=True):
+    def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
         messages = []
         
         meta = self.get_meta_message(u"torrent")
@@ -205,10 +205,18 @@ class ChannelCommunity(Community):
             else:
                 peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
             
+            reply_to_id = None
+            if message.payload.reply_to:
+                reply_to_id = message.payload.reply_to.packet_id
+            
+            reply_after_id = None
+            if message.payload.reply_after:
+                reply_after_id = message.payload.reply_after.packet_id
+            
             playlist_dispersy_id = None
             if message.payload.playlist:
                 playlist_dispersy_id = message.payload.playlist.packet_id
-            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, message.payload.reply_to, message.payload.reply_after, playlist_dispersy_id, message.payload.infohash)
+            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
         
     #modify channel, playlist or torrent
     def modifyChannel(self, channel_id, modifications, store=True, update=True, forward=True):
@@ -333,69 +341,69 @@ class ChannelCommunity(Community):
         self._dispersy._send([address], [message])
         
     #helper functions
-    def _get_message_from_channel_id(self, dispersy, channel_id):
+    def _get_message_from_channel_id(self, channel_id):
         assert isinstance(channel_id, (int, long))
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._db.fetchone(u"SELECT dispersy_id FROM Channels WHERE id = ?", (channel_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT dispersy_id FROM Channels WHERE id = ?", (channel_id,))
 
         # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy, dispersy_id, 'channel')
+        message = self._get_message_from_dispersy_id(dispersy_id, 'channel')
         return message
     
-    def _get_latest_modification_from_channel_id(self, dispersy, channel_id):
+    def _get_latest_modification_from_channel_id(self, channel_id):
         assert isinstance(channel_id, (int, long))
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._db.fetchone(u"SELECT latest_dispersy_modifier FROM Channels WHERE id = ?", (channel_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT latest_dispersy_modifier FROM Channels WHERE id = ?", (channel_id,))
         
         if dispersy_id:
             # 2. get the message
-            message = self._get_message_from_dispersy_id(dispersy, dispersy_id, 'modification')
+            message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
             return message
         
-    def _get_message_from_playlist_id(self, dispersy, playlist_id):
+    def _get_message_from_playlist_id(self, playlist_id):
         assert isinstance(playlist_id, (int, long))
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._db.fetchone(u"SELECT dispersy_id FROM Playlists WHERE id = ?", (playlist_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT dispersy_id FROM Playlists WHERE id = ?", (playlist_id,))
 
         # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy, dispersy_id, 'playlist')
+        message = self._get_message_from_dispersy_id(dispersy_id, 'playlist')
         return message
     
-    def _get_latest_modification_from_playlist_id(self, dispersy, playlist_id):
+    def _get_latest_modification_from_playlist_id(self, playlist_id):
         assert isinstance(playlist_id, (int, long))
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._db.fetchone(u"SELECT latest_dispersy_modifier FROM Playlists WHERE id = ?", (playlist_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT latest_dispersy_modifier FROM Playlists WHERE id = ?", (playlist_id,))
 
         if dispersy_id:
             # 2. get the message
-            message = self._get_message_from_dispersy_id(dispersy, dispersy_id, 'playlist')
+            message = self._get_message_from_dispersy_id(dispersy_id, 'playlist')
             return message
         
-    def _get_message_from_torrent_id(self, dispersy, torrent_id):
+    def _get_message_from_torrent_id(self, torrent_id):
         assert isinstance(torrent_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._db.fetchone(u"SELECT dispersy_id FROM ChannelTorrents WHERE id = ?", (torrent_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT dispersy_id FROM ChannelTorrents WHERE id = ?", (torrent_id,))
         
         # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy, dispersy_id, "torrent")
+        message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
         return message
     
-    def _get_latest_modification_from_torrent_id(self, dispersy, torrent_id):
+    def _get_latest_modification_from_torrent_id(self, torrent_id):
         assert isinstance(torrent_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._db.fetchone(u"SELECT latest_dispersy_modifier FROM ChannelTorrents WHERE id = ?", (torrent_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT latest_dispersy_modifier FROM ChannelTorrents WHERE id = ?", (torrent_id,))
         if dispersy_id:
         
             # 2. get the message
-            message = self._get_message_from_dispersy_id(dispersy, dispersy_id, "modification")
+            message = self._get_message_from_dispersy_id(dispersy_id, "modification")
             return message
         
-    def _get_message_from_dispersy_id(self, dispersy, dispersy_id, messagename):
+    def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            cid, packet, packet_id = dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            cid, packet, packet_id = self._dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         
@@ -403,15 +411,16 @@ class ChannelCommunity(Community):
         packet = str(packet)
         # 2. get the community instance from the 20 byte identifier
         try:
-            community = dispersy.get_community(cid)
+            community = self._dispersy.get_community(cid)
         except KeyError:
             raise RuntimeError("Unknown community identifier")
 
         # 3. convert packet into a Message instance
         try:
             message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
-        except ValueError:
-            raise RuntimeError("Unable to decode packet")
+        except ValueError, v:
+            #raise RuntimeError("Unable to decode packet")
+            raise
         message.packet_id = packet_id
         
         # 4. check

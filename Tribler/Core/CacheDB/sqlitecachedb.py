@@ -1571,7 +1571,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         
                         if my_channel_name:
                             community = ChannelCommunity.create_community(session.dispersy_member)
-                            community.create_channel(my_channel_name, u'')
+                            community._disp_create_channel(my_channel_name, u'')
                             
                             dispersy.rawserver.add_task(insert_my_torrents, 10)
                         
@@ -1590,7 +1590,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 to_be_inserted.append((infohash, timestamp))
                             
                             if len(to_be_inserted) > 0:
-                                community.create_torrents(to_be_inserted, forward = False)
+                                community._disp_create_torrents(to_be_inserted, forward = False)
                                 dispersy.rawserver.add_task(insert_my_torrents, 5)
                             
                             else: #done

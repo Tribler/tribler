@@ -1149,6 +1149,9 @@ class TorrentDBHandler(BasicDBHandler):
         return torrent_id
 
     def addOrGetTorrentIDS(self, infohashes):
+        if len(infohashes) == 1:
+            return [self.addOrGetTorrentID(infohashes[0])]
+        
         torrent_ids = self._db.getTorrentIDS(infohashes)
         for i in range(len(torrent_ids)):
             torrent_id = torrent_ids[i]
@@ -3017,6 +3020,9 @@ class ChannelCastDBHandler:
         
         return self.my_dispersy_cid
     
+    def getDispersyCIDFromChannelId(self, channel_id):
+        return self._db.fetchone(u"SELECT dispersy_cid FROM Channels WHERE id = ?", (channel_id,))
+    
     #dispersy modifying and receiving channels
     def on_channel_from_channelcast(self, publisher_permid, name):
         peer_id = self.peer_db.addOrGetPeerID(publisher_permid)
@@ -3072,13 +3078,16 @@ class ChannelCastDBHandler:
         print >> sys.stderr, "Channels: addnewtorrent"
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         
-        def dispersy_thread():
-            community = dispersy.get_community(self._get_my_dispersy_cid())
-            community.create_torrent(torrentdef.get_infohash(), long(time()), store, update, forward)
-            
-        from Tribler.Core.dispersy.dispersy import Dispersy
-        dispersy = Dispersy.get_instance()
-        dispersy.rawserver.add_task(dispersy_thread)
+        if not self.hasTorrent(self.channel_id, torrentdef.get_infohash()):
+            def dispersy_thread():
+                community = dispersy.get_community(self._get_my_dispersy_cid())
+                community._disp_create_torrent(torrentdef.get_infohash(), long(time()), store, update, forward)
+                
+            from Tribler.Core.dispersy.dispersy import Dispersy
+            dispersy = Dispersy.get_instance()
+            dispersy.rawserver.add_task(dispersy_thread)
+        else:
+            print >> sys.stderr, "Torrent allready in channel or not in Torrents table"
         
     def deleteTorrent(self, channel_id, torrent_id):
         #TODO, connect with dispersy
@@ -3150,6 +3159,16 @@ class ChannelCastDBHandler:
         
         return channeltorrent_id
     
+    def hasTorrent(self, channel_id, infohash):
+        torrent_id = self._db.getTorrentID(infohash)
+        if torrent_id:
+            sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
+            channeltorrent_id = self._db.fetchone(sql, (torrent_id, ))
+            if channeltorrent_id:
+                return True
+            
+        return False
+    
     #Old code used by channelcast
     def on_torrents_from_channelcast(self, torrents):
         #torrents is a list of tuples (channel_id, channel_name, infohash, time_stamp
@@ -3191,7 +3210,7 @@ class ChannelCastDBHandler:
                 self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, playlist_id)
                 
             if infohash:
-                channeltorrent_id = self.addOrGetChannelTorrentID(infohash)
+                channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
                 
                 sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
                 self._db.execute_write(sql, (comment_id, channeltorrent_id))
@@ -3312,7 +3331,6 @@ class ChannelCastDBHandler:
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = ?"
         result = self._db.fetchone(sql, (channeltorrent_id,))
-        
         return self.__fixTorrents(keys, [result])[0]
     
     def getTorrentsFromChannelId(self, channel_id, keys, limit = None):
@@ -3349,7 +3367,12 @@ class ChannelCastDBHandler:
         return self.__fixTorrents(keys, results)
     
     def __fixTorrents(self, keys, results):
-        torrent_list = [dict(zip(keys,result)) for result in results]
+        torrent_list = []
+        for result in results:
+            if isinstance(result, basestring):
+                result = [result]
+            torrent_list.append(dict(zip(keys,result)))
+            
         for torrent in torrent_list:
             if 'infohash' in torrent:
                 torrent['infohash'] = str2bin(torrent['infohash'])
@@ -3387,7 +3410,7 @@ class ChannelCastDBHandler:
         return commentlist
 
     def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentPlaylist, Peer WHERE Comments.id = CommentPlaylist.comment_id AND Comments.peer_id = Peer.peer_id AND playlist_id = ? ORDER BY time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentPlaylist LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentPlaylist.comment_id AND playlist_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (playlist_id, ))
@@ -3396,7 +3419,7 @@ class ChannelCastDBHandler:
         return commentlist
     
     def getCommentsFromChannelTorrentId(self, channeltorrent_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentTorrent, Peer WHERE Comments.id = CommentTorrent.comment_id AND Comments.peer_id = Peer.peer_id AND channeltorrent_id = ? ORDER BY time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentTorrent LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentTorrent.comment_id AND channeltorrent_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (channeltorrent_id, ))
