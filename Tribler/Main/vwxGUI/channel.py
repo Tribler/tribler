@@ -221,7 +221,7 @@ class SelectedChannelList(SearchList):
                 if len(changes)>0:
                     dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg.ShowModal() == wx.ID_YES:
-                        self.channelsearch_manager.modifyTorrent(item.original_data['ChannelTorrents.id'], changes)
+                        self.channelsearch_manager.modifyTorrent(self.id, item.original_data['ChannelTorrents.id'], changes)
             SearchList.OnCollapse(self, item, panel)
         
     def OnRemoveVote(self, event):
@@ -448,7 +448,7 @@ class ManageChannelPlaylistsManager():
         self.channelsearch_manager.createPlaylist(self.list.id, name, description, infohashes)
     
     def savePlaylist(self, playlist_id, name, description):
-        self.channelsearch_manager.modifyPlaylist(playlist_id, name, description)
+        self.channelsearch_manager.modifyPlaylist(self.list.id, playlist_id, name, description)
     
     def savePlaylistTorrents(self, playlist_id, infohashes):
         self.channelsearch_manager.savePlaylistTorrents(self.list.id, playlist_id, infohashes)
@@ -1025,11 +1025,11 @@ class CommentManager:
             reply_after = items[-1].original_data['dispersy_id']
         
         if self.playlist_id:
-            self.channelsearch_manager.addComment(comment, self.channel_id, reply_after, playlist_id = self.playlist_id)
+            self.channelsearch_manager.createComment(comment, self.channel_id, reply_after, playlist_id = self.playlist_id)
         elif self.channeltorrent_id:
-            self.channelsearch_manager.addComment(comment, self.channel_id, reply_after, channeltorrent_id = self.channeltorrent_id)
+            self.channelsearch_manager.createComment(comment, self.channel_id, reply_after, channeltorrent_id = self.channeltorrent_id)
         else:
-            self.channelsearch_manager.addComment(comment, self.channel_id, reply_after)
+            self.channelsearch_manager.createComment(comment, self.channel_id, reply_after)
 
 class CommentList(List):
     def __init__(self, parent, canReply = False):

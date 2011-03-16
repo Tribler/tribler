@@ -143,5 +143,5 @@ class PlaylistTorrentPayload(Payload):
         def playlist(self):
             return self._playlist
 
-class MissingChannelPayload(PlaylistTorrentPayload):
+class MissingChannelPayload(Payload):
     pass

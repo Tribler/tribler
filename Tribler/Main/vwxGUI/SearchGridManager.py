@@ -19,6 +19,9 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
+from Tribler.Community.channel.community import ChannelCommunity
+from Tribler.Core.dispersy.dispersy import Dispersy
+
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session
 from Tribler.Video.utils import videoextdefaults
@@ -786,9 +789,7 @@ class ChannelSearchGridManager:
         
         self.searchmgr = None
         self.channelcast_db = None
-        self.pref_db = None # Nic: for rerankers
-        self.mypref_db = None
-        self.search_db = None
+        self.votecastdb = None
         
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -805,16 +806,12 @@ class ChannelSearchGridManager:
     getInstance = staticmethod(getInstance)
 
     def connect(self):
-        session = self.guiUtility.utility.session
-        self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
-        self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
-        self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
-        self.search_db = session.open_dbhandler(NTFY_SEARCH)
-        self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
-        self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
-        self.searchmgr = SearchManager(self.channelcast_db)
-        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
+        self.session = self.guiUtility.utility.session
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
+        self.dispersy = Dispersy.get_instance()
         
+        self.searchmgr = SearchManager(self.channelcast_db)
         
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
@@ -931,8 +928,72 @@ class ChannelSearchGridManager:
         hits = filter(deadFilter, hits)
         return nrFiltered, hits
     
-    def modifyTorrent(self, channeltorrent_id, dict_changes):
-        self.channelcast_db.modifyTorrent(channeltorrent_id, dict_changes)
+    def _get_community_from_channel_id(self, channel_id):
+        assert isinstance(channel_id, (int, long))
+
+        # 1. get the dispersy identifier from the channel_id
+        dispersy_cid = self._db.fetchone(u"SELECT dispersy_cid FROM Channels WHERE id = ?", (channel_id,))
+        dispersy_cid = str(dispersy_cid)
+        
+        # 2. get the community instance from the 20 byte identifier
+        try:
+            community = self.dispersy.get_community(dispersy_cid)
+        except KeyError:
+            raise RuntimeError("Unknown community identifier")
+
+        return community
+    
+    def createChannel(self, name, description):
+        def dispersy_thread():
+            community = ChannelCommunity.create_community(self.session.dispersy_member)
+            community.create_channel(name, description)
+        
+        self.dispersy.rawserver.add_task(dispersy_thread)
+    
+    def createPlaylist(self, channel_id, name, description, infohashes = []):
+        community = self._get_community_from_channel_id(channel_id)
+        community.create_playlist(name, description, infohashes)
+        
+    def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
+        #detect changes
+        to_be_created = set(infohashes)
+        to_be_removed = set()
+        
+        sql = "SELECT distinct infohash FROM PlaylistTorrents PL, ChannelTorrents CT, Torrent T WHERE PL.channeltorrent_id = CT.id AND CT.torrent_id = T.torrent_id AND playlist_id = ?"
+        records = self._db.fetchall(sql,(playlist_id,))
+        for infohash, in records:
+            infohash = str2bin(infohash)
+            if infohash in to_be_created:
+                to_be_created.remove(infohash)
+            else:
+                to_be_removed.add(infohash)
+        
+        community = self._get_community_from_channel_id(channel_id)
+        community.create_playlist_torrents(playlist_id, infohashes)
+    
+    def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
+        infohash = None
+        if channeltorrent_id:
+            infohash = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash']) 
+        
+        community = self._get_community_from_channel_id(channel_id)
+        community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)
+    
+    def modifyChannel(self, channel_id, name, description):
+        dict = {'name':name, 'description':description}
+        
+        community = self._get_community_from_channel_id(channel_id)
+        community.modifyChannel(channel_id, dict)
+
+    def modifyPlaylist(self, channel_id, playlist_id, name, description):
+        dict = {'name':name, 'description':description}
+        
+        community = self._get_community_from_channel_id(channel_id)
+        community.modifyPlaylist(playlist_id, dict)
+    
+    def modifyTorrent(self, channel_id, channeltorrent_id, dict_changes):
+        community = self._get_community_from_channel_id(channel_id)
+        community.modifyTorrent(channeltorrent_id, dict_changes)
     
     def getPlaylistsFromChannelId(self, channel_id, keys):
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
@@ -971,18 +1032,8 @@ class ChannelSearchGridManager:
         
         return len(hits), hits
     
-    def addComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
-        self.channelcast_db.addComment(comment, channel_id, reply_after, reply_to, playlist_id, channeltorrent_id)
-    
     def getChannel(self, channel_id):
         return self.channelcast_db.getChannel(channel_id)
-
-    def createChannel(self, name, description):
-        return self.channelcast_db.createChannel(name, description)
-
-    def modifyChannel(self, channel_id, name, description):
-        dict = {'name':name, 'description':description}
-        return self.channelcast_db.modifyChannel(channel_id, dict)
     
     def spam(self, publisher_id):
         self.votecastdb.spam(publisher_id)
@@ -1003,16 +1054,6 @@ class ChannelSearchGridManager:
     def getPlaylist(self, playlist_id, keys):
         return self.channelcast_db.getPlaylist(playlist_id, keys)
     
-    def createPlaylist(self, channel_id, name, description, infohashes = []):
-        return self.channelcast_db.createPlaylist(channel_id, name, description, infohashes)
-    
-    def modifyPlaylist(self, playlist_id, name, description):
-        dict = {'name':name, 'description':description}
-        return self.channelcast_db.modifyPlaylist(playlist_id, dict)
-    
-    def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
-        return self.channelcast_db.savePlaylistTorrents(channel_id, playlist_id, infohashes)
-        
     def setSearchKeywords(self, wantkeywords):
         self.searchkeywords = wantkeywords
     

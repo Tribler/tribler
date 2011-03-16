@@ -102,7 +102,7 @@ class AllChannelCommunity(Community):
             SELECT sync.packet
             FROM sync
             WHERE sync.id IN (?)
-            """, (", ".join(map(str, sync_ids)),))]
+            """, (u", ".join(map(unicode, sync_ids)),))]
 
             meta = self.get_meta_message(u"channel-propagate")
             message = meta.implement(meta.authentication.implement(),

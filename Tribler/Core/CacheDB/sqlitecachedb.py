@@ -1564,15 +1564,19 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         
             if my_channel_name:
                 def dispersy_started(subject,changeType,objectID):
+                    community = None
+                    
                     def create_my_channel():
+                        global community
+                        
                         if my_channel_name:
-                            channelcastdb = ChannelCastDBHandler.getInstance()
-                            channelcastdb.createChannel(my_channel_name, u'')
+                            community = ChannelCommunity.create_community(session.dispersy_member)
+                            community.create_channel(my_channel_name, u'')
                             
-                            tqueue.add_task(insert_my_torrents, 10)
+                            dispersy.rawserver.add_task(insert_my_torrents, 10)
                         
                     def insert_my_torrents():
-                        channelcastdb = ChannelCastDBHandler.getInstance()
+                        global community
                         
                         channel_id = self.fetchone(select_mychannel_id)
                         if channel_id:
@@ -1586,13 +1590,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 to_be_inserted.append((infohash, timestamp))
                             
                             if len(to_be_inserted) > 0:
-                                channelcastdb.addOwnTorrents(to_be_inserted, forward=False)
-                                tqueue.add_task(insert_my_torrents, 5)
+                                community.create_torrents(to_be_inserted, forward = False)
+                                dispersy.rawserver.add_task(insert_my_torrents, 5)
                             
                             else: #done
                                 insert_votes_for_me(channel_id)
                         else:
-                            tqueue.add_task(insert_my_torrents, 5)
+                            tqueue.add_task(insert_my_torrents, 10)
                     
                     def insert_votes_for_me(my_channel_id):
                         to_be_inserted = []
@@ -1605,7 +1609,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 
                         if len(to_be_inserted) > 0:
                             self.executemany(insert_vote, to_be_inserted)
-                        tqueue.add_task('stop')
                         
                         drop_channelcast = "DROP TABLE ChannelCast"
                         #self.execute_write(drop_channelcast)
@@ -1613,10 +1616,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         drop_votecast = "DROP TABLE VoteCast"
                         #self.execute_write(drop_votecast)
                     
-                    from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
-                    tqueue = TimedTaskQueue("UpgradeDB")
-                    tqueue.add_task(create_my_channel, 10)
+                    from Tribler.Community.channel.community import ChannelCommunity
+                    from Tribler.Core.dispersy.dispersy import Dispersy
                     
+                    dispersy = Dispersy.get_instance()
+                    dispersy.rawserver.add_task(create_my_channel, 10)
                     session.remove_observer(dispersy_started)
                 
                 session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
