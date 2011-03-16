@@ -17,10 +17,8 @@ class Timeline(object):
             self.timeline = [] # (global_time, {u'permission^message-name':True|False})
 
     def __init__(self, community):
-        try:
-            self._global_time, = community.dispersy.database(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (community.database_id,)).next()
-        except StopIteration:
-            self._global_time = 1
+        global_time, = community.dispersy.database.execute(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (community.database_id,)).next()
+        self._global_time = global_time if global_time else 1
         self._nodes = {}
 
     @property
