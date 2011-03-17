@@ -15,7 +15,8 @@ import M2Crypto
 # We want to provide a few default curves.  We will change these
 # curves as new become available and old ones to small to provide
 # sufficient security.
-_curves = {u"low":M2Crypto.EC.NID_sect233k1,
+_curves = {u"very-low":M2Crypto.EC.NID_sect163k1,
+           u"low":M2Crypto.EC.NID_sect233k1,
            u"medium":M2Crypto.EC.NID_sect409k1,
            u"high":M2Crypto.EC.NID_sect571r1}
 

@@ -69,6 +69,7 @@ from trigger import TriggerCallback, TriggerPacket, TriggerMessage
 if __debug__:
     from dprint import dprint
     from lencoder import log
+    from time import clock
 
 class DummySocket(object):
     """
@@ -559,7 +560,9 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
 
-        if __debug__: dprint(len(packets), " incoming packets worth ", sum(len(packet) for _, packet in packets), " bytes")
+        if __debug__:
+            debug_begin = clock()
+            dprint("[0.0 pct] ", len(packets), " incoming packets worth ", sum(len(packet) for _, packet in packets), " bytes")
         self._total_received += sum(len(packet) for _, packet in packets)
 
         batches = dict()
@@ -568,7 +571,8 @@ class Dispersy(Singleton):
                 batches[meta] = set()
             batches[meta].add(triplet)
 
-        if __debug__: dprint(sum(len(batch) for batch in batches.itervalues()), " incoming packets after simple check")
+        if __debug__:
+            dprint("[", clock() - debug_begin, " pct] ", sum(len(batch) for batch in batches.itervalues()), " incoming packets after simple check")
 
         if batches:
             # update candidate table.  We know that some peer (not necessarily
@@ -582,14 +586,18 @@ class Dispersy(Singleton):
                             self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME('now'), '2010-01-01 00:00:00')",
                                                    (meta.community.database_id, unicode(host), port))
 
+        if __debug__:
+            dprint("[", clock() - debug_begin, " pct] after candidate table update")
+
         # process the packets in priority order
         for meta, batch in sorted(batches.iteritems()):
             # convert binary packets into Message.Implementation instances
             messages = list(self._convert_batch_into_messages(batch))
-            if __debug__: dprint(len(messages), " incoming ", meta.name, " messages after conversion")
+            if __debug__: dprint("[", clock() - debug_begin, " pct] ", meta.name, " messages after conversion")
 
             # handle the incoming messages
             self.on_message_batch(messages)
+            if __debug__: dprint("[", clock() - debug_begin, " pct] after packet handling")
 
     def on_message_batch(self, messages):
         """
@@ -625,11 +633,15 @@ class Dispersy(Singleton):
 
         meta = messages[0].meta
 
+        if __debug__:
+            debug_begin = clock()
+            dprint("[0.0 msg] ", len(messages), " ", meta.name, " messages")
+
         # drop if this is a blacklisted member
         messages = [message for message in messages if not (isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop)]
         # todo: we currently do not add this message in the bloomfilter, hence we will
         # continually receive this packet.
-        if __debug__: dprint(len(messages), " incoming ", meta.name, " messages after blacklisted members")
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after blacklisted members")
         if not messages:
             return
 
@@ -643,7 +655,7 @@ class Dispersy(Singleton):
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
             i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint(i_messages, ":", i_delay, ":", i_drop, " incoming ", meta.name, " messages after distribution check")
+            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check")
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -655,6 +667,7 @@ class Dispersy(Singleton):
 
         # remove DropMessage and DelayMessage instances
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
             return
 
@@ -668,7 +681,7 @@ class Dispersy(Singleton):
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
             i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint(i_messages, ":", i_delay, ":", i_drop, " incoming ", meta.name, " messages after community check")
+            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check")
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -680,14 +693,17 @@ class Dispersy(Singleton):
 
         # remove DropMessage and DelayMessage instances
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
             return
 
         # store to disk and update locally
         self.store_update_forward(messages, True, True, False)
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after store and update")
 
         # try to 'trigger' zero or more previously delayed 'things'
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after triggers")
 
     def _convert_packets_into_batch(self, packets):
         """
@@ -757,6 +773,9 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not isinstance(x, tuple), batch)
         assert not filter(lambda x: not len(x) == 3, batch)
 
+        if __debug__:
+            begin_stats = Conversion.debug_stats.copy()
+
         for address, packet, conversion in batch:
             assert isinstance(address, tuple)
             assert isinstance(address[0], str)
@@ -777,6 +796,12 @@ class Dispersy(Singleton):
                 self._triggers.append(trigger)
                 self._rawserver.add_task(trigger.on_timeout, 10.0)
                 self._send([address], [delay.request_packet])
+
+        if __debug__:
+            if len(batch) > 100:
+                for key, value in sorted(Conversion.debug_stats.iteritems()):
+                    if value - begin_stats[key] > 0.0:
+                        dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key)
 
     def _sync_distribution_store(self, messages):
         """
@@ -803,6 +828,8 @@ class Dispersy(Singleton):
         # ensure no duplicate messages are present, this MUST HAVE been checked before calling this
         # method!
         assert len(messages) == len(set((message.authentication.member.database_id, message.distribution.global_time) for message in messages)), messages[0].name
+
+        if __debug__: dprint("storing ", len(messages), " messages")
 
         meta = messages[0].meta
         is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
@@ -847,7 +874,6 @@ class Dispersy(Singleton):
 
                 # ensure that we can reference this packet
                 message.packet_id = self._database.last_insert_rowid
-                if __debug__: dprint("stored message in database with id ", message.packet_id)
 
                 # link multiple members is needed
                 if is_multi_member_authentication:

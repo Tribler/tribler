@@ -8,6 +8,7 @@ Run some python code, usually to test one or more features.
 import hashlib
 import types
 from struct import pack, unpack_from
+from time import clock
 
 from authentication import MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -539,6 +540,10 @@ class DispersyBatchScript(ScriptBase):
         self.caller(self.one_batch_user_global_time_duplicate)
         self.caller(self.two_batches_user_global_time_duplicate)
 
+        # big batch test
+        self.caller(self.one_big_batch)
+        self.caller(self.many_small_batches)
+
     def one_batch_binary_duplicate(self):
         """
         When multiple binary identical UDP packets are received, the duplicate packets need to be
@@ -629,7 +634,7 @@ class DispersyBatchScript(ScriptBase):
 
         global_time = 10
         for index in range(10):
-            node.send_message(node.create_full_sync_text_message("duplicates (%s)" % index, global_time), address)
+            node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
         yield 0.01
 
         # only one message may be in the database
@@ -664,7 +669,7 @@ class DispersyBatchScript(ScriptBase):
         global_time = 10
         # first batch
         for index in range(10):
-            node.send_message(node.create_full_sync_text_message("duplicates (%s)" % index, global_time), address)
+            node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
         yield 0.01
 
         # only one message may be in the database
@@ -673,7 +678,7 @@ class DispersyBatchScript(ScriptBase):
 
         # second batch
         for index in range(10):
-            node.send_message(node.create_full_sync_text_message("duplicates (%s)" % index, global_time), address)
+            node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
         yield 0.01
 
         # only one message may be in the database
@@ -682,6 +687,76 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+
+    def one_big_batch(self):
+        """
+        Each community is handled in its own batch, hence we can measure performace differences when
+        we make one large batch (using one community) and many small batches (using many different
+        communities).
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        meta = community.get_meta_message(u"full-sync-text")
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.01
+
+        dprint("START BIG BATCH")
+        for global_time in range(10, 510):
+            node.send_message(node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time), address, verbose=False)
+
+        begin = clock()
+        yield 0.01
+        end = clock()
+        self._big_batch_took = end - begin
+        dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+
+    def many_small_batches(self):
+        """
+        Each community is handled in its own batch, hence we can measure performace differences when
+        we make one large batch (using one community) and many small batches (using many different
+        communities).
+        """
+        exp = []
+        for _ in range(500):
+            community = DebugCommunity.create_community(self._my_member)
+            address = self._dispersy.socket.get_address()
+            meta = community.get_meta_message(u"full-sync-text")
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+
+            exp.append((community, node))
+            yield 0.01
+
+        dprint("START SMALL BATCHES")
+        global_time = 10
+        for community, node in exp:
+            node.send_message(node.create_full_sync_text_message("Dprint=False, small batches", global_time), address, verbose=False)
+
+        begin = clock()
+        yield 0.01
+        end = clock()
+        self._small_batches_took = end - begin
+        dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
+
+        # cleanup
+        for community, _ in exp:
+            community.create_dispersy_destroy_community(u"hard-kill")
+
+        dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
+        dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
+        assert self._big_batch_took < self._small_batches_took
 
 class DispersySyncScript(ScriptBase):
     def run(self):

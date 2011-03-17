@@ -270,4 +270,5 @@ class DebugCommunity(Community):
         Received a text message.
         """
         for message in messages:
-            dprint(message, " \"", message.payload.text, "\"")
+            if not "Dprint=False" in message.payload.text:
+                dprint(message, " \"", message.payload.text, "\"")

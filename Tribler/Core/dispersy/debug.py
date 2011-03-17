@@ -112,18 +112,20 @@ class Node(object):
             self._community._my_member = tmp_member
         return packet
 
-    def send_packet(self, packet, address):
+    def send_packet(self, packet, address, verbose=False):
         assert isinstance(packet, str)
         assert isinstance(address, tuple)
-        dprint(len(packet), " bytes to ", address[0], ":", address[1])
+        assert isinstance(verbose, bool)
+        if verbose: dprint(len(packet), " bytes to ", address[0], ":", address[1])
         self._socket.sendto(packet, address)
         return packet
 
-    def send_message(self, message, address):
+    def send_message(self, message, address, verbose=False):
         assert isinstance(message, Message.Implementation)
         assert isinstance(address, tuple)
+        assert isinstance(verbose, bool)
         self.encode_message(message)
-        dprint(message.name, " (", len(message.packet), " bytes) to ", address[0], ":", address[1])
+        if verbose: dprint(message.name, " (", len(message.packet), " bytes) to ", address[0], ":", address[1])
         self.send_packet(message.packet, address)
         return message
 

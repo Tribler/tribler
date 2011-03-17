@@ -14,6 +14,7 @@ from resolution import LinearResolution
 
 if __debug__:
     from dprint import dprint
+    from time import clock
 
 class Conversion(object):
     """
@@ -21,6 +22,11 @@ class Conversion(object):
     community version.  If also allows outgoing messages to be converted to a different, possibly
     older, community version.
     """
+    if __debug__:
+        debug_stats = {"encode-meta":0.0, "encode-authentication":0.0, "encode-destination":0.0, "encode-distribution":0.0, "encode-payload":0.0,
+                       "decode-meta":0.0, "decode-authentication":0.0, "decode-destination":0.0, "decode-distribution":0.0, "decode-payload":0.0,
+                       "verify-true":0.0, "verify-false":0.0, "sign":0.0}
+
     def __init__(self, community, version):
         """
         COMMUNITY instance that this conversion belongs to.
@@ -607,6 +613,9 @@ class BinaryConversion(Conversion):
         # Community prefix, message-id
         container = [self._prefix, message_id]
 
+        if __debug__:
+            debug_begin = clock()
+
         # Authentication
         if isinstance(message.authentication, NoAuthentication.Implementation):
             pass
@@ -622,6 +631,10 @@ class BinaryConversion(Conversion):
         else:
             raise NotImplementedError(type(message.authentication))
 
+        if __debug__:
+            self.debug_stats["encode-meta"] += clock() - debug_begin
+            debug_begin = clock()
+
         # Destination does not hold any space in the message
 
         # Distribution
@@ -629,7 +642,9 @@ class BinaryConversion(Conversion):
         self._encode_distribution_map[type(message.distribution)](container, message)
 
         if __debug__:
+            self.debug_stats["encode-distribution"] += clock() - debug_begin
             dprint(message.name, "          head ", sum(map(len, container)) + 1, " bytes")
+            debug_begin = clock()
 
         # Payload
         itererator = encode_payload_func(message)
@@ -638,7 +653,9 @@ class BinaryConversion(Conversion):
         container.extend(itererator)
 
         if __debug__:
+            self.debug_stats["encode-payload"] += clock() - debug_begin
             dprint(message.name, "     head+body ", sum(map(len, container)), " bytes")
+            debug_begin = clock()
 
         # Sign
         if isinstance(message.authentication, NoAuthentication.Implementation):
@@ -669,6 +686,7 @@ class BinaryConversion(Conversion):
             raise NotImplementedError(type(message.authentication))
 
         if __debug__:
+            self.debug_stats["sign"] += clock() - debug_begin
             dprint(message.name, " head+body+sig ", len(packet), " bytes")
 
         # dprint(message.packet.encode("HEX"))
@@ -714,9 +732,15 @@ class BinaryConversion(Conversion):
                 offset += 20
 
                 for member in members:
+                    if __debug__:
+                        debug_begin = clock()
                     first_signature_offset = len(data) - member.signature_length
                     if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
+                        if __debug__:
+                            self.debug_stats["verify-true"] += clock() - debug_begin
                         return offset, authentication.implement(member, is_signed=True), first_signature_offset
+                    if __debug__:
+                        self.debug_stats["verify-false"] += clock() - debug_begin
 
                 raise DelayPacketByMissingMember(self._community, member_id)
 
@@ -841,16 +865,27 @@ class BinaryConversion(Conversion):
 
         offset = 22
 
+        if __debug__:
+            debug_begin = clock()
+
         # meta_message
         meta_message, decode_payload_func = self._decode_message_map.get(data[offset], (None, None))
         if meta_message is None:
             raise DropPacket("Unknown message code %d" % ord(data[offset]))
         offset += 1
 
+        if __debug__:
+            self.debug_stats["decode-meta"] += clock() - debug_begin
+            debug_begin = clock()
+
         # authentication
         offset, authentication_impl, first_signature_offset = self._decode_authentication(meta_message.authentication, offset, data)
         if verify_all_signatures and not authentication_impl.is_signed:
             raise DropPacket("Invalid signature")
+
+        if __debug__:
+            self.debug_stats["decode-authentication"] += clock() - debug_begin
+            debug_begin = clock()
 
         # destination
         assert isinstance(meta_message.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination, SimilarityDestination))
@@ -865,9 +900,17 @@ class BinaryConversion(Conversion):
         else:
             destination_impl = meta_message.destination.implement()
 
+        if __debug__:
+            self.debug_stats["decode-destination"] += clock() - debug_begin
+            debug_begin = clock()
+
         # distribution
         assert type(meta_message.distribution) in self._decode_distribution_map, type(meta_message.distribution)
         offset, distribution_impl = self._decode_distribution_map[type(meta_message.distribution)](offset, data, meta_message)
+
+        if __debug__:
+            self.debug_stats["decode-distribution"] += clock() - debug_begin
+            debug_begin = clock()
 
         # payload
         try:
@@ -875,6 +918,9 @@ class BinaryConversion(Conversion):
         except:
             if __debug__: dprint(decode_payload_func)
             raise
+
+        if __debug__:
+            self.debug_stats["decode-payload"] += clock() - debug_begin
 
         if __debug__:
             from payload import Payload
