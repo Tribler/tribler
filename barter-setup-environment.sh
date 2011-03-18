@@ -30,29 +30,41 @@
 # |__ peer-N/
 
 
-if test $# -ne 3; then
-	echo "Usage: $0 <scenario-directory> <peer-directory> <number-of-peers>"
+if test $# -ne 2; then
+	echo "Usage: $0 <scenario-directory> <peer-directory>"
 	exit 1
 fi
 
 PATH_TO_SCENARIOS=$1
 PEERS_DIRECTORY=$2
-NUMBER_OF_PEERS=$3
+NUMBER_OF_PEERS=$(find $PATH_TO_SCENARIOS -mindepth 1 -maxdepth 1 -regextype posix-egrep -regex '.*/peer-[0-9]{5}' -type d | wc -l)
+
+echo "* Peers count: $NUMBER_OF_PEERS"
 
 if [ -d $PEERS_DIRECTORY ]; then
     rm -rf $PEERS_DIRECTORY
 fi
 mkdir $PEERS_DIRECTORY
 
-./barter-ec-generator.py --total-peers $NUMBER_OF_PEERS -o $PEERS_DIRECTORY/peer-keys
 
+export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
+export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
+
+./barter-ec-generator.py --total-peers $NUMBER_OF_PEERS -o $PEERS_DIRECTORY/peer-keys
 
 for i in `seq -f "%05g" $NUMBER_OF_PEERS`; do
     PEER_DATA_DIR=$PEERS_DIRECTORY/$i/data/
     mkdir -p $PEER_DATA_DIR
     cp $PEERS_DIRECTORY/peer-keys $PEER_DATA_DIR
-    cp $PATH_TO_SCENARIOS/peer-$i/*.log $PEER_DATA_DIR
+    mv $PATH_TO_SCENARIOS/peer-$i/*.log $PEER_DATA_DIR
     head -n $i $PEERS_DIRECTORY/peer-keys | tail -n 1 > $PEER_DATA_DIR/peer.init
 done
 
+
+
 echo $NUMBER_OF_PEERS > $PEERS_DIRECTORY/peer.count
+
+echo "Removing scenario directory (${PATH_TO_SCENARIOS})..."
+rm -rf $PATH_TO_SCENARIOS/
+echo "All scenario data has been moved to the peers directory (${PEERS_DIRECTORY})."
+

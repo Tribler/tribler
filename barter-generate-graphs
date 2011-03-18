@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 # setup once
@@ -9,178 +9,58 @@
 ./barter-cluster-run
 
 # parse logs and plot
-./barter-generate-graphs | gnuplot
+./barter-generate-graphs peers_directory | gnuplot
 
 # loot at graphs
 display peers/records.png
 """
 
 from time import mktime
-from glob import glob
+import re
+from os import listdir
 from ldecoder import parse
+from sys import argv
 
-def get_nodes():
-    for node in glob("peers/*"):
-        if node.startswith("peers/peer-"):
-            yield node
+#def get_nodes():
+#    for node in glob("peers/*"):
+#        if node.startswith("peers/peer-"):
+#            yield node
+
+#def get_title(node):
+#    if node.startswith("peers/peer-"):
+#        return node[11:]
+#    elif node == "peers/tracker":
+#        return "tracker"
+#    return "???"
+
+def get_nodes(peer_dir):
+    pattern = re.compile('[0-9]{5}')
+    for d in listdir(peer_dir):
+        if pattern.match(d):
+            yield peer_dir + "/" + d
 
 def get_title(node):
-    if node.startswith("peers/peer-"):
-        return node[11:]
-    elif node == "peers/tracker":
+    if re.match(".*[0-9]{5}", node):
+        return node[-5:]
+    elif len(node)>7 and node[-7:] == "tracker":
         return "tracker"
     return "???"
 
-def get_first_datetime():
-    datetimes = []
-    for node in get_nodes():
-        _, datetime, _, _ = parse(node + "/dispersy.log").next()
-        datetimes.append(datetime)
-    return min(datetimes)
-
-
-def generate():
-    """ I generate 4 files per peer
-     - received records,
-     - created records,
-     - total records,
-     - dropped records,
-     - stat for general statistics
-
-     by parsing the 'dispersy.log' of each peer
-    """
-    first = int(mktime(get_first_datetime().timetuple()))
-    lasts = []
-
-    for node in get_nodes():
-        fn_received_record = node + "/received-record.txt"
-        h_received_record = open(fn_received_record, "w+")
-        h_received_record.write("# timestamp timeoffset num-records\n")
-        c_received_record = 0
-
-        fn_created_record = node + "/created-record.txt"
-        h_created_record = open(fn_created_record, "w+")
-        h_created_record.write("# timestamp timeoffset num-records\n")
-        c_created_record = 0
-
-        fn_total_record = node + "/total-record.txt"
-        h_total_record = open(fn_total_record, "w+")
-        h_total_record.write("# timestamp timeoffset num-records\n")
-        write_total = False
-
-        fn_drop = node + "/drop.txt"
-        h_drop = open(fn_drop, "w+")
-        h_drop.write("# timestamp timeoffset num-drops\n")
-        c_drop = 0
-
-        fn_stat = node + "/stat.txt"
-        h_stat = open(fn_stat, "w+")
-        h_stat.write("# timestamp timeoffset total-send total-received\n")
-
-        print "# generating from", node
-        for lineno, datetime, message, kargs in parse(node + "/dispersy.log"):
-            if message == "handled" and "message" in kargs and kargs["message"] == u"barter-record":
-                c_received_record += 1
-                time = int(mktime(datetime.timetuple()))
-                h_received_record.write(str(time))
-                h_received_record.write(" ")
-                h_received_record.write(str(time - first))
-                h_received_record.write(" ")
-                h_received_record.write(str(c_received_record))
-                h_received_record.write("\n")
-                write_total = True
-
-            if message == "created" and "message" in kargs and kargs["message"] == u"barter-record":
-                c_created_record += 1
-                time = int(mktime(datetime.timetuple()))
-                h_created_record.write(str(time))
-                h_created_record.write(" ")
-                h_created_record.write(str(time - first))
-                h_created_record.write(" ")
-                h_created_record.write(str(c_created_record))
-                h_created_record.write("\n")
-                write_total = True
-
-            if message in ("drop-packet", "drop-message"):
-                c_drop += 1
-                time = int(mktime(datetime.timetuple()))
-                h_drop.write(str(time))
-                h_drop.write(" ")
-                h_drop.write(str(time - first))
-                h_drop.write(" ")
-                h_drop.write(str(c_drop))
-                h_drop.write("\n")
-
-            if message == "statistics" and "total_send" in kargs and "total_received" in kargs:
-                time = int(mktime(datetime.timetuple()))
-                h_stat.write(str(time))
-                h_stat.write(" ")
-                h_stat.write(str(time - first))
-                h_stat.write(" ")
-                h_stat.write(str(kargs["total_send"]))
-                h_stat.write(" ")
-                h_stat.write(str(kargs["total_received"]))
-                h_stat.write("\n")
-
-            if write_total:
-                h_total_record.write(str(time))
-                h_total_record.write(" ")
-                h_total_record.write(str(time - first))
-                h_total_record.write(" ")
-                h_total_record.write(str(c_received_record + c_created_record))
-                h_total_record.write("\n")
-                write_total = False
-
-        lasts.append(datetime)
-
-
-    # returns the first and the last last timetime
-    last = int(mktime(max(lasts).timetuple()))
-    sum_created_records(first, last)
-    print "# experiment took", last - first, "seconds"
-    return first, last
-
-def sum_created_records(first, last):
-    """ I create a file under 'peers/' called 'sum_created_records.txt'
-    with all the available records in the system per timestamp
-    """
-    sum_records = {}
-    for node in get_nodes():
-        fn_created_record = node + "/created-record.txt"
-        with open(fn_created_record) as h_created_record:
-            for line in h_created_record:
-                if line[0] == "#": continue
-                _, time, records = line.split()
-                time = int(time)
-                records = int(records)
-                try:
-                    sum_records[time] += 1
-                except KeyError:
-                    sum_records[time] = 1
-
-
-    with open('peers/sum_created_records.txt', 'wb') as fp:
-        sumr = 0
-        for time in sorted(sum_records.iterkeys()):
-            sumr += sum_records[time]
-            fp.write("%s %s\n" % (time, sumr))
-
-
-def plot_received_record(first, last):
+def plot_received_records(peers_directory, first, last):
     """ I plot the received records per peer"""
     print "set ylabel 'number of records received'"
     # print "set yrange [%d:%d]" % (0, 500)
     print "set xrange [%d:%d]" % (0, last - first)
-    print "set key bottom right"
+    #print "set key bottom right" #MB
     print "plot",
     first = True
-    for node in get_nodes():
+    for node in get_nodes(peers_directory):
         if first:
             first = False
         else:
             print ", \\\n    ",
 
-        filename = node + "/received-record.txt"
+        filename = node + "/output/received-record.txt"
         print "'%s'" % filename,
         print "using 2:3",
         print "title '%s'" % get_title(node),
@@ -188,48 +68,47 @@ def plot_received_record(first, last):
 
     print ""
 
-def plot_total_records(first, last):
+def plot_total_records(peers_directory, first, last):
     """ I plot the total (received, created) records per peer """
     print "set ylabel 'number of records per peer'"
     # print "set yrange [%d:%d]" % (0, 1500)
     print "set xrange [%d:%d]" % (0, last - first)
     print "plot",
     first = True
-    for node in get_nodes():
+    for node in get_nodes(peers_directory):
         if first:
             first = False
         else:
             print ", \\\n    ",
 
-        filename = node + "/total-record.txt"
+        filename = node + "/output/total-record.txt"
         print "'%s'" % filename,
         print "using 2:3",
         print "title '%s'" % get_title(node),
         print "with steps",
 
     print ", \\\n    ",
-    sum_created_records(first, last)
-    print "'peers/sum_created_records.txt'",
+    print "'"+ peers_directory + "/output/sum_created_records.txt'",
     print "using 1:2",
     print "title 'total'",
-    print "with lines lw 2",
+    print "with steps lw 2",
     print ""
 
 
-def plot_drop(first, last):
+def plot_drop(peers_directory, first, last):
     """ I plot the dropped records per peer """
     print "set ylabel 'number of records droped'"
     # print "set yrange [%d:%d]" % (0, 500)
     print "set xrange [%d:%d]" % (0, last - first)
     print "plot",
     first = True
-    for node in get_nodes():
+    for node in get_nodes(peers_directory):
         if first:
             first = False
         else:
             print ", \\\n    ",
 
-        filename = node + "/drop.txt"
+        filename = node + "/output/drop.txt"
         print "'%s'" % filename,
         print "using 2:3",
         print "title '%s'" % get_title(node),
@@ -237,79 +116,83 @@ def plot_drop(first, last):
 
     print ""
 
-def plot_send(first, last):
+def plot_send(peers_directory, first, last):
     """ I plot the kilobytes send per peer """
     print "set ylabel 'number of kilobytes send'"
     print "set xrange [%d:%d]" % (0, last - first)
     print "plot",
     first = True
-    for node in get_nodes():
+    for node in get_nodes(peers_directory):
         if first:
             first = False
         else:
             print ", \\\n    ",
 
-        filename = node + "/stat.txt"
+        filename = node + "/output/stat.txt"
         print "'%s'" % filename,
         print "using 2:($3/1024)",
         print "title '%s'" % get_title(node),
-        print "with lines",
+        print "with steps",
     print ""
 
-def plot_received(first, last):
+def plot_received(peers_directory, first, last):
     """ I plot the kilobytes received per peer """
     print "set ylabel 'number of kilobytes received'"
     print "set xrange [%d:%d]" % (0, last - first)
     print "plot",
     first = True
-    for node in get_nodes():
+    for node in get_nodes(peers_directory):
         if first:
             first = False
         else:
             print ", \\\n    ",
 
-        filename = node + "/stat.txt"
+        filename = node + "/output/stat.txt"
         print "'%s'" % filename,
         print "using 2:($4/1024)",
         print "title '%s'" % get_title(node),
-        print "with lines",
+        print "with steps",
     print ""
 
-def header(filename):
+def header(peers_directory, filename):
     print "reset"
     print "set terminal png enhanced large # size 1024, 1024"
-    print "set output 'peers/%s.png'" % filename
+    print "set output '"+ peers_directory + "/output/%s.png'" % filename
     # print "set term epslatex"
     # print "set output 'peers/%s.eps'" % filename
-    print "set key outside"
+    #print "set key outside" #MB
 
-    if filename in ["received", "sent"]:
-        print "set yrange [0:300]"
-    elif filename in ["drops"]:
-        print "set yrange [0:100]"
-    else:
-        print "set yrange [0:600]"
+    #if filename in ["received", "sent"]:
+    #    print "set yrange [0:1000]"
+    #elif filename in ["drops"]:
+    #    print "set yrange [0:400]"
+    #else:
+    #    print "set yrange [0:5000]"
     print "set xlabel 'Time expired in seconds'"
-    # print "unset key"
+    print "unset key"
 
-def records(first, last):
-    header("records")
-    plot_total_records(first, last)
+def records(peers_directory, first, last):
+    header(peers_directory, "records-total")
+    plot_total_records(peers_directory, first, last)
 
-def drops(first, last):
-    header("drops")
-    plot_drop(first, last)
+def received_records(peers_directory, first, last):
+    header(peers_directory, "records-received")
+    plot_received_records(peers_directory, first, last)
 
-def received(first, last):
-    header("received")
-    plot_received(first, last)
+def drops(peers_directory, first, last):
+    header(peers_directory, "records-dropped")
+    plot_drop(peers_directory, first, last)
 
-def sent(first, last):
-    header("sent")
-    plot_send(first, last)
+def received(peers_directory, first, last):
+    header(peers_directory, "traffic-received")
+    plot_received(peers_directory, first, last)
 
-def multiplot(first, last):
-    header("multiplot")
+def sent(peers_directory, first, last):
+    header(peers_directory, "traffic-sent")
+    plot_send(peers_directory, first, last)
+
+def multiplot(peers_directory, first, last):
+    header(peers_directory, "multiplot")
     print "set grid"
     print "set size 1,1"
     print "set origin 0,0"
@@ -319,22 +202,23 @@ def multiplot(first, last):
     # print "set size 0.5, 0.5"
     # print "set origin 0.0, 0.5" # upper left
     # plot_received_record(first, last)
-    plot_total_records(first, last)
+    plot_total_records(peers_directory, first, last)
     # print "set origin 0.5, 0.5" # upper right
-    plot_drop(first, last)
+    plot_drop(peers_directory, first, last)
     # print "set origin 0.0, 0.0" # lower left
-    plot_received(first, last)
+    plot_received(peers_directory, first, last)
     # print "set origin 0.5, 0.0" # lower right
-    plot_send(first, last)
+    plot_send(peers_directory, first, last)
     print "unset multiplot"
 
-def main():
-    first, last = generate()
-    # first = int(mktime(get_first_datetime().timetuple()))
-    # last = first + 200
-
-    for func in [records, drops, received, sent, multiplot]:
-        func(first, last)
+def main(peers_directory):
+    fn_first_last = peers_directory + "/output/first_last.txt"
+    h_first_last = open(fn_first_last, "r")
+    [ first, last ] = [int(i) for i in h_first_last.readline().strip().split()]
+    h_first_last.close()
+ 
+    for func in [records, drops, received, sent, received_records]:
+        func(peers_directory, first, last+100)
 
 if __name__ == "__main__":
-    main()
+    main(argv[1])

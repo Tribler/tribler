@@ -1,0 +1,143 @@
+#!/bin/bash
+# Mircea Bardac, 2011
+
+if test $# -ne 3; then
+    echo "Usage: $0 <peers-directory> <measure-interval-start> <measure-interval-stop>"
+    exit 1
+fi
+
+BRANCH=$(pwd)
+TIME_START=$2
+TIME_STOP=$3
+
+PEERS_DIRECTORY=$1
+mkdir -p $PEERS_DIRECTORY/output/
+STATS_FILE=$PEERS_DIRECTORY/output/statistics.txt
+> $STATS_FILE
+
+echo "* Looking for errors printed on stderr..."
+cd $PEERS_DIRECTORY/control
+
+find . -regextype posix-egrep -regex '\./node.*\/output/[0-9]{5}\.err' | while read peer_file; do
+    if test $(cat $peer_file | wc -l) -ne 0; then
+        echo "*** $peer_file ***"
+        cat $peer_file
+        echo
+    fi
+done
+
+NODE_COUNT=$(find . -type d -name 'node*' | wc -l)
+
+cd $PEERS_DIRECTORY/
+
+echo "* Counting number of peers that were executed..."
+PEERS_COUNT=$(cat peer.count)
+actual_count=$(find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/barter\.log' | wc -l)
+
+if test $actual_count -ne $PEERS_COUNT; then
+    echo
+    echo "!!! ERROR !!!"
+    echo "!!! We have counted $actual_count peers (expected $PEERS_COUNT peers). Quota problems?"
+    quota
+    sleep 2
+fi
+
+PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
+
+
+echo "* Counting number of delayed cycles (too much to process within a cycle)..."
+c_ratio=0.0
+t_cycles="(not-counted)"
+d_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*delay:f' | grep 'diff:f-' | wc -l)
+if test $d_cycles -gt 0; then
+    echo "  * Counting number of total cycles..."
+    t_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*delay:f' | wc -l)
+    c_ratio=$(echo "scale=2; 100*${d_cycles}/${t_cycles}" | bc -l)
+    echo "  * Delayed cycles: ${d_cycles}/${t_cycles} (${c_ratio}%)"
+    sleep 2
+fi
+
+echo "* Extracting experiment parameters from community properties..."
+sync_interval_exp=$(grep barter-community-property 00001/output/barter.log | grep :sync_interval | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
+sync_member_count=$(grep barter-community-property 00001/output/barter.log | grep :sync_member_count | sed 's/.*value:i\([0-9]*\)/\1/g')
+sync_response_limit=$(grep barter-community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
+
+cd $PEERS_DIRECTORY/control
+echo "* Summing up incoming traffic..."
+in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')
+echo "* Summing up outgoing traffic..."
+out_bytes=$(grep ^@\>out: * -R | awk '{sum += $2 } END { print sum }')
+lost_bytes=$[ $out_bytes - $in_bytes ]
+s_in_bytes=$(printf %\'14d $in_bytes)
+s_out_bytes=$(printf %\'14d $out_bytes)
+s_lost_bytes=$(printf %\'14d $lost_bytes)
+b_ratio=$(echo "scale=2; 100*(${lost_bytes})/${out_bytes}" | bc -l)
+
+cycle_length_exp=$(find . -name '00000.out' | head -n1 | xargs head -n 10 | grep Starting | sed 's/.*timestep=\([0-9]*\.[0-9]\)/\1/g')
+cycle_length_real="600.00"
+
+time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
+sync_interval_real=$(echo "scale=2; $sync_interval_exp*$time_ratio" | bc)
+
+echo "* Extracting statistics..."
+
+cd $BRANCH
+./barter-extract-statistics $PEERS_DIRECTORY $TIME_START $TIME_STOP $time_ratio
+
+echo "* Done"
+echo
+(
+cat <<END-OF-MSG
+Peers: $PEERS_COUNT
+Nodes: $NODE_COUNT
+Peers per node: $PEERS_PER_NODE
+
+ Cycle length: $(printf %6.1f $cycle_length_exp) sec
+Sync interval: $(printf %6.1f $sync_interval_exp) sec
+   Sync peers: $(printf %6d $sync_member_count) peer(s)
+Sync response: $(printf %6d $sync_response_limit) bytes
+
+    Total sent traffic: $s_out_bytes bytes
+Total received traffic: $s_in_bytes bytes
+    Total lost traffic: $s_lost_bytes bytes ($b_ratio%)
+
+END-OF-MSG
+) >> $STATS_FILE
+
+if test $d_cycles -gt 0; then
+    echo "Delayed cycles: ${d_cycles}/${t_cycles} (${c_ratio}%)" >> $STATS_FILE
+else
+    echo "No delayed execution cycles." >> $STATS_FILE
+fi
+
+(
+cat <<END-OF-MSG
+---
+peers=$PEERS_COUNT
+nodes=$NODE_COUNT
+peers_per_node=$PEERS_PER_NODE
+experiment_time_ratio=$time_ratio
+cycle_length_experiment=$cycle_length_exp
+cycle_length_real=$cycle_length_real
+sync_interval_experiment=$sync_interval_exp
+sync_interval_real=$sync_interval_real
+sync_member_count=$sync_member_count
+sync_response_limit=$sync_response_limit
+bytes_out=$out_bytes
+bytes_in=$in_bytes
+bytes_lost=$lost_bytes
+bytes_lost_ratio=$b_ratio
+total_cycles=$t_cycles
+delayed_cycles=$d_cycles
+delayed_cycles_ratio=$c_ratio
+END-OF-MSG
+) >> $STATS_FILE
+
+cat $PEERS_DIRECTORY/output/measure_info.txt >> $STATS_FILE
+rm $PEERS_DIRECTORY/output/measure_info.txt
+
+echo "=== Report ==="
+cat $STATS_FILE
+echo "=== end report ==="
+echo
+

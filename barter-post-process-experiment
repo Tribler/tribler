@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if test $# -ne 3; then
+    echo "Usage: $0 <peer-directory> <time-interval-start> <time-interval-stop>"
+    exit 1
+fi
+
+cd $1
+PD=$(pwd)
+cd - >/dev/null # return to initial directory
+
+START=$2
+STOP=$3
+
+./barter-experiment-analysis $PD $START $STOP
+if test $? -ne 0; then
+    exit 2
+fi
+echo "* Generating graphs..."
+./barter-generate-graphs $PD | gnuplot
+echo "* Done."
+

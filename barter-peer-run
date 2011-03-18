@@ -21,44 +21,8 @@ SCRIPT_ARGS=$2
 
 BRANCH=`pwd`
 
-export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
-export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
-
 cd ${PEERS}
 PEERS=$(pwd)
-
-# try to lock a dir if we manage to create a sym link
-# then we own the directory
-# since the creation of symbolic links is atomic there
-# will be no conflicts
-MYDIR=-1
-for i in `ls -d */`; do
-    ln -s . $i/.lock
-    if [[ $? == 0 ]]; then
-	    MYDIR=$i;
-	break;
-    fi
-done
-
-if [[ $MYDIR == -1 ]]; then
-    echo "Error cannot lock into any dir"
-    exit 1;
-fi
-
-# run node
-cd ${MYDIR}
-MYDIR=$(pwd)
-cp ${BRANCH}/dprint.conf .
-
-#read -p "Press the any key to continue..."
-
-if test ! -e "data/peer.init"; then
-	echo "Missing peer configuration file in 'data/peer.conf'"
-	exit 1
-fi
-
-MY_ID=$(awk -F'[ ]' '{ print $1 }' data/peer.init)
-MY_PORT=$(awk -F'[ ]' '{ print $3 }' data/peer.init)
 
 # find the first eth interface with an IP set (test eth0-eth9)
 iface_no=0
@@ -80,32 +44,40 @@ fi
 # determine the IP of the usable interface
 MY_IP=$(ip address show dev $iface | grep 'inet ' | awk -F '[/ ]' '{print $6}')
 
-PARAMETERS="--ip $MY_IP --port $MY_PORT --script-args $SCRIPT_ARGS"
+export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
+export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
 
-cat data/peer.init | sed "s/0\.0\.0\.0/$MY_IP/g" > data/peer.conf
+MY_ID=$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)
+
+# run node
+cd ${MY_ID}
+MYDIR=$(pwd)
+echo "!!!!!! $MYDIR"
+
+# cleanup
+rm -rf ${MYDIR}/output
+
+# move config files
+mv /tmp/mbardac/dispersy/peer_${MY_ID}.conf ${MYDIR}/data/peer.conf
+mv /tmp/mbardac/dispersy/peer-keys_${MY_ID}.conf ${MYDIR}/data/peers
+
+#read -p "Press the any key to continue..."
+
+MY_PORT=$(awk -F'[ ]' '{ print $3 }' data/peer.conf)
+
+PARAMETERS="--ip $MY_IP --port $MY_PORT --script-args $SCRIPT_ARGS"
 
 echo "Starting barter-scenario Dispersy client #$MY_ID on $MY_IP:$MY_PORT with arguments: $SCRIPT_ARGS"
 
-# Peer #1 generates a file with all the information about other peers (ID, IP, keys)
-# the rest of the peers wait for the information to become available
-if test $MY_ID -eq 1; then
-	TOTAL_PEERS=$(cat ${PEERS}/peer.count)
-	pwd
-	cat ${PEERS}/peer.count
-	count=0
-	echo "!!!!!!!!! ${MYDIR} $count -lt $TOTAL_PEERS"
-	while test $count -lt $TOTAL_PEERS; do
-		count=$(find ${PEERS} -name 'peer.conf' | wc -l)
-	done
-	find ${PEERS}/ -name 'peer.conf' | xargs cat > ${PEERS}/peers
-	cp ${PEERS}/peers ${MYDIR}/data
-else
-	while test ! -e ${PEERS}/peers; do
-		sleep 0.5
-	done
-	cp ${PEERS}/peers ${MYDIR}/data
-fi
+DISPERSY_DIR=/tmp/mbardac/dispersy/$MY_ID
+mkdir -p $DISPERSY_DIR/data
+cp -a ${MYDIR}/data/* $DISPERSY_DIR/data/
+cp ${BRANCH}/dprint.conf $DISPERSY_DIR
+
+cd $DISPERSY_DIR
 
 python ${BRANCH}/Tribler/Main/dispersy.py --script barter-scenario $PARAMETERS
+#python -O ${BRANCH}/Tribler/Main/dispersy.py --script barter-scenario $PARAMETERS
+#echo python ${BRANCH}/Tribler/Main/dispersy.py --script barter-scenario $PARAMETERS
 
 #read -p "Press the any key to close..."

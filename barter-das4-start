@@ -1,0 +1,49 @@
+#!/bin/sh
+
+if test $# -ne 4; then
+	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min>"
+	exit 1
+fi
+
+# expand experiment config filename to full path
+cfg_name=$(basename $1)
+cfg_path=$(dirname $1)
+cd $cfg_path
+cfg_path=$(pwd)
+EXPERIMENT_CONFIG=$cfg_path/$cfg_name
+source $EXPERIMENT_CONFIG # brings in $BRANCH
+
+cd $2
+PEERS_DIRECTORY=$(pwd)
+NODE_COUNT=$3
+EXPERIMENT_LENGTH=$4
+
+current_hour=$(date +%H)
+day_of_week=$(date +%u)
+if test $current_hour -lt 20 && test $current_hour -gt 8 && test $day_of_week -lt 6 && test $EXPERIMENT_LENGTH -ge 15 ; then
+    # according to: http://www.cs.vu.nl/das4/usage.shtml
+    # working hours: Mon-Fri, 8:00 - 20:00
+    echo "* Adjusting experiment length from $EXPERIMENT_LENGTH min to 14 min (it's working hours!)"
+    EXPERIMENT_LENGTH=14
+fi
+
+rm -rf $PEERS_DIRECTORY/control
+rm -f $PEERS_DIRECTORY/peers
+
+rm -rf $PEERS_DIRECTORY/output
+mkdir -p $PEERS_DIRECTORY/output
+
+
+cd $PEERS_DIRECTORY
+PEER_COUNT=$(cat peer.count)
+
+echo "Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
+
+find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dispersy\.db' -delete
+find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dprint\.conf' -delete
+
+cd $BRANCH
+qsub -t 1-${NODE_COUNT} das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH
+
+sleep 2
+qstat
