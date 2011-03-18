@@ -5,10 +5,11 @@ from __future__ import with_statement
 Run some python code, usually to test one or more features.
 """
 
-import hashlib
-import types
 from struct import pack, unpack_from
 from time import clock
+import gc
+import hashlib
+import types
 
 from authentication import MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -107,6 +108,259 @@ class ScriptBase(object):
     def run():
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
 
+class DispersyClassificationScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.load_no_communities)
+        self.caller(self.load_one_communities)
+        self.caller(self.load_two_communities)
+        self.caller(self.unloading_community)
+
+        self.caller(self.enable_autoload)
+        self.caller(self.enable_disable_autoload)
+
+    def load_no_communities(self):
+        """
+        Try to load communities of a certain classification while there are no such communities.
+        """
+        class ClassificationLoadNoCommunities(DebugCommunity):
+            pass
+        assert ClassificationLoadNoCommunities.load_communities() == []
+        yield 0.0
+
+    def load_one_communities(self):
+        """
+        Try to load communities of a certain classification while there is exactly one such
+        community available.
+        """
+        class ClassificationLoadOneCommunities(DebugCommunity):
+            pass
+
+        # no communities should exist
+        assert ClassificationLoadOneCommunities.load_communities() == []
+
+        # create one community
+        cid = ClassificationLoadOneCommunities.get_classification()[:20]
+        self._dispersy_database.execute(u"INSERT INTO community (user, classification, cid) VALUES (?, ?, ?)",
+                                        (self._my_member.database_id, ClassificationLoadOneCommunities.get_classification(), buffer(cid)))
+
+        # load one community
+        communities = ClassificationLoadOneCommunities.load_communities()
+        assert len(communities) == 1
+        assert isinstance(communities[0], ClassificationLoadOneCommunities)
+
+        # cleanup
+        communities[0].unload_community()
+        yield 0.0
+
+    def load_two_communities(self):
+        """
+        Try to load communities of a certain classification while there is exactly two such
+        community available.
+        """
+        class LoadTwoCommunities(DebugCommunity):
+            pass
+
+        # no communities should exist
+        assert LoadTwoCommunities.load_communities() == []
+
+        # create two community
+        cid = ("#1" + LoadTwoCommunities.get_classification())[:20]
+        self._dispersy_database.execute(u"INSERT INTO community (user, classification, cid) VALUES (?, ?, ?)",
+                                        (self._my_member.database_id, LoadTwoCommunities.get_classification(), buffer(cid)))
+        cid = ("#2" + LoadTwoCommunities.get_classification())[:20]
+        self._dispersy_database.execute(u"INSERT INTO community (user, classification, cid) VALUES (?, ?, ?)",
+                                        (self._my_member.database_id, LoadTwoCommunities.get_classification(), buffer(cid)))
+
+        # load two community
+        communities = LoadTwoCommunities.load_communities()
+        assert len(communities) == 2, len(communities)
+        assert isinstance(communities[0], LoadTwoCommunities)
+        assert isinstance(communities[1], LoadTwoCommunities)
+
+        # cleanup
+        communities[0].unload_community()
+        communities[1].unload_community()
+        yield 0.0
+
+    def unloading_community(self):
+        """
+        Test that calling community.unload_community() eventually results in a call to
+        community.__del__().
+        """
+        class ClassificationUnloadingCommunity(DebugCommunity):
+            pass
+
+        cid = ClassificationUnloadingCommunity.create_community(self._my_member).cid
+        assert isinstance(self._dispersy.get_community(cid), ClassificationUnloadingCommunity)
+        assert len([x for x in gc.get_objects() if isinstance(x, ClassificationUnloadingCommunity)]) == 1
+
+        # unload the community
+        self._dispersy.get_community(cid).unload_community()
+        try:
+            self._dispersy.get_community(cid)
+            assert False
+        except KeyError:
+            pass
+
+        # must be garbage collected
+        for i in range(10):
+            dprint("waiting... ", i)
+            gc.collect()
+            if len([x for x in gc.get_objects() if isinstance(x, ClassificationUnloadingCommunity)]) == 0:
+                break
+            else:
+                yield 1.0
+        assert len([x for x in gc.get_objects() if isinstance(x, ClassificationUnloadingCommunity)]) == 0
+
+        # load the community for cleanup
+        community = ClassificationUnloadingCommunity.load_community(cid, "")
+        assert len([x for x in gc.get_objects() if isinstance(x, ClassificationUnloadingCommunity)]) == 1
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def enable_autoload(self):
+        """
+        - Create community
+        - Enable auto-load (should be enabled by default)
+        - Unload community
+        - Send community message
+        - Verify that the community got auto-loaded
+        """
+        # create community
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        message = community.get_meta_message(u"full-sync-text")
+
+        # create node
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(candidate=False)
+        yield 0.01
+
+        dprint("verify auto-load is enabled (default)")
+        assert community.dispersy_auto_load == True
+        yield 0.01
+
+        dprint("unload community")
+        community.unload_community()
+        try:
+            self._dispersy.get_community(community.cid)
+            assert False
+        except KeyError:
+            pass
+        yield 0.01
+
+        dprint("send community message")
+        global_time = 10
+        node.send_message(node.create_full_sync_text_message("Should auto-load", global_time), address)
+        yield 0.01
+
+        dprint("verify that the community got auto-loaded")
+        try:
+            self._dispersy.get_community(community.cid)
+        except KeyError:
+            assert False
+        # verify that the message was received
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        assert global_time in times
+        yield 0.01
+
+        dprint("cleanup")
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def enable_disable_autoload(self):
+        """
+        - Create community
+        - Enable auto-load (should be enabled by default)
+        - Unload community
+        - Send community message
+        - Verify that the community got auto-loaded
+        - Disable auto-load
+        - Send community message
+        - Verify that the community did NOT get auto-loaded
+        """
+        # create community
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        message = community.get_meta_message(u"full-sync-text")
+
+        # create node
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(candidate=False)
+        yield 0.01
+
+        dprint("verify auto-load is enabled (default)")
+        assert community.dispersy_auto_load == True
+        yield 0.01
+
+        dprint("unload community")
+        community.unload_community()
+        try:
+            self._dispersy.get_community(community.cid)
+            assert False
+        except KeyError:
+            pass
+        yield 0.01
+
+        dprint("send community message")
+        global_time = 10
+        node.send_message(node.create_full_sync_text_message("Should auto-load", global_time), address)
+        yield 0.01
+
+        dprint("verify that the community got auto-loaded")
+        try:
+            self._dispersy.get_community(community.cid)
+        except KeyError:
+            assert False
+        # verify that the message was received
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        assert global_time in times
+        yield 0.01
+
+        dprint("disable auto-load")
+        community.dispersy_auto_load = False
+        assert community.dispersy_auto_load == False
+        yield 0.01
+
+        dprint("unload community")
+        community.unload_community()
+        try:
+            self._dispersy.get_community(community.cid)
+            assert False
+        except KeyError:
+            pass
+        yield 0.01
+
+        dprint("send community message")
+        global_time = 11
+        node.send_message(node.create_full_sync_text_message("Should not auto-load", global_time), address)
+        yield 0.01
+
+        dprint("verify that the community did not get auto-loaded")
+        try:
+            self._dispersy.get_community(community.cid)
+            assert False
+        except KeyError:
+            pass
+        # verify that the message was NOT received
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        assert not global_time in times
+        yield 0.01
+
+        dprint("cleanup")
+        DebugCommunity.load_community(community.cid, "")
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
 class DispersyTimelineScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -140,6 +394,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def fail_check(self):
         """
@@ -169,6 +424,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
+        community.unload_community()
 
     def loading_community(self):
         """
@@ -200,6 +456,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
 class DispersyCandidateScript(ScriptBase):
     def run(self):
@@ -242,6 +499,7 @@ class DispersyCandidateScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def outgoing_candidate_response(self):
         """
@@ -281,6 +539,7 @@ class DispersyCandidateScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def outgoing_candidate_request(self):
         """
@@ -357,6 +616,7 @@ class DispersyCandidateScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
@@ -470,6 +730,7 @@ class DispersyMemberTagScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def drop_test(self):
         """
@@ -528,6 +789,7 @@ class DispersyMemberTagScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
 class DispersyBatchScript(ScriptBase):
     def run(self):
@@ -571,6 +833,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def two_batches_binary_duplicate(self):
         """
@@ -612,6 +875,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def one_batch_user_global_time_duplicate(self):
         """
@@ -643,6 +907,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def two_batches_user_global_time_duplicate(self):
         """
@@ -687,6 +952,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def one_big_batch(self):
         """
@@ -717,6 +983,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def many_small_batches(self):
         """
@@ -753,6 +1020,7 @@ class DispersyBatchScript(ScriptBase):
         # cleanup
         for community, _ in exp:
             community.create_dispersy_destroy_community(u"hard-kill")
+            community.unload_community()
 
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
@@ -822,6 +1090,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def in_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -855,6 +1124,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def out_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -888,6 +1158,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def random_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -934,6 +1205,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def mixed_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1010,6 +1282,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def last_1_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1073,6 +1346,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def last_9_nosequence_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1140,6 +1414,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     # def last_9_sequence_test(self):
     #     community = DebugCommunity.create_community(self._my_member)
@@ -1212,6 +1487,7 @@ class DispersySyncScript(ScriptBase):
 
     #     # cleanup
     #     community.create_dispersy_destroy_community(u"hard-kill")
+        # community.unload_community()
 
 class DispersySignatureScript(ScriptBase):
     def run(self):
@@ -1261,6 +1537,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def double_signed_response(self):
         ec = ec_generate_key(u"low")
@@ -1307,6 +1584,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def triple_signed_timeout(self):
         ec = ec_generate_key(u"low")
@@ -1351,6 +1629,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def triple_signed_response(self):
         ec = ec_generate_key(u"low")
@@ -1456,6 +1735,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def full_sync(self):
         """
@@ -1495,6 +1775,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
     def subjective_set_request(self):
         """

@@ -191,6 +191,15 @@ class DebugCommunity(Community):
                 Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
                 ]
 
+    def create_full_sync_text(self, text, store=True, update=True, forward=True):
+        meta = self.get_meta_message(u"full-sync-text")
+        message = meta.implement(meta.authentication.implement(self._my_member),
+                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(text))
+        self._dispersy.store_update_forward([message], store, update, forward)
+        return message
+
     #
     # double-signed-text
     #

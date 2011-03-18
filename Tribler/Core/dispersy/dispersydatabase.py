@@ -46,6 +46,7 @@ CREATE TABLE community(
  classification TEXT,                           -- the community type, typically the class name
  cid BLOB,                                      -- the sha1 digest of the public_key
  public_key BLOB DEFAULT '',                    -- community master key (public part) when available
+ auto_load BOOL DEFAULT 1,                      -- when 1 this community is loaded whenever a packet for it is received
  UNIQUE(user, cid, public_key));
 
 CREATE TABLE key(

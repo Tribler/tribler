@@ -96,8 +96,9 @@ def main():
         script = Script.get_instance(rawserver)
 
         if opt.enable_dispersy_script:
-            from Tribler.Core.dispersy.script import DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
+            from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
             from Tribler.Community.discovery.script import DiscoveryUserScript, DiscoveryCommunityScript, DiscoverySyncScript
+            script.add("dispersy-classification", DispersyClassificationScript)
             script.add("dispersy-timeline", DispersyTimelineScript)
             script.add("dispersy-candidate", DispersyCandidateScript)
             script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)

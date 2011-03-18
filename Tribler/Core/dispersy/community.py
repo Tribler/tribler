@@ -35,6 +35,14 @@ if __debug__:
 
 class Community(object):
     @classmethod
+    def get_classification(cls):
+        """
+        Describes the community type.  Should be the same across compatible versions.
+        @rtype: unicode
+        """
+        return cls.__name__.decode("UTF-8")
+
+    @classmethod
     def create_community(cls, my_member, *args, **kargs):
         """
         Create a new community owned by my_member.
@@ -75,7 +83,10 @@ class Community(object):
             execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
 
         # new community instance
-        community = cls(cid, master_key, *args, **kargs)
+        community = cls.load_community(cid, master_key, *args, **kargs)
+
+        # send out my initial dispersy-identity
+        community.create_dispersy_identity()
 
         # authorize MY_MEMBER for each message
         permission_triplets = []
@@ -85,9 +96,6 @@ class Community(object):
                     permission_triplets.append((my_member, message, allowed))
         if permission_triplets:
             community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
-
-        # send out my initial dispersy-identity
-        community.create_dispersy_identity()
 
         return community
 
@@ -139,7 +147,7 @@ class Community(object):
                          (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_key)))
 
         # new community instance
-        community = cls(cid, master_key, *args, **kargs)
+        community = cls.load_community(cid, master_key, *args, **kargs)
 
         # send out my initial dispersy-identity
         community.create_dispersy_identity()
@@ -158,9 +166,36 @@ class Community(object):
         @rtype: list
         """
         database = DispersyDatabase.get_instance()
-        return [cls(str(cid), str(master_key), *args, **kargs)
+        return [cls.load_community(str(cid), str(master_key), *args, **kargs)
                 for cid, master_key
-                in database.execute(u"SELECT cid, public_key FROM community WHERE classification = ?", (cls.get_classification(),))]
+                in list(database.execute(u"SELECT cid, public_key FROM community WHERE classification = ?", (cls.get_classification(),)))]
+
+    @classmethod
+    def load_community(cls, cid, master_key, *args, **kargs):
+        """
+        Load a single community.
+        """
+        assert isinstance(cid, str)
+        assert len(cid) == 20
+        assert isinstance(master_key, str)
+        assert not master_key or cid == sha1(master_key).digest()
+        community = cls(cid, master_key, *args, **kargs)
+
+        # tell dispersy that there is a new community
+        community._dispersy.add_community(community)
+
+        return community
+
+    @classmethod
+    def unload_communities(cls):
+        """
+        Unload all communities that have the same classification as cls.
+        """
+        dispersy = Dispersy.get_instance()
+        classification = cls.get_classification()
+        for community in dispersy.get_communities():
+            if community.get_classification() == classification:
+                community.unload_community()
 
     def __init__(self, cid, master_key):
         """
@@ -186,12 +221,33 @@ class Community(object):
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
 
-        # community identifier
+        # obtain some generic data from the database
+        for database_id, db_master_key, user_public_key in self._dispersy_database.execute(u"""
+            SELECT community.id, community.public_key, user.public_key
+            FROM community
+            LEFT JOIN user ON community.user = user.id
+            WHERE community.cid == ?
+            LIMIT 1""", (buffer(cid),)):
+            # the database returns <buffer> types, we use the binary <str> type internally
+            db_master_key = str(db_master_key)
+            user_public_key = str(user_public_key)
+
+            if not master_key:
+                master_key = db_master_key
+                break
+
+            elif db_master_key == master_key:
+                break
+
+        else:
+            raise ValueError(u"Community not found in database [" + cid.encode("HEX") + "]")
+
+        # instance members
         self._cid = cid
-        self._database_id = 0
-        self._my_member = None
+        self._database_id = database_id
+        self._my_member = MyMember.get_instance(user_public_key)
         self._master_member = None
-        self._initialize_master_member(cid, master_key)
+        self._initialize_master_member(master_key)
         assert isinstance(self._database_id, (int, long))
         assert isinstance(self._my_member, MyMember)
         assert self._master_member is None or isinstance(self._master_member, MasterMember)
@@ -217,38 +273,11 @@ class Community(object):
         self._timeline = Timeline(self)
         self._initialize_timeline()
 
-        # tell dispersy that there is a new community
-        self._dispersy.add_community(self)
-
         # the subjective sets.  the dictionary contains all our, most recent, subjective sets per
         # cluster.  These are made when a meta message uses the SubjectiveDestination policy.
         # self._subjective_sets = self.get_subjective_sets(self._my_member)
 
-    def _initialize_master_member(self, cid, master_key):
-        for community_id, db_master_key, user_public_key in self._dispersy_database.execute(u"""
-            SELECT community.id, community.public_key, user.public_key
-            FROM community
-            LEFT JOIN user ON community.user = user.id
-            WHERE community.cid == ?
-            LIMIT 1""", (buffer(cid),)):
-
-            # the database returns <buffer> types, we use the binary <str> type internally
-            db_master_key = str(db_master_key)
-            user_public_key = str(user_public_key)
-
-            if not master_key:
-                master_key = db_master_key
-                break
-
-            elif db_master_key == master_key:
-                break
-
-        else:
-            raise ValueError(u"Community not found in database [" + cid.encode("HEX") + "]")
-
-        self._database_id = community_id
-        self._my_member = MyMember.get_instance(user_public_key)
-
+    def _initialize_master_member(self, master_key):
         if master_key:
             try:
                 private_master_key, = self._dispersy_database.execute(u"SELECT private_key FROM key WHERE public_key = ?", (buffer(master_key),)).next()
@@ -258,9 +287,6 @@ class Community(object):
             else:
                 # we have the private part of the master member
                 self._master_member = ElevatedMasterMember.get_instance(master_key, str(private_master_key))
-        else:
-            # we do not (yet) have the master member
-            self._master_member = None
 
     def _initialize_meta_messages(self):
         assert isinstance(self._meta_messages, dict)
@@ -310,13 +336,25 @@ class Community(object):
                     message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
                     mapping[name]([message])
 
-    @classmethod
-    def get_classification(cls):
+    # @property
+    def __get_dispersy_auto_load(self):
         """
-        Describes the community type.  Should be the same across compatible versions.
-        @rtype: unicode
+        When True, this community will automatically be loaded when a packet is received.
         """
-        return cls.__name__.decode("UTF-8")
+        # currently we grab it directly from the database
+        return bool(self._dispersy_database.execute(u"SELECT auto_load FROM community WHERE cid = ? AND (public_key = '' OR public_key = ?)",
+                                                    (buffer(self._cid), buffer(self._master_member.public_key if self._master_member else ""))).next()[0])
+
+    # @dispersu_auto_load.setter
+    def __set_dispersy_auto_load(self, auto_load):
+        """
+        Sets the auto_load flag for this community.
+        """
+        assert isinstance(auto_load, bool)
+        self._dispersy_database.execute(u"UPDATE community SET auto_load = ? WHERE cid = ? AND (public_key = '' OR public_key = ?)",
+                                        (1 if auto_load else 0, buffer(self._cid), buffer(self._master_member.public_key if self._master_member else "")))
+    # .setter was introduced in Python 2.6
+    dispersy_auto_load = property(__get_dispersy_auto_load, __set_dispersy_auto_load)
 
     @property
     def dispersy_candidate_request_initial_delay(self):
@@ -520,6 +558,12 @@ class Community(object):
     @property
     def bloom_filter_count(self):
         return len(self._bloom_filters)
+
+    def unload_community(self):
+        """
+        Unload a single community.
+        """
+        self._dispersy.remove_community(self)
 
     def get_bloom_filter(self, global_time):
         """

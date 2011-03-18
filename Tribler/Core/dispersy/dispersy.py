@@ -748,8 +748,32 @@ class Dispersy(Singleton):
             try:
                 community = self.get_community(packet[:20])
             except KeyError:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], level="warning")
-                continue
+                try:
+                    # did we load this community at one point and set it to auto-load?
+                    classification, public_key, auto_load = self._database.execute(u"SELECT classification, public_key, auto_load FROM community WHERE cid = ?",
+                                                                                   (buffer(packet[:20]),)).next()
+
+                except StopIteration:
+                    if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], level="warning")
+                    continue
+
+                else:
+                    if auto_load:
+                        # todo: get some other mechanism to obtain the class from classification
+                        from community import Community
+
+                        public_key = str(public_key)
+                        # attempt to load this community
+                        for cls in Community.__subclasses__():
+                            if classification == cls.get_classification():
+                                community = cls.load_community(packet[:20], public_key)
+                                break
+                        else:
+                            if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown auto-load class) from ", address[0], ":", address[1], level="warning")
+                            continue
+                    else:
+                        if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for non auto-load community) from ", address[0], ":", address[1], level="warning")
+                        continue
 
             # find associated conversion
             try:

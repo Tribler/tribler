@@ -366,7 +366,7 @@ def _config_read():
     
     options = []
     sections = {"default":options}
-    for file_ in [expanduser('~/dprint.conf'), 'dprint.conf']:
+    for file_ in ['dprint.conf', expanduser('~/dprint.conf')]:
         if isfile(file_):
             line_number = 0
             for line in open(file_, "r"):
