@@ -1580,7 +1580,7 @@ class Dispersy(Singleton):
 
     def check_identity_request(self, messages):
         # we can not timeline.check this message because it uses the NoAuthentication policy
-        pass
+        return messages
 
     def on_identity_request(self, address, message):
         """
