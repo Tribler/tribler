@@ -5,6 +5,11 @@ class PreviewChannelCommunity(ChannelCommunity):
     The PreviewChannelCommunity extends the ChannelCommunity to allow ChannelCommunity messages to
     be decoded while not actually joining or participating in an actual ChannelCommunity.
     """
+    @classmethod
+    def join_community(cls, *args, **kargs):
+        community = super(PreviewChannelCommunity, self).join_community(*args, **kargs)
+        community.dispersy_auto_load = True
+        return community
 
     def _initialize_meta_messages(self):
         super(PreviewChannelCommunity, self)._initialize_meta_messages()
