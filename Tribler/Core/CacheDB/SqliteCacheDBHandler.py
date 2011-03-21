@@ -3315,14 +3315,14 @@ class ChannelCastDBHandler:
             NUM_OTHERS_RECENT_TORRENTS +=  additionalSpace/2
             NUM_OTHERS_RANDOM_TORRENTS +=  additionalSpace - (additionalSpace/2)
         
-        sql = "select dispersy_id, time_stamp from ChannelTorrents where channel_id in (select channel_id from VoteCast where voter_id ISNULL and vote=2) and dispersy_id <> -1 order by time_stamp desc limit ?"
+        sql = "select dispersy_id, time_stamp from ChannelTorrents where channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and dispersy_id <> -1 order by time_stamp desc limit ?"
         othersrecenttorrents = self._db.fetchall(sql, (NUM_OTHERS_RECENT_TORRENTS,))
         allrecords.update([dispersy_id for dispersy_id,_ in othersrecenttorrents])
         
         if othersrecenttorrents and len(othersrecenttorrents) == NUM_OTHERS_RECENT_TORRENTS:
             least_recent = othersrecenttorrents[-1][1]
             
-            sql = "select dispersy_id from ChannelTorrents where channel_id in (select channel_id from VoteCast where voter_id ISNULL and vote=2) and time_stamp < ? and dispersy_id <> -1 order by random() limit ?"
+            sql = "select dispersy_id from ChannelTorrents where channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and time_stamp < ? and dispersy_id <> -1 order by random() limit ?"
             othersrandomtorrents = self._db.fetchall(sql,(least_recent ,NUM_OTHERS_RANDOM_TORRENTS))
             allrecords.update([dispersy_id for dispersy_id, in othersrandomtorrents])
         
