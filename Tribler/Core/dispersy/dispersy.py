@@ -1351,11 +1351,14 @@ class Dispersy(Singleton):
             yield message
 
     def _is_valid_external_address(self, address):
-        # if address[0] in ("0.0.0.0", "127.0.0.1"):
-        #     return False
+        if address[0] in ("0.0.0.0", "127.0.0.1"):
+            return False
 
-        # if address[0].endswith(".255"):
-        #     return False
+        if address[0].endswith(".255"):
+            return False
+
+        if address == self._my_external_address:
+            return False
 
         return True
 
