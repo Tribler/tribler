@@ -132,7 +132,8 @@ class AllChannelCommunity(Community):
                 PreviewChannelCommunity.join_community(packet[:20], "", self._my_member)
 
         # handle all packets
-        self._dispersy.on_incoming_packets(incoming_packets)
+        if incoming_packets:
+            self._dispersy.on_incoming_packets(incoming_packets)
 
     # def _start_torrent_request_queue(self):
     #     # check that we are not working on a request already
