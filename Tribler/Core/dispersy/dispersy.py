@@ -639,10 +639,12 @@ class Dispersy(Singleton):
         for meta, batch in sorted(batches.iteritems()):
             # convert binary packets into Message.Implementation instances
             messages = list(self._convert_batch_into_messages(batch))
+            assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
             if __debug__: dprint("[", clock() - debug_begin, " pct] ", meta.name, " messages after conversion")
 
             # handle the incoming messages
-            self.on_message_batch(messages)
+            if messages:
+                self.on_message_batch(messages)
             if __debug__: dprint("[", clock() - debug_begin, " pct] after packet handling")
 
     def on_message_batch(self, messages):
@@ -1394,6 +1396,7 @@ class Dispersy(Singleton):
             LIMIT 30"""
         routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
         responses = []
+        routes = []
 
         for message in messages:
             assert message.name == u"dispersy-candidate-request"
@@ -1406,15 +1409,17 @@ class Dispersy(Singleton):
             # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
             #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
 
-            # add routes in our candidate table
-            self._update_routes_from_external_source(community, message.payload.routes)
+            routes.extend(message.payload.routes)
 
-            # send response
             responses.append(meta.implement(meta.authentication.implement(community.my_member),
                                             meta.distribution.implement(community._timeline.global_time),
                                             meta.destination.implement(message.address),
                                             meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, message.address, meta.community.get_conversion().version, routes)))
 
+        # add routes in our candidate table
+        self._update_routes_from_external_source(community, routes)
+
+        # send response
         self.store_update_forward(responses, False, False, True)
 
     def check_candidate_response(self, messages):
@@ -1424,9 +1429,9 @@ class Dispersy(Singleton):
                 continue
             yield message
 
-    def on_candidate_response(self, address, message):
+    def on_candidate_response(self, messages):
         """
-        We received a dispersy-candidate-response message.
+        We received dispersy-candidate-response messages.
 
         This message contains the external address that the sender believes it has
         (message.payload.source_address), and our external address
@@ -1437,26 +1442,23 @@ class Dispersy(Singleton):
         making it very easy to generate any number of members to override simple security schemes
         that use counting.
 
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-candidate-response message.
-        @type message: Message.Implementation
+        @param messages: The dispersy-candidate-response messages.
+        @type messages: [Message.Implementation]
         """
-        if __debug__:
-            from message import Message
-        assert message.name == u"dispersy-candidate-response"
-        assert isinstance(message, Message.Implementation)
-        if __debug__: dprint(message)
+        community = messages[0].community
+        routes = []
+        for message in messages:
+            if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
+            self._my_external_address = message.payload.destination_address
 
-        if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
-        self._my_external_address = message.payload.destination_address
+            # update or insert the member who sent the request
+            # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
+            #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
 
-        # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
-        #                        (message.authentication.member.database_id, message.community.database_id, unicode(address[0]), address[1]))
+            routes.extend(message.payload.routes)
 
         # add routes in our candidate table
-        self._update_routes_from_external_source(message.community, message.payload.routes)
+        self._update_routes_from_external_source(community, routes)
 
     def create_identity(self, community, store=True, forward=True):
         """
