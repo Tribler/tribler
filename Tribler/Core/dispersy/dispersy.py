@@ -1604,7 +1604,7 @@ class Dispersy(Singleton):
                 WHERE sync.community = ? AND sync.name = ? AND user.mid = ?
                 LIMIT 10
                 """
-            self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))])
+            self._send([message.address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))])
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
