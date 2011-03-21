@@ -23,8 +23,8 @@ if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
 
 
-CHANNELCAST_FIRST_MESSAGE = 30
-CHANNELCAST_INTERVAL = 150
+CHANNELCAST_FIRST_MESSAGE = 3
+CHANNELCAST_INTERVAL = 15
 
 class AllChannelCommunity(Community):
     """
@@ -94,24 +94,25 @@ class AllChannelCommunity(Community):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
     def create_channelcast(self, forward=True):
-        sync_ids = self._channelcast_db.getRecentAndRandomTorrents()
-
-        # select channel messages (associated with the sync_ids)
-        packets = [packet for packet, in self._dispersy.database.execute(u"""
-        SELECT sync.packet
-        FROM sync
-        WHERE sync.id IN (?)
-        """, (u", ".join(map(unicode, sync_ids)),))]
-
-        meta = self.get_meta_message(u"channelcast")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(self._timeline.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(packets))
-        self._dispersy.store_update_forward([message], False, False, forward)
+        sync_ids = list(self._channelcast_db.getRecentAndRandomTorrents())
         
-        self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
-        return message
+        if len(sync_ids) > 0:
+            # select channel messages (associated with the sync_ids)
+            sql = u"SELECT sync.packet FROM sync WHERE sync.id IN ("
+            sql += (u"?, "*len(sync_ids))[:-2]
+            sql += u")"
+            
+            packets = [str(packet) for packet, in self._dispersy.database.execute(sql, sync_ids)]
+    
+            meta = self.get_meta_message(u"channelcast")
+            message = meta.implement(meta.authentication.implement(),
+                                     meta.distribution.implement(self._timeline.global_time),
+                                     meta.destination.implement(),
+                                     meta.payload.implement(packets))
+            self._dispersy.store_update_forward([message], False, False, forward)
+            
+            self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
+            return message
 
     def check_channelcast(self, messages):
         # no timeline check because NoAuthentication policy is used
