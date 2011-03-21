@@ -1582,35 +1582,29 @@ class Dispersy(Singleton):
         # we can not timeline.check this message because it uses the NoAuthentication policy
         return messages
 
-    def on_identity_request(self, address, message):
+    def on_identity_request(self, messages):
         """
-        We received a dispersy-identity-request message.
+        We received dispersy-identity-request messages.
 
         The message contains the mid of a member.  The sender would like to obtain one or more
         associated dispersy-identity messages.
 
         @see: create_identity_request
 
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-identity message.
-        @type message: Message.Implementation
+        @param messages: The dispersy-identity message.
+        @type messages: [Message.Implementation]
         """
-        assert message.name == u"dispersy-identity-request"
-        if __debug__: dprint(message)
-
-        meta = message.community.get_meta_message(u"dispersy-identity")
-
-        # todo: we are assuming that no more than 10 members have the same sha1 digest.
-        # sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
-        sql = u"""SELECT packet
-                  FROM sync
-                  JOIN user ON user.id = sync.user
-                  WHERE sync.community = ? AND sync.name = ? AND user.mid = ?
-                  LIMIT 10
-                  """
-        self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))])
+        meta = messages[0].community.get_meta_message(u"dispersy-identity")
+        for message in messages:
+            # todo: we are assuming that no more than 10 members have the same sha1 digest.
+            # sql = u"SELECT identity.packet FROM identity JOIN user ON user.id = identity.user WHERE identity.community = ? AND user.mid = ? LIMIT 10"
+            sql = u"""SELECT packet
+                FROM sync
+                JOIN user ON user.id = sync.user
+                WHERE sync.community = ? AND sync.name = ? AND user.mid = ?
+                LIMIT 10
+                """
+            self._send([address], [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))])
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
