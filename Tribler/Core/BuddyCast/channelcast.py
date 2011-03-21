@@ -175,6 +175,8 @@ class ChannelCastCore:
         
     def _updateChannelInternal(self, query_permid, query, hits):
         listOfAdditions = list()
+        #NIELS: disable channelcast for now
+        return listOfAdditions
         
         # a single read from the db is more efficient
         all_spam_channels = self.votecastdb.getChannelsWithNegVote(None)
