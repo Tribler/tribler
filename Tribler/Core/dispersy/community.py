@@ -182,7 +182,7 @@ class Community(object):
         community = cls(cid, master_key, *args, **kargs)
 
         # tell dispersy that there is a new community
-        community._dispersy.add_community(community)
+        community._dispersy.attach_community(community)
 
         return community
 
@@ -563,7 +563,7 @@ class Community(object):
         """
         Unload a single community.
         """
-        self._dispersy.remove_community(self)
+        self._dispersy.detach_community(self)
 
     def get_bloom_filter(self, global_time):
         """

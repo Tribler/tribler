@@ -232,7 +232,7 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set),
                 Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self.check_subjective_set_request, self.on_subjective_set_request)]
 
-    def add_community(self, community):
+    def attach_community(self, community):
         """
         Add a community to the Dispersy instance.
 
@@ -260,7 +260,17 @@ class Dispersy(Singleton):
         if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
             self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_initial_delay, "id:candidate-" + community.cid)
 
-    def remove_community(self, community):
+    def detach_community(self, community):
+        """
+        Remove an attached community from the Dispersy instance.
+
+        Once a community is detached it will no longer receive incoming messages.  When the
+        community is marked as auto_load it will be loaded, using community.load_community(...),
+        when a message for this community is received.
+
+        @param community: The community that will be added.
+        @type community: Community
+        """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
@@ -268,6 +278,42 @@ class Dispersy(Singleton):
         self._rawserver.kill_tasks("id:sync-" + community.cid)
         self._rawserver.kill_tasks("id:candidate-" + community.cid)
         del self._communities[community.cid]
+
+    def reclassify_community(self, community, destination):
+        """
+        Change a community classification.
+
+        Each community has a classification that dictates what source code is handling this
+        community.  By default the classification of a community is the unicode name of the class in
+        the source code.
+
+        In some cases it may be usefull to change the classification, for instance: if community A
+        has a subclass community B, where B has similar but reduced capabilities, we could
+        reclassify B to A at some point and keep all messages collected so far while using the
+        increased capabilities of community A.
+
+        @param community: The community that will be reclassified.  This may be either a Community
+         instance or a 20 byte cid.
+        @type community: Community or str
+
+        @param destination: The new community classification.  This must be a Community class.
+        @type destination: Community class
+        """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, (str, Community))
+
+        if isinstance(community, str):
+            assert len(community) == 20
+            assert not community in self._communities
+            cid = community
+        else:
+            cid = community.cid
+            community.unload_community()
+
+        self._database.execute(u"UPDATE community SET classification = ? WHERE cid = ?", (destination.get_classification(), buffer(cid)))
+        assert self._database.changes == 1
+        return destination.load_community(cid, "")
 
     def get_community(self, cid):
         """

@@ -121,6 +121,74 @@ class DispersyClassificationScript(ScriptBase):
         self.caller(self.enable_autoload)
         self.caller(self.enable_disable_autoload)
 
+        self.caller(self.reclassify_unloaded_community)
+        self.caller(self.reclassify_loaded_community)
+
+    def reclassify_unloaded_community(self):
+        """
+        Load a community, reclassify it, load all communities of that classification to check.
+        """
+        class ClassTestA(DebugCommunity):
+            pass
+
+        class ClassTestB(DebugCommunity):
+            pass
+
+        # no communities should exist
+        assert ClassTestA.load_communities() == []
+        assert ClassTestB.load_communities() == []
+
+        # create community
+        cid = str((ClassTestA.get_classification() + "A" * 20)[:20])
+        self._dispersy_database.execute(u"INSERT INTO community (user, classification, cid) VALUES (?, ?, ?)",
+                                        (self._my_member.database_id, ClassTestA.get_classification(), buffer(cid)))
+
+        # reclassify
+        community = self._dispersy.reclassify_community(cid, ClassTestB)
+        assert isinstance(community, ClassTestB)
+        assert community.cid == cid
+        try:
+            classification, = self._dispersy_database.execute(u"SELECT classification FROM community WHERE cid = ?", (buffer(cid),)).next()
+        except StopIteration:
+            assert False
+        assert classification == ClassTestB.get_classification()
+
+        # cleanup
+        community.unload_community()
+        yield 0.0
+
+    def reclassify_loaded_community(self):
+        """
+        Load a community, reclassify it, load all communities of that classification to check.
+        """
+        class ClassTestC(DebugCommunity):
+            pass
+
+        class ClassTestD(DebugCommunity):
+            pass
+
+        # no communities should exist
+        assert ClassTestC.load_communities() == []
+        assert ClassTestD.load_communities() == []
+
+        # create community
+        community_c = ClassTestC.create_community(self._my_member)
+        assert len(list(self._dispersy_database.execute(u"SELECT * FROM community WHERE classification = ?", (ClassTestC.get_classification(),)))) == 1
+
+        # reclassify
+        community_d = self._dispersy.reclassify_community(community_c, ClassTestD)
+        assert isinstance(community_d, ClassTestD)
+        assert community_c.cid == community_d.cid
+        try:
+            classification, = self._dispersy_database.execute(u"SELECT classification FROM community WHERE cid = ?", (buffer(community_d.cid),)).next()
+        except StopIteration:
+            assert False
+        assert classification == ClassTestD.get_classification()
+
+        # cleanup
+        community_d.unload_community()
+        yield 0.0
+
     def load_no_communities(self):
         """
         Try to load communities of a certain classification while there are no such communities.
@@ -443,7 +511,7 @@ class DispersyTimelineScript(ScriptBase):
         dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
 
-        self._dispersy.remove_community(community)
+        self._dispersy.detach_community(community)
         yield 0.1
 
         # load the same community and see if the same permissions are loaded
