@@ -68,7 +68,6 @@ class TorrentManager:
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
         # delay. the value needs to be a positive integer.
-        self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
         self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
@@ -459,8 +458,7 @@ class TorrentManager:
 
         # boudewijn: now that we have sorted the search results we
         # want to prefetch the top N torrents.
-        if not self.prefetch_callback.IsRunning():
-            self.prefetch_callback.Start(1000)
+        self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
 
         if DEBUG:
             print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time() - beginsort))

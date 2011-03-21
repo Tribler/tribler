@@ -369,12 +369,14 @@ class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
     def OnMouseMotion(self, event):
         row, _ = self.HitTest(event.GetPosition())
         tooltip = ''
-        for col in xrange(self.GetColumnCount()):
-            tooltip += self.GetItem(row, col).GetText() + "\t"
-        
-        if len(tooltip) > 0:
-            tooltip = tooltip[:-1]
-        
+        try:
+            for col in xrange(self.GetColumnCount()):
+                tooltip += self.GetItem(row, col).GetText() + "\t"
+            
+            if len(tooltip) > 0:
+                tooltip = tooltip[:-1]
+        except:
+            pass
         self.SetToolTipString(tooltip)
         
 class TextCtrlAutoComplete(wx.TextCtrl):

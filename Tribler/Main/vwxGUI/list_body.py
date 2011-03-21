@@ -399,7 +399,7 @@ class AbstractListBody():
         self.items = {}
     
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, wx.BLUE)
+        wx.Panel.SetBackgroundColour(self, wx.WHITE)
         self.listpanel.SetBackgroundColour(colour)
     
     def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED):
