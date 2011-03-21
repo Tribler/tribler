@@ -67,6 +67,7 @@ class SelectedChannelList(SearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.channelsearch_manager = self.guiutility.channelsearch_manager 
+        self.isDispersy = False
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}, \
@@ -146,6 +147,7 @@ class SelectedChannelList(SearchList):
         else:
             for i in range(1, self.notebook.GetPageCount()):
                 self.notebook.RemovePage(i)
+        self.isDispersy = isDispersy
         
     def SetTitle(self, title, description):
         self.title = title
@@ -233,8 +235,9 @@ class SelectedChannelList(SearchList):
         self.footer.SetStates(False, True)
         
         #Request all items from connected peers
-        channelcast = BuddyCastFactory.getInstance().channelcast_core
-        channelcast.updateAChannel(self.id)
+        if not self.isDispersy:
+            channelcast = BuddyCastFactory.getInstance().channelcast_core
+            channelcast.updateAChannel(self.id)
         self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
     def OnSpam(self, event):
