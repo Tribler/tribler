@@ -24,7 +24,6 @@ from sets import Set
 from maxflow import Network
 from math import atan, pi
 
-
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
@@ -2997,6 +2996,9 @@ class ChannelCastDBHandler:
             self.notifier = Notifier.getInstance()
         except:
             print >> sys.stderr, "Channels: could not make a connection to table"
+
+        from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         
         self.channel_id = self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
         self.my_dispersy_cid = None
@@ -3119,7 +3121,9 @@ class ChannelCastDBHandler:
             channel_id, dispersy_id, source_permid, source_address, infohash, timestamp = torrentlist[i]
             
             torrent_id = torrentids[i]
-            channel_ids[channel_id] = channel_ids.setdefault(channel_id, set()).add(source_permid)
+            if not channel_id in channel_ids:
+                channel_ids[channel_id] = set()
+            channel_ids[channel_id].add(source_permid)
             
             insert_data.append((dispersy_id, torrent_id, channel_id, timestamp))
 
@@ -3127,9 +3131,9 @@ class ChannelCastDBHandler:
         self._db.executemany(insert_torrent, insert_data)
         
         #update peer information
-        peers_permids = set((source_permid, source_address[0]) for _,_,source_permid,source_address, _ in torrentlist)
+        peers_permids = set((source_permid, source_address[0]) for _,_,source_permid,source_address,_,_ in torrentlist)
         for permid, ip in peers_permids:
-            if self.peer_db.insertPeer(permid, update = False, commit = False, ip = ip, port = DEFAULTPORT):
+            if self._db.insertPeer(permid, update = False, commit = False, ip = ip, port = DEFAULTPORT):
                 self.peer_db.updatePeer(permid, commit = False, ip = ip)
         self.peer_db.commit()
                 
