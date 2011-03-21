@@ -1038,16 +1038,19 @@ class ChannelSearchGridManager:
         return self.channelcast_db.getChannel(channel_id)
     
     def _dispersy_change_communitytype(self, channel_id, communityclass):
-        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
-        dispersy_cid = str(dispersy_cid)
-        if dispersy_cid != '-1':
-            try:
-                community = self.dispersy.get_community(dispersy_cid)
-            except KeyError:
-                community = dispersy_cid
-            community = self.dispersy.reclassify_community(community, communityclass)
-            
-            return community != None
+        def dispersy_thread():
+            dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+            dispersy_cid = str(dispersy_cid)
+            if dispersy_cid != '-1':
+                try:
+                    community = self.dispersy.get_community(dispersy_cid)
+                except KeyError:
+                    community = dispersy_cid
+                community = self.dispersy.reclassify_community(community, communityclass)
+                
+                return community != None
+    
+        self.dispersy.rawserver.add_task(dispersy_thread)
     
     def spam(self, channel_id):
         self._dispersy_change_communitytype(channel_id, PreviewChannelCommunity)
