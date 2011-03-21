@@ -20,6 +20,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Community.channel.community import ChannelCommunity
+from Tribler.Community.allchannel.preview import PreviewChannelCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -1036,15 +1037,32 @@ class ChannelSearchGridManager:
     def getChannel(self, channel_id):
         return self.channelcast_db.getChannel(channel_id)
     
-    def spam(self, publisher_id):
-        self.votecastdb.spam(publisher_id)
-        self.channelcast_db.deleteTorrentsFromPublisherId(publisher_id)
-        
-    def favorite(self, publisher_id):
-        self.votecastdb.subscribe(publisher_id)
+    def _dispersy_change_communitytype(self, channel_id, communityclass):
+        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+        dispersy_cid = str(dispersy_cid)
+        if dispersy_cid != '-1':
+            try:
+                community = self.dispersy.get_community(dispersy_cid)
+            except KeyError:
+                community = dispersy_cid
+            community = self.dispersy.reclassify_community(community, communityclass)
+            
+            return community != None
     
-    def remove_vote(self, publisher_id):
-        self.votecastdb.unsubscribe(publisher_id)
+    def spam(self, channel_id):
+        self._dispersy_change_communitytype(channel_id, PreviewChannelCommunity)
+        self.votecastdb.spam(channel_id)
+        
+        #Niels: deleting all torrents will cause this mark as spam operation not be reversable
+        #self.channelcast_db.deleteTorrentsFromPublisherId(publisher_id)
+        
+    def favorite(self, channel_id):
+        self._dispersy_change_communitytype(channel_id, ChannelCommunity)
+        self.votecastdb.subscribe(channel_id)
+    
+    def remove_vote(self, channel_id):
+        self._dispersy_change_communitytype(channel_id, PreviewChannelCommunity)
+        self.votecastdb.unsubscribe(channel_id)
         
     def getChannelForTorrent(self, infohash):
         return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)

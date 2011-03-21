@@ -3193,14 +3193,19 @@ class ChannelCastDBHandler:
         self._db.commit()
     
     #dispersy receiving comments
-    def on_comment_from_dispersy(self, channel_id, dispersy_id, peer_id, comment, timestamp, reply_to, reply_after, playlist_dispersy_id, infohash):
-        sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, reply_to_id, reply_after_id, time_stamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        self._db.execute_write(sql, (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, timestamp))
+    def on_comment_from_dispersy(self, channel_id, dispersy_id, mid_global_time, peer_id, comment, timestamp, reply_to, reply_after, playlist_dispersy_id, infohash):
+        #both reply_to and reply_after could be loose pointers to not yet received dispersy message
+        if isinstance(reply_to, (str)):
+            reply_to = buffer(reply_to)
+            
+        if isinstance(reply_after, (str)):
+            reply_after = buffer(reply_after)
+        
+        
+        sql = "INSERT INTO Comments (channel_id, dispersy_id, peer_id, comment, reply_to_id, reply_after_id, time_stamp) VALUES (?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        comment_id = self._db.fetchone(sql, (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, timestamp))
         
         if playlist_dispersy_id or infohash:
-            sql = "SELECT id FROM Comments Where dispersy_id = ?"
-            comment_id = self._db.fetchone(sql, (dispersy_id, ))
-            
             if playlist_dispersy_id:
                 sql = "SELECT id FROM Playlists WHERE dispersy_id = ?"
                 playlist_id = self._db.fetchone(sql, (playlist_dispersy_id, ))
@@ -3216,6 +3221,9 @@ class ChannelCastDBHandler:
                 self._db.execute_write(sql, (comment_id, channeltorrent_id))
                 self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channeltorrent_id)
                 
+        #try fo fix loose reply_to and reply_after pointers
+        sql =  "UPDATE COMMENTS SET reply_to_id = ? WHERE reply_to_id = ?; UPDATE COMMENTS SET reply_after_id = ? WHERE reply_after_id = ?"
+        self._db.execute_write(sql, (dispersy_id, buffer(mid_global_time), dispersy_id, buffer(mid_global_time)))
         self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
     
     #dispersy receiving, modifying playlists

@@ -88,24 +88,22 @@ class ChannelConversion(BinaryConversion):
         dict = {"text":message.payload.text,
                 "timestamp":message.payload.timestamp}
         
-        reply_to = message.payload.reply_to
-        reply_after = message.payload.reply_after
-        playlist = message.payload.playlist
+        reply_to_packet = message.payload.reply_to_packet
+        reply_after_packet = message.payload.reply_after_packet
+        playlist_packet = message.payload.playlist_packet
         infohash = message.payload.infohash
         
-        if reply_to:
-            message = reply_to.load_message()
-            dict["reply-to-mid"] = message.authentication.member.mid
-            dict["reply-to-global-time"] = message.distribution.global_time
+        if reply_to_packet:
+            dict["reply-to-mid"] = message.payload.reply_to_mid
+            dict["reply-to-global-time"] = message.payload.reply_to_global_time
             
-        if reply_after:
-            message = reply_after.load_message()
-            dict["reply-after-mid"] = message.authentication.member.mid,
-            dict["reply-after-global-time"] = message.distribution.global_time
+        if reply_after_packet:
+            dict["reply-after-mid"] = message.payload.reply_after_mid
+            dict["reply-after-global-time"] = message.payload.reply_after_global_time
             
-        if playlist:
-            message = playlist.load_message()
-            dict["playlist-mid"] = message.authentication.member.mid,
+        if playlist_packet:
+            message = playlist_packet.load_message()
+            dict["playlist-mid"] = message.authentication.member.mid
             dict["playlist-global-time"] = message.distribution.global_time
             
         if infohash:
@@ -138,10 +136,10 @@ class ChannelConversion(BinaryConversion):
         if reply_to_global_time and not isinstance(reply_to_global_time, (int, long)):
             raise DropPacket("Invalid 'reply-to-global-time' type")
 
-        if reply_to_mid and reply_to_global_time:
+        try:
             packet_id, packet, message_name = self._get_message(reply_to_global_time, reply_to_mid)
             reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        else:
+        except:
             reply_to = None
 
         reply_after_mid = dic.get("reply-after-mid", None)
@@ -152,10 +150,10 @@ class ChannelConversion(BinaryConversion):
         if reply_after_global_time and not isinstance(reply_after_global_time, (int, long)):
             raise DropPacket("Invalid 'reply-after-global-time' type")
         
-        if reply_after_mid and reply_after_global_time:
+        try:
             packet_id, packet, message_name = self._get_message(reply_after_global_time, reply_after_mid)
             reply_after = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        else:
+        except:
             reply_after = None
             
         playlist_mid = dic.get("playlist-mid", None)
@@ -166,16 +164,16 @@ class ChannelConversion(BinaryConversion):
         if playlist_global_time and not isinstance(playlist_global_time, (int, long)):
             raise DropPacket("Invalid 'playlist-global-time' type")
         
-        if playlist_mid and playlist_global_time:
+        try:
             packet_id, packet, message_name = self._get_message(playlist_mid, playlist_global_time)
             playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        else:
+        except:
             playlist = None
         
         infohash = dic.get("infohash", None)
         if infohash and not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
-        return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_after, playlist, infohash)
+        return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_to_mid, reply_to_global_time, reply_after, reply_after_mid, reply_after_global_time, playlist, infohash)
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
@@ -273,16 +271,18 @@ class ChannelConversion(BinaryConversion):
         return offset, meta_message.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
-        try:
-            packet_id, packet, message_name = self._dispersy_database.execute(u"""
-                SELECT sync.id, sync.packet, name.value
-                FROM sync
-                JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                JOIN user ON (user.id = reference_user_sync.user)
-                JOIN name ON (name.id = sync.name)
-                WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
-                                                      (self._community.database_id, global_time, buffer(mid))).next()
-        except StopIteration:
-            raise DropPacket("Missing previous message")
-        
-        return packet_id, packet, message_name
+        if global_time and mid:
+            try:
+                packet_id, packet, message_name = self._dispersy_database.execute(u"""
+                    SELECT sync.id, sync.packet, name.value
+                    FROM sync
+                    JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
+                    JOIN user ON (user.id = reference_user_sync.user)
+                    JOIN name ON (name.id = sync.name)
+                    WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
+                                                          (self._community.database_id, global_time, buffer(mid))).next()
+            except StopIteration:
+                raise DropPacket("Missing previous message")
+            
+            return packet_id, packet, message_name
+        raise DropPacket("Global_time or mid missing")

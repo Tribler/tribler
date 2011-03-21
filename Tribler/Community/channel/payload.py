@@ -59,22 +59,38 @@ class PlaylistPayload(Payload):
 
 class CommentPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, text, timestamp, reply_to, reply_after, playlist, infohash):
+        def __init__(self, meta, text, timestamp, reply_to_packet, reply_to_mid, reply_to_global_time, reply_after_packet, reply_after_mid, reply_after_global_time, playlist_packet, infohash):
             assert isinstance(text, unicode)
             assert len(text) < 2^16
             assert isinstance(timestamp, (int, long)) 
-            assert not reply_to or isinstance(reply_to, Packet)
-            assert not reply_after or isinstance(reply_after, Packet)
-            assert not playlist or isinstance(playlist, Packet)
+            
+            assert not reply_to_packet or isinstance(reply_to_packet, Packet)
+            assert not reply_to_mid or isinstance(reply_to_mid, str), 'reply_to_mid is a %s'%type(reply_to_mid)
+            assert not reply_to_mid or len(reply_to_mid) == 20, 'reply_to_mid has length %d'%len(reply_to_mid)
+            assert not reply_to_global_time or isinstance(reply_to_global_time, (int, long)), 'reply_to_global_time is a %s'%type(reply_to_global_time)
+            
+            assert not reply_after_packet or isinstance(reply_after_packet, Packet)
+            assert not reply_after_mid or isinstance(reply_after_mid, str), 'reply_after_mid is a %s'%type(reply_after_mid)
+            assert not reply_after_mid or len(reply_after_mid) == 20, 'reply_after_mid has length %d'%len(reply_after_global_time)
+            assert not reply_after_global_time or isinstance(reply_after_global_time, (int, long)), 'reply_after_global_time is a %s'%type(reply_to_global_time)
+            
+            assert not playlist_packet or isinstance(playlist_packet, Packet)
+            
             assert not infohash or isinstance(infohash, str), 'infohash is a %s'%type(infohash)
             assert not infohash or len(infohash) == 20, 'infohash has length %d'%len(infohash)
             
             super(CommentPayload.Implementation, self).__init__(meta)
             self._text = text
             self._timestamp = timestamp
-            self._reply_to = reply_to
-            self._reply_after = reply_after
-            self._playlist = playlist
+            self._reply_to_packet = reply_to_packet
+            self._reply_to_mid = reply_to_mid
+            self._reply_to_global_time = reply_to_global_time
+            
+            self._reply_after_packet = reply_after_packet
+            self._reply_after_mid = reply_after_mid
+            self._reply_after_global_time = reply_after_global_time
+            
+            self._playlist_packet = playlist_packet
             self._infohash = infohash
 
         @property
@@ -86,16 +102,42 @@ class CommentPayload(Payload):
             return self._timestamp
 
         @property
-        def reply_to(self):
-            return self._reply_to
-
-        @property
-        def reply_after(self):
-            return self._reply_after
+        def reply_to_packet(self):
+            return self._reply_to_packet
         
         @property
-        def playlist(self):
-            return self._playlist
+        def reply_to_mid(self):
+            return self._reply_to_mid
+        
+        @property
+        def reply_to_global_time(self):
+            return self._reply_to_global_time
+        
+        @property
+        def reply_to_id(self):
+            if self._reply_to_mid and self._reply_to_global_time:
+                return "%s@%d"%(self._reply_to_mid, self._reply_to_global_time)
+
+        @property
+        def reply_after_packet(self):
+            return self._reply_after_packet
+        
+        @property
+        def reply_after_mid(self):
+            return self._reply_after_mid
+        
+        @property
+        def reply_after_global_time(self):
+            return self._reply_after_global_time
+        
+        @property
+        def reply_after_id(self):
+            if self._reply_after_mid and self._reply_after_global_time:
+                return "%s@%d"%(self._reply_after_mid, self._reply_after_global_time)
+        
+        @property
+        def playlist_packet(self):
+            return self._playlist_packet
         
         @property
         def infohash(self):

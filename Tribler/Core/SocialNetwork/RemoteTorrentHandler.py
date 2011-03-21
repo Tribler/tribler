@@ -232,7 +232,10 @@ class MagnetRequester():
                         continue
                 
                     torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'], include_mypref = False)
-                    torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
+                    if torrent.get('torrent_file_name', False):
+                        torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
+                    else:
+                        torrent_filename = None
                     torrent_alt_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
                     
                     if os.path.isfile(torrent_filename) or os.path.isfile(torrent_alt_filename):
@@ -267,8 +270,11 @@ class MagnetRequester():
             self.requestedInfohashes.remove(infohash)
         
             #save torrent
-            torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'])
-            torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
+            torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'], include_mypref = False)
+            if torrent.get('torrent_file_name', False):
+                torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
+            else:
+                torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
             tdef.save(torrent_filename)
             
             #add this new torrent to db

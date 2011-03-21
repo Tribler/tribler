@@ -174,11 +174,25 @@ class ChannelCommunity(Community):
         self._rawserver(dispersy_thread)
 
     def _disp_create_comment(self, text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store=True, update=True, forward=True):
+        reply_to_mid = None
+        reply_to_global_time = None
+        if reply_to_message:
+            message = reply_to_message.load_message()
+            reply_to_mid = message.authentication.member.mid
+            reply_to_global_time = message.distribution.global_time
+        
+        reply_after_mid = None
+        reply_after_global_time = None
+        if reply_after_message:
+            message = reply_after_message.load_message()
+            reply_after_mid = message.authentication.member.mid
+            reply_after_global_time = message.distribution.global_time
+        
         meta = self.get_meta_message(u"comment")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.claim_global_time()),
                                  meta.destination.implement(),
-                                 meta.payload.implement(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash))
+                                 meta.payload.implement(text, timestamp, reply_to_message, reply_to_mid, reply_to_global_time, reply_after_message, reply_after_mid, reply_after_global_time, playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -204,19 +218,23 @@ class ChannelCommunity(Community):
                 peer_id = None
             else:
                 peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
+                
+            mid_global_time = "%s@%d"%(message.authentication.member.mid, message.distribution.global_time)
             
-            reply_to_id = None
-            if message.payload.reply_to:
-                reply_to_id = message.payload.reply_to.packet_id
+            if message.payload.reply_to_packet:
+                reply_to_id = message.payload.reply_to_packet.packet_id
+            else:
+                reply_to_id = message.payload.reply_to_id
             
-            reply_after_id = None
-            if message.payload.reply_after:
-                reply_after_id = message.payload.reply_after.packet_id
+            if message.payload.reply_after_packet:
+                reply_after_id = message.payload.reply_after_packet.packet_id
+            else:
+                reply_after_id = message.payload.reply_after_id
             
             playlist_dispersy_id = None
-            if message.payload.playlist:
-                playlist_dispersy_id = message.payload.playlist.packet_id
-            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
+            if message.payload.playlist_packet:
+                playlist_dispersy_id = message.payload.playlist_packet.packet_id
+            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
         
     #modify channel, playlist or torrent
     def modifyChannel(self, channel_id, modifications, store=True, update=True, forward=True):
