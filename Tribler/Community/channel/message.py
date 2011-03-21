@@ -18,6 +18,6 @@ class DelayMessageReqChannelMessage(DelayMessage):
         message = meta.implement(meta.authentication.implement(),
                                  meta.distribution.implement(delayed.community._timeline.claim_global_time()),
                                  meta.destination.implement(),
-                                 meta.payload.implement(delayed.authentication.member, delayed.meta))
+                                 meta.payload.implement())
 
-        super(DelayMessageReqChannelMessage, self).__init__("Missing channel-message", footprint, message.packet)
+        super(DelayMessageReqChannelMessage, self).__init__("Missing channel-message", footprint, message, delayed)

@@ -11,6 +11,7 @@ class ChannelConversion(BinaryConversion):
         self.define_meta_message(chr(4), community.get_meta_message(u"comment"), self._encode_comment, self._decode_comment)
         self.define_meta_message(chr(5), community.get_meta_message(u"modification"), self._encode_modification, self._decode_modification)
         self.define_meta_message(chr(6), community.get_meta_message(u"playlist_torrent"), self._encode_playlist_torrent, self._decode_playlist_torrent)
+        self.define_meta_message(chr(7), community.get_meta_message(u"missing-channel"), self._encode_missing_channel, self._decode_missing_channel)
 
     def _encode_channel(self, message):
         return encode({"name":message.payload.name,
@@ -286,3 +287,9 @@ class ChannelConversion(BinaryConversion):
             
             return packet_id, packet, message_name
         raise DropPacket("Global_time or mid missing")
+
+    def _encode_missing_channel(self, message):
+        return ()
+
+    def _decode_missing_channel(self, meta_message, offset, data):
+        return offset, meta_message.payload.implement()

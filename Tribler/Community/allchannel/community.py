@@ -126,7 +126,7 @@ class AllChannelCommunity(Community):
         for _, packet in incoming_packets:
             # ensure that all the PreviewChannelCommunity instances exist
             try:
-                self._dispersy.get_community(packet[:20])
+                self._dispersy.get_community(packet[:20], True)
             except KeyError:
                 if __debug__: dprint("join_community ", packet[:20].encode("HEX"))
                 PreviewChannelCommunity.join_community(packet[:20], "", self._my_member)

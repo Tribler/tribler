@@ -28,6 +28,7 @@ class PreviewChannelCommunity(ChannelCommunity):
                      u"comment",
                      u"modification",
                      u"playlist_torrent",
+                     u"missing-channel",
                      ]:
             self._meta_messages[name] = meta_messages[name]
 

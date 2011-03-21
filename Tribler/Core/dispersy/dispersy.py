@@ -248,6 +248,7 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert not community.cid in self._communities
+        if __debug__: dprint(community.cid.encode("HEX"))
         self._communities[community.cid] = community
 
         # periodically send dispery-sync messages
@@ -275,6 +276,7 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert community.cid in self._communities
+        if __debug__: dprint(community.cid.encode("HEX"))
         self._rawserver.kill_tasks("id:sync-" + community.cid)
         self._rawserver.kill_tasks("id:candidate-" + community.cid)
         del self._communities[community.cid]
@@ -302,6 +304,7 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, (str, Community))
+        if __debug__: dprint(community.cid.encode("HEX"))
 
         if isinstance(community, str):
             assert len(community) == 20
@@ -315,12 +318,15 @@ class Dispersy(Singleton):
         assert self._database.changes == 1
         return destination.load_community(cid, "")
 
-    def get_community(self, cid):
+    def get_community(self, cid, load=False):
         """
         Returns a community by its community id.
 
         The community id, or cid, is the binary representation of the public key of the master
         member for the community.
+
+        When the community is not loaded, but the auto-load is enabled or the load parameter is
+        True, the community is loaded.
 
         @param cid: The community identifier.
         @type cid: string
@@ -330,6 +336,38 @@ class Dispersy(Singleton):
         """
         assert isinstance(cid, str)
         assert len(cid) == 20
+
+        if not cid in self._communities:
+            try:
+                # did we load this community at one point and set it to auto-load?
+                classification, public_key, auto_load = self._database.execute(u"SELECT classification, public_key, auto_load FROM community WHERE cid = ?",
+                                                                               (buffer(cid),)).next()
+
+            except StopIteration:
+                pass
+
+            else:
+                if load or auto_load:
+                    # todo: get some other mechanism to obtain the class from classification
+                    from community import Community
+
+                    def recursive_subclasses(cls):
+                        l = set()
+                        for subcls in cls.__subclasses__():
+                            l.add(subcls)
+                            l.update(recursive_subclasses(subcls))
+                        return l
+
+                    public_key = str(public_key)
+                    # attempt to load this community
+                    for cls in recursive_subclasses(Community):
+                        if classification == cls.get_classification():
+                            self._communities[cid] = cls.load_community(cid, public_key)
+                            break
+
+                    else:
+                        if __debug__: dprint("Failed to obtain class [", classification, "]", level="warning")
+
         return self._communities[cid]
 
     def get_communities(self):
@@ -796,32 +834,8 @@ class Dispersy(Singleton):
             try:
                 community = self.get_community(packet[:20])
             except KeyError:
-                try:
-                    # did we load this community at one point and set it to auto-load?
-                    classification, public_key, auto_load = self._database.execute(u"SELECT classification, public_key, auto_load FROM community WHERE cid = ?",
-                                                                                   (buffer(packet[:20]),)).next()
-
-                except StopIteration:
-                    if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], level="warning")
-                    continue
-
-                else:
-                    if auto_load:
-                        # todo: get some other mechanism to obtain the class from classification
-                        from community import Community
-
-                        public_key = str(public_key)
-                        # attempt to load this community
-                        for cls in Community.__subclasses__():
-                            if classification == cls.get_classification():
-                                community = cls.load_community(packet[:20], public_key)
-                                break
-                        else:
-                            if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown auto-load class) from ", address[0], ":", address[1], level="warning")
-                            continue
-                    else:
-                        if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for non auto-load community) from ", address[0], ":", address[1], level="warning")
-                        continue
+                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], level="warning")
+                continue
 
             # find associated conversion
             try:
