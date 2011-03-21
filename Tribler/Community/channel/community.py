@@ -119,7 +119,7 @@ class ChannelCommunity(Community):
         for message in messages:
             if __debug__: dprint(message)
             dispersy_id = message.packet_id
-            torrentlist.append((self.channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp))
+            torrentlist.append((self.channel_id, dispersy_id, message.authentication.member.public_key, message.address, message.payload.infohash, message.payload.timestamp))
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
 
     #create, check or receive playlist
@@ -337,26 +337,28 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_playlist_torrent(playlist_dispersy_id, message.payload.infohash)
             
     #check or receive missing channel message
-    def _disp_check_missing_channel(self, address, messages):
+    def _disp_check_missing_channel(self, messages):
         for message in messages:
             yield message
 
-    def _disp_on_missing_channel(self, address, messages):
+    def _disp_on_missing_channel(self, messages):
         # 1. get the packet
         try:
-            packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id WHERE name.value = ? ORDER BY global_time DESC", ('channel',)).next()
+            packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id WHERE name.value = 'channel' ORDER BY global_time DESC").next()
         except StopIteration:
             raise RuntimeError("Could not find requested packet")
+        packet = str(packet)
         
         # 2. convert packet into a Message instance
         try:
-            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+            channelmessage = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
         except ValueError:
             raise RuntimeError("Unable to decode packet")
-        message.packet_id = packet_id
+        channelmessage.packet_id = packet_id
         
-        # 3. send back to peer
-        self._dispersy._send([address], [message])
+        for message in messages:
+            # 3. send back to peer
+            self._dispersy._send([message.address], [channelmessage.packet])
         
     #helper functions
     def _get_message_from_channel_id(self, channel_id):

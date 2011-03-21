@@ -33,6 +33,7 @@ from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
+from Tribler.Core.defaults import DEFAULTPORT
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -3109,23 +3110,48 @@ class ChannelCastDBHandler:
     def on_torrents_from_dispersy(self, torrentlist):
         print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
         
-        infohashes = [infohash for _,_,infohash,_ in torrentlist]
+        infohashes = [infohash for _,_,_,_,infohash,_ in torrentlist]
         torrentids = self.torrent_db.addOrGetTorrentIDS(infohashes)
-        channel_ids = set()
+        channel_ids = {}
         
         insert_data = []
         for i in range(len(torrentlist)):
-            channel_id, dispersy_id, infohash, timestamp = torrentlist[i]
+            channel_id, dispersy_id, source_permid, source_address, infohash, timestamp = torrentlist[i]
+            
             torrent_id = torrentids[i]
-            channel_ids.add(channel_id)
+            channel_ids[channel_id] = channel_ids.setdefault(channel_id, set()).add(source_permid)
             
             insert_data.append((dispersy_id, torrent_id, channel_id, timestamp))
 
         insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
         self._db.executemany(insert_torrent, insert_data)
+        
+        #update peer information
+        peers_permids = set((source_permid, source_address[0]) for _,_,source_permid,source_address, _ in torrentlist)
+        for permid, ip in peers_permids:
+            if self.peer_db.insertPeer(permid, update = False, commit = False, ip = ip, port = DEFAULTPORT):
+                self.peer_db.updatePeer(permid, commit = False, ip = ip)
+        self.peer_db.commit()
                 
-        for channel_id in channel_ids:
+        #start requesting missing .torrents
+        missing_infohashes = {}
+        for channel_id in channel_ids.keys():
+            for infohash in self.selectTorrentsToCollect(channel_id):
+                missing_infohashes[str2bin(infohash[0])] = channel_id
+
+        def notify(channel_id):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+                
+        for infohash, channel_id in missing_infohashes.iteritems():
+            #we just heard from a peer that he has this torrent, use prio 2
+            if infohash in infohashes:
+                for source_permid in channel_ids[channel_id]:
+                    self.rtorrent_handler.download_torrent(source_permid, infohash, lambda infohash, metadata, filename: notify(channel_id) ,2)
+            
+            #we're guessing he probably also has this torrent, use prio 3
+            else:
+                for source_permid in channel_ids[channel_id]:
+                    self.rtorrent_handler.download_torrent(source_permid, infohash, lambda infohash, metadata, filename: notify(channel_id) ,3)
 
     def on_torrent_modification_from_dispersy(self, dispersy_id, dic, latest_dispersy_modifier):
         print >> sys.stderr, "Channels: on_torrent_modification_from_dispersy", dispersy_id, dic
