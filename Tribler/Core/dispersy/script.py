@@ -268,7 +268,7 @@ class DispersyClassificationScript(ScriptBase):
         # unload the community
         self._dispersy.get_community(cid).unload_community()
         try:
-            self._dispersy.get_community(cid)
+            self._dispersy.get_community(cid, auto_load=False)
             assert False
         except KeyError:
             pass
@@ -318,7 +318,7 @@ class DispersyClassificationScript(ScriptBase):
         dprint("unload community")
         community.unload_community()
         try:
-            self._dispersy.get_community(community.cid)
+            self._dispersy.get_community(community.cid, auto_load=False)
             assert False
         except KeyError:
             pass
@@ -373,7 +373,7 @@ class DispersyClassificationScript(ScriptBase):
         dprint("unload community")
         community.unload_community()
         try:
-            self._dispersy.get_community(community.cid)
+            self._dispersy.get_community(community.cid, auto_load=False)
             assert False
         except KeyError:
             pass
@@ -402,7 +402,7 @@ class DispersyClassificationScript(ScriptBase):
         dprint("unload community")
         community.unload_community()
         try:
-            self._dispersy.get_community(community.cid)
+            self._dispersy.get_community(community.cid, auto_load=False)
             assert False
         except KeyError:
             pass
@@ -415,7 +415,7 @@ class DispersyClassificationScript(ScriptBase):
 
         dprint("verify that the community did not get auto-loaded")
         try:
-            self._dispersy.get_community(community.cid)
+            self._dispersy.get_community(community.cid, auto_load=False)
             assert False
         except KeyError:
             pass

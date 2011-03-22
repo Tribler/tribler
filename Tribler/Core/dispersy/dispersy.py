@@ -308,7 +308,7 @@ class Dispersy(Singleton):
         if isinstance(community, str):
             assert len(community) == 20
             assert not community in self._communities
-            if __debug__: dprint(community.cid.encode("HEX"), "??? -> ", destination.get_classification())
+            if __debug__: dprint(community.encode("HEX"), "??? -> ", destination.get_classification())
             cid = community
         else:
             if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " -> ", destination.get_classification())
@@ -319,38 +319,46 @@ class Dispersy(Singleton):
         assert self._database.changes == 1
         return destination.load_community(cid, "")
 
-    def get_community(self, cid, load=False):
+    def get_community(self, cid, load=False, auto_load=True):
         """
         Returns a community by its community id.
 
         The community id, or cid, is the binary representation of the public key of the master
         member for the community.
 
-        When the community is not loaded, but the auto-load is enabled or the load parameter is
-        True, the community is loaded.
+        When the community is available but not currently loaded it will be automatically loaded
+        when (a) the load parameter is True or (b) the auto_load parameter is True and the auto_load
+        flag for this community is True (this flag is set in the database).
 
         @param cid: The community identifier.
         @type cid: string
+
+        @param load: When True, will load the community when available and not yet loaded.
+        @type load: bool
+
+        @param auto_load: When True, will load the community when available, the auto_load flag is
+         True, and, not yet loaded.
+        @type load: bool
 
         @warning: It is possible, however unlikely, that multiple communities will have the same
          cid.  This is currently not handled.
         """
         assert isinstance(cid, str)
         assert len(cid) == 20
+        assert isinstance(load, bool)
+        assert isinstance(auto_load, bool)
 
         if not cid in self._communities:
             try:
                 # did we load this community at one point and set it to auto-load?
-                classification, public_key, auto_load = self._database.execute(u"SELECT classification, public_key, auto_load FROM community WHERE cid = ?",
-                                                                               (buffer(cid),)).next()
+                classification, public_key, auto_load_flag = self._database.execute(u"SELECT classification, public_key, auto_load FROM community WHERE cid = ?",
+                                                                                    (buffer(cid),)).next()
 
             except StopIteration:
                 pass
 
             else:
-                if load or auto_load:
-                    # todo: get some other mechanism to obtain the class from classification
-                    from community import Community
+                if load or (auto_load and auto_load_flag):
 
                     def recursive_subclasses(cls):
                         l = set()
@@ -358,6 +366,9 @@ class Dispersy(Singleton):
                             l.add(subcls)
                             l.update(recursive_subclasses(subcls))
                         return l
+
+                    # todo: get some other mechanism to obtain the class from classification
+                    from community import Community
 
                     public_key = str(public_key)
                     # attempt to load this community
