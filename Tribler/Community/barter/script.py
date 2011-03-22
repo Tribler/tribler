@@ -142,8 +142,8 @@ class BarterScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
 
 class BarterScenarioScript(ScriptBase):
-    def __init__(self, terminator, name, rawserver, **kargs):
-        ScriptBase.__init__(self, terminator, name, rawserver, **kargs)
+    def __init__(self, script, name, **kargs):
+        ScriptBase.__init__(self, script, name, **kargs)
         self._timestep = float(kargs.get('timestep', 1.0))
         self._stepcount = 0
         self._starting_timestamp = float(kargs.get('starting_timestamp', time.time()))
@@ -163,18 +163,18 @@ class BarterScenarioScript(ScriptBase):
         return self._members[peername]
 
     def set_online(self):
-        """ Restore on_incoming_message and _send functions of
+        """ Restore on_incoming_packets and _send functions of
         dispersy back to normal.
 
         This simulates a node coming online, since it's able to send
         and receive messages.
         """
         dprint("Going online")
-        self._dispersy.on_incoming_message = self.original_on_incoming_message
+        self._dispersy.on_incoming_packets = self.original_on_incoming_packets
         self._dispersy._send = self.original_send
 
     def set_offline(self):
-        """ Replace on_incoming_message and _sends functions of
+        """ Replace on_incoming_packets and _sends functions of
         dispersy with dummies
 
         This simulates a node going offline, since it's not able to
@@ -183,7 +183,7 @@ class BarterScenarioScript(ScriptBase):
         def dummy_function(*params):
             return
         dprint("Going offline")
-        self._dispersy.on_incoming_message = dummy_function
+        self._dispersy.on_incoming_packets = dummy_function
         self._dispersy._send = dummy_function
 
     def get_commands_from_fp(self, fp, step):
@@ -230,7 +230,7 @@ class BarterScenarioScript(ScriptBase):
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403cbbfd2dfb67a7db66c88988df56f93fa6e7f982f9a6a0fa8898492c8b8cae23e10b159ace60b7047012082a5aa4c6e221d7e58107bb550436d57e046c11ab4f51f0ab18fa8f58d0346cc12d1cc2b61fc86fe5ed192309152e11e3f02489e30c7c971dd989e1ce5030ea0fb77d5220a92cceb567cbc94bc39ba246a42e215b55e9315b543ddeff0209e916f77c0d747".decode("HEX")
 
         self._members = {}
-        self.original_on_incoming_message = self._dispersy.on_incoming_message
+        self.original_on_incoming_packets = self._dispersy.on_incoming_packets
         self.original_send = self._dispersy._send
 
         #
