@@ -14,7 +14,7 @@ rm -f discovery.db-journal
 rm -f barter.db
 rm -f barter.db-journal
 
-python Tribler/Main/dispersy.py --script all || exit 1
+python Tribler/Main/dispersy.py --script all $@ || exit 1
 
 echo "================================================================================"
 echo "Testcases in optimized mode"
@@ -30,7 +30,7 @@ rm -f discovery.db-journal
 rm -f barter.db
 rm -f barter.db-journal
 
-python -O Tribler/Main/dispersy.py --script all || exit 1
+python -O Tribler/Main/dispersy.py --script all $@ || exit 1
 
 echo "================================================================================"
 echo "Finished testcases successfully"

@@ -68,9 +68,9 @@ def main():
     command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
     command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=60.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
-    command_line_parser.add_option("--enable-allchannel-script", action="store", type="string", help="Include allchannel scripts", default=True)
-    command_line_parser.add_option("--enable-barter-script", action="store", type="string", help="Include barter scripts", default=True)
-    command_line_parser.add_option("--enable-dispersy-script", action="store", type="string", help="Include dispersy scripts", default=True)
+    command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
+    command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
+    command_line_parser.add_option("--disable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
 
@@ -95,7 +95,7 @@ def main():
         from Tribler.Core.dispersy.script import Script
         script = Script.get_instance(rawserver)
 
-        if opt.enable_dispersy_script:
+        if not opt.disable_dispersy_script:
             from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
             from Tribler.Community.discovery.script import DiscoveryUserScript, DiscoveryCommunityScript, DiscoverySyncScript
             script.add("dispersy-classification", DispersyClassificationScript)
@@ -112,12 +112,12 @@ def main():
             script.add("discovery-community", DiscoveryCommunityScript)
             script.add("discovery-sync", DiscoverySyncScript)
 
-        if opt.enable_allchannel_script:
+        if not opt.disable_allchannel_script:
             from Tribler.Community.allchannel.script import AllChannelScript
             script = Script.get_instance(rawserver)
             script.add("allchannel", AllChannelScript, include_with_all=False)
 
-        if opt.enable_barter_script:
+        if not opt.disable_barter_script:
             from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
 
             args = {}
