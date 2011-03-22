@@ -735,6 +735,46 @@ class Community(object):
         assert len(mid) == 20
         return [Member.get_instance(str(public_key)) for public_key, in self._dispersy_database.execute(u"SELECT public_key FROM user WHERE mid = ?", (buffer(mid),))]
 
+    def get_members_from_address(self, address, verified=True):
+        """
+        Returns zero or more Member instances that are or have been reachable at address.
+
+        Each member distributes dispersy-identity messages, these messages contain the address where
+        this member is reachable or was reachable in the past.
+
+        TODO: Currently we trust that the information in the dispersy-identity is correct.
+        Obviously this is not always the case.  Hence we will need to verify the truth by contacting
+        the peer at a certain address and performing a secure handshake.
+
+        @param address: The address that we want members from.
+        @type address: (str, int)
+
+        @param verified: When True only verified members are returned. (TODO, currently this
+         parameter is unused and all returned members are unverified)
+        @type verified: bool
+
+        @return: A list containing zero or more Member instances.
+        @rtype: [Member]
+
+        @note: This returns -any- Member, it may not be a member that is part of this community.
+
+        @todo: Since this method returns Members that are not specifically bound to any community,
+         this method should be moved to Dispersy
+        """
+        assert isinstance(address, tuple)
+        assert len(address) == 2
+        assert isinstance(address[0], str)
+        assert isinstance(address[1], int)
+        assert isinstance(verified, bool)
+        if verified:
+            # TODO we should not just trust this information, a member can put any address in their
+            # dispersy-identity message.  The database should contain a column with a 'verified'
+            # flag.  This flag is only set when a handshake was successfull.
+            sql = u"SELECT public_key FROM user WHERE host = ? AND port = ? -- and verified = 1"
+        else:
+            sql = u"SELECT public_key FROM user WHERE host = ? AND port = ?"
+        return [Member.get_instance(str(public_key)) for public_key, in self._dispersy_database.execute(sql, (unicode(address[0]), address[1]))]
+
     def get_conversion(self, prefix=None):
         """
         returns the conversion associated with prefix.

@@ -535,6 +535,42 @@ class DispersyCandidateScript(ScriptBase):
         self.caller(self.outgoing_candidate_response)
         self.caller(self.outgoing_candidate_request)
 
+        self.caller(self.get_unknown_members_from_address)
+        self.caller(self.get_known_members_from_address)
+
+    def get_unknown_members_from_address(self):
+        """
+        Once we have a dispersy-identity we could obtain a member from the member's address.  Hence,
+        when the dispersy-identity is unknown, no members should be returned.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        assert community.get_members_from_address(("0.0.0.0", 0)) == []
+        yield 0.01
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def get_known_members_from_address(self):
+        """
+        Once we have a dispersy-identity we could obtain a member from the member's address.
+
+        TODO At some point we will need to verify the addresses in the dispersy-identity messages.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+
+        # create node
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(candidate=False)
+        yield 0.01
+
+        assert community.get_members_from_address(node.socket.getsockname()) == [node.my_member]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
     def incoming_candidate_request(self):
         """
         Sending a dispersy-candidate-request from NODE to SELF.
