@@ -248,7 +248,7 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert not community.cid in self._communities
-        if __debug__: dprint(community.cid.encode("HEX"))
+        if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
 
         # periodically send dispery-sync messages
@@ -276,7 +276,7 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert community.cid in self._communities
-        if __debug__: dprint(community.cid.encode("HEX"))
+        if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._rawserver.kill_tasks("id:sync-" + community.cid)
         self._rawserver.kill_tasks("id:candidate-" + community.cid)
         del self._communities[community.cid]
@@ -304,13 +304,14 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, (str, Community))
-        if __debug__: dprint(community.cid.encode("HEX"))
 
         if isinstance(community, str):
             assert len(community) == 20
             assert not community in self._communities
+            if __debug__: dprint(community.cid.encode("HEX"), "??? -> ", destination.get_classification())
             cid = community
         else:
+            if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " -> ", destination.get_classification())
             cid = community.cid
             community.unload_community()
 
@@ -924,9 +925,8 @@ class Dispersy(Singleton):
         # method!
         assert len(messages) == len(set((message.authentication.member.database_id, message.distribution.global_time) for message in messages)), messages[0].name
 
-        if __debug__: dprint("storing ", len(messages), " messages")
-
         meta = messages[0].meta
+        if __debug__: dprint("storing ", len(messages), " ", meta.name, " messages")
         is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
         is_similarity_destination = isinstance(meta.destination, SimilarityDestination)
         is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
@@ -981,7 +981,7 @@ class Dispersy(Singleton):
                 for member in set(message.authentication.member for message in messages):
                     execute(u"DELETE FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
                             (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size))
-                    if __debug__: dprint("deleted ", self._database.changes, " entries")
+                    if __debug__: dprint("deleted ", self._database.changes, " messages")
 
                     if is_multi_member_authentication:
                         execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
@@ -1360,7 +1360,10 @@ class Dispersy(Singleton):
             yield message
 
     def _is_valid_external_address(self, address):
-        if address[0] in ("0.0.0.0", "127.0.0.1"):
+        # if address[0] in ("0.0.0.0", "127.0.0.1"):
+        #     return False
+
+        if address[0].endswith(".0"):
             return False
 
         if address[0].endswith(".255"):
@@ -1422,7 +1425,6 @@ class Dispersy(Singleton):
             LIMIT 30"""
         routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
         responses = []
-        routes = []
 
         for message in messages:
             assert message.name == u"dispersy-candidate-request"
