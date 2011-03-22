@@ -186,6 +186,8 @@ class ChannelResultFooter(ListFooter):
     def Reset(self):
         self.EnableResults(False)
         self.message.SetLabel('')
+        if self.blinkTimer:
+            self.blinkTimer.Stop()
         
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):

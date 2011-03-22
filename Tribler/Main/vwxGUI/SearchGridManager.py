@@ -422,17 +422,22 @@ class TorrentManager:
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits
+        if DEBUG:
+            beginlocalsearch = time()
         new_local_hits = self.searchLocalDatabase(mode)
         
         if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items' % len(self.hits)
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
 
         # 2. Filter self.hits on category and status
+        if DEBUG:
+            beginfilterhits = time()
+            
         if new_local_hits:
             self.hits = filter(torrentFilter,self.hits)
 
         if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items' % len(self.hits)
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
@@ -461,7 +466,7 @@ class TorrentManager:
         self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
 
         if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time() - beginsort))
+            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.addDownloadStates(self.hits)
 
         return [len(self.hits), self.filteredResults , self.hits]
