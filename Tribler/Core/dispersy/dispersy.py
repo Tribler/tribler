@@ -685,6 +685,15 @@ class Dispersy(Singleton):
                 self.on_message_batch(messages)
             if __debug__: dprint("[", clock() - debug_begin, " pct] after packet handling")
 
+        # notify the community that there was activity from a certain address
+        communities = {}
+        for meta, batch in batches.iteritems():
+            if not meta.community in communities:
+                communities[meta.community] = set()
+            communities[meta.community].update(address for address, _, _ in batch)
+        for community, addresses in communities.iteritems():
+            community.dispersy_activity(addresses)
+
     def on_message_batch(self, messages):
         """
         Process one batch of messages.

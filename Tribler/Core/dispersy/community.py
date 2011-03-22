@@ -891,3 +891,15 @@ class Community(object):
         @rtype: [Conversion]
         """
         return [DefaultConversion(self)]
+
+    def dispersy_activity(self, addresses):
+        """
+        Called when dispersy activity is detected at certain addresses
+
+        An address will be included even when the packets that we receive from that address are
+        delayed or dropped.
+
+        @param addresses: The addresses from where we received packets.
+        @type addresses: [(str, int)]
+        """
+        pass
