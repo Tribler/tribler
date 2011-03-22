@@ -675,14 +675,14 @@ class ABCApp(wx.App):
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
             def guiCall():
-                wx.CallAfter(self.gui_ntfy_channelupdates, objectID)
+                wx.CallAfter(self.gui_ntfy_channelupdates, objectID, subject == NTFY_VOTECAST)
             
             #wrap in guiserver to prevent multiple refreshes
             self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
     
-    def gui_ntfy_channelupdates(self, channel_id):
+    def gui_ntfy_channelupdates(self, channel_id, votecast):
         manager = self.frame.channellist.GetManager()
-        manager.channelUpdated(channel_id)
+        manager.channelUpdated(channel_id, votecast)
         
         manager = self.frame.selectedchannellist.GetManager()
         manager.channelUpdated(channel_id)

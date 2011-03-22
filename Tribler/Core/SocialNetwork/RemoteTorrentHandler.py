@@ -119,7 +119,7 @@ class TorrentRequester():
     def add_source(self, infohash, permid):
         was_empty = self.queue.empty()
         self.queue.put(infohash)
-        self.sources.setdefault(infohash, []).append(permid)
+        self.sources.setdefault(infohash, set()).add(permid)
         
         if was_empty:
             self.overlay_bridge.add_task(self.doRequest, self.REQUEST_INTERVAL * self.prio, self)
@@ -137,7 +137,7 @@ class TorrentRequester():
             
             try:
                 #~load balance sources
-                permid = choice(self.sources[infohash])
+                permid = choice(list(self.sources[infohash]))
                 self.sources[infohash].remove(permid)
                 
                 if len(self.sources[infohash]) < 1:
@@ -152,7 +152,7 @@ class TorrentRequester():
                 self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                 
                 #schedule a magnet lookup after X seconds
-                if self.prio <= 1 or (self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD and infohash not in self.sources):
+                if self.prio <= 1 or (infohash not in self.sources and infohash in self.nr_times_requested and self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD):
                     self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*(self.prio+1), infohash)
 
             #Make sure exceptions wont crash this requesting thread

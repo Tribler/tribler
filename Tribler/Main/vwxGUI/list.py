@@ -153,7 +153,6 @@ class ChannelSearchManager:
                     [total_items,data] = self.channelsearch_manager.getSubscriptions()
                 wx.CallAfter(self._on_data, data, title, total_items)
             
-            self.list.ShowLoading()
             self.guiserver.add_task(db_callback, id = "ChannelSearchManager_refresh")
         else:
             total_items = len(search_results)
@@ -161,8 +160,10 @@ class ChannelSearchManager:
             self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
     
     def _on_data(self, data, title, total_items):
+        data = [channel for channel in data if channel[4] > 0]
+        
         self.list.SetData(data)
-        self.list.SetTitle(title, total_items)
+        self.list.SetTitle(title, len(data))
         if DEBUG:
             print >> sys.stderr, "ChannelManager complete refresh done"
       
@@ -171,13 +172,14 @@ class ChannelSearchManager:
             if category != self.category:
                 self.category = category
                 self.list.Reset()
+                self.list.ShowLoading()
                 
                 if category != 'searchresults':
                     self.refresh()
             else:
                 self.list.DeselectAll()
         
-    def channelUpdated(self, permid):
+    def channelUpdated(self, permid, votecast = False):
         if self.list.ready: 
             if self.list.InList(permid): #one item updated
                 
@@ -189,7 +191,15 @@ class ChannelSearchManager:
                     self.dirtyset.add(permid)
                     self.list.dirty = True
                     
-            elif self.category in ['All', 'New']:  #show new channel, but only if we are looking at all or new channels
+            elif not votecast:
+                if self.category == 'All':
+                    update = True
+                elif self.category == 'Popular':
+                    update = len(self.list.GetItems()) < 20
+                else:
+                    update = False
+                
+                if update: 
                     if self.list.ShouldGuiUpdate():
                         self.refresh()
                     else:
@@ -1027,7 +1037,7 @@ class ChannelList(List):
             self.favorites = [file[0] for file in data if file[6] == 2]
             self.spam_channels = [file[0] for file in data if file[6] == -1]
             
-            data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data if file[4] > 0]
+            data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data]
             return self.list.SetData(data)
         
         self.list.ShowMessage('No channels are discovered for this category.')

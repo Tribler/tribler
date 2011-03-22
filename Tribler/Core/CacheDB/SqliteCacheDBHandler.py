@@ -2999,7 +2999,7 @@ class VoteCastDBHandler(BasicDBHandler):
             sql = "update VoteCast set vote=2 where mod_id==? and voter_id==?"
             self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
         
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, permid)   
+        self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, permid)   
     
     def unsubscribe(self, permid): ###
         """ change the vote status to 0, if unsubscribed"""
@@ -3009,7 +3009,7 @@ class VoteCastDBHandler(BasicDBHandler):
             sql = "delete from VoteCast where mod_id==? and voter_id==?"
             self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
         
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, permid)
+        self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, permid)
     
     def spam(self, permid):
         """ insert/change the vote status to -1"""
@@ -3022,7 +3022,7 @@ class VoteCastDBHandler(BasicDBHandler):
             sql = "update VoteCast set vote=-1 where mod_id==? and voter_id==?"
             self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
         
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, permid)
+        self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, permid)
 
     def getVote(self,publisher_id,subscriber_id):
         """ return the vote status if such record exists, otherwise None  """
