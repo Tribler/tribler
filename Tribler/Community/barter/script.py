@@ -14,6 +14,8 @@ from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
 
+from random import random
+
 class BarterNode(Node):
     def create_barter_record(self, second_member, first_upload, second_upload, global_time):
         meta = self._community.get_meta_message(u"barter-record")
@@ -219,13 +221,13 @@ class BarterScenarioScript(ScriptBase):
         """ Calculate the time to sleep.
         """
         now = time.time()
-        if now < self._starting_timestamp:
-            st = self._starting_timestamp - now
-        else:
-            st = abs(now - (self._starting_timestamp + (self._timestep * self._stepcount)))
+        expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
+        st = max(0.0, expected_time - now) * random()
+        log("barter.log", "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
         return st
 
     def run(self):
+        if __debug__: log("barter.log", "start-barter-script")
         # this master key NEEDS to be the same as that in BarterTrackerScript as they work together
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403cbbfd2dfb67a7db66c88988df56f93fa6e7f982f9a6a0fa8898492c8b8cae23e10b159ace60b7047012082a5aa4c6e221d7e58107bb550436d57e046c11ab4f51f0ab18fa8f58d0346cc12d1cc2b61fc86fe5ed192309152e11e3f02489e30c7c971dd989e1ce5030ea0fb77d5220a92cceb567cbc94bc39ba246a42e215b55e9315b543ddeff0209e916f77c0d747".decode("HEX")
 
@@ -242,14 +244,20 @@ class BarterScenarioScript(ScriptBase):
             public_key = public_key.decode("HEX")
             private_key = private_key.decode("HEX")
             my_address = (ip, int(port))
+        if __debug__: log("barter.log", "read-config-done")
 
         # create mymember
         my_member = MyMember(public_key, private_key, sync_with_database=True)
         dprint(my_member)
 
         # join the barter community with the newly created member
-        self._barter = BarterCommunity.join_community(master_key, my_member)
+        self._barter = BarterCommunity.join_community(sha1(master_key).digest(), master_key, my_member)
         dprint("Joined barter community ", self._barter._my_member)
+        if __debug__:
+            log("barter.log", "joined-barter-community")
+            log("barter.log", "barter-community-property", name="sync_interval", value=self._barter.dispersy_sync_interval)
+            log("barter.log", "barter-community-property", name="sync_member_count", value=self._barter.dispersy_sync_member_count)
+            log("barter.log", "barter-community-property", name="sync_response_limit", value=self._barter.dispersy_sync_response_limit)
 
         yield 2.0
 
@@ -263,6 +271,7 @@ class BarterScenarioScript(ScriptBase):
                                  meta.distribution.implement(meta.community._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(my_address))
+        self._dispersy.store_update_forward([message], True, True, False)
 
         # now send the dispersy-identity message to everybody the
         # dispersy-identity is a CommunityDestination message but
@@ -270,14 +279,28 @@ class BarterScenarioScript(ScriptBase):
         # community. Therefore we have to specifically forward the
         # message to peers using the _dispersy._send function with
         # (ip, port) combinations we read from the 'data/peers' file
-        with open('data/peers') as file:
-            for line in file:
-                name, ip, port, _ = line.split(' ', 3)
-                if name == my_name: continue
-                port = int(port)
+        if __debug__:
+            _peer_counter = 0
+        with self._dispersy.database as execute:
+            with open('data/peers') as file:
+                for line in file:
+                    name, ip, port, public_key, _ = line.split(' ', 4)
+                    if __debug__:
+                        _peer_counter += 1
+                        log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
+                    if name == my_name: continue
+                    public_key = public_key.decode('HEX')
+                    port = int(port)
 
-                self._dispersy._sync_distribution_store(message)
-                self._dispersy._send([(ip, port)], [message.packet])
+                    #self._dispersy._send([(ip, port)], [message.packet])
+                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(ip), port))
+                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
+                    if __debug__:
+                        log("barter.log", "mid_add", mid=sha1(public_key).digest())
+            execute(u"DELETE FROM candidate where community=0")
+
+        if __debug__:
+            log("barter.log", "done-reading-peers")
 
         yield 2.0
 
@@ -286,10 +309,12 @@ class BarterScenarioScript(ScriptBase):
         bartercast_fp = open('data/bartercast.log')
         availability_fp = open('data/availability.log')
 
-        self._stepcount = 1
+        self._stepcount = 0
 
         # wait until we reach the starting time
         yield self.sleep()
+
+        self._stepcount = 1
 
         # start the scenario
         while True:
@@ -299,6 +324,7 @@ class BarterScenarioScript(ScriptBase):
 
             # if there are no commands exit the while loop
             if barter_cmds == -1 and availability_cmds == -1:
+                if __debug__: log("barter.log", "no-commands")
                 break
             else:
                 # if there is a start in the avaibility_cmds then go

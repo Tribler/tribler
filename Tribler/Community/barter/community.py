@@ -60,7 +60,7 @@ class BarterCommunity(Community):
         assert isinstance(second_upload, (int, long))
 
         meta = self.get_meta_message(u"barter-record")
-        message = meta.implement(meta.authentication.implement((self._my_member, second_member)),
+        message = meta.implement(meta.authentication.implement([self._my_member, second_member]),
                                  meta.distribution.implement(self._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(first_upload, second_upload))
@@ -98,7 +98,7 @@ class BarterCommunity(Community):
         # we will not add our signature
         return False
 
-    def on_signature_response(self, address, message):
+    def on_signature_response(self, message):
         """ Handle a newly created double signed message or a timeout while signing
 
         When request for signing times out I just return. When I receive the signature for the

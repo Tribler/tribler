@@ -39,7 +39,7 @@ if test $actual_count -ne $PEERS_COUNT; then
     echo "!!! ERROR !!!"
     echo "!!! We have counted $actual_count peers (expected $PEERS_COUNT peers). Quota problems?"
     quota
-    sleep 2
+    exit 1
 fi
 
 PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
@@ -67,11 +67,22 @@ echo "* Summing up incoming traffic..."
 in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')
 echo "* Summing up outgoing traffic..."
 out_bytes=$(grep ^@\>out: * -R | awk '{sum += $2 } END { print sum }')
-lost_bytes=$[ $out_bytes - $in_bytes ]
-s_in_bytes=$(printf %\'14d $in_bytes)
-s_out_bytes=$(printf %\'14d $out_bytes)
-s_lost_bytes=$(printf %\'14d $lost_bytes)
-b_ratio=$(echo "scale=2; 100*(${lost_bytes})/${out_bytes}" | bc -l)
+if test -z $in_bytes -o -z $out_bytes; then
+    echo "* !!! No traffic statistics gathered!"
+    lost_bytes=-1
+    s_in_bytes="(not-counted)"
+    s_out_bytes="(not-counted)"
+    s_lost_bytes="(not-counted)"
+    b_ratio='(unknown)'
+    in_bytes=-1
+    out_bytes=-1
+else
+    lost_bytes=$[ $out_bytes - $in_bytes ]
+    s_in_bytes=$(printf %\'14d $in_bytes)
+    s_out_bytes=$(printf %\'14d $out_bytes)
+    s_lost_bytes=$(printf %\'14d $lost_bytes)
+    b_ratio=$(echo "scale=2; 100*(${lost_bytes})/${out_bytes}" | bc -l)
+fi
 
 cycle_length_exp=$(find . -name '00000.out' | head -n1 | xargs head -n 10 | grep Starting | sed 's/.*timestep=\([0-9]*\.[0-9]\)/\1/g')
 cycle_length_real="600.00"
