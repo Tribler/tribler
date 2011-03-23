@@ -43,7 +43,6 @@ class AllChannelConversion(BinaryConversion):
 
             packet = data[offset:offset+length]
             offset += length
-            dprint(len(packet))
             packets.append(packet)
 
         return offset, meta_message.payload.implement(packets)

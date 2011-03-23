@@ -113,12 +113,23 @@ class Dispersy(Singleton):
         self._database = DispersyDatabase.get_instance(working_directory)
 
         # our external address
-        try:
-            ip, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_external_ip' LIMIT 1").next()
-            port, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_external_port' LIMIT 1").next()
-            self._my_external_address = (str(ip), port)
-        except StopIteration:
-            self._my_external_address = ("", -1)
+        with self._database as execute:
+            try:
+                ip, = execute(u"SELECT value FROM option WHERE key = 'my_external_ip' LIMIT 1").next()
+                ip = str(ip)
+            except StopIteration:
+                execute(u"INSERT INTO option (key, value) VALUES ('my_external_ip', ?)", (u"",))
+                ip = ""
+
+            try:
+                port, = execute(u"SELECT value FROM option WHERE key = 'my_external_port' LIMIT 1").next()
+            except StopIteration:
+                execute(u"INSERT INTO option (key, value) VALUES ('my_external_port', ?)", (-1,))
+                port = -1
+
+        self._my_external_address = (ip, port)
+        self._external_address_votes = {self._my_external_address:set()}
+        self.external_address_vote(self._my_external_address, ("", -1))
 
 #         try:
 #             public_key, = self._database.execute(u"SELECT value FROM option WHERE key == 'my_public_key' LIMIT 1").next()
@@ -178,10 +189,27 @@ class Dispersy(Singleton):
         @type socket: Object with a send(address, data) method
         """
         self._socket = socket
-        if self._my_external_address == ("", -1):
-            self._my_external_address = socket.get_address()
+        self.external_address_vote(socket.get_address(), ("", -1))
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
+
+    @property
+    def external_address(self):
+        """
+        The external address where we believe that we can be found.
+
+        Our external address is determined by majority voting.  Each time when we receive a message
+        that contains anothers opinion about our external address, we take this into account.  The
+        address with the most votes wins.
+
+        Votes can be added by calling the external_address_vote(...) method.
+
+        Usually these votes are received through dispersy-candidate-request and
+        dispersy-candidate-response messages.
+
+        @rtype: (str, int)
+        """
+        return self._my_external_address
 
     @property
     def rawserver(self):
@@ -387,6 +415,48 @@ class Dispersy(Singleton):
         Returns a list with all known Community instances.
         """
         return self._communities.values()
+
+    def external_address_vote(self, address, voter_address):
+        """
+        Add one vote and possibly re-determine our external address.
+
+        Our external address is determined by majority voting.  Each time when we receive a message
+        that contains anothers opinion about our external address, we take this into account.  The
+        address with the most votes wins.
+
+        Usually these votes are received through dispersy-candidate-request and
+        dispersy-candidate-response messages.
+
+        @param address: The external address that the voter believes us to have.
+        @type address: (str, int)
+
+        @param voter_address: The address of the voter.
+        @type voter_address: (str, int)
+        """
+        assert isinstance(address, tuple)
+        assert len(address) == 2
+        assert isinstance(address[0], str)
+        assert isinstance(address[1], int)
+        assert isinstance(voter_address, tuple)
+        assert len(voter_address) == 2
+        assert isinstance(voter_address[0], str)
+        assert isinstance(voter_address[1], int)
+        if not address in self._external_address_votes:
+            self._external_address_votes[address] = set()
+        self._external_address_votes[address].add(voter_address)
+
+        # change when new vote count equal or higher than old address vote count (because this will
+        # allow us to override)
+        if self._my_external_address != address and len(self._external_address_votes[address]) >= len(self._external_address_votes[self._my_external_address]):
+            self._my_external_address = address
+
+            with self._database as execute:
+                execute(u"UPDATE option SET value = ? WHERE key = 'my_external_ip'", (unicode(address[0]),))
+                execute(u"UPDATE option SET value = ? WHERE key = 'my_external_port'", (address[1],))
+
+            # notify all communities that our external address has changed.
+            for community in self._communities.itervalues():
+                community.create_dispersy_identity()
 
     def _check_full_sync_distribution_batch(self, messages):
         """
@@ -837,6 +907,7 @@ class Dispersy(Singleton):
         unique = set()
         for address, packet in packets:
             assert isinstance(address, tuple)
+            assert len(address) == 2
             assert isinstance(address[0], str)
             assert isinstance(address[1], int)
             assert isinstance(packet, str)
@@ -1225,8 +1296,8 @@ class Dispersy(Singleton):
 
                 for packet in packets:
                     assert isinstance(packet, str)
-                    if __debug__: dprint(len(packet), " bytes to ", address[0], ":", address[1])
                     self._socket.send(address, packet)
+                if __debug__: dprint(len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
                 execute(u"UPDATE candidate SET outgoing_time = DATETIME('now') WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
@@ -1442,7 +1513,7 @@ class Dispersy(Singleton):
             if __debug__: dprint(message)
 
             if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
-            self._my_external_address = message.payload.destination_address
+            self.external_address_vote(message.payload.destination_address, message.address)
 
             # update or insert the member who sent the request
             # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
@@ -1488,7 +1559,7 @@ class Dispersy(Singleton):
         routes = []
         for message in messages:
             if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
-            self._my_external_address = message.payload.destination_address
+            self.external_address_vote(message.payload.destination_address, message.address)
 
             # update or insert the member who sent the request
             # self._database.execute(u"UPDATE user SET user = ? WHERE community = ? AND host = ? AND port = ?",
@@ -2373,27 +2444,33 @@ class Dispersy(Singleton):
             for tup in self._database.execute(sql, (community_id, time_low, time_high)):
                 yield tup
 
+        community = messages[0].community
+
+        # similarity_cache = {}
+
+        # obtain all available messages for this community
+        meta_messages = dict((meta_message.database_id, meta_message) for meta_message in community.get_meta_messages())
+
         for message in messages:
-            if not message.community._timeline.check(message):
+            assert message.name == u"dispersy-sync", "this method is called in batches, i.e. community and meta message grouped together"
+            assert message.community == community, "this method is called in batches, i.e. community and meta message grouped together"
+
+            if not community._timeline.check(message):
                 yield DropMessage("TODO: implement delay of proof")
                 continue
 
-            # we limit the response by byte_limit bytes
-            byte_limit = self._total_send + message.community.dispersy_sync_response_limit
-
-            # similarity_cache = {}
-
             # obtain all subjective sets for the sender of the dispersy-sync message
-            subjective_sets = message.community.get_subjective_sets(message.authentication.member)
+            subjective_sets = community.get_subjective_sets(message.authentication.member)
 
-            # obtain all available messages
-            meta_messages = dict((meta_message.database_id, meta_message) for meta_message in message.community.get_meta_messages())
+            # we limit the response by byte_limit bytes
+            byte_limit = self._total_send + community.dispersy_sync_response_limit
 
             bloom_filter = message.payload.bloom_filter
-            time_high = message.payload.time_high if message.payload.has_time_high else message.community._timeline.global_time
+            time_low = message.payload.time_low
+            time_high = message.payload.time_high if message.payload.has_time_high else community._timeline.global_time
             packets = []
 
-            for packet, meta_message_id, packet_public_key in get_packets(message.community.database_id, message.payload.time_low, time_high):
+            for packet, meta_message_id, packet_public_key in get_packets(community.database_id, time_low, time_high):
                 packet = str(packet)
                 packet_public_key = str(packet_public_key)
 
@@ -2407,7 +2484,7 @@ class Dispersy(Singleton):
                         if not packet_cluster in subjective_sets:
                             if __debug__: dprint("Subjective set not available (not ", packet_cluster, " in ", subjective_sets.keys(), ")")
                             yield DelayMessageBySubjectiveSet(message, packet_cluster)
-                            continue
+                            break
 
                         # is packet_public_key in the subjective set
                         if not packet_public_key in subjective_sets[packet_cluster]:
@@ -2426,15 +2503,14 @@ class Dispersy(Singleton):
                     #         # do not send this packet: not similar
                     #         continue
 
-                    if __debug__: dprint("syncing ", packet_meta.name, " (", len(packet), " bytes) to " , message.address[0], ":", message.address[1])
                     packets.append(packet)
-
                     byte_limit -= len(packet)
                     if byte_limit <= 0:
                         if __debug__: dprint("bandwidth throttle")
                         break
 
             if packets:
+                if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
                 self._send([message.address], packets)
 
     def on_sync(self, messages):
