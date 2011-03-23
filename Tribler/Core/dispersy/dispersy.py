@@ -1478,7 +1478,8 @@ class Dispersy(Singleton):
                                 (community.database_id, unicode(address[0]), address[1], age))
 
                 elif __debug__:
-                    dprint("dropping invalid route ", address[0], ":", address[1], level="warning")
+                    level = "normal" if address == self.external_address else "warning"
+                    dprint("dropping invalid route ", address[0], ":", address[1], level=level)
 
     def on_candidate_request(self, messages):
         """
