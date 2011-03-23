@@ -403,6 +403,11 @@ class ChannelCommunity(Community):
         for address in addresses:
             for member in self.get_members_from_address(address):
                 permids.add(member.public_key)
+
+                # HACK! update the Peer table, if the tribler overlay did not discover this peer's
+                # address yet
+                if not self._peer_db.hasPeer(member.public_key):
+                    self._peer_db.addPeer(member.public_key, {"ip":address[0], "port":7760})
         
         import sys
         print >> sys.stderr, 'REQUESTING', len(infohashes), 'from', len(permids), 'peers'
