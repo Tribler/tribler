@@ -827,7 +827,7 @@ class Dispersy(Singleton):
         # continually receive this packet.
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after blacklisted members")
         if not messages:
-            return
+            return 0
 
         # drop all duplicate or old messages
         assert type(meta.distribution) in self._check_distribution_batch_map
@@ -853,7 +853,7 @@ class Dispersy(Singleton):
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
-            return
+            return 0
 
         # check all remaining messages on the community side.  may yield Message.Implementation,
         # DropMessage, and DelayMessage instances
@@ -879,7 +879,7 @@ class Dispersy(Singleton):
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
-            return
+            return 0
 
         # store to disk and update locally
         self.store_update_forward(messages, True, True, False)
@@ -889,9 +889,8 @@ class Dispersy(Singleton):
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after triggers")
 
-        if __debug__:
-            # return the number of messages that were correctly handled (non delay, duplictes, etc)
-            return len(messages)
+        # return the number of messages that were correctly handled (non delay, duplictes, etc)
+        return len(messages)
 
     def _convert_packets_into_batch(self, packets):
         """
