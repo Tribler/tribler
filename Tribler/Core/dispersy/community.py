@@ -311,7 +311,7 @@ class Community(object):
 
         # load all messages into the bloom filters
         with self._dispersy_database as execute:
-            for global_time, packet in execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time", (self.database_id,)):
+            for global_time, packet in execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time, packet", (self.database_id,)):
                 self.get_bloom_filter(global_time).add(str(packet))
 
         # todo: maybe we can add a callback or event notifier to give a progress indication while

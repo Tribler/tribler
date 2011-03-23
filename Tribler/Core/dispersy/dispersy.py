@@ -287,7 +287,7 @@ class Dispersy(Singleton):
         # periodically send dispery-candidate-request messages
         if __debug__: dprint("start in ", community.dispersy_candidate_request_initial_delay, " every ", community.dispersy_candidate_request_interval, " seconds call _periodically_create_candidate_request")
         if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
-            self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_initial_delay, "id:candidate-" + community.cid)
+            self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_initial_delay, "id:candidate-%d" % id(community.cid))
 
     def detach_community(self, community):
         """
@@ -305,8 +305,8 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         assert community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
-        self._rawserver.kill_tasks("id:sync-" + community.cid)
-        self._rawserver.kill_tasks("id:candidate-" + community.cid)
+        self._rawserver.kill_tasks("id:sync-%d" % id(community))
+        self._rawserver.kill_tasks("id:candidate-%d" % id(community))
         del self._communities[community.cid]
 
     def reclassify_community(self, community, destination):
@@ -2823,7 +2823,7 @@ class Dispersy(Singleton):
         self.store_update_forward(messages, False, False, True)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_candidate_request_interval, " seconds (interval)")
-            self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval, "id:sync-" + community.cid)
+            self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_interval, "id:sync-%d" % id(community.cid))
 
     def _periodically_create_candidate_request(self, community):
         minimal_age, maximal_age = community.dispersy_candidate_age_range
