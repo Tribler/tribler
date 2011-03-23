@@ -258,6 +258,7 @@ class BarterScenarioScript(ScriptBase):
             log("barter.log", "barter-community-property", name="sync_interval", value=self._barter.dispersy_sync_interval)
             log("barter.log", "barter-community-property", name="sync_member_count", value=self._barter.dispersy_sync_member_count)
             log("barter.log", "barter-community-property", name="sync_response_limit", value=self._barter.dispersy_sync_response_limit)
+            log("barter.log", "barter-community-property", name="timestep", value=self._timestep)
 
         yield 2.0
 

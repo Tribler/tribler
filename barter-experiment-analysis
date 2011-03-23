@@ -62,6 +62,13 @@ sync_interval_exp=$(grep barter-community-property 00001/output/barter.log | gre
 sync_member_count=$(grep barter-community-property 00001/output/barter.log | grep :sync_member_count | sed 's/.*value:i\([0-9]*\)/\1/g')
 sync_response_limit=$(grep barter-community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
 
+cycle_length_exp=$(grep barter-community-property 00001/output/barter.log | grep :timestep | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
+cycle_length_real="600.00"
+
+time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
+sync_interval_real=$(echo "scale=2; $sync_interval_exp*$time_ratio" | bc)
+
+
 cd $PEERS_DIRECTORY/control
 echo "* Summing up incoming traffic..."
 in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')
@@ -83,12 +90,6 @@ else
     s_lost_bytes=$(printf %\'14d $lost_bytes)
     b_ratio=$(echo "scale=2; 100*(${lost_bytes})/${out_bytes}" | bc -l)
 fi
-
-cycle_length_exp=$(find . -name '00000.out' | head -n1 | xargs head -n 10 | grep Starting | sed 's/.*timestep=\([0-9]*\.[0-9]\)/\1/g')
-cycle_length_real="600.00"
-
-time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
-sync_interval_real=$(echo "scale=2; $sync_interval_exp*$time_ratio" | bc)
 
 echo "* Extracting statistics..."
 
