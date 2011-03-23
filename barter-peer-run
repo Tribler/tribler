@@ -13,13 +13,12 @@
 #
 
 if test $# -ne 2; then
-	echo "Usage: $0 <peer-directory> <script-args>"
+	echo "Usage: $0 <peer-directory> <experiment-config>"
 	exit 1
 fi
 PEERS=$1
-SCRIPT_ARGS=$2
-
-BRANCH=`pwd`
+EXPERIMENT_CONFIG=$2
+source $EXPERIMENT_CONFIG # $BRANCH, $DISPERSY_ARGS
 
 cd ${PEERS}
 PEERS=$(pwd)
@@ -52,7 +51,6 @@ MY_ID=$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)
 # run node
 cd ${MY_ID}
 MYDIR=$(pwd)
-echo "!!!!!! $MYDIR"
 
 # cleanup
 rm -rf ${MYDIR}/output
@@ -65,9 +63,7 @@ mv /tmp/mbardac/dispersy/peer-keys_${MY_ID}.conf ${MYDIR}/data/peers
 
 MY_PORT=$(awk -F'[ ]' '{ print $3 }' data/peer.conf)
 
-PARAMETERS="--ip $MY_IP --port $MY_PORT --script-args $SCRIPT_ARGS"
-
-echo "Starting barter-scenario Dispersy client #$MY_ID on $MY_IP:$MY_PORT with arguments: $SCRIPT_ARGS"
+echo "Starting Dispersy client #$MY_ID on $MY_IP:$MY_PORT"
 
 DISPERSY_DIR=/tmp/mbardac/dispersy/$MY_ID
 mkdir -p $DISPERSY_DIR/data
@@ -76,8 +72,8 @@ cp ${BRANCH}/dprint.conf $DISPERSY_DIR
 
 cd $DISPERSY_DIR
 
-python ${BRANCH}/Tribler/Main/dispersy.py --script barter-scenario $PARAMETERS
-#python -O ${BRANCH}/Tribler/Main/dispersy.py --script barter-scenario $PARAMETERS
-#echo python ${BRANCH}/Tribler/Main/dispersy.py --script barter-scenario $PARAMETERS
+echo python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
+python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
+#python -O ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
 
 #read -p "Press the any key to close..."

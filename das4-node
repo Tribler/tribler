@@ -34,10 +34,8 @@ netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 rm -rf /tmp/mbardac/dispersy/
 mkdir -p /tmp/mbardac/dispersy/
 
-let STARTING_TIMESTAMP=`date +%s`+120
-
 for i in $(seq 1 1 $PEERS_PER_NODE); do
-	echo "cd ${BRANCH}; ./barter-peer-run $PEERS_DIRECTORY starting_timestamp=$STARTING_TIMESTAMP,timestep=20.0" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
+	echo "${BRANCH}/barter-peer-run $PEERS_DIRECTORY $EXPERIMENT_CONFIG" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
 done
 
 export PYTHONPATH=${BRANCH}
