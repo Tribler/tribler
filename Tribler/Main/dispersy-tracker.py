@@ -135,7 +135,14 @@ class DispersySocket(object):
         return self.socket.getsockname()
 
     def data_came_in(self, packets):
-        self.dispersy.on_incoming_packets(packets)
+        # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
+        # sometimes called without any packets...
+        if packets:
+            try:
+                self.dispersy.on_incoming_packets(packets)
+            except:
+                print_exc()
+                raise
 
     def send(self, address, data):
         try:
