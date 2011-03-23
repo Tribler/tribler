@@ -2850,5 +2850,14 @@ class Dispersy(Singleton):
         """
         Periodically write bandwidth statistics to a log file.
         """
+        if __debug__:
+            grouped = {}
+            for community in self._communities.itervalues():
+                classification = community.get_classification()
+                if not classification in grouped:
+                    grouped[classification] = set()
+                grouped[classification].add(community.cid)
+            communities = "; ".join("%s:%d" % (classification, len(cids)) for classification, cids in grouped.iteritems())
+            dprint("in: ", self._total_received, "; out: ", self._total_send, "; ", communities)
         if __debug__: log("dispersy.log", "statistics", total_send=self._total_send, total_received=self._total_received)
         self._rawserver.add_task(self._periodically_stats, 1.0)
