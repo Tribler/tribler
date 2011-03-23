@@ -70,10 +70,22 @@ class RemoteTorrentHandler:
         
         self.callbacks[infohash] = usercallback
         
-        if prio not in self.requesters:
-            self.requesters[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
+        requester = None
         
-        self.requesters[prio].add_source(infohash, permid)
+        #look for lowest prio requester, which already has this infohash scheduled
+        for i in range(prio):
+            if i in self.requesters and self.requesters[i].is_being_requested(infohash):
+                requester = self.requesters[i]
+                break
+            
+        #if not found, then used/create this requester
+        if not requester:
+            if prio not in self.requesters:
+                self.requesters[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
+            requester = self.requesters[prio]
+        
+        #make request
+        requester.add_source(infohash, permid)
         
         if DEBUG:
             print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
@@ -105,8 +117,8 @@ class RemoteTorrentHandler:
         nr_sources = 0
         for requester in self.requesters.values():
             nr_sources += len(requester.sources)
-            for sources in requester.sources:
-                nr_requests += len(sources)
+            for infohash in requester.sources.keys():
+                nr_requests += len(requester.sources[infohash])
         return nr_sources, nr_requests
             
 class TorrentRequester():
@@ -131,10 +143,16 @@ class TorrentRequester():
     def add_source(self, infohash, permid):
         was_empty = self.queue.empty()
         self.queue.put(infohash)
-        self.sources.setdefault(infohash, []).append(permid)
+        
+        if infohash not in self.sources:
+            self.sources[infohash] = set()
+        self.sources[infohash].add(permid)
         
         if was_empty:
             self.overlay_bridge.add_task(self.doRequest, self.REQUEST_INTERVAL * self.prio, self)
+    
+    def is_being_requested(self, infohash):
+        return infohash in self.sources
     
     def doRequest(self):
         try:
@@ -149,7 +167,7 @@ class TorrentRequester():
             
             try:
                 #~load balance sources
-                permid = choice(self.sources[infohash])
+                permid = choice(list(self.sources[infohash]))
                 self.sources[infohash].remove(permid)
                 
                 if len(self.sources[infohash]) < 1:
@@ -164,7 +182,7 @@ class TorrentRequester():
                 self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                 
                 #schedule a magnet lookup after X seconds
-                if self.prio <= 1 or (self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD and infohash not in self.sources):
+                if self.prio <= 1 or (infohash not in self.sources and infohash in self.nr_times_requested and self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD):
                     self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*(self.prio+1), infohash)
 
             #Make sure exceptions wont crash this requesting loop

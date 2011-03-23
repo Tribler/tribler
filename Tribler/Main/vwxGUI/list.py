@@ -105,6 +105,7 @@ class ChannelSearchManager:
             keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
             self.list.SetTitle('Search results for "%s"'%keywords, total_items)
         
+        data = [channel for channel in data if channel[CHANNEL_NR_TORRENTS_COLLECTED] > 0]
         self.list.SetData(data)
         
     def SetCategory(self, category):
@@ -736,7 +737,7 @@ class ChannelList(List):
                    {'name':'Latest Update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'fmt': self.format_time}, \
                    #{'name':'Popularity', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format}, \
                    {'type':'method', 'width': 75, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}, \
-                   {'name':'Torrents', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
+                   {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateTorrents, 'name':'Torrents'}]
         
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
@@ -744,15 +745,15 @@ class ChannelList(List):
         self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         
         self.select_popular = True
-        self.my_id = self.guiutility.channelsearch_manager.channelcast_db.channel_id
+        self.my_id = self.guiutility.channelsearch_manager.channelcast_db._channel_id
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
     
     def __favorite_icon(self, item):
-        if item.original_data[0] == self.my_id:
+        if item.original_data[CHANNEL_ID] == self.my_id:
             return self.mychannel
-        if item.original_data[0] in self.favorites:
+        if item.original_data[CHANNEL_ID] in self.favorites:
             return self.favorite
-        if item.original_data[0] in self.spam_channels:
+        if item.original_data[CHANNEL_ID] in self.spam_channels:
             return self.spam
         return self.normal
     
@@ -780,6 +781,14 @@ class ChannelList(List):
         control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
         return control
     
+    def CreateTorrents(self, parent, item):
+        torrents = str(item.data[3])
+        torrents = wx.StaticText(parent, -1, torrents)
+        torrents.SetMinSize((self.columns[3]['width'], -1))
+        
+        torrents.SetToolTipString('%d torrents discovered, %d remaining to collect'%(item.original_data[CHANNEL_NR_TORRENTS], item.original_data[CHANNEL_NR_TORRENTS] - item.original_data[CHANNEL_NR_TORRENTS_COLLECTED]))
+        return torrents
+    
     def OnExpand(self, item):
         self.guiutility.showChannel(item.GetColumn(0), item.original_data[0])
         return False
@@ -793,10 +802,10 @@ class ChannelList(List):
         List.SetData(self, data)
         
         if len(data) > 0:
-            self.favorites = [file[0] for file in data if file[6] == 2]
-            self.spam_channels = [file[0] for file in data if file[6] == -1]
+            self.favorites = [file[CHANNEL_ID] for file in data if file[CHANNEL_MY_VOTE] == 2]
+            self.spam_channels = [file[CHANNEL_ID] for file in data if file[CHANNEL_MY_VOTE] == -1]
             
-            data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data if file[4] > 0]
+            data = [(file[CHANNEL_ID],[file[CHANNEL_NAME], file[CHANNEL_LATEST_UPDATE], file[CHANNEL_NR_FAVORITES], file[CHANNEL_NR_TORRENTS_COLLECTED]], file) for file in data]
             return self.list.SetData(data)
         
         self.list.ShowMessage('No channels are discovered for this category.')
@@ -805,7 +814,7 @@ class ChannelList(List):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data[0],[data[1], data[2], data[3], data[4]], data)
+        data = (data[CHANNEL_ID],[data[CHANNEL_NAME], data[CHANNEL_LATEST_UPDATE], data[CHANNEL_NR_FAVORITES], data[CHANNEL_NR_TORRENTS_COLLECTED]], data)
         self.list.RefreshData(key, data)
         
     def SetTitle(self, title, nr):

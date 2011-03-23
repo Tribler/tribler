@@ -1,22 +1,24 @@
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.message import Message, DropMessage
-from message import DelayMessageReqChannelMessage
 from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.destination import CommunityDestination, AddressDestination
 from Tribler.Core.dispersy.member import MyMember
+
+from message import DelayMessageReqChannelMessage
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -29,10 +31,17 @@ class ChannelCommunity(Community):
         super(ChannelCommunity, self).__init__(cid, master_key)
 
         # tribler channelcast database
+        self._peer_db = PeerDBHandler.getInstance()
         self._channelcast_db = ChannelCastDBHandler.getInstance()
+        
+        # torrent collecting
+        self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+        
+        # notifier
+        self._notifier = Notifier.getInstance().notify
 
-        # tribler channel_id
-        self.channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
+        # tribler _channel_id
+        self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
         self._rawserver = self._dispersy.rawserver.add_task
 
     def initiate_meta_messages(self):
@@ -77,9 +86,9 @@ class ChannelCommunity(Community):
             if isinstance(authentication_member, MyMember):
                 peer_id = None
             else:
-                peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
-            self.channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
+            self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
 
     def _disp_create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
@@ -105,7 +114,7 @@ class ChannelCommunity(Community):
 
     def _disp_check_torrent(self, messages):
         for message in messages:
-            if not self.channel_id:
+            if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
                 continue
                 
@@ -116,11 +125,33 @@ class ChannelCommunity(Community):
 
     def _disp_on_torrent(self, messages):
         torrentlist = []
+        infohashes = set()
+        addresses = set()
+        
         for message in messages:
             if __debug__: dprint(message)
+            
             dispersy_id = message.packet_id
-            torrentlist.append((self.channel_id, dispersy_id, message.authentication.member.public_key, message.address, message.payload.infohash, message.payload.timestamp))
+            torrentlist.append((self._channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp))
+            
+            addresses.add(message.address)
+            infohashes.add(message.payload.infohash)
+            
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
+        
+        #start requesting these .torrents, remote torrent collector will actually only make request if we do not already have the 
+        #.torrent on disk
+        def notify():
+            self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, self._channel_id)
+        
+        permids = set()
+        for address in addresses:
+            for member in self.get_members_from_address(address):
+                permids.add(member.public_key)
+        
+        for infohash in infohashes:
+            for permid in permids:
+                self._rtorrent_handler.download_torrent(permid, infohash, lambda infohash, metadata, filename: notify() ,2)
 
     #create, check or receive playlist
     def create_playlist(self, name, description, infohashes = [], store=True, update=True, forward=True):
@@ -141,7 +172,7 @@ class ChannelCommunity(Community):
 
     def _disp_check_playlist(self, messages):
         for message in messages:
-            if not self.channel_id:
+            if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
@@ -154,7 +185,7 @@ class ChannelCommunity(Community):
         for message in messages:
             if __debug__: dprint(message)
             dispersy_id = message.packet_id
-            self._channelcast_db.on_playlist_from_dispersy(self.channel_id, dispersy_id, message.payload.name, message.payload.description)
+            self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, message.payload.name, message.payload.description)
 
     #create, check or receive comments
     def create_comment(self, text, timestamp, reply_to, reply_after, playlist_id, infohash, store=True, update=True, forward=True):
@@ -198,7 +229,7 @@ class ChannelCommunity(Community):
 
     def _disp_check_comment(self, messages):
         for message in messages:
-            if not self.channel_id:
+            if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
@@ -217,7 +248,7 @@ class ChannelCommunity(Community):
             if isinstance(authentication_member, MyMember):
                 peer_id = None
             else:
-                peer_id = self._channelcast_db._db.getPeerID(authentication_member.public_key)
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
                 
             mid_global_time = "%s@%d"%(message.authentication.member.mid, message.distribution.global_time)
             
@@ -234,7 +265,7 @@ class ChannelCommunity(Community):
             playlist_dispersy_id = None
             if message.payload.playlist_packet:
                 playlist_dispersy_id = message.payload.playlist_packet.packet_id
-            self._channelcast_db.on_comment_from_dispersy(self.channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
+            self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
         
     #modify channel, playlist or torrent
     def modifyChannel(self, channel_id, modifications, store=True, update=True, forward=True):
@@ -272,7 +303,7 @@ class ChannelCommunity(Community):
 
     def _disp_check_modification(self, messages):
         for message in messages:
-            if not self.channel_id:
+            if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
@@ -297,7 +328,7 @@ class ChannelCommunity(Community):
                 self._channelcast_db.on_playlist_modification_from_dispersy(modifying_dispersy_id, modification_dict, latest_dispersy_modifier)
         
             elif message_name == u"channel":
-                self._channelcast_db.on_channel_modification_from_dispersy(self._cid, modification_dict, latest_dispersy_modifier)
+                self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_dict, latest_dispersy_modifier)
             
     #create, check or receive playlist_torrent message
     def create_playlist_torrents(self, infohashes, playlist_id, store=True, update=True, forward=True):
@@ -322,7 +353,7 @@ class ChannelCommunity(Community):
     
     def _disp_check_playlist_torrent(self, address, messages):
         for message in messages:
-            if not self.channel_id:
+            if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
@@ -359,6 +390,26 @@ class ChannelCommunity(Community):
         for message in messages:
             # 3. send back to peer
             self._dispersy._send([message.address], [channelmessage.packet])
+            
+            
+    def dispersy_activity(self, addresses):
+        #we had some activity in this community, see if we still need some torrents to collect
+        infohashes = self._channelcast_db.selectTorrentsToCollect(self._channel_id)
+        
+        def notify():
+            self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, self._channel_id)
+        
+        permids = set()
+        for address in addresses:
+            for member in self.get_members_from_address(address):
+                permids.add(member.public_key)
+        
+        import sys
+        print >> sys.stderr, 'REQUESTING', len(infohashes), 'from', len(permids), 'peers'
+                
+        for infohash in infohashes:
+            for permid in permids:
+                self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify() ,3)
         
     #helper functions
     def _get_message_from_channel_id(self, channel_id):

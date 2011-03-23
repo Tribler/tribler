@@ -152,7 +152,7 @@ class GUIUtility:
                 self.frame.channelcategories.Quicktip('This is your channel, other Tribler users can find this channel by searching for your username')
                 
                 #Show list
-                self.frame.managechannel.SetChannelId(self.channelsearch_manager.channelcast_db.channel_id)
+                self.frame.managechannel.SetChannelId(self.channelsearch_manager.channelcast_db._channel_id)
                 self.frame.managechannel.Show()
             elif self.guiPage == 'mychannel':
                 self.frame.managechannel.Show(False)

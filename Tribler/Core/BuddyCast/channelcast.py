@@ -225,7 +225,7 @@ class ChannelCastCore:
         missing_infohashes = {}
         for channel_id in channel_ids:
             for infohash in self.channelcastdb.selectTorrentsToCollect(channel_id):
-                missing_infohashes[str2bin(infohash[0])] = channel_id
+                missing_infohashes[infohash] = channel_id
                 
         def notify(channel_id):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)

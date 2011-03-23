@@ -19,19 +19,19 @@ class ChannelManager():
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         
-        self.channel_id = self.channelsearch_manager.channelcast_db.channel_id
+        self.channel_id = self.channelsearch_manager.channelcast_db._channel_id
         
     def refresh(self, id = None):
         if id:
             self.list.Reset()
             self.list.SetId(id)
             
-            channel_id, channel_name, max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, isdispersy, description = self.channelsearch_manager.getChannel(id)
+            data = self.channelsearch_manager.getChannel(id)
             
-            self.list.footer.SetStates(my_vote == -1, my_vote == 2, id == self.channel_id)
+            self.list.footer.SetStates(data[CHANNEL_MY_VOTE] == -1, data[CHANNEL_MY_VOTE] == 2, id == self._channel_id)
             self.list.SetFF(self.guiutility.getFamilyFilter())
-            self.list.SetTitle(channel_name, description)
-            self.list.SetDispersy(isdispersy)
+            self.list.SetTitle(data[CHANNEL_NAME], data[CHANNEL_DESCRIPTION])
+            self.list.SetDispersy(data[CHANNEL_IS_DISPERSY])
             
         self._refresh_list()
         
@@ -633,7 +633,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.playlistlist.GetManager().SetChannelId(channel_id)
         
         if channel_id:
-            id, name, timestamp, nr_favorites, nr_torrents, nr_spam, my_vote, isDispersy, description = self.channelsearch_manager.getChannel(channel_id)
+            data = self.channelsearch_manager.getChannel(channel_id)
+            
+            name = data[CHANNEL_NAME]
+            header = 'Management interface for %s\'s Channel'%name
+            nr_favorites = data[CHANNEL_NR_FAVORITES]
+            nr_torrents = data[CHANNEL_NR_TORRENTS_COLLECTED]
+            description = data[CHANNEL_DESCRIPTION] 
             
             if self.notebook.GetPageCount() == 1:
                 self.notebook.AddPage(self.fileslist, "Manage torrents")
@@ -642,15 +648,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 
                 self.createText.Hide()
                 self.saveButton.SetLabel('Save Changes')
-                
-            header = 'Management interface for %s\'s Channel'%name
         else:
             name = ''
             header = 'Create your own channel'
             nr_favorites = 0
             nr_torrents = 0
-            nr_spam = 0
-            my_vote = 0
             description = ''
             
             #disable all other tabs
