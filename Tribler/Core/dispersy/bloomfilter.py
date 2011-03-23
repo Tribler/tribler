@@ -666,10 +666,30 @@ if __debug__:
         assert a.and_occurrence(b) == 1
         assert a.xor_occurrence(b) == 3
 
+    def _test_save_load():
+        a = BloomFilter(1000, 0.1)
+        data = ["%i" * 100 for i in xrange(1000)]
+        map(a.add, data)
+
+        binary = str(a)
+        open("bloomfilter-out.data", "w+").write(binary)
+        print "Write binary:", len(binary)
+
+        try:
+            binary = open("bloomfilter-in.data", "r").read()
+        except IOError:
+            print "Input file unavailable"
+        else:
+            print "Read binary:", len(binary)
+            b = BloomFilter(binary, 0)
+            for d in data:
+                assert d in b
+            for d in ["%i" * 100 for i in xrange(10000, 1100)]:
+                assert not d in b
+
     if __name__ == "__main__":
         #_performance_test()
         # _taste_test()
         # _test_occurrence()
         # _test_documentation()
-
-        print BloomFilter(1000, 0.01).size / 8.0
+        _test_save_load()
