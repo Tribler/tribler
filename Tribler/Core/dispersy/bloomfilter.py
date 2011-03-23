@@ -44,11 +44,11 @@ def _make_hashfuncs(num_slices, num_bits):
         hashfn = sha1
     else:
         hashfn = md5
-    fmt = fmt_code * (hashfn().digest_size // chunk_size)
+    fmt = "!" + fmt_code * (hashfn().digest_size // chunk_size)
     num_salts, extra = divmod(num_slices, len(fmt))
     if extra:
         num_salts += 1
-    salts = [hashfn(hashfn(pack('L', i)).digest()) for i in xrange(num_salts)]
+    salts = [hashfn(hashfn(pack('!L', i)).digest()) for i in xrange(num_salts)]
     def _make_hashfuncs_helper(key):
         assert isinstance(key, str), "KEY must be a binary string"
         rval = []
@@ -671,6 +671,8 @@ if __debug__:
         data = ["%i" * 100 for i in xrange(1000)]
         map(a.add, data)
 
+        print a._num_slices, a._bits_per_slice
+
         binary = str(a)
         open("bloomfilter-out.data", "w+").write(binary)
         print "Write binary:", len(binary)
@@ -682,6 +684,8 @@ if __debug__:
         else:
             print "Read binary:", len(binary)
             b = BloomFilter(binary, 0)
+            print b._num_slices, b._bits_per_slice
+
             for d in data:
                 assert d in b
             for d in ["%i" * 100 for i in xrange(10000, 1100)]:
