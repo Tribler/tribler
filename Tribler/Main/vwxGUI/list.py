@@ -7,6 +7,7 @@ from time import time
 from datetime import date, datetime
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.tribler_topButton import ProgressStaticText
 from Tribler.Core.API import *
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -782,11 +783,13 @@ class ChannelList(List):
         return control
     
     def CreateTorrents(self, parent, item):
+        collecting_progress = item.original_data[CHANNEL_NR_TORRENTS_COLLECTED] / float(item.original_data[CHANNEL_NR_TORRENTS]) 
+        
         torrents = str(item.data[3])
-        torrents = wx.StaticText(parent, -1, torrents)
+        torrents = ProgressStaticText(parent, torrents, collecting_progress)
         torrents.SetMinSize((self.columns[3]['width'], -1))
         
-        torrents.SetToolTipString('%d torrents discovered, %d remaining to collect'%(item.original_data[CHANNEL_NR_TORRENTS], item.original_data[CHANNEL_NR_TORRENTS] - item.original_data[CHANNEL_NR_TORRENTS_COLLECTED]))
+        torrents.SetToolTipString('%d torrents discovered\n%d collected, %d remaining'%(item.original_data[CHANNEL_NR_TORRENTS], item.original_data[CHANNEL_NR_TORRENTS_COLLECTED], item.original_data[CHANNEL_NR_TORRENTS] - item.original_data[CHANNEL_NR_TORRENTS_COLLECTED]))
         return torrents
     
     def OnExpand(self, item):

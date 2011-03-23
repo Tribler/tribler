@@ -10,6 +10,8 @@ LIST_GREY = (230,230,230)
 LIST_SELECTED = LIST_BLUE
 LIST_DESELECTED = (255,255,255)
 LIST_HIGHTLIGHT = (255,255,153)
+TRIBLER_RED = (255, 51, 0)
+
 LIST_RADIUS = 7
 
 CHANNEL_REQ_COLUMNS = ['infohash', 'CollectedTorrent.name', 'ChannelTorrents.name', 'ChannelTorrents.id', 'ChannelTorrents.channel_id', 'description', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']

@@ -19,7 +19,7 @@ class ChannelManager():
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         
-        self.channel_id = self.channelsearch_manager.channelcast_db._channel_id
+        self.my_channel_id = self.channelsearch_manager.channelcast_db._channel_id
         
     def refresh(self, id = None):
         if id:
@@ -28,7 +28,7 @@ class ChannelManager():
             
             data = self.channelsearch_manager.getChannel(id)
             
-            self.list.footer.SetStates(data[CHANNEL_MY_VOTE] == -1, data[CHANNEL_MY_VOTE] == 2, id == self._channel_id)
+            self.list.footer.SetStates(data[CHANNEL_MY_VOTE] == -1, data[CHANNEL_MY_VOTE] == 2, id == self.my_channel_id)
             self.list.SetFF(self.guiutility.getFamilyFilter())
             self.list.SetTitle(data[CHANNEL_NAME], data[CHANNEL_DESCRIPTION])
             self.list.SetDispersy(data[CHANNEL_IS_DISPERSY])

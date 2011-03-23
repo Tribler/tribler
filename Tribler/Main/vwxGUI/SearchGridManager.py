@@ -929,7 +929,7 @@ class ChannelSearchGridManager:
         hits = filter(deadFilter, hits)
         return nrFiltered, hits
     
-    def _get_community_from_channel_id(self, channel_id):
+    def _disp_get_community_from_channel_id(self, channel_id):
         assert isinstance(channel_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
@@ -952,8 +952,11 @@ class ChannelSearchGridManager:
         self.dispersy.rawserver.add_task(dispersy_thread)
     
     def createPlaylist(self, channel_id, name, description, infohashes = []):
-        community = self._get_community_from_channel_id(channel_id)
-        community.create_playlist(name, description, infohashes)
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community.create_playlist(name, description, infohashes)
+
+        self.dispersy.rawserver.add_task(dispersy_thread)
         
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         #detect changes
@@ -969,8 +972,11 @@ class ChannelSearchGridManager:
             else:
                 to_be_removed.add(infohash)
         
-        community = self._get_community_from_channel_id(channel_id)
-        community.create_playlist_torrents(playlist_id, infohashes)
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community.create_playlist_torrents(playlist_id, to_be_created)
+            
+        self.dispersy.rawserver.add_task(dispersy_thread)
     
     def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
         infohash = None
@@ -978,24 +984,33 @@ class ChannelSearchGridManager:
             infohash_dict = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash'])
             infohash = infohash_dict['infohash'] 
         
-        community = self._get_community_from_channel_id(channel_id)
-        community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)
+        self.dispersy.rawserver.add_task(dispersy_thread)
     
     def modifyChannel(self, channel_id, name, description):
         dict = {'name':name, 'description':description}
         
-        community = self._get_community_from_channel_id(channel_id)
-        community.modifyChannel(channel_id, dict)
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community.modifyChannel(channel_id, dict)
+        self.dispersy.rawserver.add_task(dispersy_thread)
 
     def modifyPlaylist(self, channel_id, playlist_id, name, description):
         dict = {'name':name, 'description':description}
         
-        community = self._get_community_from_channel_id(channel_id)
-        community.modifyPlaylist(playlist_id, dict)
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community.modifyPlaylist(playlist_id, dict)
+        self.dispersy.rawserver.add_task(dispersy_thread)
     
     def modifyTorrent(self, channel_id, channeltorrent_id, dict_changes):
-        community = self._get_community_from_channel_id(channel_id)
-        community.modifyTorrent(channeltorrent_id, dict_changes)
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community.modifyTorrent(channeltorrent_id, dict_changes)
+        
+        self.dispersy.rawserver.add_task(dispersy_thread)
     
     def getPlaylistsFromChannelId(self, channel_id, keys):
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
