@@ -754,6 +754,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             dprint("[", clock() - debug_begin, " pct] after candidate table update")
+            handled = 0
 
         # process the packets in priority order
         for meta, batch in sorted(batches.iteritems()):
@@ -763,9 +764,15 @@ class Dispersy(Singleton):
             if __debug__: dprint("[", clock() - debug_begin, " pct] ", meta.name, " messages after conversion")
 
             # handle the incoming messages
-            if messages:
-                self.on_message_batch(messages)
-            if __debug__: dprint("[", clock() - debug_begin, " pct] after packet handling")
+            if __debug__:
+                if messages:
+                    handled += self.on_message_batch(messages)
+            else:
+                if messages:
+                    self.on_message_batch(messages)
+
+        if __debug__:
+            dprint("[", clock() - debug_begin, " pct] handled ", handled, "/", len(packets), " incoming packets successfully")
 
         # notify the community that there was activity from a certain address
         communities = {}
@@ -881,6 +888,10 @@ class Dispersy(Singleton):
         # try to 'trigger' zero or more previously delayed 'things'
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after triggers")
+
+        if __debug__:
+            # return the number of messages that were correctly handled (non delay, duplictes, etc)
+            return len(messages)
 
     def _convert_packets_into_batch(self, packets):
         """
