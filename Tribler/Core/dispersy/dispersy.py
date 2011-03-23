@@ -728,7 +728,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             debug_begin = clock()
-            dprint("[0.0 pct] ", len(packets), " incoming packets worth ", sum(len(packet) for _, packet in packets), " bytes")
+            dprint("[0.0 pct] ", len(packets), " packets (", sum(len(packet) for _, packet in packets), " bytes)")
         self._total_received += sum(len(packet) for _, packet in packets)
 
         batches = dict()
@@ -876,7 +876,7 @@ class Dispersy(Singleton):
 
         # store to disk and update locally
         self.store_update_forward(messages, True, True, False)
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after store and update")
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.community.get_classification(), "/", meta.name, "/", meta.community.cid.encode("HEX") , " messages after store and update")
 
         # try to 'trigger' zero or more previously delayed 'things'
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
