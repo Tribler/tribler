@@ -88,7 +88,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
         print "  *", node[-5:]
         for lineno, datetime, message, kargs in parse(node + "/output/dispersy.log"):
-            if message == "created" and "message" in kargs and kargs["message"] == u"barter-record":
+            if message == "created-barter-record":
                 c_created_record += 1
                 time = int(mktime(datetime.timetuple()))
                 h_created_record.write(str(time))
@@ -99,7 +99,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 h_created_record.write("\n")
                 write_total = True
 
-            if message == "handled" and "message" in kargs and kargs["message"] == u"barter-record":
+            if message == "handled-barter-record":
                 c_received_record += 1
                 time = int(mktime(datetime.timetuple()))
                 h_received_record.write(str(time))
@@ -110,15 +110,17 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 h_received_record.write("\n")
                 write_total = True
 
-            if message in ("drop-packet", "drop-message"):
-                c_drop += 1
-                time = int(mktime(datetime.timetuple()))
-                h_drop.write(str(time))
-                h_drop.write(" ")
-                h_drop.write(str(time - first))
-                h_drop.write(" ")
-                h_drop.write(str(c_drop))
-                h_drop.write("\n")
+            if message == "handled-successfully":
+                drop_count = kargs['total_packet_count'] - kargs['handled_message_count']
+                if drop_count != 0:
+                    c_drop += drop_count
+                    time = int(mktime(datetime.timetuple()))
+                    h_drop.write(str(time))
+                    h_drop.write(" ")
+                    h_drop.write(str(time - first))
+                    h_drop.write(" ")
+                    h_drop.write(str(c_drop))
+                    h_drop.write("\n")
 
             if message == "statistics" and "total_send" in kargs and "total_received" in kargs:
                 time = int(mktime(datetime.timetuple()))
@@ -162,11 +164,11 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                     saved_total = True
 
         if not started_monitoring:
-            print "!!!! not started_monitoring"
+            print "!!!! Statistics time-range is outside the experiment time."
         if not done_monitoring:
-            print "!!!! not done_monitoring"
-        if not saved_total:
-            print "!!!! not saved_total"
+            print "!!!! The end of the statistics time-range is after the experiment finished."
+        #if not saved_total:
+        #    print "!!!! There is no write of total records after the end of the statistics time-range."
 
         lasts.append(datetime)
 
