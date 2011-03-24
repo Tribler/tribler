@@ -35,7 +35,7 @@ rm -rf /tmp/mbardac/dispersy/
 mkdir -p /tmp/mbardac/dispersy/
 
 for i in $(seq 1 1 $PEERS_PER_NODE); do
-	echo "${BRANCH}/barter-peer-run $PEERS_DIRECTORY $EXPERIMENT_CONFIG" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
+	echo "${BRANCH}/das4-peer $PEERS_DIRECTORY $EXPERIMENT_CONFIG" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
 done
 
 export PYTHONPATH=${BRANCH}

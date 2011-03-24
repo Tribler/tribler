@@ -1,16 +1,4 @@
 #!/bin/bash
-#
-# Run a dispersy peer This scripts tries to lock one directory insde
-# the $PEERS by creating a symbolic link. Symbolic link creation is
-# atomic in the FS level so this shouldn't end up with to scripts
-# locking the same directory
-#
-# If a $PEERS/data/peer.conf file exists then the ip and port
-# parameters are passed to the dispersy script, along with any extra
-# parameters in $2
-#
-# This script is intended to be invoked by clusterrun
-#
 
 if test $# -ne 2; then
 	echo "Usage: $0 <peer-directory> <experiment-config>"
