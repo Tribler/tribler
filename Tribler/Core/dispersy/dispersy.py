@@ -773,6 +773,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             dprint("[", clock() - debug_begin, " pct] handled ", handled, "/", len(packets), " [", ", ".join("%s:%d" % (meta.name, len(batch)) for meta, batch in sorted(batches.iteritems())), "] successfully")
+            log("dispersy.log", "handled-successfully", time=clock() - debug_begin, handled_message_count=handled, total_packet_count=len(packets), **dict((meta.name.replace("-","_"), len(batch)) for meta, batch in batches.iteritems()))
 
         # notify the community that there was activity from a certain address
         communities = {}
@@ -1840,7 +1841,7 @@ class Dispersy(Singleton):
             subjective_set_message = conversion.decode_message(packet)
             if subjective_set_message.destination.cluster == message.payload.clusters:
                 packets.append(packet)
-                if __debug__: log("dispersy.log", "dispersu-subjective-set-request - send back packet", length=len(packet), packet=packet)
+                if __debug__: log("dispersy.log", "dispersy-subjective-set-request - send back packet", length=len(packet), packet=packet)
 
         if packets:
             self._send([address], [packet])
