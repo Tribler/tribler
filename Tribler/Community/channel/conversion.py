@@ -277,15 +277,14 @@ class ChannelConversion(BinaryConversion):
                 packet_id, packet, message_name = self._dispersy_database.execute(u"""
                     SELECT sync.id, sync.packet, name.value
                     FROM sync
-                    JOIN reference_user_sync ON (reference_user_sync.sync = sync.id)
-                    JOIN user ON (user.id = reference_user_sync.user)
+                    JOIN user ON (user.id = sync.user)
                     JOIN name ON (name.id = sync.name)
                     WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
                                                           (self._community.database_id, global_time, buffer(mid))).next()
             except StopIteration:
                 raise DropPacket("Missing previous message")
             
-            return packet_id, packet, message_name
+            return packet_id, str(packet), message_name
         raise DropPacket("Global_time or mid missing")
 
     def _encode_missing_channel(self, message):
