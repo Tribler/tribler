@@ -293,11 +293,18 @@ class ChannelCommunity(Community):
         self._rawserver(dispersy_thread)
         
     def _disp_create_modification(self, modification, modification_on, latest_modification, store=True, update=True, forward=True):
+        latest_modification_mid = None
+        latest_modification_global_time = None
+        if latest_modification:
+            message = latest_modification.load_message()
+            latest_modification_mid = message.authentication.member.mid
+            latest_modification_global_time = message.distribution.global_time
+        
         meta = self.get_meta_message(u"modification")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self._timeline.claim_global_time()),
                                  meta.destination.implement(),
-                                 meta.payload.implement(modification, modification_on, latest_modification))
+                                 meta.payload.implement(modification, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -319,6 +326,8 @@ class ChannelCommunity(Community):
         
             modification_dict = message.payload.modification
             modifying_dispersy_id = message.payload.modification_on.packet_id
+            
+            #TODO: modification packet also has his latest_modification_packet
             latest_dispersy_modifier = message.packet_id
         
             if message_name ==  u"torrent":

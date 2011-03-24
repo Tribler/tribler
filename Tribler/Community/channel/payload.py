@@ -146,14 +146,23 @@ class CommentPayload(Payload):
 
 class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, modification, modification_on, latest_modification):
+        def __init__(self, meta, modification, modification_on, latest_modification_packet, latest_modification_mid, latest_modification_global_time):
             assert isinstance(modification, dict)
             assert isinstance(modification_on, Packet)
-            assert not latest_modification or isinstance(latest_modification, Packet)
+
+            assert not latest_modification_packet or isinstance(latest_modification_packet, Packet)
+            assert not latest_modification_mid or isinstance(latest_modification_mid, str), 'latest_modification_mid is a %s'%type(latest_modification_mid)
+            assert not latest_modification_mid or len(latest_modification_mid) == 20, 'latest_modification_mid has length %d'%len(latest_modification_mid)
+            assert not latest_modification_global_time or isinstance(latest_modification_global_time, (int, long)), 'latest_modification_global_time is a %s'%type(latest_modification_global_time)
+            
             super(ModificationPayload.Implementation, self).__init__(meta)
             self._modification = modification
             self._modification_on = modification_on
-            self._latest_modification = latest_modification
+            
+            self._latest_modification_packet = latest_modification_packet
+            self._latest_modification_mid = latest_modification_mid
+            self._latest_modification_global_time = latest_modification_global_time
+            
 
         @property
         def modification(self):
@@ -164,8 +173,21 @@ class ModificationPayload(Payload):
             return self._modification_on
         
         @property
-        def latest_modification(self):
-            return self._latest_modification
+        def latest_modification_packet(self):
+            return self._latest_modification_packet
+        
+        @property
+        def latest_modification_id(self):
+            if self._latest_modification_mid and self._latest_modification_global_time:
+                return "%s@%d"%(self._latest_modification_mid, self._latest_modification_global_time)
+        
+        @property
+        def latest_modification_mid(self):
+            return self._latest_modification_mid
+        
+        @property
+        def latest_modification_global_time(self):
+            return self._latest_modification_global_time
 
 class PlaylistTorrentPayload(Payload):
     class Implementation(Payload.Implementation):
