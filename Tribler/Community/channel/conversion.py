@@ -189,7 +189,7 @@ class ChannelConversion(BinaryConversion):
                 "modification-on-mid":modification_on.authentication.member.mid,
                 "modification-on-global-time":modification_on.distribution.global_time}
         
-        latest_modification = message.payload.latest_modification
+        latest_modification = message.payload.latest_modification_packet
         if latest_modification:
             message = latest_modification.load_message()
             dict["latest-modification-mid"] = message.authentication.member.mid
