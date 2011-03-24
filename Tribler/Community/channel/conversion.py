@@ -230,7 +230,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'atest-modification-global-time' type")
         
         if latest_modification_mid and latest_modification_global_time:
-            packet_id, packet, message_name = self._get_message(latest_modification_mid, latest_modification_global_time)
+            packet_id, packet, message_name = self._get_message(latest_modification_global_time, latest_modification_mid)
             latest_modification = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         else:
             latest_modification = None

@@ -807,11 +807,19 @@ class ChannelSearchGridManager:
     getInstance = staticmethod(getInstance)
 
     def connect(self):
-        self.session = self.guiUtility.utility.session
+        self.session = self.utility.session
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
-        self.dispersy = Dispersy.get_instance()
         
+        if Dispersy.has_instance():
+            self.dispersy = Dispersy.get_instance()
+        else:
+            def dispersy_started(subject,changeType,objectID):
+                self.dispersy = Dispersy.get_instance()
+                
+                self.session.remove_observer(dispersy_started)
+            
+            self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
         self.searchmgr = SearchManager(self.channelcast_db)
         
     def set_gridmgr(self,gridmgr):
