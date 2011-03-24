@@ -1223,7 +1223,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               name                  text            NOT NULL,
               description           text,
               modified              integer         DEFAULT (strftime('%s','now')),
-              latest_dispersy_modifier text,
               inserted              integer         DEFAULT (strftime('%s','now'))
             );
             CREATE TABLE IF NOT EXISTS ChannelTorrents (
@@ -1235,12 +1234,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               description           text,
               time_stamp            integer,
               modified              integer         DEFAULT (strftime('%s','now')),
-              latest_dispersy_modifier text,
               inserted              integer         DEFAULT (strftime('%s','now')),
               UNIQUE (torrent_id, channel_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
+            
             CREATE TABLE IF NOT EXISTS Playlists (
               id                    integer         PRIMARY KEY ASC,
               channel_id            integer         NOT NULL,
@@ -1249,11 +1248,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               name                  text            NOT NULL,
               description           text,
               modified              integer         DEFAULT (strftime('%s','now')),
-              latest_dispersy_modifier text,
               inserted              integer         DEFAULT (strftime('%s','now')),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
+            
             CREATE TABLE IF NOT EXISTS PlaylistTorrents (
               playlist_id           integer,
               channeltorrent_id     integer,
@@ -1261,6 +1260,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
               FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
             );
+            CREATE INDEX IF NOT EXISTS PlayTorrentIndex ON PlaylistTorrents(playlist_id);
+
             CREATE TABLE IF NOT EXISTS Comments (
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
@@ -1274,15 +1275,25 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);
-            CREATE TABLE IF NOT EXISTS Media(
-              id                    integer         PRIMARY KEY ASC,
-              dispersy_id           integer         NOT NULL,
-              channel_id            integer         NOT NULL,
-              type                  integer         NOT NULL,
-              data                  blob            NOT NULL,
-              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+
+            CREATE TABLE IF NOT EXISTS CommentPlaylist (
+              comment_id            integer,
+              playlist_id           integer,
+              PRIMARY KEY (comment_id,playlist_id),
+              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
+              FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS MeChannelIndex ON Media(channel_id);
+            CREATE INDEX IF NOT EXISTS CoPlaylistIndex ON CommentPlaylist(playlist_id);
+            
+            CREATE TABLE IF NOT EXISTS CommentTorrent (
+              comment_id            integer,
+              channeltorrent_id     integer,
+              PRIMARY KEY (comment_id, channeltorrent_id),
+              FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
+            
             CREATE TABLE IF NOT EXISTS Warnings (
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
@@ -1296,48 +1307,63 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS WaChannelIndex ON Warnings(channel_id);
-            CREATE TABLE IF NOT EXISTS CommentPlaylist (
-              comment_id            integer,
-              playlist_id           integer,
-              PRIMARY KEY (comment_id,playlist_id),
-              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
-              FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+            
+            CREATE TABLE IF NOT EXISTS ChannelMetaData (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer         NOT NULL,
+              type_id               integer         NOT NULL,
+              value                 integer         NOT NULL,
+              prev_modification     integer,
+              prev_global_time      integer,
+              inserted              integer         DEFAULT (strftime('%s','now')),
+              FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS CoPlaylistIndex ON CommentPlaylist(playlist_id);
-            CREATE TABLE IF NOT EXISTS CommentTorrent (
-              comment_id            integer,
+            CREATE TABLE IF NOT EXISTS MetaDataTypes (
+              id                    integer         PRIMARY KEY ASC,
+              name                  text            NOT NULL,
+              type                  text            NOT NULL DEFAULT('text')
+            );
+            
+            CREATE TABLE IF NOT EXISTS MetaDataTorrent (
+              metadata_id           integer,
               channeltorrent_id     integer,
-              PRIMARY KEY (comment_id, channeltorrent_id),
-              FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+              PRIMARY KEY (metadata_id, channeltorrent_id),
+              FOREIGN KEY (metadata_id) REFERENCES ChannelMetaData(id) ON DELETE CASCADE
               FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
-            CREATE TABLE IF NOT EXISTS MediaTorrent (
-              media_id              integer,
-              channeltorrent_id     integer,
-              PRIMARY KEY (media_id, channeltorrent_id),
-              FOREIGN KEY (media_id) REFERENCES Media(id) ON DELETE CASCADE
-              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
-            );
-            CREATE INDEX IF NOT EXISTS MeTorrentIndex ON MediaTorrent(channeltorrent_id);
-            CREATE TABLE IF NOT EXISTS MediaPlaylist (
-              media_id              integer,
+            CREATE INDEX IF NOT EXISTS MeTorrentIndex ON MetaDataTorrent(channeltorrent_id);
+            
+            CREATE TABLE IF NOT EXISTS MetaDataPlaylist (
+              metadata_id           integer,
               playlist_id           integer,
-              PRIMARY KEY (media_id,playlist_id),
+              PRIMARY KEY (metadata_id,playlist_id),
               FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
-              FOREIGN KEY (media_id) REFERENCES Media(id) ON DELETE CASCADE
+              FOREIGN KEY (metadata_id) REFERENCES ChannelMetaData(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MediaPlaylist(playlist_id);
+            CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MetaDataPlaylist(playlist_id);
+            
+            CREATE TABLE IF NOT EXISTS MetaDataChannel (
+              metadata_id           integer,
+              channel_id            integer,
+              PRIMARY KEY (metadata_id,channel_id),
+              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+              FOREIGN KEY (metadata_id) REFERENCES ChannelMetaData(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS MeChannelIndex ON MetaDataChannel(channel_id);
+            
             CREATE TABLE ChannelVotes (
               channel_id            integer,
               voter_id              integer,
-              dispersy_id           integer,              
+              dispersy_id           integer,
               vote                  integer,
               time_stamp            integer,
               PRIMARY KEY (channel_id, voter_id)
             );
             CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
             CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
+            
+            INSERT INTO MetaDataTypes ('name') VALUES ('name');
+            INSERT INTO MetaDataTypes ('name') VALUES ('description');
             """
             self.execute_write(sql, commit=False)
 

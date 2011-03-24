@@ -185,15 +185,16 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
-        dict = {"modification":message.payload.modification,
+        dict = {"modification-type":message.payload.modification_type,
+                "modification-value":message.payload.modification_value,
                 "modification-on-mid":modification_on.authentication.member.mid,
                 "modification-on-global-time":modification_on.distribution.global_time}
         
-        latest_modification = message.payload.latest_modification_packet
-        if latest_modification:
-            message = latest_modification.load_message()
-            dict["latest-modification-mid"] = message.authentication.member.mid
-            dict["latest-modification-global-time"] = message.distribution.global_time
+        prev_modification = message.payload.prev_modification_packet
+        if prev_modification:
+            message = prev_modification.load_message()
+            dict["prev-modification-mid"] = message.authentication.member.mid
+            dict["prev-modification-global-time"] = message.distribution.global_time
         
         return encode(dict),
 
@@ -203,16 +204,14 @@ class ChannelConversion(BinaryConversion):
         except ValueError:
             raise DropPacket("Unable to decode the payload")
 
-        if not "modification" in dic:
-            raise DropPacket("Missing 'modification'")
-        modification = dic["modification"]
-        if not isinstance(modification, dict):
-            raise DropPacket("Invalid 'modification' type")
-
-        #
-        # modification_on
-        #
-
+        if not "modification-type" in dic:
+            raise DropPacket("Missing 'modification-type'")
+        modification_type = dic["modification-type"]
+        
+        if not "modification-value" in dic:
+            raise DropPacket("Missing 'modification-value'")
+        modification_value = dic["modification-value"]
+        
         if not "modification-on-mid" in dic:
             raise DropPacket("Missing 'modification-on-mid'")
         modification_on_mid = dic["modification-on-mid"]
@@ -228,24 +227,21 @@ class ChannelConversion(BinaryConversion):
         packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
         modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         
-        latest_modification_mid = dic.get("latest-modification-mid", None)
-        if latest_modification_mid and not (isinstance(latest_modification_mid, str) and len(latest_modification_mid) == 20):
-            raise DropPacket("Invalid 'latest-modification-mid' type or value")
+        prev_modification_mid = dic.get("prev-modification-mid", None)
+        if prev_modification_mid and not (isinstance(prev_modification_mid, str) and len(prev_modification_mid) == 20):
+            raise DropPacket("Invalid 'prev-modification-mid' type or value")
         
-        latest_modification_global_time = dic.get("latest-modification-global-time", None)
-        if latest_modification_global_time and not isinstance(latest_modification_global_time, (int, long)):
-            raise DropPacket("Invalid 'atest-modification-global-time' type")
+        prev_modification_global_time = dic.get("prev-modification-global-time", None)
+        if prev_modification_global_time and not isinstance(prev_modification_global_time, (int, long)):
+            raise DropPacket("Invalid 'prev-modification-global-time' type")
         
         try:
-            packet_id, packet, message_name = self._get_message(latest_modification_global_time, latest_modification_mid)
-            latest_modification = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+            packet_id, packet, message_name = self._get_message(prev_modification_global_time, prev_modification_mid)
+            prev_modification_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
-            if __debug__:
-                print_exc()
-                
-            latest_modification = None
+            prev_modification_packet = None
 
-        return offset, meta_message.payload.implement(modification, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time)
+        return offset, meta_message.payload.implement(modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time)
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()

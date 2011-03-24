@@ -3056,22 +3056,12 @@ class ChannelCastDBHandler:
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
         return channel_id
         
-    def on_channel_modification_from_dispersy(self, channel_id, dic, latest_dispersy_modifier):
-        allowed_keys = ['name','description']
-        modified_keys = [key for key in dic.keys() if key.lower() in allowed_keys]
-        
-        if len(modified_keys) > 0:
-            args = [dic[key] for key in modified_keys]
-            args.append(latest_dispersy_modifier)
-            args.append(long(time()))
-            args.append(channel_id)
-            
-            update_channel = "UPDATE Channels Set " + " = ?, ".join(modified_keys) + " = ?, latest_dispersy_modifier = ?, modified = ? WHERE id = ?"
-            self._db.execute_write(update_channel, args)
+    def on_channel_modification_from_dispersy(self, channel_id, modification_type, modification_value):
+        if modification_type in ['name','description']:
+            update_channel = "UPDATE Channels Set " + modification_type + " = ?, modified = ? WHERE id = ?"
+            self._db.execute_write(update_channel, (modification_value, long(time()), channel_id))
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
-        else:
-            print >> sys.stderr, "Channel not modified, but on_channel_modification_from_dispersy called"
     
     #dispersy adding, modifying and receiving torrents
     def addOwnTorrentDef(self, torrentdef, store = True, update = True, forward = True):
@@ -3122,26 +3112,16 @@ class ChannelCastDBHandler:
         insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
         self._db.executemany(insert_torrent, insert_data)
 
-    def on_torrent_modification_from_dispersy(self, dispersy_id, dic, latest_dispersy_modifier):
-        print >> sys.stderr, "Channels: on_torrent_modification_from_dispersy", dispersy_id, dic
-        allowed_keys = ['name','description']
-        modified_keys = [key for key in dic.keys() if key.lower() in allowed_keys]
-        
-        if len(modified_keys) > 0:
-            args = [dic[key] for key in modified_keys]
-            args.append(latest_dispersy_modifier)
-            args.append(long(time()))
-            args.append(dispersy_id)
+    def on_torrent_modification_from_dispersy(self, channeltorrent_id, modification_type, modification_value):
+        if modification_type in ['name', 'description']:
+            update_torrent = "UPDATE ChannelTorrents SET " + modification_type + " = ?, modified = ? WHERE id = ?"
+            self._db.execute_write(update_torrent, (modification_value, long(time()), channeltorrent_id))
+                
+            sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
+            infohash = self._db.fetchone(sql, (channeltorrent_id, ))
             
-            update_torrent = "UPDATE ChannelTorrents SET " + " = ?, ".join(modified_keys) + " = ?, latest_dispersy_modifier = ?, modified = ? WHERE dispersy_id = ?"
-            self._db.execute_write(update_torrent, args)
-            
-            sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.dispersy_id = ?"
-            infohash = self._db.fetchone(sql, (dispersy_id, ))
             infohash = str2bin(infohash)
             self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
-        else:
-            print >> sys.stderr, "Torrent not modified, but on_torrent_modification called"
 
     def addOrGetChannelTorrentID(self, channel_id, infohash):
         torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
@@ -3228,25 +3208,12 @@ class ChannelCastDBHandler:
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_INSERT, channel_id)
         
-    def on_playlist_modification_from_dispersy(self, dispersy_id, dic, latest_dispersy_modifier):
-        allowed_keys = ['name','description']
-        modified_keys = [key for key in dic.keys() if key.lower() in allowed_keys]
-        
-        if len(modified_keys) > 0:
-            args = [dic[key] for key in modified_keys]
-            args.append(long(time()))
-            args.append(latest_dispersy_modifier)
-            args.append(dispersy_id)
-            
-            update_playlist = "UPDATE Playlists Set " + " = ?, ".join(modified_keys) + " = ?, latest_dispersy_modifier = ?, modified = ? WHERE dispersy_id = ?"
-            self._db.execute_write(update_playlist, args)
-            
-            get_playlist = "SELECT id FROM Playlists WHERE dispersy_id = ?"
-            playlist_id = self._db.fetchone(get_playlist, (dispersy_id, ))
+    def on_playlist_modification_from_dispersy(self, playlist_id, modification_type, modification_value):
+        if modification_type in ['name','description']:
+            update_playlist = "UPDATE Playlists Set " + modification_type +  " = ?, modified = ? WHERE id = ?"
+            self._db.execute_write(update_playlist, (modification_value, long(time()), playlist_id))
             
             self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
-        else:
-            print >> sys.stderr, "Playlist not modified, but on_torrent_modification called"
     
     def on_playlist_torrent(self, dispersy_id, infohash):
         get_playlist = "SELECT id, channel_id FROM Playlists WHERE dispersy_id = ?"
@@ -3257,6 +3224,26 @@ class ChannelCastDBHandler:
         self._db.execute_write(sql, (playlist_id, channeltorrent_id))
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
+        
+    def on_metadata_from_dispersy(self, type, link_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time):
+        sql = "INSERT INTO ChannelMetaData (dispersy_id, type_id, value, prev_modification, prev_global_time) VALUES (?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        metadata_id = self._db.fetchone(sql, (dispersy_id, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time))
+        
+        if type == u"torrent":
+            sql = "INSERT INTO MetaDataTorrent (metadata_id, channeltorrent_id) VALUES (?,?)"
+            self._db.execute_write(sql, (metadata_id, link_id), commit = False)
+            
+        elif type == u"playlist":
+            sql = "INSERT INTO MetaDataPlaylist (metadata_id, playlist_id) VALUES (?,?)"
+            self._db.execute_write(sql, (metadata_id, link_id), commit = False)
+            
+        elif type == u"channel":
+            sql = "INSERT INTO MetaDataChannel (metadata_id, channel_id) VALUES (?,?)"
+            self._db.execute_write(sql, (metadata_id, link_id), commit = False)
+
+        #try fo fix loose reply_to and reply_after pointers
+        sql =  "UPDATE ChannelMetaData SET prev_modification = ? WHERE prev_modification = ?;"
+        self._db.execute_write(sql, (dispersy_id, buffer(mid_global_time)))
     
     def selectTorrentsToCollect(self, channel_id = None):
         if channel_id:

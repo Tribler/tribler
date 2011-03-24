@@ -142,52 +142,56 @@ class CommentPayload(Payload):
         @property
         def infohash(self):
             return self._infohash
-        
 
 class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, modification, modification_on, latest_modification_packet, latest_modification_mid, latest_modification_global_time):
-            assert isinstance(modification, dict)
+        def __init__(self, meta, modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time):
+            assert isinstance(modification_type, unicode)
+            assert modification_value
             assert isinstance(modification_on, Packet)
 
-            assert not latest_modification_packet or isinstance(latest_modification_packet, Packet)
-            assert not latest_modification_mid or isinstance(latest_modification_mid, str), 'latest_modification_mid is a %s'%type(latest_modification_mid)
-            assert not latest_modification_mid or len(latest_modification_mid) == 20, 'latest_modification_mid has length %d'%len(latest_modification_mid)
-            assert not latest_modification_global_time or isinstance(latest_modification_global_time, (int, long)), 'latest_modification_global_time is a %s'%type(latest_modification_global_time)
+            assert not prev_modification_packet or isinstance(prev_modification_packet, Packet)
+            assert not prev_modification_mid or isinstance(prev_modification_mid, str), 'prev_modification_mid is a %s'%type(prev_modification_mid)
+            assert not prev_modification_mid or len(prev_modification_mid) == 20, 'prev_modification_mid has length %d'%len(prev_modification_mid)
+            assert not prev_modification_global_time or isinstance(prev_modification_global_time, (int, long)), 'prev_modification_global_time is a %s'%type(prev_modification_global_time)
             
             super(ModificationPayload.Implementation, self).__init__(meta)
-            self._modification = modification
+            self._modification_type = modification_type
+            self._modification_value = modification_value
             self._modification_on = modification_on
             
-            self._latest_modification_packet = latest_modification_packet
-            self._latest_modification_mid = latest_modification_mid
-            self._latest_modification_global_time = latest_modification_global_time
-            
+            self._prev_modification_packet = prev_modification_packet
+            self._prev_modification_mid = prev_modification_mid
+            self._prev_modification_global_time = prev_modification_global_time
 
         @property
-        def modification(self):
-            return self._modification
+        def modification_type(self):
+            return self._modification_type
+        
+        @property        
+        def modification_value(self):
+            return self._modification_value
 
         @property
         def modification_on(self):
             return self._modification_on
         
         @property
-        def latest_modification_packet(self):
-            return self._latest_modification_packet
+        def prev_modification_packet(self):
+            return self._prev_modification_packet
         
         @property
-        def latest_modification_id(self):
-            if self._latest_modification_mid and self._latest_modification_global_time:
-                return "%s@%d"%(self._latest_modification_mid, self._latest_modification_global_time)
+        def prev_modification_id(self):
+            if self._prev_modification_mid and self._prev_modification_global_time:
+                return "%s@%d"%(self._prev_modification_mid, self._prev_modification_global_time)
         
         @property
-        def latest_modification_mid(self):
-            return self._latest_modification_mid
+        def prev_modification_mid(self):
+            return self._prev_modification_mid
         
         @property
-        def latest_modification_global_time(self):
-            return self._latest_modification_global_time
+        def prev_modification_global_time(self):
+            return self._prev_modification_global_time
 
 class PlaylistTorrentPayload(Payload):
     class Implementation(Payload.Implementation):
