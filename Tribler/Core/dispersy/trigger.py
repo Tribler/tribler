@@ -157,7 +157,7 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[1], str)
         if pattern == self._pattern:
             self._packets.extend(packets)
-            if __debug__: dprint("extend existing trigger with ", len(packets), " packets (now has ", len(self.packets), " packets)")
+            if __debug__: dprint("extend existing trigger with ", len(packets), " packets (now has ", len(self._packets), " packets)")
             return True
         else:
             return False
