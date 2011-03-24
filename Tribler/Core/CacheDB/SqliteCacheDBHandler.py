@@ -3373,7 +3373,9 @@ class ChannelCastDBHandler:
         for result in results:
             if isinstance(result, basestring):
                 result = [result]
-            torrent_list.append(dict(zip(keys,result)))
+                
+            if result:
+                torrent_list.append(dict(zip(keys,result)))
             
         for torrent in torrent_list:
             if 'infohash' in torrent:
