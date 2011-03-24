@@ -61,7 +61,7 @@ class CommentPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, text, timestamp, reply_to_packet, reply_to_mid, reply_to_global_time, reply_after_packet, reply_after_mid, reply_after_global_time, playlist_packet, infohash):
             assert isinstance(text, unicode)
-            assert len(text) < 2^16
+            assert len(text) < 2**16
             assert isinstance(timestamp, (int, long)) 
             
             assert not reply_to_packet or isinstance(reply_to_packet, Packet)
