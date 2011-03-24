@@ -1088,9 +1088,9 @@ class CommentItem(ListItem):
             titleRow.AddSpacer((leftSpacer, -1))
         
         title = "Posted %s by %s"%(self.data[2].lower(), self.data[0])
-        if self.original_data.get('channeltorrent_id'):
+        if self.original_data.get('torrent_name'):
             title += ' in %s'%self.original_data['torrent_name']
-        elif self.original_data.get('playlist_id'):
+        elif self.original_data.get('playlist_name'):
             title += ' in %s'%self.original_data['playlist_name']
             
         title = wx.StaticText(self, -1, title)

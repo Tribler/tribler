@@ -866,6 +866,7 @@ class ChannelSearchGridManager:
         return self.votecastdb.getVote(channel_id, None)
     
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
+        assert 'ChannelTorrents.name' in keys and 'CollectedTorrent.name' in keys, "Require ChannelTorrents.name and CollectedTorrent.name in keys"
         data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, keys)
         
         #Prefer channeltorrents name, but use collectedtorrent as backup
@@ -873,6 +874,7 @@ class ChannelSearchGridManager:
         return data
 
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
+        assert 'ChannelTorrents.name' in keys and 'CollectedTorrent.name' in keys, "Require ChannelTorrents.name and CollectedTorrent.name in keys" 
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, keys)
         
         #Prefer channeltorrents name, but use collectedtorrent as backup
@@ -1034,7 +1036,9 @@ class ChannelSearchGridManager:
             for hit in hits:
                 if hit.get('channeltorrent_id', None):
                     torrent = self.getTorrentFromChannelTorrentId(hit['channeltorrent_id'], ['ChannelTorrents.name', 'CollectedTorrent.name'])
-                    hit['torrent_name'] = torrent['name'] 
+                    if torrent:
+                        hit['torrent_name'] = torrent['name']
+                         
                 
                 if hit.get('playlist_id', None):
                     playlist = self.getPlaylist(hit['playlist_id'], ['name'])
