@@ -68,6 +68,7 @@ cycle_length_real="600.00"
 time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
 sync_interval_real=$(echo "scale=2; $sync_interval_exp*$time_ratio" | bc)
 
+echo "* Summing up incoming and outgoing traffic..."
 o=$(
 find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
     grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:i\([0-9]*\).*send:i\([0-9]*\).*/\1 \2/g'
@@ -97,6 +98,21 @@ else
     s_lost_bytes=$(printf %\'14d $lost_bytes)
     b_ratio=$(echo "scale=2; 100*(${lost_bytes})/${out_bytes}" | bc -l)
 fi
+
+sig_req_timeouts=$(find . -name 'barter.log' | xargs cat | grep barter-community-signature-request-timeout | wc -l)
+
+echo "* Counting number of signature request timeouts..."
+s_ratio=0.0
+total_sig_req="(not-counted)"
+sig_req_timeouts=$(find . -name 'barter.log' | xargs cat | grep barter-community-signature-request-timeout | wc -l)
+if test $sig_req_timeouts -gt 0; then
+    echo "  * Counting number of total signature requests..."
+    total_sig_req=$(find . -name 'dispersy.log' -exec cat {} \; | grep 'created-barter-record' | wc -l)
+    s_ratio=$(echo "scale=2; 100*${sig_req_timeouts}/${total_sig_req}" | bc -l)
+    echo "  * Signature request timeouts: ${sig_req_timeouts}/${total_sig_req} (${s_ratio}%)"
+    sleep 2
+fi
+
 
 echo "* Extracting statistics..."
 
@@ -129,6 +145,12 @@ else
     echo "No delayed execution cycles." >> $STATS_FILE
 fi
 
+if test $sig_req_timeouts -gt 0; then
+    echo "Signature request timeouts: ${sig_req_timeouts}/${total_sig_req} (${s_ratio}%)" >> $STATS_FILE
+else
+    echo "No signature request timeouts." >> $STATS_FILE
+fi
+
 (
 cat <<END-OF-MSG
 ---
@@ -149,6 +171,9 @@ bytes_lost_ratio=$b_ratio
 total_cycles=$t_cycles
 delayed_cycles=$d_cycles
 delayed_cycles_ratio=$c_ratio
+signature_request_timeouts=$sig_req_timeouts
+signature_request_count=$total_sig_req
+signature_request_timeout_ratio=$s_ratio
 END-OF-MSG
 ) >> $STATS_FILE
 
