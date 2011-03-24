@@ -1,6 +1,7 @@
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket, Packet
 from Tribler.Core.dispersy.conversion import BinaryConversion
+from traceback import print_exc
 
 class ChannelConversion(BinaryConversion):
     def __init__(self, community):
@@ -141,6 +142,8 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(reply_to_global_time, reply_to_mid)
             reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
+            if __debug__:
+                print_exc()
             reply_to = None
 
         reply_after_mid = dic.get("reply-after-mid", None)
@@ -155,6 +158,8 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(reply_after_global_time, reply_after_mid)
             reply_after = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
+            if __debug__:
+                print_exc()
             reply_after = None
             
         playlist_mid = dic.get("playlist-mid", None)
@@ -169,6 +174,8 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(playlist_mid, playlist_global_time)
             playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
+            if __debug__:
+                print_exc()
             playlist = None
         
         infohash = dic.get("infohash", None)
@@ -229,10 +236,13 @@ class ChannelConversion(BinaryConversion):
         if latest_modification_global_time and not isinstance(latest_modification_global_time, (int, long)):
             raise DropPacket("Invalid 'atest-modification-global-time' type")
         
-        if latest_modification_mid and latest_modification_global_time:
+        try:
             packet_id, packet, message_name = self._get_message(latest_modification_global_time, latest_modification_mid)
             latest_modification = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        else:
+        except:
+            if __debug__:
+                print_exc()
+                
             latest_modification = None
 
         return offset, meta_message.payload.implement(modification, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time)
