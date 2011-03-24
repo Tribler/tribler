@@ -167,7 +167,7 @@ class GUIUtility:
             elif self.guiPage == 'selectedchannel':
                 self.frame.selectedchannellist.Show(False)
                 
-                if page != 'playlist':
+                if page not in ['playlist','managechannel']:
                     self.frame.selectedchannellist.Reset()
             
             if page == 'playlist':
