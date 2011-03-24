@@ -1159,7 +1159,8 @@ class ActivityList(List):
     def SetData(self, comments, torrents, recent_torrents):
         List.SetData(self, torrents)
         def genCommentActivity(comment):
-            return "new comment received", self.format_time(comment['time_stamp']), comment['name'] + "  " + comment['comment']
+            byWho = comment['name'] or '?'
+            return "new comment received", self.format_time(comment['time_stamp']), byWho + "  " + comment['comment']
         
         def genNewTorrentActivity(torrent):
             return "new torrent received", self.format_time(torrent['time_stamp']), torrent['name']
