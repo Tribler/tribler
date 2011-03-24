@@ -42,6 +42,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 
 from hashlib import sha1
 from os.path import abspath
+from threading import Lock
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -104,6 +105,8 @@ class Dispersy(Singleton):
         @type working_directory: unicode
         """
         # the raw server
+        self._buffer_lock = Lock()
+        self._buffer = []
         self._rawserver = rawserver
 
         # where we store all data
@@ -280,13 +283,13 @@ class Dispersy(Singleton):
         self._communities[community.cid] = community
 
         # periodically send dispery-sync messages
-        if __debug__: dprint("start in ", community.dispersy_sync_initial_delay, " every ", community.dispersy_sync_interval, " seconds call _periodically_create_sync")
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
+            if __debug__: dprint("start in ", community.dispersy_sync_initial_delay, " every ", community.dispersy_sync_interval, " seconds call _periodically_create_sync")
             self._rawserver.add_task(lambda: self._periodically_create_sync(community), community.dispersy_sync_initial_delay, "id:sync-" + community.cid)
 
         # periodically send dispery-candidate-request messages
-        if __debug__: dprint("start in ", community.dispersy_candidate_request_initial_delay, " every ", community.dispersy_candidate_request_interval, " seconds call _periodically_create_candidate_request")
         if community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
+            if __debug__: dprint("start in ", community.dispersy_candidate_request_initial_delay, " every ", community.dispersy_candidate_request_interval, " seconds call _periodically_create_candidate_request")
             self._rawserver.add_task(lambda: self._periodically_create_candidate_request(community), community.dispersy_candidate_request_initial_delay, "id:candidate-%d" % id(community.cid))
 
     def detach_community(self, community):
@@ -688,6 +691,35 @@ class Dispersy(Singleton):
         # sort the messages by their (1) global_time and (2) binary packet
         return sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
 
+    def data_came_in(self, packets):
+        """
+        UDP packets were received from the rawserver.
+
+        This must be called on the Triber rawserver thread.  It will add the packets to the Dispersy
+        rawserver thread for processing.
+        """
+        self._buffer_lock.acquire()
+        try:
+            if not self._buffer:
+                self._rawserver.add_task(self._data_came_in)
+            self._buffer.extend(packets)
+        finally:
+            self._buffer_lock.release()
+
+    def _data_came_in(self):
+        """
+        There are packets in my buffer that need to be processed.
+        """
+        self._buffer_lock.acquire()
+        try:
+            assert self._buffer
+            packets, self._buffer = self._buffer, []
+        finally:
+            self._buffer_lock.release()
+
+        assert packets
+        self.on_incoming_packets(packets)
+
     def on_incoming_packets(self, packets):
         """
         Process incoming UDP packets.
@@ -754,7 +786,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             dprint("[", clock() - debug_begin, " pct] after candidate table update")
-            handled = 0
+            handled = {}
 
         # process the packets in priority order
         for meta, batch in sorted(batches.iteritems()):
@@ -766,13 +798,16 @@ class Dispersy(Singleton):
             # handle the incoming messages
             if __debug__:
                 if messages:
-                    handled += self.on_message_batch(messages)
+                    if not messages[0].name in handled:
+                        handled[messages[0].name] = 0
+                    handled[messages[0].name] += self.on_message_batch(messages)
+
             else:
                 if messages:
                     self.on_message_batch(messages)
 
         if __debug__:
-            dprint("[", clock() - debug_begin, " pct] handled ", handled, "/", len(packets), " [", ", ".join("%s:%d" % (meta.name, len(batch)) for meta, batch in sorted(batches.iteritems())), "] successfully")
+            dprint("[", clock() - debug_begin, " pct] handled ", sum(handled.itervalues()), "/", len(packets), " [", ", ".join("%s:%d" % (name, count) for name, count in handled.iteritems()), "] successfully")
             log("dispersy.log", "handled-successfully", time=clock() - debug_begin, handled_message_count=handled, total_packet_count=len(packets), **dict((meta.name.replace("-","_"), len(batch)) for meta, batch in batches.iteritems()))
 
         # notify the community that there was activity from a certain address
@@ -900,7 +935,7 @@ class Dispersy(Singleton):
 
         # store to disk and update locally
         self.store_update_forward(messages, True, True, False)
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.community.get_classification(), "/", meta.name, "/", meta.community.cid.encode("HEX") , " messages after store and update")
+        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name , " messages after store and update")
 
         # try to 'trigger' zero or more previously delayed 'things'
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
@@ -2849,6 +2884,9 @@ class Dispersy(Singleton):
                                    meta.payload.implement(time_low, time_high, bloom_filter))
                     for time_low, time_high, bloom_filter
                     in community.dispersy_sync_bloom_filters]
+        if __debug__:
+            for message in messages:
+                dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high, "]")
         self.store_update_forward(messages, False, False, True)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_candidate_request_interval, " seconds (interval)")

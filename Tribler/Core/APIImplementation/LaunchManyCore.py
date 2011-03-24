@@ -320,11 +320,13 @@ class TriblerLaunchMany(Thread):
                 return self.socket.getsockname()
 
             def data_came_in(self, packets):
+                # called on the Tribler rawserver
+
                 # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
                 # sometimes called without any packets...
                 if packets:
                     try:
-                        self.dispersy.on_incoming_packets(packets)
+                        self.dispersy.data_came_in(packets)
                     except:
                         print_exc()
                         raise
@@ -342,7 +344,7 @@ class TriblerLaunchMany(Thread):
         if not os.path.isdir(sqlite_db_path):
             os.makedirs(sqlite_db_path)
         self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, sqlite_db_path)
-        self.dispersy.socket = DispersySocket(self.dispersy_rawserver, self.dispersy, config['dispersy_port'])
+        self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
 
         from Tribler.Core.Overlay.permid import read_keypair
         keypair = read_keypair(self.session.get_permid_keypair_filename())

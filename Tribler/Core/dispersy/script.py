@@ -78,7 +78,7 @@ class Script(Singleton):
 
             except StopIteration:
                 self._call_generators.pop(0)
-                delay = 0.01
+                delay = 0.11
 #                 dprint("finished: ", call.__self__.__class__.__name__, ".", call.__name__)
                 dprint("finished ", call)
                 if self._call_generators:
@@ -309,11 +309,11 @@ class DispersyClassificationScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member(candidate=False)
-        yield 0.01
+        yield 0.11
 
         dprint("verify auto-load is enabled (default)")
         assert community.dispersy_auto_load == True
-        yield 0.01
+        yield 0.11
 
         dprint("unload community")
         community.unload_community()
@@ -322,12 +322,12 @@ class DispersyClassificationScript(ScriptBase):
             assert False
         except KeyError:
             pass
-        yield 0.01
+        yield 0.11
 
         dprint("send community message")
         global_time = 10
         node.send_message(node.create_full_sync_text_message("Should auto-load", global_time), address)
-        yield 0.01
+        yield 0.11
 
         dprint("verify that the community got auto-loaded")
         try:
@@ -337,7 +337,7 @@ class DispersyClassificationScript(ScriptBase):
         # verify that the message was received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert global_time in times
-        yield 0.01
+        yield 0.11
 
         dprint("cleanup")
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -364,11 +364,11 @@ class DispersyClassificationScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member(candidate=False)
-        yield 0.01
+        yield 0.11
 
         dprint("verify auto-load is enabled (default)")
         assert community.dispersy_auto_load == True
-        yield 0.01
+        yield 0.11
 
         dprint("unload community")
         community.unload_community()
@@ -377,12 +377,12 @@ class DispersyClassificationScript(ScriptBase):
             assert False
         except KeyError:
             pass
-        yield 0.01
+        yield 0.11
 
         dprint("send community message")
         global_time = 10
         node.send_message(node.create_full_sync_text_message("Should auto-load", global_time), address)
-        yield 0.01
+        yield 0.11
 
         dprint("verify that the community got auto-loaded")
         try:
@@ -392,12 +392,12 @@ class DispersyClassificationScript(ScriptBase):
         # verify that the message was received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert global_time in times
-        yield 0.01
+        yield 0.11
 
         dprint("disable auto-load")
         community.dispersy_auto_load = False
         assert community.dispersy_auto_load == False
-        yield 0.01
+        yield 0.11
 
         dprint("unload community")
         community.unload_community()
@@ -406,12 +406,12 @@ class DispersyClassificationScript(ScriptBase):
             assert False
         except KeyError:
             pass
-        yield 0.01
+        yield 0.11
 
         dprint("send community message")
         global_time = 11
         node.send_message(node.create_full_sync_text_message("Should not auto-load", global_time), address)
-        yield 0.01
+        yield 0.11
 
         dprint("verify that the community did not get auto-loaded")
         try:
@@ -422,7 +422,7 @@ class DispersyClassificationScript(ScriptBase):
         # verify that the message was NOT received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert not global_time in times
-        yield 0.01
+        yield 0.11
 
         dprint("cleanup")
         DebugCommunity.load_community(community.cid, "")
@@ -449,7 +449,7 @@ class DispersyTimelineScript(ScriptBase):
         # create a community.
         community = DebugCommunity.create_community(self._my_member)
         # the master member must have given my_member all permissions for dispersy-destroy-community
-        yield 0.1
+        yield 0.11
 
         dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
@@ -475,7 +475,7 @@ class DispersyTimelineScript(ScriptBase):
         # create a community.
         community = DebugCommunity.create_community(self._my_member)
         # the master member must have given my_member all permissions for dispersy-destroy-community
-        yield 0.1
+        yield 0.11
 
         dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
@@ -512,7 +512,7 @@ class DispersyTimelineScript(ScriptBase):
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
 
         self._dispersy.detach_community(community)
-        yield 0.1
+        yield 0.11
 
         # load the same community and see if the same permissions are loaded
         communities = LoadingCommunityTestCommunity.load_communities()
@@ -545,7 +545,7 @@ class DispersyCandidateScript(ScriptBase):
         """
         community = DebugCommunity.create_community(self._my_member)
         assert community.get_members_from_address(("0.0.0.0", 0)) == []
-        yield 0.01
+        yield 0.11
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
@@ -563,9 +563,9 @@ class DispersyCandidateScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member(candidate=False)
-        yield 0.01
+        yield 0.11
 
-        assert community.get_members_from_address(node.socket.getsockname()) == [node.my_member]
+        assert node.my_member in community.get_members_from_address(node.socket.getsockname())
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -587,13 +587,13 @@ class DispersyCandidateScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member(candidate=False)
-        yield 0.01
+        yield 0.11
 
         # send a dispersy-candidate-request message
         routes = [(("123.123.123.123", 123), 60.0),
                   (("124.124.124.124", 124), 120.0)]
         node.send_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, routes, 10), address)
-        yield 0.01
+        yield 0.11
 
         # routes must be placed in the database
         items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) AS age FROM candidate WHERE community = ?", (community.database_id,))]
@@ -621,7 +621,7 @@ class DispersyCandidateScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member(candidate=False)
-        yield 0.01
+        yield 0.11
 
         routes = [(u"1.2.3.4", 5),
                   (u"2.3.4.5", 6)]
@@ -633,7 +633,7 @@ class DispersyCandidateScript(ScriptBase):
 
         # send a dispersy-candidate-request message
         node.send_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, [], 10), address)
-        yield 0.01
+        yield 0.11
 
         # catch dispersy-candidate-response message
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-response"])
@@ -682,7 +682,7 @@ class DispersyCandidateScript(ScriptBase):
         node.init_my_member(candidate=False)
 
         # wait initial delay
-        for counter in range(int(community.dispersy_candidate_request_initial_delay)):
+        for counter in range(int(community.dispersy_candidate_request_initial_delay - 1.0)):
             dprint("waiting... ", community.dispersy_candidate_request_initial_delay - counter)
             # do NOT receive dispersy-candidate-request
             try:
@@ -694,13 +694,13 @@ class DispersyCandidateScript(ScriptBase):
 
             # wait interval
             yield 1.0
-        yield 0.1
+        yield 0.11
 
         # receive dispersy-candidate-request
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
 
         # wait interval
-        for counter in range(int(community.dispersy_candidate_request_interval)):
+        for counter in range(int(community.dispersy_candidate_request_interval - 1.0)):
             dprint("waiting... ", community.dispersy_candidate_request_interval - counter)
             # do NOT receive dispersy-candidate-request
             try:
@@ -713,7 +713,7 @@ class DispersyCandidateScript(ScriptBase):
             # wait interval
             yield 1.0
 
-        yield 0.1
+        yield 0.11
 
         # receive dispersy-candidate-request from 2nd interval
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
@@ -742,7 +742,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -751,14 +751,14 @@ class DispersyDestroyCommunityScript(ScriptBase):
         # send a message
         global_time = 10
         node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
         # destroy the community
         community.create_dispersy_destroy_community(u"hard-kill")
-        yield 0.01
+        yield 0.11
 
         # node should receive the dispersy-destroy-community message
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-destroy-community"])
@@ -795,7 +795,7 @@ class DispersyMemberTagScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -804,7 +804,7 @@ class DispersyMemberTagScript(ScriptBase):
         # send a message
         global_time = 10
         node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [10], times
 
@@ -818,7 +818,7 @@ class DispersyMemberTagScript(ScriptBase):
         # the database)
         global_time = 20
         node.send_message(node.create_full_sync_text_message("should be accepted (2)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert sorted(times) == [10, 20], times
 
@@ -828,7 +828,7 @@ class DispersyMemberTagScript(ScriptBase):
         # send a message
         global_time = 30
         node.send_message(node.create_full_sync_text_message("should be accepted (3)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert sorted(times) == [10, 20, 30], times
 
@@ -852,7 +852,7 @@ class DispersyMemberTagScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -861,7 +861,7 @@ class DispersyMemberTagScript(ScriptBase):
         # send a message
         global_time = 10
         node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
@@ -875,7 +875,7 @@ class DispersyMemberTagScript(ScriptBase):
         # send a message and ensure it is not in the database
         global_time = 20
         node.send_message(node.create_full_sync_text_message("should NOT be accepted (2)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time not in times
@@ -886,7 +886,7 @@ class DispersyMemberTagScript(ScriptBase):
         # send a message
         global_time = 30
         node.send_message(node.create_full_sync_text_message("should be accepted (3)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 2
         assert global_time in times
@@ -923,13 +923,13 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         global_time = 10
         message = node.create_full_sync_text_message("duplicates", global_time)
         for _ in range(10):
             node.send_packet(message.packet, address)
-        yield 0.01
+        yield 0.11
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -955,14 +955,14 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         global_time = 10
         # first batch
         message = node.create_full_sync_text_message("duplicates", global_time)
         for _ in range(10):
             node.send_packet(message.packet, address)
-        yield 0.01
+        yield 0.11
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -971,7 +971,7 @@ class DispersyBatchScript(ScriptBase):
         # second batch
         for _ in range(10):
             node.send_packet(message.packet, address)
-        yield 0.01
+        yield 0.11
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -998,12 +998,12 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         global_time = 10
         for index in range(10):
             node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
-        yield 0.01
+        yield 0.11
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
@@ -1033,13 +1033,13 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         global_time = 10
         # first batch
         for index in range(10):
             node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
-        yield 0.01
+        yield 0.11
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
@@ -1048,7 +1048,7 @@ class DispersyBatchScript(ScriptBase):
         # second batch
         for index in range(10):
             node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
-        yield 0.01
+        yield 0.11
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
@@ -1073,14 +1073,14 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         dprint("START BIG BATCH")
         for global_time in range(10, 510):
             node.send_message(node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time), address, verbose=False)
 
         begin = clock()
-        yield 0.01
+        yield 0.11
         end = clock()
         self._big_batch_took = end - begin
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
@@ -1108,7 +1108,7 @@ class DispersyBatchScript(ScriptBase):
             node.init_my_member()
 
             exp.append((community, node))
-            yield 0.01
+            yield 0.11
 
         dprint("START SMALL BATCHES")
         global_time = 10
@@ -1116,7 +1116,7 @@ class DispersyBatchScript(ScriptBase):
             node.send_message(node.create_full_sync_text_message("Dprint=False, small batches", global_time), address, verbose=False)
 
         begin = clock()
-        yield 0.01
+        yield 0.11
         end = clock()
         self._small_batches_took = end - begin
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
@@ -1168,26 +1168,26 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # create a few messages in each sync bloomfilter range
         messages = []
         messages.append(node.send_message(node.create_in_order_text_message("Range 1 <= 24 <= 25", 24), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 1 <= 25 <= 25", 25), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 26 <= 50", 26), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 49 <= 50", 49), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 50 <= 50", 50), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 51 <= 75", 51), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 74 <= 75", 74), address))
-        yield 0.01
+        yield 0.11
         messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 75 <= 75", 75), address))
-        yield 0.01
+        yield 0.11
 
         for message in messages:
             assert message.packet in community.get_bloom_filter(message.distribution.global_time)
@@ -1206,7 +1206,7 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1216,11 +1216,11 @@ class DispersySyncScript(ScriptBase):
         global_times = range(10, 15)
         for global_time in global_times:
             node.send_message(node.create_in_order_text_message("Message #%d" % global_time, global_time), address)
-            yield 0.01
+            yield 0.11
 
         # send an empty sync message to obtain all messages in-order
         node.send_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)), address)
-        yield 0.01
+        yield 0.11
 
         for global_time in global_times:
             _, message = node.receive_message(addresses=[address], message_names=[u"in-order-text"])
@@ -1240,7 +1240,7 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1250,11 +1250,11 @@ class DispersySyncScript(ScriptBase):
         global_times = range(10, 15)
         for global_time in global_times:
             node.send_message(node.create_out_order_text_message("Message #%d" % global_time, global_time), address)
-            yield 0.01
+            yield 0.11
 
         # send an empty sync message to obtain all messages out-order
         node.send_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)), address)
-        yield 0.01
+        yield 0.11
 
         for global_time in reversed(global_times):
             _, message = node.receive_message(addresses=[address], message_names=[u"out-order-text"])
@@ -1274,7 +1274,7 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1284,7 +1284,7 @@ class DispersySyncScript(ScriptBase):
         global_times = range(10, 15)
         for global_time in global_times:
             node.send_message(node.create_random_order_text_message("Message #%d" % global_time, global_time), address)
-            yield 0.01
+            yield 0.11
 
         def get_messages_back():
             received_times = []
@@ -1298,7 +1298,7 @@ class DispersySyncScript(ScriptBase):
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
             node.send_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)), address)
-            yield 0.01
+            yield 0.11
 
             received_times = get_messages_back()
             if not received_times in lists:
@@ -1323,7 +1323,7 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name IN (?, ?, ?)", (community.database_id, node.my_member.database_id, in_order_message.database_id, out_order_message.database_id, random_order_message.database_id)))
@@ -1337,15 +1337,15 @@ class DispersySyncScript(ScriptBase):
         for global_time in global_times:
             in_order_times.append(global_time)
             node.send_message(node.create_in_order_text_message("Message #%d" % global_time, global_time), address)
-            yield 0.01
+            yield 0.11
             global_time += 1
             out_order_times.append(global_time)
             node.send_message(node.create_out_order_text_message("Message #%d" % global_time, global_time), address)
-            yield 0.01
+            yield 0.11
             global_time += 1
             random_order_times.append(global_time)
             node.send_message(node.create_random_order_text_message("Message #%d" % global_time, global_time), address)
-            yield 0.01
+            yield 0.11
         out_order_times.sort(reverse=True)
         dprint("Total in:", len(in_order_times), "; out:", len(out_order_times), "; rand:", len(random_order_times))
 
@@ -1361,7 +1361,7 @@ class DispersySyncScript(ScriptBase):
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
             node.send_message(node.create_dispersy_sync_message(min(global_times), 0, [], max(global_times)), address)
-            yield 0.01
+            yield 0.11
 
             received_times = get_messages_back()
 
@@ -1398,7 +1398,7 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1407,7 +1407,7 @@ class DispersySyncScript(ScriptBase):
         # send a message
         global_time = 10
         node.send_message(node.create_last_1_test_message("should be accepted (1)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
@@ -1415,14 +1415,14 @@ class DispersySyncScript(ScriptBase):
         # send a message
         global_time = 11
         node.send_message(node.create_last_1_test_message("should be accepted (2)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
 
         # send a message (older: should be dropped)
         node.send_message(node.create_last_1_test_message("should be dropped (1)", 8), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
@@ -1435,7 +1435,7 @@ class DispersySyncScript(ScriptBase):
 
         # send a message (duplicate: should be dropped)
         node.send_message(node.create_last_1_test_message("should be dropped (2)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
@@ -1443,7 +1443,7 @@ class DispersySyncScript(ScriptBase):
         # send a message
         global_time = 12
         node.send_message(node.create_last_1_test_message("should be accepted (3)", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
@@ -1462,7 +1462,7 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1474,7 +1474,7 @@ class DispersySyncScript(ScriptBase):
             message = node.create_last_9_nosequence_test_message(str(global_time), global_time)
             node.send_message(message, address)
             number_of_messages += 1
-            yield 0.01
+            yield 0.11
             packet, = self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.global_time = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             assert str(packet) == message.packet
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1486,7 +1486,7 @@ class DispersySyncScript(ScriptBase):
         for global_time in [11, 12, 13, 19, 18, 17]:
             # send a message (older: should be dropped)
             node.send_message(node.create_last_9_nosequence_test_message(str(global_time), global_time), address)
-            yield 0.01
+            yield 0.11
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             assert len(times) == 9, len(times)
             assert not global_time in times
@@ -1495,7 +1495,7 @@ class DispersySyncScript(ScriptBase):
             # send a message (duplicate: should be dropped)
             message = node.create_last_9_nosequence_test_message("wrong content!", global_time)
             node.send_message(message, address)
-            yield 0.01
+            yield 0.11
             packet, = self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.global_time = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             assert not str(packet) == message.packet
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1509,7 +1509,7 @@ class DispersySyncScript(ScriptBase):
             match_times.pop(0)
             match_times.append(global_time)
             match_times.sort()
-            yield 0.01
+            yield 0.11
             packet, = self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.global_time = ? AND sync.name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             assert str(packet) == message.packet
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1530,7 +1530,7 @@ class DispersySyncScript(ScriptBase):
     #     node.init_socket()
     #     node.set_community(community)
     #     node.init_my_member()
-    #     yield 0.01
+    #     yield 0.11
 
     #     # should be no messages from NODE yet
     #     times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1542,7 +1542,7 @@ class DispersySyncScript(ScriptBase):
     #         message = node.create_last_9_sequence_test_message(str(global_time), global_time)
     #         node.send_message(message, address)
     #         number_of_messages += 1
-    #         yield 0.01
+    #         yield 0.11
     #         packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ? AND name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
     #         assert str(packet) == message.packet
     #         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1554,7 +1554,7 @@ class DispersySyncScript(ScriptBase):
     #     for global_time in [11, 12, 13, 19, 18, 17]:
     #         # send a message (older: should be dropped)
     #         node.send_message(node.create_last_9_sequence_test_message(str(global_time), global_time), address)
-    #         yield 0.01
+    #         yield 0.11
     #         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
     #         assert len(times) == 9, len(times)
     #         assert not global_time in times
@@ -1568,7 +1568,7 @@ class DispersySyncScript(ScriptBase):
     #         # send a message (duplicate: should be dropped)
     #         message = node.create_last_9_sequence_test_message("wrong content!", global_time)
     #         node.send_message(message, address)
-    #         yield 0.01
+    #         yield 0.11
     #         packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ? AND name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
     #         assert not str(packet) == message.packet
     #         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1582,7 +1582,7 @@ class DispersySyncScript(ScriptBase):
     #         match_times.pop(0)
     #         match_times.append(global_time)
     #         match_times.sort()
-    #         yield 0.01
+    #         yield 0.11
     #         packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ? AND name = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
     #         assert str(packet) == message.packet
     #         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1617,14 +1617,14 @@ class DispersySignatureScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         dprint("SELF requests NODE to double sign")
         def on_response(response):
             assert response is None
             container["timeout"] += 1
         request = community.create_double_signed_text("Accept=<does not reach this point>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
-        yield 0.01
+        yield 0.11
 
         dprint("NODE receives dispersy-signature-request message")
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
@@ -1634,7 +1634,7 @@ class DispersySignatureScript(ScriptBase):
         for counter in range(4):
             dprint("waiting... ", 4 - counter)
             yield 1.0
-        yield 0.1
+        yield 0.11
 
         dprint("SELF must have timed out by now")
         assert container["timeout"] == 1, container["timeout"]
@@ -1655,7 +1655,7 @@ class DispersySignatureScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # SELF requests NODE to double sign
         def on_response(response):
@@ -1663,7 +1663,7 @@ class DispersySignatureScript(ScriptBase):
             assert request.authentication.is_signed
             container["response"] += 1
         request = community.create_double_signed_text("Accept=False", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
-        yield 0.01
+        yield 0.11
 
         # receive dispersy-signature-request message
         address, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
@@ -1682,7 +1682,7 @@ class DispersySignatureScript(ScriptBase):
         for counter in range(4):
             dprint("waiting... ", 4 - counter)
             yield 1.0
-        yield 0.1
+        yield 0.11
 
         assert container["response"] == 1, container["response"]
 
@@ -1702,21 +1702,21 @@ class DispersySignatureScript(ScriptBase):
         node1.init_socket()
         node1.set_community(community)
         node1.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # create node and ensure that SELF knows the node address
         node2 = Node()
         node2.init_socket()
         node2.set_community(community)
         node2.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # SELF requests NODE1 and NODE2 to double sign
         def on_response(response):
             assert response is None
             container["timeout"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
-        yield 0.01
+        yield 0.11
 
         # receive dispersy-signature-request message
         _, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
@@ -1727,7 +1727,7 @@ class DispersySignatureScript(ScriptBase):
         for counter in range(4):
             dprint("waiting... ", 4 - counter)
             yield 1.0
-        yield 0.1
+        yield 0.11
 
         assert container["timeout"] == 1, container["timeout"]
 
@@ -1794,7 +1794,7 @@ class DispersySignatureScript(ScriptBase):
         for counter in range(4):
             dprint("waiting... ", 4 - counter)
             yield 1.0
-        yield 0.1
+        yield 0.11
 
         assert container["response"] == 2, container["response"]
 
@@ -1820,12 +1820,12 @@ class DispersySubjectiveSetScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # node is NOT in self._my_member's subjective set.  the message MUST NOT be stored
         global_time = 10
         node.send_message(node.create_subjective_set_text_message("Must not be stored", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [], times
 
@@ -1833,7 +1833,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         community.create_dispersy_subjective_set(message.destination.cluster, [node.my_member])
         global_time = 20
         node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [global_time]
 
@@ -1855,25 +1855,25 @@ class DispersySubjectiveSetScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # make available the subjective set
         subjective_set = BloomFilter(100, 0.1)
         subjective_set.add(node.my_member.public_key)
         node.send_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10), address)
-        yield 0.01
+        yield 0.11
 
         # SELF will store and forward for NODE
         community.create_dispersy_subjective_set(meta_message.destination.cluster, [node.my_member])
         global_time = 20
         node.send_message(node.create_subjective_set_text_message("Must be synced", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
         # a dispersy-sync message MUST return the message that was just sent
         node.send_message(node.create_dispersy_sync_message(10, 0, [], 20), address)
-        yield 0.01
+        yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert message.distribution.global_time == global_time
 
@@ -1901,19 +1901,19 @@ class DispersySubjectiveSetScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.01
+        yield 0.11
 
         # SELF will store and forward for NODE
         community.create_dispersy_subjective_set(meta_message.destination.cluster, [node.my_member])
         global_time = 20
         node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
-        yield 0.01
+        yield 0.11
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
         node.send_message(node.create_dispersy_sync_message(10, 0, [], 20), address)
-        yield 0.01
+        yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-subjective-set-request", u"subjective-set-text"])
         assert message.name == u"dispersy-subjective-set-request", "should NOT sent back the subjective-set-text"
         assert message.payload.cluster == meta_message.destination.cluster
@@ -1927,7 +1927,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         subjective_set = BloomFilter(100, 0.1)
         subjective_set.add(node.my_member.public_key)
         node.send_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10), address)
-        yield 0.01
+        yield 0.11
 
         # the dispersy-sync message should now be processed (again) and result in the missing
         # subjective-set-text message
@@ -1966,7 +1966,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node.init_socket()
 #         node.set_community(community)
 #         node.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         ##
 #         ## Similar Nodes
@@ -1975,12 +1975,12 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # create similarity for node-01
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11111111), chr(0b00000000)), 0)
 #         node.send_message(node.create_dispersy_similarity_message(1, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         msg = node.create_taste_aware_message(5, 10, 1)
 #         msg_blob = node.encode_message(msg)
 #         node.send_message(msg, address)
-#         yield 0.01
+#         yield 0.11
 
 #         dprint(len(msg_blob), "-", len(msg.packet))
 #         dprint(msg_blob.encode("HEX"))
@@ -2000,12 +2000,12 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # create similarity for node-01
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11111111), chr(0b11111111)), 0)
 #         node.send_message(node.create_dispersy_similarity_message(1, community.database_id, bf, 30), address)
-#         yield 0.01
+#         yield 0.11
 
 #         msg = node.create_taste_aware_message(5, 20, 2)
 #         msg_blob = node.encode_message(msg)
 #         node.send_message(msg, address)
-#         yield 0.01
+#         yield 0.11
 
 #         with self._dispersy.database as execute:
 #             d,= execute(u"SELECT count(*) FROM sync WHERE packet = ?", (buffer(str(msg_blob)),)).next()
@@ -2030,14 +2030,14 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node.init_socket()
 #         node.set_community(community)
 #         node.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         # create second node - node-02
 #         node2 = DebugNode()
 #         node2.init_socket()
 #         node2.set_community(community)
 #         node2.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         ##
 #         ## Similar Nodes Threshold 12 Similarity 14
@@ -2047,23 +2047,23 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # create similarity for node-01
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11110000), chr(0b00000000)), 0)
 #         node.send_message(node.create_dispersy_similarity_message(1, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # create similarity for node-02
 #         # node node-02 has 14/16 same bits with node-01
 #         # ABOVE threshold
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b10111000), chr(0b00000000)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-01 creates and sends a message to 'self'
 #         node.send_message(node.create_taste_aware_message(5, 10, 1), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-02 sends an sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # should receive a message
 #         _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])
@@ -2078,12 +2078,12 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # ABOVE threshold
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11110011), chr(0b11000000)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 30), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-02 sends an sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # should receive a message
 #         _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])
@@ -2098,12 +2098,12 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # BELOW threshold
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b00001111), chr(0b11111100)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 40), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-02 sends an sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # should NOT receive a message
 #         try:
@@ -2123,12 +2123,12 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # BELOW threshold
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11110010), chr(0b00110011)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 50), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-02 sends an sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # should NOT receive a message
 #         try:
@@ -2157,14 +2157,14 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node.init_socket()
 #         node.set_community(community)
 #         node.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         # create second node - node-02
 #         node2 = DebugNode()
 #         node2.init_socket()
 #         node2.set_community(community)
 #         node2.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         ##
 #         ## Similar Nodes
@@ -2174,14 +2174,14 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # create similarity for node-01
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11110000), chr(0b00000000)), 0)
 #         node.send_message(node.create_dispersy_similarity_message(2, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # create similarity for node-02
 #         # node node-02 has 15/16 same bits with node-01
 #         # ABOVE threshold
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b10111000), chr(0b00000000)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(2, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-01 creates and sends a message to 'self'
 #         node.send_message(node.create_taste_aware_message_last(5, 30, 1), address)
@@ -2189,7 +2189,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # node-02 sends a sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # receive a message
 #         _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record-last"])
@@ -2204,12 +2204,12 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # BELOW threshold
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b00100011), chr(0b00000000)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(2, community.database_id, bf, 30), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-02 sends an sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # receive a message
 #         try:
@@ -2238,28 +2238,28 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node.init_socket()
 #         node.set_community(community)
 #         node.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         # create similarity for node-01
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b11110000), chr(0b00000000)), 0)
 #         node.send_message(node.create_dispersy_similarity_message(1, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # create second node - node-02
 #         node2 = DebugNode()
 #         node2.init_socket()
 #         node2.set_community(community)
 #         node2.init_my_member()
-#         yield 0.01
+#         yield 0.11
 
 #         # node-01 creates and sends a message to 'self'
 #         node.send_message(node.create_taste_aware_message(5, 10, 1), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # node-02 sends a sync message with an empty bloomfilter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # because 'self' does not have our similarity
 #         # we should first receive a 'dispersy-similarity-request' message
@@ -2268,7 +2268,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
 #         bf = BloomFilter(pack("!LLcc", 1, 16, chr(0b10111000), chr(0b00000000)), 0)
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 20), address)
-#         yield 0.01
+#         yield 0.11
 
 #         # receive the taste message
 #         _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])

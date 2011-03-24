@@ -497,7 +497,7 @@ class Community(object):
         The number of members that are selected each time a dispersy-sync message is send.
         @rtype: int
         """
-        return 10
+        return 1
 
     @property
     def dispersy_sync_response_limit(self):
@@ -733,7 +733,7 @@ class Community(object):
         """
         assert isinstance(mid, str)
         assert len(mid) == 20
-        return [Member.get_instance(str(public_key)) for public_key, in self._dispersy_database.execute(u"SELECT public_key FROM user WHERE mid = ?", (buffer(mid),))]
+        return [Member.get_instance(str(public_key)) for public_key, in list(self._dispersy_database.execute(u"SELECT public_key FROM user WHERE mid = ?", (buffer(mid),)))]
 
     def get_members_from_address(self, address, verified=True):
         """
@@ -773,7 +773,7 @@ class Community(object):
             sql = u"SELECT public_key FROM user WHERE host = ? AND port = ? -- and verified = 1"
         else:
             sql = u"SELECT public_key FROM user WHERE host = ? AND port = ?"
-        return [Member.get_instance(str(public_key)) for public_key, in self._dispersy_database.execute(sql, (unicode(address[0]), address[1]))]
+        return [Member.get_instance(str(public_key)) for public_key, in list(self._dispersy_database.execute(sql, (unicode(address[0]), address[1])))]
 
     def get_conversion(self, prefix=None):
         """
