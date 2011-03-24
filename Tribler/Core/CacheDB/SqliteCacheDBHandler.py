@@ -3328,13 +3328,19 @@ class ChannelCastDBHandler:
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? AND infohash = ?"
         result = self._db.fetchone(sql, (channel_id, bin2str(infohash)))
-        return self.__fixTorrents(keys, [result])[0]
+        result = self.__fixTorrents(keys, [result]) 
+        if result:
+            return result[0]
     
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = ?"
         result = self._db.fetchone(sql, (channeltorrent_id,))
-        return self.__fixTorrents(keys, [result])[0]
-    
+        result = self.__fixTorrents(keys, [result]) 
+        if result:
+            return result[0]
+        else:
+            print >> sys.stderr, "COULD NOT FIND CHANNELTORRENT_ID", channeltorrent_id
+            
     def getTorrentsFromChannelId(self, channel_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY time_stamp DESC"
         if limit:
