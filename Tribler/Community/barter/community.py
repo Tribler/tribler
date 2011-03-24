@@ -30,6 +30,18 @@ class BarterCommunity(Community):
         # storage
         self._database = BarterDatabase.get_instance()
 
+    @property
+    def dispersy_sync_interval(self):
+        return 1.0
+
+    @property
+    def dispersy_sync_member_count(self):
+        return 1
+
+    #@property
+    #def dispersy_sync_response_limit(self):
+    #    return 5 * 1025
+
     def initiate_meta_messages(self):
         return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
 
@@ -64,7 +76,6 @@ class BarterCommunity(Community):
                                  meta.distribution.implement(self._timeline.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(first_upload, second_upload))
-        if __debug__: log("barter.log", "created", second_member=second_member.mid, footprint=message.footprint, message=message.name)
         return self.create_dispersy_signature_request(message, self.on_signature_response, store=store, forward=forward)
 
     def allow_signature_request(self, message):
@@ -115,11 +126,14 @@ class BarterCommunity(Community):
 
             # store, update, and forward to the community
             self._dispersy.store_update_forward([message], True, True, True)
+            log("dispersy.log", "created-barter-record") # TODO: maybe move to barter.log
 
         else:
             # signature timeout
             # close the transfer
-            if __debug__: dprint("Signature request timeout")
+            if __debug__:
+                log("barter.log", "barter-community-signature-request-timeout")
+                dprint("Signature request timeout")
 
     def check_barter_record(self, messages):
         # stupidly accept everything...
@@ -133,6 +147,7 @@ class BarterCommunity(Community):
         if __debug__: dprint("storing ", len(messages), " records")
         with self._database as execute:
             for message in messages:
+                log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
                 # check if there is already a record about this pair
                 try:
                     first_member, second_member, global_time = \

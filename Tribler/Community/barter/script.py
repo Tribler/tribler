@@ -296,8 +296,8 @@ class BarterScenarioScript(ScriptBase):
                     #self._dispersy._send([(ip, port)], [message.packet])
                     execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(ip), port))
                     execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
-                    if __debug__:
-                        log("barter.log", "mid_add", mid=sha1(public_key).digest())
+                    #if __debug__:
+                    #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
             execute(u"DELETE FROM candidate where community=0")
 
         if __debug__:
