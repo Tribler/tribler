@@ -772,7 +772,7 @@ class Dispersy(Singleton):
                     self.on_message_batch(messages)
 
         if __debug__:
-            dprint("[", clock() - debug_begin, " pct] handled ", handled, "/", len(packets), " incoming packets successfully")
+            dprint("[", clock() - debug_begin, " pct] handled ", handled, "/", len(packets), " [", ", ".join("%s:%d" % (meta.name, len(batch)) for meta, batch in sorted(batches.iteritems())), "] successfully")
 
         # notify the community that there was activity from a certain address
         communities = {}
@@ -2543,6 +2543,10 @@ class Dispersy(Singleton):
                     if byte_limit <= 0:
                         if __debug__: dprint("bandwidth throttle")
                         break
+
+            # let the message be processed, although that will not actually result in any processing
+            # since we choose to already do everything...
+            yield message
 
             if packets:
                 if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
