@@ -235,7 +235,7 @@ class ChannelConversion(BinaryConversion):
         else:
             latest_modification = None
 
-        return offset, meta_message.payload.implement(modification, modification_on, latest_modification)
+        return offset, meta_message.payload.implement(modification, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time)
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()
