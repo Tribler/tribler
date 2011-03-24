@@ -75,7 +75,7 @@ class SelectedChannelList(SearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        List.__init__(self, columns, LIST_GREY, [0,0], True, borders = False)
+        List.__init__(self, columns, LIST_GREY, [0,0], True, borders = False, showChange = True)
         
     def _PostInit(self):
         self.uelog = UserEventLogDBHandler.getInstance()

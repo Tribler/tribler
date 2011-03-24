@@ -1004,7 +1004,7 @@ class ChannelSearchGridManager:
         
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)
-            community.modifyChannel(channel_id, dict)
+            community.modifyChannel(dict)
         self.dispersy.rawserver.add_task(dispersy_thread)
 
     def modifyPlaylist(self, channel_id, playlist_id, name, description):

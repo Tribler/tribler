@@ -268,10 +268,10 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
         
     #modify channel, playlist or torrent
-    def modifyChannel(self, channel_id, modifications, store=True, update=True, forward=True):
+    def modifyChannel(self, modifications, store=True, update=True, forward=True):
         def dispersy_thread():
-            modification_on_message = self._get_message_from_channel_id(channel_id)
-            latest_modification = self._get_latest_modification_from_channel_id(channel_id)
+            modification_on_message = self._get_latest_channel_message()
+            latest_modification = self._get_latest_modification_from_channel_id()
             self._disp_create_modification(modifications, modification_on_message, latest_modification, store, update, forward)
         
         self._rawserver(dispersy_thread)
@@ -382,24 +382,9 @@ class ChannelCommunity(Community):
             yield message
 
     def _disp_on_missing_channel(self, messages):
-        # 1. get the packet
-        try:
-            packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id WHERE name.value = 'channel' ORDER BY global_time DESC").next()
-        except StopIteration:
-            raise RuntimeError("Could not find requested packet")
-        packet = str(packet)
-        
-        # 2. convert packet into a Message instance
-        try:
-            channelmessage = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-        except ValueError:
-            raise RuntimeError("Unable to decode packet")
-        channelmessage.packet_id = packet_id
-        
+        channelmessage = self._get_latest_channel_message()
         for message in messages:
-            # 3. send back to peer
             self._dispersy._send([message.address], [channelmessage.packet])
-            
             
     def dispersy_activity(self, addresses):
         #we had some activity in this community, see if we still need some torrents to collect
@@ -426,19 +411,29 @@ class ChannelCommunity(Community):
                 self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify() ,3)
         
     #helper functions
-    def _get_message_from_channel_id(self, channel_id):
-        assert isinstance(channel_id, (int, long))
-        # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT dispersy_id FROM Channels WHERE id = ?", (channel_id,))
+    def _get_latest_channel_message(self):
+        # 1. get the packet
+        try:
+            sql = u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.cid = ? AND name.value = 'channel' ORDER BY global_time DESC"
+            packet, packet_id = self._dispersy.database.execute(sql, (buffer(self._cid), )).next()
+        except StopIteration:
+            raise RuntimeError("Could not find requested packet")
+        packet = str(packet)
+        
+        # 2. convert packet into a Message instance
+        try:
+            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+        except ValueError:
+            raise RuntimeError("Unable to decode packet")
+        message.packet_id = packet_id
 
-        # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy_id, 'channel')
+        # 3. check
+        assert message.name == 'channel', "Expecting a 'channel' message"
         return message
     
-    def _get_latest_modification_from_channel_id(self, channel_id):
-        assert isinstance(channel_id, (int, long))
+    def _get_latest_modification_from_channel_id(self):
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT latest_dispersy_modifier FROM Channels WHERE id = ?", (channel_id,))
+        dispersy_id = self._channelcast_db._db.fetchone(u"SELECT latest_dispersy_modifier FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
         
         if dispersy_id:
             # 2. get the message
@@ -491,18 +486,15 @@ class ChannelCommunity(Community):
             cid, packet, packet_id = self._dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
-        
         cid = str(cid)
         packet = str(packet)
-        # 2. get the community instance from the 20 byte identifier
-        try:
-            community = self._dispersy.get_community(cid)
-        except KeyError:
-            raise RuntimeError("Unknown community identifier")
+
+        # 2: check cid
+        assert cid == self._cid, "Message not part of this community"
 
         # 3. convert packet into a Message instance
         try:
-            message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
+            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
         except ValueError, v:
             #raise RuntimeError("Unable to decode packet")
             raise
@@ -510,5 +502,4 @@ class ChannelCommunity(Community):
         
         # 4. check
         assert message.name == messagename, "Expecting a '%s' message"%messagename
-       
         return message

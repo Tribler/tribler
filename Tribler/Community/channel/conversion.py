@@ -295,7 +295,6 @@ class ChannelConversion(BinaryConversion):
                 raise DropPacket("Missing previous message")
             
             return packet_id, str(packet), message_name
-        raise DropPacket("Global_time or mid missing")
 
     def _encode_missing_channel(self, message):
         return ()

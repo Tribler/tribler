@@ -385,6 +385,7 @@ class ProgressStaticText(wx.Panel):
             """
             
             #option 2:
+            """
             dc.SetPen(wx.TRANSPARENT_PEN)
             dc.SetBrush(wx.Brush(LIST_GREY))
             dc.DrawRectangle(0, 0,  self.progress * (width - 1), height)
@@ -397,6 +398,14 @@ class ProgressStaticText(wx.Panel):
             dc.SetPen(wx.BLACK_PEN)
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.DrawRectangle(0, 0, width, height)
+            """
+            
+            #option 3:
+            barHeight = self.progress * height
+            
+            dc.SetPen(wx.TRANSPARENT_PEN)
+            dc.SetBrush(wx.Brush(LIST_GREY))
+            dc.DrawRectangle(0, height - barHeight, width, height)
 
     def OnEraseBackground(self, event):
         pass
