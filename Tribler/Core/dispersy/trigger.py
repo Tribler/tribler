@@ -17,6 +17,17 @@ if __debug__:
     from dprint import dprint
 
 class Trigger(object):
+    def extend(self):
+        """
+        Try to extend this trigger.
+
+        Before making a new Trigger, we first try to extend an existing one.  If we can extend one,
+        it can be much cheaper.
+
+        Must return True when the extend was successfull.  Otherwise, returns False.
+        """
+        raise NotImplementedError()
+
     def on_messages(self, messages):
         """
         Called with a received message.
@@ -61,6 +72,12 @@ class TriggerCallback(Trigger):
         self._response_args = response_args
         self._responses_remaining = max_responses
 
+    def extend(self):
+        """
+        We can never extend this Trigger because of the responses_remaining property.
+        """
+        return False
+
     def on_messages(self, messages):
         assert isinstance(messages, list)
         assert len(messages) > 0
@@ -85,15 +102,15 @@ class TriggerCallback(Trigger):
             self._response_func(None, *self._response_args)
 
 class TriggerPacket(Trigger):
-    def __init__(self, pattern, on_incoming_packets, packets):
+    def __init__(self, pattern, callback, packets):
         """
         Receiving a message matching PATTERN triggers a call to the on_incoming_packet method with
         PACKETS.
 
         PATTERN is a python regular expression string.
 
-        ON_INCOMING_PACKETS is called when PATTERN matches the incoming message footprint.  The only
-        argument is PACKETS.
+        CALLBACK is called when PATTERN matches the incoming message footprint.  The only argument
+        is PACKETS.
 
         PACKETS is a list containing (address, packet) tuples.  These packets are effectively
         delayed until a message matching PATTERN was received.
@@ -102,8 +119,8 @@ class TriggerPacket(Trigger):
         """
         if __debug__:
             assert isinstance(pattern, str)
-            assert hasattr(on_incoming_packets, "__call__")
-            assert isinstance(packets, (tuple, list))
+            assert hasattr(callback, "__call__")
+            assert isinstance(packets, list)
             assert len(packets) > 0
             for packet in packets:
                 assert isinstance(packet, tuple)
@@ -113,10 +130,32 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[0][0], str)
                 assert isinstance(packet[0][1], int)
                 assert isinstance(packet[1], str)
-            self._debug_pattern = pattern
+        self._pattern = pattern
         self._match = expression_compile(pattern).match
-        self._on_incoming_packets = on_incoming_packets
+        self._callback = callback
         self._packets = packets
+
+    def extend(self, pattern, packets):
+        """
+        When this trigger has the same pattern we will extend with packets and return True.
+        """
+        if __debug__:
+            assert isinstance(pattern, str)
+            assert isinstance(packets, list)
+            assert len(packets) > 0
+            for packet in packets:
+                assert isinstance(packet, tuple)
+                assert len(packet) == 2
+                assert isinstance(packet[0], tuple)
+                assert len(packet[0]) == 2
+                assert isinstance(packet[0][0], str)
+                assert isinstance(packet[0][1], int)
+                assert isinstance(packet[1], str)
+        if pattern == self._pattern:
+            self._packets.extend(packets)
+            return True
+        else:
+            return False
 
     def on_messages(self, messages):
         assert isinstance(messages, list)
@@ -125,13 +164,13 @@ class TriggerPacket(Trigger):
             for message in messages:
                 if __debug__:
                     dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
-                    dprint("Expression: ", self._debug_pattern)
+                    dprint("Expression: ", self._pattern)
                     dprint(" Footprint: ", message.footprint)
                 if self._match(message.footprint):
                     # set self._match to None to avoid this regular expression again
                     self._match = None
 
-                    self._on_incoming_packets(self._packets)
+                    self._callback(self._packets)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
                 else:
@@ -146,15 +185,15 @@ class TriggerPacket(Trigger):
             self._match = None
 
 class TriggerMessage(Trigger):
-    def __init__(self, pattern, on_incoming_messages, messages):
+    def __init__(self, pattern, callback, messages):
         """
         Receiving a message matching PATTERN triggers a call to the on_incoming_message message with
         ADDRESS and MESSAGE.
 
         PATTERN is a python regular expression string.
 
-        ON_INCOMING_MESSAGES is called when PATTERN matches the incoming message footprint.  As an
-        argument it receives MESSAGES.
+        CALLBACK is called when PATTERN matches the incoming message footprint.  As an argument it
+        receives MESSAGES.
 
         MESSAGES is a list with Message.Implementation instances.  These messages are effectively
         delayed until a message matching PATTERN is received.
@@ -164,15 +203,30 @@ class TriggerMessage(Trigger):
         if __debug__:
             from message import Message
         assert isinstance(pattern, str)
-        assert hasattr(on_incoming_messages, "__call__")
+        assert hasattr(callback, "__call__")
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        if __debug__:
-            self._debug_pattern = pattern
+        self._pattern = pattern
         self._match = expression_compile(pattern).match
-        self._on_incoming_messages = on_incoming_messages
+        self._callback = callback
         self._messages = messages
+
+    def extend(self, pattern, messages):
+        """
+        When this trigger has the same pattern we will extend with packets and return True.
+        """
+        if __debug__:
+            from message import Message
+        assert isinstance(pattern, str)
+        assert isinstance(messages, list)
+        assert len(messages) > 0
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        if pattern == self._pattern:
+            self._messages.extend(messages)
+            return True
+        else:
+            return False
 
     def on_messages(self, messages):
         assert isinstance(messages, list)
@@ -181,13 +235,13 @@ class TriggerMessage(Trigger):
             for message in messages:
                 if __debug__:
                     dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
-                    dprint("Expression: ", self._debug_pattern)
+                    dprint("Expression: ", self._pattern)
                     dprint(" Footprint: ", message.footprint)
                 if self._match(message.footprint):
                     # set self._match to None to avoid this regular expression again
                     self._match = None
 
-                    self._on_incoming_messages(self._messages)
+                    self._callback(self._messages)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
                 else:

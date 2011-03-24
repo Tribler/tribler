@@ -844,10 +844,18 @@ class Dispersy(Singleton):
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
             if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
-            trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
-            self._triggers.append(trigger)
-            self._rawserver.add_task(trigger.on_timeout, 10.0)
-            self._send([delay.delayed.address], [delay.request.packet])
+            # try to extend an existing Trigger with the same pattern
+            for trigger in self._triggers:
+                if isinstance(trigger, TriggerMessage) and trigger.extend(delay.pattern, [delay.delayed]):
+                    if __debug__: dprint("extended an existing TriggerMessage (1)")
+                    break
+            else:
+                # create a new Trigger with this pattern
+                trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
+                if __debug__: dprint("created a new TriggeMessage (1)")
+                self._triggers.append(trigger)
+                self._rawserver.add_task(trigger.on_timeout, 10.0)
+                self._send([delay.delayed.address], [delay.request.packet])
 
         # remove DropMessage and DelayMessage instances
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
@@ -870,10 +878,18 @@ class Dispersy(Singleton):
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
             if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
-            trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
-            self._triggers.append(trigger)
-            self._rawserver.add_task(trigger.on_timeout, 10.0)
-            self._send([delay.delayed.address], [delay.request.packet])
+            # try to extend an existing Trigger with the same pattern
+            for trigger in self._triggers:
+                if isinstance(trigger, TriggerMessage) and trigger.extend(delay.pattern, [delay.delayed]):
+                    if __debug__: dprint("extended an existing TriggerMessage (2)")
+                    break
+            else:
+                # create a new Trigger with this pattern
+                trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
+                if __debug__: dprint("created a new TriggeMessage (2)")
+                self._triggers.append(trigger)
+                self._rawserver.add_task(trigger.on_timeout, 10.0)
+                self._send([delay.delayed.address], [delay.request.packet])
 
         # remove DropMessage and DelayMessage instances
         messages = [message for message in messages if isinstance(message, Message.Implementation)]
@@ -980,10 +996,18 @@ class Dispersy(Singleton):
 
             except DelayPacket, delay:
                 if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(packet), " byte packet (", delay, ")")
-                trigger = TriggerPacket(delay.pattern, self.on_incoming_packets, [(address, packet)])
-                self._triggers.append(trigger)
-                self._rawserver.add_task(trigger.on_timeout, 10.0)
-                self._send([address], [delay.request_packet])
+                # try to extend an existing Trigger with the same pattern
+                for trigger in self._triggers:
+                    if isinstance(trigger, TriggerPacket) and trigger.extend(delay.pattern, [(address, packet)]):
+                        if __debug__: dprint("extended an existing TriggerPacket")
+                        break
+                else:
+                    # create a new Trigger with this pattern
+                    trigger = TriggerPacket(delay.pattern, self.on_incoming_packets, [(address, packet)])
+                    if __debug__: dprint("created a new TriggerPacket")
+                    self._triggers.append(trigger)
+                    self._rawserver.add_task(trigger.on_timeout, 10.0)
+                    self._send([address], [delay.request_packet])
 
         if __debug__:
             if len(batch) > 100:
