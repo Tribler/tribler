@@ -67,6 +67,7 @@ class TriggerCallback(Trigger):
         assert max_responses > 0
         if __debug__:
             self._debug_pattern = pattern
+            dprint("create new trigger for one callback")
         self._match = expression_compile(pattern).match
         self._response_func = response_func
         self._response_args = response_args
@@ -82,12 +83,13 @@ class TriggerCallback(Trigger):
         assert isinstance(messages, list)
         assert len(messages) > 0
         for message in messages:
-            if __debug__:
-                if self._responses_remaining > 0:
-                    dprint("Does it match? ", bool(self._responses_remaining > 0 and self._match(message.footprint)))
-                    dprint("Expression: ", self._debug_pattern)
-                    dprint(" Footprint: ", message.footprint)
+            # if __debug__:
+            #     if self._responses_remaining > 0:
+            #         dprint("Does it match? ", bool(self._responses_remaining > 0 and self._match(message.footprint)))
+            #         dprint("Expression: ", self._debug_pattern)
+            #         dprint(" Footprint: ", message.footprint)
             if self._responses_remaining > 0 and self._match(message.footprint):
+                if __debug__: dprint("match footprint for one callback")
                 self._responses_remaining -= 1
                 # note: this callback may raise DelayMessage, etc
                 self._response_func(message, *self._response_args)
@@ -97,6 +99,7 @@ class TriggerCallback(Trigger):
 
     def on_timeout(self):
         if self._responses_remaining > 0:
+            if __debug__: dprint("timout on trigger with one callback")
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
             self._response_func(None, *self._response_args)
@@ -130,6 +133,7 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[0][0], str)
                 assert isinstance(packet[0][1], int)
                 assert isinstance(packet[1], str)
+        if __debug__: dprint("create new trigger for ", len(packets), " packets")
         self._pattern = pattern
         self._match = expression_compile(pattern).match
         self._callback = callback
@@ -153,6 +157,7 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[1], str)
         if pattern == self._pattern:
             self._packets.extend(packets)
+            if __debug__: dprint("extend existing trigger with ", len(packets), " packets (now has ", len(self.packets), " packets)")
             return True
         else:
             return False
@@ -162,14 +167,15 @@ class TriggerPacket(Trigger):
         assert len(messages) > 0
         if self._match:
             for message in messages:
-                if __debug__:
-                    dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
-                    dprint("Expression: ", self._pattern)
-                    dprint(" Footprint: ", message.footprint)
+                # if __debug__:
+                #     dprint("Does it match? ", bool(self._match and self._match(message.footprint)), " for ", len(self._packets), " waiting packets")
+                #     dprint("Expression: ", self._pattern)
+                #     dprint(" Footprint: ", message.footprint)
                 if self._match(message.footprint):
                     # set self._match to None to avoid this regular expression again
                     self._match = None
 
+                    if __debug__: dprint("match footprint for ", len(self._packets), " waiting packets")
                     self._callback(self._packets)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
@@ -182,6 +188,7 @@ class TriggerPacket(Trigger):
 
     def on_timeout(self):
         if self._match:
+            if __debug__: dprint("timeout on trigger with ", len(self._packets), " packets")
             self._match = None
 
 class TriggerMessage(Trigger):
@@ -207,6 +214,7 @@ class TriggerMessage(Trigger):
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        if __debug__: dprint("create new trigger for ", len(messages), " messages")
         self._pattern = pattern
         self._match = expression_compile(pattern).match
         self._callback = callback
@@ -224,6 +232,7 @@ class TriggerMessage(Trigger):
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
         if pattern == self._pattern:
             self._messages.extend(messages)
+            if __debug__: dprint("extend existing trigger with ", len(messages), " messages (now has ", len(self._messages), " messages")
             return True
         else:
             return False
@@ -233,14 +242,15 @@ class TriggerMessage(Trigger):
         assert len(messages) > 0
         if self._match:
             for message in messages:
-                if __debug__:
-                    dprint("Does it match? ", bool(self._match and self._match(message.footprint)))
-                    dprint("Expression: ", self._pattern)
-                    dprint(" Footprint: ", message.footprint)
+                # if __debug__:
+                #     dprint("Does it match? ", bool(self._match and self._match(message.footprint)), " for ", len(self._messages), " waiting messages")
+                #     dprint("Expression: ", self._pattern)
+                #     dprint(" Footprint: ", message.footprint)
                 if self._match(message.footprint):
                     # set self._match to None to avoid this regular expression again
                     self._match = None
 
+                    if __debug__: dprint("match footprint for ", len(self._messages), " waiting messages")
                     self._callback(self._messages)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
@@ -253,4 +263,5 @@ class TriggerMessage(Trigger):
 
     def on_timeout(self):
         if self._match:
+            if __debug__: dprint("timeout on trigger with ", len(self._messages), " messages")
             self._match = None
