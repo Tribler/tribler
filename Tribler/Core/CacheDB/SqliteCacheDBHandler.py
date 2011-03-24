@@ -3070,8 +3070,10 @@ class ChannelCastDBHandler:
         
         if not self.hasTorrent(self._channel_id, torrentdef.get_infohash()):
             def dispersy_thread():
-                community = dispersy.get_community(self._get_my_dispersy_cid())
-                community._disp_create_torrent(torrentdef.get_infohash(), long(time()), store, update, forward)
+                cid = self._get_my_dispersy_cid()
+                if cid:
+                    community = dispersy.get_community(cid)
+                    community._disp_create_torrent(torrentdef.get_infohash(), long(time()), store, update, forward)
                 
             from Tribler.Core.dispersy.dispersy import Dispersy
             dispersy = Dispersy.get_instance()

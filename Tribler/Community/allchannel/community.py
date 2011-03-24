@@ -17,6 +17,9 @@ from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.Core.dispersy.distribution import DirectDistribution
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
+from Tribler.Core.CacheDB.Notifier import Notifier
+
 from distutils.util import execute
 
 if __debug__:
@@ -74,6 +77,8 @@ class AllChannelCommunity(Community):
         # tribler channelcast database
         self._channelcast_db = ChannelCastDBHandler.getInstance()
         
+        self._notifier = Notifier.getInstance().notify
+        
         self._rawserver = self.dispersy.rawserver.add_task
         self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
 
@@ -94,25 +99,25 @@ class AllChannelCommunity(Community):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
     def create_channelcast(self, forward=True):
-        sync_ids = list(self._channelcast_db.getRecentAndRandomTorrents())
+        try:
+            sync_ids = list(self._channelcast_db.getRecentAndRandomTorrents())
+            if len(sync_ids) > 0:
+                # select channel messages (associated with the sync_ids)
+                sql = u"SELECT sync.packet FROM sync WHERE sync.id IN ("
+                sql += (u"?, "*len(sync_ids))[:-2]
+                sql += u")"
+                
+                packets = [str(packet) for packet, in self._dispersy.database.execute(sql, sync_ids)]
         
-        if len(sync_ids) > 0:
-            # select channel messages (associated with the sync_ids)
-            sql = u"SELECT sync.packet FROM sync WHERE sync.id IN ("
-            sql += (u"?, "*len(sync_ids))[:-2]
-            sql += u")"
-            
-            packets = [str(packet) for packet, in self._dispersy.database.execute(sql, sync_ids)]
-    
-            meta = self.get_meta_message(u"channelcast")
-            message = meta.implement(meta.authentication.implement(),
-                                     meta.distribution.implement(self._timeline.global_time),
-                                     meta.destination.implement(),
-                                     meta.payload.implement(packets))
-            self._dispersy.store_update_forward([message], False, False, forward)
-            
+                meta = self.get_meta_message(u"channelcast")
+                message = meta.implement(meta.authentication.implement(),
+                                         meta.distribution.implement(self._timeline.global_time),
+                                         meta.destination.implement(),
+                                         meta.payload.implement(packets))
+                self._dispersy.store_update_forward([message], False, False, forward)
+                return message
+        finally:
             self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
-            return message
 
     def check_channelcast(self, messages):
         # no timeline check because NoAuthentication policy is used
@@ -120,21 +125,53 @@ class AllChannelCommunity(Community):
 
     def on_channelcast(self, messages):
         incoming_packets = []
+        addresses = set()
+        channels = set()
 
         for message in messages:
             incoming_packets.extend((message.address, packet) for packet in message.payload.packets)
+            addresses.add(message.address)
 
         for _, packet in incoming_packets:
             # ensure that all the PreviewChannelCommunity instances exist
             try:
-                self._dispersy.get_community(packet[:20], True)
+                community = self._dispersy.get_community(packet[:20], True)
             except KeyError:
                 if __debug__: dprint("join_community ", packet[:20].encode("HEX"))
-                PreviewChannelCommunity.join_community(packet[:20], "", self._my_member)
+                community = PreviewChannelCommunity.join_community(packet[:20], "", self._my_member)
+                
+            channels.add(community._channel_id)
 
         # handle all packets
         if incoming_packets:
             self._dispersy.on_incoming_packets(incoming_packets)
+        
+        
+        # start requesting not yet collected torrents
+        def notify(channel_id):
+            self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+        
+        infohashes = []
+        for channel_id in channels:
+            for infohash in self._channelcast_db.selectTorrentsToCollect(channel_id):
+                infohashes.append((infohash, channel_id))
+        
+        permids = set()
+        for address in addresses:
+            for member in self.get_members_from_address(address):
+                permids.add(member.public_key)
+
+                # HACK! update the Peer table, if the tribler overlay did not discover this peer's
+                # address yet
+                if not self._peer_db.hasPeer(member.public_key):
+                    self._peer_db.addPeer(member.public_key, {"ip":address[0], "port":7760})
+        
+        import sys
+        print >> sys.stderr, 'REQUESTING', len(infohashes), 'from', len(permids), 'peers'
+                
+        for infohash, channel_id in infohashes:
+            for permid in permids:
+                self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
 
     # def _start_torrent_request_queue(self):
     #     # check that we are not working on a request already

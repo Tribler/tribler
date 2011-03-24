@@ -1617,7 +1617,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             
                             if len(to_be_inserted) > 0:
                                 community._disp_create_torrents(to_be_inserted, forward = False)
-                                dispersy.rawserver.add_task(insert_my_torrents, 5)
+                                dispersy.rawserver.add_task(insert_my_torrents, 10)
                             
                             else: #done
                                 insert_votes_for_me(channel_id)
@@ -1646,7 +1646,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     from Tribler.Core.dispersy.dispersy import Dispersy
                     
                     dispersy = Dispersy.get_instance()
-                    dispersy.rawserver.add_task(create_my_channel, 10)
+                    dispersy.rawserver.add_task(create_my_channel, 30)
                     session.remove_observer(dispersy_started)
                 
                 session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])

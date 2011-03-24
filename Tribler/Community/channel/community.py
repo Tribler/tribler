@@ -433,30 +433,6 @@ class ChannelCommunity(Community):
         for message in messages:
             self._dispersy._send([message.address], [channelmessage.packet])
             
-    def dispersy_activity(self, addresses):
-        #we had some activity in this community, see if we still need some torrents to collect
-        infohashes = self._channelcast_db.selectTorrentsToCollect(self._channel_id)
-        
-        def notify():
-            self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, self._channel_id)
-        
-        permids = set()
-        for address in addresses:
-            for member in self.get_members_from_address(address):
-                permids.add(member.public_key)
-
-                # HACK! update the Peer table, if the tribler overlay did not discover this peer's
-                # address yet
-                if not self._peer_db.hasPeer(member.public_key):
-                    self._peer_db.addPeer(member.public_key, {"ip":address[0], "port":7760})
-        
-        import sys
-        print >> sys.stderr, 'REQUESTING', len(infohashes), 'from', len(permids), 'peers'
-                
-        for infohash in infohashes:
-            for permid in permids:
-                self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify() ,3)
-        
     #helper functions
     def _get_latest_channel_message(self):
         # 1. get the packet
@@ -549,13 +525,13 @@ class ChannelCommunity(Community):
                 
                 # 3. solve conflict using mid to sort on
                 def cleverSort(message_a, message_b):
-                    mid_a = message_a.authentication.member.mid
-                    mid_b = message_a.authentication.member.mid
+                    public_key_a = message_a.authentication.member.public_key
+                    public_key_b = message_a.authentication.member.public_key
                     
-                    if mid_a == mid_b:
+                    if public_key_a == public_key_b:
                         return cmp(message_b.distribution.global_time, message_a.distribution.global_time)
                     
-                    return cmp(mid_a, mid_b)
+                    return cmp(public_key_a, public_key_b)
                 
                 conflicting_messages.sort(cleverSort)
             
