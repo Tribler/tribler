@@ -1278,7 +1278,7 @@ class Dispersy(Singleton):
                                                            message.destination.node_count,
                                                            (0.0, 30.0),
                                                            (120.0, 300.0))
-                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d}" % address for address in addresses))
+                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
                 self._send(addresses, [message.packet])
 
             elif isinstance(message.destination, AddressDestination.Implementation):
