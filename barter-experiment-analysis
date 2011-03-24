@@ -68,12 +68,19 @@ cycle_length_real="600.00"
 time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
 sync_interval_real=$(echo "scale=2; $sync_interval_exp*$time_ratio" | bc)
 
+o=$(
+find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
+    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:i\([0-9]*\).*send:i\([0-9]*\).*/\1 \2/g'
+done | awk '{received += $1; sent += $2 } END { print received, sent }'
+)
+in_bytes=$(echo $o | cut -d' ' -f1)
+out_bytes=$(echo $o | cut -d' ' -f2)
 
-cd $PEERS_DIRECTORY/control
-echo "* Summing up incoming traffic..."
-in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')
-echo "* Summing up outgoing traffic..."
-out_bytes=$(grep ^@\>out: * -R | awk '{sum += $2 } END { print sum }')
+#cd $PEERS_DIRECTORY/control
+#echo "* Summing up incoming traffic..."
+#in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')
+#echo "* Summing up outgoing traffic..."
+#out_bytes=$(grep ^@\>out: * -R | awk '{sum += $2 } END { print sum }')
 if test -z $in_bytes -o -z $out_bytes; then
     echo "* !!! No traffic statistics gathered!"
     lost_bytes=-1
