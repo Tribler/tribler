@@ -1046,6 +1046,8 @@ class ChannelSearchGridManager:
         for hit in hits:
             if hit['Peer.peer_id'] == None:
                 hit['name'] = self.utility.session.get_nickname()
+            elif not hit['name']:
+                hit['name'] = 'Peer %d'%hit['Peer.peer_id']
         
         return len(hits), hits
     

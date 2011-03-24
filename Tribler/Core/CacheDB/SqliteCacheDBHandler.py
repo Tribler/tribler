@@ -3066,7 +3066,7 @@ class ChannelCastDBHandler:
             args.append(long(time()))
             args.append(channel_id)
             
-            update_channel = "UPDATE Channels Set " + " = ? ".join(modified_keys) + " = ? latest_dispersy_modifier = ? modified = ? WHERE id = ?"
+            update_channel = "UPDATE Channels Set " + " = ?, ".join(modified_keys) + " = ?, latest_dispersy_modifier = ?, modified = ? WHERE id = ?"
             self._db.execute_write(update_channel, args)
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
@@ -3133,7 +3133,7 @@ class ChannelCastDBHandler:
             args.append(long(time()))
             args.append(dispersy_id)
             
-            update_torrent = "UPDATE ChannelTorrents SET " + " = ? ".join(modified_keys) + " = ? latest_dispersy_modifier = ? modified = ? WHERE dispersy_id = ?"
+            update_torrent = "UPDATE ChannelTorrents SET " + " = ?, ".join(modified_keys) + " = ?, latest_dispersy_modifier = ?, modified = ? WHERE dispersy_id = ?"
             self._db.execute_write(update_torrent, args)
             
             sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.dispersy_id = ?"
@@ -3149,9 +3149,10 @@ class ChannelCastDBHandler:
         sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
         channeltorrent_id = self._db.fetchone(sql, (torrent_id, ))
         if not channeltorrent_id:
-            insert_torrent = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?); SELECT last_insert_rowid();"
-            channeltorrent_id = self._db.fetchone(insert_torrent, (-1, torrent_id, channel_id, -1))
-        
+            insert_torrent = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?);"
+            self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, -1))
+            
+            channeltorrent_id = self._db.fetchone(sql, (torrent_id, ))
         return channeltorrent_id
     
     def hasTorrent(self, channel_id, infohash):
@@ -3237,7 +3238,7 @@ class ChannelCastDBHandler:
             args.append(latest_dispersy_modifier)
             args.append(dispersy_id)
             
-            update_playlist = "UPDATE Playlists Set " + " = ? ".join(modified_keys) + " = ? latest_dispersy_modifier = ? modified = ? WHERE dispersy_id = ?"
+            update_playlist = "UPDATE Playlists Set " + " = ?, ".join(modified_keys) + " = ?, latest_dispersy_modifier = ?, modified = ? WHERE dispersy_id = ?"
             self._db.execute_write(update_playlist, args)
             
             get_playlist = "SELECT id FROM Playlists WHERE dispersy_id = ?"
@@ -3251,9 +3252,7 @@ class ChannelCastDBHandler:
         get_playlist = "SELECT id, channel_id FROM Playlists WHERE dispersy_id = ?"
         playlist_id, channel_id = self._db.fetchone(get_playlist, (dispersy_id, ))
         
-        get_channeltorrent_id = "SELECT id FROM ChannelTorrents, Torrent WHERE ChannelTorrents.torrent_id == Torrent.torrent_id AND channel_id = ? AND infohash = ?"
-        channeltorrent_id = self._db.fetchone(get_channeltorrent_id, (channel_id, bin2str(infohash)))
-        
+        channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
         sql = "INSERT INTO PlaylistTorrents (playlist_id, channeltorrent_id) VALUES (?,?)"
         self._db.execute_write(sql, (playlist_id, channeltorrent_id))
         
