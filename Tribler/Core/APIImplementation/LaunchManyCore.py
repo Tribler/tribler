@@ -31,6 +31,12 @@ from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandl
 import traceback
 from Tribler.Core.dispersy.dispersy import Dispersy
 
+if sys.platform == 'win32':
+    SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
+else:
+    import errno
+    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
+
 SPECIAL_VALUE=481
 
 DEBUG = False

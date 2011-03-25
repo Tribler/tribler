@@ -2534,7 +2534,7 @@ class Dispersy(Singleton):
             subjective_sets = community.get_subjective_sets(message.authentication.member)
 
             # we limit the response by byte_limit bytes
-            byte_limit = self._total_send + community.dispersy_sync_response_limit
+            byte_limit = community.dispersy_sync_response_limit
 
             bloom_filter = message.payload.bloom_filter
             time_low = message.payload.time_low
