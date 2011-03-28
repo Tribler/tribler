@@ -81,7 +81,7 @@ class AllChannelCommunity(Community):
             self._channelcast_db = ChannelCastDBHandler.getInstance()
             self._notifier = Notifier.getInstance().notify
         else:
-            self._channelcast_db = ChannelCastDBStub()
+            self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._notifier = False
             
         self._rawserver = self.dispersy.rawserver.add_task
@@ -351,6 +351,9 @@ class AllChannelCommunity(Community):
 
 
 class ChannelCastDBStub():
+    def __init__(self, dispery):
+        self._dispery = dispersy
+    
     def getRecentAndRandomTorrents(self):
         sync_ids = set()
         
