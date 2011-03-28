@@ -6,7 +6,7 @@ from wx.lib.scrolledpanel import ScrolledPanel
 
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from __init__ import LIST_GREY, TRIBLER_RED
+from __init__ import LIST_GREY, LIST_BLUE, TRIBLER_RED
 
 DEBUG = False
 
@@ -354,15 +354,31 @@ class ProgressStaticText(wx.Panel):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
         
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
         self.text = wx.StaticText(self, -1, text)
-        sizer.Add(self.text, 0, wx.ALL, 1)
+        sizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        sizer.AddStretchSpacer()
+        
+        self.gauge = VerticalGauge(self, progress, (7, -1))
+        sizer.Add(self.gauge)
+        
+        self.SetSize((-1, self.text.GetBestSize()[1]))
         self.SetSizer(sizer)
+    
+    def SetProgress(self, progress):
+        self.gauge.SetProgress(progress)
+
+class VerticalGauge(wx.Panel):
+    def __init__(self, parent, progress, size = wx.DefaultSize):
+        wx.Panel.__init__(self, parent, size = size, style = wx.NO_BORDER)
+        self.SetBackgroundColour(parent.GetBackgroundColour())
         
         self.progress = progress
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-    
+        
     def SetProgress(self, progress):
         self.progress = progress
         self.Refresh()
@@ -373,40 +389,18 @@ class ProgressStaticText(wx.Panel):
         dc.SetBackground(wx.WHITE_BRUSH)
         dc.Clear()
         
-        if self.progress > 0 and self.progress < 1:
-            width, height = self.GetClientSize()
-            
-            #option 1:
-            """
-            dc.SetPen(wx.LIGHT_GREY_PEN)
-            dc.DrawLine(0, height - 2, self.progress * (width-1), height - 2)
-            dc.DrawLine(0, height - 3, 0, height)
-            dc.DrawLine(width-1, height - 3, width-1, height)
-            """
-            
-            #option 2:
-            """
-            dc.SetPen(wx.TRANSPARENT_PEN)
-            dc.SetBrush(wx.Brush(LIST_GREY))
-            dc.DrawRectangle(0, 0,  self.progress * (width - 1), height)
-            
-            dc.DrawRectangle(0, 0,  self.progress * (width - 1), height)
-            
-            dc.SetPen(wx.Pen(TRIBLER_RED, 2))
-            dc.DrawLine(self.progress * (width - 1), 0, self.progress * (width - 1), height)
-            
-            dc.SetPen(wx.BLACK_PEN)
-            dc.SetBrush(wx.TRANSPARENT_BRUSH)
-            dc.DrawRectangle(0, 0, width, height)
-            """
-            
-            #option 3:
-            barHeight = self.progress * height
-            
-            dc.SetPen(wx.TRANSPARENT_PEN)
-            dc.SetBrush(wx.Brush(LIST_GREY))
-            dc.DrawRectangle(0, height - barHeight, width, height)
+        width, height = self.GetClientSize()
 
+        barHeight = self.progress * height
+            
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(wx.Brush(LIST_BLUE))
+        dc.DrawRectangle(0, height - barHeight, width, height)
+        
+        dc.SetPen(wx.BLACK_PEN)
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.DrawRectangle(0, 0, width, height)
+        
     def OnEraseBackground(self, event):
         pass
             

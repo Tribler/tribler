@@ -788,8 +788,13 @@ class ChannelList(List):
         torrents = str(item.data[3])
         torrents = ProgressStaticText(parent, torrents, collecting_progress)
         torrents.SetMinSize((self.columns[3]['width'], -1))
+        torrents.Layout()
         
-        torrents.SetToolTipString('%d torrents discovered\n%d collected, %d remaining'%(item.original_data[CHANNEL_NR_TORRENTS], item.original_data[CHANNEL_NR_TORRENTS_COLLECTED], item.original_data[CHANNEL_NR_TORRENTS] - item.original_data[CHANNEL_NR_TORRENTS_COLLECTED]))
+        torrentsRemaining = item.original_data[CHANNEL_NR_TORRENTS] - item.original_data[CHANNEL_NR_TORRENTS_COLLECTED]
+        if torrentsRemaining > 0:
+            torrents.SetToolTipString('%d torrents discovered\n%d collected, %d remaining'%(item.original_data[CHANNEL_NR_TORRENTS], item.original_data[CHANNEL_NR_TORRENTS_COLLECTED], torrentsRemaining))
+        else:
+            torrents.SetToolTipString('All discovered torrents collected')
         return torrents
     
     def OnExpand(self, item):
