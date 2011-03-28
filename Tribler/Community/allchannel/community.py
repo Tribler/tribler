@@ -351,7 +351,7 @@ class AllChannelCommunity(Community):
 
 
 class ChannelCastDBStub():
-    def __init__(self, dispersy, cid):
+    def __init__(self, dispersy):
         self._dispersy = dispersy
     
     def getRecentAndRandomTorrents(self):
