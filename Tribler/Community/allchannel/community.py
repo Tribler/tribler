@@ -351,7 +351,7 @@ class AllChannelCommunity(Community):
 
 
 class ChannelCastDBStub():
-    def __init__(self, dispersy):
+    def __init__(self, dispersy, cid):
         self._dispersy = dispersy
     
     def getRecentAndRandomTorrents(self):
@@ -359,14 +359,14 @@ class ChannelCastDBStub():
         
         # 15 latest packets
         sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT 15"
-        results = self._dispersy.database.execute(sql, (buffer(self._cid), ))
+        results = self._dispersy.database.execute(sql)
         
         for syncid, in results:
             sync_ids.add(syncid)
         
         # 10 random     
         sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY random() DESC LIMIT 10"
-        results = self._dispersy.database.execute(sql, (buffer(self._cid), ))
+        results = self._dispersy.database.execute(sql)
 
         for syncid, in results:
             sync_ids.add(syncid)
