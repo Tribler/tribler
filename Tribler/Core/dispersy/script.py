@@ -193,7 +193,7 @@ class ScenarioScriptBase(ScriptBase):
     def sleep(self):
         """ Calculate the time to sleep.
         """
-        now = time.time()
+        now = time()
         expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
         st = max(0.0, expected_time - now) * random()
         log(self._logfile, "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
