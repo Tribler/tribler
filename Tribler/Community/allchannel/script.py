@@ -220,7 +220,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
     def execute_scenario_cmd(self, commands):
         if commands[0] == 'create':
             self.my_channel = ChannelCommunity.create_community(self.my_member)
-            self.my_channel.create_channel('', '')
+            self.my_channel.create_channel(u'', u'')
             
         elif commands[0] == 'publish':
             if self.my_channel:
