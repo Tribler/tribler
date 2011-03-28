@@ -1,11 +1,6 @@
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
-from Tribler.Core.CacheDB.Notifier import Notifier
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
@@ -29,31 +24,59 @@ class ChannelCommunity(Community):
     """
     def __init__(self, cid, master_key):
         super(ChannelCommunity, self).__init__(cid, master_key)
+        
+        self.integrate_with_tribler = False
 
-        # tribler channelcast database
-        self._peer_db = PeerDBHandler.getInstance()
-        self._channelcast_db = ChannelCastDBHandler.getInstance()
-        
-        # torrent collecting
-        self._rtorrent_handler = RemoteTorrentHandler.getInstance()
-        
-        # notifier
-        self._notifier = Notifier.getInstance().notify
-
-        # tribler channel_id
-        self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
-        
-        #modification_types
-        self._modification_types = dict(self._channelcast_db._db.fetchall(u"SELECT name, id FROM MetaDataTypes"))
+        if self.integrate_with_tribler:
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
+            from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+            from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+            from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
+            from Tribler.Core.CacheDB.Notifier import Notifier
+            
+            # tribler channelcast database
+            self._peer_db = PeerDBHandler.getInstance()
+            self._channelcast_db = ChannelCastDBHandler.getInstance()
+            
+            # torrent collecting
+            self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+            
+            # notifier
+            self._notifier = Notifier.getInstance().notify
+    
+            # tribler channel_id
+            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
+            
+            #modification_types
+            self._modification_types = dict(self._channelcast_db._db.fetchall(u"SELECT name, id FROM MetaDataTypes"))
+            
         self._rawserver = self._dispersy.rawserver.add_task
 
     def initiate_meta_messages(self):
+        
+        
+        if self.integrate_with_tribler:
+            disp_on_torrent = self._disp_on_torrent
+            disp_on_playlist = self._disp_on_playlist
+            disp_on_comment = self._disp_on_comment
+            disp_on_modification = self._disp_on_modification
+            disp_on_playlist_torrent = self._disp_on_playlist_torrent
+        else:
+            def dummy_function(*params):
+                return
+            
+            disp_on_torrent = dummy_function
+            disp_on_playlist = dummy_function
+            disp_on_comment = dummy_function
+            disp_on_modification = dummy_function
+            disp_on_playlist_torrent = dummy_function
+        
         return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, self._disp_on_channel),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, self._disp_on_torrent),
-                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, self._disp_on_playlist),
-                Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, self._disp_on_comment),
-                Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, self._disp_on_modification),
-                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, self._disp_on_playlist_torrent),
+                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent),
+                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist),
+                Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment),
+                Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification),
+                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent),
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
@@ -85,13 +108,16 @@ class ChannelCommunity(Community):
         for message in messages:
             if __debug__: dprint(message)
 
-            authentication_member = message.authentication.member
-            if isinstance(authentication_member, MyMember):
-                peer_id = None
+            if self.integrate_with_tribler:
+                authentication_member = message.authentication.member
+                if isinstance(authentication_member, MyMember):
+                    peer_id = None
+                else:
+                    peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
+    
+                self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
             else:
-                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-
-            self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
+                self._channel_id = True
 
     def _disp_create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")

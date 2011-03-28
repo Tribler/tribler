@@ -16,9 +16,7 @@ from Tribler.Core.dispersy.authentication import NoAuthentication
 from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.Core.dispersy.distribution import DirectDistribution
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
-from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
-from Tribler.Core.CacheDB.Notifier import Notifier
+
 
 from distutils.util import execute
 
@@ -71,14 +69,21 @@ class AllChannelCommunity(Community):
 
         return communities
 
-    def __init__(self, cid, master_key):
+    def __init__(self, cid, master_key, integrate_with_tribler = True):
         super(AllChannelCommunity, self).__init__(cid, master_key)
         
-        # tribler channelcast database
-        self._channelcast_db = ChannelCastDBHandler.getInstance()
+        if integrate_with_tribler:
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+            from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
+            from Tribler.Core.CacheDB.Notifier import Notifier
         
-        self._notifier = Notifier.getInstance().notify
-        
+            # tribler channelcast database
+            self._channelcast_db = ChannelCastDBHandler.getInstance()
+            self._notifier = Notifier.getInstance().notify
+        else:
+            self._channelcast_db = ChannelCastDBStub()
+            self._notifier = False
+            
         self._rawserver = self.dispersy.rawserver.add_task
         self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
 
@@ -146,32 +151,29 @@ class AllChannelCommunity(Community):
         if incoming_packets:
             self._dispersy.on_incoming_packets(incoming_packets)
         
-        
         # start requesting not yet collected torrents
-        def notify(channel_id):
-            self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
-        
-        infohashes = []
-        for channel_id in channels:
-            for infohash in self._channelcast_db.selectTorrentsToCollect(channel_id):
-                infohashes.append((infohash, channel_id))
-        
-        permids = set()
-        for address in addresses:
-            for member in self.get_members_from_address(address):
-                permids.add(member.public_key)
-
-                # HACK! update the Peer table, if the tribler overlay did not discover this peer's
-                # address yet
-                if not self._peer_db.hasPeer(member.public_key):
-                    self._peer_db.addPeer(member.public_key, {"ip":address[0], "port":7760})
-        
-        import sys
-        print >> sys.stderr, 'REQUESTING', len(infohashes), 'from', len(permids), 'peers'
+        if self._notifier:
+            def notify(channel_id):
+                self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+            
+            infohashes = []
+            for channel_id in channels:
+                for infohash in self._channelcast_db.selectTorrentsToCollect(channel_id):
+                    infohashes.append((infohash, channel_id))
+            
+            permids = set()
+            for address in addresses:
+                for member in self.get_members_from_address(address):
+                    permids.add(member.public_key)
+    
+                    # HACK! update the Peer table, if the tribler overlay did not discover this peer's
+                    # address yet
+                    if not self._peer_db.hasPeer(member.public_key):
+                        self._peer_db.addPeer(member.public_key, {"ip":address[0], "port":7760})
                 
-        for infohash, channel_id in infohashes:
-            for permid in permids:
-                self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
+            for infohash, channel_id in infohashes:
+                for permid in permids:
+                    self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
 
     # def _start_torrent_request_queue(self):
     #     # check that we are not working on a request already
@@ -346,3 +348,24 @@ class AllChannelCommunity(Community):
         """
         # we ignore this message because we get a different callback to match it to the request
         pass
+
+
+class ChannelCastDBStub():
+    def getRecentAndRandomTorrents(self):
+        sync_ids = set()
+        
+        # 15 latest packets
+        sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT 15"
+        results = self._dispersy.database.execute(sql, (buffer(self._cid), ))
+        
+        for syncid, in results:
+            sync_ids.add(syncid)
+        
+        # 10 random     
+        sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY random() DESC LIMIT 10"
+        results = self._dispersy.database.execute(sql, (buffer(self._cid), ))
+
+        for syncid, in results:
+            sync_ids.add(syncid)
+             
+        return sync_ids
