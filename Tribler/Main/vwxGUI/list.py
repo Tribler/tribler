@@ -99,6 +99,7 @@ class LocalSearchManager:
         
     def _on_data(self, data, total_items, nrfiltered):
         self.list.SetData(data)
+        self.list.Layout()
         
 class ChannelSearchManager:
     def __init__(self, list):
@@ -255,9 +256,9 @@ class ChannelManager():
         torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
         
         if self.list.SetData(torrentList) < total_items: #some items are filtered by quickfilter (do not update total_items)
-            self.list.SetNrResults(None, nrfiltered, None, None)
+            self.list.SetNrResults(None, nrfiltered)
         else:
-            self.list.SetNrResults(total_items, nrfiltered, None, None)
+            self.list.SetNrResults(total_items, nrfiltered)
         
         if DEBUG:    
             print >> sys.stderr, "SelChannelManager complete refresh done"
@@ -582,7 +583,8 @@ class SearchList(List):
             self.header.SetTitle('Searching for "%s"'%keywords)
     
     def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
-        self.SetKeywords(keywords, nr)
+        if keywords:
+            self.SetKeywords(keywords, nr)
         
         if isinstance(nr_filtered, int):
             self.header.SetFiltered(nr_filtered)
@@ -1060,7 +1062,7 @@ class ChannelList(List):
             elif title == 'Updated Channels':
                 self.header.SetSubTitle("Showing the %d latest updated channels" % nr)
             elif title == 'New Channels':
-                self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
+                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)"% nr)
             else:
                 if nr == 1:
                     self.header.SetSubTitle("Discovered %d channel" % nr)
@@ -1129,7 +1131,7 @@ class SelectedChannelList(SearchList):
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         return self.list.SetData(data)
     
-    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
+    def SetNrResults(self, nr, nr_filtered):
         if isinstance(nr, int):
             self.total_results = nr
             if self.total_results == 1:
@@ -1137,7 +1139,7 @@ class SelectedChannelList(SearchList):
             else:
                 self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
         
-        SearchList.SetNrResults(self, None, nr_filtered, nr_channels, keywords)
+        SearchList.SetNrResults(self, None, nr_filtered, None, None)
     
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)

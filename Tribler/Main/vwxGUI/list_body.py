@@ -342,7 +342,6 @@ class AbstractListBody():
         self.list_selected = LIST_SELECTED
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.SetSizer(hSizer)
         
         self.listpanel = wx.Panel(self)
         
@@ -350,6 +349,8 @@ class AbstractListBody():
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.listpanel.SetSizer(self.vSizer)
         hSizer.Add(self.listpanel, 1)
+        self.SetSizer(hSizer)
+        
     
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
@@ -537,8 +538,8 @@ class AbstractListBody():
         self.Thaw()
         
     def OnChange(self, scrollToTop = False):
-        self.Layout()
         self.vSizer.Layout()
+        self.Layout()
         
         #Determine scrollrate
         if not self.rate:
@@ -657,36 +658,43 @@ class AbstractListBody():
             print >> sys.stderr, "ListBody: set data", time()
         self.Freeze()
         
+        message = ''
+        
         #apply quickfilter
         if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
             if len(data) == 0:
                 message = "0" + self.__GetFilterMessage()[12:]
-                self.ShowMessage(message)
         else:
             data = self.raw_data
-        
-        if data:
-            self.vSizer.ShowItems(False)
-            self.vSizer.Clear()
-            if len(self.items) == 0:
-                #new data
-                if len(data) > LIST_ITEM_BATCH_SIZE:
-                    self.ShowLoading()
-                self.highlightSet = set()
-            else:
-                cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
-                self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
-
-            self.data = data
-            self.DoSort()
-            self.done = False
             
+        if not data:
+            data = []
+        
+        self.vSizer.ShowItems(False)
+        self.vSizer.Clear()
+        if len(self.items) == 0:
+            #new data
+            if len(data) > LIST_ITEM_BATCH_SIZE:
+                self.ShowLoading()
+            self.highlightSet = set()
+        else:
+            cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
+            self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
+
+        self.data = data
+        self.DoSort()
+        self.done = False
+        
+        if len(data) > 0:
             self.CreateItems()
-            if len(self.data) < LIST_ITEM_BATCH_SIZE:
-                self.Bind(wx.EVT_IDLE, None) #unbinding unnecessary event handler seems to improve visual performance
-            else:
-                self.Bind(wx.EVT_IDLE, self.OnIdle)
+        elif message != '':
+            self.ShowMessage(message)
+            
+        if len(self.data) < LIST_ITEM_BATCH_SIZE:
+            self.Bind(wx.EVT_IDLE, None) #unbinding unnecessary event handler seems to improve visual performance
+        else:
+            self.Bind(wx.EVT_IDLE, self.OnIdle)
         
         self.Thaw()
         
@@ -763,7 +771,7 @@ class AbstractListBody():
         self.Thaw()
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1
+            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1, "done:", self.done
         
     def GetItem(self, key):
         return self.items[key]
