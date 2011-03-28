@@ -23,9 +23,9 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, cid, master_key):
-        super(ChannelCommunity, self).__init__(cid, master_key)
-        
         self.integrate_with_tribler = False
+        
+        super(ChannelCommunity, self).__init__(cid, master_key)
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
