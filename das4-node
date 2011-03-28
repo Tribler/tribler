@@ -31,8 +31,8 @@ mkdir -p $PEERS_DIRECTORY/control/$(hostname)/output/
 netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 
 # clean temporary directory
-rm -rf /tmp/mbardac/dispersy/
-mkdir -p /tmp/mbardac/dispersy/
+rm -rf /tmp/$USER/dispersy/
+mkdir -p /tmp/$USER/dispersy/
 
 for i in $(seq 1 1 $PEERS_PER_NODE); do
 	echo "${BRANCH}/das4-peer $PEERS_DIRECTORY $EXPERIMENT_CONFIG" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
@@ -46,7 +46,7 @@ ${BRANCH}/process_guard.py \
 
 # save the output of the run for all peers on this node
 # take the output from the temporary directory
-cd /tmp/mbardac/dispersy
+cd /tmp/$USER/dispersy
 
 find . -maxdepth 1 -mindepth 1 -type d | while read PEER_DIR; do 
 	# we have the peer directory in PEER_DIR
@@ -56,7 +56,7 @@ find . -maxdepth 1 -mindepth 1 -type d | while read PEER_DIR; do
 done
 
 # remove temporary directory
-rm -rf /tmp/mbardac/
+rm -rf /tmp/$USER/
 
 netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_stop.txt
 

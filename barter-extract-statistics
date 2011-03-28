@@ -52,6 +52,8 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     node_count = len(node_list)
     measure_interval_length = measure_interval_stop - measure_interval_start
 
+    dispersy_msg_distribution = {}
+
     for node in node_list:
         started_monitoring = False
         done_monitoring = False
@@ -121,6 +123,9 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                     h_drop.write(" ")
                     h_drop.write(str(c_drop))
                     h_drop.write("\n")
+                for param_name, param_value in kargs.iteritems():
+                    if not param_name[:4] == "msg_": continue
+                    dispersy_msg_distribution[param_name] = dispersy_msg_distribution.get(param_name, 0) + 1
 
             if message == "statistics" and "total_send" in kargs and "total_received" in kargs:
                 time = int(mktime(datetime.timetuple()))
@@ -183,6 +188,13 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     h_first_last.write("%d %d\n" %(first, last))
     h_first_last.close()
 
+    fn_dispersy_msg_distribution = peers_directory + "/output/dispersy-msg-distribution.txt"
+    h_dispersy_msg_distribution = open(fn_received_record, "w+")
+    h_dispersy_msg_distribution.write("# msg_name count\n")
+    for msg, count in dispersy_msg_distribution.iteritems():
+        h_dispersy_msg_distribution.write("%s %d\n" %(msg, count))
+    h_dispersy_msg_distribution.close()
+
     fn_traffic_count = peers_directory + "/output/traffic_count_per_peer.txt"
     h_traffic_count = open(fn_traffic_count, "w+")
     h_traffic_count.write("# peer-id traffic_start traffic_stop traffic_total\n")
@@ -205,7 +217,11 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
         sum_coverage += v[3]
         h_record_count.write("%s %d %d %d %f\n" %(node, v[0], v[1], v[2], v[3]))
     h_record_count.close()
-    average_coverage = sum_coverage/len(record_count)
+    l = len(record_count)
+    if l != 0:
+        average_coverage = sum_coverage
+    else:
+        average_coverage = 0.0
 
     fn_measure_info = peers_directory + "/output/measure_info.txt"
     h_measure_info = open(fn_measure_info, "w+")

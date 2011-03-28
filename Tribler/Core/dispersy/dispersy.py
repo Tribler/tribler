@@ -808,7 +808,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             dprint("[", clock() - debug_begin, " pct] handled ", sum(handled.itervalues()), "/", len(packets), " [", ", ".join("%s:%d" % (name, count) for name, count in handled.iteritems()), "] successfully")
-            log("dispersy.log", "handled-successfully", time=clock() - debug_begin, handled_message_count=handled, total_packet_count=len(packets), **dict((meta.name.replace("-","_"), len(batch)) for meta, batch in batches.iteritems()))
+            log("dispersy.log", "handled-successfully", time=clock() - debug_begin, total_packet_count=len(packets), handled_message_count=sum(handled.values()), **dict(('msg_'+name.replace("-","_"), count) for name, count in handled.iteritems()))
 
         # notify the community that there was activity from a certain address
         communities = {}
@@ -2577,8 +2577,12 @@ class Dispersy(Singleton):
                     packets.append(packet)
                     byte_limit -= len(packet)
                     if byte_limit <= 0:
-                        if __debug__: dprint("bandwidth throttle")
+                        if __debug__:
+                            log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=-byte_limit, free_bytes=0, over_limit=True)
+                            dprint("bandwidth throttle")
                         break
+            else:
+                log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=0, free_bytes=byte_limit, over_limit=False)
 
             # let the message be processed, although that will not actually result in any processing
             # since we choose to already do everything...
