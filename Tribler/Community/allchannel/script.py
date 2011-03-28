@@ -1,4 +1,11 @@
+from hashlib import sha1
+from random import choice
+from string import letters
+from time import time
+
 from community import AllChannelCommunity
+from Tribler.Community.channel.community import ChannelCommunity
+from preview import PreviewChannelCommunity
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -6,6 +13,8 @@ from Tribler.Core.dispersy.member import MyMember
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
+
+from Tribler.Core.dispersy.script import ScenarioScriptBase
 
 class AllChannelNode(Node):
     def create_channel_propagate(self, packets, global_time):
@@ -193,3 +202,38 @@ class AllChannelScript(ScriptBase):
     #     assert len(set(message.payload.infohashes)) == len(message.payload.infohashes), "duplicate infohashes"
 
     #     dprint(map(lambda infohash: infohash.encode("HEX"), message.payload.infohashes), lines=1)
+    
+    
+class AllChannelScenarioScript(ScenarioScriptBase):
+    def __init__(self, script, name, **kargs):
+        ScenarioScriptBase.__init__(self, script, name, 'bartercast.log', **kargs)
+        
+        self.my_channel = None
+        self.want_to_join = False
+    
+    def join_community(self, my_member):
+        master_key = "4081a7301006072a8648ce3d020106052b81040027038192000403cbbfd2dfb67a7db66c88988df56f93fa6e7f982f9a6a0fa8898492c8b8cae23e10b159ace60b7047012082a5aa4c6e221d7e58107bb550436d57e046c11ab4f51f0ab18fa8f58d0346cc12d1cc2b61fc86fe5ed192309152e11e3f02489e30c7c971dd989e1ce5030ea0fb77d5220a92cceb567cbc94bc39ba246a42e215b55e9315b543ddeff0209e916f77c0d747".decode("HEX")
+        return AllChannelCommunity.join_community(sha1(master_key).digest(), master_key, my_member)
+    
+    def execute_scenario_cmd(self, commands):
+        if commands[0] == 'create':
+            self.my_channel = ChannelCommunity.create_community(self.session.dispersy_member)
+            self.my_channel.create_channel('', '')
+            
+        elif commands[0] == 'publish':
+            if self.my_channel:
+                infohash = ''.join(choice(letters) for i in xrange(20))
+                self.my_channel._disp_create_torrent(infohash, int(time()))
+                
+        elif commands[0] == 'join':
+            self.want_to_join = True
+            
+        if self.want_to_join:
+            from Tribler.Core.dispersy.dispersy import Dispersy
+            dispersy = Dispersy.get_instance()
+            
+            for community in dispersy.get_communities():
+                if isinstance(community, PreviewChannelCommunity):
+                    dispersy.reclassify_community(community, ChannelCommunity)
+                    
+                    self.want_to_join = False

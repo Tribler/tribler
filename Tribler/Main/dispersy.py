@@ -106,6 +106,15 @@ def main():
                 from Tribler.Community.allchannel.script import AllChannelScript
                 script = Script.get_instance(dispersy_rawserver)
                 script.add("allchannel", AllChannelScript, include_with_all=False)
+                
+                from Tribler.Community.allchannel.script import AllChannelScenarioScript
+                args = {}
+                if opt.script_args:
+                    for arg in opt.script_args.split(','):
+                        key, value = arg.split('=')
+                        args[key] = value
+
+                script.add("allchannel-scenario", AllChannelScenarioScript, args, include_with_all=False)
 
             if not opt.disable_barter_script:
                 from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
@@ -118,6 +127,7 @@ def main():
 
                 script.add("barter", BarterScript)
                 script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
+                
 
             # bump the rawservers, or they will delay everything... since they suck.
             def bump():
