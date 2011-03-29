@@ -17,6 +17,7 @@ from message import DelayMessageReqChannelMessage
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
+    from lencoder import log
 
 class ChannelCommunity(Community):
     """
@@ -66,7 +67,10 @@ class ChannelCommunity(Community):
             def dummy_function(*params):
                 return
             
-            disp_on_torrent = dummy_function
+            def handled_function(*params):
+                log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
+            
+            disp_on_torrent = handled_function
             disp_on_playlist = dummy_function
             disp_on_comment = dummy_function
             disp_on_modification = dummy_function
@@ -127,6 +131,9 @@ class ChannelCommunity(Community):
                                  meta.destination.implement(),
                                  meta.payload.implement(infohash, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
+        
+        log("dispersy.log", "created-barter-record") # TODO: should change this to something more specific to channels
+        
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
