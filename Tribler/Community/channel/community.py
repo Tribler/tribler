@@ -67,8 +67,9 @@ class ChannelCommunity(Community):
             def dummy_function(*params):
                 return
             
-            def handled_function(*params):
-                log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
+            def handled_function(messages):
+                for _ in messages:
+                    log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
             
             disp_on_torrent = handled_function
             disp_on_playlist = dummy_function
