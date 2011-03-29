@@ -13,6 +13,7 @@ from Tribler.Core.dispersy.member import MyMember
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
+from lencoder import log  
 
 from Tribler.Core.dispersy.script import ScenarioScriptBase
 
@@ -234,8 +235,13 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             from Tribler.Core.dispersy.dispersy import Dispersy
             dispersy = Dispersy.get_instance()
             
+            log(self._logfile, "trying-to-join-community")
+            
             for community in dispersy.get_communities():
                 if isinstance(community, PreviewChannelCommunity):
                     dispersy.reclassify_community(community, ChannelCommunity)
                     
+                    log(self._logfile, "joining-community")
+
                     self.want_to_join = False
+                    break
