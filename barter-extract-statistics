@@ -92,6 +92,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
         for lineno, datetime, message, kargs in parse(node + "/output/dispersy.log"):
             if message == "created-barter-record":
                 c_created_record += 1
+                c_received_record -= 1 # each created record is also counted as received
                 time = int(mktime(datetime.timetuple()))
                 h_created_record.write(str(time))
                 h_created_record.write(" ")
