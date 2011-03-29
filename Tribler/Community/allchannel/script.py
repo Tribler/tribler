@@ -206,7 +206,7 @@ class AllChannelScript(ScriptBase):
     
 class AllChannelScenarioScript(ScenarioScriptBase):
     def __init__(self, script, name, **kargs):
-        ScenarioScriptBase.__init__(self, script, name, 'bartercast.log', **kargs)
+        ScenarioScriptBase.__init__(self, script, name, 'barter.log', **kargs)
         
         self.my_channel = None
         self.want_to_join = False
