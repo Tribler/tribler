@@ -234,6 +234,23 @@ class BarterScenarioScript(ScriptBase):
         self._members = {}
         self.original_on_incoming_packets = self._dispersy.on_incoming_packets
         self.original_send = self._dispersy._send
+        
+        def _select_candidate_addresses(community_id, address_count, diff_range, age_range):
+            addresses = set()
+            sql = u"""SELECT host, port
+                      FROM candidate
+                      WHERE community = ?
+                      ORDER BY RANDOM()
+                      LIMIT ?"""
+            addresses.update([(str(host), port)
+                              for host, port
+                              in self._dispersy.database.execute(sql, (community_id, address_count - len(addresses)))])
+
+            # return what we have
+            if addresses:
+                log("dispersy.log","found-candidates")
+                return addresses
+            return set(["1.1.1.1",1111]) # send UDP packet to nowhere
 
         #
         # Read our configuration from the peer.conf file
@@ -301,6 +318,8 @@ class BarterScenarioScript(ScriptBase):
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
             execute(u"DELETE FROM candidate where community=0")
+
+        self._dispersy._select_candidate_addresses = _select_candidate_addresses
 
         if __debug__:
             log("barter.log", "done-reading-peers")
