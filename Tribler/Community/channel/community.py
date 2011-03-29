@@ -122,6 +122,7 @@ class ChannelCommunity(Community):
     
                 self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
             else:
+                log("dispersy.log", "received-channel-record") # TODO: should change this to something more specific to channels
                 self._channel_id = True
 
     def _disp_create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
