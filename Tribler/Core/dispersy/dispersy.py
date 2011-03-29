@@ -848,8 +848,8 @@ class Dispersy(Singleton):
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+        assert not filter(lambda x: not x.meta == messages[0].meta, messages), ("All messages need to have the same meta", messages[0].name, len(messages))
+        assert not filter(lambda x: not x.community == messages[0].community, messages), ("All messages need to be from the same community", messages[0].name, len(messages))
 
         meta = messages[0].meta
 
