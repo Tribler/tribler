@@ -24,6 +24,7 @@ class ChannelCommunity(Community):
     """
     def __init__(self, cid, master_key):
         self.integrate_with_tribler = False
+        self._channel_id = None
         
         super(ChannelCommunity, self).__init__(cid, master_key)
 
