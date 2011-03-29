@@ -278,7 +278,7 @@ class ScenarioScriptBase(ScriptBase):
                     
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
-            execute(u"DELETE FROM candidate where community=0")
+            #execute(u"DELETE FROM candidate where community=0")
 
         if __debug__:
             log("barter.log", "done-reading-peers")
