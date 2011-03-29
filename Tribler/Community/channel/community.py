@@ -465,6 +465,8 @@ class ChannelCommunity(Community):
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()
         for message in messages:
+            log("dispersy.log", "sending-channel-record", address = message.address, packet = channelmessage.packet) # TODO: maybe move to barter.log
+
             self._dispersy._send([message.address], [channelmessage.packet])
             
     #helper functions
