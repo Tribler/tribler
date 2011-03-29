@@ -42,8 +42,18 @@ class BarterCommunity(Community):
     #def dispersy_sync_response_limit(self):
     #    return 5 * 1025
 
+    @property
+    def barter_history_size(self):
+        # default: was 10
+        return 99999999999999
+
+    @property
+    def barter_forward_record_on_creation(self):
+        # default: True
+        return True
+
     def initiate_meta_messages(self):
-        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=10), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
+        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=self.barter_history_size), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), BarterCommunityConversion(self)]
@@ -125,7 +135,7 @@ class BarterCommunity(Community):
             if __debug__: dprint(message)
 
             # store, update, and forward to the community
-            self._dispersy.store_update_forward([message], True, True, True)
+            self._dispersy.store_update_forward([message], True, True, self.barter_forward_record_on_creation)
             log("dispersy.log", "created-barter-record") # TODO: maybe move to barter.log
 
         else:

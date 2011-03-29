@@ -61,6 +61,8 @@ echo "* Extracting experiment parameters from community properties..."
 sync_interval_exp=$(grep barter-community-property 00001/output/barter.log | grep :sync_interval | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
 sync_member_count=$(grep barter-community-property 00001/output/barter.log | grep :sync_member_count | sed 's/.*value:i\([0-9]*\)/\1/g')
 sync_response_limit=$(grep barter-community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
+barter_history_size=$(grep barter-community-property 00001/output/barter.log | grep :barter_history_size | sed 's/.*value:i\([0-9]*\)/\1/g')
+barter_forward_record_on_creation=$(grep barter-community-property 00001/output/barter.log | grep :barter_forward_record_on_creation | sed 's/.*value:b\([a-zA-Z]*\)/\1/g')
 
 cycle_length_exp=$(grep barter-community-property 00001/output/barter.log | grep :timestep | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
 cycle_length_real="600.00"
@@ -174,6 +176,8 @@ delayed_cycles_ratio=$c_ratio
 signature_request_timeouts=$sig_req_timeouts
 signature_request_count=$total_sig_req
 signature_request_timeout_ratio=$s_ratio
+barter_history_size=$barter_history_size
+barter_forward_record_on_creation=$barter_forward_record_on_creation
 END-OF-MSG
 ) >> $STATS_FILE
 
