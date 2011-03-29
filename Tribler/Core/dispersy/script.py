@@ -260,6 +260,9 @@ class ScenarioScriptBase(ScriptBase):
         if __debug__:
             _peer_counter = 0
         with self._dispersy.database as execute:
+            #remove original tracker
+            execute(u"DELETE FROM candidate where community=0")
+            
             with open('data/peers') as file:
                 for line in file:
                     name, ip, port, public_key, _ = line.split(' ', 4)
@@ -271,15 +274,13 @@ class ScenarioScriptBase(ScriptBase):
                     port = int(port)
 
                     #self._dispersy._send([(ip, port)], [message.packet])
-                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(ip), port))
-                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
                     
-                    log("barter.log", "inserted-into-candidate")
+                    #inserting all peers from data/peer as 'trackers'
+                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (0, unicode(ip), port))
+                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
                     
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
-            #execute(u"DELETE FROM candidate where community=0")
-
         if __debug__:
             log("barter.log", "done-reading-peers")
 
