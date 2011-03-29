@@ -827,7 +827,7 @@ class Dispersy(Singleton):
             batches[message.meta].add(message)
         
         for messages in batches.itervalues():
-            self.on_message_batch(messages)
+            self.on_message_batch(list(messages))
 
     def on_message_batch(self, messages):
         """
