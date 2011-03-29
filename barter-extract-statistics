@@ -147,10 +147,11 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 if not started_monitoring and not done_monitoring and timeoffset >= measure_interval_start:
                     started_monitoring = True
                     traffic_start = kargs["total_send"] + kargs["total_received"]
-                if not done_monitoring and started_monitoring and timeoffset >= measure_interval_stop:
-                    done_monitoring = True
+                if not done_monitoring and started_monitoring:
                     traffic_stop = kargs["total_send"] + kargs["total_received"]
                     traffic_count[node[-5:]] = [traffic_start, traffic_stop, traffic_stop - traffic_start]
+                if not done_monitoring and started_monitoring and timeoffset >= measure_interval_stop:
+                    done_monitoring = True
 
             if write_total:
                 h_total_record.write(str(time))
@@ -171,8 +172,8 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
         if not started_monitoring:
             print "!!!! Statistics time-range is outside the experiment time."
-        if not done_monitoring:
-            print "!!!! The end of the statistics time-range is after the experiment finished."
+        #if not done_monitoring:
+        #    print "!!!! The end of the statistics time-range is after the experiment finished."
         #if not saved_total:
         #    print "!!!! There is no write of total records after the end of the statistics time-range."
 
@@ -181,9 +182,9 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
     # returns the first and the last last timetime
     last = int(mktime(max(lasts).timetuple()))
-    sum_at_measure_time = sum_created_records(peers_directory, first, last, measure_interval_stop)
+    (sum_at_measure_time, sum_at_experiment_end) = sum_created_records(peers_directory, first, last, measure_interval_stop)
     print "# experiment took", last - first, "seconds"
-    print "# number of records at measurement time (%d): %d records" %(measure_interval_stop, sum_at_measure_time)
+    print "# number of records at experiment end (%d): %d records" %(last - first, sum_at_experiment_end)
     fn_first_last = peers_directory + "/output/first_last.txt"
     h_first_last = open(fn_first_last, "w")
     h_first_last.write("%d %d\n" %(first, last))
@@ -220,7 +221,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     h_record_count.close()
     l = len(record_count)
     if l != 0:
-        average_coverage = sum_coverage
+        average_coverage = sum_coverage/len(record_count)
     else:
         average_coverage = 0.0
 
@@ -229,6 +230,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     h_measure_info.write("measure_interval_start=%d\n" %(measure_interval_start))
     h_measure_info.write("measure_interval_stop=%d\n" %(measure_interval_stop))
     h_measure_info.write("total_records_at_interval_stop=%d\n" %(sum_at_measure_time))
+    h_measure_info.write("total_records_at_experiment_end=%d\n" %(sum_at_experiment_end))
     h_measure_info.write("average_coverage_at_interval_stop=%f\n" %(average_coverage))
     h_measure_info.write("bytes_per_second_experiment=%f\n" %(bytes_per_second_experiment))
     h_measure_info.write("bytes_per_second_real=%f\n" %(bytes_per_second_real))
@@ -274,7 +276,7 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
                 # take the last valid sub before measure_interval_stop
                 sum_at_measure_time = sumr
 
-    return sum_at_measure_time
+    return (sum_at_measure_time, sumr)
 
 
 def main(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
