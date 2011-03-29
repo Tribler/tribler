@@ -45,7 +45,8 @@ class BarterCommunity(Community):
     @property
     def barter_history_size(self):
         # default: was 10
-        return 99999999999999
+        from sys import maxint
+        return maxint
 
     @property
     def barter_forward_record_on_creation(self):
