@@ -91,10 +91,8 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
         h_stat.write("0 0 0 0\n")
 
         print "  *", node[-5:]
+        record_count[node[-5:]] = {}
         for lineno, datetime, message, kargs in parse(node + "/output/dispersy.log"):
-
-            record_count[node[-5:]] = {}
-
             if message == "created-barter-record":
                 c_created_record += 1
                 c_received_record -= 1 # each created record is also counted as received
@@ -188,13 +186,14 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
     # returns the first and the last last timetime
     last = int(mktime(max(lasts).timetuple()))
-    if measure_interval_stop > last - first:
-        print "!!! interval stop after experiment end - adjusting interval stop from %d to %d" %(measure_interval_stop, last - first)
-        measure_interval_stop = last - first
+    experiment_length = last - first
+    if measure_interval_stop > experiment_length:
+        print "!!! interval stop after experiment end - adjusting interval stop from %d to %d" %(measure_interval_stop, experiment_length)
+        measure_interval_stop = experiment_length
         measure_interval_length = measure_interval_stop - measure_interval_start
     (sum_at_measure_time, sum_at_experiment_end) = sum_created_records(peers_directory, first, last, measure_interval_stop)
-    print "# experiment took", last - first, "seconds"
-    print "# number of records at experiment end (%d): %d records" %(last - first, sum_at_experiment_end)
+    print "# experiment took", experiment_length, "seconds"
+    print "# number of records at experiment end (%d): %d records" %(experiment_length, sum_at_experiment_end)
     fn_first_last = peers_directory + "/output/first_last.txt"
     h_first_last = open(fn_first_last, "w")
     h_first_last.write("%d %d\n" %(first, last))
@@ -235,8 +234,33 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     else:
         average_coverage = 0.0
 
+    # count how many records were there in the system at each point in time
+    records_in_time = {}
+    for time in range(experiment_length + 1):
+        records_in_time[time] = 0
+    for node in record_count.keys():
+        update_count = len(record_count[node])
+        update_times = sorted(record_count[node].keys())
+        for i in range(update_count):
+            extra = record_count[node][update_times[i]][2] # total number of records is in the list on the 3rd position
+            if extra < sum_at_experiment_end: continue
+            if i == update_count - 1:
+                last_time = experiment_length + 1
+            else:
+                last_time = update_times[i+1]
+            for time in range(update_times[i], last_time):
+                records_in_time[time] += 1
+
+    fn = peers_directory + "/output/peers_with_all_records_in_time.txt"
+    h = open(fn, "w+")
+    h.write("# time record_count\n")
+    for time in range(experiment_length + 1):
+        h.write("%d %d\n" %(time, records_in_time[time]))
+    h.close()
+
     fn_measure_info = peers_directory + "/output/measure_info.txt"
     h_measure_info = open(fn_measure_info, "w+")
+    h_measure_info.write("experiment_length=%d\n" %(experiment_length))
     h_measure_info.write("measure_interval_start=%d\n" %(measure_interval_start))
     h_measure_info.write("measure_interval_stop=%d\n" %(measure_interval_stop))
     h_measure_info.write("total_records_at_interval_stop=%d\n" %(sum_at_measure_time))
