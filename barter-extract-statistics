@@ -19,7 +19,9 @@ from sys import argv, exit
 #    return "???"
 
 # Global variable (yes, not the brightest thing)
-record_count = {} # dictionary with the total record count per node at time measure_interval_stop
+measured_record_count = {} # dictionary with the total record count per node at time measure_interval_stop
+record_count = {} # same as before but at experiment end
+
 traffic_count = {} # dictionary with the total traffic count per node at time measure_interval_stop
 
 def get_nodes(peer_dir):
@@ -90,6 +92,9 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
         print "  *", node[-5:]
         for lineno, datetime, message, kargs in parse(node + "/output/dispersy.log"):
+
+            record_count[node[-5:]] = {}
+
             if message == "created-barter-record":
                 c_created_record += 1
                 c_received_record -= 1 # each created record is also counted as received
@@ -162,10 +167,11 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 h_total_record.write(str(c_received_record + c_created_record))
                 h_total_record.write("\n")
                 write_total = False
+                record_count[node[-5:]][timeoffset] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
                 if started_monitoring and not saved_total and timeoffset <= measure_interval_stop:
                     # this entry will contain the last record_count before going over measure_interval_stop
                     #saved_time = timeoffset
-                    record_count[node[-5:]] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
+                    measured_record_count[node[-5:]] = record_count[node[-5:]][timeoffset]
                 if not saved_total and timeoffset > measure_interval_stop:
                     #print "time %d (@%d) %d records" %(saved_time, timeoffset, record_count[node[-5:]][2])
                     saved_total = True
@@ -182,6 +188,10 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
     # returns the first and the last last timetime
     last = int(mktime(max(lasts).timetuple()))
+    if measure_interval_stop > last - first:
+        print "!!! interval stop after experiment end - adjusting interval stop from %d to %d" %(measure_interval_stop, last - first)
+        measure_interval_stop = last - first
+        measure_interval_length = measure_interval_stop - measure_interval_start
     (sum_at_measure_time, sum_at_experiment_end) = sum_created_records(peers_directory, first, last, measure_interval_stop)
     print "# experiment took", last - first, "seconds"
     print "# number of records at experiment end (%d): %d records" %(last - first, sum_at_experiment_end)
@@ -213,15 +223,15 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     h_record_count = open(fn_record_count, "w+")
     h_record_count.write("# peer-id records_received records_created records_total coverage\n")
     sum_coverage = 0.0
-    for node in record_count.keys():
-        v = record_count[node]
+    for node in measured_record_count.keys():
+        v = measured_record_count[node]
         v[3] = float(v[2])*100/sum_at_measure_time
         sum_coverage += v[3]
         h_record_count.write("%s %d %d %d %f\n" %(node, v[0], v[1], v[2], v[3]))
     h_record_count.close()
-    l = len(record_count)
+    l = len(measured_record_count)
     if l != 0:
-        average_coverage = sum_coverage/len(record_count)
+        average_coverage = sum_coverage/l
     else:
         average_coverage = 0.0
 
