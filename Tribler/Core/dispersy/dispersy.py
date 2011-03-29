@@ -819,6 +819,16 @@ class Dispersy(Singleton):
         for community, addresses in communities.iteritems():
             community.dispersy_activity(addresses)
 
+    def on_messages(self, messages):
+        batches = dict()
+        for message in messages:
+            if not message.meta in batches:
+                batches[message.meta] = set()
+            batches[message.meta].add(message)
+        
+        for messages in batches.itervalues():
+            self.on_message_batch(messages)
+
     def on_message_batch(self, messages):
         """
         Process one batch of messages.
@@ -887,7 +897,7 @@ class Dispersy(Singleton):
                     break
             else:
                 # create a new Trigger with this pattern
-                trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
+                trigger = TriggerMessage(delay.pattern, self.on_messages, [delay.delayed])
                 if __debug__: dprint("created a new TriggeMessage (1)")
                 self._triggers.append(trigger)
                 self._rawserver.add_task(trigger.on_timeout, 10.0)
@@ -921,7 +931,7 @@ class Dispersy(Singleton):
                     break
             else:
                 # create a new Trigger with this pattern
-                trigger = TriggerMessage(delay.pattern, self.on_message_batch, [delay.delayed])
+                trigger = TriggerMessage(delay.pattern, self.on_messages, [delay.delayed])
                 if __debug__: dprint("created a new TriggeMessage (2)")
                 self._triggers.append(trigger)
                 self._rawserver.add_task(trigger.on_timeout, 10.0)
