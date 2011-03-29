@@ -282,7 +282,7 @@ class ScenarioScriptBase(ScriptBase):
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
         if __debug__:
-            log("barter.log", "done-reading-peers")
+            log(self._logfile, "done-reading-peers")
 
         yield 2.0
 
