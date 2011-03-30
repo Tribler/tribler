@@ -25,7 +25,8 @@ done)
 
 # fallback to the 'loopback' interface if nothing found
 if test -z $iface; then
-	iface="lo"
+    echo "* No public eth interface found. Using loopback interface (peer might not be connectable)" >&2
+    iface="lo"
 fi
 
 # determine the IP of the usable interface
