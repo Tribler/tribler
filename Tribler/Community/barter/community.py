@@ -84,7 +84,7 @@ class BarterCommunity(Community):
 
         meta = self.get_meta_message(u"barter-record")
         message = meta.implement(meta.authentication.implement([self._my_member, second_member]),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(first_upload, second_upload))
         return self.create_dispersy_signature_request(message, self.on_signature_response, store=store, forward=forward)
