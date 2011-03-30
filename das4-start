@@ -80,6 +80,5 @@ else
     echo "* Done killing all jobs."
     kill -9 $CONFIG_SERVER_PID &>/dev/null
     echo "* Config server killed."
-    echo
     qstat
 fi
