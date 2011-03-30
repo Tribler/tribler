@@ -718,6 +718,7 @@ class Dispersy(Singleton):
             self._buffer_lock.release()
 
         assert packets
+        self._total_received += sum(len(packet) for _, packet in packets)
         self.on_incoming_packets(packets)
 
     def on_incoming_packets(self, packets):
@@ -761,7 +762,6 @@ class Dispersy(Singleton):
         if __debug__:
             debug_begin = clock()
             dprint("[0.0 pct] ", len(packets), " packets (", sum(len(packet) for _, packet in packets), " bytes)")
-        self._total_received += sum(len(packet) for _, packet in packets)
 
         batches = dict()
         for meta, triplet in self._convert_packets_into_batch(packets):
@@ -2592,7 +2592,7 @@ class Dispersy(Singleton):
                             dprint("bandwidth throttle")
                         break
             else:
-                log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=0, free_bytes=byte_limit, over_limit=False)
+                if __debug__: log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=0, free_bytes=byte_limit, over_limit=False)
 
             # let the message be processed, although that will not actually result in any processing
             # since we choose to already do everything...
