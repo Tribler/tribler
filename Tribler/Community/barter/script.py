@@ -288,7 +288,7 @@ class BarterScenarioScript(ScriptBase):
         # key
         meta = self._barter.get_meta_message(u"dispersy-identity")
         message = meta.implement(meta.authentication.implement(meta.community._my_member),
-                                 meta.distribution.implement(meta.community._timeline.claim_global_time()),
+                                 meta.distribution.implement(meta.community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(my_address))
         self._dispersy.store_update_forward([message], True, True, False)
