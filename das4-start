@@ -37,6 +37,7 @@ cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
 ./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
+disown # remove job from the job table of the current bash process
 
 cd $PEERS_DIRECTORY
 PEER_COUNT=$(cat peer.count)
@@ -74,11 +75,11 @@ rm ${JOB_STATUS_FILE}
 
 if test $do_kill -eq 0; then
     wait $CONFIG_SERVER_PID # we will get the output of the config server here
-    echo
-    qstat
 else
     echo "* Done killing all jobs."
     kill -9 $CONFIG_SERVER_PID &>/dev/null
     echo "* Config server killed."
-    qstat
 fi
+
+echo
+qstat
