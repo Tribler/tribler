@@ -51,7 +51,7 @@ class DelayPacketByMissingMember(DelayPacket):
         # trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-identity-request")
         message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community._timeline.global_time),
+                                 meta.distribution.implement(community.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(missing_member_id))
 
@@ -81,7 +81,7 @@ class DelayPacketBySimilarity(DelayPacket):
         # trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-identity-request")
         message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community._timeline.global_time),
+                                 meta.distribution.implement(community.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(member.mid))
 
@@ -148,7 +148,7 @@ class DelayMessage(Exception):
 #         # trigger the delayed packet
 #         meta = community.get_meta_message(u"dispersy-identity-request")
 #         request = meta.implement(meta.authentication.implement(),
-#                                  meta.distribution.implement(community._timeline.global_time),
+#                                  meta.distribution.implement(community.global_time),
 #                                  meta.destination.implement(),
 #                                  meta.payload.implement(missing_member_id))
 
@@ -178,7 +178,7 @@ class DelayMessageBySequence(DelayMessage):
         # trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-sequence")
         request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(delayed.community._timeline.global_time),
+                                 meta.distribution.implement(delayed.community.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(delayed.authentication.member, delayed.meta, missing_low, missing_high))
 
@@ -205,7 +205,7 @@ class DelayMessageBySubjectiveSet(DelayMessage):
         # the request message that asks for the message that will trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-subjective-set-request")
         request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(delayed.community._timeline.global_time),
+                                 meta.distribution.implement(delayed.community.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(cluster, [delayed.authentication.member]))
 
@@ -232,7 +232,7 @@ class DelayMessageBySubjectiveSet(DelayMessage):
 #         # trigger the delayed packet
 #         meta = message.community.get_meta_message(u"dispersy-similarity-request")
 #         message = meta.implement(meta.authentication.implement(),
-#                                  meta.distribution.implement(message.community._timeline.global_time),
+#                                  meta.distribution.implement(message.community.global_time),
 #                                  meta.destination.implement(),
 #                                  meta.payload.implement(cluster, [message.authentication.member]))
 

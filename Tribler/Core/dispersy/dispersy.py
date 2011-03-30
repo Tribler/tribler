@@ -1093,6 +1093,9 @@ class Dispersy(Singleton):
         is_similarity_destination = isinstance(meta.destination, SimilarityDestination)
         is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
 
+        # update the bloomfilter
+        meta.community.update_sync_range(messages)
+
         with self._database as execute:
             for message in messages:
                 # the signature must be set
@@ -1113,9 +1116,6 @@ class Dispersy(Singleton):
                     if not message.authentication.member.must_store:
                         if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
                         continue
-
-                # update the bloomfilter
-                message.community.get_bloom_filter(message.distribution.global_time).add(message.packet)
 
                 # add packet to database
                 execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1502,7 +1502,7 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
         meta = community.get_meta_message(u"dispersy-candidate-request")
         request = meta.implement(meta.authentication.implement(community.my_member),
-                                 meta.distribution.implement(meta.community._timeline.global_time),
+                                 meta.distribution.implement(meta.community.global_time),
                                  meta.destination.implement(address),
                                  meta.payload.implement(self._my_external_address, address, community.get_conversion(), routes))
 
@@ -1603,7 +1603,7 @@ class Dispersy(Singleton):
             routes.extend(message.payload.routes)
 
             responses.append(meta.implement(meta.authentication.implement(community.my_member),
-                                            meta.distribution.implement(community._timeline.global_time),
+                                            meta.distribution.implement(community.global_time),
                                             meta.destination.implement(message.address),
                                             meta.payload.implement(sha1(message.packet).digest(), self._my_external_address, message.address, meta.community.get_conversion().version, routes)))
 
@@ -1682,7 +1682,7 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
         meta = community.get_meta_message(u"dispersy-identity")
         message = meta.implement(meta.authentication.implement(community.my_member),
-                                 meta.distribution.implement(community._timeline.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(self._my_external_address))
         self.store_update_forward([message], store, False, forward)
@@ -1822,7 +1822,7 @@ class Dispersy(Singleton):
         # implement the message
         meta = community.get_meta_message(u"dispersy-subjective-set")
         message = meta.implement(meta.authentication.implement(community.my_member),
-                                 meta.distribution.implement(community._timeline.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(cluster, subjective_set))
         self.store_update_forward([message], store, update, forward)
@@ -1905,7 +1905,7 @@ class Dispersy(Singleton):
     #     # implement the message
     #     meta = community.get_meta_message(u"dispersy-subjective-set-request")
     #     message = meta.implement(meta.authentication.implement(),
-    #                              meta.distribution.implement(community._timeline.global_time),
+    #                              meta.distribution.implement(community.global_time),
     #                              meta.destination.implement(),
     #                              meta.payload.implement(cluster, members))
 
@@ -1990,7 +1990,7 @@ class Dispersy(Singleton):
 
 #         # implement the message
 #         message = meta.implement(meta.authentication.implement(community.my_member),
-#                                  meta.distribution.implement(community._timeline.claim_global_time()),
+#                                  meta.distribution.implement(community.claim_global_time()),
 #                                  meta.destination.implement(),
 #                                  meta.payload.implement(meta_message.destination.identifier, similarity))
 
@@ -2191,7 +2191,7 @@ class Dispersy(Singleton):
         # message that should obtain more signatures
         meta = community.get_meta_message(u"dispersy-signature-request")
         request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community._timeline.global_time),
+                                 meta.distribution.implement(community.global_time),
                                  meta.destination.implement(*members),
                                  meta.payload.implement(message))
 
@@ -2337,7 +2337,7 @@ class Dispersy(Singleton):
                     # send response
                     meta = message.community.get_meta_message(u"dispersy-signature-response")
                     responses.append(meta.implement(meta.authentication.implement(),
-                                                    meta.distribution.implement(message.community._timeline.global_time),
+                                                    meta.distribution.implement(message.community.global_time),
                                                     meta.destination.implement(message.address,),
                                                     meta.payload.implement(identifier, signature)))
 
@@ -2548,7 +2548,7 @@ class Dispersy(Singleton):
 
             bloom_filter = message.payload.bloom_filter
             time_low = message.payload.time_low
-            time_high = message.payload.time_high if message.payload.has_time_high else community._timeline.global_time
+            time_high = message.payload.time_high if message.payload.has_time_high else community.global_time
             packets = []
 
             for packet, meta_message_id, packet_public_key in get_packets(community.database_id, time_low, time_high):
@@ -2666,7 +2666,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-authorize")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community._timeline.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
@@ -2760,7 +2760,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-revoke")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community._timeline.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
@@ -2804,7 +2804,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-destroy-community")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community._timeline.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(degree))
 
@@ -2893,14 +2893,14 @@ class Dispersy(Singleton):
         """
         meta = community.get_meta_message(u"dispersy-sync")
         messages = [meta.implement(meta.authentication.implement(community.my_member),
-                                   meta.distribution.implement(community._timeline.global_time),
+                                   meta.distribution.implement(community.global_time),
                                    meta.destination.implement(),
                                    meta.payload.implement(time_low, time_high, bloom_filter))
                     for time_low, time_high, bloom_filter
                     in community.dispersy_sync_bloom_filters]
         if __debug__:
             for message in messages:
-                dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high, "]")
+                dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high if message.payload.time_high else "inf", "] (", community.get_classification(), ")")
         self.store_update_forward(messages, False, False, True)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_candidate_request_interval, " seconds (interval)")
@@ -2922,7 +2922,7 @@ class Dispersy(Singleton):
                                                         community.dispersy_candidate_request_destination_diff_range,
                                                         community.dispersy_candidate_request_destination_age_range):
             requests.append(meta.implement(meta.authentication.implement(community.my_member),
-                                           meta.distribution.implement(community._timeline.global_time),
+                                           meta.distribution.implement(community.global_time),
                                            meta.destination.implement(address),
                                            meta.payload.implement(self._my_external_address, address, community.get_conversion().version, candidates)))
         self.store_update_forward(requests, False, False, True)

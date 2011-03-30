@@ -16,18 +16,8 @@ class Timeline(object):
         def __init__(self):
             self.timeline = [] # (global_time, {u'permission^message-name':True|False})
 
-    def __init__(self, community):
-        global_time, = community.dispersy.database.execute(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (community.database_id,)).next()
-        self._global_time = global_time if global_time else 1
+    def __init__(self):
         self._nodes = {}
-
-    @property
-    def global_time(self):
-        return self._global_time
-
-    def claim_global_time(self):
-        self._global_time += 1
-        return self._global_time
 
     def check(self, message, permission=u"permit"):
         """
@@ -40,13 +30,7 @@ class Timeline(object):
         assert isinstance(message.authentication, MemberAuthentication.Implementation), message.authentication
         assert isinstance(permission, unicode)
         assert permission in (u'permit', u'authorize', u'revoke')
-
-        if self._check(message.authentication.member, message.distribution.global_time, [(message.meta, permission)]):
-            self._global_time = max(self._global_time, message.distribution.global_time + 1)
-            return True
-
-        else:
-            return False
+        return self._check(message.authentication.member, message.distribution.global_time, [(message.meta, permission)])
 
     def _check(self, member, global_time, permission_pairs):
         if __debug__:

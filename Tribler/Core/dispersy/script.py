@@ -7,6 +7,7 @@ Run some python code, usually to test one or more features.
 
 from struct import pack, unpack_from
 from time import clock, time
+import math
 import gc
 import hashlib
 import types
@@ -22,7 +23,6 @@ from debug import Node
 from destination import CommunityDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
-from distribution import FullSyncDistribution, LastSyncDistribution
 from dprint import dprint
 from member import Member, MyMember
 from message import Message, DropMessage
@@ -909,7 +909,7 @@ class DispersyCandidateScript(ScriptBase):
         node.init_my_member(candidate=False)
 
         # wait initial delay
-        for counter in range(int(community.dispersy_candidate_request_initial_delay - 1.0)):
+        for counter in range(int(community.dispersy_candidate_request_initial_delay)):
             dprint("waiting... ", community.dispersy_candidate_request_initial_delay - counter)
             # do NOT receive dispersy-candidate-request
             try:
@@ -923,11 +923,10 @@ class DispersyCandidateScript(ScriptBase):
             yield 1.0
         yield 0.11
 
-        # receive dispersy-candidate-request
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
 
         # wait interval
-        for counter in range(int(community.dispersy_candidate_request_interval - 1.0)):
+        for counter in range(int(community.dispersy_candidate_request_interval)):
             dprint("waiting... ", community.dispersy_candidate_request_interval - counter)
             # do NOT receive dispersy-candidate-request
             try:
@@ -939,7 +938,6 @@ class DispersyCandidateScript(ScriptBase):
 
             # wait interval
             yield 1.0
-
         yield 0.11
 
         # receive dispersy-candidate-request from 2nd interval
@@ -1363,6 +1361,10 @@ class DispersySyncScript(ScriptBase):
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         # scaling: when we have to many messages in the sync bloom filter
+        self.caller(self.batch_reversed_enlarging_sync_bloom)
+        self.caller(self.batch_enlarging_sync_bloom)
+        self.caller(self.reversed_enlarging_sync_bloom)
+        self.caller(self.enlarging_sync_bloom)
         self.caller(self.large_sync)
 
         # different sync policies
@@ -1374,17 +1376,240 @@ class DispersySyncScript(ScriptBase):
         self.caller(self.last_9_nosequence_test)
         # self.caller(self.last_9_sequence_test)
 
+    def assert_sync_ranges(self, community, messages, minimal_remaining=0, verbose=False):
+        time_high = 0
+        for sync_range in community._sync_ranges:
+            if verbose: dprint("range [", sync_range.time_low, ":", time_high if time_high else "inf", "] space_remaining: ", sync_range.space_remaining, "; capacity: ", sync_range.capacity)
+            assert sync_range.space_remaining >= minimal_remaining, (sync_range.space_remaining, ">=", minimal_remaining)
+            time_high = sync_range.time_low - 1
+
+        for message in messages:
+            sync_range = community.get_sync_range(message.distribution.global_time)
+            assert sync_range.time_low <= message.distribution.global_time
+            assert message.packet in sync_range.bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time]))
+
+    def enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range.  Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_capacity(self):
+                return 10
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = 0
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+            yield 0.11
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(10, 20):
+                messages.append(node.send_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time), address))
+                yield 0.11
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+            # unload community
+            community.unload_community()
+            yield 0.11
+
+            dprint("loading...")
+
+            # load community
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def reversed_enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_capacity(self):
+                return 10
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = 0
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+            yield 0.11
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(20, 10, -1):
+                messages.append(node.send_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time), address))
+                yield 0.11
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+            # unload community
+            community.unload_community()
+            yield 0.11
+
+            dprint("loading...")
+
+            # load community
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def batch_enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range.  Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_capacity(self):
+                return 10
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = 0
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+            yield 0.11
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(10, 20):
+                messages.append(node.send_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time), address))
+            yield 0.22
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+            # unload community
+            community.unload_community()
+            yield 0.11
+
+            dprint("loading...")
+
+            # load community
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def batch_reversed_enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range.  Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_capacity(self):
+                return 10
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = 0
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+            yield 0.11
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(20, 10, -1):
+                messages.append(node.send_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time), address))
+            yield 0.22
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+
+            # unload community
+            community.unload_community()
+            yield 0.11
+
+            dprint("loading...")
+
+            # load community
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
     def large_sync(self):
         """
         The sync bloomfilter covers a certain global-time range.  Hence, as time goes on, multiple
         bloomfilters should be generated and periodically synced.
 
-        We use a dispersy_sync_bloom_filter_step off 25.  Hence each bloom filter must cover ranges:
-        1-25, 26-50, 51-75, etc.
+        We use a dispersy_sync_bloom_filter_capacity of 25.  Hence each bloom filter must hold no
+        more than 25 packets.
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_sync_bloom_filter_step(self):
+            def dispersy_sync_bloom_filter_capacity(self):
                 return 25
 
         community = TestCommunity.create_community(self._my_member)
@@ -1399,25 +1624,22 @@ class DispersySyncScript(ScriptBase):
 
         # create a few messages in each sync bloomfilter range
         messages = []
-        messages.append(node.send_message(node.create_in_order_text_message("Range 1 <= 24 <= 25", 24), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 1 <= 25 <= 25", 25), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 26 <= 50", 26), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 49 <= 50", 49), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 26 <= 50 <= 50", 50), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 51 <= 75", 51), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 74 <= 75", 74), address))
-        yield 0.11
-        messages.append(node.send_message(node.create_in_order_text_message("Range 51 <= 75 <= 75", 75), address))
+        for global_time in xrange(10, 110):
+            messages.append(node.send_message(node.create_in_order_text_message("global-time: %d" % global_time, global_time), address))
+            yield 0.01
+
         yield 0.11
 
+        # we should have around 100 / 25 = 4 sync ranges
+        for sync_range in community._sync_ranges:
+            dprint("range [", sync_range.time_low, ":... space_remaining: ", sync_range.space_remaining)
+            assert sync_range.space_remaining >= 0
+        assert len(community._sync_ranges) in (4, 5)
+
         for message in messages:
-            assert message.packet in community.get_bloom_filter(message.distribution.global_time)
+            sync_range = community.get_sync_range(message.distribution.global_time)
+            assert sync_range.time_low <= message.distribution.global_time
+            assert message.packet in sync_range.bloom_filter
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1902,7 +2124,7 @@ class DispersySignatureScript(ScriptBase):
 
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
-        global_time = community._timeline.global_time
+        global_time = community.global_time
         node.send_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address), address)
 
         # should not time out
@@ -2000,7 +2222,7 @@ class DispersySignatureScript(ScriptBase):
 
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
-        global_time = community._timeline.global_time
+        global_time = community.global_time
         node1.send_message(node1.create_dispersy_signature_response_message(request_id, signature1, global_time, address), address)
 
         # receive dispersy-signature-request message
@@ -2014,7 +2236,7 @@ class DispersySignatureScript(ScriptBase):
 
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
-        global_time = community._timeline.global_time
+        global_time = community.global_time
         node2.send_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address), address)
 
         # should not time out

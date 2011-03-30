@@ -116,7 +116,7 @@ class AllChannelCommunity(Community):
         
                 meta = self.get_meta_message(u"channelcast")
                 message = meta.implement(meta.authentication.implement(),
-                                         meta.distribution.implement(self._timeline.global_time),
+                                         meta.distribution.implement(self.global_time),
                                          meta.destination.implement(),
                                          meta.payload.implement(packets))
                 self._dispersy.store_update_forward([message], False, False, forward)
@@ -221,7 +221,7 @@ class AllChannelCommunity(Community):
 
     #     meta = self.get_meta_message(u"torrent-request")
     #     request = meta.implement(meta.authentication.implement(),
-    #                              meta.distribution.implement(self._timeline.global_time),
+    #                              meta.distribution.implement(self.global_time),
     #                              meta.destination.implement(address),
     #                              meta.payload.implement(infohash))
 
@@ -255,7 +255,7 @@ class AllChannelCommunity(Community):
 
     #     meta = self.get_meta_message(u"torrent-response")
     #     response = meta.implement(meta.authentication.implement(),
-    #                               meta.distribution.implement(self._timeline.global_time),
+    #                               meta.distribution.implement(self.global_time),
     #                               meta.destination.implement(address),
     #                               meta.payload.implement(message.payload.infohash, torrent_data, messages))
 
@@ -290,7 +290,7 @@ class AllChannelCommunity(Community):
 
         meta = self.get_meta_message(u"channel-search-request")
         request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(self._timeline.global_time),
+                                 meta.distribution.implement(self.global_time),
                                  meta.destination.implement(),
                                  meta.payload.implement(skip_bloomfilter, search, method))
 
@@ -330,7 +330,7 @@ class AllChannelCommunity(Community):
 
             meta = self.get_meta_message(u"channel-search-response")
             responses.append(meta.implement(meta.authentication.implement(),
-                                            meta.distribution.implement(self._timeline.global_time),
+                                            meta.distribution.implement(self.global_time),
                                             meta.destination.implement(address),
                                             meta.payload.implement(sha1(request.packet).digest(), packets)))
         self._dispersy.store_update_forward(responses, False, False, True)

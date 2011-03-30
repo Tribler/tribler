@@ -45,7 +45,7 @@ class DiscoveryCommunity(Community, Singleton):
     def create_user_metadata(self, address, alias, comment, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"user-metadata")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(address, alias, comment))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -54,7 +54,7 @@ class DiscoveryCommunity(Community, Singleton):
     def create_community_metadata(self, cid, alias, comment, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"community-metadata")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time(), meta.distribution.claim_sequence_number()),
+                                 meta.distribution.implement(self.claim_global_time(), meta.distribution.claim_sequence_number()),
                                  meta.destination.implement(),
                                  meta.payload.implement(cid, alias, comment))
         self._dispersy.store_update_forward([message], store, update, forward)

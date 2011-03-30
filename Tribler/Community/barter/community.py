@@ -158,7 +158,7 @@ class BarterCommunity(Community):
         if __debug__: dprint("storing ", len(messages), " records")
         with self._database as execute:
             for message in messages:
-                log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
+                if __debug__: log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
                 # check if there is already a record about this pair
                 try:
                     first_member, second_member, global_time = \

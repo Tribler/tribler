@@ -58,7 +58,7 @@ class BarterScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
         assert self.is_database_empty(community), "Database should be empty (for this community id)"
 
         # 1. Create a record signed only by NODE
@@ -68,7 +68,7 @@ class BarterScript(ScriptBase):
         # 2. Send signature request from NODE to SELF
         request = node.create_dispersy_signature_request_message(record, 2, self_member)
         node.send_message(request, address)
-        yield 0.1
+        yield 0.11
 
         # 3. Receive signature reply from SELF to NODE
         # 4. Check the signature
@@ -82,7 +82,7 @@ class BarterScript(ScriptBase):
         second_signature_offset = len(record.packet) - record.authentication.members[1].signature_length
         packet = record.packet[:second_signature_offset] + response.payload.signature
         node.send_packet(packet, address)
-        yield 0.1
+        yield 0.11
 
         # 6. Check that the record is stored in the database at SELF
         try:
@@ -109,12 +109,12 @@ class BarterScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
         assert self.is_database_empty(community), "Database should be empty (for this community id)"
 
         # send single signed barter record
         message = community.create_barter_record(Member.get_instance(node.my_member.public_key), 10, 2)
-        yield 0.1
+        yield 0.11
 
         # receive signature request
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
@@ -133,7 +133,7 @@ class BarterScript(ScriptBase):
         signature = node.my_member.sign(message.packet, length=first_signature_offset)
         message.authentication.set_signature(Member.get_instance(node.my_member.public_key), signature)
         node.send_message(message, address)
-        yield 0.1
+        yield 0.11
         try:
             community._database.execute(u"SELECT 1 FROM record WHERE community = ? AND global_time = ? AND first_member = ? AND second_member = ? AND upload_first_member = ? AND upload_second_member = ?",
                                         (community.database_id, message.distribution.global_time, node.my_member.database_id, community._my_member.database_id, 10, 2)).next()

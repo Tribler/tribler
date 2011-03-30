@@ -47,7 +47,7 @@ class DiscoveryCommunityScript(ScriptBase):
         """
         cid, alias, comment = (hashlib.sha1("MY-FIRST-COMMUNITY").digest(), u"My First Community", u"My First Community Comment")
         self._discovery.create_community_metadata(cid, alias, comment)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -57,7 +57,7 @@ class DiscoveryCommunityScript(ScriptBase):
 
         cid, alias, comment = (hashlib.sha1("MY-SECOND-COMMUNITY").digest(), u"My Second Community", u"My Second Community Comment")
         self._discovery.create_community_metadata(cid, alias, comment)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -67,7 +67,7 @@ class DiscoveryCommunityScript(ScriptBase):
 
         cid, alias, comment = (hashlib.sha1("MY-THIRD-COMMUNITY").digest(), u"My Third Community", u"My Third Community Comment")
         self._discovery.create_community_metadata(cid, alias, comment)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -84,25 +84,25 @@ class DiscoveryCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(self._discovery)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
 
         address = self._dispersy.socket.get_address()
         cid = hashlib.sha1("FOOD").digest()
 
         node.send_message(node.create_community_metadata_message(cid, u"Food-01", u"Comment-01", 10, 1), address)
-        yield 0.1
+        yield 0.11
         tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         assert tup[0] == u"Food-01"
         assert tup[1] == u"Comment-01"
 
         node.send_message(node.create_community_metadata_message(cid, u"Food-02", u"Comment-02", 20, 2), address)
-        yield 0.1
+        yield 0.11
         tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         assert tup[0] == u"Food-02"
         assert tup[1] == u"Comment-02"
 
         node.send_message(node.create_community_metadata_message(cid, u"Food-03", u"Comment-03", 30, 3), address)
-        yield 0.1
+        yield 0.11
         tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         assert tup[0] == u"Food-03"
         assert tup[1] == u"Comment-03"
@@ -117,13 +117,13 @@ class DiscoveryCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(self._discovery)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
 
         address = self._dispersy.socket.get_address()
         cid = hashlib.sha1("DRINK").digest()
 
         node.send_message(node.create_community_metadata_message(cid, u"Drink-01", u"Comment-01", 10, 1), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -132,7 +132,7 @@ class DiscoveryCommunityScript(ScriptBase):
         assert tup[1] == u"Comment-01"
 
         node.send_message(node.create_community_metadata_message(cid, u"Drink-03", u"Comment-03", 30, 3), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -148,7 +148,7 @@ class DiscoveryCommunityScript(ScriptBase):
         assert message.payload.missing_high == 2
 
         node.send_message(node.create_community_metadata_message(cid, u"Drink-02", u"Comment-02", 20, 2), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -169,13 +169,13 @@ class DiscoveryCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(self._discovery)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
 
         address = self._dispersy.socket.get_address()
         cid = hashlib.sha1("DRINKS").digest()
 
         node.send_message(node.create_community_metadata_message(cid, u"Drinks-01", u"Comment-01", 10, 1), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -184,7 +184,7 @@ class DiscoveryCommunityScript(ScriptBase):
         assert tup[1] == u"Comment-01"
 
         node.send_message(node.create_community_metadata_message(cid, u"Drinks-05", u"Comment-05", 50, 5), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -200,7 +200,7 @@ class DiscoveryCommunityScript(ScriptBase):
         assert message.payload.missing_high == 4
 
         node.send_message(node.create_community_metadata_message(cid, u"Drinks-03", u"Comment-03", 30, 3), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -209,7 +209,7 @@ class DiscoveryCommunityScript(ScriptBase):
         assert tup[1] == u"Comment-01"
 
         node.send_message(node.create_community_metadata_message(cid, u"Drinks-04", u"Comment-04", 40, 4), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -218,7 +218,7 @@ class DiscoveryCommunityScript(ScriptBase):
         assert tup[1] == u"Comment-01"
 
         node.send_message(node.create_community_metadata_message(cid, u"Drinks-02", u"Comment-02", 20, 2), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM community_metadata WHERE cid = ?", (buffer(cid),)).next()
         except StopIteration:
@@ -266,13 +266,13 @@ class DiscoveryUserScript(ScriptBase):
         node.init_socket()
         node.set_community(self._discovery)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
 
         address = self._dispersy.socket.get_address()
         node_address = node.socket.getsockname()
 
         node.send_message(node.create_user_metadata_message(node_address, u"Alice-01", u"Comment-01", 10), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM user_metadata WHERE user = ?", (node.my_member.database_id,)).next()
         except StopIteration:
@@ -281,7 +281,7 @@ class DiscoveryUserScript(ScriptBase):
         assert tup[1] == u"Comment-01"
 
         node.send_message(node.create_user_metadata_message(node_address, u"Alice-03", u"Comment-03", 30), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM user_metadata WHERE user = ?", (node.my_member.database_id,)).next()
         except StopIteration:
@@ -290,7 +290,7 @@ class DiscoveryUserScript(ScriptBase):
         assert tup[1] == u"Comment-03"
 
         node.send_message(node.create_user_metadata_message(node_address, u"Alice-02", u"Comment-02", 20), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM user_metadata WHERE user = ?", (node.my_member.database_id,)).next()
         except StopIteration:
@@ -308,13 +308,13 @@ class DiscoveryUserScript(ScriptBase):
         node.init_socket()
         node.set_community(self._discovery)
         node.init_my_member()
-        yield 0.1
+        yield 0.11
 
         address = self._dispersy.socket.get_address()
         node_address = node.socket.getsockname()
 
         node.send_message(node.create_user_metadata_message(node_address, u"Bob-03", u"Comment-03", 30), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM user_metadata WHERE user = ?", (node.my_member.database_id,)).next()
         except StopIteration:
@@ -323,7 +323,7 @@ class DiscoveryUserScript(ScriptBase):
         assert tup[1] == u"Comment-03"
 
         node.send_message(node.create_user_metadata_message(node_address, u"Bob-01", u"Comment-01", 10), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM user_metadata WHERE user = ?", (node.my_member.database_id,)).next()
         except StopIteration:
@@ -332,7 +332,7 @@ class DiscoveryUserScript(ScriptBase):
         assert tup[1] == u"Comment-03"
 
         node.send_message(node.create_user_metadata_message(node_address, u"Bob-02", u"Comment-02", 20), address)
-        yield 0.1
+        yield 0.11
         try:
             tup = self._discovery_database.execute(u"SELECT alias, comment FROM user_metadata WHERE user = ?", (node.my_member.database_id,)).next()
         except StopIteration:
@@ -364,7 +364,7 @@ class DiscoverySyncScript(ScriptBase):
         node.set_community(self._discovery)
         node.init_my_member()
         address = self._dispersy.socket.get_address()
-        yield 0.1
+        yield 0.11
 
         # create COPPER and TIN communities
         messages = []
@@ -373,11 +373,11 @@ class DiscoverySyncScript(ScriptBase):
         packets = [node.encode_message(message) for message in messages]
         for packet in packets:
             node.send_packet(packet, address)
-            yield 0.1
+            yield 0.11
 
         # send empty bloomfilter
         node.send_message(node.create_dispersy_sync_message(1, 100, [], 3), address)
-        yield 0.1
+        yield 0.11
 
         # receive COPPER and TIN communities
         received = [False] * len(packets)
@@ -394,12 +394,14 @@ class DiscoverySyncScript(ScriptBase):
         SELF sends a dispersy-sync message to ensure that the messages
         (containing the communities) are in its bloom filter.
         """
+        community = DiscoveryCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
         node = DiscoveryNode()
         node.init_socket()
-        node.set_community(self._discovery)
+        node.set_community(community)
         node.init_my_member()
-        address = self._dispersy.socket.get_address()
-        yield 0.1
+        yield 0.11
 
         # create messages should show up in the bloom filter from SELF
         messages = []
@@ -408,19 +410,23 @@ class DiscoverySyncScript(ScriptBase):
         packets = [node.encode_message(message) for message in messages]
         for packet in packets:
             node.send_packet(packet, address)
-            yield 0.1
+            yield 0.11
 
         # wait for dispersy-sync message
-        for _ in xrange(600):
-            yield 0.1
+        for counter in xrange(60):
+            dprint("waiting... ", 60 - counter)
+
             try:
                 _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-sync"])
             except:
-                continue
+                pass
+            else:
+                for packet in packets:
+                    assert packet in message.payload.bloom_filter
+                break
 
-            for packet in packets:
-                assert packet in message.payload.bloom_filter
-            break
+            # wait interval
+            yield 1.0
 
         else:
             assert False
