@@ -55,8 +55,6 @@ class ChannelCommunity(Community):
         self._rawserver = self._dispersy.rawserver.add_task
 
     def initiate_meta_messages(self):
-        
-        
         if self.integrate_with_tribler:
             disp_on_torrent = self._disp_on_torrent
             disp_on_playlist = self._disp_on_playlist
@@ -85,6 +83,12 @@ class ChannelCommunity(Community):
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent),
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
+
+    @property
+    def dispersy_sync_interval(self):
+        if self.integrate_with_tribler:
+            return Community.dispersy_sync_interval(self)
+        return 5
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
