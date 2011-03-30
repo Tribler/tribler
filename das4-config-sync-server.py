@@ -55,7 +55,7 @@ class ConfigProtocol(LineReceiver):
             clients[subscribers] = self.transport
             config_line = " ".join(configs[subscribers])
             self.transport.write(config_line+"\r\n")
-            print "* Client #%d (%s)" %(subscribers, subscriber_ip)
+            print "* Peer #%d (%s)" %(subscribers, subscriber_ip)
             if subscribers == len(configs):
                 self.send_full_config()
             config_lock.release()
@@ -86,7 +86,7 @@ def main():
         parts = line.strip().split()
         configs[int(parts[0])] = parts # save all configurations idexed by peer ID
     expected_subscribers = len(configs)
-    print "* Expecting %d peers..." %(expected_subscribers)
+    print "* Config server expecting %d peers..." %(expected_subscribers)
 
     md5sum = md5()
     md5sum.update(getuser())

@@ -33,11 +33,15 @@ rm -f $PEERS_DIRECTORY/peers
 rm -rf $PEERS_DIRECTORY/output
 mkdir -p $PEERS_DIRECTORY/output
 
+cd ${BRANCH}
+echo "* Starting the DAS4 config sync server in the background..."
+./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys & # it automatically stops after all peers received their config
+CONFIG_SERVER_PID=$!
 
 cd $PEERS_DIRECTORY
 PEER_COUNT=$(cat peer.count)
 
-echo "Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
+echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
 
 find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dispersy\.db' -delete
 find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dprint\.conf' -delete
@@ -46,11 +50,11 @@ cd $BRANCH
 qsub -t 1-${NODE_COUNT} das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH
 
 sleep 2
-qstat
 
 JOB_STATUS_FILE=/tmp/das4_jobstat_${USER}
 do_kill=0
 qstat | grep " ${USER} " > ${JOB_STATUS_FILE}
+grep ' qw ' ${JOB_STATUS_FILE}
 if test $? -eq 0; then
     do_kill=1
     echo
@@ -67,8 +71,15 @@ while test $? -eq 0; do
 done
 rm ${JOB_STATUS_FILE}
 
-if test $do_kill -eq 1; then
-    echo "* Done killing all jobs"
+
+if test $do_kill -eq 0; then
+    wait $CONFIG_SERVER_PID # we will get the output of the config server here
+    echo
+    qstat
+else
+    echo "* Done killing all jobs."
+    kill -9 $CONFIG_SERVER_PID &>/dev/null
+    echo "* Config server killed."
     echo
     qstat
 fi
