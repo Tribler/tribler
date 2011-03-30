@@ -47,3 +47,28 @@ qsub -t 1-${NODE_COUNT} das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUN
 
 sleep 2
 qstat
+
+JOB_STATUS_FILE=/tmp/das4_jobstat_${USER}
+do_kill=0
+qstat | grep " ${USER} " > ${JOB_STATUS_FILE}
+if test $? -eq 0; then
+    do_kill=1
+    echo
+fi
+
+grep ' qw ' ${JOB_STATUS_FILE} &> /dev/null
+while test $? -eq 0; do
+    echo "* Some jobs were queued. Deleting all jobs..."
+    qstat | grep $USER | grep '@' | sed 's/.*\@\(node[0-9]\{3\}\).*/\1/g' | xargs -I A ssh A killall python
+    sleep 1
+    qstat | grep $USER | tee ${JOB_STATUS_FILE}
+    sleep 1
+    grep ${USER} ${JOB_STATUS_FILE} | grep $USER &> /dev/null # kill everything of this user
+done
+rm ${JOB_STATUS_FILE}
+
+if test $do_kill -eq 1; then
+    echo "* Done killing all jobs"
+    echo
+    qstat
+fi
