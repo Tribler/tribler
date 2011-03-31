@@ -33,6 +33,10 @@ rm -f $PEERS_DIRECTORY/peers
 rm -rf $PEERS_DIRECTORY/output
 mkdir -p $PEERS_DIRECTORY/output
 
+# save SVN version of ${BRANCH}
+cd ${BRANCH}
+svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > $PEERS_DIRECTORY/output/svn_version.txt
+
 cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
 ./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys & # it automatically stops after all peers received their config

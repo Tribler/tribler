@@ -153,6 +153,8 @@ else
     echo "No signature request timeouts." >> $STATS_FILE
 fi
 
+svn_version=$(cat $PEERS_DIRECTORY/output/svn_version.txt)
+
 (
 cat <<END-OF-MSG
 ---
@@ -178,6 +180,7 @@ signature_request_count=$total_sig_req
 signature_request_timeout_ratio=$s_ratio
 barter_history_size=$barter_history_size
 barter_forward_record_on_creation=$barter_forward_record_on_creation
+svn_version=$svn_version
 END-OF-MSG
 ) >> $STATS_FILE
 
