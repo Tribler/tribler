@@ -1,0 +1,83 @@
+#!/bin/sh
+
+if test $# -ne 4; then
+	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min>"
+	exit 1
+fi
+
+# expand experiment config filename to full path
+cfg_name=$(basename $1)
+cfg_path=$(dirname $1)
+cd $cfg_path
+cfg_path=$(pwd)
+EXPERIMENT_CONFIG=$cfg_path/$cfg_name
+source $EXPERIMENT_CONFIG # brings in $BRANCH
+
+cd $2
+PEERS_DIRECTORY=$(pwd)
+NODE_COUNT=$3
+EXPERIMENT_LENGTH=$4
+
+current_hour=$(date +%H)
+day_of_week=$(date +%u)
+if test $current_hour -lt 20 && test $current_hour -gt 8 && test $day_of_week -lt 6 && test $EXPERIMENT_LENGTH -ge 15 ; then
+    # according to: http://www.cs.vu.nl/das4/usage.shtml
+    # working hours: Mon-Fri, 8:00 - 20:00
+    echo "* Adjusting experiment length from $EXPERIMENT_LENGTH min to 14 min (it's working hours!)"
+    EXPERIMENT_LENGTH=14
+fi
+
+rm -rf $PEERS_DIRECTORY/control
+rm -f $PEERS_DIRECTORY/peers
+
+rm -rf $PEERS_DIRECTORY/output
+mkdir -p $PEERS_DIRECTORY/output
+
+cd ${BRANCH}
+echo "* Starting the DAS4 config sync server in the background..."
+./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys & # it automatically stops after all peers received their config
+CONFIG_SERVER_PID=$!
+#disown  # remove job from the job table of the current bash process
+
+cd $PEERS_DIRECTORY
+PEER_COUNT=$(cat peer.count)
+
+echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
+
+find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dispersy\.db' -delete
+find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dprint\.conf' -delete
+
+echo "* Reserving $NODE_COUNT nodes... "
+reservation_length=$[$EXPERIMENT_LENGTH * 60 + 60]
+RESERVATION_ID=$(preserve -# $NODE_COUNT $reservation_length | head -n1 | sed 's/Reservation number \(.*\):/\1/g')
+echo "* Done. Reservation ID: $RESERVATION_ID (you can see reservation status with 'preserve -llist')"
+echo "* Sending job to DAS4..."
+
+cd $BRANCH
+prun SGE_TASK_LAST=${NODE_COUNT} -v -reserve $RESERVATION_ID -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH &
+#prun SGE_TASK_LAST=${NODE_COUNT} -reserve $RESERVATION_ID -np ${NODE_COUNT} sleep 1000000 &
+PRUN_PID=$!
+sleep 1
+echo
+echo "*** If the job gets queued, you can cancel everything using Ctrl+C"
+echo "*** or wait until the reservation is honoured"
+echo "*** (check reservation status with 'preserve -llist')"
+echo
+echo "* Waiting for peers to start and receive their configuration..."
+
+function stop_everything {
+    echo "* Stopping config server..."
+    kill -9 $CONFIG_SERVER_PID &>/dev/null
+    echo "* Stopping DAS4 job..."
+    kill -1 $PRUN_PID &>/dev/null # according to http://www.cs.vu.nl/das4/prun.shtml, must send SIGINT
+    echo "* Canceling reservation..."
+    preserve -c $RESERVATION_ID
+    echo "* Cleanup complete."
+    exit
+}
+
+trap stop_everything SIGHUP SIGTERM SIGINT
+# disown $CONFIG_SERVER_PID # doesn't work
+wait $CONFIG_SERVER_PID
+echo "* Experiment started."
+
