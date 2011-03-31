@@ -189,3 +189,4 @@ class BarterCommunity(Community):
                                             second_member,
                                             message.payload.first_upload,
                                             message.payload.second_upload))
+                    log("barter.log", "barter-record", time=message.distribution.global_time, first=first_member, second=second_member, first_upload=message.payload.first_upload, second_upload=message.payload.second_upload)
