@@ -271,6 +271,10 @@ class BarterScenarioScript(ScriptBase):
             my_address = (ip, int(port))
         if __debug__: log("barter.log", "read-config-done")
 
+        # create mymember
+        my_member = MyMember(public_key, private_key, sync_with_database=True)
+        dprint(my_member)
+
         # populate the candidate and user tables
         if __debug__:
             _peer_counter = 0
@@ -292,10 +296,6 @@ class BarterScenarioScript(ScriptBase):
                     execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
-
-        # create mymember
-        my_member = MyMember(public_key, private_key, sync_with_database=True)
-        dprint(my_member)
 
         # join the barter community with the newly created member
         self._barter = BarterCommunity.join_community(sha1(master_key).digest(), master_key, my_member)
