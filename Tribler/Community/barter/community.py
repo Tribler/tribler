@@ -38,9 +38,9 @@ class BarterCommunity(Community):
     def dispersy_sync_member_count(self):
         return 1
 
-    #@property
-    #def dispersy_sync_response_limit(self):
-    #    return 5 * 1025
+    @property
+    def dispersy_sync_response_limit(self):
+        return 32 * 1024
 
     @property
     def barter_history_size(self):
@@ -51,7 +51,7 @@ class BarterCommunity(Community):
     @property
     def barter_forward_record_on_creation(self):
         # default: True
-        return True
+        return False
 
     def initiate_meta_messages(self):
         return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=self.barter_history_size), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
