@@ -11,21 +11,36 @@ source $EXPERIMENT_CONFIG # $BRANCH, $DISPERSY_ARGS
 cd ${PEERS}
 PEERS=$(pwd)
 
+function get_network_interface() {
+    # Ethernet interfaces
+    iface_no=0
+    while test $iface_no -lt 10; do
+    	ip address show dev eth$iface_no 2>/dev/null | grep 'inet ' &>/dev/null
+    	if test $? -eq 0; then
+    		echo eth$iface_no
+    		return
+    	fi
+    	iface_no=$[$iface_no + 1]
+    done
+
+    # InfiniBand interfaces
+    iface_no=0
+    while test $iface_no -lt 10; do
+    	ip address show dev ib$iface_no 2>/dev/null | grep 'inet ' &>/dev/null
+    	if test $? -eq 0; then
+    		echo ib$iface_no
+    		return
+    	fi
+    	iface_no=$[$iface_no + 1]
+    done
+}
+
 # find the first eth interface with an IP set (test eth0-eth9)
-iface_no=0
-iface=$(
-while test $iface_no -lt 10; do
-	ip address show dev eth$iface_no | grep 'inet ' &>/dev/null
-	if test $? -eq 0; then
-		echo eth$iface_no
-		break
-	fi
-	iface_no=$[$iface_no + 1]
-done)
+iface=$(get_network_interface)
 
 # fallback to the 'loopback' interface if nothing found
 if test -z $iface; then
-    echo "* No public eth interface found. Using loopback interface (peer might not be connectable)" >&2
+    echo "* No public eth/ib interface found. Using loopback interface (peer might not be connectable)" >&2
     iface="lo"
 fi
 
