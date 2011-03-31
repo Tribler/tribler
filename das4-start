@@ -85,7 +85,7 @@ trap stop_everything SIGHUP SIGTERM SIGINT
 wait $CONFIG_SERVER_PID
 start_time=$(date +%s)
 start_time_s=$(awk 'BEGIN {print strftime("%Y-%m-%d %H:%M:%S",'$start_time')}')
-let stop_time=$start_time+$reservation_length
+let stop_time=$start_time+$[$EXPERIMENT_LENGTH * 60]
 stop_time_s=$(awk 'BEGIN {print strftime("%Y-%m-%d %H:%M:%S",'$stop_time')}')
 echo "* Peers received their configuration."
 echo "* Experiment started ($start_time_s)"
