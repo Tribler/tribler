@@ -217,12 +217,14 @@ class BarterScenarioScript(ScriptBase):
 
         return commands
 
-    def sleep(self):
+    def sleep(self, initial_delay=False):
         """ Calculate the time to sleep.
         """
         now = time.time()
         expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
-        st = max(0.0, expected_time - now) * random()
+        st = max(0.0, expected_time - now)
+        if not initial_delay:
+            st *= random()
         log("barter.log", "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
         return st
 
@@ -231,10 +233,15 @@ class BarterScenarioScript(ScriptBase):
         # this master key NEEDS to be the same as that in BarterTrackerScript as they work together
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403cbbfd2dfb67a7db66c88988df56f93fa6e7f982f9a6a0fa8898492c8b8cae23e10b159ace60b7047012082a5aa4c6e221d7e58107bb550436d57e046c11ab4f51f0ab18fa8f58d0346cc12d1cc2b61fc86fe5ed192309152e11e3f02489e30c7c971dd989e1ce5030ea0fb77d5220a92cceb567cbc94bc39ba246a42e215b55e9315b543ddeff0209e916f77c0d747".decode("HEX")
 
+        # remove all trackers.  this experiment may not be contaminated by outside influences
+        self._dispersy.database.execute(u"DELETE FROM candidate where community=0")
+        assert self._dispersy._total_send == 0
+        assert self._dispersy._total_received == 0
+
         self._members = {}
         self.original_on_incoming_packets = self._dispersy.on_incoming_packets
         self.original_send = self._dispersy._send
-        
+
         def _select_candidate_addresses(community_id, address_count, diff_range, age_range):
             addresses = set()
             sql = u"""SELECT host, port
@@ -249,8 +256,9 @@ class BarterScenarioScript(ScriptBase):
             # return what we have
             if addresses:
                 log("dispersy.log","found-candidates")
-                return addresses
-            return set(["1.1.1.1",1111]) # send UDP packet to nowhere
+            return addresses
+            # return set(["1.1.1.1",1111]) # send UDP packet to nowhere
+        self._dispersy._select_candidate_addresses = _select_candidate_addresses
 
         #
         # Read our configuration from the peer.conf file
@@ -263,12 +271,36 @@ class BarterScenarioScript(ScriptBase):
             my_address = (ip, int(port))
         if __debug__: log("barter.log", "read-config-done")
 
+        # populate the candidate and user tables
+        if __debug__:
+            _peer_counter = 0
+        # assume that this will be the ID, check after community is joined that the value is correct
+        community_database_id = 1
+        with self._dispersy.database as execute:
+            with open('data/peers') as file:
+                for line in file:
+                    name, ip, port, public_key, _ = line.split(' ', 4)
+                    if __debug__:
+                        _peer_counter += 1
+                        log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
+                    if name == my_name: continue
+                    public_key = public_key.decode('HEX')
+                    port = int(port)
+
+                    #self._dispersy._send([(ip, port)], [message.packet])
+                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (community_database_id, unicode(ip), port))
+                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
+                    #if __debug__:
+                    #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
+
         # create mymember
         my_member = MyMember(public_key, private_key, sync_with_database=True)
         dprint(my_member)
 
         # join the barter community with the newly created member
         self._barter = BarterCommunity.join_community(sha1(master_key).digest(), master_key, my_member)
+        assert self._barter.database_id == community_database_id
+
         dprint("Joined barter community ", self._barter._my_member)
         if __debug__:
             log("barter.log", "joined-barter-community")
@@ -293,34 +325,6 @@ class BarterScenarioScript(ScriptBase):
                                  meta.payload.implement(my_address))
         self._dispersy.store_update_forward([message], True, True, False)
 
-        # now send the dispersy-identity message to everybody the
-        # dispersy-identity is a CommunityDestination message but
-        # currently we don't know anyone else in the
-        # community. Therefore we have to specifically forward the
-        # message to peers using the _dispersy._send function with
-        # (ip, port) combinations we read from the 'data/peers' file
-        if __debug__:
-            _peer_counter = 0
-        with self._dispersy.database as execute:
-            with open('data/peers') as file:
-                for line in file:
-                    name, ip, port, public_key, _ = line.split(' ', 4)
-                    if __debug__:
-                        _peer_counter += 1
-                        log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                    if name == my_name: continue
-                    public_key = public_key.decode('HEX')
-                    port = int(port)
-
-                    #self._dispersy._send([(ip, port)], [message.packet])
-                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (message.community.database_id, unicode(ip), port))
-                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
-                    #if __debug__:
-                    #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
-            execute(u"DELETE FROM candidate where community=0")
-
-        self._dispersy._select_candidate_addresses = _select_candidate_addresses
-
         if __debug__:
             log("barter.log", "done-reading-peers")
 
@@ -334,7 +338,7 @@ class BarterScenarioScript(ScriptBase):
         self._stepcount = 0
 
         # wait until we reach the starting time
-        yield self.sleep()
+        yield self.sleep(initial_delay=True)
 
         self._stepcount = 1
 
