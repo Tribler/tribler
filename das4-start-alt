@@ -47,21 +47,25 @@ echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]"
 find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dispersy\.db' -delete
 find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dprint\.conf' -delete
 
-echo "* Reserving $NODE_COUNT nodes... "
+#echo "* Reserving $NODE_COUNT nodes... "
 reservation_length=$[$EXPERIMENT_LENGTH * 60 + 60]
-RESERVATION_ID=$(preserve -# $NODE_COUNT $reservation_length | head -n1 | sed 's/Reservation number \(.*\):/\1/g')
-echo "* Done. Reservation ID: $RESERVATION_ID (you can see reservation status with 'preserve -llist')"
+echo "* Job reservation length is: $EXPERIMENT_LENGTH min (experiment length) + 1 min = $reservation_length seconds"
+#RESERVATION_ID=$(preserve -# $NODE_COUNT $reservation_length | head -n1 | sed 's/Reservation number \(.*\):/\1/g')
+#echo "* Done. Reservation ID: $RESERVATION_ID (you can see reservation status with 'preserve -llist')"
 echo "* Sending job to DAS4..."
 
-cd $BRANCH
-prun SGE_TASK_LAST=${NODE_COUNT} -v -reserve $RESERVATION_ID -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH &
-#prun SGE_TASK_LAST=${NODE_COUNT} -reserve $RESERVATION_ID -np ${NODE_COUNT} sleep 1000000 &
-PRUN_PID=$!
-sleep 1
+JOB_STATUS_FILE=/tmp/das4_job_$USER
+#prun SGE_TASK_LAST=${NODE_COUNT} -v -reserve $RESERVATION_ID -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH &
+(prun SGE_TASK_LAST=${NODE_COUNT} -t $reservation_length -v -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH 2>&1 | tee $JOB_STATUS_FILE ) &
+PRUN_PID=$! # well, not really prun's PID, but we'll be using this one to send prun and tee signals
+sleep 2
+RESERVATION_ID=$(head -n1 $JOB_STATUS_FILE | sed 's/Reservation number \([0-9]*\):.*/\1/g')
+rm $JOB_STATUS_FILE
 echo
-echo "*** If the job gets queued, you can cancel everything using Ctrl+C"
-echo "*** or wait until the reservation is honoured"
-echo "*** (check reservation status with 'preserve -llist')"
+preserve -llist
+echo
+echo "*** If the job gets queued, you can cancel waiting using Ctrl+C"
+echo "*** (check DAS4 status with 'preserve -llist')"
 echo
 echo "* Waiting for peers to start and receive their configuration..."
 
@@ -70,8 +74,8 @@ function stop_everything {
     kill -9 $CONFIG_SERVER_PID &>/dev/null
     echo "* Stopping DAS4 job..."
     kill -1 $PRUN_PID &>/dev/null # according to http://www.cs.vu.nl/das4/prun.shtml, must send SIGINT
-    echo "* Canceling reservation..."
-    preserve -c $RESERVATION_ID
+    #echo "* Canceling reservation..."
+    #preserve -c $RESERVATION_ID
     echo "* Cleanup complete."
     exit
 }
@@ -79,5 +83,14 @@ function stop_everything {
 trap stop_everything SIGHUP SIGTERM SIGINT
 # disown $CONFIG_SERVER_PID # doesn't work
 wait $CONFIG_SERVER_PID
-echo "* Experiment started."
-
+start_time=$(date +%s)
+start_time_s=$(awk 'BEGIN {print strftime("%Y-%m-%d %H:%M:%S",'$start_time')}')
+let stop_time=$start_time+$reservation_length
+stop_time_s=$(awk 'BEGIN {print strftime("%Y-%m-%d %H:%M:%S",'$stop_time')}')
+echo "* Peers received their configuration."
+echo "* Experiment started ($start_time_s)"
+echo "* You can cancel the experiment using 'preserve -c $RESERVATION_ID'"
+echo
+echo "* Waiting for the experiment to end (expected finish time: $stop_time_s)..."
+wait $PRUN_PID
+echo "* Experiment completed."
