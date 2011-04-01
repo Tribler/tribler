@@ -18,6 +18,8 @@ from hashlib import md5
 
 
 configs = {}
+start_timestamp = 0
+
 clients = {}
 config_lock = Lock()
 got_configs = Semaphore(0)
@@ -46,7 +48,7 @@ class ConfigProtocol(LineReceiver):
             transport.write("END\r\n")
 
     def lineReceived(self, line):
-        global config_lock, configs, subscribers
+        global config_lock, configs, subscribers, start_timestamp
         if len(line)>2 and line[0:2] == "IP":
             config_lock.acquire()
             subscribers += 1
@@ -54,7 +56,7 @@ class ConfigProtocol(LineReceiver):
             configs[subscribers][1] = subscriber_ip
             clients[subscribers] = self.transport
             config_line = " ".join(configs[subscribers])
-            self.transport.write(config_line+"\r\n")
+            self.transport.write(str(start_timestamp) + '#' + config_line+"\r\n")
             print "* Peer #%d (%s)" %(subscribers, subscriber_ip)
             if subscribers == len(configs):
                 self.send_full_config()
@@ -78,8 +80,11 @@ class ConfigFactory(Factory):
     protocol = ConfigProtocol
 
 def main():
-    global configs
+    global configs, start_timestamp
     config_file = argv[1]
+    initial_peer_delay = int(argv[2])
+    from time import time
+    start_timestamp = int(time()) + initial_peer_delay
     for line in open(config_file,"r").readlines():
         if len(line) == 0: continue
         if line[0] == '#': continue
@@ -96,7 +101,7 @@ def main():
     reactor.run()
 
 if __name__ == '__main__':
-    if len(argv) != 2:
-        print "Usage: ./config_sync_server.py <peer-key-file>"
+    if len(argv) != 3:
+        print "Usage: ./config_sync_server.py <peer-key-file> <initial_peer_delay>"
         exit(1)
     main()

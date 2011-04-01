@@ -50,7 +50,10 @@ MY_IP=$(ip address show dev $iface | grep 'inet ' | awk -F '[/ ]' '{print $6}')
 export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
 export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
 
-MY_ID=$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)
+config="$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)"
+MY_ID=$(echo $config | cut -d' ' -f1)
+STARTING_TIMESTAMP=$(echo $config | cut -d' ' -f2)
+source $EXPERIMENT_CONFIG # reload config with the new STARTING_TIMESTAMP
 
 # run node
 cd ${MY_ID}

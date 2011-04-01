@@ -32,7 +32,7 @@ class BarterCommunity(Community):
 
     @property
     def dispersy_sync_interval(self):
-        return 1.0
+        return 20.0
 
     @property
     def dispersy_sync_member_count(self):

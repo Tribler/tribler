@@ -19,12 +19,15 @@ class ConfigClientProtocol(LineReceiver):
     def lineReceived(self, data):
         if self.state == 1:
             username = getuser()
-            self.my_id = int(data.strip().split()[0])
+            parts = data.strip().split('#')
+            starting_timestamp = int(parts[0])
+            config_line = parts[1]
+            self.my_id = int(config_line.split()[0])
             my_id_str = "%05d" %(self.my_id) 
             f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, my_id_str), "w")
             f.write(data)
             f.close()
-            print my_id_str
+            print my_id_str, starting_timestamp
             self.state = 2
             self.full_config_file = open("/tmp/%s/dispersy/peer-keys_%s.conf" %(username, my_id_str), "w")
         elif self.state == 2:
