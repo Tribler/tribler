@@ -19,6 +19,7 @@ from hashlib import md5
 
 configs = {}
 start_timestamp = 0
+initial_peer_delay = 0
 
 clients = {}
 config_lock = Lock()
@@ -48,10 +49,13 @@ class ConfigProtocol(LineReceiver):
             transport.write("END\r\n")
 
     def lineReceived(self, line):
-        global config_lock, configs, subscribers, start_timestamp
+        global config_lock, configs, subscribers, start_timestamp, initial_peer_delay
         if len(line)>2 and line[0:2] == "IP":
             config_lock.acquire()
             subscribers += 1
+            if subscribers == 1:
+                from time import time
+                start_timestamp = int(time()) + initial_peer_delay
             subscriber_ip = line[3:]
             configs[subscribers][1] = subscriber_ip
             clients[subscribers] = self.transport
@@ -80,11 +84,9 @@ class ConfigFactory(Factory):
     protocol = ConfigProtocol
 
 def main():
-    global configs, start_timestamp
+    global configs, start_timestamp, initial_peer_delay
     config_file = argv[1]
     initial_peer_delay = int(argv[2])
-    from time import time
-    start_timestamp = int(time()) + initial_peer_delay
     for line in open(config_file,"r").readlines():
         if len(line) == 0: continue
         if line[0] == '#': continue
