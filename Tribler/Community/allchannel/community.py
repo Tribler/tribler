@@ -476,7 +476,7 @@ class ChannelCastDBStub():
         for syncid, _ in results:
             sync_ids.add(syncid)
             
-        if len(results) == 15:
+        if len(sync_ids) == 15:
             least_recent = results[-1][1]
             sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT 10"
             results = self._dispersy.database.execute(sql, (least_recent, ))
