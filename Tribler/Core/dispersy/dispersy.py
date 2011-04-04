@@ -885,7 +885,7 @@ class Dispersy(Singleton):
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
             i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check")
+            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check", level=("warning" if i_drop else "nornal"))
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -919,7 +919,7 @@ class Dispersy(Singleton):
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
             i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check")
+            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check", level=("warning" if i_drop else "nornal"))
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -1332,7 +1332,11 @@ class Dispersy(Singleton):
                 self._send(message.destination.addresses, [message.packet])
 
             elif isinstance(message.destination, MemberDestination.Implementation):
-                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
+                if __debug__:
+                    for member in message.destination.members:
+                        if not self._is_valid_external_address(member.address):
+                            dprint("unable to send ", message.name, " to member (", member.address, ")", level="error")
+                    dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
                 self._send([member.address for member in message.destination.members], [message.packet])
 
             else:
@@ -1355,9 +1359,11 @@ class Dispersy(Singleton):
 
         if __debug__:
             if not addresses:
-                dprint("no addresses given (wanted to send ", len(packets), " packets)", level="error")
+                # this is a programming bug.
+                dprint("no addresses given (wanted to send ", len(packets), " packets)", level="error", stack=True)
             if not packets:
-                dprint("no packets given (wanted to send to ", len(addresses), " addresses)", level="error")
+                # this is a programming bug.
+                dprint("no packets given (wanted to send to ", len(addresses), " addresses)", level="error", stack=True)
 
         # update statistics
         self._total_send += len(addresses) * sum([len(packet) for packet in packets])
@@ -1524,6 +1530,9 @@ class Dispersy(Singleton):
     def _is_valid_external_address(self, address):
         # if address[0] in ("0.0.0.0", "127.0.0.1"):
         #     return False
+
+        if address == ("", -1):
+            return False
 
         if address[0].endswith(".0"):
             return False
@@ -2200,6 +2209,7 @@ class Dispersy(Singleton):
         footprint = community.get_meta_message(u"dispersy-signature-response").generate_footprint(payload=(identifier,))
         self.await_message(footprint, self._on_signature_response, (request, response_func, response_args), timeout, len(members))
 
+        if __debug__: log("dispersy.log", "create_signature_request")
         self.store_update_forward([request], store, False, forward)
         return request
 
@@ -2341,6 +2351,7 @@ class Dispersy(Singleton):
                                                     meta.destination.implement(message.address,),
                                                     meta.payload.implement(identifier, signature)))
 
+        if __debug__: log("dispersy.log", "on_signature_request", responses=len(responses))
         self.store_update_forward(responses, False, False, True)
 
     def check_signature_response(self, messages):
@@ -2382,9 +2393,6 @@ class Dispersy(Singleton):
         @param response_args: Optional arguments added when calling response_func.
         @type response_args: tuple
         """
-        # assert isinstance(address, tuple)
-        # assert isinstance(address[0], str)
-        # assert isinstance(address[1], int)
         assert response is None or isinstance(response, Message.Implementation)
         assert response is None or response.name == u"dispersy-signature-response"
         assert isinstance(request, Message.Implementation)
@@ -2394,9 +2402,12 @@ class Dispersy(Singleton):
 
         # check for timeout
         if response is None:
+            if __debug__: log("dispersy.log", "_on_signature_response", timeout=True)
             response_func(response, *response_args)
 
         else:
+            if __debug__: log("dispersy.log", "_on_signature_response", timeout=False)
+
             # the multi signed message
             submsg = request.payload.message
 
@@ -2588,11 +2599,11 @@ class Dispersy(Singleton):
                     byte_limit -= len(packet)
                     if byte_limit <= 0:
                         if __debug__:
-                            log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=-byte_limit, free_bytes=0, over_limit=True)
+                            log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=-byte_limit, free_bytes=0, over_limit=True, nrpackets=len(packets))
                             dprint("bandwidth throttle")
                         break
             else:
-                if __debug__: log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=0, free_bytes=byte_limit, over_limit=False)
+                if __debug__: log("dispersy.log", "response-size", size=community.dispersy_sync_response_limit-byte_limit, extra_bytes=0, free_bytes=byte_limit, over_limit=False, nrpackets=len(packets))
 
             # let the message be processed, although that will not actually result in any processing
             # since we choose to already do everything...

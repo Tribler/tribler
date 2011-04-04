@@ -10,7 +10,7 @@ from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.message import Message, DropMessage
 from Tribler.Core.dispersy.authentication import MultiMemberAuthentication
 from Tribler.Core.dispersy.resolution import PublicResolution
-from Tribler.Core.dispersy.distribution import LastSyncDistribution
+from Tribler.Core.dispersy.distribution import LastSyncDistribution, FullSyncDistribution
 from Tribler.Core.dispersy.destination import CommunityDestination
 
 if __debug__:
@@ -31,6 +31,10 @@ class BarterCommunity(Community):
         self._database = BarterDatabase.get_instance()
 
     @property
+    def dispersy_sync_initial_delay(self):
+        return 10.0
+
+    @property
     def dispersy_sync_interval(self):
         return 20.0
 
@@ -39,22 +43,28 @@ class BarterCommunity(Community):
         return 1
 
     @property
-    def dispersy_sync_response_limit(self):
-        return 32 * 1024
+    def dispersy_candidate_request_initial_delay(self):
+        return 12 * 3600.0
 
     @property
-    def barter_history_size(self):
-        # default: was 10
-        from sys import maxint
-        return maxint
+    def dispersy_candidate_request_interval(self):
+        return 12 * 3600.0
+
+    @property
+    def dispersy_candidate_request_member_count(self):
+        return 1
+
+    @property
+    def dispersy_sync_response_limit(self):
+       return 32 * 1024
 
     @property
     def barter_forward_record_on_creation(self):
-        # default: True
-        return False
+        return True
 
     def initiate_meta_messages(self):
-        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=self.barter_history_size), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
+        # return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", history_size=1), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
+        return [Message(self, u"barter-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), BarterCommunityConversion(self)]
@@ -81,6 +91,8 @@ class BarterCommunity(Community):
         assert not isinstance(second_member, Private)
         assert isinstance(first_upload, (int, long))
         assert isinstance(second_upload, (int, long))
+
+        if __debug__: log("barter.log", "create-dispersy-signature-request")
 
         meta = self.get_meta_message(u"barter-record")
         message = meta.implement(meta.authentication.implement([self._my_member, second_member]),

@@ -304,12 +304,16 @@ class BarterScenarioScript(ScriptBase):
         dprint("Joined barter community ", self._barter._my_member)
         if __debug__:
             log("barter.log", "joined-barter-community")
+            log("barter.log", "barter-community-property", name="candidate_request_initial_delay", value=self._barter.dispersy_candidate_request_initial_delay)
+            log("barter.log", "barter-community-property", name="candidate_request_interval", value=self._barter.dispersy_candidate_request_interval)
+            log("barter.log", "barter-community-property", name="sync_initial_delay", value=self._barter.dispersy_sync_initial_delay)
             log("barter.log", "barter-community-property", name="sync_interval", value=self._barter.dispersy_sync_interval)
             log("barter.log", "barter-community-property", name="sync_member_count", value=self._barter.dispersy_sync_member_count)
             log("barter.log", "barter-community-property", name="sync_response_limit", value=self._barter.dispersy_sync_response_limit)
             log("barter.log", "barter-community-property", name="timestep", value=self._timestep)
-            log("barter.log", "barter-community-property", name="barter_history_size", value=self._barter.barter_history_size)
+            log("barter.log", "barter-community-property", name="barter_history_size", value="unused (currently using FullSyncDistribution)")
             log("barter.log", "barter-community-property", name="barter_forward_record_on_creation", value=self._barter.barter_forward_record_on_creation)
+            log("barter.log", "barter-community-property", name="barter_push_node_count", value=self._barter.get_meta_message(u"barter-record").destination.node_count)
 
         yield 2.0
 

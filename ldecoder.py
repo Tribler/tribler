@@ -69,7 +69,7 @@ def _decode_float(offset, stream):
     assert isinstance(offset, (int, long))
     assert isinstance(stream, str)
     for split in _counter(offset):
-        if not stream[split] in "1234567890-.":
+        if not stream[split] in "1234567890-.e":
             return split, float(stream[offset:split])
 
 def _decode_boolean(offset, stream):
