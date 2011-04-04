@@ -1042,6 +1042,7 @@ class TorrentDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self,db, 'Torrent') ## self,db,torrent
         
         self.mypref_db = MyPreferenceDBHandler.getInstance()
+        self.votecast_db = VoteCastDBHandler.getInstance()
         
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
@@ -1813,15 +1814,9 @@ class TorrentDBHandler(BasicDBHandler):
             mainsql += " limit 20"
             
         results = self._db.fetchall(mainsql)
-        t2 = time()
-        #TODO: votecast replacement
-        #sql = "select mod_id, sum(vote), count(*) from VoteCast group by mod_id order by 2 desc"
-        #votecast_records = self._db.fetchall(sql)
-        votecast_records = []         
         
-        votes = {}
-        for vote in votecast_records:
-            votes[vote[0]] = (vote[1], vote[2])
+        t2 = time()
+        votes = self.votecast_db.getAllPosNegVotes()
         t3 = time()
         
         torrents_dict = {}
@@ -1841,9 +1836,7 @@ class TorrentDBHandler(BasicDBHandler):
                 old_record = torrents_dict[torrent['infohash']]
                 # check if this channel has votes and if so, is it better than previous channel
                 if torrent['channel_permid'] in votes:
-                    sum, count = votes[torrent['channel_permid']] 
-                    numsubscriptions = (sum + count)/3
-                    negvotes = (2*count-sum)/3
+                    numsubscriptions, negvotes = votes[torrent['channel_permid']] 
                     if numsubscriptions-negvotes > old_record['subscriptions'] - old_record['neg_votes']:
                         #print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
                         old_record['channel_permid'] = torrent['channel_permid']
@@ -2893,6 +2886,10 @@ class VoteCastDBHandler(BasicDBHandler):
     def registerSession(self, session):
         self.session = session
         
+    def on_vote_from_dispersy(self, channel_id, voter_id, dispersy_id, vote, timestamp):
+        insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?)"
+        self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
+
     def getPosNegVotes(self, channel_id):
         pos_votes = 0
         neg_votes = 0
@@ -2906,12 +2903,27 @@ class VoteCastDBHandler(BasicDBHandler):
                 neg_votes +=1
         return (pos_votes, neg_votes)
 
+    def getAllPosNegVotes(self):
+        votes = {}
+        
+        sql = 'select vote, channel_id from ChannelVotes'
+        records = self._db.fetchall(sql)
+        for vote, channel_id in records:
+            cur_votes = votes.get(channel_id, [0,0])
+            
+            if vote == 2:
+                cur_votes[0] +=1
+            elif vote == -1:
+                cur_votes[1] +=1
+            votes[channel_id] = cur_votes
+        return votes
+
     def addVote(self, vote):
-        sql = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
+        sql = "INSERT OR IGNORE INTO ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
         self._db.execute_write(sql, vote)
         
     def addVotes(self, votes):
-        sql = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
+        sql = "INSERT OR IGNORE INTO ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
         self._db.executemany(sql, votes)
         
     def removeVote(self, channel_id, voter_id):
@@ -2943,6 +2955,22 @@ class VoteCastDBHandler(BasicDBHandler):
             sql = "select vote from ChannelVotes where channel_id = ? and voter_id = ?"
             return self._db.fetchone(sql, (channel_id, voter_id))
         sql = "select vote from ChannelVotes where channel_id = ? and voter_id ISNULL"
+        return self._db.fetchone(sql, (channel_id, ))
+    
+    def getDispersyId(self, channel_id, voter_id):
+        """ return the dispersy_id for this vote """
+        if voter_id:
+            sql = "select dispersy_id from ChannelVotes where channel_id = ? and voter_id = ?"
+            return self._db.fetchone(sql, (channel_id, voter_id))
+        sql = "select dispersy_id from ChannelVotes where channel_id = ? and voter_id ISNULL"
+        return self._db.fetchone(sql, (channel_id, ))
+    
+    def getTimestamp(self, channel_id, voter_id):
+        """ return the timestamp for this vote """
+        if voter_id:
+            sql = "select time_stamp from ChannelVotes where channel_id = ? and voter_id = ?"
+            return self._db.fetchone(sql, (channel_id, voter_id))
+        sql = "select time_stamp from ChannelVotes where channel_id = ? and voter_id ISNULL"
         return self._db.fetchone(sql, (channel_id, ))
     
     def getChannelsWithNegVote(self, voter_id):
@@ -3584,7 +3612,7 @@ class ChannelCastDBHandler:
                 nr_torrents = self._db.fetchone(select_nr_torrents, (channel_id, self.torrent_db.status_table['dead']))
                 my_vote = self.votecast_db.getVote(channel_id, None)
                 
-                channels.append((channel_id, channel_name[:40], max_timestamp, nr_favorites, nr_collected_torrents, nr_torrents, nr_spam, my_vote, dispersy_cid != '-1'))
+                channels.append((channel_id, channel_name[:40], max_timestamp, nr_favorites, nr_collected_torrents, nr_torrents, nr_spam, my_vote, dispersy_cid != '-1', dispersy_cid))
                 
         def channel_sort(a, b):
             #first compare local vote, spam -> return -1

@@ -40,6 +40,34 @@ class ChannelCastPayload(Payload):
         @property
         def packets(self):
             return self._packets
+        
+class VoteCastPayload(Payload):
+    """
+    Propagate vote for a channel
+    """
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, cid, vote, timestamp):
+            assert isinstance(cid, str)
+            assert len(cid) == 20
+            assert isinstance(vote, int)
+            assert isinstance(timestamp, (int, long))
+            
+            super(VoteCastPayload.Implementation, self).__init__(meta)
+            self._cid = cid
+            self._vote = vote
+            self._timestamp = timestamp
+
+        @property
+        def cid(self):
+            return self._cid
+
+        @property
+        def vote(self):
+            return self._vote    
+          
+        @property
+        def timestamp(self):
+            return self._timestamp      
 
 # class TorrentRequestPayload(Payload):
 #     """

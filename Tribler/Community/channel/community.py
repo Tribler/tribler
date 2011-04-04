@@ -51,6 +51,13 @@ class ChannelCommunity(Community):
             
             #modification_types
             self._modification_types = dict(self._channelcast_db._db.fetchall(u"SELECT name, id FROM MetaDataTypes"))
+        else:
+            try:
+                message = self._get_latest_channel_message()
+                if message:
+                    self._channel_id = self._cid
+            except:
+                pass
             
         self._rawserver = self._dispersy.rawserver.add_task
 
@@ -101,7 +108,7 @@ class ChannelCommunity(Community):
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"channel")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(name, description))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -109,7 +116,7 @@ class ChannelCommunity(Community):
 
     def _disp_check_channel(self, messages):
         for message in messages:
-            if not self._timeline.check(message):
+            if not self.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -128,12 +135,12 @@ class ChannelCommunity(Community):
                 self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
             else:
                 log("dispersy.log", "received-channel-record") # TODO: should change this to something more specific to channels
-                self._channel_id = True
+                self._channel_id = self._cid
 
     def _disp_create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(infohash, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -148,7 +155,7 @@ class ChannelCommunity(Community):
         meta = self.get_meta_message(u"torrent")
         for infohash, timestamp in torrentlist:
             message = meta.implement(meta.authentication.implement(self._my_member),
-                                     meta.distribution.implement(self._timeline.claim_global_time()),
+                                     meta.distribution.implement(self.claim_global_time()),
                                      meta.destination.implement(),
                                      meta.payload.implement(infohash, timestamp))
             messages.append(message)
@@ -161,7 +168,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
                 
-            if not self._timeline.check(message):
+            if not self.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -176,7 +183,6 @@ class ChannelCommunity(Community):
             
             dispersy_id = message.packet_id
             torrentlist.append((self._channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp))
-            
             addresses.add(message.address)
             infohashes.add(message.payload.infohash)
             
@@ -207,7 +213,7 @@ class ChannelCommunity(Community):
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(name, description))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -219,7 +225,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            if not self.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -264,7 +270,7 @@ class ChannelCommunity(Community):
         
         meta = self.get_meta_message(u"comment")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(text, timestamp, reply_to_message, reply_to_mid, reply_to_global_time, reply_after_message, reply_after_mid, reply_after_global_time, playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -276,7 +282,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            if not self.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -360,7 +366,7 @@ class ChannelCommunity(Community):
         
         meta = self.get_meta_message(u"modification")
         message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self._timeline.claim_global_time()),
+                                 meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(modification_type, modifcation_value, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -372,7 +378,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            if not self.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -439,7 +445,7 @@ class ChannelCommunity(Community):
         messages = []
         for infohash in infohashes:
             message = meta.implement(meta.authentication.implement(self._my_member),
-                                     meta.distribution.implement(self._timeline.claim_global_time()),
+                                     meta.distribution.implement(self.claim_global_time()),
                                      meta.destination.implement(),
                                      meta.payload.implement(infohash, playlist_message))
             messages.append(message)
@@ -453,7 +459,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            if not self.check(message):
                 raise DropMessage("TODO: implement delay by proof")
             yield message
     

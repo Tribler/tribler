@@ -29,6 +29,8 @@ from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoPlayer import VideoPlayer
 
 from math import sqrt
+from __init__ import *
+from Tribler.Community.allchannel.community import AllChannelCommunity
 
 DEBUG = False
 
@@ -659,8 +661,8 @@ class TorrentManager:
                         newval['channel_name']=""
                         
                     if 'channel_permid' in value:
-                        newval['neg_votes'], newval['subscriptions'] = self.votecastdb.getPosNegVotes(value['channel_permid'])
-                        if newval['subscriptions']-newval['neg_votes']<VOTE_LIMIT:
+                        newval['subscriptions'], newval['neg_votes'] = self.votecastdb.getPosNegVotes(value['channel_permid'])
+                        if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
                             # now, this is SPAM
                             continue
                     else:
@@ -732,12 +734,13 @@ class TorrentManager:
         self.doStatNormalization(self.hits,'neg_votes', 'norm_neg_votes')
         self.doStatNormalization(self.hits,'subscriptions', 'norm_subscriptions')
 
-        def cmp(a,b):
+        def score_cmp(a,b):
+            score_a = 0.8*a.get('norm_num_seeders',0) - 0.1*a.get('norm_neg_votes',0) + 0.1*a.get('norm_subscriptions',0)
+            score_b = 0.8*b.get('norm_num_seeders',0) - 0.1*b.get('norm_neg_votes',0) + 0.1*b.get('norm_subscriptions',0)
             # normScores can be small, so multiply
-            return int( 1000000.0 * ( 0.8*b.get('norm_num_seeders',0) + 0.1*b.get('norm_neg_votes',0) + 0.1*b.get('norm_subscriptions',0) -
-                        0.8*a.get('norm_num_seeders',0) - 0.1*a.get('norm_neg_votes',0) - 0.1*a.get('norm_subscriptions',0) ))
+            return cmp(score_a, score_b)
            
-        self.hits.sort(cmp)
+        self.hits.sort(cmp, reverse = True)
 
     def doStatNormalization(self, hits, normKey, newKey):
         '''Center the variance on zero (this means mean == 0) and divide
@@ -1064,38 +1067,44 @@ class ChannelSearchGridManager:
         return len(hits), hits
     
     def getChannel(self, channel_id):
-        return self.channelcast_db.getChannel(channel_id)
-    
-    def _dispersy_change_communitytype(self, channel_id, communityclass):
-        def dispersy_thread():
-            dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
-            dispersy_cid = str(dispersy_cid)
-            if dispersy_cid != '-1':
-                try:
-                    community = self.dispersy.get_community(dispersy_cid)
-                except KeyError:
-                    community = dispersy_cid
-                community = self.dispersy.reclassify_community(community, communityclass)
-                
-                return community != None
-    
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        data = self.channelcast_db.getChannel(channel_id) 
+        
+        #check if we need to convert our vote
+        if data[CHANNEL_IS_DISPERSY] and (data[CHANNEL_MY_VOTE] == -1 or data[CHANNEL_MY_VOTE] == 2):
+            timestamp = self.votecastdb.getTimestamp(channel_id, None)
+            self.do_vote(channel_id, data[CHANNEL_MY_VOTE], timestamp)
+        return data
     
     def spam(self, channel_id):
-        self._dispersy_change_communitytype(channel_id, PreviewChannelCommunity)
-        self.votecastdb.spam(channel_id)
-        
-        #Niels: deleting all torrents will cause this mark as spam operation not be reversable
-        #self.channelcast_db.deleteTorrentsFromPublisherId(publisher_id)
+        self.do_vote(channel_id, -1)
         
     def favorite(self, channel_id):
-        self._dispersy_change_communitytype(channel_id, ChannelCommunity)
-        self.votecastdb.subscribe(channel_id)
+        self.do_vote(channel_id, 2)
     
     def remove_vote(self, channel_id):
-        self._dispersy_change_communitytype(channel_id, PreviewChannelCommunity)
-        self.votecastdb.unsubscribe(channel_id)
+        self.do_vote(channel_id, 0)
         
+    def do_vote(self, channel_id, vote, timestamp = None):
+        if not timestamp:
+            timestamp = int(time())
+        
+        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+        dispersy_cid = str(dispersy_cid)
+        if dispersy_cid != '-1':
+            def dispersy_thread():
+                for community in self.dispersy.get_communities():
+                    if isinstance(community, AllChannelCommunity):
+                        community._disp_create_votecast(dispersy_cid, vote, timestamp)
+                        break
+            self.dispersy.rawserver.add_task(dispersy_thread)
+            
+        elif vote == 2:
+            self.votecastdb.subscribe(channel_id)
+        elif vote == -1:
+            self.votecastdb.spam(channel_id)
+        else:
+            self.votecastdb.unsubscribe(channel_id)
+                
     def getChannelForTorrent(self, infohash):
         return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
     

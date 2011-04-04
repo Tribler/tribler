@@ -2,7 +2,7 @@ from hashlib import sha1
 
 from conversion import AllChannelConversion
 from preview import PreviewChannelCommunity
-from payload import ChannelCastPayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
+from payload import ChannelCastPayload, VoteCastPayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
 
 # from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 # from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -12,11 +12,14 @@ from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.message import Message, DropMessage
-from Tribler.Core.dispersy.authentication import NoAuthentication
+from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.resolution import PublicResolution
-from Tribler.Core.dispersy.distribution import DirectDistribution
+from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
+from Tribler.Core.dispersy.member import MyMember
 
+from Tribler.Community.channel.message import DelayMessageReqChannelMessage
+from Tribler.Community.channel.community import ChannelCommunity
 
 from distutils.util import execute
 
@@ -73,29 +76,29 @@ class AllChannelCommunity(Community):
         super(AllChannelCommunity, self).__init__(cid, master_key)
         
         if integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
             from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
             from Tribler.Core.CacheDB.Notifier import Notifier
         
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
+            self._votecast_db = VoteCastDBHandler.getInstance()
+            self._peer_db = PeerDBHandler.getInstance()
             self._notifier = Notifier.getInstance().notify
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
+            self._votecast_db = VoteCastDBStub(self._dispersy)
+            self._peer_db = PeerDBStub(self._dispersy)
             self._notifier = False
             
         self._rawserver = self.dispersy.rawserver.add_task
         self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
 
-    @property
-    def dispersy_sync_interval(self):
-        # because there is nothing to sync in this community, we will only 'sync' once per hour
-        return 3600.0
-
     def initiate_meta_messages(self):
         # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
         # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
         return [Message(self, u"channelcast", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast),
                 Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
                 Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
                 ]
@@ -174,6 +177,91 @@ class AllChannelCommunity(Community):
             for infohash, channel_id in infohashes:
                 for permid in permids:
                     self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
+                    
+    
+    def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
+        def dispersy_thread():
+            self._disp_create_votecast(vote, timestamp, store, update, forward)
+        self._rawserver(dispersy_thread)
+    
+    def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
+        #reclassify community
+        if vote == 2:
+            communityclass = ChannelCommunity
+        else:
+            communityclass = PreviewChannelCommunity
+            
+        try:
+            community = self.dispersy.get_community(cid)
+        except KeyError:
+            community = cid
+        community = self.dispersy.reclassify_community(community, communityclass)
+
+        #create vote message        
+        meta = self.get_meta_message(u"votecast")
+        message = meta.implement(meta.authentication.implement(self._my_member),
+                                 meta.distribution.implement(self.claim_global_time()),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(cid, vote, timestamp))
+        self._dispersy.store_update_forward([message], store, update, forward)
+        return message
+                    
+    def check_votecast(self, messages):
+        to_send = {}
+        
+        for message in messages:
+            cid = message.payload.cid
+            
+            authentication_member = message.authentication.member
+            if isinstance(authentication_member, MyMember):
+                peer_id = None
+            else:
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
+            
+            try:
+                community = self._dispersy.get_community(cid, True)
+            except KeyError:
+                if __debug__: dprint("join_community ", cid.encode("HEX"))
+                community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
+            
+            if community._channel_id:
+                dispersy_id = self._votecast_db.getDispersyId(community._channel_id, peer_id)
+                if dispersy_id and dispersy_id != -1:
+                    curmessage = self._get_message_from_dispersy_id(dispersy_id, 'votecast')
+                    
+                    #see if this message is newer
+                    if curmessage.distribution.global_time > message.distribution.global_time:
+                        yield DropMessage("Older vote than we currently have")
+                        
+                        if message.address not in to_send:
+                            to_send[message.address] = []
+                        to_send[message.address].append(curmessage.packet)
+            else:
+                yield DelayMessageReqChannelMessage(message, cid)
+                
+        #send all 'newer' votes to addresses
+        for address in to_send.keys():
+            self._dispersy._send([address], to_send[address])
+        
+    def on_votecast(self, messages):
+        if self._notifier:
+            for message in messages:
+                cid = message.payload.cid
+                dispersy_id = message.packet_id
+                
+                authentication_member = message.authentication.member
+                if isinstance(authentication_member, MyMember):
+                    peer_id = None
+                else:
+                    peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
+                
+                try:
+                    community = self._dispersy.get_community(cid, True)
+                except KeyError:
+                    if __debug__: dprint("join_community ", cid.encode("HEX"))
+                    community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
+                
+                self._votecast_db.on_vote_from_dispersy(community._channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
 
     # def _start_torrent_request_queue(self):
     #     # check that we are not working on a request already
@@ -349,6 +437,30 @@ class AllChannelCommunity(Community):
         # we ignore this message because we get a different callback to match it to the request
         pass
 
+    def _get_message_from_dispersy_id(self, dispersy_id, messagename):
+        # 1. get the packet
+        try:
+            cid, packet, packet_id = self._dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+        except StopIteration:
+            raise RuntimeError("Unknown dispersy_id")
+        cid = str(cid)
+        packet = str(packet)
+
+        # 2: check cid
+        assert cid == self._cid, "Message not part of this community"
+
+        # 3. convert packet into a Message instance
+        try:
+            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+        except ValueError, v:
+            #raise RuntimeError("Unable to decode packet")
+            raise
+        message.packet_id = packet_id
+        
+        # 4. check
+        assert message.name == messagename, "Expecting a '%s' message"%messagename
+        return message
+
 
 class ChannelCastDBStub():
     def __init__(self, dispersy):
@@ -358,17 +470,38 @@ class ChannelCastDBStub():
         sync_ids = set()
         
         # 15 latest packets
-        sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT 15"
+        sql = u"SELECT sync.id, global_time FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT 15"
         results = self._dispersy.database.execute(sql)
         
-        for syncid, in results:
+        for syncid, _ in results:
             sync_ids.add(syncid)
-        
-        # 10 random     
-        sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY random() DESC LIMIT 10"
-        results = self._dispersy.database.execute(sql)
+            
+        if len(results) == 15:
+            least_recent = results[-1][1]
+            sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT 10"
+            results = self._dispersy.database.execute(sql, (least_recent, ))
 
-        for syncid, in results:
-            sync_ids.add(syncid)
+            for syncid, in results:
+                sync_ids.add(syncid)
              
         return sync_ids
+
+def VoteCastDBStub():
+    def __init__(self, dispersy):
+        self._dispersy = dispersy
+        
+    def getDispersyId(self, cid, public_key):
+        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community WHERE community.cid = ? AND user.public_key = ? ORDER BY global_time DESC LIMIT 1"
+        try:
+            id,  = self._dispersy.database.execute(sql, (buffer(cid), buffer(public_key))).next()
+            return int(id)
+        
+        except StopIteration:
+            return
+        
+def PeerDBStub():
+    def __init__(self, dispersy):
+        self._dispersy = dispersy
+        
+    def addOrGetPeerID(self, public_key):
+        return public_key

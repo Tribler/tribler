@@ -43,7 +43,7 @@ class AllChannelNode(Node):
 
 class AllChannelScript(ScriptBase):
     def run(self):
-        ec = ec_generate_key(u"low")
+        ec = ec_generate_key(u"low")                    
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         self.caller(self.test_incoming_channel_propagate)
@@ -239,9 +239,9 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             
             for community in dispersy.get_communities():
                 if isinstance(community, PreviewChannelCommunity):
-                    dispersy.reclassify_community(community, ChannelCommunity)
+                    self._community._disp_create_votecast(community._cid, 2, int(time()))
                     
                     log(self._logfile, "joining-community")
-
+                    
                     self.want_to_join = False
-                    break
+                    break        

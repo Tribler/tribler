@@ -4,6 +4,7 @@ from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket
 from Tribler.Core.dispersy.conversion import BinaryConversion
+from json import dumps, loads
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -12,8 +13,9 @@ class AllChannelConversion(BinaryConversion):
     def __init__(self, community):
         super(AllChannelConversion, self).__init__(community, "\x00\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
-        self.define_meta_message(chr(2), community.get_meta_message(u"channel-search-request"), self._encode_channel_search_request, self._decode_channel_search_request)
-        self.define_meta_message(chr(3), community.get_meta_message(u"channel-search-response"), self._encode_channel_search_response, self._decode_channel_search_response)
+        self.define_meta_message(chr(2), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
+        self.define_meta_message(chr(3), community.get_meta_message(u"channel-search-request"), self._encode_channel_search_request, self._decode_channel_search_request)
+        self.define_meta_message(chr(4), community.get_meta_message(u"channel-search-response"), self._encode_channel_search_response, self._decode_channel_search_response)
         # self.define_meta_message(chr(2), community.get_meta_message(u"torrent-request"),
         # self._encode_torrent_request, self._decode_torrent_request)
 
@@ -46,6 +48,29 @@ class AllChannelConversion(BinaryConversion):
             packets.append(packet)
 
         return offset, meta_message.payload.implement(packets)
+    
+    def _encode_votecast(self, message):
+        return self.encode((message.cid, message.vote, message.timestamp))
+    
+    def _decode_votecast(self, meta_message, offset, data):
+        try:
+            offset, values = self.decode(data, offset, 3)
+        except ValueError:
+            raise DropPacket("Unable to decode the payload")
+        
+        cid = values[0]
+        if not (isinstance(cid, str) and len(cid) != 20):
+            raise DropPacket("Invalid 'cid' type or value")
+        
+        vote = values[1]
+        if not isinstance(vote, (int, long)) and vote in [-1, 2]:
+            raise DropPacket("Invalid 'vote' type or value")
+        
+        timestamp = values[2]
+        if not isinstance(timestamp, (int, long)):
+            raise DropPacket("Invalid 'timestamp' type or value")
+        
+        return offset, meta_message.payload.implement(cid, vote, timestamp)
 
     def _encode_channel_search_request(self, message):
         skip = str(message.payload.skip)
@@ -132,3 +157,13 @@ class AllChannelConversion(BinaryConversion):
     def decode_message(self, address, data):
         self._address = address
         return super(AllChannelConversion, self).decode_message(address, data)
+    
+    def encode(self, object):
+        json = str(dumps(object))
+        return json,
+
+    def decode(self, data, offset, expected_nr_values = -1):
+        data = loads(data[offset:])
+        if len(data) < expected_nr_values:
+            raise ValueError('Less than expected_nr_value after decode(%d instead of %d)'%(len(data), expected_nr_values))
+        return offset + len(data), data
