@@ -486,7 +486,7 @@ class ChannelCastDBStub():
              
         return sync_ids
 
-def VoteCastDBStub():
+class VoteCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
         
@@ -499,7 +499,7 @@ def VoteCastDBStub():
         except StopIteration:
             return
         
-def PeerDBStub():
+class PeerDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
         
