@@ -696,7 +696,7 @@ class Dispersy(Singleton):
                            FROM sync
                            JOIN reference_user_sync ON reference_user_sync.sync = sync.id
                            WHERE sync.community = ? AND sync.name = ? AND reference_user_sync.user IN (%s)
-                           GROUP BY reference_user_sync.sync
+                           GROUP BY sync.id
                            """ % ", ".join("?" for _ in xrange(len(members))),
                                       (message.community.database_id, message.database_id) + members)
                            if count == message.authentication.count]
@@ -720,7 +720,7 @@ class Dispersy(Singleton):
                                    FROM sync
                                    JOIN reference_user_sync ON reference_user_sync.sync = sync.id
                                    WHERE sync.community = ? AND sync.global_time = ? AND sync.name = ? AND reference_user_sync.user IN (%s)
-                                   GROUP BY reference_user_sync.sync
+                                   GROUP BY sync.id
                                    """ % ", ".join("?" for _ in xrange(len(members))),
                                                              (message.community.database_id, tim[0], message.database_id) + members)
                                    if count == message.authentication.count]
