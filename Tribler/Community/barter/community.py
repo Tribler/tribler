@@ -13,6 +13,8 @@ from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.Core.dispersy.distribution import LastSyncDistribution, FullSyncDistribution
 from Tribler.Core.dispersy.destination import CommunityDestination
 
+from random import random
+
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
     from lencoder import log
@@ -32,11 +34,13 @@ class BarterCommunity(Community):
 
     @property
     def dispersy_sync_initial_delay(self):
-        return 10.0
+        "10.0 * random()"
+        return 10.0 * random()
 
     @property
     def dispersy_sync_interval(self):
-        return 20.0
+        "10.0 + 20.0 * random()"
+        return 10.0 + 20.0 * random()
 
     @property
     def dispersy_sync_member_count(self):
