@@ -228,7 +228,7 @@ class Member(Public, Parameterized1Singleton):
 
     def __cmp__(self, member):
         assert isinstance(member, Member)
-        return self._public_key.__cmp__(member._public_key)
+        return cmp(self._public_key, member._public_key)
 
     def __hash__(self):
         """

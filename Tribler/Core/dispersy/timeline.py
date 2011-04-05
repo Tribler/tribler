@@ -5,6 +5,7 @@ queried as to who had what actions at some point in time.
 
 from itertools import count
 
+from authentication import MemberAuthentication, MultiMemberAuthentication
 from member import Member, MasterMember
 from resolution import PublicResolution, LinearResolution
 
@@ -25,12 +26,19 @@ class Timeline(object):
         """
         if __debug__:
             from message import Message
-            from authentication import MemberAuthentication
         assert isinstance(message, Message.Implementation), message
-        assert isinstance(message.authentication, MemberAuthentication.Implementation), message.authentication
+        assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
         assert isinstance(permission, unicode)
         assert permission in (u'permit', u'authorize', u'revoke')
-        return self._check(message.authentication.member, message.distribution.global_time, [(message.meta, permission)])
+        if isinstance(message.authentication, MemberAuthentication.Implementation):
+            # MemberAuthentication
+            return self._check(message.authentication.member, message.distribution.global_time, [(message.meta, permission)])
+        else:
+            # MultiMemberAuthentication
+            for member in  message.authentication.members:
+                if not self._check(member, message.distribution.global_time, [(message.meta, permission)]):
+                    return False
+            return True
 
     def _check(self, member, global_time, permission_pairs):
         if __debug__:

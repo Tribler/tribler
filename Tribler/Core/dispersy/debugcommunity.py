@@ -7,7 +7,7 @@ from debug import Node
 from destination import MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination
 from distribution import DirectDistribution, FullSyncDistribution, LastSyncDistribution
 from message import Message, DropPacket
-from member import MyMember
+from member import Member, MyMember
 from payload import Payload
 from resolution import PublicResolution
 
@@ -39,14 +39,30 @@ class DebugNode(Node):
                               meta.destination.implement(),
                               meta.payload.implement(text))
 
+    def _create_multimember_text_message(self, message_name, others, text, global_time):
+        assert isinstance(message_name, unicode)
+        assert isinstance(others, list)
+        assert not filter(lambda x: not isinstance(x, Member), others)
+        assert not self._my_member in others
+        assert isinstance(text, str)
+        assert isinstance(global_time, (int, long))
+        meta = self._community.get_meta_message(message_name)
+        return meta.implement(meta.authentication.implement([self._my_member] + others),
+                              meta.distribution.implement(global_time),
+                              meta.destination.implement(),
+                              meta.payload.implement(text))
+
     def create_last_1_test_message(self, text, global_time):
         return self._create_text_message(u"last-1-test", text, global_time)
 
     def create_last_9_nosequence_test_message(self, text, global_time):
         return self._create_text_message(u"last-9-nosequence-test", text, global_time)
 
-    # def create_last_9_sequence_test_message(self, text, global_time, sequence_number):
-    #     return self._create_sequence_text_message(u"last-9-sequence-test", text, global_time, sequence_number)
+    def create_last_9_sequence_test_message(self, text, global_time, sequence_number):
+        return self._create_sequence_text_message(u"last-9-sequence-test", text, global_time, sequence_number)
+
+    def create_last_1_multimember_text_message(self, others, text, global_time):
+        return self._create_multimember_text_message(u"last-1-multimember-text", others, text, global_time)
 
     def create_full_sync_text_message(self, text, global_time):
         return self._create_text_message(u"full-sync-text", text, global_time)
@@ -88,7 +104,7 @@ class DebugCommunityConversion(BinaryConversion):
         super(DebugCommunityConversion, self).__init__(community, "\x00\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"last-1-test"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(2), community.get_meta_message(u"last-9-nosequence-test"), self._encode_text, self._decode_text)
-        # self.define_meta_message(chr(3), community.get_meta_message(u"last-9-sequence-test"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(3), community.get_meta_message(u"last-9-sequence-test"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(4), community.get_meta_message(u"double-signed-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(5), community.get_meta_message(u"triple-signed-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(6), community.get_meta_message(u"taste-aware-record"), self._encode_taste_aware_record, self._decode_taste_aware_record)
@@ -98,6 +114,7 @@ class DebugCommunityConversion(BinaryConversion):
         self.define_meta_message(chr(10), community.get_meta_message(u"out-order-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(11), community.get_meta_message(u"random-order-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(12), community.get_meta_message(u"subjective-set-text"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(13), community.get_meta_message(u"last-1-multimember-text"), self._encode_text, self._decode_text)
 
     def _encode_text(self, message):
         return pack("!B", len(message.payload.text)), message.payload.text
@@ -179,7 +196,8 @@ class DebugCommunity(Community):
     def initiate_meta_messages(self):
         return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"last-9-nosequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                # Message(self, u"last-9-sequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload()),
+                Message(self, u"last-9-sequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"last-1-multimember-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_func), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"double-signed-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_double_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"triple-signed-text", MultiMemberAuthentication(count=3, allow_signature_func=self.allow_triple_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"taste-aware-record", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), SimilarityDestination(cluster=1, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
@@ -253,6 +271,12 @@ class DebugCommunity(Community):
         dprint(message)
         assert message.payload.text in ("Allow=True", "Allow=False")
         return message.payload.text == "Allow=True"
+
+    #
+    # last-1-multimember-text
+    #
+    def allow_signature_func(self, message):
+        return True
 
     #
     # taste-aware-record
