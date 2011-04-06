@@ -66,6 +66,7 @@ from payload import DestroyCommunityPayload
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
+from community import Community
 
 if __debug__:
     from dprint import dprint
