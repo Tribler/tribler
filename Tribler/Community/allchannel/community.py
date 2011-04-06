@@ -143,7 +143,7 @@ class AllChannelCommunity(Community):
                     key = member.public_key
                     if not key in self._blocklist:
                         blocked = False
-                        log("dispersy.log", "member-not-blocked")
+                        log("dispersy.log", "member-not-blocked", member = key)
                         break
                     else:
                         log("dispersy.log", "member-blocked", time = self._blocklist[key])
@@ -248,7 +248,7 @@ class AllChannelCommunity(Community):
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         def dispersy_thread():
             self._disp_create_votecast(vote, timestamp, store, update, forward)
-        self._rawserver(dispersy_thread)                        log("dispersy.log", "member-not-blocked", member = key)
+        self._rawserver(dispersy_thread)
 
     
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
