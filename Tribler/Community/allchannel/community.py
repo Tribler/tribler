@@ -142,11 +142,11 @@ class AllChannelCommunity(Community):
                 for member in members:
                     key = member.public_key
                     if not key in self._blocklist:
-                        log("dispersy.log", "member-not-blocked", member = key)
                         blocked = False
+                        log("dispersy.log", "member-not-blocked")
                         break
                     else:
-                        log("dispersy.log", "member-blocked", member = key, time = self._blocklist[key])
+                        log("dispersy.log", "member-blocked", time = self._blocklist[key])
                 
                 if not blocked:
                     #block this member
