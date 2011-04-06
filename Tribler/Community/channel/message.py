@@ -23,7 +23,7 @@ class DelayMessageReqChannelMessage(DelayMessage):
         # trigger the delayed packet
         meta = delayed.community.get_meta_message(u"missing-channel")
         message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(delayed.community._timeline.claim_global_time()),
+                                 meta.distribution.implement(delayed.community.claim_global_time()),
                                  meta.destination.implement(delayed.address),
                                  meta.payload.implement())
 
