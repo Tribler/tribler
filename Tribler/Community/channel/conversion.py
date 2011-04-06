@@ -44,13 +44,13 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(meta_message, offset, data)
 
     def _encode_torrent(self, message):
-        return pack('!20cl', message.payload.infohash , message.payload.timestamp)
+        return pack('!20sl', message.payload.infohash , message.payload.timestamp)
 
     def _decode_torrent(self, meta_message, offset, data):
         if len(data) < offset + 24:
             raise DropPacket("Unable to decode the payload")
 
-        infohash, timestamp = unpack_from('!20cl', data, offset)
+        infohash, timestamp = unpack_from('!20sl', data, offset)
         if not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
         if not isinstance(timestamp, (int, long)):
@@ -211,13 +211,13 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()
-        return pack('!20c20cl', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time)
+        return pack('!20s20sl', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time)
 
     def _decode_playlist_torrent(self, meta_message, offset, data):
         if len(data) < offset + 44:
             raise DropPacket("Unable to decode the payload")
 
-        infohash, playlist_mid, playlist_global_time = unpack_from('!20c20cl', data, offset)
+        infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sl', data, offset)
 
         if not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
