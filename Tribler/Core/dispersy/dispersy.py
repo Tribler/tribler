@@ -1278,6 +1278,22 @@ class Dispersy(Singleton):
                         execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
                                 (message.community.database_id, member.database_id))
 
+    def select_candidate_addresses(self, community, count, diff_range=(0.0, 30.0), age_range=(120.0, 300.0)):
+        assert isinstance(community, Community)
+        assert isinstance(count, (int, long))
+        assert count > 0
+        assert isinstance(diff_range, tuple)
+        assert len(diff_range) == 2
+        assert isinstance(diff_range[0], float)
+        assert isinstance(diff_range[1], float)
+        assert 0.0 <= diff_range[0] <= diff_range[1]
+        assert isinstance(age_range, tuple)
+        assert len(age_range) == 2
+        assert isinstance(age_range[0], float)
+        assert isinstance(age_range[1], float)
+        assert 0.0 <= age_range[0] <= age_range[1]
+        return self._select_candidate_addresses(community.database_id, count, diff_range, age_range)
+
     def _select_candidate_addresses(self, community_id, address_count, diff_range, age_range):
         assert isinstance(community_id, (int, long))
         assert community_id >= 0
