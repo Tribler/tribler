@@ -536,7 +536,7 @@ class VoteCastDBStub():
         self._dispersy = dispersy
         
     def getDispersyId(self, cid, public_key):
-        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community WHERE community.cid = ? AND user.public_key = ? ORDER BY global_time DESC LIMIT 1"
+        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community JOIN name ON sync.name = name.id WHERE community.cid = ? AND user.public_key = ? AND name.value = 'votecast' ORDER BY global_time DESC LIMIT 1"
         try:
             id,  = self._dispersy.database.execute(sql, (buffer(cid), buffer(public_key))).next()
             return int(id)
