@@ -468,18 +468,18 @@ class ChannelCastDBStub():
     
     def getRecentAndRandomTorrents(self):
         sync_ids = set()
-        
+        last_result_time = None
         # 15 latest packets
         sql = u"SELECT sync.id, global_time FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT 15"
         results = self._dispersy.database.execute(sql)
         
-        for syncid, _ in results:
+        for syncid, time_stamp in results:
             sync_ids.add(syncid)
+            last_result_time = time_stamp
             
         if len(sync_ids) == 15:
-            least_recent = results[-1][1]
             sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT 10"
-            results = self._dispersy.database.execute(sql, (least_recent, ))
+            results = self._dispersy.database.execute(sql, (last_result_time, ))
 
             for syncid, in results:
                 sync_ids.add(syncid)
