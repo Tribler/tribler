@@ -66,7 +66,6 @@ from payload import DestroyCommunityPayload
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
-from community import Community
 
 if __debug__:
     from dprint import dprint
@@ -1280,7 +1279,6 @@ class Dispersy(Singleton):
                                 (message.community.database_id, member.database_id))
 
     def select_candidate_addresses(self, community, count, diff_range=(0.0, 30.0), age_range=(120.0, 300.0)):
-        assert isinstance(community, Community)
         assert isinstance(count, (int, long))
         assert count > 0
         assert isinstance(diff_range, tuple)
