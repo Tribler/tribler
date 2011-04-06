@@ -2880,6 +2880,8 @@ class VoteCastDBHandler(BasicDBHandler):
             print >> sys.stderr, "votecast: couldn't make the table"
         
         self.peer_db = PeerDBHandler.getInstance()
+        self.channelcast_db = ChannelCastDBHandler.getInstance()
+        
         if DEBUG:
             print >> sys.stderr, "votecast: "
     
@@ -2956,6 +2958,9 @@ class VoteCastDBHandler(BasicDBHandler):
             return self._db.fetchone(sql, (channel_id, voter_id))
         sql = "select vote from ChannelVotes where channel_id = ? and voter_id ISNULL"
         return self._db.fetchone(sql, (channel_id, ))
+    
+    def getVoteForMyChannel(self, voter_id):
+        return self.getVote(self.channelcast_db._channel_id, voter_id)
     
     def getDispersyId(self, channel_id, voter_id):
         """ return the dispersy_id for this vote """
