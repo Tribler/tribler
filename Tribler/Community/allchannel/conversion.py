@@ -50,7 +50,7 @@ class AllChannelConversion(BinaryConversion):
         return offset, meta_message.payload.implement(packets)
     
     def _encode_votecast(self, message):
-        return self.encode((message.cid, message.vote, message.timestamp))
+        return self.encode((message.payload.cid, message.payload.vote, message.payload.timestamp))
     
     def _decode_votecast(self, meta_message, offset, data):
         try:
