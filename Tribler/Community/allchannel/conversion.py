@@ -4,7 +4,6 @@ from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket
 from Tribler.Core.dispersy.conversion import BinaryConversion
-from json import dumps, loads
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -50,11 +49,13 @@ class AllChannelConversion(BinaryConversion):
         return offset, meta_message.payload.implement(packets)
     
     def _encode_votecast(self, message):
-        return self.encode((message.payload.cid, message.payload.vote, message.payload.timestamp))
+        return encode((message.payload.cid, message.payload.vote, message.payload.timestamp)),
     
     def _decode_votecast(self, meta_message, offset, data):
         try:
-            offset, values = self.decode(data, offset, 3)
+            offset, values = decode(data, offset)
+            if len(values) != 3:
+                raise ValueError
         except ValueError:
             raise DropPacket("Unable to decode the payload")
         
@@ -157,13 +158,3 @@ class AllChannelConversion(BinaryConversion):
     def decode_message(self, address, data):
         self._address = address
         return super(AllChannelConversion, self).decode_message(address, data)
-    
-    def encode(self, object):
-        json = str(dumps(object))
-        return json,
-
-    def decode(self, data, offset, expected_nr_values = -1):
-        data = loads(data[offset:])
-        if len(data) < expected_nr_values:
-            raise ValueError('Less than expected_nr_value after decode(%d instead of %d)'%(len(data), expected_nr_values))
-        return offset + len(data), data
