@@ -238,10 +238,10 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             log(self._logfile, "trying-to-join-community")
             
             for community in dispersy.get_communities():
-                if isinstance(community, PreviewChannelCommunity):
+                if isinstance(community, PreviewChannelCommunity) and community._channel_id:
                     self._community._disp_create_votecast(community._cid, 2, int(time()))
                     
                     log(self._logfile, "joining-community")
                     
                     self.want_to_join = False
-                    break        
+                    break
