@@ -116,7 +116,7 @@ class ChannelCommunity(Community):
 
     def _disp_check_channel(self, messages):
         for message in messages:
-            if not self.check(message):
+            if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -168,7 +168,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
                 
-            if not self.check(message):
+            if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -225,7 +225,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self.check(message):
+            if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -282,7 +282,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self.check(message):
+            if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -378,7 +378,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self.check(message):
+            if not self._timeline.check(message):
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -459,7 +459,7 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self.check(message):
+            if not self._timeline.check(message):
                 raise DropMessage("TODO: implement delay by proof")
             yield message
     

@@ -1,3 +1,5 @@
+from struct import pack, unpack_from
+
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket, Packet
 from Tribler.Core.dispersy.conversion import BinaryConversion
@@ -15,76 +17,46 @@ class ChannelConversion(BinaryConversion):
         self.define_meta_message(chr(7), community.get_meta_message(u"missing-channel"), self._encode_missing_channel, self._decode_missing_channel)
 
     def _encode_channel(self, message):
-        return encode({"name":message.payload.name,
-                       "description":message.payload.description}),
+        return encode((message.payload.name, message.payload.description)),
 
     def _decode_channel(self, meta_message, offset, data):
         try:
-            offset, dic = decode(data, offset)
+            offset, values = decode(data, offset)
+            if len(values) != 2:
+                raise ValueError
         except ValueError:
             raise DropPacket("Unable to decode the payload")
 
-        if not "name" in dic:
-            raise DropPacket("Missing 'name'")
-        name = dic["name"]
+        name = values[0]
         if not (isinstance(name, unicode) and len(name) < 256):
             raise DropPacket("Invalid 'name' type or value")
 
-        if not "description" in dic:
-            raise DropPacket("Missing 'description'")
-        description = dic["description"]
+        description = values[1]
         if not (isinstance(description, unicode) and len(description) < 1024):
             raise DropPacket("Invalid 'description' type or value")
 
         return offset, meta_message.payload.implement(name, description)
 
+    def _encode_playlist(self, message):
+        return self._encode_channel(message)
+
+    def _decode_playlist(self, meta_message, offset, data):
+        return self._decode_channel(meta_message, offset, data)
+
     def _encode_torrent(self, message):
-        return encode({"infohash":message.payload.infohash,
-                       "timestamp":message.payload.timestamp}),
+        return pack('!20cl', message.payload.infohash , message.payload.timestamp)
 
     def _decode_torrent(self, meta_message, offset, data):
-        try:
-            offset, dic = decode(data, offset)
-        except ValueError:
+        if len(data) < offset + 24:
             raise DropPacket("Unable to decode the payload")
 
-        if not "infohash" in dic:
-            raise DropPacket("Missing 'infohash'")
-        infohash = dic["infohash"]
+        infohash, timestamp = unpack_from('!20cl', data, offset)
         if not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
-
-        if not "timestamp" in dic:
-            raise DropPacket("Missing 'timestamp'")
-        timestamp = dic["timestamp"]
         if not isinstance(timestamp, (int, long)):
             raise DropPacket("Invalid 'timestamp' type")
 
         return offset, meta_message.payload.implement(infohash, timestamp)
-
-    def _encode_playlist(self, message):
-        return encode({"name":message.payload.name,
-                       "description":message.payload.description}),
-
-    def _decode_playlist(self, meta_message, offset, data):
-        try:
-            offset, dic = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the payload")
-
-        if not "name" in dic:
-            raise DropPacket("Missing 'name'")
-        name = dic["name"]
-        if not (isinstance(name, unicode) and len(name) < 256):
-            raise DropPacket("Invalid 'name' type or value")
-
-        if not "description" in dic:
-            raise DropPacket("Missing 'description'")
-        description = dic["description"]
-        if not (isinstance(description, unicode) and len(description) < 1024):
-            raise DropPacket("Invalid 'description' type or value")
-
-        return offset, meta_message.payload.implement(name, description)
 
     def _encode_comment(self, message):
         dict = {"text":message.payload.text,
@@ -142,8 +114,6 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(reply_to_global_time, reply_to_mid)
             reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
-            if __debug__:
-                print_exc()
             reply_to = None
 
         reply_after_mid = dic.get("reply-after-mid", None)
@@ -158,8 +128,6 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(reply_after_global_time, reply_after_mid)
             reply_after = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
-            if __debug__:
-                print_exc()
             reply_after = None
             
         playlist_mid = dic.get("playlist-mid", None)
@@ -174,8 +142,6 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(playlist_mid, playlist_global_time)
             playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
-            if __debug__:
-                print_exc()
             playlist = None
         
         infohash = dic.get("infohash", None)
@@ -245,31 +211,20 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()
-        return encode({"infohash":message.payload.infohash,
-                       "playlist-mid":playlist.authentication.member.mid,
-                       "playlist-global-time":playlist.distribution.global_time}),
+        return pack('!20c20cl', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time)
 
     def _decode_playlist_torrent(self, meta_message, offset, data):
-        try:
-            offset, dic = decode(data, offset)
-        except ValueError:
+        if len(data) < offset + 44:
             raise DropPacket("Unable to decode the payload")
 
-        if not "infohash" in dic:
-            raise DropPacket("Missing 'infohash'")
-        infohash = dic["infohash"]
+        infohash, playlist_mid, playlist_global_time = unpack_from('!20c20cl', data, offset)
+
         if not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
 
-        if not "playlist-mid" in dic:
-            raise DropPacket("Missing 'playlist-mid'")
-        playlist_mid = dic["playlist-mid"]
         if not (isinstance(playlist_mid, str) and len(playlist_mid) == 20):
             raise DropPacket("Invalid 'playlist-mid' type or value")
         
-        if not "playlist-global-time" in dic:
-            raise DropPacket("Missing 'playlist-global-time'")
-        playlist_global_time = dic["playlist-global-time"]
         if not isinstance(playlist_global_time, (int, long)):
             raise DropPacket("Invalid 'playlist-global-time' type")
         
