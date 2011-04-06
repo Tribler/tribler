@@ -49,27 +49,15 @@ class AllChannelConversion(BinaryConversion):
         return offset, meta_message.payload.implement(packets)
     
     def _encode_votecast(self, message):
-        return encode((message.payload.cid, message.payload.vote, message.payload.timestamp)),
+        return pack('!20shl', message.payload.cid, message.payload.vote, message.payload.timestamp),
     
     def _decode_votecast(self, meta_message, offset, data):
-        try:
-            offset, values = decode(data, offset)
-            if len(values) != 3:
-                raise ValueError
-        except ValueError:
+        if len(data) < offset + 26:
             raise DropPacket("Unable to decode the payload")
         
-        cid = values[0]
-        if not (isinstance(cid, str) and len(cid) != 20):
-            raise DropPacket("Invalid 'cid' type or value")
-        
-        vote = values[1]
-        if not isinstance(vote, (int, long)) and vote in [-1, 2]:
+        cid, vote, timestamp = unpack_from('!20shl', data, offset)
+        if not vote in [-1, 2]:
             raise DropPacket("Invalid 'vote' type or value")
-        
-        timestamp = values[2]
-        if not isinstance(timestamp, (int, long)):
-            raise DropPacket("Invalid 'timestamp' type or value")
         
         return offset, meta_message.payload.implement(cid, vote, timestamp)
 

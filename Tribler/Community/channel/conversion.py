@@ -51,11 +51,6 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode the payload")
 
         infohash, timestamp = unpack_from('!20sl', data, offset)
-        if not (isinstance(infohash, str) and len(infohash) == 20):
-            raise DropPacket("Invalid 'infohash' type or value")
-        if not isinstance(timestamp, (int, long)):
-            raise DropPacket("Invalid 'timestamp' type")
-
         return offset, meta_message.payload.implement(infohash, timestamp)
 
     def _encode_comment(self, message):
@@ -218,16 +213,6 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode the payload")
 
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sl', data, offset)
-
-        if not (isinstance(infohash, str) and len(infohash) == 20):
-            raise DropPacket("Invalid 'infohash' type or value")
-
-        if not (isinstance(playlist_mid, str) and len(playlist_mid) == 20):
-            raise DropPacket("Invalid 'playlist-mid' type or value")
-        
-        if not isinstance(playlist_global_time, (int, long)):
-            raise DropPacket("Invalid 'playlist-global-time' type")
-        
         packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         return offset, meta_message.payload.implement(infohash, playlist)
