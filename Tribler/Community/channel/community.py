@@ -145,7 +145,7 @@ class ChannelCommunity(Community):
                                  meta.payload.implement(infohash, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
         
-        log("dispersy.log", "created-barter-record") # TODO: should change this to something more specific to channels
+        log("dispersy.log", "created-barter-record", size = len(message.packet)) # TODO: should change this to something more specific to channels
         
         return message
     
