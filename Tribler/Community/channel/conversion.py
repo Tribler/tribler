@@ -44,7 +44,7 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(meta_message, offset, data)
 
     def _encode_torrent(self, message):
-        return pack('!20sl', message.payload.infohash , message.payload.timestamp)
+        return pack('!20sl', message.payload.infohash , message.payload.timestamp),
 
     def _decode_torrent(self, meta_message, offset, data):
         if len(data) < offset + 24:
@@ -211,7 +211,7 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()
-        return pack('!20s20sl', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time)
+        return pack('!20s20sl', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time),
 
     def _decode_playlist_torrent(self, meta_message, offset, data):
         if len(data) < offset + 44:
