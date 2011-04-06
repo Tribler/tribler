@@ -26,7 +26,7 @@ from distutils.util import execute
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
-
+    from lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3
 CHANNELCAST_INTERVAL = 15
@@ -77,7 +77,8 @@ class AllChannelCommunity(Community):
     def __init__(self, cid, master_key, integrate_with_tribler = True):
         super(AllChannelCommunity, self).__init__(cid, master_key)
         
-        if integrate_with_tribler:
+        self.integrate_with_tribler = integrate_with_tribler
+        if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
             from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -111,6 +112,12 @@ class AllChannelCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
+    
+    @property
+    def dispersy_sync_interval(self):
+        if self.integrate_with_tribler:
+            return Community.dispersy_sync_interval(self)
+        return 5
 
     def create_channelcast(self, forward=True):
         try:
@@ -124,6 +131,8 @@ class AllChannelCommunity(Community):
             if len(self._candidateset) == 0:
                 self._candidateset = self._dispersy.select_candidate_addresses(self, 100)
                 
+                log("dispersy.log", "new-candidates", newsize = len(self._candidateset))
+                
             #loop through all candidates to see if we can find a non-blocked peer
             while len(self._candidateset) > 0:
                 address = self._candidateset.pop()
@@ -132,8 +141,11 @@ class AllChannelCommunity(Community):
                 blocked = True
                 for member in members:
                     if not member in self._blocklist:
+                        log("dispersy.log", "member-not-blocked", member = member)
                         blocked = False
                         break
+                    else:
+                        log("dispersy.log", "member-blocked", member = member, time = self._blocklist[member])
                 
                 if not blocked:
                     #block this member
@@ -171,6 +183,8 @@ class AllChannelCommunity(Community):
                                                  meta.payload.implement(packets))
                         
                         self._dispersy._send([address], [message.packet])
+                        
+                        log("dispersy.log", "sending-channelcast", address = address, messages = len(sync_ids), marked = favorites)
         except:
             raise
         finally:
