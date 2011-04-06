@@ -149,11 +149,9 @@ class AllChannelCommunity(Community):
                         log("dispersy.log", "member-blocked", time = self._blocklist[key])
                 
                 if not blocked:
-                    #block this member
                     peer_ids = set()
                     for member in members:
                         key = member.public_key
-                        self._blocklist[key] = now
                         peer_ids.add(self._peer_db.addOrGetPeerID(key))
                     
                     log("dispersy.log", "not-blocked", peers = len(peer_ids))
@@ -188,7 +186,14 @@ class AllChannelCommunity(Community):
                         
                         self._dispersy._send([address], [message.packet])
                         
+                        #we've send something to this peer, add to blocklist
+                        for member in members:
+                            key = member.public_key
+                            self._blocklist[key] = now
+                        
                         log("dispersy.log", "sending-channelcast", address = address, messages = len(sync_ids), marked = favorites)
+                        #we're done
+                        break
         except:
             raise
         finally:
