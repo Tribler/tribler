@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-from string import printable
+from string import digits, letters, punctuation
 from time import strftime
 
 def _encode_str(l, value):
     assert isinstance(l, list)
     assert isinstance(value, str)
     for char in value:
-        if not char in printable:
+        if not char in _printable:
             value = value.encode("HEX")
             l.extend(("h", str(len(value)), ":", value))
             break
@@ -17,7 +17,7 @@ def _encode_str(l, value):
 def _encode_unicode(l, value):
     value = value.encode("UTF-8")
     for char in value:
-        if not char in printable:
+        if not char in _printable:
             value = value.encode("HEX")
             l.extend(("H", str(len(value)), ":", value))
             break
@@ -29,7 +29,7 @@ def _encode_int(l, value):
 
 def _encode_float(l, value):
     l.extend(("f", str(value)))
-             
+
 def _encode_boolean(l, value):
     l.extend(("b", value and "True" or "False"))
 
@@ -109,6 +109,7 @@ def to_string(datetime, _message, **kargs):
         _encode(l, kargs[key])
     return "".join(l)
 
+_printable = "".join((digits, letters, punctuation, " "))
 _seperator = "   "
 _valid_key_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
 _encode_initiated = False
