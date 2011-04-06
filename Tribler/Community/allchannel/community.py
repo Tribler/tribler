@@ -170,7 +170,9 @@ class AllChannelCommunity(Community):
                                                  meta.destination.implement(),
                                                  meta.payload.implement(packets))
                         
-                        self._dispersy._send([address], [message])
+                        self._dispersy._send([address], [message.packet])
+        except:
+            raise
         finally:
             self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
 
