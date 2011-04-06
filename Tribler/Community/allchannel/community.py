@@ -140,20 +140,24 @@ class AllChannelCommunity(Community):
                 
                 blocked = True
                 for member in members:
-                    if not member in self._blocklist:
-                        log("dispersy.log", "member-not-blocked", member = member)
+                    key = member.public_key
+                    if not key in self._blocklist:
+                        log("dispersy.log", "member-not-blocked", member = key)
                         blocked = False
                         break
                     else:
-                        log("dispersy.log", "member-blocked", member = member, time = self._blocklist[member])
+                        log("dispersy.log", "member-blocked", member = key, time = self._blocklist[key])
                 
                 if not blocked:
                     #block this member
                     peer_ids = set()
                     for member in members:
-                        self._blocklist[member] = now
-                        peer_ids.add(self._peer_db.addOrGetPeerID(member.public_key))
-                        
+                        key = member.public_key
+                        self._blocklist[key] = now
+                        peer_ids.add(self._peer_db.addOrGetPeerID(key))
+                    
+                    log("dispersy.log", "not-blocked", peers = len(peer_ids))
+                    
                     #see if all members on this address are subscribed to my channel
                     favorites = True
                     for peer_id in peer_ids:
@@ -244,7 +248,8 @@ class AllChannelCommunity(Community):
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         def dispersy_thread():
             self._disp_create_votecast(vote, timestamp, store, update, forward)
-        self._rawserver(dispersy_thread)
+        self._rawserver(dispersy_thread)                        log("dispersy.log", "member-not-blocked", member = key)
+
     
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community
