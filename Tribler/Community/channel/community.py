@@ -1,3 +1,5 @@
+from random import expovariate
+
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload
 
@@ -26,6 +28,8 @@ class ChannelCommunity(Community):
     def __init__(self, cid, master_key):
         self.integrate_with_tribler = False
         self._channel_id = None
+        self._last_sync_range = None
+        self._last_sync_space_remaining = 0
         
         super(ChannelCommunity, self).__init__(cid, master_key)
 
@@ -96,6 +100,42 @@ class ChannelCommunity(Community):
         if self.integrate_with_tribler:
             return Community.dispersy_sync_interval(self)
         return 5
+
+    @property
+    def dispersy_sync_bloom_filters(self):
+        """
+        Returns a list with sync ranges that are synced this interval.
+
+        Strategy:
+
+         1. We choose a sync range using an exponential distribution.
+
+         2. If the last sync range resulted in new packets we -also- sync using that range, given
+            that it is different than the one choosen with at point 1.
+        """
+        index = min(int(expovariate(1)), len(self._sync_ranges))
+        sync_range = self._sync_ranges[index]
+        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
+
+        # possibly add another range when the previous range resulted in new packets AND is
+        # different from the one we now randomly choose AND the previous sync range still exists
+        # (may have been removed, merged, or split).
+        last_sync_range = self._last_sync_range
+        if last_sync_range and \
+               self._last_sync_space_remaining != self._last_sync_space_remaining.space_remaining and \
+               last_sync_range.time_low != sync_range.time_low and \
+               last_sync_range in self._sync_ranges:
+            last_index = self._sync_ranges.index(last_sync_range)
+            last_time_high = 0 if last_index == 0 else self._sync_ranges[last_index - 1].time_low
+
+            self._last_sync_space_remaining = last_sync_range.space_remaining
+            return [(sync_range.time_low, time_high, sync_range.bloom_filter),
+                    (last_sync_range.time_low, last_time_high, last_sync_range.bloom_filter)]
+
+        else:
+            self._last_sync_range = sync_range
+            self._last_sync_space_remaining = sync_range.space_remaining
+            return [(sync_range.time_low, time_high, sync_range.bloom_filter)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
