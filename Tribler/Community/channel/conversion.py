@@ -51,7 +51,7 @@ class ChannelConversion(BinaryConversion):
         return result
 
     def _decode_torrent(self, meta_message, offset, data):
-        if len(data) - offset % 28 != 0:
+        if (len(data) - offset) % 28 != 0:
             raise DropPacket("Unable to decode the payload")
         
         torrentlist = []
