@@ -130,6 +130,8 @@ class AllChannelCommunity(Community):
             #do we have something to send?
             packets_to_sync = list(self._channelcast_db.getRecentAndRandomTorrents())
             if len(packets_to_sync) > 0:
+                log("dispersy.log", "trying-to-send-channelcast", nr_packets = len(packets_to_sync))
+                
                 #see if we need new candidates
                 if len(self._candidateset) == 0:
                     self._candidateset = self._dispersy.select_candidate_addresses(self, 100)
@@ -208,6 +210,8 @@ class AllChannelCommunity(Community):
         for message in messages:
             incoming_packets.extend((message.address, packet) for packet in message.payload.packets)
             addresses.add(message.address)
+            
+            log("dispersy.log", "received-channelcast", nr_packets = len(message.payload.packets))
 
         for _, packet in incoming_packets:
             # ensure that all the PreviewChannelCommunity instances exist

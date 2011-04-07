@@ -225,7 +225,10 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             cur_command = command.split()
         
             if cur_command[0] == 'create':
+                log(self._logfile, "creating-community")
                 self.my_channel = ChannelCommunity.create_community(self.my_member)
+                
+                log(self._logfile, "creating-channel-message")
                 self.my_channel.create_channel(u'', u'')
             
             elif cur_command[0] == 'publish':

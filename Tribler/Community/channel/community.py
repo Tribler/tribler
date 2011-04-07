@@ -80,7 +80,7 @@ class ChannelCommunity(Community):
             def handled_function(messages):
                 for message in messages:
                     for _ in message.payload.torrentlist:
-                        log("dispersy.log", "handled-barter-record")
+                        log("dispersy.log", "handled-barter-record",type = "torrent")
             
             disp_on_torrent = handled_function
             disp_on_playlist = dummy_function
