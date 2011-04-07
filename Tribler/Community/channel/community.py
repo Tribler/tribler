@@ -123,7 +123,7 @@ class ChannelCommunity(Community):
         # (may have been removed, merged, or split).
         last_sync_range = self._last_sync_range
         if last_sync_range and \
-               self._last_sync_space_remaining != self._last_sync_space_remaining.space_remaining and \
+               self._last_sync_space_remaining != last_sync_range.space_remaining and \
                last_sync_range.time_low != sync_range.time_low and \
                last_sync_range in self._sync_ranges:
             last_index = self._sync_ranges.index(last_sync_range)
