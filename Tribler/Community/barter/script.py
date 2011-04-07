@@ -274,12 +274,14 @@ class BarterScenarioScript(ScriptBase):
         # create mymember
         my_member = MyMember(public_key, private_key, sync_with_database=True)
         dprint(my_member)
+        my_public_key = public_key
 
         # populate the candidate and user tables
         if __debug__:
             _peer_counter = 0
         # assume that this will be the ID, check after community is joined that the value is correct
         community_database_id = 1
+        _peer_ids = {}
         with self._dispersy.database as execute:
             with open('data/peers') as file:
                 for line in file:
@@ -287,9 +289,10 @@ class BarterScenarioScript(ScriptBase):
                     if __debug__:
                         _peer_counter += 1
                         log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                    if name == my_name: continue
                     public_key = public_key.decode('HEX')
                     port = int(port)
+                    _peer_ids[public_key] = int(name)
+                    if name == my_name: continue
 
                     #self._dispersy._send([(ip, port)], [message.packet])
                     execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (community_database_id, unicode(ip), port))
@@ -300,6 +303,8 @@ class BarterScenarioScript(ScriptBase):
         # join the barter community with the newly created member
         self._barter = BarterCommunity.join_community(sha1(master_key).digest(), master_key, my_member)
         assert self._barter.database_id == community_database_id
+
+        self._barter._peer_ids = _peer_ids # we set this internally in the BarterCommunity object
 
         dprint("Joined barter community ", self._barter._my_member)
         if __debug__:
@@ -314,7 +319,7 @@ class BarterScenarioScript(ScriptBase):
             log("barter.log", "barter-community-property", name="barter_history_size", value="unused_(currently_using_FullSyncDistribution)")
             log("barter.log", "barter-community-property", name="barter_forward_record_on_creation", value=self._barter.barter_forward_record_on_creation)
             log("barter.log", "barter-community-property", name="barter_push_node_count", value=self._barter.get_meta_message(u"barter-record").destination.node_count)
-            log("barter.log", "barter-community-property", name="peer_id", value=my_name)
+            log("barter.log", "barter-community-property", name="peer_id", value=_peer_ids[my_public_key])
 
         yield 2.0
 

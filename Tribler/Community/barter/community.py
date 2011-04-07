@@ -32,6 +32,9 @@ class BarterCommunity(Community):
         # storage
         self._database = BarterDatabase.get_instance()
 
+        # mapping between public_keys and peer_ids
+        self._peer_ids = {}
+
     @property
     def dispersy_sync_initial_delay(self):
         "10.0 * random()"
@@ -205,4 +208,12 @@ class BarterCommunity(Community):
                                             second_member,
                                             message.payload.first_upload,
                                             message.payload.second_upload))
-                    if __debug__: log("barter.log", "barter-record", time=message.distribution.global_time, first=first_member, second=second_member, first_upload=message.payload.first_upload, second_upload=message.payload.second_upload)
+                    if __debug__:
+                        peer1_id = self._peer_ids[message.authentication.members[0].public_key]
+                        peer2_id = self._peer_ids[message.authentication.members[1].public_key]
+                        peer1_upload = message.payload.first_upload
+                        peer2_upload = message.payload.second_upload
+                        if peer1_id > peer2_id:
+                            peer1_id, peer2_id = peer2_id, peer1_id
+                            peer1_upload, peer2_upload = peer2_upload, peer1_upload
+                        log("barter.log", "barter-record", first=peer1_id, second=peer2_id, first_upload=peer1_upload, second_upload=peer2_upload)
