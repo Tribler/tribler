@@ -113,7 +113,8 @@ class ChannelCommunity(Community):
          2. If the last sync range resulted in new packets we -also- sync using that range, given
             that it is different than the one choosen with at point 1.
         """
-        index = min(int(expovariate(1)), len(self._sync_ranges))
+        lambd = 1.0 / (len(self._sync_ranges) / 2.0)
+        index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
         sync_range = self._sync_ranges[index]
         time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
 
@@ -133,7 +134,7 @@ class ChannelCommunity(Community):
                     (last_sync_range.time_low, last_time_high, last_sync_range.bloom_filter)]
 
         else:
-            self._last_sync_range = sync_range
+            self._last_sync_range = None if index == 0 else sync_range
             self._last_sync_space_remaining = sync_range.space_remaining
             return [(sync_range.time_low, time_high, sync_range.bloom_filter)]
 
