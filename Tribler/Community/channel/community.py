@@ -22,8 +22,6 @@ if __debug__:
     from lencoder import log
     
     
-MTU = 1472 #max ethernet 1500 - 28 header
-
 class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
@@ -195,8 +193,7 @@ class ChannelCommunity(Community):
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
         messages = []
         
-        max_torrents = (MTU - 111) / 28 #dispersy header is 111 bytes, every torrent is 28
-        
+        max_torrents = 5 
         meta = self.get_meta_message(u"torrent")
         while len(torrentlist) > 0:
             curlist = torrentlist[:max_torrents]
