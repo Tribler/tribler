@@ -78,8 +78,9 @@ class ChannelCommunity(Community):
                 return
             
             def handled_function(messages):
-                for _ in messages:
-                    log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
+                for message in messages:
+                    for _ in message.payload.torrentlist:
+                        log("dispersy.log", "handled-barter-record")
             
             disp_on_torrent = handled_function
             disp_on_playlist = dummy_function
@@ -202,7 +203,9 @@ class ChannelCommunity(Community):
                                      meta.destination.implement(),
                                      meta.payload.implement(curlist))
             
-            log("dispersy.log", "created-barter-record", size = len(message.packet), nr_torrents = len(curlist))
+            log("dispersy.log", "created-torrent-record", size = len(message.packet), nr_torrents = len(curlist))
+            for _ in curlist:
+                log("dispersy.log", "created-barter-record")
             
             messages.append(message)
             torrentlist = torrentlist[max_torrents:]

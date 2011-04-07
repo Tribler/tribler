@@ -531,7 +531,7 @@ class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
     
-    def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10):
+    def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=3, NUM_OWN_RANDOM_TORRENTS=2):
         sync_ids = set()
         last_result_time = None
         # NUM_OWN_RECENT_TORRENTS latest packets
