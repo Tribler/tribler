@@ -44,14 +44,22 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(meta_message, offset, data)
 
     def _encode_torrent(self, message):
-        return pack('!20sl', message.payload.infohash , message.payload.timestamp),
+        result = []
+        for infohash, timestamp in message.payload.torrentlist:
+            result.append(pack('!20sQ', infohash, timestamp))
+        
+        return result
 
     def _decode_torrent(self, meta_message, offset, data):
-        if len(data) < offset + 24:
+        if len(data) - offset % 28 != 0:
             raise DropPacket("Unable to decode the payload")
-
-        infohash, timestamp = unpack_from('!20sl', data, offset)
-        return offset, meta_message.payload.implement(infohash, timestamp)
+        
+        torrentlist = []
+        while len(data) != offset:
+            torrentlist.append(unpack_from('!20sQ', data, offset))
+            offset += 28
+            
+        return offset, meta_message.payload.implement(torrentlist)
 
     def _encode_comment(self, message):
         dict = {"text":message.payload.text,
@@ -206,13 +214,13 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()
-        return pack('!20s20sl', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time),
+        return pack('!20s20sQ', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time),
 
     def _decode_playlist_torrent(self, meta_message, offset, data):
         if len(data) < offset + 44:
             raise DropPacket("Unable to decode the payload")
 
-        infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sl', data, offset)
+        infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
         packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         return offset, meta_message.payload.implement(infohash, playlist)

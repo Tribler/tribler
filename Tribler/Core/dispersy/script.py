@@ -200,7 +200,7 @@ class ScenarioScriptBase(ScriptBase):
     def join_community(self, my_member):
         pass
     
-    def execute_scenario_cmd(self, commands):
+    def execute_scenario_cmds(self, commands):
         pass
 
     def run(self):
@@ -314,8 +314,7 @@ class ScenarioScriptBase(ScriptBase):
 
                 # if there are barter_cmds then execute them
                 if scenario_cmds != -1:
-                    for cmd in scenario_cmds:
-                        self.execute_scenario_cmd(cmd.split())
+                    self.execute_scenario_cmds(scenario_cmds)
 
                 # if there is a stop in the availability_cmds then go
                 # offline

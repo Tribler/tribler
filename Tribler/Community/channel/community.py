@@ -142,23 +142,25 @@ class ChannelCommunity(Community):
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
-                                 meta.payload.implement(infohash, timestamp))
+                                 meta.payload.implement([(infohash, timestamp)]))
         self._dispersy.store_update_forward([message], store, update, forward)
         
         log("dispersy.log", "created-barter-record", size = len(message.packet)) # TODO: should change this to something more specific to channels
-        
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
         messages = []
         
         meta = self.get_meta_message(u"torrent")
-        for infohash, timestamp in torrentlist:
+        while len(torrentlist) > 0:
+            curlist = torrentlist[:100]
             message = meta.implement(meta.authentication.implement(self._my_member),
                                      meta.distribution.implement(self.claim_global_time()),
                                      meta.destination.implement(),
-                                     meta.payload.implement(infohash, timestamp))
+                                     meta.payload.implement(curlist))
             messages.append(message)
+            torrentlist = torrentlist[100:]
+            
         self._dispersy.store_update_forward(messages, store, update, forward)
         return messages
 
@@ -182,9 +184,11 @@ class ChannelCommunity(Community):
             if __debug__: dprint(message)
             
             dispersy_id = message.packet_id
-            torrentlist.append((self._channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp))
+            for infohash, timestamp in message.payload.torrentlist:
+                torrentlist.append((self._channel_id, dispersy_id, infohash, timestamp))
+                infohashes.add(infohash)
+            
             addresses.add(message.address)
-            infohashes.add(message.payload.infohash)
             
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
         

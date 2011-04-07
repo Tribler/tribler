@@ -22,21 +22,19 @@ class ChannelPayload(Payload):
 
 class TorrentPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, infohash, timestamp):
-            assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
-            assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
-            assert isinstance(timestamp, (int, long))
+        def __init__(self, meta, torrentlist):
+            assert isinstance(torrentlist, list)
+            for infohash, timestamp in torrentlist:
+                assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
+                assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
+                assert isinstance(timestamp, (int, long))
+            
             super(TorrentPayload.Implementation, self).__init__(meta)
-            self._infohash = infohash
-            self._timestamp = timestamp
+            self._torrentlist = torrentlist
 
         @property
-        def infohash(self):
-            return self._infohash
-
-        @property
-        def timestamp(self):
-            return self._timestamp
+        def torrentlist(self):
+            return self._torrentlist
 
 class PlaylistPayload(Payload):
     class Implementation(Payload.Implementation):
