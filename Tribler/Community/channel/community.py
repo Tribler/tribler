@@ -20,6 +20,9 @@ from message import DelayMessageReqChannelMessage
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
     from lencoder import log
+    
+    
+MTU = 1472 #max ethernet 1500 - 28 header
 
 class ChannelCommunity(Community):
     """
@@ -192,15 +195,20 @@ class ChannelCommunity(Community):
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
         messages = []
         
+        max_torrents = (MTU - 111) / 28 #dispersy header is 111 bytes, every torrent is 28
+        
         meta = self.get_meta_message(u"torrent")
         while len(torrentlist) > 0:
-            curlist = torrentlist[:100]
+            curlist = torrentlist[:max_torrents]
             message = meta.implement(meta.authentication.implement(self._my_member),
                                      meta.distribution.implement(self.claim_global_time()),
                                      meta.destination.implement(),
                                      meta.payload.implement(curlist))
+            
+            log("dispersy.log", "created-barter-record", size = len(message.packet), nr_torrents = len(curlist))
+            
             messages.append(message)
-            torrentlist = torrentlist[100:]
+            torrentlist = torrentlist[max_torrents:]
             
         self._dispersy.store_update_forward(messages, store, update, forward)
         return messages
