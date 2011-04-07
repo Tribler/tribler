@@ -126,74 +126,71 @@ class AllChannelCommunity(Community):
             for peer in self._blocklist.keys():
                 if self._blocklist[peer] + CHANNELCAST_BLOCK_PERIOD < now: #unblock peer
                     self._blocklist.pop(peer)
-            
-            #see if we need new candidates
-            if len(self._candidateset) == 0:
-                self._candidateset = self._dispersy.select_candidate_addresses(self, 100)
+                    
+            #do we have something to send?
+            packets_to_sync = list(self._channelcast_db.getRecentAndRandomTorrents())
+            if len(packets_to_sync) > 0:
+                #see if we need new candidates
+                if len(self._candidateset) == 0:
+                    self._candidateset = self._dispersy.select_candidate_addresses(self, 100)
                 
-                log("dispersy.log", "new-candidates", newsize = len(self._candidateset))
-                
-            #loop through all candidates to see if we can find a non-blocked peer
-            while len(self._candidateset) > 0:
-                address = self._candidateset.pop()
-                members = self.get_members_from_address(address)
-                
-                blocked = True
-                for member in members:
-                    key = member.public_key
-                    if not key in self._blocklist:
-                        blocked = False
-                        log("dispersy.log", "member-not-blocked", member = key)
-                        break
-                    else:
-                        log("dispersy.log", "member-blocked", time = self._blocklist[key])
-                
-                if not blocked:
-                    peer_ids = set()
-                    for member in members:
+                #loop through all candidates to see if we can find a non-blocked peer
+                while len(self._candidateset) > 0:
+                    address = self._candidateset.pop()
+                    members = self.get_members_from_address(address)
+                    
+                    blocked = True
+                    for member in members: #see if any of the members of this address isn't blocked
                         key = member.public_key
-                        peer_ids.add(self._peer_db.addOrGetPeerID(key))
-                    
-                    log("dispersy.log", "not-blocked", peers = len(peer_ids))
-                    
-                    #see if all members on this address are subscribed to my channel
-                    favorites = True
-                    for peer_id in peer_ids:
-                        vote = self._votecast_db.getVoteForMyChannel(peer_id)
-                        if vote != 2:
-                            favorites = False
+                        if not key in self._blocklist:
+                            blocked = False
                             break
                     
-                    #if this peer has marked my channel as his favorite, then only send last torrent to let him start torrent collecting
-                    if favorites:
-                        sync_ids = list(self._channelcast_db.getRecentAndRandomTorrents(1, 0))
-                    else:
-                        sync_ids = list(self._channelcast_db.getRecentAndRandomTorrents())
-                    
-                    if len(sync_ids) > 0:
-                        # select channel messages (associated with the sync_ids)
-                        sql = u"SELECT sync.packet FROM sync WHERE sync.id IN ("
-                        sql += (u"?, "*len(sync_ids))[:-2]
-                        sql += u")"
-                
-                        packets = [str(packet) for packet, in self._dispersy.database.execute(sql, sync_ids)]
-        
-                        meta = self.get_meta_message(u"channelcast")
-                        message = meta.implement(meta.authentication.implement(),
-                                                 meta.distribution.implement(self.global_time),
-                                                 meta.destination.implement(),
-                                                 meta.payload.implement(packets))
-                        
-                        self._dispersy._send([address], [message.packet])
-                        
-                        #we've send something to this peer, add to blocklist
+                    if not blocked:
+                        peer_ids = set()
                         for member in members:
                             key = member.public_key
-                            self._blocklist[key] = now
+                            peer_ids.add(self._peer_db.addOrGetPeerID(key))
                         
-                        log("dispersy.log", "sending-channelcast", address = address, messages = len(sync_ids), marked = favorites)
-                        #we're done
-                        break
+                        log("dispersy.log", "not-blocked", peers = len(peer_ids))
+                        
+                        #see if all members on this address are subscribed to my channel
+                        favorites = True
+                        for peer_id in peer_ids:
+                            vote = self._votecast_db.getVoteForMyChannel(peer_id)
+                            if vote != 2:
+                                favorites = False
+                                break
+                        
+                        #if this peer has marked my channel as his favorite, then only send last torrent to let him start torrent collecting
+                        if favorites:
+                            packets_to_sync = list(self._channelcast_db.getRecentAndRandomTorrents(1, 0))
+                        
+                        if len(packets_to_sync) > 0:
+                            # select channel messages (associated with the sync_ids)
+                            sql = u"SELECT sync.packet FROM sync WHERE sync.id IN ("
+                            sql += (u"?, "*len(packets_to_sync))[:-2]
+                            sql += u")"
+                    
+                            packets = [str(packet) for packet, in self._dispersy.database.execute(sql, packets_to_sync)]
+                            
+                            meta = self.get_meta_message(u"channelcast")
+                            message = meta.implement(meta.authentication.implement(),
+                                                     meta.distribution.implement(self.global_time),
+                                                     meta.destination.implement(),
+                                                     meta.payload.implement(packets))
+                            
+                            self._dispersy._send([address], [message.packet])
+                            
+                            #we've send something to this peer, add to blocklist
+                            for member in members:
+                                key = member.public_key
+                                self._blocklist[key] = now
+                            
+                            log("dispersy.log", "sending-channelcast", address = address, messages = len(packets_to_sync), marked = favorites)
+                            
+                            #we're done
+                            break
         except:
             raise
         finally:
@@ -255,7 +252,6 @@ class AllChannelCommunity(Community):
             self._disp_create_votecast(vote, timestamp, store, update, forward)
         self._rawserver(dispersy_thread)
 
-    
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community
         if vote == 2:
@@ -560,23 +556,18 @@ class VoteCastDBStub():
         self._dispersy = dispersy
         
     def getDispersyId(self, cid, public_key):
-        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community JOIN name ON sync.name = name.id WHERE community.cid = ? AND user.public_key = ? AND name.value = 'votecast' ORDER BY global_time DESC LIMIT 1"
+        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community JOIN name ON sync.name = name.id WHERE community.classification = 'AllChannelCommunity' AND name.value = 'votecast' AND user.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
-            id,  = self._dispersy.database.execute(sql, (buffer(cid), buffer(public_key))).next()
+            id,  = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
             return int(id)
-        
         except StopIteration:
             return
         
     def getVoteForMyChannel(self, public_key):
-        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community WHERE community.classification = 'AllChannelCommunity' AND user.public_key = ? ORDER BY global_time DESC LIMIT 1"
-        try:
-            id,  = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
-            #if we have a message from this peer in our sync table, then signal a mark as favorite
+        id = self.getDispersyId(public_key)
+        if id: #if we have a votecastmessage from this peer in our sync table, then signal a mark as favorite
             return 2
-        
-        except StopIteration:
-            return 0
+        return 0
         
 class PeerDBStub():
     def __init__(self, dispersy):
