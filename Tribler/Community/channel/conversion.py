@@ -25,7 +25,7 @@ class ChannelConversion(BinaryConversion):
             if len(values) != 2:
                 raise ValueError
         except ValueError:
-            raise DropPacket("Unable to decode the payload")
+            raise DropPacket("Unable to decode the channel-payload")
 
         name = values[0]
         if not (isinstance(name, unicode) and len(name) < 256):
@@ -52,7 +52,7 @@ class ChannelConversion(BinaryConversion):
 
     def _decode_torrent(self, meta_message, offset, data):
         if (len(data) - offset) % 28 != 0:
-            raise DropPacket("Unable to decode the payload")
+            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected multiple of 28"%(len(data) - offset))
         
         torrentlist = []
         while len(data) != offset:
