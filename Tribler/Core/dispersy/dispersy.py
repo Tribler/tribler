@@ -937,7 +937,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             dprint("[", clock() - debug_begin, " pct] handled ", sum(handled.itervalues()), "/", len(packets), " [", ", ".join("%s:%d" % (name, count) for name, count in handled.iteritems()), "] successfully")
-            log("dispersy.log", "handled-successfully", time=clock() - debug_begin, total_packet_count=len(packets), handled_message_count=sum(handled.values()), **dict(('msg_'+name.replace("-","_"), count) for name, count in handled.iteritems()))
+            log("dispersy.log", "handled-successfully", time=clock() - debug_begin, total_packet_count=len(packets), handled_message_count=sum(handled.values()), **dict(('msg_'+str(name.replace("-","_")), count) for name, count in handled.iteritems()))
 
         # notify the community that there was activity from a certain address
         communities = {}

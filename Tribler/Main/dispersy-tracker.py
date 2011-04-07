@@ -141,7 +141,7 @@ class DispersySocket(object):
             try:
                 self.dispersy.on_incoming_packets(packets)
             except:
-                print_exc()
+                traceback.print_exc()
                 raise
 
     def send(self, address, data):
