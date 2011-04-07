@@ -231,7 +231,7 @@ class Node(object):
         assert isinstance(bloom_packets, list)
         assert not filter(lambda x: not isinstance(x, str), bloom_packets)
         assert isinstance(global_time, (int, long))
-        bloom_filter = BloomFilter(1000, 0.001)
+        bloom_filter = BloomFilter(1000, 0.001, prefix="x")
         map(bloom_filter.add, bloom_packets)
         meta = self._community.get_meta_message(u"dispersy-sync")
         return meta.implement(meta.authentication.implement(self._my_member),

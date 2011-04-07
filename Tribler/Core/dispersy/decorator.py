@@ -12,7 +12,7 @@ class Constructor(object):
         def _init_from_str(self, s):
             pass
     """
-    def __new__(cls, *args):
+    def __new__(cls, *args, **kargs):
         # We only need to get __constructors once per class
         if not hasattr(cls, "_Constructor__constructors"):
             constructors = []
@@ -26,7 +26,7 @@ class Constructor(object):
             setattr(cls, "_Constructor__constructors", [(types, method) for _, types, method in constructors])
         return object.__new__(cls)
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kargs):
         for types, method in getattr(self, "_Constructor__constructors"):
             if not len(types) == len(args):
                 continue
@@ -34,7 +34,7 @@ class Constructor(object):
                 if not isinstance(arg, type_):
                     break
             else:
-                return method(self, *args)
+                return method(self, *args, **kargs)
         raise RuntimeError("No constructor found for", tuple(map(type, args)))
 
 __constructor_order = 0

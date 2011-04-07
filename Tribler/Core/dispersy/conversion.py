@@ -1,6 +1,7 @@
+from hashlib import sha1
+from math import ceil
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack_from
-from hashlib import sha1
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -196,24 +197,34 @@ class BinaryConversion(Conversion):
         return offset, meta_message.payload.implement(member, missing_meta_message, missing_low, missing_high)
 
     def _encode_sync(self, message):
-        return pack("!QQ", message.payload.time_low, message.payload.time_high), str(message.payload.bloom_filter)
+        payload = message.payload
+        assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
+        assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+        assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
+        return pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), payload.bloom_filter.prefix, payload.bloom_filter.bytes
 
     def _decode_sync(self, meta_message, offset, data):
-        if len(data) < offset + 16:
+        if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
 
-        time_low, time_high = unpack_from("!QQ", data, offset)
-        offset += 16
+        time_low, time_high, num_slices, bits_per_slice = unpack_from("!QQBH", data, offset)
+        offset += 19
         if not time_low > 0:
             raise DropPacket("Invalid time_low value")
         if not (time_high == 0 or time_low <= time_high):
             raise DropPacket("Invalid time_high value")
+        if not num_slices > 0:
+            raise DropPacket("Invalid num_slices value")
+        if not bits_per_slice > 0:
+            raise DropPacket("Invalid bits_per_slice value")
 
-        try:
-            bloom_filter = BloomFilter(data, offset)
-        except ValueError:
-            raise DropPacket("Invalid bloom filter")
-        offset += len(bloom_filter)
+        prefix = data[offset]
+        offset += 1
+
+        if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
+            raise DropPacket("Invalid number of bytes available")
+        bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
+        offset += num_slices * bits_per_slice
 
         return offset, meta_message.payload.implement(time_low, time_high, bloom_filter)
 
@@ -307,20 +318,27 @@ class BinaryConversion(Conversion):
         return offset + 20, meta_message.payload.implement(data[offset:offset+20])
 
     def _encode_similarity(self, message):
-        return pack("!B", message.payload.cluster), str(message.payload.similarity)
+        payload = message.payload
+        assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
+        assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+        assert len(payload.bloom_filter.prefix) == 0, "Should not have a prefix"
+        return pack("!BBH", payload.cluster, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), payload.bloom_filter.prefix, payload.bloom_filter.bytes
 
     def _decode_similarity(self, meta_message, offset, data):
-        if len(data) < offset + 1:
+        if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
-        cluster, = unpack_from("!B", data, offset)
-        offset += 1
+        cluster, num_slices, bits_per_slice = unpack_from("!BBH", data, offset)
+        offset += 4
+        if not num_slices > 0:
+            raise DropPacket("Invalid num_slices value")
+        if not bits_per_slice > 0:
+            raise DropPacket("Invalid bits_per_slice value")
+        if not (num_slices * bits_per_slice) / 8 == len(data) - offset:
+            raise DropPacket("Invalid number of bytes available")
 
-        try:
-            similarity = BloomFilter(data, offset)
-        except ValueError:
-            raise DropPacket("Invalid similarity")
-        offset += len(similarity)
+        similarity = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
+        offset += num_slices * bits_per_slice
 
         return offset, meta_message.payload.implement(cluster, similarity)
 
@@ -550,20 +568,27 @@ class BinaryConversion(Conversion):
         return offset, meta_message.payload.implement(permission_triplets)
 
     def _encode_subjective_set(self, message):
-        return pack("!B", message.payload.cluster), str(message.payload.subjective_set)
+        payload = message.payload
+        assert 0 < payload.subjective_set.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
+        assert 0 < payload.subjective_set.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+        assert len(payload.subjective_set.prefix) == 0, "Should not have a prefix"
+        return pack("!BBH", payload.cluster, payload.subjective_set.num_slices, payload.subjective_set.bits_per_slice), payload.subjective_set.prefix, payload.subjective_set.bytes
 
     def _decode_subjective_set(self, meta_message, offset, data):
-        if len(data) < offset + 1:
+        if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
-        cluster, = unpack_from("!B", data, offset)
-        offset += 1
+        cluster, num_slices, bits_per_slice = unpack_from("!BBH", data, offset)
+        offset += 4
+        if not num_slices > 0:
+            raise DropPacket("Invalid num_slices value")
+        if not bits_per_slice > 0:
+            raise DropPacket("Invalid bits_per_slice value")
+        if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
+            raise DropPacket("Invalid number of bytes available")
 
-        try:
-            subjective_set = BloomFilter(data, offset)
-        except ValueError:
-            raise DropPacket("Invalid subjective set")
-        offset += len(subjective_set)
+        subjective_set = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
+        offset += num_slices * bits_per_slice
 
         return offset, meta_message.payload.implement(cluster, subjective_set)
 

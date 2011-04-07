@@ -1391,7 +1391,8 @@ class DispersySyncScript(ScriptBase):
         for message in messages:
             for sync_range in community._sync_ranges:
                 if sync_range.time_low <= message.distribution.global_time:
-                    assert message.packet in sync_range.bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time]))
+                    for bloom_filter in sync_range.bloom_filters:
+                        assert message.packet in bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time]))
                     break
             else:
                 assert False, "should always find the sync_range"
@@ -1700,7 +1701,8 @@ class DispersySyncScript(ScriptBase):
         for message in messages:
             for sync_range in community._sync_ranges:
                 if sync_range.time_low <= message.distribution.global_time:
-                    assert message.packet in sync_range.bloom_filter
+                    for bloom_filter in sync_range.bloom_filters:
+                        assert message.packet in bloom_filter
                     break
             else:
                 assert False, "should always find the sync_range"

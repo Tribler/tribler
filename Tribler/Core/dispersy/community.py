@@ -14,7 +14,7 @@ Community instance.
 from hashlib import sha1
 from itertools import count
 from math import sqrt
-from random import gauss
+from random import gauss, choice
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -35,23 +35,32 @@ if __debug__:
     from dprint import dprint
 
 class SyncRange(object):
-    def __init__(self, time_low, bits, error_rate):
+    def __init__(self, time_low, bits, error_rate, redundancy=3):
         assert isinstance(time_low, (int, long))
         assert time_low > 0
         assert isinstance(bits, (int, long))
         assert bits > 0
         assert isinstance(error_rate, float)
         assert 0.0 < error_rate < 1.0
+        assert isinstance(redundancy, int)
+        assert redundancy > 0
         self.time_low = time_low
         self.space_freed = 0
-        self.bloom_filter = BloomFilter(error_rate, bits)
-        self.space_remaining = self.capacity = self.bloom_filter.capacity
+        self.bloom_filters = [BloomFilter(error_rate, bits, prefix=chr(i)) for i in xrange(redundancy)]
+        self.space_remaining = self.capacity = self.bloom_filters[0].capacity
+        if __debug__:
+            for bloom_filter in self.bloom_filters:
+                assert self.capacity == bloom_filter.capacity
+                assert 0 < bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
+                assert 0 < bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+                assert len(bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
 
     def add(self, packet):
         assert isinstance(packet, str)
         assert len(packet) > 0
         self.space_remaining -= 1
-        self.bloom_filter.add(packet)
+        for bloom_filter in self.bloom_filters:
+            bloom_filter.add(packet)
 
     def free(self):
         self.space_freed += 1
@@ -59,7 +68,8 @@ class SyncRange(object):
 
     def clear(self):
         self.space_remaining = self.capacity
-        self.bloom_filter.clear()
+        for bloom_filter in self.bloom_filters:
+            bloom_filter.clear()
 
 class Community(object):
     @classmethod
@@ -524,11 +534,10 @@ class Community(object):
         - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
           The current value is: self._my_member.signature_length
 
-        - The dispersy-sync message uses 16 bytes to indicate the sync range
-
-        - The bloom filter has a 8 byte prefix that stores the bits_per_slice and num_slices
+        - The dispersy-sync message uses 16 bytes to indicate the sync range and 4 bytes for the
+          num_slices, bits_per_slice, and the prefix
         """
-        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 16 - 8) * 8
+        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 16 - 4) * 8
 
     @property
     def dispersy_sync_bloom_filters(self):
@@ -565,11 +574,11 @@ class Community(object):
 
         if index == 0:
             sync_range = self._sync_ranges[index]
-            return [(sync_range.time_low, 0, sync_range.bloom_filter)]
+            return [(sync_range.time_low, 0, choice(sync_range.bloom_filters))]
 
         else:
             newer_range, sync_range = self._sync_ranges[index - 1:index + 1]
-            return [(sync_range.time_low, newer_range.time_low, sync_range.bloom_filter)]
+            return [(sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filter))]
 
     @property
     def dispersy_sync_member_count(self):
@@ -738,7 +747,7 @@ class Community(object):
                             # add a new sync range
                             sync_range = SyncRange(self._global_time + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                             self._sync_ranges.insert(0, sync_range)
-                            if __debug__: dprint("new ", sync_range.bloom_filter.size/8, " byte filter created for range [", sync_range.time_low, ":inf]")
+                            if __debug__: dprint("new ", sync_range.bloom_filters[0].size/8, " byte filter created for range [", sync_range.time_low, ":inf]")
 
                         else:
                             assert last_time_low >= 0
