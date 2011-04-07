@@ -564,7 +564,7 @@ class VoteCastDBStub():
             return
         
     def getVoteForMyChannel(self, public_key):
-        id = self.getDispersyId(public_key)
+        id = self.getDispersyId(None, public_key)
         if id: #if we have a votecastmessage from this peer in our sync table, then signal a mark as favorite
             return 2
         return 0
