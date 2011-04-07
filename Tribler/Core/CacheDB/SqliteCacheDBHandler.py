@@ -2889,7 +2889,7 @@ class VoteCastDBHandler(BasicDBHandler):
         self.session = session
         
     def on_vote_from_dispersy(self, channel_id, voter_id, dispersy_id, vote, timestamp):
-        insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?)"
+        insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
 
     def getPosNegVotes(self, channel_id):

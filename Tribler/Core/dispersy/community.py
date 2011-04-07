@@ -651,7 +651,7 @@ class Community(object):
         The most recent global time.
         @rtype: int or long
         """
-        return self._global_time
+        return max(1, self._global_time)
 
     def claim_global_time(self):
         """

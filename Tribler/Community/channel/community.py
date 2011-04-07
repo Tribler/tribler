@@ -57,6 +57,9 @@ class ChannelCommunity(Community):
             #modification_types
             self._modification_types = dict(self._channelcast_db._db.fetchall(u"SELECT name, id FROM MetaDataTypes"))
         else:
+            # override the dispersy_sync_interval
+            self.dispersy_sync_interval = 5.0
+
             try:
                 message = self._get_latest_channel_message()
                 if message:
@@ -96,12 +99,6 @@ class ChannelCommunity(Community):
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent),
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
-
-    @property
-    def dispersy_sync_interval(self):
-        if self.integrate_with_tribler:
-            return Community.dispersy_sync_interval(self)
-        return 5
 
     @property
     def dispersy_sync_bloom_filters(self):
