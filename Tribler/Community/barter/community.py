@@ -209,8 +209,8 @@ class BarterCommunity(Community):
                                             message.payload.first_upload,
                                             message.payload.second_upload))
                     if __debug__:
-                        peer1_id = self._peer_ids[message.authentication.members[0].public_key]
-                        peer2_id = self._peer_ids[message.authentication.members[1].public_key]
+                        peer1_id = self._peer_ids.get(message.authentication.members[0].public_key, -1)
+                        peer2_id = self._peer_ids.get(message.authentication.members[1].public_key, -1)
                         peer1_upload = message.payload.first_upload
                         peer2_upload = message.payload.second_upload
                         if peer1_id > peer2_id:
