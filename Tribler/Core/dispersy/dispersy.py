@@ -918,7 +918,7 @@ class Dispersy(Singleton):
             handled = {}
 
         # process the packets in priority order
-        for meta, batch in sorted(batches.iteritems()):
+        for meta, batch in sorted(batches.iteritems(), cmp=lambda x, y: x[0].priority - y[0].priority):
             # convert binary packets into Message.Implementation instances
             messages = list(self._convert_batch_into_messages(batch))
             assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
@@ -1225,6 +1225,8 @@ class Dispersy(Singleton):
         # update the bloomfilter
         meta.community.update_sync_range(messages)
 
+        exceptions = True
+        free_sync_range = []
         with self._database as execute:
             for message in messages:
                 # the signature must be set
@@ -1269,14 +1271,29 @@ class Dispersy(Singleton):
 
             if isinstance(meta.distribution, LastSyncDistribution):
                 # delete packets that have become obsolete
+                items = []
+                member_ids = []
                 for member in set(message.authentication.member for message in messages):
-                    execute(u"DELETE FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
-                            (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size))
-                    if __debug__: dprint("deleted ", self._database.changes, " messages")
+                    items.extend(execute(u"SELECT id, global_time FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
+                                         (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size)))
 
                     if is_multi_member_authentication:
-                        execute(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
-                                (message.community.database_id, member.database_id))
+                        member_ids.append(member.database_id)
+
+                self._database.executemany(u"DELETE FROM sync WHERE id = ?", [(id_,) for id_, _ in items])
+                if __debug__: dprint("deleted ", self._database.changes, " messages")
+
+                if is_multi_member_authentication:
+                    community_id = message.community.database_id
+                    self._database.executemany(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
+                                               [(community_id, member_id) for member_id in member_ids])
+
+                free_sync_range.extend(global_time for _, global_time in items)
+            exceptions = False
+
+        if not exceptions and free_sync_range:
+            # update bloom filters
+            meta.community.free_sync_range(free_sync_range)
 
     def select_candidate_addresses(self, community, count, diff_range=(0.0, 30.0), age_range=(120.0, 300.0)):
         assert isinstance(count, (int, long))
@@ -3016,6 +3033,7 @@ class Dispersy(Singleton):
 
                 with self._database as execute:
                     # 1. remove all except the dispersy-destroy-community and dispersy-identity messages
+                    times = [global_time for global_time, in execute(u"SELECT global_time FROM sync WHERE community = ? AND NOT (name = ? OR name = ?)", (community.database_id, message.database_id, identity_message_id))]
                     execute(u"DELETE FROM sync WHERE community = ? AND NOT (name = ? OR name = ?)", (community.database_id, message.database_id, identity_message_id))
 
                     # 2. cleanup the reference_user_sync table.  however, we should keep the ones that are still referenced
@@ -3023,6 +3041,9 @@ class Dispersy(Singleton):
 
                     # 3. cleanup the candidate table.  we need nothing here anymore
                     execute(u"DELETE FROM candidate WHERE community = ?", (community.database_id,))
+
+                # update the bloom filters
+                community.free_sync_range(times)
 
     def _periodically_create_sync(self, community):
         """
@@ -3056,6 +3077,8 @@ class Dispersy(Singleton):
         if __debug__:
             for message in messages:
                 dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high if message.payload.time_high else "inf", "] (", community.get_classification(), ")")
+                if len(message.packet) > 1500 - 60 - 8:
+                    dprint("the dispersy-sync message will be larger than the MTU! (", len(message.packet), ")", level="warning")
         self.store_update_forward(messages, False, False, True)
         if community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
             # if __debug__: dprint("start _periodically_create_sync in ", community.dispersy_candidate_request_interval, " seconds (interval)")

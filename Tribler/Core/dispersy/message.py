@@ -300,6 +300,10 @@ class Packet(MetaObject.Implementation):
         return self._meta._handle_callback
 
     @property
+    def priority(self):
+        return self._meta._priority
+
+    @property
     def packet(self):
         return self._packet
 
@@ -404,13 +408,6 @@ class Message(MetaObject):
                 self._packet = packet
             else:
                 self._packet = self._conversion.encode_message(self)
-
-        def __cmp__(self, other):
-            """
-            Gives priority ordering.
-            """
-            assert isinstance(other, Message.Implementation)
-            return other._meta._priority - self._meta._priority
 
         def __str__(self):
             return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
@@ -518,13 +515,6 @@ class Message(MetaObject):
                         " ", self._distribution.generate_footprint(*distribution),
                         " ", self._destination.generate_footprint(*destination),
                         " ", self._payload.generate_footprint(*payload)))
-
-    def __cmp__(self, other):
-        """
-        Gives priority ordering.
-        """
-        assert isinstance(other, Message)
-        return other._priority - self._priority
 
     def __str__(self):
         return "<%s %s>" % (self.__class__.__name__, self._name)

@@ -35,23 +35,27 @@ if __debug__:
     from dprint import dprint
 
 class SyncRange(object):
-    def __init__(self, time_low, capacity, error_rate):
+    def __init__(self, time_low, bits, error_rate):
         assert isinstance(time_low, (int, long))
         assert time_low > 0
-        assert isinstance(capacity, (int, long))
-        assert capacity > 0
+        assert isinstance(bits, (int, long))
+        assert bits > 0
         assert isinstance(error_rate, float)
         assert 0.0 < error_rate < 1.0
         self.time_low = time_low
-        self.capacity = capacity
-        self.space_remaining = capacity
-        self.bloom_filter = BloomFilter(capacity, error_rate)
+        self.space_freed = 0
+        self.bloom_filter = BloomFilter(error_rate, bits)
+        self.space_remaining = self.capacity = self.bloom_filter.capacity
 
     def add(self, packet):
         assert isinstance(packet, str)
         assert len(packet) > 0
         self.space_remaining -= 1
         self.bloom_filter.add(packet)
+
+    def free(self):
+        self.space_freed += 1
+        assert self.space_freed <= self.capacity - self.space_remaining, "May never free more than added"
 
     def clear(self):
         self.space_remaining = self.capacity
@@ -333,7 +337,7 @@ class Community(object):
         assert self._global_time == 0
 
         # ensure that at least one bloom filter exists
-        sync_range = SyncRange(1, self.dispersy_sync_bloom_filter_capacity, self.dispersy_sync_bloom_filter_error_rate)
+        sync_range = SyncRange(1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
         self._sync_ranges.insert(0, sync_range)
 
         # load all messages into the bloom filters
@@ -349,7 +353,7 @@ class Community(object):
                 packets.append(str(packet))
             else:
                 if len(packets) > sync_range.space_remaining:
-                    sync_range = SyncRange(current_global_time, self.dispersy_sync_bloom_filter_capacity, self.dispersy_sync_bloom_filter_error_rate)
+                    sync_range = SyncRange(current_global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                     self._sync_ranges.insert(0, sync_range)
 
                 map(sync_range.add, packets)
@@ -360,7 +364,7 @@ class Community(object):
 
         if packets:
             if len(packets) > sync_range.space_remaining:
-                sync_range = SyncRange(global_time, self.dispersy_sync_bloom_filter_capacity, self.dispersy_sync_bloom_filter_error_rate)
+                sync_range = SyncRange(global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                 self._sync_ranges.insert(0, sync_range)
 
             map(sync_range.add, packets)
@@ -476,34 +480,55 @@ class Community(object):
         return 20.0
 
     @property
-    def dispersy_sync_bloom_filter_capacity(self):
-        """
-        Each sync bloomfilter is created using capacity and error_rate parameters.  Increasing the
-        capacity, or lowering the error_rate, will result in larger bloom filters.
-
-        Aim to have a dispersy-sync message that fits into a single IP packet, take this into
-        account when choosing these parameters.
-
-        Capacity 1000 with a 0.01 error_rate results in a 1198 byte bloom filter.
-
-        @rtype: int
-        """
-        return 1000
-
-    @property
     def dispersy_sync_bloom_filter_error_rate(self):
         """
-        Each sync bloomfilter is created using capacity and error_rate parameters.  Increasing the
-        capacity, or lowering the error_rate, will result in larger bloom filters.
+        The error rate that is allowed within the sync bloom filter.
 
-        Aim to have a dispersy-sync message that fits into a single IP packet, take this into
-        account when choosing these parameters.
+        Having a higher error rate will allow for more items to be stored in the bloom filter,
+        allowing more items to be syced with each sync interval.  Although this has the disadvantage
+        that more false positives will occur.
 
-        Capacity 1000 with a 0.01 error_rate results in a 1198 byte bloom filter.
+        A false positive will mean that if A sends a dispersy-sync message to B, B will incorrectly
+        believe that A already has certain messages.  Each message has -error rate- chance of being
+        a false positive, and hence B will not be able to receive -error rate- percent of the
+        messages in the system.
+
+        This problem can be aleviated by having multiple bloom filters for each sync range with
+        different prefixes.  Because bloom filters with different prefixes are extremely likely (the
+        hash functions md5, sha1, shaxxx ensure this) to have false positives for different packets.
+        Hence, having two of three different bloom filters will ensure you will get all messages,
+        though it will take more rounds.
 
         @rtype: float
         """
         return 0.01
+
+    @property
+    def dispersy_sync_bloom_filter_bits(self):
+        """
+        The size in bits of this bloom filter.
+
+        We want one dispersy-sync message to fit within a single MTU.  There are several numbers
+        that need to be taken into account.
+
+        - A typical MTU is 1500 bytes
+
+        - A typical IP header is 20 bytes
+
+        - The maximum IP header is 60 bytes (this includes information for VPN, tunnels, etc.)
+
+        - The UDP header is 8 bytes
+
+        - The dispersy header is 20 + 2 + 1 + 20 + 8 = 51 bytes
+
+        - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
+          The current value is: self._my_member.signature_length
+
+        - The dispersy-sync message uses 16 bytes to indicate the sync range
+
+        - The bloom filter has a 8 byte prefix that stores the bits_per_slice and num_slices
+        """
+        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 16 - 8) * 8
 
     @property
     def dispersy_sync_bloom_filters(self):
@@ -636,6 +661,58 @@ class Community(object):
         self._global_time += 1
         return self._global_time
 
+    def free_sync_range(self, global_times):
+        """
+        Update the sync ranges to reflect that previously stored messages, at the indicated
+        global_times, are no longer stored.
+
+        @param global_times: The global_time values for each message that has been removed from the
+         database.
+        @type global_time: [int or long]
+        """
+        assert isinstance(global_times, (tuple, list))
+        assert len(global_times) > 0
+        assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
+
+        if __debug__: dprint("freeing ", len(global_times), " messages")
+
+        # update
+        for global_time in global_times:
+            for sync_range in self._sync_ranges:
+                if sync_range.time_low <= global_time:
+                    sync_range.free()
+                    break
+
+        # remove completely freed ranges
+        if __debug__:
+            time_high = 0
+            for sync_range in self._sync_ranges:
+                if sync_range.space_freed >= sync_range.capacity - sync_range.space_remaining:
+                    dprint("remove obsolete sync range [", sync_range.time_low, ":", time_high if time_high else "inf", "]")
+                time_high = sync_range.time_low
+        self._sync_ranges = [sync_range for sync_range in self._sync_ranges if sync_range.space_freed < sync_range.capacity - sync_range.space_remaining]
+
+        # TODO
+        # time_high = 0
+        # # try to merge two neighboring ranges
+        # previous_used = capacity + 1
+        # start_index = 0
+        # for index, sync_range in zip(xrange(len(self._sync_ranges)-1, 0, -1), reversed(self._sync_ranges)):
+        #     dprint("range [", sync_range.time_low, ":", time_high if time_high else "inf", "] used: ", capacity - sync_range.space_remaining - sync_range.space_freed)
+        #     used += (capacity - sync_range.space_remaining - sync_range.space_freed)
+        #     if used + previous_used <= capacity:
+        #         # merge with previous range
+                
+
+        #     if space_used <= capacity and index > start_index:
+        #         # merge two ranges
+        #         dprint("merge index ", start_index, " through ", index, " used ", space_used)
+        #     else:
+        #         space_used = 0
+        #         start_index = index
+
+        #     time_high = sync_range.time_low
+
     def update_sync_range(self, messages):
         """
         Update our local view of the global time and the sync ranges using the given messages.
@@ -648,9 +725,7 @@ class Community(object):
 
         if __debug__: dprint("updating ", len(messages), " messages")
 
-        # todo, we can probably make this more efficient by first ordering the messages and not
-        # using the get_sync_range call
-        for message_index, message in zip(count(), messages):
+        for message_index, message in zip(count(), sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))):
             last_time_low = 0
 
             for index, sync_range in zip(count(), self._sync_ranges):
@@ -661,7 +736,7 @@ class Community(object):
                             assert last_time_low == last_time_low if last_time_low else self._global_time
                             assert index == 0
                             # add a new sync range
-                            sync_range = SyncRange(self._global_time + 1, self.dispersy_sync_bloom_filter_capacity, self.dispersy_sync_bloom_filter_error_rate)
+                            sync_range = SyncRange(self._global_time + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                             self._sync_ranges.insert(0, sync_range)
                             if __debug__: dprint("new ", sync_range.bloom_filter.size/8, " byte filter created for range [", sync_range.time_low, ":inf]")
 
@@ -713,7 +788,7 @@ class Community(object):
                                             assert sync_range.time_low <= msg.distribution.global_time < time_middle
 
                                 # create and fill range [time_middle:last_time_low-1]
-                                new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_capacity, self.dispersy_sync_bloom_filter_error_rate)
+                                new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                                 self._sync_ranges.insert(index, new_sync_range)
                                 map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
                                 map(new_sync_range.add, (msg.packet for msg in messages[:message_index] if msg.distribution.global_time >= new_sync_range.time_low))
@@ -739,23 +814,6 @@ class Community(object):
 
                 last_time_low = sync_range.time_low
             self._global_time = max(self._global_time, message.distribution.global_time)
-
-    def get_sync_range(self, global_time):
-        """
-        Returns the SyncRange associated to global-time.
-
-        @param global_time: The global time indicating the time range.
-        @type global_time: int or long
-
-        @return: The SyncRange where messages in global_time are stored.
-        @rtype: SyncRange
-        """
-        # iter existing bloom filters
-        for sync_range in self._sync_ranges:
-            if sync_range.time_low <= global_time:
-                return sync_range
-
-        assert False, "May not reach here"
 
     def get_subjective_set(self, member, cluster):
         """

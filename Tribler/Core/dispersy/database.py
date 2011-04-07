@@ -162,7 +162,7 @@ class Database(Singleton):
         """
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
-        assert isinstance(bindings, (tuple, list, dict)), "The bindinds must be a tuple, list, or dictionary"
+        assert isinstance(bindings, (tuple, list, dict)), "The bindings must be a tuple, list, or dictionary"
         assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
         if __debug__: dprint(statements, " <-- ", bindings)
         try:
@@ -215,11 +215,11 @@ class Database(Singleton):
         @returns: unknown
         @raise sqlite.Error: unknown
         """
-        assert self._debug_thread_ident == thread.get_ident()
-        assert isinstance(statements, unicode)
-        assert isinstance(sequenceofbindings, (tuple, list))
-        assert not filter(lambda x: isinstance(x, (tuple, list, dict)), sequenceofbindings)
-        assert not filter(lambda x: not filter(lambda y: isinstance(y, str), bindings), sequenceofbindings), "None of the bindings may be string type"
+        assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
+        assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
+        assert isinstance(sequenceofbindings, (tuple, list)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
+        assert not filter(lambda x: not isinstance(x, (tuple, list)), sequenceofbindings), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
+        assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), sequenceofbindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
         if __debug__: dprint(statements)
         try:
             return self._cursor.executemany(statements, sequenceofbindings)

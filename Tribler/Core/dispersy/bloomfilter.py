@@ -26,7 +26,7 @@ if __debug__:
     from dprint import dprint
     from time import time
 
-def _make_hashfuncs(num_slices, num_bits):
+def _make_hashfuncs(num_slices, num_bits, prefix=""):
     if num_bits >= (1 << 31):
         fmt_code, chunk_size = 'Q', 8
     elif num_bits >= (1 << 15):
@@ -48,7 +48,7 @@ def _make_hashfuncs(num_slices, num_bits):
     num_salts, extra = divmod(num_slices, len(fmt))
     if extra:
         num_salts += 1
-    salts = [hashfn(hashfn(pack('!L', i)).digest()) for i in xrange(num_salts)]
+    salts = [hashfn(prefix + hashfn(pack('!L', i)).digest()) for i in xrange(num_salts)]
     def _make_hashfuncs_helper(key):
         assert isinstance(key, str), "KEY must be a binary string"
         rval = []
@@ -170,6 +170,33 @@ class BloomFilter(Constructor):
         self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice)
         self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
 
+    @constructor(float, (int, long))
+    def _init_length(self, error_rate, bits):
+        """
+        Initialize a new BloomFilter instance.
+
+        The optimal number of slices and slice size is choosen based on how many false positives are
+        allowed to occur and the total number of bits available to the bloom filter.
+
+        @param error_rate: The chance a false positive occurs given that there are no more than
+         capacity items in the BloomFilter.
+        @type error_rate: float
+
+        @param bits: The number of bits available to the bloom filter.  Must be a multiple of 8.
+        @type bits: int or long
+        """
+        assert isinstance(error_rate, float)
+        assert 0 < error_rate < 1, "Error_Rate must be between 0 and 1"
+        assert isinstance(bits, (int, long))
+        # assert bits % 8 == 0, "Bits must be a multiple of 8"
+        assert bits > 0, "Bits must be > 0"
+        self._num_slices = int(ceil(log(1 / error_rate, 2)))
+        assert self._num_slices > 0
+        self._bits_per_slice = bits / self._num_slices
+        assert self._bits_per_slice > 0
+        self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice)
+        self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
+
     @constructor(str, (int, long))
     def _init_load_(self, data, offset):
         """
@@ -207,6 +234,24 @@ class BloomFilter(Constructor):
 
         self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice)
         self._bytes = array("B", data[offset+8:offset+8+size])
+
+    @property
+    def error_rate(self):
+        """
+        Calculate the optimal error rate from the current settings.
+        @rtype: float
+        """
+        # self._num_slices = int(ceil(log(1 / error_rate, 2)))
+        return 1.0 / pow(self._num_slices, 2.0)
+
+    @property
+    def capacity(self):
+        """
+        Calculate the optimal capacity from the current setting.
+        @rtype: long
+        """
+        # self._bits_per_slice = int(((capacity * log(error_rate)) / log(1.0 / (pow(2.0, log(2.0)))) ) / self._num_slices)
+        return long(self._num_slices * self._bits_per_slice * log(1.0 / (pow(2.0, log(2.0)))) / log(self.error_rate))
 
     @property
     def size(self):
@@ -668,7 +713,7 @@ if __debug__:
 
     def _test_save_load():
         a = BloomFilter(1000, 0.1)
-        data = ["%i" * 100 for i in xrange(1000)]
+        data = ["%i" % i for i in xrange(1000)]
         map(a.add, data)
 
         print a._num_slices, a._bits_per_slice
@@ -688,12 +733,73 @@ if __debug__:
 
             for d in data:
                 assert d in b
-            for d in ["%i" * 100 for i in xrange(10000, 1100)]:
+            for d in ["%i" % i for i in xrange(10000, 1100)]:
                 assert not d in b
+
+    def _test_false_positives():
+        for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4]:
+            a = BloomFilter(error_rate, 1024*8)
+            p(a)
+            data = ["%i" % i for i in xrange(int(a.capacity))]
+            map(a.add, data)
+
+            errors = 0
+            for i in xrange(100000):
+                if "X%i" % i in a:
+                    errors += 1
+
+            print "Errors:", errors, "/", i + 1, " ~ ", errors / (i + 1.0)
+            print
+
+    def _test_prefix_false_positives():
+        for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4]:
+            a = BloomFilter(error_rate, 1024*8)
+            b = BloomFilter(error_rate, 1024*8)
+            a._make_hashes = _make_hashfuncs(a._num_slices, a._bits_per_slice, "AAAA")
+            b._make_hashes = _make_hashfuncs(b._num_slices, b._bits_per_slice, "BBBB")
+            p(a)
+            p(b)
+            data = ["%i" % i for i in xrange(int(a.capacity))]
+            map(a.add, data)
+            map(b.add, data)
+
+            errors = 0
+            two_errors = 0
+            for i in xrange(100000):
+                if "X%i" % i in a:
+                    errors += 1
+                    if "X%i" % i in b:
+                        two_errors += 1
+
+            print "Errors:", errors, "/", i + 1, "~", errors / (i + 1.0), "Two-Errors:", two_errors, "/", i + 1, "~", two_errors / (i + 1.0)
+            print
+
+    def p(b, postfix=""):
+        print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b._num_slices, "bits-per-slice:", b._bits_per_slice, "bits:", b.size, "bytes:", len(b), "packet-bytes:", len(b) + 20 + 2 + 1 + 8 + 60, postfix
 
     if __name__ == "__main__":
         #_performance_test()
         # _taste_test()
         # _test_occurrence()
         # _test_documentation()
-        _test_save_load()
+        # _test_save_load()
+        # _test_false_positives()
+        _test_prefix_false_positives()
+
+        # MTU = 1500 # typical MTU
+        # # MTU = 576 # ADSL
+        # DISP = 51 + 60 + 16 + 8
+        # BITS = 9583 # currently used bloom filter size
+        # # BITS = (MTU - 20 - 8 - DISP) * 8 # size allowed by MTU (typical header)
+        # BITS = (MTU - 60 - 8 - DISP) * 8 # size allowed by MTU (max header)
+
+        # # b1 = BloomFilter(1000, 0.01)
+        # # p(b1)
+        # # b2 = BloomFilter(0.01, b1.size)
+        # # p(b2)
+        # b3 = BloomFilter(0.001, BITS)
+        # p(b3)
+        # b3 = BloomFilter(0.01, BITS)
+        # p(b3)
+        # b3 = BloomFilter(0.1, BITS)
+        # p(b3)

@@ -1364,6 +1364,9 @@ class DispersySyncScript(ScriptBase):
         self.caller(self.enlarging_sync_bloom)
         self.caller(self.large_sync)
 
+        # scaling: when we have to few messages in the sync bloom filter
+        self.caller(self.shrinking_sync_bloom)
+
         # different sync policies
         self.caller(self.in_order_test)
         self.caller(self.out_order_test)
@@ -1381,14 +1384,17 @@ class DispersySyncScript(ScriptBase):
     def assert_sync_ranges(self, community, messages, minimal_remaining=0, verbose=False):
         time_high = 0
         for sync_range in community._sync_ranges:
-            if verbose: dprint("range [", sync_range.time_low, ":", time_high if time_high else "inf", "] space_remaining: ", sync_range.space_remaining, "; capacity: ", sync_range.capacity)
+            if verbose: dprint("range [", sync_range.time_low, ":", time_high if time_high else "inf", "] space_remaining: ", sync_range.space_remaining, "; freed: ", sync_range.space_freed, "; used: ", sync_range.capacity - sync_range.space_remaining - sync_range.space_freed, "; capacity: ", sync_range.capacity)
             assert sync_range.space_remaining >= minimal_remaining, (sync_range.space_remaining, ">=", minimal_remaining)
             time_high = sync_range.time_low - 1
 
         for message in messages:
-            sync_range = community.get_sync_range(message.distribution.global_time)
-            assert sync_range.time_low <= message.distribution.global_time
-            assert message.packet in sync_range.bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time]))
+            for sync_range in community._sync_ranges:
+                if sync_range.time_low <= message.distribution.global_time:
+                    assert message.packet in sync_range.bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time]))
+                    break
+            else:
+                assert False, "should always find the sync_range"
 
     def enlarging_sync_bloom(self):
         """
@@ -1397,11 +1403,13 @@ class DispersySyncScript(ScriptBase):
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_sync_bloom_filter_capacity(self):
-                return 10
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 90
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
 
         messages = []
         for counter in xrange(11):
@@ -1443,6 +1451,49 @@ class DispersySyncScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
+    def shrinking_sync_bloom(self):
+        """
+        The sync bloomfilter should shrink when there is too much free space in that time range.
+
+        One trivial way to shrink is to remove any sync ranges that no longer store -any- messages.
+        We will add messages until this happens.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 90
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.11
+        self.assert_sync_ranges(community, [])
+        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity, disp-authorize, disp-identity)
+
+        # create a lot of messages, the first few sync ranges should go 'empty'
+        for global_time in xrange(10, 51):
+            node.send_message(node.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time), address)
+            yield 0.11
+        self.assert_sync_ranges(community, [], verbose=True)
+
+        # at least one sync range must have been removed!
+        assert len(community._sync_ranges) == 3
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
     def reversed_enlarging_sync_bloom(self):
         """
         The sync bloomfilter should grow when to many packets are received in that time range Also
@@ -1450,11 +1501,13 @@ class DispersySyncScript(ScriptBase):
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_sync_bloom_filter_capacity(self):
-                return 10
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 90
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
 
         messages = []
         for counter in xrange(11):
@@ -1502,11 +1555,13 @@ class DispersySyncScript(ScriptBase):
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_sync_bloom_filter_capacity(self):
-                return 10
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 90
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
 
         messages = []
         for counter in xrange(11):
@@ -1555,11 +1610,13 @@ class DispersySyncScript(ScriptBase):
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_sync_bloom_filter_capacity(self):
-                return 10
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 90
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
 
         messages = []
         for counter in xrange(11):
@@ -1611,11 +1668,13 @@ class DispersySyncScript(ScriptBase):
         """
         class TestCommunity(DebugCommunity):
             @property
-            def dispersy_sync_bloom_filter_capacity(self):
-                return 25
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 25
+                return 210
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1639,9 +1698,12 @@ class DispersySyncScript(ScriptBase):
         assert len(community._sync_ranges) in (4, 5)
 
         for message in messages:
-            sync_range = community.get_sync_range(message.distribution.global_time)
-            assert sync_range.time_low <= message.distribution.global_time
-            assert message.packet in sync_range.bloom_filter
+            for sync_range in community._sync_ranges:
+                if sync_range.time_low <= message.distribution.global_time:
+                    assert message.packet in sync_range.bloom_filter
+                    break
+            else:
+                assert False, "should always find the sync_range"
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1868,7 +1930,7 @@ class DispersySyncScript(ScriptBase):
         node.send_message(node.create_last_1_test_message("should be accepted (2)", global_time), address)
         yield 0.11
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
+        assert len(times) == 1, len(times)
         assert global_time in times
 
         # send a message (older: should be dropped)
