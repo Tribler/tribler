@@ -94,10 +94,6 @@ class AllChannelCommunity(Community):
             self._votecast_db = VoteCastDBStub(self._dispersy)
             self._peer_db = PeerDBStub(self._dispersy)
             self._notifier = False
-
-            # override the dispersy_sync_interval
-            self.dispersy_sync_interval = 5.0
-
         
         self._rawserver = self.dispersy.rawserver.add_task
         self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
@@ -116,6 +112,11 @@ class AllChannelCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
+    
+    
+    @property
+    def dispersy_sync_interval(self):
+        return 5.0
 
     def create_channelcast(self, forward=True):
         try:

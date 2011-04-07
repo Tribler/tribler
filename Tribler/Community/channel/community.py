@@ -57,9 +57,6 @@ class ChannelCommunity(Community):
             #modification_types
             self._modification_types = dict(self._channelcast_db._db.fetchall(u"SELECT name, id FROM MetaDataTypes"))
         else:
-            # override the dispersy_sync_interval
-            self.dispersy_sync_interval = 5.0
-
             try:
                 message = self._get_latest_channel_message()
                 if message:
@@ -136,6 +133,10 @@ class ChannelCommunity(Community):
             self._last_sync_range = None if index == 0 else sync_range
             self._last_sync_space_remaining = sync_range.space_remaining
             return [(sync_range.time_low, time_high, sync_range.bloom_filter)]
+        
+    @property
+    def dispersy_sync_interval(self):
+        return 5.0
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
