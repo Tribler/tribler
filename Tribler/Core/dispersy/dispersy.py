@@ -1294,15 +1294,16 @@ class Dispersy(Singleton):
                     if is_multi_member_authentication:
                         member_ids.append(member.database_id)
 
-                self._database.executemany(u"DELETE FROM sync WHERE id = ?", [(id_,) for id_, _ in items])
-                if __debug__: dprint("deleted ", self._database.changes, " messages")
+                if items:
+                    self._database.executemany(u"DELETE FROM sync WHERE id = ?", [(id_,) for id_, _ in items])
+                    if __debug__: dprint("deleted ", self._database.changes, " messages")
 
-                if is_multi_member_authentication:
-                    community_id = message.community.database_id
-                    self._database.executemany(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
-                                               [(community_id, member_id) for member_id in member_ids])
+                    if is_multi_member_authentication:
+                        community_id = message.community.database_id
+                        self._database.executemany(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
+                                                   [(community_id, member_id) for member_id in member_ids])
 
-                free_sync_range.extend(global_time for _, global_time in items)
+                    free_sync_range.extend(global_time for _, global_time in items)
             exceptions = False
 
         if not exceptions and free_sync_range:
@@ -3057,7 +3058,8 @@ class Dispersy(Singleton):
                     execute(u"DELETE FROM candidate WHERE community = ?", (community.database_id,))
 
                 # update the bloom filters
-                community.free_sync_range(times)
+                if times:
+                    community.free_sync_range(times)
 
     def _periodically_create_sync(self, community):
         """
