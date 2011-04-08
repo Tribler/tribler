@@ -1,4 +1,4 @@
-from random import expovariate
+from random import expovariate, choice
 
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload
@@ -126,13 +126,13 @@ class ChannelCommunity(Community):
             last_time_high = 0 if last_index == 0 else self._sync_ranges[last_index - 1].time_low
 
             self._last_sync_space_remaining = last_sync_range.space_remaining
-            return [(sync_range.time_low, time_high, sync_range.bloom_filter),
-                    (last_sync_range.time_low, last_time_high, last_sync_range.bloom_filter)]
+            return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters)),
+                    (last_sync_range.time_low, last_time_high, choice(last_sync_range.bloom_filters))]
 
         else:
             self._last_sync_range = None if index == 0 else sync_range
             self._last_sync_space_remaining = sync_range.space_remaining
-            return [(sync_range.time_low, time_high, sync_range.bloom_filter)]
+            return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
         
     @property
     def dispersy_sync_interval(self):
