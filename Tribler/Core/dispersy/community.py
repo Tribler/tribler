@@ -686,11 +686,14 @@ class Community(object):
         if __debug__: dprint("freeing ", len(global_times), " messages")
 
         # update
+        if __debug__: debug_time_high = 0
         for global_time in global_times:
             for sync_range in self._sync_ranges:
                 if sync_range.time_low <= global_time:
                     sync_range.free()
+                    if __debug__: dprint("free from [", sync_range.time_low, ":", debug_time_high if debug_time_high else "inf", "] @", global_time)
                     break
+                if __debug__: debug_time_high = sync_range.time_low
 
         # remove completely freed ranges
         if __debug__:
@@ -747,7 +750,7 @@ class Community(object):
                             # add a new sync range
                             sync_range = SyncRange(self._global_time + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                             self._sync_ranges.insert(0, sync_range)
-                            if __debug__: dprint("new ", sync_range.bloom_filters[0].size/8, " byte filter created for range [", sync_range.time_low, ":inf]")
+                            if __debug__: dprint("new ", sync_range.bloom_filters[0].capacity, " capacity filter created for range [", sync_range.time_low, ":inf]")
 
                         else:
                             assert last_time_low >= 0

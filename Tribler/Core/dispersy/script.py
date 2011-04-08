@@ -1376,10 +1376,12 @@ class DispersySyncScript(ScriptBase):
         self.caller(self.last_9_nosequence_test)
         self.caller(self.last_9_sequence_test)
 
-        # # multimember authentication and last sync policies
+        # multimember authentication and last sync policies
         self.caller(self.last_1_multimember)
+        self.caller(self.last_1_multimember_unique_user_global_time)
+        self.caller(self.last_1_multimember_sync_bloom_crash_test)
+        # TODO add more checks for the multimemberauthentication case
         # self.caller(self.last_9_multimember)
-        # # TODO add more checks for the multimemberauthentication case
 
     def assert_sync_ranges(self, community, messages, minimal_remaining=0, verbose=False):
         time_high = 0
@@ -1999,6 +2001,7 @@ class DispersySyncScript(ScriptBase):
             assert global_time in times
         assert number_of_messages == 9, number_of_messages
 
+        dprint("Older: should be dropped")
         for global_time in [11, 12, 13, 19, 18, 17]:
             # send a message (older: should be dropped)
             node.send_message(node.create_last_9_nosequence_test_message(str(global_time), global_time), address)
@@ -2007,6 +2010,7 @@ class DispersySyncScript(ScriptBase):
             assert len(times) == 9, len(times)
             assert not global_time in times
 
+        dprint("Duplicate: should be dropped")
         for global_time in [21, 20, 28, 27, 22, 23, 24, 26, 25]:
             # send a message (duplicate: should be dropped)
             message = node.create_last_9_nosequence_test_message("wrong content!", global_time)
@@ -2020,6 +2024,7 @@ class DispersySyncScript(ScriptBase):
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             assert sorted(times) == range(20, 29), sorted(times)
 
+        dprint("Should be added and old one removed")
         match_times = sorted(times[:])
         for global_time in [30, 35, 37, 31, 32, 34, 33, 36, 38, 45, 44, 43, 42, 41, 40, 39]:
             # send a message (should be added and old one removed)
@@ -2211,6 +2216,134 @@ class DispersySyncScript(ScriptBase):
         assert len(entries) == 2
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def last_1_multimember_sync_bloom_crash_test(self):
+        """
+        We found a race condition where the sync bloom filter was freed to many times.  This was
+        because the select for items that had to be removed was done several times without an actual
+        delete.
+
+        This test simulates that condition to ensure this bug doesn't happen again.  It will crash
+        on one of the internal asserts in the sync bloom filter free method.
+
+        One key thing here is that multiple last-sync messages must be processed in one batch for it
+        to occur.
+
+        It is proving to be somewhat difficult to repreduce though...
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 90
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        message = community.get_meta_message(u"last-1-multimember-text")
+        assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
+
+        # create node and ensure that SELF knows the node address
+        nodeA = DebugNode()
+        nodeA.init_socket()
+        nodeA.set_community(community)
+        nodeA.init_my_member()
+        yield 0.11
+
+        # create node and ensure that SELF knows the node address
+        nodeB = DebugNode()
+        nodeB.init_socket()
+        nodeB.set_community(community)
+        nodeB.init_my_member()
+        yield 0.11
+
+        # create node and ensure that SELF knows the node address
+        nodeC = DebugNode()
+        nodeC.init_socket()
+        nodeC.set_community(community)
+        nodeC.init_my_member()
+        yield 0.11
+
+        for global_time in xrange(10, 150, 3):
+            # send two messages
+            messages = []
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
+            global_time += 1
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2.1)", global_time))
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2.2)", global_time))
+            global_time += 1
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (3.1)", global_time))
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (3.2)", global_time))
+
+            # we NEED the messages to be handled in one batch.  using the socket may change this
+            self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
+
+        for global_time in xrange(300, 150, -3):
+            # send two messages
+            messages = []
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
+            global_time += 1
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2.1)", global_time))
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2.2)", global_time))
+            global_time += 1
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (3.1)", global_time))
+            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (3.2)", global_time))
+
+            # we NEED the messages to be handled in one batch.  using the socket may change this
+            self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
+
+        self.assert_sync_ranges(community, [], verbose=True)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def last_1_multimember_unique_user_global_time(self):
+        """
+        Even with multi member messages, the first member is the creator and may only have one
+        message for each global time.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        message = community.get_meta_message(u"last-1-multimember-text")
+
+        # create node and ensure that SELF knows the node address
+        nodeA = DebugNode()
+        nodeA.init_socket()
+        nodeA.set_community(community)
+        nodeA.init_my_member()
+        yield 0.11
+
+        # create node and ensure that SELF knows the node address
+        nodeB = DebugNode()
+        nodeB.init_socket()
+        nodeB.set_community(community)
+        nodeB.init_my_member()
+        yield 0.11
+
+        # create node and ensure that SELF knows the node address
+        nodeC = DebugNode()
+        nodeC.init_socket()
+        nodeC.set_community(community)
+        nodeC.init_my_member()
+        yield 0.11
+
+        # send two messages
+        global_time = 10
+        messages = []
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
+
+        # we NEED the messages to be handled in one batch.  using the socket may change this
+        self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
+
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id))]
+        assert times == [global_time], times
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

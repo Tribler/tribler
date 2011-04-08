@@ -660,85 +660,92 @@ class Dispersy(Singleton):
             assert isinstance(message, Message.Implementation)
             assert isinstance(message.authentication, MultiMemberAuthentication.Implementation)
 
-            members = tuple(sorted(member.database_id for member in message.authentication.members))
-            key = members + (message.distribution.global_time,)
+            key = (message.authentication.member, message.distribution.global_time)
             if key in unique:
-                return DropMessage("drop duplicate message by members^global_time")
+                return DropMessage("drop already processed message by member^global_time")
 
             else:
                 unique.add(key)
 
-                # ensure that the community / member / global_time is always unique
-                if message.authentication.member in times:
-                    tim = times[message.authentication.member]
-                else:
-                    tim = [global_time for global_time, in self._database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?",
-                                                                                  (message.community.database_id, message.authentication.member.database_id, message.database_id))]
-                    assert len(tim) <= message.distribution.history_size
-                    times[message.authentication.member] = tim
-
-                if message.distribution.global_time in tim:
-                    # we have the previous message (drop)
-                    return DropMessage("drop duplicate message by member^global_time")
-
-                if members in times:
-                    tim = times[members]
-
-                else:
-                    # the next query obtains a list with all global times that we have in the
-                    # database for all message.meta messages that were signed my
-                    # message.authentication.members where the order of signing is not taken
-                    # into account.
-                    tim = [global_time
-                           for count, global_time
-                           in self._database.execute(u"""
-                           SELECT COUNT(*), sync.global_time
-                           FROM sync
-                           JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                           WHERE sync.community = ? AND sync.name = ? AND reference_user_sync.user IN (%s)
-                           GROUP BY sync.id
-                           """ % ", ".join("?" for _ in xrange(len(members))),
-                                      (message.community.database_id, message.database_id) + members)
-                           if count == message.authentication.count]
-                    times[members] = tim
-
-                if message.distribution.global_time in tim:
-                    # we have the previous message (drop)
+                members = tuple(sorted(member.database_id for member in message.authentication.members))
+                key = members + (message.distribution.global_time,)
+                if key in unique:
                     return DropMessage("drop duplicate message by members^global_time")
 
-                elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
-                    # we have newer messages (drop)
-
-                    # if the history_size is one, we can sent that on message back because
-                    # apparently the sender does not have this message yet
-                    if message.distribution.history_size == 1:
-                        assert len(tim) == 1
-                        packets = [packet
-                                   for count, packet
-                                   in self._database.execute(u"""
-                                   SELECT COUNT(*), sync.packet
-                                   FROM sync
-                                   JOIN reference_user_sync ON reference_user_sync.sync = sync.id
-                                   WHERE sync.community = ? AND sync.global_time = ? AND sync.name = ? AND reference_user_sync.user IN (%s)
-                                   GROUP BY sync.id
-                                   """ % ", ".join("?" for _ in xrange(len(members))),
-                                                             (message.community.database_id, tim[0], message.database_id) + members)
-                                   if count == message.authentication.count]
-                        if packets:
-                            assert len(packets) == 1
-                            self._send([message.address], map(str, packets))
-
-                        else:
-                            # TODO can still fail when packet is in one of the received messages
-                            # from this batch.
-                            pass
-
-                    return DropMessage("drop old message by members^global_time")
-
                 else:
-                    # we accept this message
-                    tim.append(message.distribution.global_time)
-                    return message
+                    unique.add(key)
+
+                    # ensure that the community / member / global_time is always unique
+                    if message.authentication.member in times:
+                        tim = times[message.authentication.member]
+                    else:
+                        tim = [global_time for global_time, in self._database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?",
+                                                                                      (message.community.database_id, message.authentication.member.database_id, message.database_id))]
+                        assert len(tim) <= message.distribution.history_size
+                        times[message.authentication.member] = tim
+
+                    if message.distribution.global_time in tim:
+                        # we have the previous message (drop)
+                        return DropMessage("drop duplicate message by member^global_time")
+
+                    if members in times:
+                        tim = times[members]
+
+                    else:
+                        # the next query obtains a list with all global times that we have in the
+                        # database for all message.meta messages that were signed my
+                        # message.authentication.members where the order of signing is not taken
+                        # into account.
+                        tim = [global_time
+                               for count, global_time
+                               in self._database.execute(u"""
+                               SELECT COUNT(*), sync.global_time
+                               FROM sync
+                               JOIN reference_user_sync ON reference_user_sync.sync = sync.id
+                               WHERE sync.community = ? AND sync.name = ? AND reference_user_sync.user IN (%s)
+                               GROUP BY sync.id
+                               """ % ", ".join("?" for _ in xrange(len(members))),
+                                          (message.community.database_id, message.database_id) + members)
+                               if count == message.authentication.count]
+                        times[members] = tim
+
+                    if message.distribution.global_time in tim:
+                        # we have the previous message (drop)
+                        return DropMessage("drop duplicate message by members^global_time")
+
+                    elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
+                        # we have newer messages (drop)
+
+                        # if the history_size is one, we can sent that on message back because
+                        # apparently the sender does not have this message yet
+                        if message.distribution.history_size == 1:
+                            assert len(tim) == 1
+                            packets = [packet
+                                       for count, packet
+                                       in self._database.execute(u"""
+                                       SELECT COUNT(*), sync.packet
+                                       FROM sync
+                                       JOIN reference_user_sync ON reference_user_sync.sync = sync.id
+                                       WHERE sync.community = ? AND sync.global_time = ? AND sync.name = ? AND reference_user_sync.user IN (%s)
+                                       GROUP BY sync.id
+                                       """ % ", ".join("?" for _ in xrange(len(members))),
+                                                                 (message.community.database_id, tim[0], message.database_id) + members)
+                                       if count == message.authentication.count]
+                            if packets:
+                                assert len(packets) == 1
+                                self._send([message.address], map(str, packets))
+
+                            else:
+                                # TODO can still fail when packet is in one of the received messages
+                                # from this batch.
+                                pass
+
+                        return DropMessage("drop old message by members^global_time")
+
+                    else:
+                        # we accept this message
+                        tim.append(message.distribution.global_time)
+                        return message
 
         def check_sequence_number(highest, message):
             """
@@ -914,7 +921,7 @@ class Dispersy(Singleton):
                                                    (meta.community.database_id, unicode(host), port))
 
         if __debug__:
-            dprint("[", clock() - debug_begin, " pct] after candidate table update")
+            dprint("[", clock() - debug_begin, " pct] ", sum(len(batch) for batch in batches.itervalues()), " incoming packets after candidate table update")
             handled = {}
 
         # process the packets in priority order
@@ -922,7 +929,7 @@ class Dispersy(Singleton):
             # convert binary packets into Message.Implementation instances
             messages = list(self._convert_batch_into_messages(batch))
             assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-            if __debug__: dprint("[", clock() - debug_begin, " pct] ", meta.name, " messages after conversion")
+            if __debug__: dprint("[", clock() - debug_begin, " pct] ", len(messages), " ", meta.name, " messages after conversion")
 
             # handle the incoming messages
             if __debug__:
@@ -936,7 +943,7 @@ class Dispersy(Singleton):
                     self.on_message_batch(messages)
 
         if __debug__:
-            dprint("[", clock() - debug_begin, " pct] handled ", sum(handled.itervalues()), "/", len(packets), " [", ", ".join("%s:%d" % (name, count) for name, count in handled.iteritems()), "] successfully")
+            dprint("[", clock() - debug_begin, " pct] handled ", sum(handled.itervalues()), "/", len(packets), " [", ", ".join("%s:%d" % (name, count) for name, count in handled.iteritems()), "] successfully", level=("normal" if sum(handled.itervalues()) == len(packets) else "warning"))
             log("dispersy.log", "handled-successfully", time=clock() - debug_begin, total_packet_count=len(packets), handled_message_count=sum(handled.values()), **dict(('msg_'+str(name.replace("-","_")), count) for name, count in handled.iteritems()))
 
         # notify the community that there was activity from a certain address
@@ -1007,14 +1014,17 @@ class Dispersy(Singleton):
         # drop all duplicate or old messages
         assert type(meta.distribution) in self._check_distribution_batch_map
         messages = list(self._check_distribution_batch_map[type(meta.distribution)](messages))
-        assert len(messages) > 0 # may return zero messages
+        assert len(messages) > 0 # should return at least one item for each message
         assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
 
         if __debug__:
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
             i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check", level=("warning" if i_drop else "normal"))
+            for message in messages:
+                if isinstance(message, DropMessage):
+                    dprint("drop message because: ", message)
+            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check")
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -1048,7 +1058,7 @@ class Dispersy(Singleton):
             i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
             i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check", level=("warning" if i_drop else "normal"))
+            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check")
 
         # delay any DelayMessage instances that were returned
         for delay in (message for message in messages if isinstance(message, DelayMessage)):
@@ -1115,12 +1125,12 @@ class Dispersy(Singleton):
 
             # we may have receive this packet in this on_incoming_packets callback
             if packet in unique:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1])
+                if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1], level="warning")
                 continue
 
             # is it from an external source
             if not self._is_valid_external_address(address):
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", address[0], ":", address[1])
+                if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", address[0], ":", address[1], level="warning")
                 continue
 
             # find associated community
@@ -1190,7 +1200,7 @@ class Dispersy(Singleton):
                     if value - begin_stats[key] > 0.0:
                         dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key)
 
-    def _sync_distribution_store(self, messages):
+    def _store(self, messages):
         """
         Store a message in the database.
 
@@ -1271,11 +1281,15 @@ class Dispersy(Singleton):
 
             if isinstance(meta.distribution, LastSyncDistribution):
                 # delete packets that have become obsolete
-                items = []
+                items = set()
                 member_ids = []
                 for member in set(message.authentication.member for message in messages):
-                    items.extend(execute(u"SELECT id, global_time FROM sync WHERE community = ? AND name = ? AND user = ? AND id NOT IN (SELECT id FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time DESC LIMIT ?)",
-                                         (message.community.database_id, message.database_id, member.database_id, message.community.database_id, message.database_id, member.database_id, message.distribution.history_size)))
+                    # select all items from the database.  we keep the most recent history_size and
+                    # remove the older ones
+                    all_items = list(execute(u"SELECT id, global_time FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time, packet",
+                                                                      (message.community.database_id, message.database_id, member.database_id)))
+                    if len(all_items) > message.distribution.history_size:
+                        items.update(all_items[:len(all_items) - message.distribution.history_size])
 
                     if is_multi_member_authentication:
                         member_ids.append(member.database_id)
@@ -1431,7 +1445,7 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
 
         if store and isinstance(messages[0].meta.distribution, SyncDistribution):
-                self._sync_distribution_store(messages)
+                self._store(messages)
 
         if update:
             messages[0].handle_callback(messages)
