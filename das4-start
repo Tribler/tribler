@@ -39,7 +39,6 @@ svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > $PEERS_DIRECTORY/output/svn_ve
 
 cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
-echo $INITIAL_DELAY
 ./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys $INITIAL_DELAY & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
 #disown  # remove job from the job table of the current bash process
@@ -95,6 +94,7 @@ stop_time_s=$(awk 'BEGIN {print strftime("%Y-%m-%d %H:%M:%S",'$stop_time')}')
 echo "* Peers received their configuration."
 echo "* Experiment started ($start_time_s)"
 echo "* You can cancel the experiment using 'preserve -c $RESERVATION_ID'"
+echo "* You can check DAS4 jobs status with 'preserve -llist'"
 echo
 echo "* Waiting for the experiment to end (expected finish time: $stop_time_s)..."
 wait $PRUN_PID
