@@ -578,7 +578,7 @@ class Community(object):
 
         else:
             newer_range, sync_range = self._sync_ranges[index - 1:index + 1]
-            return [(sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filter))]
+            return [(sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters))]
 
     @property
     def dispersy_sync_member_count(self):
