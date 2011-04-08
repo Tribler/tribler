@@ -99,40 +99,28 @@ class ChannelCommunity(Community):
 
     @property
     def dispersy_sync_bloom_filters(self):
-        """
-        Returns a list with sync ranges that are synced this interval.
-
-        Strategy:
-
-         1. We choose a sync range using an exponential distribution.
-
-         2. If the last sync range resulted in new packets we -also- sync using that range, given
-            that it is different than the one choosen with at point 1.
-        """
-        lambd = 1.0 / (len(self._sync_ranges) / 2.0)
-        index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
+        return self.bloom_option_1()
+        
+    def bloom_option_1(self):
+        #did we choose a sync range in the previous run where we got data?
+        if self._last_sync_range and self._last_sync_space_remaining != self._last_sync_range.space_remaining:
+            #stick to this one, try again
+            index = self._sync_ranges.index(self._last_sync_range)
+        else:
+            #first time or choose a different one
+            lambd = 1.0 / (len(self._sync_ranges) / 2.0)
+            index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
+        
         sync_range = self._sync_ranges[index]
         time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
-
-        # possibly add another range when the previous range resulted in new packets AND is
-        # different from the one we now randomly choose AND the previous sync range still exists
-        # (may have been removed, merged, or split).
-        last_sync_range = self._last_sync_range
-        if last_sync_range and \
-               self._last_sync_space_remaining != last_sync_range.space_remaining and \
-               last_sync_range.time_low != sync_range.time_low and \
-               last_sync_range in self._sync_ranges:
-            last_index = self._sync_ranges.index(last_sync_range)
-            last_time_high = 0 if last_index == 0 else self._sync_ranges[last_index - 1].time_low
-
-            self._last_sync_space_remaining = last_sync_range.space_remaining
-            return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters)),
-                    (last_sync_range.time_low, last_time_high, choice(last_sync_range.bloom_filters))]
-
-        else:
-            self._last_sync_range = None if index == 0 else sync_range
+        
+        self._last_sync_range = None
+        self._last_sync_space_remaining = None
+        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
+            self._last_sync_range = sync_range
             self._last_sync_space_remaining = sync_range.space_remaining
-            return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
+            
+        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]        
         
     @property
     def dispersy_sync_interval(self):
