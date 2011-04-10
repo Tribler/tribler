@@ -41,6 +41,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 """
 
 from hashlib import sha1
+from itertools import groupby
 from os.path import abspath
 from threading import Lock
 
@@ -507,7 +508,7 @@ class Dispersy(Singleton):
             for message in messages:
                 key = (message.authentication.member, message.distribution.global_time)
                 if key in unique:
-                    yield DropMessage("drop duplicate message by member^global_time")
+                    yield DropMessage("drop duplicate message by member^global_time (1)")
 
                 else:
                     unique.add(key)
@@ -541,7 +542,7 @@ class Dispersy(Singleton):
             for message in messages:
                 key = (message.authentication.member, message.distribution.global_time)
                 if key in unique:
-                    yield DropMessage("drop duplicate message by member^global_time")
+                    yield DropMessage("drop duplicate message by member^global_time (2)")
 
                 else:
                     unique.add(key)
@@ -624,7 +625,7 @@ class Dispersy(Singleton):
 
                 if message.distribution.global_time in tim:
                     # we have the previous message (drop)
-                    return DropMessage("drop duplicate message by member^global_time")
+                    return DropMessage("drop duplicate message by member^global_time (3)")
 
                 elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
                     # we have newer messages (drop)
@@ -681,12 +682,11 @@ class Dispersy(Singleton):
                     else:
                         tim = [global_time for global_time, in self._database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?",
                                                                                       (message.community.database_id, message.authentication.member.database_id, message.database_id))]
-                        assert len(tim) <= message.distribution.history_size
                         times[message.authentication.member] = tim
 
                     if message.distribution.global_time in tim:
                         # we have the previous message (drop)
-                        return DropMessage("drop duplicate message by member^global_time")
+                        return DropMessage("drop duplicate message by member^global_time (4)")
 
                     if members in times:
                         tim = times[members]
@@ -1280,22 +1280,6 @@ class Dispersy(Singleton):
                                 (member.database_id, message.packet_id))
 
             if isinstance(meta.distribution, LastSyncDistribution):
-                def group_by_first_column(iterator):
-                    tup = iterator.next()
-                    try:
-                        while True:
-                            group = [tup]
-                            value = tup[0]
-                            tup = iterator.next()
-                            while tup[0] == value:
-                                group.append(tup)
-                                tup = iterator.next()
-
-                            yield group
-
-                    except StopIteration:
-                        yield group
-
                 # delete packets that have become obsolete
                 items = set()
                 # creator_database_ids = []
@@ -1310,10 +1294,11 @@ class Dispersy(Singleton):
                                 ORDER BY sync.global_time, sync.packet""" % OR,
                                            (meta.community.database_id, meta.database_id) + member_database_ids)
                         all_items = []
-                        for group in group_by_first_column(iterator):
+                        for id_, group in groupby(iterator, key=lambda row: row[0]):
+                            group = list(group)
                             if len(group) == meta.authentication.count:
                                 if member_database_ids == tuple(sorted(check_member_id for _, _, _, check_member_id in group)):
-                                    id_, creator_database_id, global_time, _ = group[0]
+                                    _, creator_database_id, global_time, _ = group[0]
                                     all_items.append((id_, creator_database_id, global_time))
 
                     if len(all_items) > meta.distribution.history_size:
