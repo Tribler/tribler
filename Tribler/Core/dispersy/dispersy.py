@@ -1280,30 +1280,62 @@ class Dispersy(Singleton):
                                 (member.database_id, message.packet_id))
 
             if isinstance(meta.distribution, LastSyncDistribution):
+                def group_by_first_column(iterator):
+                    tup = iterator.next()
+                    try:
+                        while True:
+                            group = [tup]
+                            value = tup[0]
+                            tup = iterator.next()
+                            while tup[0] == value:
+                                group.append(tup)
+                                tup = iterator.next()
+
+                            yield group
+
+                    except StopIteration:
+                        yield group
+
                 # delete packets that have become obsolete
                 items = set()
-                member_ids = []
-                for member in set(message.authentication.member for message in messages):
-                    # select all items from the database.  we keep the most recent history_size and
-                    # remove the older ones
-                    all_items = list(execute(u"SELECT id, global_time FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time, packet",
-                                                                      (message.community.database_id, message.database_id, member.database_id)))
-                    if len(all_items) > message.distribution.history_size:
-                        items.update(all_items[:len(all_items) - message.distribution.history_size])
+                # creator_database_ids = []
+                if is_multi_member_authentication:
+                    for member_database_ids in set(tuple(sorted(member.database_id for member in message.authentication.members)) for message in messages):
+                        OR = u" OR ".join(u"reference_user_sync.user = ?" for _ in xrange(meta.authentication.count))
+                        iterator = execute(u"""
+                                SELECT sync.id, sync.user, sync.global_time, reference_user_sync.user
+                                FROM sync
+                                JOIN reference_user_sync ON reference_user_sync.sync = sync.id
+                                WHERE community = ? AND name = ? AND (%s)
+                                ORDER BY sync.global_time, sync.packet""" % OR,
+                                           (meta.community.database_id, meta.database_id) + member_database_ids)
+                        all_items = []
+                        for group in group_by_first_column(iterator):
+                            if len(group) == meta.authentication.count:
+                                if member_database_ids == tuple(sorted(check_member_id for _, _, _, check_member_id in group)):
+                                    id_, creator_database_id, global_time, _ = group[0]
+                                    all_items.append((id_, creator_database_id, global_time))
 
-                    if is_multi_member_authentication:
-                        member_ids.append(member.database_id)
+                    if len(all_items) > meta.distribution.history_size:
+                        items.update(all_items[:len(all_items) - meta.distribution.history_size])
+
+                else:
+                    for member_database_id in set(message.authentication.member.database_id for message in messages):
+                        all_items = list(execute(u"SELECT id, user, global_time FROM sync WHERE community = ? AND name = ? AND user = ? ORDER BY global_time, packet",
+                                                 (meta.community.database_id, meta.database_id, member_database_id)))
+                        if len(all_items) > meta.distribution.history_size:
+                            items.update(all_items[:len(all_items) - meta.distribution.history_size])
 
                 if items:
-                    self._database.executemany(u"DELETE FROM sync WHERE id = ?", [(id_,) for id_, _ in items])
+                    self._database.executemany(u"DELETE FROM sync WHERE id = ?", [(id_,) for id_, _, _ in items])
                     if __debug__: dprint("deleted ", self._database.changes, " messages")
 
                     if is_multi_member_authentication:
-                        community_id = message.community.database_id
+                        community_database_id = meta.community.database_id
                         self._database.executemany(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
-                                                   [(community_id, member_id) for member_id in member_ids])
+                                                   [(community_database_id, creator_database_id) for _, creator_database_id, _ in items])
 
-                    free_sync_range.extend(global_time for _, global_time in items)
+                    free_sync_range.extend(global_time for _, _, global_time in items)
             exceptions = False
 
         if not exceptions and free_sync_range:

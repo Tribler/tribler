@@ -2181,7 +2181,7 @@ class DispersySyncScript(ScriptBase):
         global_time = 10
         nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1)", global_time), address)
         yield 0.11
-        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user AS ref_user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
+        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 2
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
@@ -2190,8 +2190,8 @@ class DispersySyncScript(ScriptBase):
         global_time = 11
         nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2)", global_time), address)
         yield 0.11
-        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user AS ref_user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
-        assert len(entries) == 2
+        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
+        assert len(entries) == 2, entries
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
 
@@ -2199,7 +2199,7 @@ class DispersySyncScript(ScriptBase):
         old_global_time = 8
         nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be dropped (1)", old_global_time), address)
         yield 0.11
-        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user AS ref_user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
+        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 2
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
@@ -2212,7 +2212,7 @@ class DispersySyncScript(ScriptBase):
         old_global_time = 9
         nodeB.send_message(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time), address)
         yield 0.11
-        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user AS ref_user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
+        entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 2
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
