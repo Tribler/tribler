@@ -1585,7 +1585,7 @@ class DispersySyncScript(ScriptBase):
             # create a few messages in each sync bloomfilter range
             for global_time in xrange(10, 20):
                 messages.append(node.send_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time), address))
-            yield 0.22
+                yield 0.11
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
 
             # unload community
@@ -1639,7 +1639,7 @@ class DispersySyncScript(ScriptBase):
             # create a few messages in each sync bloomfilter range
             for global_time in xrange(20, 10, -1):
                 messages.append(node.send_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time), address))
-            yield 0.22
+                yield 0.11
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
 
 
@@ -2187,8 +2187,10 @@ class DispersySyncScript(ScriptBase):
         # send a message
         global_time = 10
         other_global_time = global_time + 1
-        nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1)", global_time), address)
-        nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1)", other_global_time), address)
+        messages = []
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1)", global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1)", other_global_time))
+        self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
         yield 0.11
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
@@ -2200,8 +2202,10 @@ class DispersySyncScript(ScriptBase):
         # send a message
         global_time = 20
         other_global_time = global_time + 1
-        nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2)", global_time), address)
-        nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2)", other_global_time), address)
+        messages = []
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2)", global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2)", other_global_time))
+        self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
         yield 0.11
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
@@ -2212,8 +2216,10 @@ class DispersySyncScript(ScriptBase):
 
         # send a message (older: should be dropped)
         old_global_time = 8
-        nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be dropped (1)", old_global_time), address)
-        nodeA.send_message(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be dropped (1)", old_global_time), address)
+        messages = []
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be dropped (1)", old_global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be dropped (1)", old_global_time))
+        self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
         yield 0.11
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
@@ -2224,8 +2230,10 @@ class DispersySyncScript(ScriptBase):
 
         # send a message (older: should be dropped)
         old_global_time = 8
-        nodeA.send_message(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time), address)
-        nodeA.send_message(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time), address)
+        messages = []
+        messages.append(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time))
+        messages.append(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time))
+        self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
         yield 0.11
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
@@ -2240,8 +2248,10 @@ class DispersySyncScript(ScriptBase):
 
         # send a message (older + different member combination: should be dropped)
         old_global_time = 9
-        nodeB.send_message(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time), address)
-        nodeB.send_message(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time), address)
+        messages = []
+        messages.append(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time))
+        messages.append(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time))
+        self._dispersy.on_incoming_packets([(nodeA.socket.getsockname(), message.packet) for message in messages])
         yield 0.11
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries

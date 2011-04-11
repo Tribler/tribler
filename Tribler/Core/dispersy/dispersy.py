@@ -1235,7 +1235,6 @@ class Dispersy(Singleton):
         # update the bloomfilter
         meta.community.update_sync_range(messages)
 
-        exceptions = True
         free_sync_range = []
         with self._database as execute:
             for message in messages:
@@ -1296,13 +1295,12 @@ class Dispersy(Singleton):
                         all_items = []
                         for id_, group in groupby(iterator, key=lambda row: row[0]):
                             group = list(group)
-                            if len(group) == meta.authentication.count:
-                                if member_database_ids == tuple(sorted(check_member_id for _, _, _, check_member_id in group)):
-                                    _, creator_database_id, global_time, _ = group[0]
-                                    all_items.append((id_, creator_database_id, global_time))
+                            if len(group) == meta.authentication.count and member_database_ids == tuple(sorted(check_member_id for _, _, _, check_member_id in group)):
+                                _, creator_database_id, global_time, _ = group[0]
+                                all_items.append((id_, creator_database_id, global_time))
 
-                    if len(all_items) > meta.distribution.history_size:
-                        items.update(all_items[:len(all_items) - meta.distribution.history_size])
+                        if len(all_items) > meta.distribution.history_size:
+                            items.update(all_items[:len(all_items) - meta.distribution.history_size])
 
                 else:
                     for member_database_id in set(message.authentication.member.database_id for message in messages):
@@ -1313,19 +1311,23 @@ class Dispersy(Singleton):
 
                 if items:
                     self._database.executemany(u"DELETE FROM sync WHERE id = ?", [(id_,) for id_, _, _ in items])
+                    assert len(items) == self._database.changes
                     if __debug__: dprint("deleted ", self._database.changes, " messages")
 
                     if is_multi_member_authentication:
                         community_database_id = meta.community.database_id
-                        self._database.executemany(u"DELETE FROM reference_user_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND user = ? AND sync.id = reference_user_sync.sync)",
-                                                   [(community_database_id, creator_database_id) for _, creator_database_id, _ in items])
+                        self._database.executemany(u"DELETE FROM reference_user_sync WHERE sync = ?", [(id_,) for id_, _, _ in items])
+                        assert len(items) * meta.authentication.count == self._database.changes
 
                     free_sync_range.extend(global_time for _, _, global_time in items)
-            exceptions = False
 
-        if not exceptions and free_sync_range:
+        if free_sync_range:
             # update bloom filters
-            meta.community.free_sync_range(free_sync_range)
+            try:
+                meta.community.free_sync_range(free_sync_range)
+            except:
+                dprint(free_sync_range, level="error")
+                dprint([(message.name, message.distribution.global_time) for message in messages], level="error")
 
     def select_candidate_addresses(self, community, count, diff_range=(0.0, 30.0), age_range=(120.0, 300.0)):
         assert isinstance(count, (int, long))
