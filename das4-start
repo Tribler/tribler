@@ -38,6 +38,16 @@ cd ${BRANCH}
 svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > $PEERS_DIRECTORY/output/svn_version.txt
 
 cd ${BRANCH}
+echo "* Cleaning up *.pyc files..."
+find . -iregex '.*\(dispersy\|allchannel\|barter\).*\.pyc' -delete
+echo "* Recompiling python classes..."
+(/usr/bin/env python | grep -v Listing ) <<END
+import compileall
+import re
+compileall.compile_dir('.', rx=re.compile('/[.]svn'), force=False)
+END
+
+cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
 ./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys $INITIAL_DELAY & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
