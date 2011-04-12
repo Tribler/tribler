@@ -39,7 +39,7 @@ svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > $PEERS_DIRECTORY/output/svn_ve
 
 cd ${BRANCH}
 echo "* Cleaning up *.pyc files..."
-find . -iregex '.*\(dispersy\|allchannel\|barter\).*\.pyc' -delete
+find . -iregex '.*\(dispersy\|Community\).*\.pyc' -delete
 echo "* Recompiling python classes..."
 (/usr/bin/env python | grep -v Listing ) <<END
 import compileall
