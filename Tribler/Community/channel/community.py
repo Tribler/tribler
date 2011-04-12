@@ -100,6 +100,8 @@ class ChannelCommunity(Community):
     @property
     def dispersy_sync_bloom_filters(self):
         #return self.bloom_option_1()
+        log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
+        
         return self.bloom_option_2()
         
     def bloom_option_1(self):
@@ -134,7 +136,11 @@ class ChannelCommunity(Community):
             self._last_sync_range = sync_range
             self._last_sync_space_remaining = sync_range.space_remaining
             
-        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]           
+        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
+    
+    @property    
+    def dispersy_sync_bloom_filter_error_rate(self):
+        return 0.5
         
     @property
     def dispersy_sync_interval(self):
