@@ -48,7 +48,7 @@ def _make_hashfuncs(num_slices, num_bits, prefix):
     num_salts, extra = divmod(num_slices, len(fmt))
     if extra:
         num_salts += 1
-    salts = [hashfn(prefix + hashfn(pack('!L', i)).digest()) for i in xrange(num_salts)]
+    salts = [hashfn(hashfn(pack('!L', i)).digest() + prefix) for i in xrange(num_salts)]
     def _make_hashfuncs_helper(key):
         assert isinstance(key, str), "KEY must be a binary string"
         rval = []
