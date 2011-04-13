@@ -3,6 +3,10 @@ from __future__ import with_statement
 
 """
 Run some python code, usually to test one or more features.
+
+@author: Boudewijn Schoon
+@organization: Technical University Delft
+@contact: dispersy@frayja.com
 """
 
 from hashlib import sha1
