@@ -672,7 +672,7 @@ class Dispersy(Singleton):
                 members = tuple(sorted(member.database_id for member in message.authentication.members))
                 key = members + (message.distribution.global_time,)
                 if key in unique:
-                    return DropMessage("drop duplicate message by members^global_time")
+                    return DropMessage("drop already processed message by members^global_time")
 
                 else:
                     unique.add(key)
@@ -1329,6 +1329,7 @@ class Dispersy(Singleton):
             except:
                 dprint(free_sync_range, level="error")
                 dprint([(message.name, message.distribution.global_time) for message in messages], level="error")
+                raise
 
     def select_candidate_addresses(self, community, count, diff_range=(0.0, 30.0), age_range=(120.0, 300.0)):
         assert isinstance(count, (int, long))
