@@ -90,7 +90,7 @@ class CommunityDestination(Destination):
 
     def __init__(self, node_count):
         assert isinstance(node_count, int)
-        assert node_count > 0
+        assert node_count >= 0
         self._node_count = node_count
 
     @property
@@ -144,7 +144,7 @@ class SubjectiveDestination(Destination):
         assert isinstance(cluster, int)
         assert 0 < cluster < 2^8, "CLUSTER must fit in one byte"
         assert isinstance(node_count, int)
-        assert node_count > 0
+        assert node_count >= 0
         # assert isinstance(max_capacity, int)
         # assert isinstance(error_rate, float)
         self._cluster = cluster

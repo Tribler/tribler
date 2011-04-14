@@ -1517,6 +1517,7 @@ class Dispersy(Singleton):
 
         for message in messages:
             if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
+                assert message.destination.node_count, "CommunityDestination.node_count is allowed to be zero, however, make sure that _forward isn't called when it is"
                 addresses = self._select_candidate_addresses(message.community.database_id,
                                                            message.destination.node_count,
                                                            (0.0, 30.0),
