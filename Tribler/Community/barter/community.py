@@ -102,11 +102,11 @@ class BarterCommunity(Community):
         if __debug__: log("barter.log", "create-dispersy-signature-request")
 
         meta = self.get_meta_message(u"barter-record")
-        message = meta.implement(meta.authentication.implement([self._my_member, second_member]),
+        request = meta.implement(meta.authentication.implement([self._my_member, second_member]),
                                  meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(first_upload, second_upload))
-        return self.create_dispersy_signature_request(message, self.on_signature_response, store=store, forward=forward)
+        return self.create_dispersy_signature_request(request, self.on_signature_response, (request, 1), store=store, forward=forward)
 
     def allow_signature_request(self, message):
         """ Decide whether to reply or not to a signature request
@@ -139,7 +139,7 @@ class BarterCommunity(Community):
         # we will not add our signature
         return False
 
-    def on_signature_response(self, message):
+    def on_signature_response(self, message, request, retry):
         """ Handle a newly created double signed message or a timeout while signing
 
         When request for signing times out I just return. When I receive the signature for the
@@ -158,11 +158,18 @@ class BarterCommunity(Community):
             self._dispersy.store_update_forward([message], True, True, self.barter_forward_record_on_creation)
             log("dispersy.log", "created-barter-record") # TODO: maybe move to barter.log
 
-        else:
+        elif retry < 5:
             # signature timeout
+            # retry
+            if __debug__:
+                log("barter.log", "barter-community-signature-request-timeout", retry=retry)
+                dprint("Signature request timeout. Retry!")
+                self.create_dispersy_signature_request(request, self.on_signature_response, (request, retry + 1))
+
+        else:
             # close the transfer
             if __debug__:
-                log("barter.log", "barter-community-signature-request-timeout")
+                log("barter.log", "barter-community-signature-request-timeout", retry=retry)
                 dprint("Signature request timeout")
 
     def check_barter_record(self, messages):
