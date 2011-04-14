@@ -1,6 +1,7 @@
 # Python 2.5 features
 from __future__ import with_statement
 
+from itertools import count
 from hashlib import sha1
 import time
 
@@ -9,7 +10,7 @@ from community import BarterCommunity
 from lencoder import log
 
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.member import Member, MyMember
+from Tribler.Core.dispersy.member import Member, MyMember, PrivateMember
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
@@ -149,6 +150,8 @@ class BarterScenarioScript(ScriptBase):
         self._timestep = float(kargs.get('timestep', 1.0))
         self._stepcount = 0
         self._starting_timestamp = float(kargs.get('starting_timestamp', time.time()))
+        self._stopping_timestamp = self._starting_timestamp + 60 * 6
+        self._shutdown_timestamp = self._starting_timestamp + 60 * 13
 
     def find_peer_by_name(self, peername):
         assert isinstance(peername, str)
@@ -221,6 +224,8 @@ class BarterScenarioScript(ScriptBase):
         """ Calculate the time to sleep.
         """
         now = time.time()
+        if now >= self._stopping_timestamp:
+            return -1.0
         expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
         st = max(0.0, expected_time - now)
         if not initial_delay:
@@ -282,21 +287,24 @@ class BarterScenarioScript(ScriptBase):
         # assume that this will be the ID, check after community is joined that the value is correct
         community_database_id = 1
         _peer_ids = {}
+        all_peers = []
         with self._dispersy.database as execute:
             with open('data/peers') as file:
-                for line in file:
-                    name, ip, port, public_key, _ = line.split(' ', 4)
+                for index, line in zip(count(), file):
+                    name, ip, port, public_key, private_key = line.split(' ')
                     if __debug__:
                         _peer_counter += 1
                         log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                    public_key = public_key.decode('HEX')
                     port = int(port)
+                    public_key = public_key.decode('HEX')
+                    private_key = private_key.strip().decode("HEX") # stip to remove newline character
                     _peer_ids[public_key] = int(name)
+                    all_peers.append((index, (ip, port), public_key, private_key))
                     if name == my_name: continue
 
                     #self._dispersy._send([(ip, port)], [message.packet])
                     execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (community_database_id, unicode(ip), port))
-                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
+                    # execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
 
@@ -305,6 +313,18 @@ class BarterScenarioScript(ScriptBase):
         assert self._barter.database_id == community_database_id
 
         self._barter._peer_ids = _peer_ids # we set this internally in the BarterCommunity object
+
+        # generate and insert all dispersy-identity messages
+        incoming_packets = []
+        meta = self._barter.get_meta_message(u"dispersy-identity")
+        for index, address, public_key, private_key in all_peers:
+            temp_member = PrivateMember(public_key, private_key, sync_with_database=False)
+            message = meta.implement(meta.authentication.implement(temp_member),
+                                     meta.distribution.implement(index), # give it a global time
+                                     meta.destination.implement(),
+                                     meta.payload.implement(address))
+            incoming_packets.append((address, message.packet))
+        self._barter.dispersy.on_incoming_packets(incoming_packets)
 
         dprint("Joined barter community ", self._barter._my_member)
         if __debug__:
@@ -386,13 +406,23 @@ class BarterScenarioScript(ScriptBase):
                     self.set_offline()
 
             # sleep until the next step
-            yield self.sleep()
+            delay = self.sleep()
+            if delay >= 0.0:
+                yield delay
+            else:
+                break
             self._stepcount += 1
 
         # I finished the scenario execution. I should stay online
         # until killed. Note that I can still sync and exchange
         # messages with other peers.
-        while True:
+        delay = self.sleep()
+        while delay >= 0.0:
             # wait to be killed
-            yield 100.0
+            yield 5.0
 
+        while True:
+            now = time.time()
+            if now >= self._shutdown_timestamp:
+                break
+            yield 5.0
