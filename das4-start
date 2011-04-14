@@ -39,13 +39,20 @@ svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > $PEERS_DIRECTORY/output/svn_ve
 
 cd ${BRANCH}
 echo "* Cleaning up *.pyc files..."
-find . -iregex '.*\(dispersy\|Community\).*\.pyc' -delete
+find . -iregex '.*\(dispersy\|Community\).*\.py[co]' -delete
 echo "* Recompiling python classes..."
 (/usr/bin/env python | grep -v Listing ) <<END
 import compileall
 import re
 compileall.compile_dir('.', rx=re.compile('/[.]svn'), force=False)
 END
+
+(/usr/bin/env python -O | grep -v Listing ) <<END
+import compileall
+import re
+compileall.compile_dir('.', rx=re.compile('/[.]svn'), force=False)
+END
+
 
 cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
