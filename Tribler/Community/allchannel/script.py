@@ -210,6 +210,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         ScenarioScriptBase.__init__(self, script, name, 'barter.log', **kargs)
         
         self.my_channel = None
+        self.joined_community = None
         self.want_to_join = False
     
     def join_community(self, my_member):
@@ -235,6 +236,11 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                 if self.my_channel:
                     infohash = ''.join(choice(letters) for i in xrange(20))
                     torrents.append((infohash, int(time())))
+            
+            elif cur_command[0] == 'post':
+                if self.joined_community:
+                    text = ''.join(choice(letters) for i in xrange(160))
+                    self.joined_community._disp_create_comment(text, int(time()), None, None, None, None)
                 
             elif cur_command[0] == 'join':
                 self.want_to_join = True
@@ -250,6 +256,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                     self._community._disp_create_votecast(community._cid, 2, int(time()))
                     
                     log(self._logfile, "joining-community")
+                    self.joined_community = community
                     
                     self.want_to_join = False
                     break
