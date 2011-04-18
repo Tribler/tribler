@@ -343,18 +343,6 @@ class BarterScenarioScript(ScriptBase):
 
         yield 2.0
 
-        # create a dispersy-identity message for my_member and the
-        # self._barter community.  This message will be sent to all
-        # the peers in the 'peers' file to (a) add them to our candidate
-        # table (b) let them know about our existance and our public
-        # key
-        meta = self._barter.get_meta_message(u"dispersy-identity")
-        message = meta.implement(meta.authentication.implement(meta.community._my_member),
-                                 meta.distribution.implement(meta.community.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(my_address))
-        self._dispersy.store_update_forward([message], True, True, False)
-
         if __debug__:
             log("barter.log", "done-reading-peers")
 
