@@ -228,7 +228,7 @@ class BarterScenarioScript(ScriptBase):
             return -1.0
         expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
         st = max(0.0, expected_time - now)
-        if not initial_delay:
+        if not initial_delay and self._barter.dispersy_randomness:
             st *= random()
         log("barter.log", "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
         return st
@@ -320,7 +320,7 @@ class BarterScenarioScript(ScriptBase):
         for index, address, public_key, private_key in all_peers:
             temp_member = PrivateMember(public_key, private_key, sync_with_database=False)
             message = meta.implement(meta.authentication.implement(temp_member),
-                                     meta.distribution.implement(index), # give it a global time
+                                     meta.distribution.implement(index + 10), # give it a global time
                                      meta.destination.implement(),
                                      meta.payload.implement(address))
             incoming_packets.append((address, message.packet))

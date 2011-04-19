@@ -36,14 +36,26 @@ class BarterCommunity(Community):
         self._peer_ids = {}
 
     @property
+    def dispersy_randomness(self):
+        "defines whether to use randomness or not"
+        return False
+
+    @property
     def dispersy_sync_initial_delay(self):
-        "10.0 * random()"
-        return 10.0 * random()
+        "5.0"
+        if self.dispersy_randomness:
+            return 10.0 * random()
+        else:
+            return 5.0
+
 
     @property
     def dispersy_sync_interval(self):
-        "10.0 + 20.0 * random()"
-        return 10.0 + 20.0 * random()
+        "20.0"
+        if self.dispersy_randomness:
+            return 10.0 + 20.0 * random()
+        else:
+            return 20.0
 
     @property
     def dispersy_sync_member_count(self):
