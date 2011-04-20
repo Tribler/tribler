@@ -26,6 +26,12 @@ find . -regextype posix-egrep -regex '\./node.*\/output/[0-9]{5}\.err' | while r
     fi
 done
 
+echo "* Looking for errors and warnings on stdout..."
+err_count=$(find . -regextype posix-egrep -regex '\./node.*\/output/[0-9]{5}\.out' | xargs cat | grep ^E | wc -l)
+warn_count=$(find . -regextype posix-egrep -regex '\./node.*\/output/[0-9]{5}\.out' | xargs cat | grep ^W | wc -l)
+echo "  * Errors: $err_count"
+echo "  * Warnings: $warn_count"
+
 NODE_COUNT=$(find . -type d -name 'node*' | wc -l)
 
 cd $PEERS_DIRECTORY/
