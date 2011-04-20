@@ -75,7 +75,7 @@ class BarterCommunity(Community):
 
     @property
     def dispersy_sync_response_limit(self):
-       return 32 * 1024
+       return 5 * 1024
 
     @property
     def barter_forward_record_on_creation(self):
