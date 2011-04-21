@@ -23,6 +23,17 @@ function get_network_interface() {
     	iface_no=$[$iface_no + 1]
     done
 
+    # Bridge interfaces - apparently, they are being actively used
+    iface_no=0
+    while test $iface_no -lt 10; do
+    	ip address show dev br$iface_no 2>/dev/null | grep 'inet ' &>/dev/null
+    	if test $? -eq 0; then
+    		echo br$iface_no
+    		return
+    	fi
+    	iface_no=$[$iface_no + 1]
+    done
+
     # InfiniBand interfaces
     iface_no=0
     while test $iface_no -lt 10; do
