@@ -105,11 +105,13 @@ class ChannelSearchManager:
     def __init__(self, list):
         self.list = list
         self.category = ''
+        self.dirtyset = set()
         
         guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = guiutility.channelsearch_manager
         self.guiserver = guiutility.frame.guiserver
-        self.dirtyset = set()
+        
+        self.SetCategory('Popular')
     
     def refreshDirty(self):
         if 'COMPLETE_REFRESH' in self.dirtyset:
@@ -169,16 +171,20 @@ class ChannelSearchManager:
             print >> sys.stderr, "ChannelManager complete refresh done"
       
     def SetCategory(self, category):
-        if self.list.ready: 
-            if category != self.category:
-                self.category = category
-                self.list.Reset()
-                self.list.ShowLoading()
-                
-                if category != 'searchresults':
+        if category != self.category:
+            self.category = category
+            
+            self.list.Reset()
+            self.list.ShowLoading()
+            
+            if category != 'searchresults':
+                if self.list.ready:
                     self.refresh()
-            else:
-                self.list.DeselectAll()
+                else:
+                    self.dirtyset.add('COMPLETE_REFRESH')
+                    self.list.dirty = True
+        else:
+            self.list.DeselectAll()
         
     def channelUpdated(self, permid, votecast = False):
         if self.list.ready: 
@@ -443,12 +449,13 @@ class List(wx.Panel):
     
     def Reset(self):
         assert self.ready, "List not ready"
-        self.header.Reset()
-        self.list.Reset()
-        self.footer.Reset()
-        self.dirty = False
-        
-        self.Layout()
+        if self.ready:
+            self.header.Reset()
+            self.list.Reset()
+            self.footer.Reset()
+            
+            self.dirty = False
+            self.Layout()
     
     def OnExpand(self, item):
         assert self.ready, "List not ready"
@@ -529,7 +536,8 @@ class List(wx.Panel):
         return self.guiutility.ShouldGuiUpdate()
 
     def ShowLoading(self):
-        self.list.ShowLoading()
+        if self.ready:
+            self.list.ShowLoading()
         
     def Show(self):
         wx.Panel.Show(self)
@@ -986,6 +994,8 @@ class ChannelList(List):
         
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
+        
+        self.dirty = True
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -1283,7 +1293,6 @@ class ChannelCategoriesList(List):
         self.SetMinSize((-1, self.GetBestSize()[1]))
         
         self.Select(1, False)
-        wx.CallAfter(self.guiutility.showChannelCategory, 'Popular', False)
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All','Updated']:
