@@ -1,5 +1,8 @@
 import os
 import sys
+from threading import currentThread
+from traceback import print_stack
+
 import wx
 from wx import html
 from time import time
@@ -449,6 +452,8 @@ class List(wx.Panel):
     
     def Reset(self):
         assert self.ready, "List not ready"
+        self.__check_thread()
+        
         if self.ready:
             self.header.Reset()
             self.list.Reset()
@@ -459,8 +464,12 @@ class List(wx.Panel):
     
     def OnExpand(self, item):
         assert self.ready, "List not ready"
+        self.__check_thread()
     
     def OnCollapse(self, item, panel):
+        assert self.ready, "List not ready"
+        self.__check_thread()
+        
         self.OnCollapseInternal(item)
         if panel:
             panel.Destroy()
@@ -473,9 +482,11 @@ class List(wx.Panel):
     
     def SetData(self, data):
         assert self.ready, "List not ready"
+        self.__check_thread()
     
     def RefreshData(self, key, data):
         assert self.ready, "List not ready"
+        self.__check_thread()
         
     def InList(self, key):
         assert self.ready, "List not ready"
@@ -503,6 +514,8 @@ class List(wx.Panel):
         return focussed == self.list
         
     def SetBackgroundColour(self, colour):
+        self.__check_thread()
+        
         wx.Panel.SetBackgroundColour(self, colour)
         
         if self.header:
@@ -550,6 +563,12 @@ class List(wx.Panel):
                 manager.refreshDirty()
                 
         self.list.Layout()
+        
+    def __check_thread(self):
+        if currentThread().getName() != "MainThread":
+            if DEBUG:
+                print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
+                print_stack()
     
 class SearchList(List):
     def __init__(self):

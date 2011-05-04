@@ -144,8 +144,8 @@ class ChannelResultFooter(ListFooter):
         hSizer.Add(self.message, 0, wx.TOP|wx.BOTTOM|wx.ALIGN_BOTTOM, 3)
         hSizer.AddStretchSpacer()
         
-        self.channelResutls = wx.Button(self, -1, "Channel Results")
-        hSizer.Add(self.channelResutls, 0, wx.TOP|wx.BOTTOM, 3)
+        self.channelResults = wx.Button(self, -1, "Channel Results")
+        hSizer.Add(self.channelResults, 0, wx.TOP|wx.BOTTOM, 3)
         
         self.blinkTimer = None
         
@@ -177,11 +177,11 @@ class ChannelResultFooter(ListFooter):
     
     def SetEvents(self, channel):
         #removing old, binding new eventhandler
-        self.channelResutls.Bind(wx.EVT_BUTTON, None)
-        self.channelResutls.Bind(wx.EVT_BUTTON, channel)
+        self.channelResults.Unbind(wx.EVT_BUTTON)
+        self.channelResults.Bind(wx.EVT_BUTTON, channel)
         
     def EnableResults(self, state):
-        self.channelResutls.Enable(state)
+        self.channelResults.Enable(state)
     
     def Reset(self):
         self.EnableResults(False)

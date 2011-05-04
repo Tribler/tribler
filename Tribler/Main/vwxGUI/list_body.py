@@ -2,6 +2,8 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 import sys
+from threading import currentThread
+from traceback import print_stack
 from time import time
 import re
 
@@ -656,6 +658,12 @@ class AbstractListBody():
     def __SetData(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
+            
+        if currentThread().getName() != "MainThread":
+            if DEBUG:
+                print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
+                print_stack()
+        
         self.Freeze()
         
         message = ''
