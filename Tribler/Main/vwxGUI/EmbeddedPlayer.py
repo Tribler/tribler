@@ -387,7 +387,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.statuslabel.Show(True)
                 
                 def bindEvents(control):
-                    control.Bind(wx.EVT_KEY_DOWN, None)
+                    control.Unbind(wx.EVT_KEY_DOWN)
                     func = getattr(control, 'GetChildren', False)
                     if func:
                         for child in func():

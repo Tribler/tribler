@@ -705,7 +705,7 @@ class AbstractListBody():
             #idle event also paints search animation use requestmore to show this update
             event.RequestMore(not self.done)
             if self.done:
-                self.Bind(wx.EVT_IDLE, None)
+                self.Unbind(wx.EVT_IDLE)
 
     def OnLoadMore(self, event):
         self.loadNext.Disable()
