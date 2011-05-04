@@ -692,7 +692,7 @@ class AbstractListBody():
             self.ShowMessage(message)
             
         if len(self.data) < LIST_ITEM_BATCH_SIZE:
-            self.Unind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
+            self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
         else:
             self.Bind(wx.EVT_IDLE, self.OnIdle)
         
