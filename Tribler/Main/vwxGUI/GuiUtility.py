@@ -293,7 +293,7 @@ class GUIUtility:
             self.frame.channellist.Freeze()
         
         manager = self.frame.channellist.GetManager()
-        manager.SetCategory(category)
+        manager.SetCategory(category, True)
         
         if show:
             self.ShowPage('channels')

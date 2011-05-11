@@ -193,8 +193,11 @@ class NetworkPanel(HomePanel):
         return panel
     
     def OnNotify(self, subject, type, infohash):
-        if self.IsShownOnScreen():
-            self.UpdateStats()
+        try:
+            if self.IsShownOnScreen():
+                self.UpdateStats()
+        except PyDeadObjectError:
+            pass
              
     def UpdateStats(self):
         def db_callback():
@@ -233,8 +236,11 @@ class NewTorrentPanel(HomePanel):
         return self.list
     
     def OnNotify(self, subject, type, infohash):
-        if self.IsShownOnScreen():
-            self.UpdateStats(infohash)
+        try:
+            if self.IsShownOnScreen():
+                self.UpdateStats(infohash)
+        except PyDeadObjectError:
+            pass
             
     def UpdateStats(self, infohash):
         def db_callback():

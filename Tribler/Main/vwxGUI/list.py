@@ -113,8 +113,6 @@ class ChannelSearchManager:
         guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = guiutility.channelsearch_manager
         self.guiserver = guiutility.frame.guiserver
-        
-        self.SetCategory('Popular')
     
     def refreshDirty(self):
         if 'COMPLETE_REFRESH' in self.dirtyset:
@@ -125,7 +123,14 @@ class ChannelSearchManager:
             for channel in channels:
                 self.list.RefreshData(channel[0], channel)
         self.dirtyset.clear()
-        
+    
+    def do_or_schedule_refresh(self, force_refresh = False):
+        if self.list.ready and (self.list.ShouldGuiUpdate() or force_refresh):
+            self.refresh()
+        else:
+            self.dirtyset.add('COMPLETE_REFRESH')
+            self.list.dirty = True
+    
     def refresh(self, search_results = None):
         if DEBUG:
             print >> sys.stderr, "ChannelManager complete refresh"
@@ -173,19 +178,14 @@ class ChannelSearchManager:
         if DEBUG:
             print >> sys.stderr, "ChannelManager complete refresh done"
       
-    def SetCategory(self, category):
+    def SetCategory(self, category, force_refresh = False):
         if category != self.category:
             self.category = category
-            
             self.list.Reset()
             self.list.ShowLoading()
             
             if category != 'searchresults':
-                if self.list.ready:
-                    self.refresh()
-                else:
-                    self.dirtyset.add('COMPLETE_REFRESH')
-                    self.list.dirty = True
+                self.do_or_schedule_refresh(force_refresh)
         else:
             self.list.DeselectAll()
         
@@ -201,7 +201,7 @@ class ChannelSearchManager:
                     self.dirtyset.add(permid)
                     self.list.dirty = True
                     
-            elif not votecast:
+            elif not votecast: #should we update complete list
                 if self.category == 'All':
                     update = True
                 elif self.category == 'Popular':
@@ -210,11 +210,7 @@ class ChannelSearchManager:
                     update = False
                 
                 if update: 
-                    if self.list.ShouldGuiUpdate():
-                        self.refresh()
-                    else:
-                        self.dirtyset.add('COMPLETE_REFRESH')
-                        self.list.dirty = True
+                    self.do_or_schedule_refresh()
 
 class ChannelManager():
     _req_columns = ['infohash', 'name', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
@@ -567,7 +563,7 @@ class List(wx.Panel):
     def __check_thread(self):
         if currentThread().getName() != "MainThread":
             if DEBUG:
-                print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
+                print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
                 print_stack()
     
 class SearchList(List):
@@ -1013,8 +1009,6 @@ class ChannelList(List):
         
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
-        
-        self.dirty = True
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -1312,6 +1306,7 @@ class ChannelCategoriesList(List):
         self.SetMinSize((-1, self.GetBestSize()[1]))
         
         self.Select(1, False)
+        wx.CallAfter(self.guiutility.showChannelCategory, 'Popular', False)
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All','Updated']:

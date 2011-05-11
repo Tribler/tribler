@@ -825,64 +825,67 @@ class MainFrame(wx.Frame):
 
 
     def setActivity(self,type,msg=u'',arg2=None):
-        #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
-        if self.utility is None:
-            if DEBUG:
-                print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
-            return
-            
-        if currentThread().getName() != "MainThread":
-            if DEBUG:
-                print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
-                print_stack()
-    
-        if type == NTFY_ACT_NONE:
-            prefix = msg
-            msg = u''
-        elif type == NTFY_ACT_ACTIVE:
-            prefix = u""
-            if msg == "no network":
-                text = "No network - last activity: %.1f seconds ago" % arg2
-                self.SetTitle(text)
-                print  >> sys.stderr,"main: Activity",`text`
-            elif self.GetTitle().startswith("No network"):
-                title = self.utility.lang.get('title') + \
-                        " " + \
-                        self.utility.lang.get('version')
-                self.SetTitle(title)
-                
-                
-        elif type == NTFY_ACT_UPNP:
-            prefix = self.utility.lang.get('act_upnp')
-        elif type == NTFY_ACT_REACHABLE:
-            prefix = self.utility.lang.get('act_reachable')
-        elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
-            prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
-        elif type == NTFY_ACT_MEET:
-            prefix = self.utility.lang.get('act_meet')
-        elif type == NTFY_ACT_GOT_METADATA:
-            prefix = self.utility.lang.get('act_got_metadata')
-            
-            if self.category.family_filter_enabled() and arg2 == 7: # XXX category
+        try:
+            #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
+            if self.utility is None:
                 if DEBUG:
-                    print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
+                    print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
                 return
-            
-        elif type == NTFY_ACT_RECOMMEND:
-            prefix = self.utility.lang.get('act_recommend')
-        elif type == NTFY_ACT_DISK_FULL:
-            prefix = self.utility.lang.get('act_disk_full')   
-        elif type == NTFY_ACT_NEW_VERSION:
-            prefix = self.utility.lang.get('act_new_version')   
-        if msg == u'':
-            text = prefix
-        else:
-            text = unicode( prefix+u' '+msg)
-            
-        if DEBUG:
-            print  >> sys.stderr,"main: Activity",`text`
-        self.SRstatusbar.onActivity(text)
-        self.stats.onActivity(text)
+                
+            if currentThread().getName() != "MainThread":
+                if DEBUG:
+                    print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+                    print_stack()
+        
+            if type == NTFY_ACT_NONE:
+                prefix = msg
+                msg = u''
+            elif type == NTFY_ACT_ACTIVE:
+                prefix = u""
+                if msg == "no network":
+                    text = "No network - last activity: %.1f seconds ago" % arg2
+                    self.SetTitle(text)
+                    print  >> sys.stderr,"main: Activity",`text`
+                elif self.GetTitle().startswith("No network"):
+                    title = self.utility.lang.get('title') + \
+                            " " + \
+                            self.utility.lang.get('version')
+                    self.SetTitle(title)
+                    
+                    
+            elif type == NTFY_ACT_UPNP:
+                prefix = self.utility.lang.get('act_upnp')
+            elif type == NTFY_ACT_REACHABLE:
+                prefix = self.utility.lang.get('act_reachable')
+            elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
+                prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
+            elif type == NTFY_ACT_MEET:
+                prefix = self.utility.lang.get('act_meet')
+            elif type == NTFY_ACT_GOT_METADATA:
+                prefix = self.utility.lang.get('act_got_metadata')
+                
+                if self.category.family_filter_enabled() and arg2 == 7: # XXX category
+                    if DEBUG:
+                        print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
+                    return
+                
+            elif type == NTFY_ACT_RECOMMEND:
+                prefix = self.utility.lang.get('act_recommend')
+            elif type == NTFY_ACT_DISK_FULL:
+                prefix = self.utility.lang.get('act_disk_full')   
+            elif type == NTFY_ACT_NEW_VERSION:
+                prefix = self.utility.lang.get('act_new_version')   
+            if msg == u'':
+                text = prefix
+            else:
+                text = unicode( prefix+u' '+msg)
+                
+            if DEBUG:
+                print  >> sys.stderr,"main: Activity",`text`
+            self.SRstatusbar.onActivity(text)
+            self.stats.onActivity(text)
+        except PyDeadObjectError:
+            pass
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
