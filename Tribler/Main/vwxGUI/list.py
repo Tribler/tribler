@@ -752,6 +752,8 @@ class LibaryList(List):
         
         if item.data[4]:
             up.SetLabel(self.utility.speed_format_new(item.data[4]))
+        else:
+            up.SetLabel(self.utility.speed_format_new(0))
         return up
         
     def CreateDown(self, parent, item):
@@ -760,6 +762,8 @@ class LibaryList(List):
         
         if item.data[3]:
             down.SetLabel(self.utility.speed_format_new(item.data[3]))
+        else:
+            down.SetLabel(self.utility.speed_format_new(0))
         return down
     
     def CreateProgress(self, parent, item):
