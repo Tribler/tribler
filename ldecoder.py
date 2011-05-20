@@ -3,6 +3,9 @@
 from datetime import datetime
 from string import printable
 
+class NotInterested(Exception):
+    pass
+
 def _counter(start):
     assert isinstance(start, (int, long))
     count = start
@@ -190,41 +193,52 @@ def _decode(offset, stream):
     else:
         raise ValueError("Can not decode {0}".format(stream[offset]))
 
-def parse_line(stream, lineno=-1):
+def parse_line(stream, lineno=-1, interests=[]):
     assert isinstance(stream, str)
     assert isinstance(lineno, (int, long))
-    stamp = datetime.strptime(stream[:14], "%Y%m%d%H%M%S")
+    assert isinstance(interests, (tuple, list, set))
     offset = _ignore_seperator(14, stream)
     if not stream[offset] == "s":
         raise ValueError("Expected a string encoded message")
     offset, message = _decode_str(offset+1, stream)
 
-    kargs = {}
-    while offset < len(stream) - 1:
-        offset = _ignore_seperator(offset, stream)
-        for split in _counter(offset):
-            if stream[split] == ":":
-                key = stream[offset:split].strip()
-                offset, value = _decode(split + 1, stream)
-                kargs[key] = value
-                break
+    if not interests or message in interests:
+        stamp = datetime.strptime(stream[:14], "%Y%m%d%H%M%S")
+        kargs = {}
+        while offset < len(stream) - 1:
+            offset = _ignore_seperator(offset, stream)
+            for split in _counter(offset):
+                if stream[split] == ":":
+                    key = stream[offset:split].strip()
+                    offset, value = _decode(split + 1, stream)
+                    kargs[key] = value
+                    break
 
-            elif not stream[split] in _valid_key_chars:
-                raise ValueError("Can not decode character", stream[split], "on line", lineno)
+                elif not stream[split] in _valid_key_chars:
+                    raise ValueError("Can not decode character", stream[split], "on line", lineno)
 
-    return lineno, stamp, message, kargs
+        return lineno, stamp, message, kargs
+    raise NotInterested(message)
 
-def parse(filename):
+def parse(filename, interests=[]):
     """
     Parse the content of FILENAME.
 
     Yields a (LINENO, DATETIME, MESSAGE, KARGS) tuple for each line in
     the file.
     """
+    assert isinstance(filename, (str, unicode))
+    assert isinstance(interests, (tuple, list, set))
+    assert not filter(lambda x: not isinstance(x, str), interests)
+    if isinstance(interests, (tuple, list)):
+        interests = set(interests)
     for lineno, stream in zip(_counter(1), open(filename, "r")):
         if stream[0] == "#":
             continue
-        yield parse_line(stream, lineno)
+        try:
+            yield parse_line(stream, lineno, interests)
+        except NotInterested:
+            pass
 
 def parse_frequencies(filename, select=None):
     """
@@ -331,7 +345,7 @@ def print_frequencies(frequencies, merge=None, limit=8):
                         count += key_container[0]
                         for value, count in key_container[1].iteritems():
                             freq[value] = freq.get(value, 0) + count
-        
+
             print "+++ {0} . {1} +++".format(title, count)
             print_helper(freq, count)
             print
