@@ -209,59 +209,60 @@ class UDPHandler:
             self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_NORMAL, connection.address)
             self.delete_closed_connection(connection)
 
-    def data_came_in(self, address, data):
-        if DEBUG:
-            debug("Data came (%d) in from address %s:%d" % (ord(data[0]), address[0], address[1]))
-        connection = self.connections.get(address)
-        if not connection:
-            if data[0] == UDPHandler.CLOSE:
-                # Prevent stroms of packets, by not responding to this
-                return
-            if data[0] != UDPHandler.CONNECT:
-                self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_NOT_CONNECTED, address)
-                return
-            if len(data) != 8:
-                self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_LEN, address)
-                return
-            if data[1] != chr(0):
-                self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_PROTO_VER, address)
-                return
-
-
-            if self.check_connection_count():
-                if self.reporter:
-                    self.reporter.add_event("UDPPuncture", "OCTM:%s,%d,%s" % (address[0], address[1], data[2:6].encode('hex')))
-                
-                self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_TOO_MANY, address)
-                return
-
-            id = data[2:6]
-            connection = self.known_peers.get(id)
+    def data_came_in(self, packets):
+        for address, data in packets:
+            if DEBUG:
+                debug("Data came (%d) in from address %s:%d" % (ord(data[0]), address[0], address[1]))
+            connection = self.connections.get(address)
             if not connection:
-                # Create new connection state and add to table
-                connection = UDPConnection(address, id, self)
-                self.known_peers[id] = connection
-            elif connection.address != address:
-                if connection.connection_state == UDPConnection.CONNECT_ESTABLISHED:
-                    self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_STATE_CORRUPT, address)
+                if data[0] == UDPHandler.CLOSE:
+                    # Prevent stroms of packets, by not responding to this
+                    return
+                if data[0] != UDPHandler.CONNECT:
+                    self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_NOT_CONNECTED, address)
+                    return
+                if len(data) != 8:
+                    self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_LEN, address)
+                    return
+                if data[1] != chr(0):
+                    self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_PROTO_VER, address)
                     return
 
-                # ADPM NAT-boxes will have different address, so if we sent a
-                # connect already we will have done so to a different address.
-                try:
-                    del self.connections[connection.address]
-                except:
-                    pass
-                # As we knew this peer under a different address, we have to
-                # set the address to the one we actually use.
-                connection.address = address
 
-            if not address in self.last_sends:
-                self.incoming_connect(address, True) # Update NAT and Filter states
-            self.connections[address] = connection
+                if self.check_connection_count():
+                    if self.reporter:
+                        self.reporter.add_event("UDPPuncture", "OCTM:%s,%d,%s" % (address[0], address[1], data[2:6].encode('hex')))
 
-        if not connection.handle_msg(data):
-            self.delete_closed_connection(connection)
+                    self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_TOO_MANY, address)
+                    return
+
+                id = data[2:6]
+                connection = self.known_peers.get(id)
+                if not connection:
+                    # Create new connection state and add to table
+                    connection = UDPConnection(address, id, self)
+                    self.known_peers[id] = connection
+                elif connection.address != address:
+                    if connection.connection_state == UDPConnection.CONNECT_ESTABLISHED:
+                        self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_STATE_CORRUPT, address)
+                        return
+
+                    # ADPM NAT-boxes will have different address, so if we sent a
+                    # connect already we will have done so to a different address.
+                    try:
+                        del self.connections[connection.address]
+                    except:
+                        pass
+                    # As we knew this peer under a different address, we have to
+                    # set the address to the one we actually use.
+                    connection.address = address
+
+                if not address in self.last_sends:
+                    self.incoming_connect(address, True) # Update NAT and Filter states
+                self.connections[address] = connection
+
+            if not connection.handle_msg(data):
+                self.delete_closed_connection(connection)
 
     def check_connection_count(self):
         # If we still have open slots, we can simply connect

@@ -3,6 +3,7 @@
 
 import threading
 import time
+import sys
 
 # Factory vars
 global status_holders
@@ -116,7 +117,20 @@ class StatusHolder:
                 reporter.add_element(element)
         finally:
             self.lock.release()
-            
+
+    def remove_reporter(self, name):
+        """
+        Remove a reporter from the status holder, using the name of the reporter.
+        """
+        assert name
+
+        self.lock.acquire()
+        try:
+            if not name in self.reporters:
+                raise Exception("No such reporter '%s'"%name)
+            del self.reporters[name]
+        finally:
+            self.lock.release()
 
     def _add_element(self, new_element):
         for reporter in self.reporters.values():
@@ -187,6 +201,7 @@ class StatusHolder:
             self.lock.release()
             
     def create_event(self, name, values=[]):
+        assert isinstance(values, list)
         return EventElement(name, values)
 
     def add_event(self, event):
@@ -299,7 +314,6 @@ class BaseElement:
             try:
                 callback(self)
             except Exception, e:
-                import sys
                 print >> sys.stderr, "Exception in callback", \
                       callback,"for parameter",self.name,":",e
 
@@ -555,6 +569,7 @@ class PeriodicStatusReporter(StatusReporter):
             try:
                 self.report()
             except Exception, e:
+                print >> sys.stderr, "Status: error while reporting:", e
                 if self.error_handler:
                     try:
                         self.error_handler(0, str(e))
@@ -572,6 +587,7 @@ class PeriodicStatusReporter(StatusReporter):
         try:
             self.report()
         except Exception, e:
+            print >> sys.stderr, "Status: error while reporting:", e
             if self.error_handler:
                 try:
                     self.error_handler(0, str(e))

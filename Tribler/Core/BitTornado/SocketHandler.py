@@ -499,20 +499,26 @@ class SocketHandler:
 
             s = self.udp_sockets.get(sock)
             if s:
+                packets = []
                 try:
-                    (data, addr) = s.socket.recvfrom(65535)
-                    if not data:
-                        if DEBUG:
-                            print >> sys.stderr, "SocketHandler: UDP no-data", addr
-                    else:
-                        if DEBUG:
-                            print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
-                        s.handler.data_came_in(addr, data)
+                    while True:
+                        (data, addr) = s.socket.recvfrom(65535)
+                        if not data:
+                            if DEBUG:
+                                print >> sys.stderr, "SocketHandler: UDP no-data", addr
+                            break
+                        else:
+                            if DEBUG:
+                                print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
+                            packets.append((addr, data))
 
                 except socket.error, e:
                     if DEBUG:
                         print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
-                    continue
+
+                finally:
+                    s.handler.data_came_in(packets)
+                continue
 
             s = self.single_sockets.get(sock)
             if s:
@@ -607,6 +613,7 @@ class SocketHandler:
     #
     def create_udpsocket(self,port,host):
         server = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 870400)
         server.bind((host,port))
         server.setblocking(0)
         return server
@@ -619,6 +626,9 @@ class SocketHandler:
         self.poll.unregister(serversocket)
         del self.udp_sockets[serversocket.fileno()]
 
+    #
+    # Interface for the InterruptSocket
+    #
     def get_interrupt_socket(self):
         """
         Create a socket to interrupt the poll when the thread needs to

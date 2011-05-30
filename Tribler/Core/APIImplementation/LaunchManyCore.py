@@ -1,6 +1,7 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
+import errno
 import sys
 import os
 import pickle
@@ -27,6 +28,15 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import traceback
+
+from Tribler.community.simpledispersytest.community import SimpleDispersyTestCommunity
+from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.community import HardKilledCommunity
+
+if sys.platform == 'win32':
+    SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
+else:
+    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 SPECIAL_VALUE=481
 
@@ -290,6 +300,78 @@ class TriblerLaunchMany(Thread):
             # initialise the first instance
             MagnetHandler.get_instance(self.rawserver)
 
+        self.dispersy = None
+        self.session.dispersy_member = None
+        if config['dispersy']:
+            # Dispersy needs to run on a thread.  We use a RawServer instance.
+            self.dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
+            self.dispersy_rawserver.add_task(self.start_dispersy)
+            Thread(target=self.dispersy_rawserver.listen_forever, args=(None,), name="DispersyThread").start()
+
+    def start_dispersy(self):
+        class DispersySocket(object):
+            def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
+                while True:
+                    if __debug__: print >>sys.stderr, "Dispersy listening at ", port
+                    try:
+                        self.socket = rawserver.create_udpsocket(port, ip)
+                    except socket.error as error:
+                        port += 1
+                        continue
+                    break
+                self.rawserver = rawserver
+                self.rawserver.start_listening_udp(self.socket, self)
+                self.dispersy = dispersy
+
+            def get_address(self):
+                return self.socket.getsockname()
+
+            def data_came_in(self, packets):
+                # called on the Tribler rawserver
+
+                # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
+                # sometimes called without any packets...
+                if packets:
+                    try:
+                        self.dispersy.data_came_in(packets)
+                    except:
+                        print_exc()
+                        raise
+
+            def send(self, address, data):
+                try:
+                    self.socket.sendto(data, address)
+                except socket.error, error:
+                    if error[0] == SOCKET_BLOCK_ERRORCODE:
+                        self.sendqueue.append((data, address))
+                        self.rawserver.add_task(self.process_sendqueue, 0.1)
+
+        config = self.session.sessconfig
+        sqlite_db_path = os.path.join(config['state_dir'], u"sqlite")
+        if not os.path.isdir(sqlite_db_path):
+            os.makedirs(sqlite_db_path)
+        self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, sqlite_db_path)
+        self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
+
+        from Tribler.Core.Overlay.permid import read_keypair
+        keypair = read_keypair(self.session.get_permid_keypair_filename())
+
+        from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
+        from Tribler.Core.dispersy.member import MyMember
+        self.session.dispersy_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+
+        # load all HardKilledCommunity communities
+        HardKilledCommunity.load_communities()
+
+        # we will test Dispersy using a simple community that everyone belongs to and periodically
+        # relays messages
+        try:
+            SimpleDispersyTestCommunity.load_hardcoded_community()
+        except ValueError:
+            SimpleDispersyTestCommunity.join_hardcoded_community(self.session.dispersy_member)
+
+        # notify dispersy finished loading
+        self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

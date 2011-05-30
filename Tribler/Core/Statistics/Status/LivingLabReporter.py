@@ -85,23 +85,21 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         header.appendChild(self.new_element(doc, "swversion", version))
         
 
+        # Now add the status elements
         elements = self.get_elements()
         if len(elements) > 0:
-        
-            # Now add the status elements
-            if len(elements) > 0:
-                report = doc.createElement("event")
-                root.appendChild(report)
+            report = doc.createElement("event")
+            root.appendChild(report)
 
-                report.appendChild(self.new_element(doc, "attribute",
-                                                   "statusreport"))
-                report.appendChild(self.new_element(doc, "timestamp",
-                                                   long(round(time.time()))))
-                for element in elements:
-                    print element.__class__
-                    report.appendChild(self.new_element(doc,
-                                                       element.get_name(),
-                                                       element.get_value()))
+            report.appendChild(self.new_element(doc, "attribute",
+                                               "statusreport"))
+            report.appendChild(self.new_element(doc, "timestamp",
+                                               long(round(time.time()))))
+            for element in elements:
+                print element.__class__
+                report.appendChild(self.new_element(doc,
+                                                   element.get_name(),
+                                                   element.get_value()))
 
         events = self.get_events()
         if len(events) > 0:
