@@ -113,7 +113,6 @@ class AllChannelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
     
-    
     @property
     def dispersy_sync_interval(self):
         return 5.0
@@ -229,7 +228,8 @@ class AllChannelCommunity(Community):
         # start requesting not yet collected torrents
         if self._notifier:
             def notify(channel_id):
-                self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+                #self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+                pass
             
             infohashes = []
             for channel_id in channels:
@@ -248,7 +248,8 @@ class AllChannelCommunity(Community):
                 
             for infohash, channel_id in infohashes:
                 for permid in permids:
-                    self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
+                    #self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
+                    pass
     
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         def dispersy_thread():
