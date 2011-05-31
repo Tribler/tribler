@@ -164,8 +164,7 @@ class MagnetLink:
         if self._trackers:
             if len(self._trackers) > 1:
                 metadata["announce-list"] = [self._trackers]
-            else:
-                metadata["announce"] = self._trackers[0]
+            metadata["announce"] = self._trackers[0]
         else:
             metadata["nodes"] = []
         if peers:

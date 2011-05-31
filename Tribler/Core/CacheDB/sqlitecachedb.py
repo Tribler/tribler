@@ -1224,7 +1224,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               description           text,
               modified              integer         DEFAULT (strftime('%s','now')),
               inserted              integer         DEFAULT (strftime('%s','now')),
-              nr_torrents           integer         DEFAULT 0
+              nr_torrents           integer         DEFAULT 0,
+              nr_spam               integer         DEFAULT 0,
+              nr_favorite           integer         DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS ChannelTorrents (
               id                    integer         PRIMARY KEY ASC,
@@ -1517,7 +1519,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         
         if fromver < 8:
             from Tribler.Core.Session import Session
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
             session = Session.get_instance()
             
             my_permid = session.get_permid()
@@ -1606,6 +1607,25 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             self.executemany(insert_vote, to_be_inserted)
             
+            votes = {}
+            
+            select_pos_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == 2 GROUP BY channel_id"
+            select_neg_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == -1 GROUP BY channel_id"
+            records = self.fetchall(select_pos_vote)
+            for channel_id, pos_votes in records:
+                votes[channel_id] = [pos_votes, 0]
+        
+            records = self.fetchall(select_neg_vote)
+            for channel_id, neg_votes in records:
+                if channel_id not in votes:
+                    votes[channel_id] = [0, neg_votes]
+                else:
+                    votes[channel_id][1] = neg_votes
+                    
+            channel_tuples = [(values[1], values[0], channel_id) for channel_id, values in votes.iteritems()]
+            update_votes = "UPDATE Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
+            self.executemany(update_votes, channel_tuples)
+            
             print >> sys.stderr, "Converting took", time() - t1
                         
             if my_channel_name:
@@ -1619,7 +1639,29 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             community = ChannelCommunity.create_community(session.dispersy_member)
                             community._disp_create_channel(my_channel_name, u'')
                             
+                            #insert votes
+                            insert_votes_for_me()
+                            
+                            #schedule insert torrents
                             dispersy.rawserver.add_task(insert_my_torrents, 10)
+                            
+                    def insert_votes_for_me():
+                        my_channel_id = self.fetchone(select_mychannel_id)
+                        
+                        to_be_inserted = []
+                        
+                        votes = self.fetchall(select_votes_for_me, (my_permid, ))
+                        for voter_id, vote, time_stamp in votes:
+                            peer_id = self.getPeerID(str2bin(voter_id))
+                            if peer_id:
+                                to_be_inserted.append((my_channel_id, peer_id, -1, vote, time_stamp))
+                                
+                        if len(to_be_inserted) > 0:
+                            self.executemany(insert_vote, to_be_inserted)
+                            
+                            from Tribler.Core.CacheDB.SqliteCacheDBHandler import VoteCastDBHandler
+                            votecast = VoteCastDBHandler.getInstance()
+                            votecast._updateVotes(my_channel_id)
                         
                     def insert_my_torrents():
                         global community
@@ -1628,7 +1670,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         
                         channel_id = self.fetchone(select_mychannel_id)
                         if channel_id:
-                            batch_insert = 100
+                            batch_insert = 250
                             
                             to_be_inserted = []
                             torrents = self.fetchall(select_mychannel_torrent, (my_permid, channel_id, batch_insert))
@@ -1652,27 +1694,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 dispersy.rawserver.add_task(insert_my_torrents, 10)
                             
                             else: #done
-                                insert_votes_for_me(channel_id)
+                                drop_channelcast = "DROP TABLE ChannelCast"
+                                #self.execute_write(drop_channelcast)
+                        
+                                drop_votecast = "DROP TABLE VoteCast"
+                                #self.execute_write(drop_votecast)
                         else:
                             dispersy.rawserver.add_task(insert_my_torrents, 10)
-                    
-                    def insert_votes_for_me(my_channel_id):
-                        to_be_inserted = []
-                        
-                        votes = self.fetchall(select_votes_for_me, (my_permid, ))
-                        for voter_id, vote, time_stamp in votes:
-                            peer_id = self.getPeerID(str2bin(voter_id))
-                            if peer_id:
-                                to_be_inserted.append((my_channel_id, peer_id, -1, vote, time_stamp))
-                                
-                        if len(to_be_inserted) > 0:
-                            self.executemany(insert_vote, to_be_inserted)
-                        
-                        drop_channelcast = "DROP TABLE ChannelCast"
-                        #self.execute_write(drop_channelcast)
-                
-                        drop_votecast = "DROP TABLE VoteCast"
-                        #self.execute_write(drop_votecast)
                     
                     from Tribler.Community.channel.community import ChannelCommunity
                     from Tribler.Core.dispersy.dispersy import Dispersy

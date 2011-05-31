@@ -140,14 +140,15 @@ class ChannelCommunity(Community):
     
     @property    
     def dispersy_sync_bloom_filter_error_rate(self):
-        #when plotting n, an error of 13% is optimal
-        #n = size * ln(2)^2 / |ln(error_rate)|
-        
-        return 0.13
+        return 0.50
         
     @property
     def dispersy_sync_interval(self):
         return 5.0
+    
+    @property
+    def dispersy_sync_response_limit(self):
+       return 50 * 1024
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]

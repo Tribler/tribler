@@ -1292,18 +1292,16 @@ class TorrentDBHandler(BasicDBHandler):
     def _addTorrentTracker(self, torrent_id, torrentdef, extra_info={}, add_all=False, commit=True):
         # Set add_all to True if you want to put all multi-trackers into db.
         # In the current version (4.2) only the main tracker is used.
+
+        announce = torrentdef.get_tracker()
+        announce_list = torrentdef.get_tracker_hierarchy()
+        self._addTorrentTrackerList(torrent_id, announce, announce_list, extra_info, add_all, commit)
+        
+    def _addTorrentTrackerList(self, torrent_id, announce, announce_list, extra_info={}, add_all=False, commit=True):
         exist = self._db.getOne('TorrentTracker', 'tracker', torrent_id=torrent_id)
         if exist:
             return
         
-        # announce = data['announce']
-        # ignore_number = data['ignore_number']
-        # retry_number = data['retry_number']
-        # last_check_time = data['last_check_time']
-        # announce_list = data['announce-list']
-
-        announce = torrentdef.get_tracker()
-        announce_list = torrentdef.get_tracker_hierarchy()
         ignore_number = 0
         retry_number = 0
         last_check_time = 0
@@ -2902,40 +2900,36 @@ class VoteCastDBHandler(BasicDBHandler):
         self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
 
     def getPosNegVotes(self, channel_id):
-        pos_votes = 0
-        neg_votes = 0
-        
-        sql = 'select vote from ChannelVotes where channel_id = ?'
-        records = self._db.fetchall(sql, (channel_id,))
-        for vote, in records:
-            if vote == 2:
-                pos_votes +=1
-            elif vote == -1:
-                neg_votes +=1
-        return (pos_votes, neg_votes)
+        sql = 'select nr_favorite, nr_spam from Channels where id = ?'
+        result = self._db.fetchone(sql, (channel_id,))
+        if result:
+            return result
+        return 0,0 
 
     def getAllPosNegVotes(self):
         votes = {}
         
-        sql = 'select vote, channel_id from ChannelVotes'
+        sql = 'select id, nr_favorite, nr_spam from Channels'
         records = self._db.fetchall(sql)
-        for vote, channel_id in records:
-            cur_votes = votes.get(channel_id, [0,0])
+        for channel_id, nr_favorite, nr_spam in records:
+            votes[channel_id] = (nr_favorite, nr_spam)
             
-            if vote == 2:
-                cur_votes[0] +=1
-            elif vote == -1:
-                cur_votes[1] +=1
-            votes[channel_id] = cur_votes
         return votes
 
     def addVote(self, vote):
         sql = "INSERT OR IGNORE INTO ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
         self._db.execute_write(sql, vote)
+        self._updateVotes(vote[0])
         
     def addVotes(self, votes):
         sql = "INSERT OR IGNORE INTO ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
         self._db.executemany(sql, votes)
+        
+        channels = set()
+        for vote in votes:
+            channels.add(vote[0])
+        for channel in channels:
+            self._updateVotes(channel)
         
     def removeVote(self, channel_id, voter_id):
         if voter_id:
@@ -2944,6 +2938,13 @@ class VoteCastDBHandler(BasicDBHandler):
         else:
             sql = "DELETE FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL"
             sql._db.execute_write(sql, (channel_id, ))
+        
+        self._updateVotes(channel_id)
+            
+    def _updateVotes(self, channel_id):
+        nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id, ))
+        nr_spam = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == -1 AND channel_id = ?", (channel_id, ))
+        self._db.execute_write("UPDATE Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id))
     
     def subscribe(self, channel_id):
         """insert/change the vote status to 2"""
@@ -3157,6 +3158,8 @@ class ChannelCastDBHandler:
             
             insert_data.append((dispersy_id, torrent_id, channel_id, name, timestamp))
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
+            
+            self.torrent_db._addTorrentTrackerList(torrent_id, trackers[0], [], commit = False)
 
         sql_insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, name, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(sql_insert_torrent, insert_data, commit = False)
@@ -3593,7 +3596,7 @@ class ChannelCastDBHandler:
         """
        
     def getChannel(self, channel_id):
-        sql = "Select id, name, dispersy_cid, modified, nr_torrents FROM Channels WHERE id = ?"
+        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id = ?"
         channels = self._getChannels(sql, (channel_id,))
         if len(channels) > 0:
             channel = list(channels[0])
@@ -3604,12 +3607,12 @@ class ChannelCastDBHandler:
    
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = "Select id, name, dispersy_cid, modified, nr_torrents FROM Channels"
+        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
         return self._getChannels(sql)
     
     def getNewChannels(self, updated_since = 0):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
-        sql = "Select id, name, dispersy_cid, modified, nr_torrents FROM Channels"
+        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
         return self._getChannels(sql, maxvotes = 0, updated_since = updated_since)
     
     def getLatestUpdated(self, max_nr = 20):
@@ -3628,15 +3631,15 @@ class ChannelCastDBHandler:
             #finally compare nr_torrents
             return cmp(a[4], b[4])
         
-        sql = "Select Channels.id, Channels.name, Channels.dispersy_cid, Channels.modified, nr_torrents FROM Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id GROUP BY Channels.id Order By max(time_stamp) DESC Limit ?"
+        sql = "Select Channels.id, Channels.name, Channels.dispersy_cid, Channels.modified, nr_torrents, nr_favorite, nr_spam FROM Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id GROUP BY Channels.id Order By max(time_stamp) DESC Limit ?"
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        sql = "Select id, name, dispersy_cid, modified, nr_torrents FROM Channels"
+        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
         return self._getChannels(sql)[:20]
 
     def getMySubscribedChannels(self):
-        sql = "SELECT id, name, dispersy_cid, modified, nr_torrents FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
+        sql = "SELECT id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         return self._getChannels(sql)
     
     def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None, updated_since = 0):
@@ -3644,8 +3647,7 @@ class ChannelCastDBHandler:
         channels = []
         results = self._db.fetchall(sql, args)
         
-        for channel_id, channel_name, dispersy_cid, modified, nr_torrents in results:
-            nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)
+        for channel_id, channel_name, dispersy_cid, modified, nr_torrents, nr_favorites, nr_spam in results:
             nr_votes = nr_favorites + nr_spam
             
             if nr_votes >= minvotes and nr_votes <= maxvotes:
@@ -3659,7 +3661,7 @@ class ChannelCastDBHandler:
             if b[6] == -1:
                 return -1
             
-            #first compare nr_votes
+            #then compare nr_votes
             if a[3] < b[3]:
                 return 1
             if a[3] > b[3]:

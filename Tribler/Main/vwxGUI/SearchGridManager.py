@@ -128,14 +128,22 @@ class TorrentManager:
             if self.downloadTorrentfileFromPeers(torrent, callback):
                 return (True, "from peers")
         
-        #TODO: use new torrentcollection table... 
+        torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
+        torrent_filename = os.path.join(torrent_dir, get_collected_torrent_filename(torrent['infohash']))
         
         #.torrent still not found, try magnet link
         magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent['infohash'])
+        sources = self.torrent_db.getTorrentCollecting(torrent['torrent_id'])
+        if sources:
+            for source, in sources:
+                if source.startswith('magnet'):
+                    magnetlink = str(source)
+                    break
+        
         def torrentdef_retrieved(tdef):
             tdef.save(torrent_filename)
             callback(torrent['infohash'], torrent, torrent_filename)
-            
+        print >> sys.stderr, magnetlink
         return (TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved), "from dht")
              
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio = 0):
@@ -243,23 +251,30 @@ class TorrentManager:
             #see if we have all info in our tables
             if 'torrent_id' in torrent:
                 allfiles = self.torrent_db.getTorrentFiles(torrent['torrent_id'])
-                videofiles = []
-                for file, length in allfiles:
-                    prefix, ext = os.path.splitext(file)
-
-                    if ext != "" and ext[0] == ".":
-                        ext = ext[1:]
-                    if ext.lower() in videoextdefaults:
-                        videofiles.append((file, length))
-                
-                playable = len(videofiles) > 0
-                
-                collectingSources = self.torrent_db.getTorrentCollecting(torrent['torrent_id'])
-                for source, in collectingSources:
-                    if source.startswith('magnet'):
-                        dn, xt, trs = MagnetLink.MagnetLink.parse_url(source)
-                        torrent['trackers'] = [trs]
-                        break
+                if len(allfiles) > 0:
+                    videofiles = []
+                    for file, _ in allfiles:
+                        prefix, ext = os.path.splitext(file)
+    
+                        if ext != "" and ext[0] == ".":
+                            ext = ext[1:]
+                        if ext.lower() in videoextdefaults:
+                            videofiles.append(file)
+                    
+                    playable = len(videofiles) > 0
+                    
+                    collectingSources = self.torrent_db.getTorrentCollecting(torrent['torrent_id'])
+                    for source, in collectingSources:
+                        if source.startswith('magnet'):
+                            dn, xt, trs = MagnetLink.MagnetLink.parse_url(source)
+                            torrent['trackers'] = [trs]
+                            break
+                else:
+                    torrent_callback = lambda infohash, metadata, filename: self.isTorrentPlayable(torrent, default, callback)
+                    torrent_filename = self.getTorrent(torrent, torrent_callback)
+                    
+                    if torrent_filename[0]:
+                        return torrent_filename[1]
         else:
             #got actual filename
             tdef = TorrentDef.load(torrent_filename)

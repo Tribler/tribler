@@ -426,7 +426,9 @@ CREATE TABLE IF NOT EXISTS Channels (
   description               text,
   modified                  integer         DEFAULT (strftime('%s','now')),
   inserted                  integer         DEFAULT (strftime('%s','now')),
-  nr_torrents               integer         DEFAULT 0
+  nr_torrents               integer         DEFAULT 0,
+  nr_spam                   integer         DEFAULT 0,
+  nr_favorite               integer         DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS ChannelTorrents (
   id                        integer         PRIMARY KEY ASC,
