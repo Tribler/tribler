@@ -102,9 +102,10 @@ class RemoteTorrentHandler:
         if infohash in self.callbacks:
             usercallback = self.callbacks[infohash]
             del self.callbacks[infohash]
-        
-            remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
-            self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
+            
+            if usercallback:
+                remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
+                self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
             
         for requester in self.requesters.values():
             if infohash in requester.sources:

@@ -1223,7 +1223,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               name                  text            NOT NULL,
               description           text,
               modified              integer         DEFAULT (strftime('%s','now')),
-              inserted              integer         DEFAULT (strftime('%s','now'))
+              inserted              integer         DEFAULT (strftime('%s','now')),
+              nr_torrents           integer         DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS ChannelTorrents (
               id                    integer         PRIMARY KEY ASC,
@@ -1364,6 +1365,22 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             INSERT INTO MetaDataTypes ('name') VALUES ('name');
             INSERT INTO MetaDataTypes ('name') VALUES ('description');
+            
+            CREATE TABLE TorrentFiles (
+              torrent_id            integer NOT NULL,
+              path                  text    NOT NULL,
+              length                integer NOT NULL,
+              PRIMARY KEY (torrent_id, path)
+            );
+            CREATE INDEX IF NOT EXISTS TorFileIndex ON TorrentFiles(torrent_id);
+            
+            CREATE TABLE TorrentCollecting (
+              torrent_id            integer NOT NULL,
+              source                text    NOT NULL,
+              PRIMARY KEY (torrent_id, source)
+            );
+            CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
+
             """
             self.execute_write(sql, commit=False)
 
@@ -1512,13 +1529,15 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ? LIMIT 1"
             
             select_channel_torrent = "SELECT CollectedTorrent.torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash Order By time_stamp DESC"
-            select_mychannel_torrent = "SELECT CollectedTorrent.infohash, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash AND CollectedTorrent.torrent_id NOT IN (SELECT torrent_id FROM ChannelTorrents WHERE channel_id = ?) ORDER BY time_stamp DESC LIMIT ?"
+            select_mychannel_torrent = "SELECT CollectedTorrent.infohash, time_stamp, torrent_file_name FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash AND CollectedTorrent.torrent_id NOT IN (SELECT torrent_id FROM ChannelTorrents WHERE channel_id = ?) ORDER BY time_stamp DESC LIMIT ?"
             
             select_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
             select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
             
             insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?)"
-            insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
+            insert_channel_contents = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
+            
+            update_channel = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
             
             #placeholders for dispersy channel conversion
             my_channel_name = None
@@ -1559,7 +1578,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     
                     for torrent_id, time_stamp in torrents:
                         to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
-            
+                        
+                    self.execute_write(update_channel, (len(torrents), channel_id), commit = False)
             self.executemany(insert_channel_contents, to_be_inserted, commit = False)
             
             #convert votes
@@ -1604,16 +1624,28 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     def insert_my_torrents():
                         global community
                         
+                        torrent_dir = session.get_torrent_collecting_dir()
+                        
                         channel_id = self.fetchone(select_mychannel_id)
                         if channel_id:
                             batch_insert = 100
                             
                             to_be_inserted = []
                             torrents = self.fetchall(select_mychannel_torrent, (my_permid, channel_id, batch_insert))
-                            for infohash, timestamp in torrents:
+                            for infohash, timestamp, torrent_file_name in torrents:
                                 timestamp = long(timestamp)
                                 infohash = str2bin(infohash)
-                                to_be_inserted.append((infohash, timestamp))
+                                
+                                torrent_file_name = os.path.join(torrent_dir, torrent_file_name)
+                                if not os.path.isfile(torrent_file_name):
+                                    _, tail = os.path.split(torrent_file_name)
+                                    torrent_file_name = os.path.join(torrent_dir, tail)
+                                
+                                if os.path.isfile(torrent_file_name):    
+                                    torrentdef = TorrentDef.load(torrent_file_name)
+                                    
+                                    files = torrentdef.get_files_as_unicode_with_length()
+                                    to_be_inserted.append((infohash, timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple()))
                             
                             if len(to_be_inserted) > 0:
                                 community._disp_create_torrents(to_be_inserted, forward = False)
@@ -1622,7 +1654,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             else: #done
                                 insert_votes_for_me(channel_id)
                         else:
-                            tqueue.add_task(insert_my_torrents, 10)
+                            dispersy.rawserver.add_task(insert_my_torrents, 10)
                     
                     def insert_votes_for_me(my_channel_id):
                         to_be_inserted = []
@@ -1644,9 +1676,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     
                     from Tribler.Community.channel.community import ChannelCommunity
                     from Tribler.Core.dispersy.dispersy import Dispersy
+                    from Tribler.Core.TorrentDef import TorrentDef
                     
                     dispersy = Dispersy.get_instance()
-                    dispersy.rawserver.add_task(create_my_channel, 30)
+                    dispersy.rawserver.add_task(create_my_channel, 5)
                     session.remove_observer(dispersy_started)
                 
                 session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])

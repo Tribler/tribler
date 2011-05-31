@@ -27,7 +27,7 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, cid, master_key):
-        self.integrate_with_tribler = False
+        self.integrate_with_tribler = True
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
@@ -140,7 +140,10 @@ class ChannelCommunity(Community):
     
     @property    
     def dispersy_sync_bloom_filter_error_rate(self):
-        return 0.5
+        #when plotting n, an error of 13% is optimal
+        #n = size * ln(2)^2 / |ln(error_rate)|
+        
+        return 0.13
         
     @property
     def dispersy_sync_interval(self):
@@ -186,12 +189,16 @@ class ChannelCommunity(Community):
                 log("dispersy.log", "received-channel-record") # TODO: should change this to something more specific to channels
                 self._channel_id = self._cid
 
-    def _disp_create_torrent(self, infohash, timestamp, store=True, update=True, forward=True):
+    def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
+        files = torrentdef.get_files_as_unicode_with_length()
+        return self._disp_create_torrent(torrentdef.get_infohash(), timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple(), store, update, forward)
+
+    def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
-                                 meta.payload.implement([(infohash, timestamp)]))
+                                 meta.payload.implement([(infohash, timestamp, name, files, trackers)]))
         self._dispersy.store_update_forward([message], store, update, forward)
         
         log("dispersy.log", "created-barter-record", size = len(message.packet)) # TODO: should change this to something more specific to channels
@@ -239,18 +246,13 @@ class ChannelCommunity(Community):
             if __debug__: dprint(message)
             
             dispersy_id = message.packet_id
-            for infohash, timestamp in message.payload.torrentlist:
-                torrentlist.append((self._channel_id, dispersy_id, infohash, timestamp))
+            for infohash, timestamp, name, files, trackers in message.payload.torrentlist:
+                torrentlist.append((self._channel_id, dispersy_id, infohash, timestamp, name, files, trackers))
                 infohashes.add(infohash)
             
             addresses.add(message.address)
             
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
-        
-        #start requesting these .torrents, remote torrent collector will actually only make request if we do not already have the 
-        #.torrent on disk
-        def notify():
-            self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, self._channel_id)
         
         permids = set()
         for address in addresses:
@@ -259,7 +261,7 @@ class ChannelCommunity(Community):
         
         for infohash in infohashes:
             for permid in permids:
-                self._rtorrent_handler.download_torrent(permid, infohash, lambda infohash, metadata, filename: notify() ,2)
+                self._rtorrent_handler.download_torrent(permid, infohash, None ,2)
 
     #create, check or receive playlist
     def create_playlist(self, name, description, infohashes = [], store=True, update=True, forward=True):

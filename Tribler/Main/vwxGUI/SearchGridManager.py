@@ -27,6 +27,7 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.DecentralizedTracking.MagnetLink import MagnetLink 
 
 from math import sqrt
 from __init__ import *
@@ -83,16 +84,12 @@ class TorrentManager:
         return TorrentManager.__single
     getInstance = staticmethod(getInstance)
     
-    def getTorrent(self, torrent, callback):
+    def haveTorrent(self, torrent):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
         
-        CALLBACK is called when the torrent is downloaded. When no
-        torrent can be downloaded the callback is ignored
-        
-        Returns a filename, if filename is known or a boolean + request_type
-        describing if the torrent is requested
+        Returns a filename, if filename is known
         """
         torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
         
@@ -109,11 +106,29 @@ class TorrentManager:
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
         if os.path.isfile(torrent_filename):
             return torrent_filename
+    
+    def getTorrent(self, torrent, callback):
+        """
+        TORRENT is a dictionary containing torrent information used to
+        display the entry on the UI. it is NOT the torrent file!
+        
+        CALLBACK is called when the torrent is downloaded. When no
+        torrent can be downloaded the callback is ignored
+        
+        Returns a filename, if filename is known or a boolean + request_type
+        describing if the torrent is requested
+        """
+        
+        torrent_filename = self.haveTorrent(torrent)
+        if torrent_filename:
+            return torrent_filename
         
         #.torrent not found, try to download from peers
         if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
             if self.downloadTorrentfileFromPeers(torrent, callback):
                 return (True, "from peers")
+        
+        #TODO: use new torrentcollection table... 
         
         #.torrent still not found, try magnet link
         magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent['infohash'])
@@ -220,33 +235,49 @@ class TorrentManager:
         If the torrent is not playable or if the default value is returned the boolean is False and the list is empty.
         If it is playable the boolean is true and the list returned consists of the playable files within the actual torrent. 
         """
-        torrent_callback = lambda infohash, metadata, filename: self.isTorrentPlayable(torrent, default, callback)
-        torrent_filename = self.getTorrent(torrent, torrent_callback)
         
-        if isinstance(torrent_filename, basestring):
+        playable, videofiles, allfiles = default
+        
+        torrent_filename = self.haveTorrent(torrent)
+        if not torrent_filename:
+            #see if we have all info in our tables
+            if 'torrent_id' in torrent:
+                allfiles = self.torrent_db.getTorrentFiles(torrent['torrent_id'])
+                videofiles = []
+                for file, length in allfiles:
+                    prefix, ext = os.path.splitext(file)
+
+                    if ext != "" and ext[0] == ".":
+                        ext = ext[1:]
+                    if ext.lower() in videoextdefaults:
+                        videofiles.append((file, length))
+                
+                playable = len(videofiles) > 0
+                
+                collectingSources = self.torrent_db.getTorrentCollecting(torrent['torrent_id'])
+                for source, in collectingSources:
+                    if source.startswith('magnet'):
+                        dn, xt, trs = MagnetLink.MagnetLink.parse_url(source)
+                        torrent['trackers'] = [trs]
+                        break
+        else:
             #got actual filename
             tdef = TorrentDef.load(torrent_filename)
             
-            files = tdef.get_files_as_unicode(exts=videoextdefaults)
+            videofiles = tdef.get_files_as_unicode(exts=videoextdefaults)
             allfiles = tdef.get_files_as_unicode_with_length()
-            playable = len(files) > 0
+            playable = len(videofiles) > 0
             
             torrent['comment'] = tdef.get_comment_as_unicode()
             if tdef.get_tracker_hierarchy():
                 torrent['trackers'] = tdef.get_tracker_hierarchy()
             else:
                 torrent['trackers'] = [[tdef.get_tracker()]]
-            
-            if not callback is None:
-                wx.CallAfter(callback, torrent, (playable, files, allfiles))
-            else:
-                return (playable, files, allfiles)
-        elif not torrent_filename[0]:
-            if DEBUG:
-                print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
-            wx.CallAfter(callback, torrent, default)
+        
+        if not callback is None:
+            callback(torrent, (playable, videofiles, allfiles))
         else:
-            return torrent_filename[1]
+            return (playable, videofiles, allfiles)
     
     def getSwarmInfo(self, torrent_id):
         return self.torrent_db.getSwarmInfo(torrent_id)
@@ -910,8 +941,11 @@ class ChannelSearchGridManager:
         else:
             nrFiltered = 0
         
-        #Prefer channeltorrents name, but use collectedtorrent as backup
         for data in hits:
+            data['torrent_id'] = data['CollectedTorrent.torrent_id']
+            del data['CollectedTorrent.torrent_id']
+
+            #Prefer channeltorrents name, but use collectedtorrent as backup
             data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']  
         return len(hits), nrFiltered, hits
     

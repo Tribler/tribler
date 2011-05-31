@@ -392,6 +392,22 @@ class TorrentDef(Serializable,Copyable):
         """ Returns the hierarchy of trackers.
         @return A list of lists. """
         return self.input['announce-list']
+    
+    def get_trackers_as_single_tuple(self):
+        """ Returns a flat tuple of all known trackers
+        @return A tuple containing trackers
+        """
+        if self.get_tracker_hierarchy():
+            trackers = []
+            for level in self.get_tracker_hierarchy():
+                for tracker in level:
+                    if tracker not in trackers:
+                        trackers.append(tracker)
+            return tuple(trackers)
+        tracker = self.get_tracker()
+        if tracker:
+            return (tracker,)
+        return ()
 
     def set_dht_nodes(self,nodes):
         """ Sets the DHT nodes required by the mainline DHT support,

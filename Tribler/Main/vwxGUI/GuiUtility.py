@@ -222,8 +222,11 @@ class GUIUtility:
             elif page =='my_files':
                 self.frame.librarylist.Focus()
 
-    def GoBack(self, scrollTo = None):
-        topage = self.oldpage.pop()
+    def GoBack(self, scrollTo = None, topage = None):
+        if topage:
+            self.oldpage.pop()
+        else:
+            topage = self.oldpage.pop()
         
         if topage == 'channels':
             category = self.frame.channellist.GetManager().category

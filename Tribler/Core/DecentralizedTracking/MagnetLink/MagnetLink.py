@@ -84,7 +84,7 @@ class MagnetLink:
         # _callback is called when the metadata is retrieved.
         self._callback = callback
 
-        dn, xt, tr = self._parse_url(url)
+        dn, xt, trs = self.parse_url(url)
 
         # _name is the unicode name suggested for the swarm.
         assert dn is None or isinstance(dn, unicode), "DN has invalid type: %s" % type(dn)
@@ -97,7 +97,7 @@ class MagnetLink:
         self._info_hash = xt
 
         # _tracker is an optional tracker address.
-        self._tracker = tr
+        self._trackers = trs
 
         # _swarm is a MiniBitTorrent.MiniSwarm instance that connects
         # to peers to retrieve the metadata.
@@ -127,8 +127,8 @@ class MagnetLink:
             dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
 
             try:
-                if self._tracker:
-                    MiniTracker(self._swarm, self._tracker)
+                if self._trackers:
+                    MiniTracker(self._swarm, self._trackers)
             except:
                 print_exc()
 
@@ -161,8 +161,11 @@ class MagnetLink:
 
         # create metadata
         metadata = {"info":metainfo}
-        if self._tracker:
-            metadata["announce"] = self._tracker
+        if self._trackers:
+            if len(self._trackers) > 1:
+                metadata["announce-list"] = [self._trackers]
+            else:
+                metadata["announce"] = self._trackers[0]
         else:
             metadata["nodes"] = []
         if peers:
@@ -182,13 +185,13 @@ class MagnetLink:
         self._swarm.close()
 
     @staticmethod
-    def _parse_url(url):
+    def parse_url(url):
         # url must be a magnet link
         dn = None
         xt = None
-        tr = None
+        trs = []
 
-        if DEBUG: print >> sys.stderr, "Magnet._parse_url()", url
+        if DEBUG: print >> sys.stderr, "Magnet.parse_url()", url
 
         schema, netloc, path, query, fragment = urlsplit(url)
         if schema == "magnet":
@@ -211,10 +214,10 @@ class MagnetLink:
                     xt = unhexlify(value[9:49])
 
                 elif key == "tr":
-                    tr = value
+                    trs.append(value)
 
-            if DEBUG: print >> sys.stderr, "Magnet._parse_url() NAME:", dn
-            if DEBUG: print >> sys.stderr, "Magnet._parse_url() HASH:", xt
-            if DEBUG: print >> sys.stderr, "Magnet._parse_url() TRAC:", tr
+            if DEBUG: print >> sys.stderr, "Magnet.parse_url() NAME:", dn
+            if DEBUG: print >> sys.stderr, "Magnet.parse_url() HASH:", xt
+            if DEBUG: print >> sys.stderr, "Magnet.parse_url() TRACS:", trs
 
-        return (dn, xt, tr)
+        return (dn, xt, trs)

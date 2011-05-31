@@ -1,4 +1,5 @@
 from struct import pack, unpack_from
+import zlib
 
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket, Packet
@@ -45,19 +46,37 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_torrent(self, message):
         result = []
-        for infohash, timestamp in message.payload.torrentlist:
-            result.append(pack('!20sQ', infohash, timestamp))
-        
-        return result
+        for infohash, timestamp, name, files, trackers in message.payload.torrentlist:
+            result.append((pack('!20sQ', infohash, timestamp), name, files, trackers))
+            
+        msg = encode(result)
+        return zlib.compress(msg, 9),
 
     def _decode_torrent(self, meta_message, offset, data):
-        if (len(data) - offset) % 28 != 0:
-            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected multiple of 28"%(len(data) - offset))
+        uncompressed_data = zlib.decompress(data[offset:])
+        offset = len(data)
+        
+        try:
+            _, values = decode(uncompressed_data)
+        except ValueError:
+            raise DropPacket("Unable to decode the torrent-payload")
         
         torrentlist = []
-        while len(data) != offset:
-            torrentlist.append(unpack_from('!20sQ', data, offset))
-            offset += 28
+        for infohash_time, name, files, trackers in values:
+            if len(infohash_time) != 28:
+                raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28"%(len(infohash_time)))
+            infohash, timestamp = unpack_from('!20sQ', infohash_time)
+            
+            if not isinstance(name, unicode):
+                raise DropPacket("Invalid 'name' type")
+            
+            if not isinstance(files, tuple):
+                raise DropPacket("Invalid 'files' type")
+            
+            if not isinstance(trackers, tuple):
+                raise DropPacket("Invalid 'trackers' type")
+            
+            torrentlist.append((infohash, timestamp, name, files, trackers))
             
         return offset, meta_message.payload.implement(torrentlist)
 
@@ -96,7 +115,7 @@ class ChannelConversion(BinaryConversion):
         if not "text" in dic:
             raise DropPacket("Missing 'text'")
         text = dic["text"]
-        if not (isinstance(text, unicode) and len(text) < 2^16):
+        if not (isinstance(text, unicode) and len(text) < 2**16):
             raise DropPacket("Invalid 'text' type or value")
         
         if not "timestamp" in dic:

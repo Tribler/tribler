@@ -106,7 +106,7 @@ class ChannelSearchManager:
             keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
             self.list.SetTitle('Search results for "%s"'%keywords, total_items)
         
-        data = [channel for channel in data if channel[CHANNEL_NR_TORRENTS_COLLECTED] > 0]
+        data = [channel for channel in data if channel[CHANNEL_NR_TORRENTS] > 0]
         self.list.SetData(data)
         
     def SetCategory(self, category):
@@ -783,18 +783,9 @@ class ChannelList(List):
         return control
     
     def CreateTorrents(self, parent, item):
-        collecting_progress = item.original_data[CHANNEL_NR_TORRENTS_COLLECTED] / float(item.original_data[CHANNEL_NR_TORRENTS]) 
-        
         torrents = str(item.data[3])
-        torrents = ProgressStaticText(parent, torrents, collecting_progress)
+        torrents = wx.StaticText(parent, -1, torrents)
         torrents.SetMinSize((self.columns[3]['width'], -1))
-        torrents.Layout()
-        
-        torrentsRemaining = item.original_data[CHANNEL_NR_TORRENTS] - item.original_data[CHANNEL_NR_TORRENTS_COLLECTED]
-        if torrentsRemaining > 0:
-            torrents.SetToolTipString('%d torrents discovered\n%d collected, %d remaining'%(item.original_data[CHANNEL_NR_TORRENTS], item.original_data[CHANNEL_NR_TORRENTS_COLLECTED], torrentsRemaining))
-        else:
-            torrents.SetToolTipString('All discovered torrents collected')
         return torrents
     
     def OnExpand(self, item):
@@ -813,7 +804,7 @@ class ChannelList(List):
             self.favorites = [file[CHANNEL_ID] for file in data if file[CHANNEL_MY_VOTE] == 2]
             self.spam_channels = [file[CHANNEL_ID] for file in data if file[CHANNEL_MY_VOTE] == -1]
             
-            data = [(file[CHANNEL_ID],[file[CHANNEL_NAME], file[CHANNEL_LATEST_UPDATE], file[CHANNEL_NR_FAVORITES], file[CHANNEL_NR_TORRENTS_COLLECTED]], file) for file in data]
+            data = [(file[CHANNEL_ID],[file[CHANNEL_NAME], file[CHANNEL_LATEST_UPDATE], file[CHANNEL_NR_FAVORITES], file[CHANNEL_NR_TORRENTS]], file) for file in data]
             return self.list.SetData(data)
         
         self.list.ShowMessage('No channels are discovered for this category.')
@@ -822,7 +813,7 @@ class ChannelList(List):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data[CHANNEL_ID],[data[CHANNEL_NAME], data[CHANNEL_LATEST_UPDATE], data[CHANNEL_NR_FAVORITES], data[CHANNEL_NR_TORRENTS_COLLECTED]], data)
+        data = (data[CHANNEL_ID],[data[CHANNEL_NAME], data[CHANNEL_LATEST_UPDATE], data[CHANNEL_NR_FAVORITES], data[CHANNEL_NR_TORRENTS]], data)
         self.list.RefreshData(key, data)
         
     def SetTitle(self, title, nr):

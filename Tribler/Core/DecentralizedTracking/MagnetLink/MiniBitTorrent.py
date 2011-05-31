@@ -556,10 +556,11 @@ class MiniTracker(Thread):
     A MiniTracker instance makes a single connection to a tracker to
     attempt to obtain peer addresses.
     """
-    def __init__(self, swarm, tracker):
+    def __init__(self, swarm, trackers):
         Thread.__init__(self)
         self._swarm = swarm
-        self._tracker = tracker
+        #for now use first tracker only
+        self._tracker = trackers[0]
         self.start()
 
     def run(self):
@@ -577,7 +578,6 @@ class MiniTracker(Thread):
             if body:
                 try:
                     body = bdecode(body)
-
                 except:
                     pass
                 

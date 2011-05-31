@@ -140,7 +140,7 @@ class SelectedChannelList(SearchList):
         manager.SetIds(channel_id = id)
         
     def SetDispersy(self, isDispersy):
-        if isDispersy:
+        if True or isDispersy:
             if self.notebook.GetPageCount() == 1:
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
@@ -252,7 +252,7 @@ class SelectedChannelList(SearchList):
         self.guiutility.showManageChannel(self.id)
     
     def OnBack(self, event):
-        self.guiutility.GoBack(self.id)
+        self.guiutility.GoBack(self.id, 'channels')
         
     def OnSize(self, event):
         diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
@@ -638,7 +638,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             name = data[CHANNEL_NAME]
             header = 'Management interface for %s\'s Channel'%name
             nr_favorites = data[CHANNEL_NR_FAVORITES]
-            nr_torrents = data[CHANNEL_NR_TORRENTS_COLLECTED]
+            nr_torrents = data[CHANNEL_NR_TORRENTS]
             description = data[CHANNEL_DESCRIPTION] 
             
             if self.notebook.GetPageCount() == 1:
@@ -690,7 +690,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         event.Skip()
     
     def OnBack(self, event):
-        self.guiutility.GoBack()
+        self.guiutility.ShowPage('selectedchannel')
     
     def OnAddRss(self, event):
         item = event.GetEventObject()

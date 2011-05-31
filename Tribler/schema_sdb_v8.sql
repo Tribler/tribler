@@ -425,7 +425,8 @@ CREATE TABLE IF NOT EXISTS Channels (
   name                      text            NOT NULL,
   description               text,
   modified                  integer         DEFAULT (strftime('%s','now')),
-  inserted                  integer         DEFAULT (strftime('%s','now'))
+  inserted                  integer         DEFAULT (strftime('%s','now')),
+  nr_torrents               integer         DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS ChannelTorrents (
   id                        integer         PRIMARY KEY ASC,
@@ -561,6 +562,23 @@ CREATE TABLE ChannelVotes (
 );
 CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
 CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
+
+CREATE TABLE TorrentFiles (
+  torrent_id            integer NOT NULL,
+  path                  text    NOT NULL,
+  length                integer NOT NULL,
+  PRIMARY KEY (torrent_id, path)
+);
+CREATE INDEX IF NOT EXISTS TorFileIndex ON TorrentFiles(torrent_id);
+
+CREATE TABLE TorrentCollecting (
+  torrent_id            integer NOT NULL,
+  source                text    NOT NULL,
+  PRIMARY KEY (torrent_id, source)
+);
+CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
+
+
 
 -------------------------------------
 
