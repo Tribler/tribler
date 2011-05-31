@@ -124,6 +124,14 @@ class Community(object):
         # new community instance
         community = cls.load_community(cid, master_key, *args, **kargs)
 
+        # create the dispersy-identity for the master member
+        meta = community.get_meta_message(u"dispersy-identity")
+        message = meta.implement(meta.authentication.implement(community.master_member),
+                                 meta.distribution.implement(community.claim_global_time()),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(("0.0.0.0", 0)))
+        community.dispersy.store_update_forward([message], True, False, True)
+
         # send out my initial dispersy-identity
         community.create_dispersy_identity()
 
