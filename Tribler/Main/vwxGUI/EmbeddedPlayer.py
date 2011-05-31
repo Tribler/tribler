@@ -473,14 +473,13 @@ class EmbeddedPlayerPanel(wx.Panel):
                 print >>sys.stderr,"embedplay: GetState",status
 
             import vlc
-            if status == vlc.PlayingStatus:
+            if status == vlc.State.Playing:
                 return MEDIASTATE_PLAYING
-            elif status == vlc.PauseStatus:
+            elif status == vlc.State.Paused:
                 return MEDIASTATE_PAUSED
-            else:
-                return MEDIASTATE_STOPPED
-        else:
-            return MEDIASTATE_STOPPED
+        
+        # catchall
+        return MEDIASTATE_STOPPED
 
     def Reset(self):
         self.Stop()

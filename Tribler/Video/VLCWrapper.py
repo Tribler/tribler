@@ -107,7 +107,7 @@ class VLCWrapper:
             elif sys.platform == 'darwin':
                 self.vlc.libvlc_media_player_set_nsobject(self.player,xid);
             else: # Linux
-                self.vlc.libvlc_media_player_set_xdrawable(self.player,xid);
+                self.vlc.libvlc_media_player_set_xwindow(self.player,xid);
         else:
             if sys.platform == 'darwin':
                 # pylint: disable-msg=E1101
