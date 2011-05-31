@@ -3159,7 +3159,8 @@ class ChannelCastDBHandler:
             insert_data.append((dispersy_id, torrent_id, channel_id, name, timestamp))
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
             
-            self.torrent_db._addTorrentTrackerList(torrent_id, trackers[0], [], commit = False)
+            if len(trackers) > 0:
+                self.torrent_db._addTorrentTrackerList(torrent_id, trackers[0], [], commit = False)
 
         sql_insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, name, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(sql_insert_torrent, insert_data, commit = False)
