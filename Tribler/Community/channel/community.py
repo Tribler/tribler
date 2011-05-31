@@ -140,7 +140,7 @@ class ChannelCommunity(Community):
     
     @property    
     def dispersy_sync_bloom_filter_error_rate(self):
-        return 0.50
+        return 0.3
         
     @property
     def dispersy_sync_interval(self):
