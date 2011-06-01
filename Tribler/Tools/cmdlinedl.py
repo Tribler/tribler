@@ -1,4 +1,5 @@
-# Written by Arno Bakker, George Milescu 
+# Written by Arno Bakker
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:

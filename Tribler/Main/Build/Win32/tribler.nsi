@@ -84,8 +84,10 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
+ File /r Microsoft.VC90.CRT
  File *.txt
- File tribler.exe.manifest
+ ; Arno: Appears to be for CRT v6?
+ ; File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
  File /r vlc

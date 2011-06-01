@@ -1,5 +1,5 @@
 # Written by Arno Bakker 
-# Modified by George Milescu 
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 """ A Session is a running instance of the Tribler Core and the Core's central class. """
 
@@ -21,6 +21,11 @@ from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeCo
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
+
+# ProxyService 90s Test_
+import time
+# _ProxyService 90s Test
+
 GOTM2CRYPTO=False
 try:
     import M2Crypto
@@ -57,6 +62,11 @@ class Session(SessionRuntimeConfig):
         In the current implementation only a single session instance can exist
         at a time in a process. The ignore_singleton flag is used for testing.
         """
+        
+        # ProxyService 90s Test_
+        self.start_time = time.time()
+        # _ProxyService 90s Test
+        
         if not ignore_singleton:
             if Session.__single:
                 raise RuntimeError, "Session is singleton"
@@ -164,27 +174,27 @@ class Session(SessionRuntimeConfig):
         if 'crawler_file' not in self.sessconfig or self.sessconfig['crawler_file'] is None:
             self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'], LIBRARYNAME,'Core','Statistics','crawler.txt')
 
-        # 5. download_help_dir
-        if self.sessconfig['overlay'] and self.sessconfig['download_help']:
-            if self.sessconfig['download_help_dir'] is None:
-                self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
-            # Jelle: under linux, default_dest_dir can be /tmp. Then download_help_dir can be deleted inbetween
-            # sessions.
-            if not os.path.isdir(self.sessconfig['download_help_dir']):
-                os.makedirs(self.sessconfig['download_help_dir'])
-
-        # 6. peer_icon_path
+        # 5. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
             if not os.path.isdir(self.sessconfig['peer_icon_path']):
                 os.mkdir(self.sessconfig['peer_icon_path'])
 
-        # 7. Poor man's versioning of SessionConfig, add missing
+        # 6. Poor man's versioning of SessionConfig, add missing
         # default values. Really should use PERSISTENTSTATE_CURRENTVERSION 
         # and do conversions.
         for key,defvalue in sessdefaults.iteritems():
             if key not in self.sessconfig:
                 self.sessconfig[key] = defvalue
+
+        # 7. proxyservice_dir
+        if self.sessconfig['overlay'] and self.sessconfig['proxyservice_status'] == PROXYSERVICE_ON:
+            if self.sessconfig['proxyservice_dir'] is None:
+                self.sessconfig['proxyservice_dir'] = os.path.join(get_default_dest_dir(), PROXYSERVICE_DESTDIR)
+            # Jelle: under linux, default_dest_dir can be /tmp. Then proxyservice_dir can be deleted in between
+            # sessions.
+            if not os.path.isdir(self.sessconfig['proxyservice_dir']):
+                os.makedirs(self.sessconfig['proxyservice_dir'])
 
         if not 'live_aux_seeders' in self.sessconfig:
             # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
@@ -214,7 +224,7 @@ class Session(SessionRuntimeConfig):
         
         # ProxyService 90s Test_
         sscfg = self.get_current_startup_config_copy()
-        if os.path.isfile(os.path.join(sscfg.get_state_dir(),"Proxy90secondsTest")):
+        if os.path.isfile(os.path.join(sscfg.get_state_dir(),"Proxy90secondsTestV2")):
             # The 90s test was already executed
             self.proxytest_state = False
         else:
@@ -566,7 +576,7 @@ class Session(SessionRuntimeConfig):
     #
     def set_overlay_request_policy(self, reqpol):
         """
-        Set a function which defines which overlay requests (e.g. dl_helper, rquery msg) 
+        Set a function which defines which overlay requests (e.g. proxy relay request, rquery msg) 
         will be answered or will be denied.
         
         The function will be called by a network thread and must return 
@@ -751,7 +761,33 @@ class Session(SessionRuntimeConfig):
             else:
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
-            self.sesslock.release() 
+            self.sesslock.release()
+            
+    def download_torrentfile(self,infohash,usercallback, prio = 0):
+        """ Try to download the torrentfile without a known source.
+        A possible source could be the DHT.
+        If the torrent is succesfully 
+        received, the usercallback method is called with the infohash as first
+        and the contents of the torrentfile (bencoded dict) as second parameter.
+        If the torrent could not be obtained, the callback is not called.
+        The torrent will have been added to the TorrentDBHandler (if enabled)
+        at the time of the call.
+        @param infohash The infohash of the torrent.
+        @param usercallback A function adhering to the above spec.
+        """
+        
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+                
+                rtorrent_handler = RemoteTorrentHandler.getInstance()
+                rtorrent_handler.download_torrent(None,infohash,usercallback,prio)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release()
+         
     
     def download_torrentfile_from_peer(self,permid,infohash,usercallback, prio = 0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -958,6 +994,12 @@ class Session(SessionRuntimeConfig):
         
         # Get ProxySevice status
         proxy_status = self.sessconfig['proxyservice_status']
+        
+        # Check if i am connectable
+        if self.lm.overlay_apps.proxy_peer_manager is not None:
+            if self.lm.overlay_apps.proxy_peer_manager.connectable == None:
+                proxy_status = PROXYSERVICE_OFF
+        
         if proxy_status == PROXYSERVICE_ON:
             proxy = 2
         else:

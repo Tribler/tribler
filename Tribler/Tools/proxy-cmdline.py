@@ -6,7 +6,7 @@
 #       * added usage and print_version functions
 #       * uses getopt for command line argument parsing
 # George Milescu, 2009
-#       * Added arguments for proxymode
+#       * Added arguments for doemode
 
 import sys
 import shutil
@@ -35,11 +35,11 @@ def usage():
     print "\t--state-dir <state-dir>"
     print "\t\t\t\tuse <state-dir> for storing session data"
     print "\t\t\t\t(default is /tmp/tmp-tribler)"
-    print "\t--proxymode <proxy-mode>"
-    print "\t\t\t\t[DEVEL] use <proxy-mode> to specify how the client behaves"
-    print "\t\t\t\t * proxy-mode = off: no proxy is being used (the client is either an helper, or it does not start use proxy connections)"
-    print "\t\t\t\t * proxy-mode = private: only proxy connections are being used"
-    print "\t\t\t\t * proxy-mode = speed: both proxy and direct connections are being used"
+    print "\t--doemode <doe-mode>"
+    print "\t\t\t\t[DEVEL] use <doe-mode> to specify how the client behaves"
+    print "\t\t\t\t * doe-mode = off: no proxy is being used (the client is either an helper, or it does not start use proxy connections)"
+    print "\t\t\t\t * doe-mode = private: only proxy connections are being used"
+    print "\t\t\t\t * doe-mode = speed: both proxy and direct connections are being used"
     print "\t\t\t\t(default is off)"
     print "\t--proxyservice <proxy-service>"
     print "\t\t\t\t[DEVEL] use <proxy-mode> to specify how the client behaves"
@@ -52,8 +52,8 @@ def usage():
     print "\t--test-mode <test-mode>"
     print "\t\t\t\t[DEVEL] use <test-mode> to specify if the client runs as part of a test"
     print "\t\t\t\t * test-mode = off: the client is not run as part of a test"
-    print "\t\t\t\t * test-mode = coord: the client is part of a test, as a coordinator"
-    print "\t\t\t\t * test-mode = helper: the client is part of a test, as a helper"
+    print "\t\t\t\t * test-mode = doe: the client is part of a test, as a coordinator"
+    print "\t\t\t\t * test-mode = proxy: the client is part of a test, as a helper"
     print "\t\t\t\t(default is off)"
     print "\t--no-download"
     print "\t\t\t\t[DEVEL] Don't download anything, just stay and wait"
@@ -87,7 +87,7 @@ def main():
     try:
         # opts = a list of (option, value) pairs
         # args = the list of program arguments left after the option list was stripped
-        opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir=", "port=", "proxymode=", "proxyservice=", "helpers=", "test-mode=", "state-dir=", "no-download"])
+        opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir=", "port=", "doemode=", "proxyservice=", "proxies=", "test-mode=", "state-dir=", "no-download"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -97,10 +97,10 @@ def main():
     output_dir = os.getcwd()
     port = random.randint(10000, 65535)
     id = None
-    proxy_mode = PROXY_MODE_OFF
+    doe_mode = DOE_MODE_OFF
     proxy_service = PROXYSERVICE_OFF
-    helpers = 5
-    test_mode="off" # off, coord, helper
+    proxies = 5
+    test_mode="off" # off, doe, proxy
     no_download = False
     statedir = "/tmp/tmp-tribler"
 
@@ -115,15 +115,15 @@ def main():
             statedir = value
         elif option in ("-p", "--port"):
             port = int(value)
-        elif option in ("--proxymode"):
+        elif option in ("--doemode"):
             if value == "off":
-                proxy_mode = PROXY_MODE_OFF
+                doe_mode = DOE_MODE_OFF
             elif value == "private":
-                proxy_mode = PROXY_MODE_PRIVATE
+                doe_mode = DOE_MODE_PRIVATE
             elif value == "speed":
-                proxy_mode = PROXY_MODE_SPEED
+                doe_mode = DOE_MODE_SPEED
             else:
-                proxy_mode = PROXY_MODE_OFF
+                doe_mode = DOE_MODE_OFF
         elif option in ("--proxyservice"):
             if value == "off":
                 proxy_service = PROXYSERVICE_OFF
@@ -131,8 +131,8 @@ def main():
                 proxy_service = PROXYSERVICE_ON
             else:
                 proxy_service = PROXYSERVICE_OFF
-        elif option in ("--helpers"):
-            helpers = int(value)
+        elif option in ("--proxies"):
+            proxies = int(value)
         elif option in ("--test-mode"):
             test_mode = value
         elif option in ("-v", "--version"):
@@ -166,7 +166,7 @@ def main():
     #statedir = tempfile.mkdtemp()
     # ProxyDevel - set custom state dir
     session_startup_config.set_state_dir(statedir)
-    session_startup_config.set_download_help_dir(os.path.join(statedir,"help_dir"))
+    session_startup_config.set_proxyservice_dir(os.path.join(statedir,"proxyservice"))
     session_startup_config.set_listen_port(port)
     session_startup_config.set_megacache(True)
     session_startup_config.set_overlay(True)
@@ -187,16 +187,15 @@ def main():
     # ProxyDevel - Receive overlay messages from anyone
     s.set_overlay_request_policy(AllowAllRequestPolicy())
 
-    if test_mode == "coord":
+    if test_mode == "doe":
         # add the helper 1 as a friend
         # get helper1 permid
         helper1_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy01/statedir","ec.pem")
         helper1_keypair = EC.load_key(helper1_keypair_filename)
         helper1_permid = str(helper1_keypair.pub().get_der())
         # set helper1 ip address
-#        helper1_ip="141.85.224.207"
-        helper1_ip="10.10.3.1"
-#        helper1_ip="141.85.224.203"
+#        helper1_ip="10.10.3.1"
+        helper1_ip="141.85.224.202"
         # set helper1 port
         helper1_port = 25123
         # add helper1 as a peer
@@ -214,8 +213,8 @@ def main():
         helper2_keypair = EC.load_key(helper2_keypair_filename)
         helper2_permid = str(helper2_keypair.pub().get_der())
         # set helper2 ip address
-        helper2_ip="10.10.4.1"
-#        helper2_ip="141.85.224.204"
+#        helper2_ip="10.10.4.1"
+        helper2_ip="141.85.224.203"
         # set helper2 port
         helper2_port = 25123
         # add helper2 as a peer
@@ -226,34 +225,81 @@ def main():
         peer['port'] = helper2_port
         peer['last_seen'] = 0
         peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
-        
-    # ProxyDevel - if in no_download is false (the client has to download torrent data), then start downloading 
-    if (no_download == False):
-        # setup and start download
-        download_startup_config = DownloadStartupConfig()
-        download_startup_config.set_dest_dir(output_dir)
-        # ProxyDevel - turn PEX off
-        #download_startup_config.set_ut_pex_max_addrs_from_peer(0)
-        download_startup_config.set_proxy_mode(proxy_mode)
-        download_startup_config.set_no_helpers(helpers)
 
-        torrent_def = TorrentDef.load(torrent_file)
+        # add the helper 3 as a friend
+        # get helper3 permid
+        helper3_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy03/statedir","ec.pem")
+        helper3_keypair = EC.load_key(helper3_keypair_filename)
+        helper3_permid = str(helper3_keypair.pub().get_der())
+        # set helper3 ip address
+        helper3_ip="141.85.224.204"
+        # set helper3 port
+        helper3_port = 25123
+        # add helper3 as a peer
+        peerdb = s.open_dbhandler(NTFY_PEERS)
+        peer = {}
+        peer['permid'] = helper3_permid
+        peer['ip'] = helper3_ip
+        peer['port'] = helper3_port
+        peer['last_seen'] = 0
+        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+
+        # add the helper 4 as a friend
+        # get helper4 permid
+        helper4_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy04/statedir","ec.pem")
+        helper4_keypair = EC.load_key(helper4_keypair_filename)
+        helper4_permid = str(helper4_keypair.pub().get_der())
+        # set helper4 ip address
+        helper4_ip="141.85.224.205"
+        # set helper4 port
+        helper4_port = 25123
+        # add helper4 as a peer
+        peerdb = s.open_dbhandler(NTFY_PEERS)
+        peer = {}
+        peer['permid'] = helper4_permid
+        peer['ip'] = helper4_ip
+        peer['port'] = helper4_port
+        peer['last_seen'] = 0
+        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        
+    # ProxyDevel - if no_download is false (the client has to download torrent data), then start downloading 
+    if (no_download == False):
+        if test_mode == "doe":
+            # setup and start download
+            download_startup_config = DownloadStartupConfig()
+            download_startup_config.set_dest_dir(output_dir)
+            # ProxyDevel - turn PEX off
+            #download_startup_config.set_ut_pex_max_addrs_from_peer(0)
+            download_startup_config.set_doe_mode(doe_mode)
+            download_startup_config.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
+            download_startup_config.set_no_proxies(proxies)
     
-        d = s.start_download(torrent_def, download_startup_config)
-        d.set_state_callback(state_callback, getpeerlist=False)
+            torrent_def = TorrentDef.load(torrent_file)
+        
+            d = s.start_download(torrent_def, download_startup_config)
+            d.set_state_callback(state_callback, getpeerlist=False)
+        else:
+            # setup and start download
+            download_startup_config = DownloadStartupConfig()
+            download_startup_config.set_dest_dir(output_dir)
+    
+            torrent_def = TorrentDef.load(torrent_file)
+        
+            d = s.start_download(torrent_def, download_startup_config)
+            d.set_state_callback(state_callback, getpeerlist=False)
     
         # if the client is a coordinator
-        if test_mode == "coord":
+        if test_mode == "doe":
             # allow time for the download to start, before starting the help request
             time.sleep(3)
             # ask peer for help
             for download in s.get_downloads():
-                # DEBUG
-                print "*** COORDINATOR Sending help request"
                 peerlist = []
                 peerlist.append(helper1_permid)
                 peerlist.append(helper2_permid)
-                download.ask_coopdl_helpers(peerlist)
+                peerlist.append(helper3_permid)
+                peerlist.append(helper4_permid)
+                #download.sd.dow.proxydownloader.doe.send_relay_request(peerlist)
 
     #
     # loop while waiting for CTRL-C (or any other signal/interrupt)

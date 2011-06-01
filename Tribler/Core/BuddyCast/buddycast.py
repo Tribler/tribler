@@ -626,6 +626,16 @@ class BuddyCastCore:
         # Crawler
         self.amcrawler = amcrawler
         
+        # ProxyService_
+        self.proxy_peer_handler = None
+        #_ ProxyService
+        
+    # ProxyService_
+    #
+    def register_proxy_peer_handler(self, proxy_peer_handler):
+        self.proxy_peer_handler = proxy_peer_handler
+    #
+    # _ProxyService
                             
     def get_peer_info(self, target_permid, include_permid=True):
         
@@ -1557,20 +1567,24 @@ class BuddyCastCore:
                 new_peer_data['services'] = peer['services']
 
                 if new_peer_data['services'] == 2:
+                    # This peer has the proxy service enabled
                     if DEBUG:
-                        print "* learned about", show_permid_short(peer_permid), new_peer_data['ip'], "from", buddycast_data['ip'], "Complete data:", new_peer_data
+                        print >> sys.stderr, "* learned about", show_permid_short(peer_permid), new_peer_data['ip'], "from", buddycast_data['ip'], "Complete data:", new_peer_data
+
+                    if self.proxy_peer_handler:
+                        self.proxy_peer_handler(peer_permid)
                 
                 # ProxyService 90s Test_
-                #session = Session.get_instance()
-                #if session.get_90stest_state():
+                session = Session.get_instance()
+                if session.get_90stest_state():
                     # 90s test is active. Going to log BuddyCast messages
-                    #from Tribler.Core.Statistics.Status.Status import get_status_holder
-                    #if new_peer_data['services'] == 2:
-                        #status = get_status_holder("Proxy90secondsTest")
-                        #status.create_and_add_event("discovered-active-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
-                    #else:
-                        #status = get_status_holder("Proxy90secondsTest")
-                        #status.create_and_add_event("discovered-inactive-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
+                    from Tribler.Core.Statistics.Status.Status import get_status_holder
+                    if new_peer_data['services'] == 2:
+                        status = get_status_holder("Proxy90secondsTest")
+                        status.create_and_add_event("discovered-active-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
+                    else:
+                        status = get_status_holder("Proxy90secondsTest")
+                        status.create_and_add_event("discovered-inactive-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
                 # _ProxyService 90s Test
             #
             # _ProxyService

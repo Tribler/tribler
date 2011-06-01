@@ -1,4 +1,5 @@
-# Written by Arno Bakker, George Milescu 
+# Written by Arno Bakker
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
 
@@ -290,30 +291,18 @@ class SessionConfigInterface:
         """
         return self.sessconfig['buddycast_max_peers']
 
-    #
     # ProxyService_ parameters
     #
-    def set_download_help(self,value):
-        """ Enable download helping/cooperative download (default = True).
-        @param value Boolean. """
-        self.sessconfig['download_help'] = value
-
-    def get_download_help(self):
-        """ Returns whether download help is enabled. 
-        @return Boolean. """
-        return self.sessconfig['download_help']
-
-    def set_download_help_dir(self,value):
-        """ Set the directory for storing state and content for download
-        helping (default = Default destination dir (see get_default_dest_dir()
-        +'downloadhelp'.
+    def set_proxyservice_dir(self,value):
+        """ Set the directory for storing state and content for proxyservice
+        (default = Default destination dir (see get_default_dest_dir() +'proxyservice'.
         @param value An absolute path. """
-        self.sessconfig['download_help_dir'] = value
+        self.sessconfig['proxyservice_dir'] = value
 
-    def get_download_help_dir(self):
-        """ Returns the directory for download helping storage. 
+    def get_proxyservice_dir(self):
+        """ Returns the directory for proxyservice storage. 
         @return An absolute path name. """
-        return self.sessconfig['download_help_dir']
+        return self.sessconfig['proxyservice_dir']
 
     def set_proxyservice_status(self,value):
         """ Set the status of the proxyservice (on or off).
@@ -335,7 +324,6 @@ class SessionConfigInterface:
         return self.sessconfig['proxyservice_status']
     #
     # _ProxyService
-    #
 
     #
     # Torrent file collecting
@@ -1077,25 +1065,29 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['overlay_log']
 
-    def set_coopdlconfig(self,dscfg):
-        """ Sets the DownloadStartupConfig with which to start Downloads
-        when you are asked to help in a cooperative download.
+    # ProxyService_
+    #
+    def set_proxy_default_dlcfg(self,dscfg):
+        """ Sets the DownloadStartupConfig with which to start new Proxy Downloads
+        when the client is asked to relay as a proxy.
         """
         c = dscfg.copy()
-        self.sessconfig['coopdlconfig'] = c.dlconfig # copy internal dict
+        self.sessconfig['proxy_default_dlcfg'] = c.dlconfig # copy internal dict
         
-    def get_coopdlconfig(self):
-        """ Return the DownloadStartupConfig that is used when helping others
-        in a cooperative download.
+    def get_proxy_default_dlcfg(self):
+        """ Returns the DownloadStartupConfig with which to start new Proxy Downloads
+        when the client is asked to relay as a proxy. 
         @return DownloadStartupConfig
         """
-        dlconfig = self.sessconfig['coopdlconfig']
+        dlconfig = self.sessconfig['proxy_default_dlcfg']
         if dlconfig is None:
             return None
         else:
             from Tribler.Core.DownloadConfig import DownloadStartupConfig 
             return DownloadStartupConfig(dlconfig)
-        
+    #
+    # _ProxyService        
+
 
     #
     # NAT Puncturing servers information setting

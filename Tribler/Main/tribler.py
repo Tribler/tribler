@@ -80,6 +80,9 @@ from Tribler.Video.VideoServer import SimpleServer
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
+# ProxyService 90s Test_
+from Tribler.Core.simpledefs import *
+# _ProxyService 90s Test
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
@@ -303,6 +306,12 @@ class ABCApp(wx.App):
             reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
             
             self.ready = True
+            
+            # ProxyService 90s Test_
+            session = Session.get_instance()
+            session.add_observer(self.start_90s_dl, NTFY_GUI_STARTED, [NTFY_INSERT])
+            # _ProxyService 90s Test
+
         except Exception,e:
             print_exc()
             self.error = e
@@ -310,6 +319,79 @@ class ABCApp(wx.App):
             return False
 
         return True
+
+    # ProxyService 90s Test_
+    def start_90s_dl(self, subject, changeType, objectID, *args):
+        wx.CallAfter(self.gui_start_90s_dl)
+        
+    def gui_start_90s_dl(self):
+        # Test if the 90s file exists in the Session.get_state_dir() folder
+        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2")):
+            self.del_dl('restart')
+        else:
+            # Execute the 90s test
+    
+            # Mark test as active
+            session = Session.get_instance()
+            session.set_90stest_state(True)
+    
+            # Create the 90s empty file
+            open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2"), "w").close()
+            torrent_def = TorrentDef.load_from_url('http://proxytestreporter.tribler.org/Data.90s-test.8M.swarm.torrent')
+    
+            # Check if the torrent_def is a valid object
+            if torrent_def is None:
+                return
+    
+            # Start the 90s test download
+            guiUtility = GUIUtility.getInstance()
+            guiUtility.frame.startDownload(tdef = torrent_def, doemode=DOE_MODE_PRIVATE)
+    
+            # 300000ms = 300s = 5 minutes
+            wx.CallLater(300000, self.del_dl, '5minutetimeout')
+    
+    def del_dl(self, reasonwhy = ''):
+        if self._remove_download_by_name("'Data.90s-test.8M.bin'"):
+            status = get_status_holder("Proxy90secondsTest")
+            status.create_and_add_event("deleted-90s-test(%s)"%reasonwhy, [True])
+    
+        # Mark test as inactive
+        session = Session.get_instance()
+        session.set_90stest_state(False)
+        
+        # See if we need to turn on proxy-ing
+        turn_proxy_on = False
+        try:
+            curr_status = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/test.txt').readlines()
+            if curr_status[0].strip() == "on":
+                turn_proxy_on = True
+            else:
+                turn_proxy_on = False
+        except Exception:
+            print >> sys.stderr, "NetworkTest: verification failed"
+        
+        if turn_proxy_on:
+            session.set_proxyservice_status(PROXYSERVICE_ON)
+            
+    def _remove_download_by_name(self, name):
+        guiUtility = GUIUtility.getInstance()
+        torrentManager = guiUtility.torrentsearch_manager
+        
+        dlist = guiUtility.utility.session.get_downloads()
+        for d in dlist:
+            safename = `d.get_def().get_name()`
+            if safename == name:
+                infohash = d.get_def().get_infohash()
+                
+                torrentManager.deleteTorrentDownload(d, infohash, removecontent = True)
+                torrentManager.mypref_db.deletePreference(infohash)
+                
+                listManager = guiUtility.frame.librarylist.GetManager()
+                wx.CallAfter(listManager.refresh)
+                return True
+            
+        return False
+    # _ProxyService 90s Test
 
     def startAPI(self):
         
@@ -391,14 +473,14 @@ class ABCApp(wx.App):
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-           #print_exc()
+            #print_exc()
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 
         # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
         self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
 
-        s.set_coopdlconfig(defaultDLConfig)
+        s.set_proxy_default_dlcfg(defaultDLConfig)
 
         # Loading of checkpointed Downloads delayed to allow GUI to paint,
         # see loadSessionCheckpoint
@@ -460,7 +542,6 @@ class ABCApp(wx.App):
         from Tribler.Core.DecentralizedTracking.repex import RePEXScheduler, RePEXLogger
         #RePEXLogger.getInstance().start() #no more need for logging
         RePEXScheduler.getInstance().start()
-
 
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
@@ -528,21 +609,24 @@ class ABCApp(wx.App):
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
                 # ProxyService 90s Test_
-                #safename = `ds.get_download().get_def().get_name()`
-                #if safename == "'Data.90s-test.8M.bin'":
-                    #status = get_status_holder("Proxy90secondsTest")
-                    #status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
+                if not self.proxytest_reported:
+                    safename = `ds.get_download().get_def().get_name()`
+                    if safename == "'Data.90s-test.8M.bin'":
+                        if ds.get_progress() <= 1.0:
+                            status = get_status_holder("Proxy90secondsTest")
+                            status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
                     
-                    # Report the logs when the download completes
-                    #if not self.proxytest_reported:
-                        #if ds.get_progress() == 1.0:
-                            #status.report_now()
-                            #self.proxytest_reported = True
+                            # Report the logs when the download completes
+                            if ds.get_progress() == 1.0:
+                                status.report_now()
+                                self.proxytest_reported = True
                 # _ProxyService 90s Test
-
                 if ds.get_download() == d:
                     playds = ds
-                    break
+                    
+                    #only break if proxytest is not active
+                    if self.proxytest_reported:
+                        break
             
             # Apply status displaying from SwarmPlayer
             if playds:
@@ -652,6 +736,11 @@ class ABCApp(wx.App):
 
     def loadSessionCheckpoint(self):
         self.utility.session.load_checkpoint()
+        
+        # ProxyService 90s Test_
+        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2")):
+            self.del_dl('restart')
+        # _ProxyService 90s Test
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -968,17 +1057,16 @@ def run(params = None):
             
             # Setup the statistic reporter while waiting for proper integration
             status = get_status_holder("LivingLab")
-            status.add_reporter(NullReporter("Periodically remove all events", 60))
+            status.add_reporter(NullReporter("Periodically remove all events", 0))
             #id = "Tribler client"
             #reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
             # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
             #status.add_reporter(reporter)
-
-            # ProxyService 90s Test_
-            #from Tribler.Core.Statistics.Status.ProxyTestReporter import *
-    
-            #status = get_status_holder("Proxy90secondsTest")
-            #status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 300, "id01"))
+            
+            # ProxyService 90s Test
+            from Tribler.Core.Statistics.Status.ProxyTestReporter import ProxyTestPeriodicReporter
+            status = get_status_holder("Proxy90secondsTest")
+            status.add_reporter(ProxyTestPeriodicReporter("Proxy90secondsTest", 300, "id01"))
             # _ProxyService 90s Test
 
             app.MainLoop()

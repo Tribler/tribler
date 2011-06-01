@@ -1,5 +1,5 @@
 # Written by Jie Yang
-# Modified by George Milescu
+# Updated by George Milescu
 # see LICENSE.txt for license information
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py 
 # for any function you add to database. 

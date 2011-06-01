@@ -59,7 +59,7 @@ class TestDownloadHelp(TestAsServer):
         
         # Arno, 2009-12-15: Make sure coop downloads have their own destdir
         destdir = tempfile.mkdtemp()
-        self.config.set_download_help_dir(destdir)
+        self.config.set_proxyservice_dir(destdir)
         
     def setUpMyListenSockets(self):
         # Start our server side, to with Tribler will try to connect
@@ -113,8 +113,8 @@ class TestDownloadHelp(TestAsServer):
     def states_callback(self,dslist):
         print >>sys.stderr,"stats: dslist",len(dslist)
         for ds in dslist:
-            print >>sys.stderr,"stats: coordinator",`ds.get_coopdl_coordinator()`
-            print >>sys.stderr,"stats: helpers",`ds.get_coopdl_helpers()`
+            print >>sys.stderr,"stats: coordinator",`ds.get_doe_list()`
+            print >>sys.stderr,"stats: helpers",`ds.get_proxy_list()`
         return (0.5,False)
 
     #

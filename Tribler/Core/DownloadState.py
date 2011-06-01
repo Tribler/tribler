@@ -1,4 +1,5 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import time
@@ -22,7 +23,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=[],coopdl_coordinator=None,peerid=None,videoinfo=None,swarmcache=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,proxyservice_proxy_list=[],proxyservice_doe_list=[],peerid=None,videoinfo=None,swarmcache=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -43,8 +44,8 @@ class DownloadState(Serializable):
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.vod_status_msg = None
-        self.coopdl_helpers = coopdl_helpers
-        self.coopdl_coordinator = coopdl_coordinator
+        self.proxyservice_proxy_list = proxyservice_proxy_list
+        self.proxyservice_doe_list = proxyservice_doe_list
         self.seedingstats = None #SeedingManager will update downloadstate with seedings stats (version, total_up, total_down, time_seeding)
         
         # RePEX: stored swarmcache from Download and store current time
@@ -423,22 +424,24 @@ class DownloadState(Serializable):
         else:
             return self.stats['spew']
 
-
-    def get_coopdl_helpers(self):
-        """ Returns the peers currently helping.
+    # ProxyService_
+    #
+    def get_proxy_list(self):
+        """ Returns the peers currently proxying.
         @return A list of PermIDs.
         """
-        if self.coopdl_helpers is None:
+        if self.proxyservice_proxy_list is None:
             return []
         else:
-            return self.coopdl_helpers 
+            return self.proxyservice_proxy_list 
 
-    def get_coopdl_coordinator(self):
-        """ Returns the permid of the coordinator when helping that peer
-        in a cooperative download
-        @return A PermID.
+    def get_doe_list(self):
+        """ Returns the current list of doe nodes.
+        @return A list od PermIDs.
         """
-        return self.coopdl_coordinator
+        return self.proxyservice_doe_list
+    #
+    # _ProxyService
 
     #
     # RePEX: get swarmcache

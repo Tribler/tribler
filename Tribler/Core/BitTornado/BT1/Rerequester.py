@@ -2,6 +2,7 @@
 # modified for multitracker operation by John Hoffman
 # modified for mainline DHT support by Fabian van der Werf
 # Modified by Raul Jimenez to integrate KTH DHT
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -240,14 +241,14 @@ class Rerequester:
     def rerequest(self, s, callback):
         # ProxyService_
         #
-        proxy_mode = self.config.get('proxy_mode',0)
-        if proxy_mode == PROXY_MODE_PRIVATE:
+        doe_mode = self.config.get('doe_mode',0)
+        if doe_mode == DOE_MODE_PRIVATE:
             if DEBUG:
-                print >> sys.stderr, "Rerequester: rerequest exited."# + str(proxy_mode)
+                print >> sys.stderr, "Rerequester: rerequest exited."# + str(doe_mode)
             return
         else:
             if DEBUG:
-                print >> sys.stderr, "Rerequester: rerequest did not exit"# + str(proxy_mode) 
+                print >> sys.stderr, "Rerequester: rerequest did not exit"# + str(doe_mode) 
         #
         # _ProxyService
 

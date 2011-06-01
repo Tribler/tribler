@@ -1,4 +1,5 @@
-# Written by Jie Yang, Arno Bakker, George Milescu
+# Written by Jie Yang, Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 #
 # All message IDs in BitTorrent Protocol and our extensions 
@@ -70,23 +71,22 @@ METADATA = chr(247)
 # For connectability test
 DIALBACK_REQUEST = chr(244)
 DIALBACK_REPLY = chr(243)
-# torrent_hash
-ASK_FOR_HELP = chr(246)
-# torrent_hash
-STOP_HELPING = chr(245)
-# torrent_hash + bencode([piece num,...])
-REQUEST_PIECES = chr(242)
-# torrent_hash + bencode([piece num,...])
-CANCEL_PIECE = chr(241)
-# torrent_hash
-JOIN_HELPERS = chr(224)
-# torrent_hash
-RESIGN_AS_HELPER = chr(223)
-# torrent_hash + bencode([piece num,...])
-DROPPED_PIECE = chr(222)
-PROXY_HAVE = chr(221)
-PROXY_UNHAVE = chr(220)
 
+#Doe sent messages
+RELAY_REQUEST = chr(246) #payload = infohash
+STOP_RELAYING = chr(245) #payload = infohash
+DOWNLOAD_PIECE = chr(242) #payload = infohash + bencode(piece_number)
+CANCEL_DOWNLOADING_PIECE = chr(241) #payload = infohash + bencode(piece_number)
+UPLOAD_PIECE = chr(219) #payload = infohash + bencode(piece_number) + bencode(piece_data)
+CANCEL_UPLOADING_PIECE = chr(218) #payload = infohash + bencode(piece_number)
+
+#Proxy sent messages
+RELAY_ACCEPTED = chr(224) #payload = infohash
+RELAY_DROPPED = chr(223) #payload = infohash
+DROPPED_PIECE = chr(222) #payload = infohash + bencode(piece_number)
+PROXY_HAVE = chr(221) #payload = infohash + bencode(haves_bitstring)
+PROXY_UNHAVE = chr(220) #payload = infohash + bencode(haves_bitstring)
+PIECE_DATA = chr(217) #payload = infohash + bencode(piece_number) + bencode(piece_data)
 
 # SecureOverlay empty payload
 KEEP_ALIVE = chr(240)
@@ -117,7 +117,7 @@ CHANNELCAST = chr(225)
 GET_SUBS = chr(230)
 SUBS = chr(229)
 
-####### FREE ID = 227/228 + < 220
+####### FREE ID = 227/228 + < 217
 
 
 #
@@ -154,8 +154,8 @@ PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
 BuddyCastMessages = [CHANNELCAST, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
 MetadataMessages = [GET_METADATA, METADATA]
 DialbackMessages = [DIALBACK_REQUEST,DIALBACK_REPLY]
-HelpCoordinatorMessages = [ASK_FOR_HELP,STOP_HELPING,REQUEST_PIECES,CANCEL_PIECE]
-HelpHelperMessages = [JOIN_HELPERS,RESIGN_AS_HELPER,DROPPED_PIECE,PROXY_HAVE,PROXY_UNHAVE]
+DoeMessages = [RELAY_REQUEST, STOP_RELAYING, DOWNLOAD_PIECE, CANCEL_DOWNLOADING_PIECE, UPLOAD_PIECE, CANCEL_UPLOADING_PIECE]
+ProxyMessages = [RELAY_ACCEPTED, RELAY_DROPPED, DROPPED_PIECE, PROXY_HAVE, PROXY_UNHAVE, PIECE_DATA]
 SocialNetworkMessages = [SOCIAL_OVERLAP]
 RemoteQueryMessages = [QUERY,QUERY_REPLY]
 VoDMessages = [G2G_PIECE_XFER]
@@ -164,7 +164,7 @@ CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
 SubtitleMessages = [GET_SUBS, SUBS]
 
 # All overlay-swarm messages
-OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
+OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + DoeMessages + ProxyMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
 
 
 #
@@ -191,17 +191,22 @@ message_map = {
     BUDDYCAST:"BUDDYCAST",
     GET_METADATA:"GET_METADATA",
     METADATA:"METADATA",
-    ASK_FOR_HELP:"ASK_FOR_HELP",
-    STOP_HELPING:"STOP_HELPING",
-    REQUEST_PIECES:"REQUEST_PIECES",
-    CANCEL_PIECE:"CANCEL_PIECE",
-    JOIN_HELPERS:"JOIN_HELPERS",
-    RESIGN_AS_HELPER:"RESIGN_AS_HELPER",
+
+    RELAY_REQUEST:"RELAY_REQUEST",
+    STOP_RELAYING:"STOP_RELAYING",
+    DOWNLOAD_PIECE:"DOWNLOAD_PIECE",
+    CANCEL_DOWNLOADING_PIECE:"CANCEL_DOWNLOADING_PIECE",
+    UPLOAD_PIECE:"UPLOAD_PIECE",
+    CANCEL_UPLOADING_PIECE:"CANCEL_UPLOADING_PIECE",
+    RELAY_ACCEPTED:"RELAY_ACCEPTED",
+    RELAY_DROPPED:"RELAY_DROPPED",
     DROPPED_PIECE:"DROPPED_PIECE",
     PROXY_HAVE:"PROXY_HAVE",
     PROXY_UNHAVE:"PROXY_UNHAVE",
+    PIECE_DATA:"PIECE_DATA",
     DIALBACK_REQUEST:"DIALBACK_REQUEST",
     DIALBACK_REPLY:"DIALBACK_REPLY",
+
     KEEP_ALIVE:"KEEP_ALIVE",
     SOCIAL_OVERLAP:"SOCIAL_OVERLAP",
     QUERY:"QUERY",

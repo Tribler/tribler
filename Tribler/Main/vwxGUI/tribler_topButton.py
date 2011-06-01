@@ -367,17 +367,45 @@ class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
         return self
     
     def OnMouseMotion(self, event):
-        row, _ = self.HitTest(event.GetPosition())
         tooltip = ''
-        try:
-            for col in xrange(self.GetColumnCount()):
-                tooltip += self.GetItem(row, col).GetText() + "\t"
-            
-            if len(tooltip) > 0:
-                tooltip = tooltip[:-1]
-        except:
-            pass
+        row, _ = self.HitTest(event.GetPosition())
+        if row >= 0:
+            try:
+                for col in xrange(self.GetColumnCount()):
+                    tooltip += self.GetItem(row, col).GetText() + "\t"
+                
+                if len(tooltip) > 0:
+                    tooltip = tooltip[:-1]
+            except:
+                pass
         self.SetToolTipString(tooltip)
+        
+class SelectableListCtrl(SortedListCtrl):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+        SortedListCtrl.__init__(self, parent, numColumns, style, tooltip)
+        self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
+    
+    def _CopyToClipboard(self, event):
+        if event.ControlDown():
+            if event.GetKeyCode() == 67: #ctrl + c
+                data = ""
+                
+                selected = self.GetFirstSelected()
+                while selected != -1:
+                    for col in xrange(self.GetColumnCount()):
+                        data += self.GetItem(selected, col).GetText() + "\t"
+                    data += "\n"
+                    selected = self.GetNextSelected(selected)
+                    
+                do = wx.TextDataObject()
+                do.SetText(data)
+                wx.TheClipboard.Open()
+                wx.TheClipboard.SetData(do)
+                wx.TheClipboard.Close()
+                
+            elif event.GetKeyCode() == 65: #ctrl + a
+                for index in xrange(self.GetItemCount()):
+                    self.Select(index)
         
 class TextCtrlAutoComplete(wx.TextCtrl):
     def __init__ (self, parent, choices = [], entrycallback = None, selectcallback = None, **therest):

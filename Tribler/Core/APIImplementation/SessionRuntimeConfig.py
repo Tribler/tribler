@@ -1,4 +1,5 @@
 # Written by Arno Bakker 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 from __future__ import with_statement
@@ -178,19 +179,8 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    #
     # ProxyService_
     #
-    def set_download_help(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_download_help(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_download_help(self)
-        finally:
-            self.sesslock.release()
-
     def set_proxyservice_status(self,value):
         """ Set the status of the proxyservice (on or off).
         
@@ -213,9 +203,18 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_proxyservice_status(self)
         finally:
             self.sesslock.release()
+    
+    def set_proxyservice_dir(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_proxyservice_dir(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_proxyservice_dir(self)
+        finally:
+            self.sesslock.release()
     #
     # _ProxyService
-    #
 
 
 
@@ -835,16 +834,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_download_help_dir(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_download_help_dir(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_download_help_dir(self)
-        finally:
-            self.sesslock.release()
-
     def set_bartercast(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -898,9 +887,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         raise OperationNotPossibleAtRuntimeException()
 
     def set_pingback_servers(self, pingback_servers):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def set_puncturing_coordinators(self, puncturing_coordinators):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_nat_detect(self):

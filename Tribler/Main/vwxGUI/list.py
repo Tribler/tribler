@@ -239,6 +239,7 @@ class ChannelManager():
     def refresh(self, permid = None):
         if permid:
             self.list.Reset()
+            self.list.ShowLoading()
             vote = self.channelsearch_manager.getMyVote(permid)
             
             self.list.footer.SetStates(vote == -1, vote == 2)
@@ -254,7 +255,6 @@ class ChannelManager():
             total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id, ChannelManager._req_columns)
             wx.CallAfter(self._on_data, total_items, nrfiltered, torrentList)
         
-        self.list.ShowLoading()
         self.guiserver.add_task(db_callback, id = "ChannelManager_refresh_list")
         
     def _on_data(self, total_items, nrfiltered, torrentList):
@@ -566,6 +566,16 @@ class List(wx.Panel):
                 print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
                 print_stack()
     
+    def Layout(self):
+        self.__check_thread()
+        return wx.Panel.Layout(self)
+        
+    def __check_thread(self):
+        if currentThread().getName() != "MainThread":
+            if DEBUG:
+                print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+                print_stack()
+    
 class SearchList(List):
     def __init__(self):
         self.guiutility = GUIUtility.getInstance()
@@ -586,7 +596,7 @@ class SearchList(List):
         return self.manager
     
     def CreateHeader(self):
-        return SearchHeader(self, self.columns)
+        return SearchHelpHeader(self, self.columns)
 
     def CreateFooter(self):
         footer = ChannelResultFooter(self)

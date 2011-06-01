@@ -1,4 +1,4 @@
-# Written George Milescu
+# Written by George Milescu
 # see LICENSE.txt for license information
 
 # This class contains all util methods related to the ProxyService

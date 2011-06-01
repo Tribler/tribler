@@ -1,4 +1,5 @@
 # Written by Arno Bakker 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 """ Simple definitions for the Tribler Core. """
 import os
@@ -47,7 +48,7 @@ STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
 STATEDIR_SUBSCOLL_DIR = 'collected_subtitles_files'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle'
 STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
-DESTDIR_COOPDOWNLOAD = 'downloadhelp' 
+PROXYSERVICE_DESTDIR = 'proxyservice'
 
 # For observer/callback mechanism, see Session.add_observer()
    
@@ -77,6 +78,11 @@ NTFY_TERM= 'clicklogterm'
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
+NTFY_PROXYDOWNLOADER = "proxydownloader" # the proxydownloader object was created
+NTFY_PROXYDISCOVERY= "proxydiscovery" # a new proxy was discovered
+# ProxyService 90s Test_
+NTFY_GUI_STARTED = "guistarted"
+# _ProxyService 90s Test
 NTFY_DISPERSY = 'dispersy'     # an notification regarding dispersy
 
 # changeTypes
@@ -131,9 +137,20 @@ ITRACK_IGNORE_ANNOUNCEIP_NEVER = 0
 ITRACK_IGNORE_ANNOUNCEIP_ALWAYS = 1
 ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK = 2
 
-# Cooperative download
-COOPDL_ROLE_COORDINATOR = 'coordinator'
-COOPDL_ROLE_HELPER = 'helper'
+# ProxyService
+PROXYSERVICE_DOE_OBJECT = "doe-obj"
+PROXYSERVICE_PROXY_OBJECT = "proxy-obj"
+ 
+PROXYSERVICE_ROLE_DOE = 'doe-role'
+PROXYSERVICE_ROLE_PROXY = 'proxy-role'
+PROXYSERVICE_ROLE_NONE = 'none-role'
+
+DOE_MODE_OFF = 0
+DOE_MODE_PRIVATE = 1
+DOE_MODE_SPEED= 2
+
+PROXYSERVICE_OFF = 0
+PROXYSERVICE_ON = 1
 
 # Methods for authentication of the source in live streaming
 LIVE_AUTHMETHOD_NONE = "None"   # No auth, also no abs. piece nr. or timestamp.
@@ -169,11 +186,3 @@ TRIBLER_TORRENT_EXT = ".tribe" # Unused
  
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
-
-
-# ProxyService 
-PROXY_MODE_OFF = 0
-PROXY_MODE_PRIVATE = 1
-PROXY_MODE_SPEED= 2
-PROXYSERVICE_OFF = 0
-PROXYSERVICE_ON = 1

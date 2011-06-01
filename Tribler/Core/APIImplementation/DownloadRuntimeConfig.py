@@ -1,4 +1,5 @@
-# Written by Arno Bakker, George Milescu
+# Written by Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -540,44 +541,65 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     #
     # ProxyService_
     #
-    def set_proxy_mode(self,value):
-        """ Set the proxymode for current download
+    def set_doe_mode(self,value):
+        """ Set the doemode for current download
         .
-        @param value: the proxyservice mode: PROXY_MODE_OFF, PROXY_MODE_PRIVATE or PROXY_MODE_SPEED
+        @param value: the doe mode: DOE_MODE_OFF, DOE_MODE_PRIVATE or DOE_MODE_SPEED
         """
         self.dllock.acquire()
         try:
-            DownloadConfigInterface.set_proxy_mode(self, value)
+            DownloadConfigInterface.set_doe_mode(self, value)
         finally:
             self.dllock.release()
 
-    def get_proxy_mode(self):
-        """ Returns the proxymode of the client.
-        @return: one of the possible three values: PROXY_MODE_OFF, PROXY_MODE_PRIVATE, PROXY_MODE_SPEED
+    def get_doe_mode(self):
+        """ Returns the doemode of the client.
+        @return: one of the possible three values: DOE_MODE_OFF, DOE_MODE_PRIVATE, DOE_MODE_SPEED
         """
         self.dllock.acquire()
         try:
-            return DownloadConfigInterface.get_proxy_mode(self)
+            return DownloadConfigInterface.get_doe_mode(self)
+        finally:
+            self.dllock.release()
+
+    def set_proxyservice_role(self, value):
+        """ Set the proxyservice role for current download
+        .
+        @param value: the proxyservice role: PROXYSERVICE_ROLE_NONE, PROXYSERVICE_ROLE_DOE or PROXYSERVICE_ROLE_PROXY
+        """
+        self.dllock.acquire()
+        try:
+            DownloadConfigInterface.set_proxyservice_role(self, value)
+        finally:
+            self.dllock.release()
+
+    def get_proxyservice_role(self):
+        """ Returns the proxyservice role of the client.
+        @return: one of the possible three values: PROXYSERVICE_ROLE_NONE, PROXYSERVICE_ROLE_DOE or PROXYSERVICE_ROLE_PROXY
+        """
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_proxyservice_role(self)
         finally:
             self.dllock.release()
     
-    def set_no_helpers(self,value):
-        """ Set the maximum number of helpers used for a download.
+    def set_no_proxies(self,value):
+        """ Set the maximum number of proxies used for a download.
         @param value: a positive integer number
         """
         self.dllock.acquire()
         try:
-            return DownloadConfigInterface.set_no_helpers(self, value)
+            return DownloadConfigInterface.set_no_proxies(self, value)
         finally:
             self.dllock.release()
 
-    def get_no_helpers(self):
-        """ Returns the maximum number of helpers used for a download. 
+    def get_no_proxies(self):
+        """ Returns the maximum number of proxies used for a download. 
         @return: a positive integer number
         """
         self.dllock.acquire()
         try:
-            return DownloadConfigInterface.get_no_helpers(self)
+            return DownloadConfigInterface.get_no_proxies(self)
         finally:
             self.dllock.release()
     #

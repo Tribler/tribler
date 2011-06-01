@@ -1,10 +1,10 @@
 # Written by Jie Yang
-# Modified by George Milescu
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
 import os
-from time import sleep
+from time import sleep, time
 from base64 import encodestring, decodestring
 import threading
 from traceback import print_exc, print_stack

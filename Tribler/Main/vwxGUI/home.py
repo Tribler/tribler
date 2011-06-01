@@ -10,14 +10,19 @@ from Tribler.Main.vwxGUI.list_footer import *
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl, SelectableListCtrl
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from __init__ import LIST_GREY, LIST_BLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
+from Tribler.Core.Utilities.utilities import show_permid_short
+
+# ProxyService 90s Test_
+from Tribler.Core.simpledefs import *
+# _ProxyService 90s Test
 
 class Home(wx.Panel):
     def __init__(self):
@@ -75,6 +80,15 @@ class Stats(wx.Panel):
         self.activity = ActivityPanel(self)
         hSizer.Add(self.activity, 1, wx.EXPAND|wx.BOTTOM, 10)
         vSizer.Add(hSizer, 0, wx.EXPAND)
+
+        # ProxyService_
+        #
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(NetworkTestPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
+        hSizer.Add(ProxyDiscoveryPanel(self), 1, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(hSizer, 0, wx.EXPAND)
+        #
+        # _ProxyService
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
@@ -174,6 +188,13 @@ class NetworkPanel(HomePanel):
         self.queueSize = wx.StaticText(panel)
         self.nrChannels = wx.StaticText(panel)
         
+        self.freeMem = None
+        try:
+            if wx.GetFreeMemory() != -1:
+                self.freeMem = wx.StaticText(panel)
+        except:
+            pass
+        
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
         
@@ -187,6 +208,11 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
         gridSizer.Add(wx.StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND|wx.LEFT, 10)
+        if self.freeMem:
+            gridSizer.Add(wx.StaticText(panel, -1, 'WX:Free memory'), 0, wx.LEFT, 10)
+            gridSizer.Add(self.freeMem, 0, wx.EXPAND|wx.LEFT, 10)
+        
+        
         
         vSizer.Add(gridSizer, 0, wx.EXPAND)
         panel.SetSizer(vSizer)
@@ -196,7 +222,7 @@ class NetworkPanel(HomePanel):
         try:
             if self.IsShownOnScreen():
                 self.UpdateStats()
-        except PyDeadObjectError:
+        except wx.PyDeadObjectError:
             pass
              
     def UpdateStats(self):
@@ -208,10 +234,16 @@ class NetworkPanel(HomePanel):
         
     def _UpdateStats(self, stats):
         self.nrTorrents.SetLabel(str(stats[0]))
-        self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
+        if stats[1] is None:
+            self.totalSize.SetLabel(str(stats[1]))
+        else:
+            self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
         self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
+        self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
+        if self.freeMem:
+            self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
         
         if self.timer:
             self.timer.Restart(10000)
@@ -228,7 +260,7 @@ class NewTorrentPanel(HomePanel):
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
     
     def CreatePanel(self):
-        self.list = SortedListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list = SelectableListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Torrent')
         self.list.setResizeColumn(0)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
@@ -239,9 +271,9 @@ class NewTorrentPanel(HomePanel):
         try:
             if self.IsShownOnScreen():
                 self.UpdateStats(infohash)
-        except PyDeadObjectError:
+        except wx.PyDeadObjectError:
             pass
-            
+
     def UpdateStats(self, infohash):
         def db_callback():
             torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
@@ -599,3 +631,156 @@ class BuzzPanel(HomePanel):
             
             uelog = UserEventLogDBHandler.getInstance()
             uelog.addEvent(message=repr((term, self.last_shown_buzz)))
+            
+# ProxyService_
+#
+class NetworkTestPanel(HomePanel):
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Network Test' , LIST_BLUE)
+        
+        self.timer = None
+        
+        self.UpdateStats()
+        
+    def CreatePanel(self):
+        def getBoldText(parent, text):
+            statictext = wx.StaticText(parent, -1, text)
+            font = statictext.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            statictext.SetFont(font)
+            return statictext
+        
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(wx.WHITE)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.eligibleCandidate = wx.StaticText(panel)
+        self.activeCandidate = wx.StaticText(panel)
+        self.testProgress = wx.StaticText(panel)
+        self.testDuration = wx.StaticText(panel)
+        self.nrPeers = wx.StaticText(panel)
+#        self.smallestChunk = wx.StaticText(panel)
+        
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        gridSizer.AddGrowableCol(1)
+        
+        gridSizer.Add(wx.StaticText(panel, -1, 'Eligible Candidate'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.eligibleCandidate, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Active Candidate'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.activeCandidate, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Test status'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.testProgress, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Test duration'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.testDuration, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, '# of peers used'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrPeers, 0, wx.EXPAND|wx.LEFT, 10)
+#        gridSizer.Add(wx.StaticText(panel, -1, 'Smallest chunk (MB)'), 0, wx.LEFT, 10)
+#        gridSizer.Add(self.smallestChunk, 0, wx.EXPAND|wx.LEFT, 10)
+
+        vSizer.Add(gridSizer, 0, wx.EXPAND)
+        panel.SetSizer(vSizer)
+        return panel
+    
+    def OnNotify(self, subject, type, infohash):
+        if self.IsShownOnScreen():
+            self.UpdateStats()
+             
+    def UpdateStats(self):
+        def stats_callback():
+            #candidate
+            from Tribler.Core.Session import Session
+            session = Session.get_instance()
+            if session.lm.overlay_apps.proxy_peer_manager.am_i_connectable():
+                eligibleCandidate = "Y"
+            else:
+                eligibleCandidate = "N"
+
+            #active candidate
+            if session.get_proxyservice_status() == PROXYSERVICE_ON:
+                activeCandidate = "Y"
+            else:
+                activeCandidate = "N"
+            if eligibleCandidate == "N":
+                activeCandidate = "N"
+
+            #testProgress
+            if session.get_90stest_state():
+                progress = "in progress..."
+            else:
+                progress = "done"
+            
+            # testDuration
+            if session.get_90stest_state():
+                duration = long(round(time() - session.start_time))
+            else:
+                duration = 0
+                
+            # nrPeers
+            nrPeers = 0
+            guiUtility = GUIUtility.getInstance()
+            torrentManager = guiUtility.torrentsearch_manager
+            dlist = guiUtility.utility.session.get_downloads()
+            for d in dlist:
+                safename = `d.get_def().get_name()`
+                if safename == "'Data.90s-test.8M.bin'":
+                    nrPeers = d.sd.dow.proxydownloader.doe.get_nr_used_proxies()
+            
+            stats = []
+            stats.append(eligibleCandidate)
+            stats.append(activeCandidate)
+            stats.append(progress)
+            stats.append(duration)
+            stats.append(nrPeers)
+            
+            wx.CallAfter(self._UpdateStats, stats)
+        
+        self.guiserver.add_task(stats_callback, id = "NetworkTest_UpdateStats")
+        
+    def _UpdateStats(self, stats):
+        self.eligibleCandidate.SetLabel(str(stats[0]))
+        self.activeCandidate.SetLabel(str(stats[1]))
+        self.testProgress.SetLabel(str(stats[2]))
+        self.testDuration.SetLabel(str(stats[3])+" sec")
+        self.nrPeers.SetLabel(str(stats[4]))
+#        self.largestChunk.SetLabel(str("0"+" MB"))
+#        self.smallestChunk.SetLabel(str("0"+" MB"))
+        
+        if self.timer:
+            self.timer.Restart(1000)
+        else:
+            self.timer = wx.CallLater(1000, self.UpdateStats)
+#
+# _ProxyService
+
+# ProxyService_
+#
+class ProxyDiscoveryPanel(NewTorrentPanel):
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Peer Discovery' , LIST_BLUE)
+
+        session = Session.get_instance()
+        session.add_observer(self.OnNotify, NTFY_PROXYDISCOVERY, [NTFY_INSERT])
+        
+        self.proxies=[]
+        self.OnNotify(None, None, None, session.lm.overlay_apps.proxy_peer_manager.available_proxies.keys())
+
+    def OnNotify(self, subject, changeType, objectID, *args):
+        """  Handler registered with the session observer
+        
+        @param subject The subject to observe, one of NTFY_* subjects (see simpledefs).
+        @param changeTypes The list of events to be notified of one of NTFY_* events.
+        @param objectID The specific object in the subject to monitor (e.g. a specific primary key in a database to monitor for updates.)
+        @param args: A list of optional arguments.
+        """
+        proxy_permid_list=args[0]
+        for proxy_permid in proxy_permid_list:
+            if proxy_permid not in self.proxies:
+                self.proxies.append(proxy_permid)
+                
+                msg = strftime("%H:%M:%S ") + show_permid_short(proxy_permid)
+                self.list.InsertStringItem(0, msg)
+                size = self.list.GetItemCount()
+                if size > 50:
+                    self.list.DeleteItem(size-1)
+#
+# _ProxyService

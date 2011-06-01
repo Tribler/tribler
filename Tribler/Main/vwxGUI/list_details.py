@@ -20,7 +20,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, SelectableListCtrl
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -58,47 +58,60 @@ class TorrentDetails(wx.Panel):
         self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
         
     def loadTorrent(self):
-        requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
-        if requesttype:
+        try:
+            requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+            if requesttype:
+                #switch back to gui thread
+                wx.CallAfter(self._showRequestType, requesttype)
+        except wx.PyDeadObjectError:
+            pass
+    
+    def _showRequestType(self, requesttype):
+        try:
             self.messagePanel.SetLabel("Loading details, please wait.\nThe torrentfile is requested %s."%requesttype)
-
+            
             self.Layout()
             self.parent.parent_list.OnChange()
+        except wx.PyDeadObjectError:
+            pass
     
     def showTorrent(self, torrent, information):
         #switch back to gui thread
         wx.CallAfter(self._showTorrent, torrent, information)
         
     def _showTorrent(self, torrent, information):
-        self.torrent = torrent
-        self.information = information
-        ds = self.torrent.get('ds', None)
-        
-        self.Freeze()
-        self.messagePanel.Show(False)
-        
-        self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-        self._addTabs(ds)
-        self.details.Add(self.notebook, 6, wx.EXPAND)
-        
-        self.buttonPanel = wx.Panel(self)
-        self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
-        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.ShowPanel()
-        
-        self.buttonPanel.SetSizer(self.buttonSizer)
-        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
-        
-        page0 = self.notebook.GetPage(0)
-        bestHeight = page0.GetBestVirtualSize()[1]
-        page0.SetMinSize((-1, bestHeight))
-                
-        self.parent.parent_list.OnChange()
-        self.Thaw()
-        
-        self.isReady = True
-        self._Refresh(ds)
+        try:
+            self.torrent = torrent
+            self.information = information
+            ds = self.torrent.get('ds', None)
+            
+            self.Freeze()
+            self.messagePanel.Show(False)
+            
+            self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+            self._addTabs(ds)
+            self.details.Add(self.notebook, 6, wx.EXPAND)
+            
+            self.buttonPanel = wx.Panel(self)
+            self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
+            self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+            
+            self.ShowPanel()
+            
+            self.buttonPanel.SetSizer(self.buttonSizer)
+            self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+            
+            page0 = self.notebook.GetPage(0)
+            bestHeight = page0.GetBestVirtualSize()[1]
+            page0.SetMinSize((-1, bestHeight))
+                    
+            self.parent.parent_list.OnChange()
+            self.Thaw()
+            
+            self.isReady = True
+            self._Refresh(ds)
+        except wx.PyDeadObjectError:
+            pass
     
     def _create_tab(self, tabname, header = None):
         panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook, style = wx.VSCROLL)
@@ -826,14 +839,13 @@ class LibraryDetails(TorrentDetails):
         peersPanel = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
          
-        self.peerList = SortedListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = False)
+        self.peerList = SelectableListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = False)
         self.peerList.InsertColumn(0, 'IP-address')
         self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
         self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
-        self.peerList.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
         vSizer.Add(self.peerList, 1, wx.EXPAND)
         
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -921,29 +933,6 @@ class LibraryDetails(TorrentDetails):
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
-        
-    
-    def _CopyToClipboard(self, event):
-        if event.ControlDown():
-            if event.GetKeyCode() == 67: #ctrl + c
-                data = ""
-                
-                selected = self.peerList.GetFirstSelected()
-                while selected != -1:
-                    for col in xrange(self.peerList.GetColumnCount()):
-                        data += self.peerList.GetItem(selected, col).GetText() + "\t"
-                    data += "\n"
-                    selected = self.peerList.GetNextSelected(selected)
-                    
-                do = wx.TextDataObject()
-                do.SetText(data)
-                wx.TheClipboard.Open()
-                wx.TheClipboard.SetData(do)
-                wx.TheClipboard.Close()
-                
-            elif event.GetKeyCode() == 65: #ctrl + a
-                for index in xrange(self.peerList.GetItemCount()):
-                    self.peerList.Select(index)
 
 class ProgressPanel(wx.Panel):
     #eta style

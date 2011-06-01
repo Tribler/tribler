@@ -1,4 +1,6 @@
 # Written by Richard Gwin
+# Modified by Niels Zeilemaker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 import wx
 import wx.xrc as xrc
@@ -414,21 +416,53 @@ class SettingsDialog(wx.Dialog):
         scfg.save(cfgfilename)
     
     def moveCollectedTorrents(self, old_dir, new_dir):
-        #physical move
-        old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
-        new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
-        atexit.register(os.renames, old_dirtf, new_dirtf)
+        def move(old_dir, new_dir):
+            
+            #use os.renames as much as possible
+            #use single file/dir copy if target exists
+            def rename_or_merge(old, new):
+                if os.path.exists(old):
+                    if os.path.exists(new):
+                        files = os.listdir(old)
+                        for file in files:
+                            oldfile = os.path.join(old, file)
+                            newfile = os.path.join(new, file)
+                            
+                            if os.path.isdir(oldfile):
+                                rename_or_merge(oldfile, newfile)
+                            else:
+                                os.rename(oldfile, newfile)
+                    else:
+                        os.renames(old, new)
+            
+            #physical move
+            old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
+            new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
+            rename_or_merge(old_dirtf, new_dirtf)
+            
+            old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
+            new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
+            rename_or_merge(old_dirsf, new_dirsf)
         
-        old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
-        new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
-        atexit.register(os.renames, old_dirsf, new_dirsf)
+            # ProxyService_
+            old_dirdh = os.path.join(old_dir, 'proxyservice')
+            new_dirdh = os.path.join(new_dir, 'proxyservice')
+            rename_or_merge(old_dirdh, new_dirdh)
+            
+        atexit.register(move, old_dir, new_dir)
         
-        old_dirdh = os.path.join(old_dir, 'downloadhelp')
-        new_dirdh = os.path.join(new_dir, 'downloadhelp')
-        atexit.register(os.renames, old_dirdh, new_dirdh)
+        msg = "Please wait while we update your MegaCache..."
+        busyDlg = wx.BusyInfo(msg)
+        try:
+            time.sleep(0.3)
+            wx.Yield()
+        except:
+            pass
         
         #update db
-        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(new_dir)
+        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir, 'collected_torrent_files'))
+        
+        busyDlg.Destroy()
         
     def process_input(self):
         try:

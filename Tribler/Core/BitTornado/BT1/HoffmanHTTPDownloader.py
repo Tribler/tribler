@@ -1,4 +1,5 @@
 # Written by John Hoffman
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -13,27 +14,13 @@ from Tribler.Core.BitTornado.__init__ import product_name,version_short
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.Utilities.timeouturlopen import find_proxy
 
-# ProxyService_
-#
-try:
-    from Tribler.Core.ProxyService.Helper import SingleDownloadHelperInterface
-except ImportError:
-    class SingleDownloadHelperInterface:
-        
-        def __init__(self):
-            pass
-#
-# _ProxyService
-
 try:
     True
 except:
     True = 1
     False = 0
 
-# 2fastbt_
 DEBUG = False
-# _2fastbt
 
 EXPIRE_TIME = 60 * 60
 
@@ -46,13 +33,8 @@ class haveComplete:
         return True
 haveall = haveComplete()
 
-# 2fastbt_
-class SingleDownload(SingleDownloadHelperInterface):
-# _2fastbt
+class SingleDownload():
     def __init__(self, downloader, url):
-# 2fastbt_
-        SingleDownloadHelperInterface.__init__(self)
-# _2fastbt
         self.downloader = downloader
         self.baseurl = url
         try:
@@ -111,25 +93,16 @@ class SingleDownload(SingleDownloadHelperInterface):
             return self.downloader.storage.is_unstarted(index)
 
     def download(self):
-# 2fastbt_
         if DEBUG:
             print "http-sdownload: download()"
-        if self.is_frozen_by_helper():
-            if DEBUG:
-                print "http-sdownload: blocked, rescheduling"
-            self.resched(1)
-            return
-# _2fastbt    
         self.cancelled = False
         if self.downloader.picker.am_I_complete():
             self.downloader.downloads.remove(self)
             return
         self.index = self.downloader.picker.next(haveall, self._want, self)
-# 2fastbt_
-        if self.index is None and self.frozen_by_helper:
+        if self.index is None:
             self.resched(0.01)
             return
-# _2fastbt
         if ( self.index is None and not self.endflag
                      and not self.downloader.peerdownloader.has_downloaders() ):
             self.endflag = True
@@ -268,15 +241,6 @@ class SingleDownload(SingleDownloadHelperInterface):
             s += ','
         s += str(begin)+'-'+str(begin+length-1)
         return s
-
-# 2fastbt_
-    def helper_forces_unchoke(self):
-        pass
-
-    def helper_set_freezing(self,val):
-        self.frozen_by_helper = val
-# _2fastbt
-
 
     
 class HoffmanHTTPDownloader:

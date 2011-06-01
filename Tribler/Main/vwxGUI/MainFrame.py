@@ -1,5 +1,6 @@
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
+# Updated by George Milescu
 #
 # Description : Main ABC [Yet Another Bittorrent Client] python script.
 #               you can run from source code by using
@@ -263,6 +264,11 @@ class MainFrame(wx.Frame):
         # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(self.startCMDLineTorrent)
         
+        # ProxyService 90s Test_
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
+        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
+        # _ProxyService 90s Test
         
     def startCMDLineTorrent(self):
         if self.params[0] != "":
@@ -296,7 +302,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,proxymode=None):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
@@ -322,10 +328,11 @@ class MainFrame(wx.Frame):
                 if destdir is not None:
                     dscfg.set_dest_dir(destdir)
             
-                # ProxyService_
-                if proxymode is not None:
-                    dscfg.set_proxy_mode(proxymode)
-                # _ProxyService
+                # ProxyService 90s Test_
+                if doemode is not None:
+                    dscfg.set_doe_mode(doemode)
+                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
+                # _ProxyService 90s Test
             
                 videofiles = tdef.get_files(exts=videoextdefaults)
                 if vodmode and len(videofiles) == 0:
@@ -596,13 +603,18 @@ class MainFrame(wx.Frame):
         executable = os.path.join(path, executable)
         print >> sys.stderr, executable
         def start_tribler():
-            subprocess.Popen(executable)
+            try:
+                subprocess.Popen(executable)
+            except:
+                print_exc()
 
         atexit.register(start_tribler)
-        self.guiUtility.frame.OnCloseWindow()
+        #self.OnCloseWindow()
+        #self.Close(force = True)
+        sys.exit(0)
     
     def OnFind(self, event):
-        self.guiUtility.frame.top_bg.SearchFocus()
+        self.top_bg.SearchFocus()
 
 
     #######################################
@@ -822,8 +834,6 @@ class MainFrame(wx.Frame):
         result = dlg.ShowModal()
         dlg.Destroy()
 
-
-
     def setActivity(self,type,msg=u'',arg2=None):
         try:
             #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
@@ -884,7 +894,7 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: Activity",`text`
             self.SRstatusbar.onActivity(text)
             self.stats.onActivity(text)
-        except PyDeadObjectError:
+        except wx.PyDeadObjectError:
             pass
 
     def set_player_status(self,s):

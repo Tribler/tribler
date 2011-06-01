@@ -230,7 +230,7 @@ class Utility:
         bool_ = lambda x: x=="1" and True or False
         self._convert__helper_4_1__4_2(self.config, session_config.set_buddycast, "enablerecommender", bool_)
         self._convert__helper_4_1__4_2(self.config, session_config.set_buddycast_max_peers, "buddy_num", int)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_download_help, "enabledlhelp", bool_)
+        #self._convert__helper_4_1__4_2(self.config, session_config.set_download_help, "enabledlhelp", bool_)
         self._convert__helper_4_1__4_2(self.config, session_config.set_internal_tracker_url, "internaltrackerurl")
         self._convert__helper_4_1__4_2(self.config, session_config.set_listen_port, "minport", int)
         self._convert__helper_4_1__4_2(self.config, session_config.set_nickname, "myname")

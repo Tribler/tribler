@@ -1,12 +1,22 @@
 # Written by Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 #
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.7, Aug 2010. Import this to use the API """
+""" Tribler Core API v1.0.8, Mar 2011. Import this to use the API """
 
 # History:
+# 1.0.8:      Renamed set_proxy_mode/get_proxy_mode to set_doe_mode/get_doe_mode in
+#            DownloadConfig and DownloadRuntimeConfig. Renamed set_no_helpers/
+#            get_no_helpers to set_no_proxies/get_no_proxies in DownloadConfig and
+#            DownloadRuntimeConfig. Renamed set_coopdl_role/get_coopdl_role to
+#            set_proxyservice_role/get_proxyservice_role in DownloadConfig. Added
+#            set_proxyservice_role/get_proxyservice_role to DownloadRunningConfig.
+#            Removed set_download_help/get_download_help from the SessionConfig
+#            and SessionRuntimeConfig. Renamed set_coopdlconfig/get_coopdlconfig to
+#            set_proxy_default_dlcfg/get_proxy_default_dlcfg in SessionConfig.
 #
 # 1.0.7      Released with Next-Share M32
 #

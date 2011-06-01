@@ -1,4 +1,5 @@
 # Written by Arno Bakker 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import errno
@@ -99,7 +100,7 @@ class TriblerLaunchMany(Thread):
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         self.shutdownstarttime = None
          
-        # do_cache -> do_overlay -> (do_buddycast, do_download_help)
+        # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler, SimilarityDBHandler, PopularityDBHandler      
@@ -201,7 +202,7 @@ class TriblerLaunchMany(Thread):
             self.secure_overlay = SecureOverlay.getInstance()
             self.secure_overlay.register(self, config['overlay_max_message_length'])
             
-            # Set policy for which peer requests (dl_helper, rquery) to answer and which to ignore
+            # Set policy for which peer requests (proxy relay request, rquery) to answer and which to ignore
                         
             self.overlay_apps = OverlayApps.getInstance()
             # Default policy, override with Session.set_overlay_request_policy()
@@ -220,13 +221,15 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.start_listening()
 
             if config['multicast_local_peer_discovery']:
-               self.setup_multicast_discovery()
+                self.setup_multicast_discovery()
         
         else:
             self.secure_overlay = None
             self.overlay_apps = None
             config['buddycast'] = 0
-            config['download_help'] = 0
+            # ProxyService_
+            config['proxyservice_status'] = PROXYSERVICE_OFF
+            # _ProxyService
             config['socnet'] = 0
             config['rquery'] = 0
 
@@ -757,10 +760,17 @@ class TriblerLaunchMany(Thread):
         """ Called at creation time """
         ip = get_my_wan_ip()
         if ip is None:
-            host = socket.gethostbyname_ex(socket.gethostname())
-            ipaddrlist = host[2]
-            for ip in ipaddrlist:
-                return ip
+            
+            #Niels: user in the forums reported that this 
+            #socket.gethostname + socket.gethostbyname raised an exception
+            #returning 127.0.0.1 if it does
+            try:
+                host = socket.gethostbyname_ex(socket.gethostname())
+                ipaddrlist = host[2]
+                for ip in ipaddrlist:
+                    return ip
+            except:
+                pass
             return '127.0.0.1'
         else:
             return ip
@@ -907,17 +917,21 @@ class TriblerLaunchMany(Thread):
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)
 
-    def get_coopdl_role_object(self,infohash,role):
+    # ProxyService_
+    #
+    def get_proxyservice_object(self, infohash, role):
         """ Called by network thread """
         role_object = None
         self.sesslock.acquire()
         try:
             if infohash in self.downloads:
                 d = self.downloads[infohash]
-                role_object = d.get_coopdl_role_object(role)
+                role_object = d.get_proxyservice_object(role)
         finally:
             self.sesslock.release()
         return role_object
+    #
+    # _ProxyService
 
         
     def h4xor_reset_init_conn_counter(self):

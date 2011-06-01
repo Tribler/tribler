@@ -1,4 +1,5 @@
-# Written by Bram Cohen, Pawel Garbacki, Arno Bakker and Njaal Borch, George Milescu
+# Written by Bram Cohen, Pawel Garbacki, Arno Bakker and Njaal Borch
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import time
@@ -569,15 +570,15 @@ class Connection:
         # probably be self.connecter.config.  This causes -every-
         # connection to close when a ut pex message is received
         # (usually after 15 seconds of being connected).
-        # # ProxyService_
-        # #
-        # proxy_mode = self.config.get('proxy_mode',0)
-        # if proxy_mode == PROXY_MODE_PRIVATE:
-        #     if DEBUG_UT_PEX:
-        #         print >>sys.stderr, "connecter: Private Mode - Returned from got_ut_pex"
-        #     return
-        # #
-        # # _ProxyService
+        # ProxyService_
+        #
+        doe_mode = self.connecter.config.get('doe_mode',0)
+        if doe_mode == DOE_MODE_PRIVATE:
+            if DEBUG_UT_PEX:
+                print >>sys.stderr, "connecter: Private Mode - Returned from got_ut_pex"
+            return
+        #
+        # _ProxyService
         
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
@@ -948,10 +949,9 @@ class Connection:
             
 
 class Connecter:
-# 2fastbt_
     def __init__(self, metadata, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None, get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None, live_streaming = False):
+            get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None, live_streaming = False):
 
         self.downloader = downloader
         self.make_upload = make_upload
@@ -968,9 +968,6 @@ class Connecter:
         self.external_connection_made = 0
         self.merkle_torrent = merkle_torrent
         self.use_g2g = use_g2g
-        # 2fastbt_
-        self.coordinator = coordinator
-        self.helper = helper
         self.round = 0
         self.get_extip_func = get_extip_func
         self.mylistenport = mylistenport
@@ -1217,8 +1214,8 @@ class Connecter:
     def ut_pex_callback(self):
         # ProxyService_
         #
-        proxy_mode = self.config.get('proxy_mode',0)
-        if proxy_mode == PROXY_MODE_PRIVATE:
+        doe_mode = self.config.get('doe_mode',0)
+        if doe_mode == DOE_MODE_PRIVATE:
             if DEBUG_UT_PEX:
                 print >>sys.stderr, "connecter: Private Mode - Returned from ut_pex_callback"
             return

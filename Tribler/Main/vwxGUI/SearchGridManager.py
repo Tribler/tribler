@@ -104,17 +104,10 @@ class TorrentManager:
             return torrent_filename
         
         #.torrent not found, try to download from peers
-        if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
-            if self.downloadTorrentfileFromPeers(torrent, callback):
-                return (True, "from peers")
+        if self.downloadTorrentfileFromPeers(torrent, callback):
+            return (True, "from peers")
         
-        #.torrent still not found, try magnet link
-        magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent['infohash'])
-        def torrentdef_retrieved(tdef):
-            tdef.save(torrent_filename)
-            callback(torrent['infohash'], torrent, torrent_filename)
-            
-        return (TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved), "from dht")
+        return (False, "could not get torrent")
              
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio = 0):
         """
@@ -139,17 +132,13 @@ class TorrentManager:
         # return False when duplicate
         if not duplicate and torrent.get('query_torrent_was_requested', False):
             return False
-
-        # return False when there are no sources to retrieve the
-        # torrent from
-        if not 'query_permids' in torrent:
-            if DEBUG:
-                print >> sys.stderr, "standardDetails: _download_torrentfile_from_peers: can not download .torrent file. No known source peers"
-            return False
-
+        
         torrent['query_torrent_was_requested'] = True
-        for permid in torrent['query_permids']:
-            self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
+        if not 'query_permids' in torrent or len(torrent['query_permids']) == 0:
+            self.guiUtility.utility.session.download_torrentfile(torrent['infohash'], callback, prio)
+        else:
+            for permid in torrent['query_permids']:
+                self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
         
         return True
     
@@ -275,9 +264,12 @@ class TorrentManager:
             playd = videoplayer.get_vod_download()
             
             if playd == ds.download:
-               self._get_videoplayer(ds).stop_playback()
+                self._get_videoplayer(ds).stop_playback()
             
-            self.guiUtility.utility.session.remove_download(ds.get_download(), removecontent = removecontent)
+        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+        
+    def deleteTorrentDownload(self, download, infohash, removecontent = False):
+        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent)
             
         # Johan, 2009-03-05: we need long download histories for good 
         # semantic clustering.

@@ -1,4 +1,5 @@
 # Written by Jie Yang, Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 import sys
 import os
@@ -54,10 +55,10 @@ class MetadataHandler:
         return MetadataHandler.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self, overlay_bridge, dlhelper, launchmany, config):
+    def register(self, overlay_bridge, proxy_message_handler, launchmany, config):
         self.registered = True
         self.overlay_bridge = overlay_bridge
-        self.dlhelper = dlhelper
+        self.proxy_message_handler = proxy_message_handler
         self.launchmany = launchmany
         self.torrent_db = launchmany.torrent_db 
         self.config = config
@@ -170,7 +171,7 @@ class MetadataHandler:
             self.notify_torrent_is_in(infohash, metadata, filename)
             return True
         
-        if caller == "dlhelp":
+        if caller == "proxyservice":
             self.requested_torrents.add(infohash)
         
         if self.min_free_space != 0 and (self.free_space - self.avg_torrent_size < self.min_free_space):   # no space to collect
@@ -581,7 +582,7 @@ class MetadataHandler:
             self.requested_torrents.remove(infohash)
             
             #if DEBUG:
-            #    print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
+            #    print >>sys.stderr,"metadata: Was I asked to relay for someone", self.proxy_message_handler
 
             if filename is not None:
                 self.notify_torrent_is_in(infohash,metadata,filename)
@@ -603,8 +604,8 @@ class MetadataHandler:
     def notify_torrent_is_in(self,infohash,metadata,filename):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if self.dlhelper is not None:
-            self.dlhelper.metadatahandler_received_torrent(infohash, metadata)
+        if self.proxy_message_handler is not None:
+            self.proxy_message_handler.metadatahandler_received_torrent(infohash, metadata)
         if self.rquerytorrenthandler is not None:
             self.rquerytorrenthandler.metadatahandler_got_torrent(infohash,metadata,filename)
         
