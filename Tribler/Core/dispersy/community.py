@@ -526,7 +526,7 @@ class Community(object):
 
         - Each candidate in the payload requires 4 + 2 + 2 bytes (host, port, age)
         """
-        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 14) // 6
+        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 14) // 8
 
     @property
     def dispersy_sync_initial_delay(self):
