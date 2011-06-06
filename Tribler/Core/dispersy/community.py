@@ -461,7 +461,7 @@ class Community(object):
         forwarded in a dispersy-candidate-request or dispersy-candidate-response message.
         @rtype: (float, float)
         """
-        return (0.0, 120.0)
+        return (0.0, 300.0)
 
     @property
     def dispersy_candidate_request_member_count(self):
@@ -478,7 +478,7 @@ class Community(object):
         destination node, when sending a dispersy-candidate-request message.
         @rtype: (float, float)
         """
-        return (0.0, 30.0)
+        return (10.0, 30.0)
 
     @property
     def dispersy_candidate_request_destination_age_range(self):
