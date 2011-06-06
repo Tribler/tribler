@@ -555,8 +555,8 @@ class SearchHelpHeader(SearchHeader):
         <ul>
             <li>'\d{4}' will show only items with a 4 digit number</li>
             <li>'size=100:200' will show items between 100 and 200 Mbytes</li>
-            <li>'size=:200' will show items less than 200 Mbytes</li>
-            <li>'size=100:' will show items greater than 100 Mbytes</li>
+            <li>'size=:200' will show items smaller than 200 Mbytes</li>
+            <li>'size=100:' will show items larger than 100 Mbytes</li>
         </ul>
         </p>"""
         
