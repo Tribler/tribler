@@ -1004,6 +1004,9 @@ class LibaryList(List):
     def Hide(self):
         wx.Panel.Hide(self)
         self.torrent_manager.remove_download_state_callback(self.RefreshItems)
+    
+    def ScrollToEnd(self, scroll_to_end):
+        self.list.ScrollToEnd(scroll_to_end)
         
 class ChannelList(List):
     def __init__(self):

@@ -804,13 +804,14 @@ class AbstractListBody():
     def Select(self, key, raise_event = True):
         self.DeselectAll()
         
-        if raise_event:
-            self.items[key].OnClick(None)
-        else:
-            self.items[key].expanded = True
-            self.cur_expanded = self.items[key]
-            
-        self.items[key].ShowSelected()
+        if key in self.items:
+            if raise_event:
+                self.items[key].OnClick(None)
+            else:
+                self.items[key].expanded = True
+                self.cur_expanded = self.items[key]
+                
+            self.items[key].ShowSelected()
     
     def DeselectAll(self):
         for _, item in self.items.iteritems():

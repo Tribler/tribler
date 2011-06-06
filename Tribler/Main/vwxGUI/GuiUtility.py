@@ -118,6 +118,8 @@ class GUIUtility:
                 
                 #Show list
                 self.frame.searchlist.Show()
+                
+                wx.CallAfter(self.frame.searchlist.ScrollToEnd, False)
             else:
                 #Stop animation
                 self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
@@ -134,6 +136,9 @@ class GUIUtility:
                 if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage == 'mychannel':
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
+                    
+                    wx.CallAfter(self.frame.channellist.ScrollToEnd, False)
+                    
                 elif selectedcat == 'My Channel' and self.oldpage != 'mychannel':
                     page = 'mychannel'
                 else:
@@ -155,6 +160,8 @@ class GUIUtility:
             if page == 'selectedchannel':
                 self.frame.selectedchannellist.Show()
                 self.frame.channelcategories.DeselectAll()
+                
+                wx.CallAfter(self.frame.channelcategories.ScrollToEnd, False)
             else:
                 self.frame.selectedchannellist.Hide()
                 self.frame.selectedchannellist.Reset()

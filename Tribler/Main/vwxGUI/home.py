@@ -13,6 +13,8 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl, SelectableListCtrl
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+
 from __init__ import LIST_GREY, LIST_BLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler, ChannelCastDBHandler
@@ -164,6 +166,8 @@ class NetworkPanel(HomePanel):
         self.torrentdb = TorrentDBHandler.getInstance()
         self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
+        self.remotequerymsghandler = RemoteQueryMsgHandler.getInstance()
+
         self.timer = None
         
         session = Session.get_instance()
@@ -187,6 +191,7 @@ class NetworkPanel(HomePanel):
         self.totalSize = wx.StaticText(panel)
         self.queueSize = wx.StaticText(panel)
         self.nrChannels = wx.StaticText(panel)
+        self.nrConnected = wx.StaticText(panel)
         
         self.freeMem = None
         try:
@@ -208,11 +213,11 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
         gridSizer.Add(wx.StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Connected peers'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrConnected, 0, wx.EXPAND|wx.LEFT, 10)
         if self.freeMem:
             gridSizer.Add(wx.StaticText(panel, -1, 'WX:Free memory'), 0, wx.LEFT, 10)
             gridSizer.Add(self.freeMem, 0, wx.EXPAND|wx.LEFT, 10)
-        
-        
         
         vSizer.Add(gridSizer, 0, wx.EXPAND)
         panel.SetSizer(vSizer)
@@ -241,7 +246,7 @@ class NetworkPanel(HomePanel):
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
         self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
-        self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
+        self.nrConnected.SetLabel('%d peers'%len(self.remotequerymsghandler.get_connected_peers()))
         if self.freeMem:
             self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
         
