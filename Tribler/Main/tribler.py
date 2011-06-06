@@ -362,7 +362,7 @@ class ABCApp(wx.App):
         # See if we need to turn on proxy-ing
         turn_proxy_on = False
         try:
-            curr_status = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/test.txt').readlines()
+            curr_status = urllib.urlopen('http://proxytestreporter.tribler.org/test2.txt').readlines()
             if curr_status[0].strip() == "on":
                 turn_proxy_on = True
             else:
