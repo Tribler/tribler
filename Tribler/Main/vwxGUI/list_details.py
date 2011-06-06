@@ -809,14 +809,15 @@ class TorrentDetails(wx.Panel):
                     self.playSpacer.Show(False)
                     self.buttonPanel.Layout()
                 
-                vod_log = ds.vod_status_msg.replace(". ", ".\n")
-                if self.vod_log and self.vod_log.GetLabel() != vod_log:
-                    self.vod_log.SetLabel(vod_log)
-                    self.vod_log.Refresh()
-                    
-                    if not self.vod_log.IsShown():
-                        self.vod_log.Show()
-                    self.buttonPanel.Layout()
+                if ds.vod_status_msg:
+                    vod_log = ds.vod_status_msg.replace(". ", ".\n")
+                    if self.vod_log and self.vod_log.GetLabel() != vod_log:
+                        self.vod_log.SetLabel(vod_log)
+                        self.vod_log.Refresh()
+                        
+                        if not self.vod_log.IsShown():
+                            self.vod_log.Show()
+                        self.buttonPanel.Layout()
             else:
                 label = 'You are downloading this torrent'
             
