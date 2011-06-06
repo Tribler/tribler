@@ -308,7 +308,7 @@ class TriblerLaunchMany(Thread):
         if config['dispersy']:
             # Dispersy needs to run on a thread.  We use a RawServer instance.
             self.dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
-            self.dispersy_rawserver.add_task(self.start_dispersy)
+            self.dispersy_rawserver.add_task(self.start_dispersy, 7.5)
             Thread(target=self.dispersy_rawserver.listen_forever, args=(None,), name="DispersyThread").start()
 
     def start_dispersy(self):
