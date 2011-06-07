@@ -12,7 +12,7 @@ OutFile "${PRODUCT}_${VERSION}.exe"
 
 ;Folder selection page
 InstallDir "$PROGRAMFILES\${PRODUCT}"
- 
+
 ;Remember install folder
 InstallDirRegKey HKCU "Software\${PRODUCT}" ""
 
@@ -83,6 +83,10 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 
 Section "!Main EXE" SecMain
  SectionIn RO
+ ; Install VLC into a seperate directory (this is where vlc.py looks for it by default)
+ SetOutPath "$PROGRAMFILES"
+ File /r vlc
+ ; Install Tribler stuff
  SetOutPath "$INSTDIR"
  File /r Microsoft.VC90.CRT
  File *.txt
@@ -90,7 +94,7 @@ Section "!Main EXE" SecMain
  ; File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
- File /r vlc
+; File /r vlc
  File *.bat
  Delete "$INSTDIR\*.pyd"
  File *.pyd

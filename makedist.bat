@@ -112,6 +112,7 @@ copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
+copy vlc.py dist\installdir\vlc.py
 
 copy reset*.bat dist\installdir
 

@@ -1,3 +1,4 @@
+
 # Written by Fabian van der Werf and Arno Bakker
 # see LICENSE.txt for license information
 #
@@ -472,7 +473,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if DEBUG:
                 print >>sys.stderr,"embedplay: GetState",status
 
-            import vlc
+            import Tribler.vlc as vlc
             if status == vlc.State.Playing:
                 return MEDIASTATE_PLAYING
             elif status == vlc.State.Paused:

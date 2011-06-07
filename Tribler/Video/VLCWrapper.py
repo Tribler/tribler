@@ -44,7 +44,11 @@ class VLCWrapper:
         GUI to instantly exit, we need to delay importing vlc and
         setting the window.
         """
-        import vlc
+        try:
+           import Tribler.vlc as vlc
+        except:
+            print_stack()
+            print_exc()
         from Tribler.Video.VideoServer import VideoRawVLCServer
 
         # avoid another init

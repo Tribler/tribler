@@ -984,7 +984,7 @@ def parse_playtime_to_secs(hhmmss):
 def return_feasible_playback_modes(syspath):
     l = []
     try:
-        import vlc
+        import Tribler.vlc as vlc
 
         if USE_VLC_RAW_INTERFACE:
             # check if the special raw interface is available
@@ -992,13 +992,15 @@ def return_feasible_playback_modes(syspath):
             if not inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
                 raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
             # pylint: enable-msg=E1101
-        vlcpath = os.path.join(syspath,"vlc")
-        if sys.platform == 'win32':
-            
-            if os.path.isdir(vlcpath):
-                l.append(PLAYBACKMODE_INTERNAL)
-        else:
-            l.append(PLAYBACKMODE_INTERNAL)
+        l.append(PLAYBACKMODE_INTERNAL)
+# boudewijn: 06/06/2011: if import vlc was ok, then we can also find the vlc dll/so
+#        vlcpath = os.path.join(syspath,"vlc")
+#        if sys.platform == 'win32':
+#            
+#            if os.path.isdir(vlcpath):
+#                l.append(PLAYBACKMODE_INTERNAL)
+#        else:
+#            l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
         print_exc()
     
