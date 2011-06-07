@@ -3370,10 +3370,9 @@ class ChannelCastDBHandler(BasicDBHandler):
                 
             else:
                 publisher_id = arguments[0]
-                min_timestamp = float(arguments[1])
-                max_timestamp = float(arguments[2])
+                min_timestamp = int(arguments[1])
+                max_timestamp = int(arguments[2])
                 nr_items = int(arguments[3])
-                
                 
                 my_channel = publisher_id == bin2str(self.my_permid)
                 my_vote = self.votecast_db.getVote(publisher_id, bin2str(self.my_permid))
@@ -3381,27 +3380,44 @@ class ChannelCastDBHandler(BasicDBHandler):
                 if my_channel or my_vote == 2: 
                     record = self.getTimeframeForChannel(publisher_id)
                     if record:
+                        #does the peer have any missing items in its timeframe?
+                        s = "select count(distinct infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
+                        timeframe_items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                         
-                        #detect if we have older items, newer items or more items
+                        #detect if we have older items, newer items
                         older_items = record[0] < min_timestamp
                         newer_items = record[1] > max_timestamp
-                        more_items = record[2] > nr_items
                         
-                        if older_items or newer_items or more_items:
-                            #does the peer have any missing items in its timeframe?
-                            s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
-                            items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+                        if timeframe_items > nr_items:
+                            #his timeframe is incorrect
                             
-                            if items > nr_items:
-                                #correct his timeframe, by returning nr_items + 1
-                                nr_items_return = nr_items + 1
-                                if nr_items_return < 50:
-                                    nr_items_return = 50
-                                #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
+                            nr_items_return = nr_items + 1
+                            if nr_items_return < 50:
+                                nr_items_return = 50
+                            
+                            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
+                            allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
+                        
+                        elif timeframe_items < nr_items:
+                            #my timeframe is incorrect or he has more data
+                            #print >> sys.stderr, "HE HAS MORE DATA"
+                            
+                            from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
+                            channelcast = ChannelCastCore.getInstance()
+                            
+                            if older_items or newer_items:
+                                #print >> sys.stderr, "REQUESTING TIMEFRAME FIX"
                                 
-                                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
-                                allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
+                                #our timeframe needs fixing, request all his items
+                                #request nr_items-1, this will ensure that he will send us all his items back
+                                channelcast.updateAChannel(publisher_id, timeframe = (min_timestamp, max_timestamp, nr_items-1))
+                                
                             else:
+                                #we did not yet caught up with all other peers, do nothing
+                                pass
+                        else:
+                            #timeframes are correct
+                            if older_items or newer_items:
                                 #return max 50 newer, append with old
                                 s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
                                 allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
@@ -3409,28 +3425,8 @@ class ChannelCastDBHandler(BasicDBHandler):
                                 if len(allrecords) < 50:
                                     s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
                                     allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
-                                    
-                        else:
-                            he_has_older_items = record[0] > min_timestamp
-                            he_has_newer_items = record[1] < max_timestamp
-                            he_has_more_items = record[2] < nr_items
-                            
-                            if he_has_more_items or he_has_newer_items or he_has_older_items:
-                                print >> sys.stderr, "HE HAS MORE DATA"
-                                
-                                if my_channel:
-                                    print >> sys.stderr, "INCORRECT TIMEFRAME RECEIVED FOR MY CHANNEL"
-                                    
-                                    #Niels: I know this should not be done here, but we need to fix our own database
-                                    #Temp fix as Dispersy/Channelcast will change protocol
-                                    from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
-                                    channelcast = ChannelCastCore.getInstance()
-                                    channelcast.updateAChannel(bin2str(self.my_permid))
-                                
-                                else:
-                                    pass
                             else:
-                                print >> sys.stderr, "WE HAVE SAME DATA"
+                                #print >> sys.stderr, "WE HAVE SAME DATA"
                                 pass
                     else:
                         #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"

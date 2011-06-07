@@ -288,7 +288,10 @@ class ChannelCastCore:
                     if DEBUG:
                         print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
                     return
-                self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
+                
+                #if my channel, never remove all currently received
+                if bin2str(self.session.get_permid()) != publisher_id:
+                    self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
             if DEBUG:
                 print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
         else:
@@ -337,7 +340,7 @@ class ChannelCastCore:
         
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
     
-    def updateAChannel(self, publisher_id, peers = None):
+    def updateAChannel(self, publisher_id, peers = None, timeframe = None):
         if peers == None:
             peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_FOURTEENTH)
         else:
@@ -348,9 +351,9 @@ class ChannelCastCore:
         shuffle(peers)
         
         # Create separate thread which does all the requesting
-        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers))
+        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers, timeframe))
     
-    def _sequentialQueryPeers(self, publisher_id, peers):
+    def _sequentialQueryPeers(self, publisher_id, peers, timeframe = None):
         def seqtimeout(permid):
             if peers and permid == peers[0][0]:
                 peers.pop(0)
@@ -368,7 +371,12 @@ class ChannelCastCore:
                 permid, selversion = peers[0]
                 
                 q = "CHANNEL p "+publisher_id
-                record = self.channelcastdb.getTimeframeForChannel(publisher_id)
+                
+                if timeframe:
+                    record = timeframe
+                else:
+                    record = self.channelcastdb.getTimeframeForChannel(publisher_id)
+                
                 if record:
                     q+= " "+" ".join(map(str,record))
                 self.session.query_peers(q,[permid],usercallback = seqcallback)
