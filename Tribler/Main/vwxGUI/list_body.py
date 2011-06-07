@@ -445,6 +445,11 @@ class AbstractListBody():
             self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
     
     def FilterItems(self, keyword, column = 0):
+        if currentThread().getName() != "MainThread":
+            if DEBUG:
+                print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
+                print_stack()
+        
         new_filter = keyword.lower().strip()
         if new_filter != self.filter or column != self.filtercolumn:
             self.sizefiler = None
@@ -647,13 +652,14 @@ class AbstractListBody():
                 self.dataTimer = wx.CallLater(call_in, doSetData) 
             else:
                 self.dataTimer.Restart(call_in)
-                
-        #apply quickfilter
-        if self.filter != '' or self.sizefiler:
-            data = filter(self.MatchFilter, data)
-            self.parent_list.SetFilteredResults(len(data))
         
-        return len(data)
+        if data:
+            #apply quickfilter
+            if self.filter != '' or self.sizefiler:
+                data = filter(self.MatchFilter, data)
+            
+            #return filtered nr_items after quickfilter is applied
+            return len(data)
         
     def __SetData(self):
         if DEBUG:
@@ -671,6 +677,8 @@ class AbstractListBody():
         #apply quickfilter
         if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
+            self.parent_list.SetFilteredResults(len(data))
+
             if len(data) == 0:
                 message = "0" + self.__GetFilterMessage()[12:]
         else:
@@ -696,6 +704,13 @@ class AbstractListBody():
         
         if len(data) > 0:
             self.CreateItems()
+            
+            #Try to yield
+            try:
+                wx.Yield()
+            except:
+                pass
+            
         elif message != '':
             self.ShowMessage(message)
             
@@ -710,7 +725,7 @@ class AbstractListBody():
         if not self.done and self.data:
             self.CreateItems()
             
-            #idle event also paints search animation use requestmore to show this update
+            #idle event also paints search animation, use request more to show this update
             event.RequestMore(not self.done)
             if self.done:
                 self.Unbind(wx.EVT_IDLE)
@@ -777,6 +792,7 @@ class AbstractListBody():
             
         self.OnChange()
         self.Thaw()
+        
         self.done = done
         if DEBUG:
             print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1, "done:", self.done

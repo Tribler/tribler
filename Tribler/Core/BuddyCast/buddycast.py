@@ -394,9 +394,11 @@ class BuddyCastFactory:
                 waitt = 3.0
             self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers,waitt)
             
-            #Nitin: While booting up, we try to update the channels that we are subscribed to
-            #       after 6 seconds initially and later, at every 2 hour interval
-            self.overlay_bridge.add_task(self.channelcast_core.updateMySubscribedChannels, 6)
+            #Niels, let buddycast try to connect to some peers, then schedule a call to update subscribed channels
+            #We assume here that buddycast connects to 20 peers, but we wait an additional 30s to start requesting
+            waitsub = self.getCurrrentInterval() * 20
+            waitsub += 30
+            self.overlay_bridge.add_task(self.channelcast_core.updateMySubscribedChannels, waitsub)
             
             print >> sys.stderr, "BuddyCast starts up",waitt
         

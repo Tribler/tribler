@@ -47,6 +47,10 @@ class ChannelCastCore:
 
     def __init__(self, data_handler, overlay_bridge, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class """
+        if ChannelCastCore.__single:
+            raise RuntimeError, "ChannelCastCore is singleton"
+        ChannelCastCore.__single = self
+        
         #Keep reference to interval-function of BuddycastFactory
         self.interval = buddycast_interval_function
         self.data_handler = data_handler
@@ -83,21 +87,15 @@ class ChannelCastCore:
         self.richMetadataInterceptor = RichMetadataInterceptor(self.metadataDbHandler,self.votecastdb,
                                                                self.my_permid, subtitleSupport, self.peersHaveManger,
                                                                self.notifier)
-        
-        
-
     
     def initialized(self):
         return self.buddycast_core is not None
- 
-
 
     def getInstance(*args, **kw):
         if ChannelCastCore.__single is None:
             ChannelCastCore(*args, **kw)
         return ChannelCastCore.__single
     getInstance = staticmethod(getInstance)
-
    
     def createAndSendChannelCastMessage(self, target_permid, selversion):
         """ Create and send a ChannelCast Message """
@@ -252,21 +250,22 @@ class ChannelCastCore:
         
     def _updateChannelInternal(self, query_permid, query, hits):
         listOfAdditions = list()
-        
-        # a single read from the db is more efficient
-        all_spam_channels = self.votecastdb.getPublishersWithNegVote(bin2str(self.session.get_permid()))
-        for k,v in hits.items():
-            #check if the record belongs to a channel who we have "reported spam" (negative vote)
-            if bin2str(v['publisher_id']) in all_spam_channels:
-                # if so, ignore the incoming record
-                continue
+
+        if len(hits) > 0:
+            # a single read from the db is more efficient
+            all_spam_channels = self.votecastdb.getPublishersWithNegVote(bin2str(self.session.get_permid()))
+            for k,v in hits.items():
+                #check if the record belongs to a channel who we have "reported spam" (negative vote)
+                if bin2str(v['publisher_id']) in all_spam_channels:
+                    # if so, ignore the incoming record
+                    continue
+                
+                # make everything into "string" format, if "binary"
+                hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
+                listOfAdditions.append(hit)
             
-            # make everything into "string" format, if "binary"
-            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
-            listOfAdditions.append(hit)
-        
-        # Arno, 2010-06-11: We're on the OverlayThread
-        self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
+            # Arno, 2010-06-11: We're on the OverlayThread
+            self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
         return listOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
@@ -324,9 +323,17 @@ class ChannelCastCore:
                 self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,3)
     
     def updateMySubscribedChannels(self):
-        subscribed_channels = self.channelcastdb.getMySubscribedChannels()
-        for permid, channel_name, _, num_subscriptions, _, _, _ in subscribed_channels:
+        def update(permids):
+            permid = permids.pop()
+            
             self.updateAChannel(permid)
+            
+            if len(permids) > 0:
+                self.overlay_bridge.add_task(lambda: update(permids), 20)
+        
+        subscribed_channels = self.channelcastdb.getMySubscribedChannels()
+        permids = [values[0] for values in subscribed_channels]
+        update(permids)
         
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
     
@@ -339,6 +346,7 @@ class ChannelCastCore:
             peers = [(permid, OLPROTO_VER_FOURTEENTH) for permid in peers]
             
         shuffle(peers)
+        
         # Create separate thread which does all the requesting
         self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers))
     

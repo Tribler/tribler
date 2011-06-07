@@ -715,7 +715,10 @@ class SearchList(List):
         item.button.Show()
         
     def OnFilter(self, keyword):
-        self.header.FilterCorrect(self.list.FilterItems(keyword))
+        def doFilter():
+            self.header.FilterCorrect(self.list.FilterItems(keyword))
+        #Niels: use callafter due to the filteritems method being slow and halting the events
+        wx.CallAfter(doFilter)
         
     def format(self, val):
         val = int(val)

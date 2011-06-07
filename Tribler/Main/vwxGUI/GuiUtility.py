@@ -265,7 +265,6 @@ class GUIUtility:
                     print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
                 
                 self.frame.searchlist.Freeze()
-                self.frame.searchlist.Reset()
                 self.ShowPage('search_results')
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
@@ -307,7 +306,6 @@ class GUIUtility:
             self.frame.channellist.Thaw()
     
     def showChannel(self, channelname, channel_permid):
-        self.frame.selectedchannellist.Reset()
         self.frame.selectedchannellist.SetTitle(channelname)
         
         description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]

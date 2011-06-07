@@ -779,7 +779,7 @@ class ChannelSearchGridManager:
         self.guiUtility = guiUtility
         
         # Contains all matches for keywords in DB, not filtered by category
-        self.hits = []
+        self.hits = {}
         
         self.searchmgr = None
         self.channelcast_db = None

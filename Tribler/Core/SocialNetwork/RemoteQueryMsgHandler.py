@@ -489,8 +489,14 @@ class RemoteQueryMsgHandler:
             remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
             
             self.session.uch.perform_usercallback(remote_query_usercallback_lambda)
-        elif DEBUG:
-            print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
+        else:
+            if DEBUG:
+                print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
+                
+            if query.startswith("CHANNEL"):
+                remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
+                self.session.uch.perform_usercallback(remote_query_usercallback_lambda)
+            
 
 
     def unidecode_hits(self,query,d):

@@ -1034,6 +1034,7 @@ class TorrentDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self,db, 'Torrent') ## self,db,torrent
         
         self.mypref_db = MyPreferenceDBHandler.getInstance()
+        self.votecast_db = VoteCastDBHandler.getInstance()
         
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
@@ -1778,50 +1779,52 @@ class TorrentDBHandler(BasicDBHandler):
             mainsql += " limit 20"
             
         results = self._db.fetchall(mainsql)
-        t2 = time()
-        sql = "select mod_id, sum(vote), count(*) from VoteCast group by mod_id order by 2 desc"
-        votecast_records = self._db.fetchall(sql)         
         
-        votes = {}
-        for vote in votecast_records:
-            votes[vote[0]] = (vote[1], vote[2])
+        channels = set()
+        for result in results:
+            if result[-2]:
+                channels.add(result[-2])
+        
+        t2 = time()
+        if len(channels) > 0:
+            votes = self.votecast_db.getAllPosNegVotes(channels)
+        else:
+            votes = {}
         t3 = time()
         
         torrents_dict = {}
+        #step 1, merge torrents keep one with best channel
         for result in results:
-            a = time()
             torrent = dict(zip(value_name,result))
             
+            if torrent['infohash'] in torrents_dict:
+                old_record = torrents_dict[torrent['infohash']]
+                
+                # check if this channel has votes and if so, is it better than previous channel
+                posvotes, negvotes = votes.get(torrent['channel_permid'], (0,0))
+                old_posvotes, old_negvotes = votes.get(old_record['channel_permid'], (0,0))
+                
+                if (posvotes - negvotes) > (old_posvotes - old_negvotes):
+                    #this is better
+                    torrents_dict[torrent['infohash']] = torrent
+            else:
+                torrents_dict[torrent['infohash']] = torrent
+        
+        t4 = time()
+        
+        #step 2, fix all dict fields
+        torrent_list = []
+        
+        #Niels: small optimization, for larger resultlists this will result in a 0.3s speedup
+        dont_sort_torrent_list = [] 
+        for torrent in torrents_dict.itervalues():
             #bug fix: If channel_permid and/or channel_name is None, it cannot bencode
             #bencode(None) is an Error
             if torrent['channel_permid'] is None:
                 torrent['channel_permid'] = ""
             if torrent['channel_name'] is None:
                 torrent['channel_name'] = ""
-                            
-            # check if this torrent belongs to more than one channel
-            if torrent['infohash'] in torrents_dict:
-                old_record = torrents_dict[torrent['infohash']]
-                # check if this channel has votes and if so, is it better than previous channel
-                if torrent['channel_permid'] in votes:
-                    sum, count = votes[torrent['channel_permid']] 
-                    numsubscriptions = (sum + count)/3
-                    negvotes = (2*count-sum)/3
-                    if numsubscriptions-negvotes > old_record['subscriptions'] - old_record['neg_votes']:
-                        #print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
-                        old_record['channel_permid'] = torrent['channel_permid']
-                        old_record['channel_name'] = torrent['channel_name']
-                        old_record['subscriptions'] = numsubscriptions
-                        old_record['neg_votes'] = negvotes
-                else:
-                    if old_record['subscriptions'] - old_record['neg_votes'] < 0: # SPAM cutoff
-                        old_record['channel_permid'] = torrent['channel_permid']
-                        old_record['channel_name'] = torrent['channel_name']
-                        old_record['subscriptions'] = 0
-                        old_record['neg_votes'] = 0
-                continue
             
-            torrents_dict[torrent['infohash']] = torrent
             try:
                 torrent['source'] = self.id2src[torrent['source_id']]
             except:
@@ -1831,31 +1834,30 @@ class TorrentDBHandler(BasicDBHandler):
             
             torrent['category'] = [self.id2category[torrent['category_id']]]
             torrent['status'] = self.id2status[torrent['status_id']]
-            torrent['simRank'] = ranksfind(None,torrent['infohash'])
+            torrent['simRank'] = -1
             torrent['infohash'] = str2bin(torrent['infohash'])
-            #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
             torrent['last_check_time'] = 0 #torrent['last_check']
-            #del torrent['last_check']
+            
             del torrent['source_id']
             del torrent['category_id']
             del torrent['status_id']
-            torrent_id = torrent['torrent_id']
+
+            torrent['subscriptions'], torrent['neg_votes'] = votes.get(torrent['channel_permid'], (0,0))        
+
+                        
+            if torrent['num_seeders'] > 0:
+                torrent_list.append(torrent)
+            else:
+                dont_sort_torrent_list.append(torrent)
             
-            torrent['neg_votes']=0
-            torrent['subscriptions']=0
-            if torrent['channel_permid'] in votes:
-                sum, count = votes[torrent['channel_permid']]
-                numsubscriptions = (sum + count)/3
-                negvotes = (2*count-sum)/3                
-                torrent['neg_votes']=negvotes
-                torrent['subscriptions']=numsubscriptions
-            
-            #print >> sys.stderr, "hello.. %.3f,%.3f" %((time()-a), time())
+        t5 = time()
+        
         def compare(a,b):
-            return -1*cmp(a['num_seeders'], b['num_seeders'])
-        torrent_list = torrents_dict.values()
-        torrent_list.sort(compare)
-        #print >> sys.stderr, "# hits:%d; search time:%.3f,%.3f,%.3f" % (len(torrent_list),t2-t1, t3-t2, time()-t1 )
+            return cmp(a['num_seeders'], b['num_seeders'])
+        torrent_list.sort(compare, reverse = True)
+        torrent_list.extend(dont_sort_torrent_list)
+        
+        #print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return torrent_list
 
 
@@ -2889,15 +2891,19 @@ class VoteCastDBHandler(BasicDBHandler):
                 neg_votes +=1
         return (pos_votes, neg_votes)
     
-    def getAllPosNegVotes(self):
+    def getAllPosNegVotes(self, mod_ids = None):
+        if mod_ids:
+            mod_ids = "AND mod_id IN ('" + "' ,'".join(mod_ids) + "') "
+        else:
+            mod_ids = ''
+
         votes = {}
-        
-        sql = 'select mod_id, count(*) from VoteCast where vote == 2 group by mod_id'
+        sql = 'select mod_id, count(*) from VoteCast where vote == 2 '+mod_ids+'group by mod_id'
         records = self._db.fetchall(sql)
         for mod_id, pos_votes in records:
             votes[mod_id] = [pos_votes, 0]
         
-        sql = 'select mod_id, count(*) from VoteCast where vote == -1 group by mod_id'
+        sql = 'select mod_id, count(*) from VoteCast where vote == -1 '+mod_ids+'group by mod_id'
         records = self._db.fetchall(sql)
         for mod_id, neg_votes in records:
             if mod_id not in votes:
@@ -3355,64 +3361,81 @@ class ChannelCastDBHandler(BasicDBHandler):
             q = query[2:]
             arguments = q.split()
             records = []
-
-
-            if len(arguments) == 1:
-                publisher_id = q
-            else:
-                publisher_id = arguments[0]
-            
-            
-            s = "Select 1 FROM VoteCast Where voter_id = ? AND mod_id = ? AND vote == 2"
             
             allrecords = []
+
             if len(arguments) == 1:
                 s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
                 allrecords = self._db.fetchall(s,(q,))
-            
-            elif publisher_id == bin2str(self.my_permid) or self._db.fetchone(s, (bin2str(self.my_permid), publisher_id)): #are we subscribed to this channel?
+                
+            else:
                 publisher_id = arguments[0]
                 min_timestamp = float(arguments[1])
                 max_timestamp = float(arguments[2])
                 nr_items = int(arguments[3])
                 
-                allrecords = []
-                s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
-                record = self._db.fetchone(s,(publisher_id,))
-                if record:
-                    #detect if we have older items, newer items or more items
-                    change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
-                    if change:
-                        #does the peer have any missing items in its timeframe?
-                        s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
-                        items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+                
+                my_channel = publisher_id == bin2str(self.my_permid)
+                my_vote = self.votecast_db.getVote(publisher_id, bin2str(self.my_permid))
+                
+                if my_channel or my_vote == 2: 
+                    record = self.getTimeframeForChannel(publisher_id)
+                    if record:
                         
-                        if items > nr_items:
-                            #correct his timeframe, by returning nr_items + 1
-                            nr_items_return = nr_items + 1
-                            if nr_items_return < 50:
-                                nr_items_return = 50
-                            #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
+                        #detect if we have older items, newer items or more items
+                        older_items = record[0] < min_timestamp
+                        newer_items = record[1] > max_timestamp
+                        more_items = record[2] > nr_items
+                        
+                        if older_items or newer_items or more_items:
+                            #does the peer have any missing items in its timeframe?
+                            s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
+                            items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                             
-                            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
-                            allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
+                            if items > nr_items:
+                                #correct his timeframe, by returning nr_items + 1
+                                nr_items_return = nr_items + 1
+                                if nr_items_return < 50:
+                                    nr_items_return = 50
+                                #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
+                                
+                                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
+                                allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
+                            else:
+                                #return max 50 newer, append with old
+                                s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
+                                allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                                
+                                if len(allrecords) < 50:
+                                    s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
+                                    allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
+                                    
                         else:
-                            #return max 50 newer, append with old
-                            s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
-                            allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                            he_has_older_items = record[0] > min_timestamp
+                            he_has_newer_items = record[1] < max_timestamp
+                            he_has_more_items = record[2] < nr_items
                             
-                            if len(allrecords) < 50:
-                                s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
-                                allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
-                    elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
-                        #print >> sys.stderr, "HE HAS MORE DATA"
-                        pass
+                            if he_has_more_items or he_has_newer_items or he_has_older_items:
+                                print >> sys.stderr, "HE HAS MORE DATA"
+                                
+                                if my_channel:
+                                    print >> sys.stderr, "INCORRECT TIMEFRAME RECEIVED FOR MY CHANNEL"
+                                    
+                                    #Niels: I know this should not be done here, but we need to fix our own database
+                                    #Temp fix as Dispersy/Channelcast will change protocol
+                                    from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
+                                    channelcast = ChannelCastCore.getInstance()
+                                    channelcast.updateAChannel(bin2str(self.my_permid))
+                                
+                                else:
+                                    pass
+                            else:
+                                print >> sys.stderr, "WE HAVE SAME DATA"
+                                pass
                     else:
-                        #print >> sys.stderr, "WE HAVE SAME DATA"
+                        #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
                         pass
-                else:
-                    #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
-                    pass
+                    
             for record in allrecords:
                 records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
                 
@@ -3490,7 +3513,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return channels_with_content
     
     def getTimeframeForChannel(self, publisher_id):
-        sql = 'Select min(time_stamp), max(time_stamp), count(infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
+        sql = 'Select min(time_stamp), max(time_stamp), count(distinct infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
         return  self._db.fetchone(sql, (publisher_id,))
     
     def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None, allChannels = False):

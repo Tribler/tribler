@@ -46,8 +46,6 @@ from ctypes.util import find_library
 import os
 import sys
 
-print >> sys.stderr, "VLC.PY"
-
 # Used by EventManager in override.py
 from inspect import getargspec
 
