@@ -188,7 +188,7 @@ class Session(SessionRuntimeConfig):
                 self.sessconfig[key] = defvalue
 
         # 7. proxyservice_dir
-        if self.sessconfig['overlay'] and self.sessconfig['proxyservice_status'] == PROXYSERVICE_ON:
+        if self.sessconfig['overlay']: #NIELS: proxyservice_on/off is set at runtime, always make sure proxyservice_ and self.sessconfig['proxyservice_status'] == PROXYSERVICE_ON:
             if self.sessconfig['proxyservice_dir'] is None:
                 self.sessconfig['proxyservice_dir'] = os.path.join(get_default_dest_dir(), PROXYSERVICE_DESTDIR)
             # Jelle: under linux, default_dest_dir can be /tmp. Then proxyservice_dir can be deleted in between
