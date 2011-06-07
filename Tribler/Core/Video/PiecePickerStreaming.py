@@ -455,6 +455,8 @@ class PiecePickerStreaming(PiecePicker):
                 if not wantfunc(i): # Is there a piece in the range we want? 
                     continue
 
+                return i
+
             return None
 
         def pick_rarest_loop_over_small_range(f,t,shuffle=True):
@@ -480,6 +482,8 @@ class PiecePickerStreaming(PiecePicker):
                 #print >>sys.stderr,"W",
                 if not wantfunc(i):
                     continue
+
+                return i
 
             return None
 
@@ -516,6 +520,8 @@ class PiecePickerStreaming(PiecePicker):
                         #print >>sys.stderr,"W",
                         if not wantfunc(i):
                             continue
+
+                        return i
     
             return None
 
@@ -532,6 +538,8 @@ class PiecePickerStreaming(PiecePicker):
                     #print >>sys.stderr,"W",
                     if not wantfunc(i):
                         continue
+
+                    return i
 
             return None
 
