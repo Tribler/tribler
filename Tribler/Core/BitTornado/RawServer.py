@@ -189,7 +189,7 @@ class RawServer:
                             # # of silently hiding the problem and
                             # # continuing...
                             # raise
-                            if DEBUG:
+                            if True or DEBUG:
                                 print >> sys.stderr,"rawserver: func: any exception"
                                 print_exc()
                             if self.noisy:
