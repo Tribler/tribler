@@ -4,6 +4,7 @@ import os
 
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from __init__ import LIST_RADIUS
 
@@ -531,8 +532,11 @@ class SearchHeader(FamilyFilterHeader):
 class SearchHelpHeader(SearchHeader):
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeader.GetRightTitlePanel(self, parent)
-        
-        help = wx.StaticBitmap(parent, -1, wx.Bitmap(os.path.join(os.path.dirname(__file__), "images/help.png"),wx.BITMAP_TYPE_ANY))
+
+        #filename = os.path.join(os.path.dirname(__file__), "images", "help.png")
+        gui_utility = GUIUtility.getInstance()
+        filename = os.path.join(gui_utility.vwxGUI_path, "images", "help.png")
+        help = wx.StaticBitmap(parent, -1, wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         help.Bind(wx.EVT_LEFT_UP, self.helpClick)
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
 
