@@ -453,7 +453,7 @@ class PiecePicker:
             if piece is None:
                 # The piece picker failed to return a piece
                 if DEBUG:
-                    print >> sys.stderr,"PiecePicker: next: _next returned no pieces!",
+                    print >> sys.stderr,"PiecePicker: next: _next returned no pieces!"
                 break
 
             # We should never get here

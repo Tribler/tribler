@@ -410,8 +410,8 @@ class SingleDownload():
                                slowpieces = slowpieces, connection = self.connection)
             #et = time.time()
             #diff = et-st
-            diff=-1
             if DEBUG:
+                diff=-1
                 print >>sys.stderr,"Downloader: _request_more: next() returned",interest,"took %.5f" % (diff)                               
             if interest is None:
                 break
@@ -455,8 +455,8 @@ class SingleDownload():
                                    willrequest=False,connection=self.connection)
                 #et = time.time()
                 #diff = et-st
-                diff=-1
                 if DEBUG:                                   
+                    diff=-1
                     print >>sys.stderr,"Downloader: _request_more: next()2 returned",interest,"took %.5f" % (diff)
 
                 if interest is None:
