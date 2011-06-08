@@ -20,8 +20,13 @@ if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
 
 class SimpleDispersyTestCommunity(Community):
-    hardcoded_cid = "f68d3d6362874fb72df6df699bd5f3967e9ed69d".decode("HEX")
-    hardcoded_master_public_key = "3081a7301006072a8648ce3d020106052b81040027038192000400ea5f524615d38be3ccacdcbc23215a23646465fbf5f10c5f775e67590df400a518f64551f16b5dad595c4476c02dbcb87ea6904fddeee7fd0a13a86e376d885ebc7e2f82638d3604ccb2c7ff24da732cdf5878aacfde45ed39087379d5448dd0a5fea775ebf776ff742363155149af58a2194f8b64c8408247a01814382a847135395ead1386b1b49dc10b2e05273d".decode("HEX")
+    # Identifier used for 5.3.8 debugging
+    # hardcoded_cid = "f68d3d6362874fb72df6df699bd5f3967e9ed69d".decode("HEX")
+    # hardcoded_master_public_key = "3081a7301006072a8648ce3d020106052b81040027038192000400ea5f524615d38be3ccacdcbc23215a23646465fbf5f10c5f775e67590df400a518f64551f16b5dad595c4476c02dbcb87ea6904fddeee7fd0a13a86e376d885ebc7e2f82638d3604ccb2c7ff24da732cdf5878aacfde45ed39087379d5448dd0a5fea775ebf776ff742363155149af58a2194f8b64c8408247a01814382a847135395ead1386b1b49dc10b2e05273d".decode("HEX")
+
+    # Identifier used for 5.3.8 release
+    hardcoded_cid = "d4137315a3c47d65500e778448137240ff5df069".decode("HEX")
+    hardcoded_master_public_key = "3081a7301006072a8648ce3d020106052b81040027038192000401dd2eef5aba6f772aa68c7d0ecc5e2790afba9d73eb357ca1bb07ded6a57ea952d871c966e3a747174298cb89931c1c7b424a9ef44d02fcdb8f7ce0ae4e8799907b815145d4fb5b03f594f386b174ffdcfcf194ddbed45ae8f59f84a7e1f0beea9fe653cf8908649f502e68a7e9a31c75ba742d4a938cd07ec20773573d74c7f725b114c6967c55e43eb425ac52ccf8".decode("HEX")
 
     @classmethod
     def join_hardcoded_community(cls, my_member):
@@ -79,7 +84,7 @@ class SimpleDispersyTestCommunity(Community):
         if __debug__: dprint(self._cid.encode("HEX"))
         for message in messages:
             if not self._timeline.check(message):
-                yield DropMessage("TODO: implement delay by proof")
+                yield DropMessage(message, "TODO: implement delay by proof")
                 continue
             yield message
 
@@ -102,7 +107,7 @@ class SimpleDispersyTestCommunity(Community):
         if __debug__: dprint(self._cid.encode("HEX"))
         for message in messages:
             if not self._timeline.check(message):
-                yield DropMessage("TODO: implement delay by proof")
+                yield DropMessage(message, "TODO: implement delay by proof")
                 continue
             yield message
 

@@ -63,7 +63,7 @@ class Script(Singleton):
 
         else:
             for available in sorted(self._scripts):
-                dprint("available: ", available)
+                dprint("available: ", available, level="warning")
             raise ValueError("Unknown script '%s'" % name)
 
     def add_generator(self, call, call_generator):
