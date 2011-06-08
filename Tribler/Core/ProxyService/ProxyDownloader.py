@@ -479,28 +479,30 @@ class ProxyDownloader:
             for download in self.downloads:
                 if download.proxy_permid == proxy_permid:
                     dl_object = download
-            
-            cancel_requests = {} #key=piece number, value=proxy permid
-            for piece_index,time_of_request in dl_object.active_requests.items():
-                dl_object.bad_performance_counter += 1
-                cancel_requests[piece_index] = dl_object.proxy_permid
-                
-            # Cancel all requests that did not arrive yet
-            if cancel_requests:
-                for index in cancel_requests:
-                    try:
-                        dl_object._release_requests(index)
-                    except:
-                        pass
-                    try:
-                        del(dl_object.active_requests[index])
-                    except:
-                        pass
-                    try:
-                        del(self.allocated_pieces[index])
-                    except:
-                        pass
-            self.doe.remove_unreachable_proxy(proxy_permid)
+
+            # 08/06/11 boudewijn: this may not always find a dl_object
+            if dl_object:
+                cancel_requests = {} #key=piece number, value=proxy permid
+                for piece_index,time_of_request in dl_object.active_requests.items():
+                    dl_object.bad_performance_counter += 1
+                    cancel_requests[piece_index] = dl_object.proxy_permid
+
+                # Cancel all requests that did not arrive yet
+                if cancel_requests:
+                    for index in cancel_requests:
+                        try:
+                            dl_object._release_requests(index)
+                        except:
+                            pass
+                        try:
+                            del(dl_object.active_requests[index])
+                        except:
+                            pass
+                        try:
+                            del(self.allocated_pieces[index])
+                        except:
+                            pass
+                self.doe.remove_unreachable_proxy(proxy_permid)
             
         if proxy_permid in self.doe.asked_proxies:
             if DEBUG:

@@ -89,37 +89,53 @@ class DummySocket(object):
 
 class Statistics(object):
     def __init__(self):
-        self._fail = {}
+        self._drop = {}
+        self._delay = {}
         self._success = {}
+        self._sequence_number = 0
 
     def reset(self):
         """
         Returns, and subsequently removes, all statistics.
         """
         try:
-            return {"fail":self._fail, "success":self._success}
+            return {"drop":self._drop, "delay":self._delay, "success":self._success, "sequence_number":self._sequence_number}
 
         finally:
-            self._fail = {}
+            self._drop = {}
+            self._delay = {}
             self._success = {}
+            self._sequence_number += 1
 
-    def fail(self, reason, bytes):
+    def drop(self, key, bytes, count=1):
         """
-        Called when an incoming packet or message failed.
+        Called when an incoming packet or message failed a check and was dropped.
         """
-        assert isinstance(reason, (str, unicode))
+        assert isinstance(key, (str, unicode))
         assert isinstance(bytes, (int, long))
-        a, b = self._fail.get(reason, (0, 0))
-        self._fail[reason] = (a+1, b+bytes)
+        assert isinstance(count, (int, long))
+        a, b = self._drop.get(key, (0, 0))
+        self._drop[key] = (a+count, b+bytes)
 
-    def success(self, name, bytes):
+    def delay(self, key, bytes, count=1):
+        """
+        Called when an incoming packet or message was delayed.
+        """
+        assert isinstance(key, (str, unicode))
+        assert isinstance(bytes, (int, long))
+        assert isinstance(count, (int, long))
+        a, b = self._delay.get(key, (0, 0))
+        self._delay[key] = (a+count, b+bytes)
+
+    def success(self, key, bytes, count=1):
         """
         Called when an incoming message was accepted.
         """
-        assert isinstance(name, (str, unicode))
+        assert isinstance(key, (str, unicode))
         assert isinstance(bytes, (int, long))
-        a, b = self._success.get(name, (0, 0))
-        self._success[name] = (a+1, b+bytes)
+        assert isinstance(count, (int, long))
+        a, b = self._success.get(key, (0, 0))
+        self._success[key] = (a+count, b+bytes)
 
 class Dispersy(Singleton):
     """
@@ -568,8 +584,7 @@ class Dispersy(Singleton):
             for message in messages:
                 key = (message.authentication.member, message.distribution.global_time)
                 if key in unique:
-                    self._statistics.fail("_check_full_sync_distribution_batch:%s:duplicate message by member^global_time (1)" % message.name, len(message.packet))
-                    yield DropMessage("drop duplicate message by member^global_time (1)")
+                    yield DropMessage(message, "duplicate message by member^global_time (1)")
 
                 else:
                     unique.add(key)
@@ -577,8 +592,7 @@ class Dispersy(Singleton):
 
                     if seq >= message.distribution.sequence_number:
                         # we already have this message (drop)
-                        self._statistics.fail("_check_full_sync_distribution_batch:%s:duplicate message by sequence_number" % message.name, len(message.packet))
-                        yield DropMessage("drop duplicate message by sequence_number")
+                        yield DropMessage(message, "duplicate message by sequence_number")
 
                     elif seq + 1 == message.distribution.sequence_number:
                         # we have the previous message, check for duplicates based on community, user,
@@ -594,20 +608,17 @@ class Dispersy(Singleton):
 
                         else:
                             # we have the previous message (drop)
-                            self._statistics.fail("_check_full_sync_distribution_batch:%s:duplicate message by global_time (1)" % message.name, len(message.packet))
-                            yield DropMessage("drop duplicate message by global_time (1)")
+                            yield DropMessage(message, "duplicate message by global_time (1)")
 
                     else:
                         # we do not have the previous message (delay and request)
-                        self._statistics.fail("_check_full_sync_distribution_batch:delay", len(message.packet))
                         yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
 
         else:
             for message in messages:
                 key = (message.authentication.member, message.distribution.global_time)
                 if key in unique:
-                    self._statistics.fail("_check_full_sync_distribution_batch:%s:duplicate message by member^global_time (2)" % message.name, len(message.packet))
-                    yield DropMessage("drop duplicate message by member^global_time (2)")
+                    yield DropMessage(message, "duplicate message by member^global_time (2)")
 
                 else:
                     unique.add(key)
@@ -623,8 +634,7 @@ class Dispersy(Singleton):
 
                     else:
                         # we have the previous message (drop)
-                        self._statistics.fail("_check_full_sync_distribution_batch:%s:duplicate message by global_time (2)" % message.name, len(message.packet))
-                        yield DropMessage("drop duplicate message by global_time (2)")
+                        yield DropMessage(message, "duplicate message by global_time (2)")
 
     def _check_last_sync_distribution_batch(self, messages):
         """
@@ -676,8 +686,7 @@ class Dispersy(Singleton):
 
             key = (message.authentication.member, message.distribution.global_time)
             if key in unique:
-                self._statistics.fail("_check_last_sync_distribution_batch:%s:already processed message by member^global_time" % message.name, len(message.packet))
-                return DropMessage("drop already processed message by member^global_time")
+                return DropMessage(message, "already processed message by member^global_time")
 
             else:
                 unique.add(key)
@@ -692,8 +701,7 @@ class Dispersy(Singleton):
 
                 if message.distribution.global_time in tim:
                     # we have the previous message (drop)
-                    self._statistics.fail("_check_last_sync_distribution_batch:%s:duplicate message by member^global_time (3)" % message.name, len(message.packet))
-                    return DropMessage("drop duplicate message by member^global_time (3)")
+                    return DropMessage(message, "duplicate message by member^global_time (3)")
 
                 elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
                     # we have newer messages (drop)
@@ -711,8 +719,7 @@ class Dispersy(Singleton):
                         else:
                             self._send([message.address], [str(packet)])
 
-                    self._statistics.fail("_check_last_sync_distribution_batch:%s:old message by member^global_time" % message.name, len(message.packet))
-                    return DropMessage("drop old message by member^global_time")
+                    return DropMessage(message, "old message by member^global_time")
 
 
                 else:
@@ -732,8 +739,7 @@ class Dispersy(Singleton):
 
             key = (message.authentication.member, message.distribution.global_time)
             if key in unique:
-                self._statistics.fail("_check_last_sync_distribution_batch:%s:already processed message by member^global_time" % message.name, len(message.packet))
-                return DropMessage("drop already processed message by member^global_time")
+                return DropMessage(message, "already processed message by member^global_time")
 
             else:
                 unique.add(key)
@@ -741,8 +747,7 @@ class Dispersy(Singleton):
                 members = tuple(sorted(member.database_id for member in message.authentication.members))
                 key = members + (message.distribution.global_time,)
                 if key in unique:
-                    self._statistics.fail("_check_last_sync_distribution_batch:%s:already processed message by members^global_time" % message.name, len(message.packet))
-                    return DropMessage("drop already processed message by members^global_time")
+                    return DropMessage(message, "already processed message by members^global_time")
 
                 else:
                     unique.add(key)
@@ -755,8 +760,7 @@ class Dispersy(Singleton):
                         pass
                     else:
                         # we have the previous message (drop)
-                        self._statistics.fail("_check_last_sync_distribution_batch:%s:duplicate message by member^global_time (4)" % message.name, len(message.packet))
-                        return DropMessage("drop duplicate message by member^global_time (4)")
+                        return DropMessage(message, "duplicate message by member^global_time (4)")
 
                     if members in times:
                         tim = times[members]
@@ -781,8 +785,7 @@ class Dispersy(Singleton):
 
                     if message.distribution.global_time in tim:
                         # we have the previous message (drop)
-                        self._statistics.fail("_check_last_sync_distribution_batch:%s:duplicate message by members^global_time" % message.name, len(message.packet))
-                        return DropMessage("drop duplicate message by members^global_time")
+                        return DropMessage(message, "duplicate message by members^global_time")
 
                     elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
                         # we have newer messages (drop)
@@ -811,8 +814,7 @@ class Dispersy(Singleton):
                                 # from this batch.
                                 pass
 
-                        self._statistics.fail("_check_last_sync_distribution_batch:%s:old message by members^global_time" % message.name, len(message.packet))
-                        return DropMessage("drop old message by members^global_time")
+                        return DropMessage(message, "old message by members^global_time")
 
                     else:
                         # we accept this message
@@ -838,8 +840,7 @@ class Dispersy(Singleton):
 
             if seq >= message.distribution.sequence_number:
                 # we already have this message (drop)
-                self._statistics.fail("_check_last_sync_distribution_batch:%s:duplicate message by sequence_number" % message.name, len(message.packet))
-                return DropMessage("drop duplicate message by sequence_number")
+                return DropMessage(message, "duplicate message by sequence_number")
 
             elif seq + 1 == message.distribution.sequence_number:
                 # we have the previous message
@@ -848,7 +849,6 @@ class Dispersy(Singleton):
 
             else:
                 # we do not have the previous message (delay and request)
-                self._statistics.fail("_check_last_sync_distribution_batch:%s:delay" % message.name, len(message.packet))
                 return DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
 
         # meta message
@@ -1064,6 +1064,31 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), ("All messages need to have the same meta", messages[0].name, len(messages))
         assert not filter(lambda x: not x.community == messages[0].community, messages), ("All messages need to be from the same community", messages[0].name, len(messages))
 
+        def _filter_fail(message):
+            if isinstance(message, DelayMessage):
+                self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
+                if __debug__: dprint(message.request.address[0], ":", message.request.address[1], ": delay a ", len(message.request.packet), " byte message (", message, ")")
+                # try to extend an existing Trigger with the same pattern
+                for trigger in self._triggers:
+                    if isinstance(trigger, TriggerMessage) and trigger.extend(message.pattern, [message.delayed]):
+                        if __debug__: dprint("extended an existing TriggerMessage")
+                        break
+                else:
+                    # create a new Trigger with this pattern
+                    trigger = TriggerMessage(message.pattern, self.on_messages, [message.delayed])
+                    if __debug__: dprint("created a new TriggeMessage")
+                    self._triggers.append(trigger)
+                    self._rawserver.add_task(trigger.on_timeout, 10.0)
+                    self._send([message.delayed.address], [message.request.packet])
+                return False
+
+            elif isinstance(message, DropMessage):
+                self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
+                return False
+
+            else:
+                return True
+
         meta = messages[0].meta
 
         if __debug__:
@@ -1093,24 +1118,8 @@ class Dispersy(Singleton):
                     dprint("drop message because: ", message)
             dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check")
 
-        # delay any DelayMessage instances that were returned
-        for delay in (message for message in messages if isinstance(message, DelayMessage)):
-            if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
-            # try to extend an existing Trigger with the same pattern
-            for trigger in self._triggers:
-                if isinstance(trigger, TriggerMessage) and trigger.extend(delay.pattern, [delay.delayed]):
-                    if __debug__: dprint("extended an existing TriggerMessage (1)")
-                    break
-            else:
-                # create a new Trigger with this pattern
-                trigger = TriggerMessage(delay.pattern, self.on_messages, [delay.delayed])
-                if __debug__: dprint("created a new TriggeMessage (1)")
-                self._triggers.append(trigger)
-                self._rawserver.add_task(trigger.on_timeout, 10.0)
-                self._send([delay.delayed.address], [delay.request.packet])
-
-        # remove DropMessage and DelayMessage instances
-        messages = [message for message in messages if isinstance(message, Message.Implementation)]
+        # handle/remove DropMessage and DelayMessage instances
+        messages = [message for message in messages if _filter_fail(message)]
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
             return 0
@@ -1127,30 +1136,14 @@ class Dispersy(Singleton):
             i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
             dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check")
 
-        # delay any DelayMessage instances that were returned
-        for delay in (message for message in messages if isinstance(message, DelayMessage)):
-            if __debug__: dprint(delay.request.address[0], ":", delay.request.address[1], ": delay a ", len(delay.request.packet), " byte message (", delay, ")")
-            # try to extend an existing Trigger with the same pattern
-            for trigger in self._triggers:
-                if isinstance(trigger, TriggerMessage) and trigger.extend(delay.pattern, [delay.delayed]):
-                    if __debug__: dprint("extended an existing TriggerMessage (2)")
-                    break
-            else:
-                # create a new Trigger with this pattern
-                trigger = TriggerMessage(delay.pattern, self.on_messages, [delay.delayed])
-                if __debug__: dprint("created a new TriggeMessage (2)")
-                self._triggers.append(trigger)
-                self._rawserver.add_task(trigger.on_timeout, 10.0)
-                self._send([delay.delayed.address], [delay.request.packet])
-
-        # remove DropMessage and DelayMessage instances
-        messages = [message for message in messages if isinstance(message, Message.Implementation)]
+        # handle/remove DropMessage and DelayMessage instances
+        messages = [message for message in messages if _filter_fail(message)]
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
             return 0
 
         # store to disk and update locally
-        self._statistics.success(meta.name, sum(len(message.packet) for message in messages))
+        self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
         if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name , " messages after store and update")
 
@@ -1194,13 +1187,13 @@ class Dispersy(Singleton):
             # we may have receive this packet in this on_incoming_packets callback
             if packet in unique:
                 if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1], level="warning")
-                self._statistics.fail("_convert_packets_into_batch:duplicate in batch", len(packet))
+                self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
                 continue
 
             # is it from an external source
             if not self._is_valid_external_address(address):
                 if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", address[0], ":", address[1], level="warning")
-                self._statistics.fail("_convert_packets_into_batch:invalid source", len(packet))
+                self._statistics.drop("_convert_packets_into_batch:invalid source", len(packet))
                 continue
 
             # find associated community
@@ -1208,7 +1201,7 @@ class Dispersy(Singleton):
                 community = self.get_community(packet[2:22])
             except KeyError:
                 if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], level="warning")
-                self._statistics.fail("_convert_packets_into_batch:unknown community", len(packet))
+                self._statistics.drop("_convert_packets_into_batch:unknown community", len(packet))
                 continue
 
             # find associated conversion
@@ -1216,7 +1209,7 @@ class Dispersy(Singleton):
                 conversion = community.get_conversion(packet[:22])
             except KeyError:
                 if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown conversion) from ", address[0], ":", address[1], level="warning")
-                self._statistics.fail("_convert_packets_into_batch:unknown conversion", len(packet))
+                self._statistics.drop("_convert_packets_into_batch:unknown conversion", len(packet))
                 continue
 
             try:
@@ -1225,7 +1218,7 @@ class Dispersy(Singleton):
 
             except DropPacket, exception:
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
-                self._statistics.fail("_convert_packets_into_batch:decode_meta_message:%s" % exception, len(packet))
+                self._statistics.drop("_convert_packets_into_batch:decode_meta_message:%s" % exception, len(packet))
 
     def _convert_batch_into_messages(self, batch):
         if __debug__:
@@ -1251,11 +1244,11 @@ class Dispersy(Singleton):
 
             except DropPacket, exception:
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
-                self._statistics.fail("_convert_batch_into_messages:decode_message:%s" % exception, len(packet))
+                self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
 
             except DelayPacket, delay:
                 if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(packet), " byte packet (", delay, ")")
-                self._statistics.fail("_convert_batch_into_messages:bytes:delay:%s" % delay, len(packet))
+                self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerPacket) and trigger.extend(delay.pattern, [(address, packet)]):
@@ -1847,8 +1840,7 @@ class Dispersy(Singleton):
     def check_candidate_request(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_candidate_request:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -1953,8 +1945,7 @@ class Dispersy(Singleton):
     def check_candidate_response(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_candidate_response:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -2029,8 +2020,7 @@ class Dispersy(Singleton):
     def check_identity(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_identity:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -2167,8 +2157,7 @@ class Dispersy(Singleton):
     def check_subjective_set(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_subjective_set:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -2181,8 +2170,7 @@ class Dispersy(Singleton):
     def check_subjective_set_request(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_subjective_set_request:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -2543,7 +2531,6 @@ class Dispersy(Singleton):
     # def check_similarity_request(self, messages):
     #     for message in messages:
     #         if not message.community._timeline.check(message):
-    #             self._statistics.fail("check_similarity_request:implement delay of proof", len(message.packet))
     #             yield DropMessage("TODO: implement delay of proof")
     #             continue
 
@@ -2594,22 +2581,19 @@ class Dispersy(Singleton):
                 for is_signed, member in submsg.authentication.signed_members:
                     # Security: do NOT allow to accidentally sign with MasterMember.
                     if isinstance(member, MasterMember):
-                        self._statistics.fail("check_signature_request:you may never ask for a MasterMember signature", len(message.packet))
-                        raise DropMessage("You may never ask for a MasterMember signature")
+                        raise DropMessage(message, "You may never ask for a MasterMember signature")
 
                     # is this signature missing, and could we provide it
                     if not is_signed and isinstance(member, PrivateMember):
                         has_private_member = True
                         break
             except DropMessage, exception:
-                self._statistics.fail("check_signature_request:%s" % exception, len(message.packet))
                 yield exception
                 continue
 
             # we must be one of the members that needs to sign
             if not has_private_member:
-                self._statistics.fail("check_signature_request:nothing to sign", len(message.packet))
-                yield DropMessage("Nothing to sign")
+                yield DropMessage(message, "Nothing to sign")
                 continue
 
             # we can not timeline.check the submessage because it uses the MultiMemberAuthentication policy
@@ -2619,8 +2603,7 @@ class Dispersy(Singleton):
 
             # the community must allow this signature
             if not submsg.authentication.allow_signature_func(submsg):
-                self._statistics.fail("check_signature_request:we choose not to add our signature", len(message.packet))
-                yield DropMessage("We choose not to add our signature")
+                yield DropMessage(message, "We choose not to add our signature")
                 continue
 
             # allow message
@@ -2753,8 +2736,7 @@ class Dispersy(Singleton):
     def check_missing_sequence(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_missing_sequence:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -2880,8 +2862,7 @@ class Dispersy(Singleton):
             assert message.community == community, "this method is called in batches, i.e. community and meta message grouped together"
 
             if not community._timeline.check(message):
-                self._statistics.fail("check_sync:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
 
             # obtain all subjective sets for the sender of the dispersy-sync message
@@ -2908,7 +2889,6 @@ class Dispersy(Singleton):
                         # we need the subjective set for this particular cluster
                         if not packet_cluster in subjective_sets:
                             if __debug__: dprint("Subjective set not available (not ", packet_cluster, " in ", subjective_sets.keys(), ")")
-                            self._statistics.fail("check_sync:subjective set not available", len(message.packet))
                             yield DelayMessageBySubjectiveSet(message, packet_cluster)
                             break
 
@@ -3018,8 +2998,7 @@ class Dispersy(Singleton):
     def check_authorize(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_authorize:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -3113,8 +3092,7 @@ class Dispersy(Singleton):
     def check_revoke(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_revoke:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -3165,8 +3143,7 @@ class Dispersy(Singleton):
     def check_destroy_community(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
-                self._statistics.fail("check_destroy_community:implement delay of proof", len(message.packet))
-                yield DropMessage("TODO: implement delay of proof")
+                yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
@@ -3320,11 +3297,13 @@ class Dispersy(Singleton):
         Depending on __debug__ more or less information may be available.  Note that Release
         versions do NOT run __debug__ mode and will hence return less information.
         """
-        info = {"version":1.0, "class":"Dispersy"}
+        # when something is removed or changed, the major version number is incremented.  when
+        # somethind is added, the minor version number is incremented.
+        info = {"version":1.1, "class":"Dispersy"}
 
         if statistics:
             info["statistics"] = self._statistics.reset()
-            if __debug__: dprint(info["statistics"], pprint=1)
+            # if __debug__: dprint(info["statistics"], pprint=1)
 
         if __debug__:
             if transfers:
@@ -3362,4 +3341,5 @@ class Dispersy(Singleton):
             if database_sync:
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT name.value, COUNT(sync.id) FROM sync JOIN name ON name.id = sync.name WHERE community = ? GROUP BY sync.name", (community.database_id,)))
 
+        if __debug__: dprint(info, pprint=True)
         return info

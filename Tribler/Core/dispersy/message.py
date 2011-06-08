@@ -244,7 +244,17 @@ class DropMessage(Exception):
     Drops a message because it violates 'something'.  More specific
     reasons can be given with by raising a spectific subclass.
     """
-    pass
+    def __init__(self, dropped, msg):
+        if __debug__:
+            from message import Message
+        assert isinstance(dropped, Message.Implementation)
+        assert isinstance(msg, (str, unicode))
+        self._dropped = dropped
+        super(DropMessage, self).__init__(msg)
+
+    @property
+    def dropped(self):
+        return self._dropped
 
 class DropMessageByProof(DropMessage):
     """
@@ -255,7 +265,7 @@ class DropMessageByProof(DropMessage):
     to allow them to correct their mistake.
     """
     def __init__(self, message):
-        DropMessage.__init__(self, "Provide proof")
+        super(DropMessageByProof, self).__init__(message, "Provide proof")
         self._proof = message
 
     @property
