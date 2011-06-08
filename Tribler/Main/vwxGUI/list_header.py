@@ -547,7 +547,7 @@ class SearchHelpHeader(SearchHeader):
         html = """<p>
         <u>Search within results</u> allows you to filter a list with ease.<br>
         Typing a simple string, will allow you to filter items. <br>
-        If you type 'ab', then only items matching it will be allowed: 
+        If you type 'ab', only items matching it will be shown: 
         <ul>
             <li><b>AB</b>C</li>
             <li><b>ab</b>c</li>

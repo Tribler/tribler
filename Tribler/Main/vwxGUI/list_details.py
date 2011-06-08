@@ -284,42 +284,25 @@ class TorrentDetails(wx.Panel):
             
             vSizer.AddStretchSpacer()
             
-            gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
-            gridSizer.AddGrowableCol(0)
-            if foundSubtitles:
-                curlang.insert(0, ('','',''))
-                strlang.insert(0, '')
-                
-                self.subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
-                self.subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
-                self.subtitleChoice.SetMinSize((300, -1))
-                self.subtitleChoice.Enable(False)
-                self.subtitleChoice.items = curlang
-                
-                self.requestingSub = wx.StaticText(subtitlePanel)
-                self.requestingSub.Show(False)
-                
-                hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                hSizer.Add(self.subtitleChoice)
-                hSizer.Add(self.requestingSub, 0, wx.ALIGN_CENTER_VERTICAL)
-                self.requestingSub.sizer = hSizer
-                
-                self._add_row(subtitlePanel, gridSizer, "Which subtitle do you want to use?", hSizer)
+            curlang.insert(0, ('','',''))
+            strlang.insert(0, 'No subtitle')
             
-            self.subtitleBrowse = wx.Button(subtitlePanel, -1, "Browse")
-            self.subtitleBrowse.Enable(False)
-            self.subtitleBrowse.Bind(wx.EVT_BUTTON, self.OnSubtitleBrowse)
+            curlang.append(('','',''))
+            strlang.append('Browse for a subtitle...')
+                
+            self.subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
+            self.subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
+            self.subtitleChoice.Enable(False)
+            self.subtitleChoice.items = curlang
+              
+            self.requestingSub = wx.StaticText(subtitlePanel)
+            self.requestingSub.Show(False)
             
-            self.removeSubtitle = wx.Button(subtitlePanel, -1, "Remove Subtitle")
-            self.removeSubtitle.Enable(False)
-            self.removeSubtitle.Bind(wx.EVT_BUTTON, self.RemoveSubtitle)
+            self._add_row(subtitlePanel, vSizer, "Which subtitle do you want to use?", None, spacer = 3)
             
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            hSizer.Add(self.subtitleBrowse, 0, wx.RIGHT, 10)
-            hSizer.Add(self.removeSubtitle)
+            vSizer.Add(self.subtitleChoice, 0, wx.ALIGN_RIGHT|wx.RIGHT, 3)
+            vSizer.Add(self.requestingSub, 0, wx.ALIGN_RIGHT|wx.BOTTOM|wx.RIGHT, 3)
             
-            self._add_row(subtitlePanel, gridSizer, "Use your own subtitle", hSizer)
-            vSizer.Add(gridSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         #Create description
         if self.torrent.get('comment', 'None') != 'None' and self.torrent['comment'] != '':
@@ -673,7 +656,15 @@ class TorrentDetails(wx.Panel):
                    
     def OnSubtitle(self, event):
         selected = self.subtitleChoice.GetSelection()
-        if selected > 0 and selected != wx.NOT_FOUND:
+        nrItems =self.subtitleChoice.GetCount()
+        
+        if selected == 0 or selected == wx.NOT_FOUND:
+            self.RemoveSubtitle()
+            
+        elif selected == nrItems - 1:
+            self.OnSubtitleBrowse(event)
+            
+        else:
             if len(self.subtitleChoice.items[selected]) > 1:
                 (lang, channelid, subtitleinfo) = self.subtitleChoice.items[selected]
                 
@@ -692,8 +683,6 @@ class TorrentDetails(wx.Panel):
                 file = self._GetPath(self.subtitleChoice.items[selected][0])
                 self.uelog.addEvent(message="Subtitles: user choose a internal subtitle", type = 2)
                 self.SetSubtitle(file)
-        else:
-            self.RemoveSubtitle()
     
     def OnRetrieveSubtitle(self, subtitleinfo):
         self.SetSubtitle(subtitleinfo.getPath())

@@ -616,7 +616,7 @@ class SearchList(List):
             self.header.SetTitle('Searching for "%s"'%keywords)
     
     def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
-        if keywords:
+        if keywords and isinstance(nr, int):
             self.SetKeywords(keywords, nr)
         
         if isinstance(nr_filtered, int):
