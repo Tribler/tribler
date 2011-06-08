@@ -60,8 +60,6 @@ binary-indep: build install
 	mkdir -p debian/tribler/usr/share/tribler/
 	cp -rf `ls -1d Tribler` debian/tribler/usr/share/tribler/
 	rm -rf debian/tribler/usr/share/tribler/Tribler/Test
-	# add vlc.py in the root directory
-	cp vlc.py debian/tribler/usr/share/tribler/vlc.py
 	# add other files
 	mkdir -p debian/tribler/usr/bin
 	cp -f debian/tribler.sh debian/tribler/usr/bin/tribler
