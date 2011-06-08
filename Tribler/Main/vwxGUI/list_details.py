@@ -300,7 +300,7 @@ class TorrentDetails(wx.Panel):
             
             self._add_row(subtitlePanel, vSizer, "Which subtitle do you want to use?", None, spacer = 3)
             
-            vSizer.Add(self.subtitleChoice, 0, wx.ALIGN_RIGHT|wx.RIGHT, 3)
+            vSizer.Add(self.subtitleChoice, 0, wx.ALIGN_RIGHT|wx.BOTTOM|wx.RIGHT, 3)
             vSizer.Add(self.requestingSub, 0, wx.ALIGN_RIGHT|wx.BOTTOM|wx.RIGHT, 3)
             
         
