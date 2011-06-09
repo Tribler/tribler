@@ -38,8 +38,19 @@ will be implicitly created.  The latter can be obtained using the
 C{get_instance} method of L{MediaPlayer} and L{MediaListPlayer}.
 """
 
-#import sys
-#sys.path.append("C:\\Program Files\\Tribler\\vlc")
+# 09/06/11 Boudewijn: a quick and dirty solution to find the Tribler installed libvlc.dll on Windows
+def win32_find_tribler_vlc_dll_paths():
+    """
+    We go up the directory tree until we find a vlc directory, this directory is the first option to
+    look for libvlc.dll
+    """
+    path = os.path
+    directory = path.basename(__file__)
+    while directory:
+        if path.isdir(path.join(directory, "vlc")):
+            return (path.join(directory, "vlc"),)
+        directory, _ = path.split(directory)
+    return ()
 
 import ctypes
 from ctypes.util import find_library
@@ -84,7 +95,8 @@ elif sys.platform.startswith('win'):
             pass
         if plugin_path is None:
              # try some standard locations.
-            for p in ('Program Files\\VideoLan\\', 'VideoLan\\',
+            for p in win32_find_tribler_vlc_dll_paths() + \
+                    ('Program Files\\VideoLan\\', 'VideoLan\\',
                       'Program Files\\',           ''):
                 p = 'C:\\' + p + 'VLC\\libvlc.dll'
                 if os.path.exists(p):
