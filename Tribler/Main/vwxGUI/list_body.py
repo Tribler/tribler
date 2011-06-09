@@ -445,10 +445,9 @@ class AbstractListBody():
             self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
     
     def FilterItems(self, keyword, column = 0):
-        if currentThread().getName() != "MainThread":
-            if DEBUG:
-                print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
-                print_stack()
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"ListBody: FilterItems thread",currentThread().getName(),"is NOT MainThread"
+            print_stack()
         
         new_filter = keyword.lower().strip()
         if new_filter != self.filter or column != self.filtercolumn:
@@ -664,11 +663,10 @@ class AbstractListBody():
     def __SetData(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
-            
-        if currentThread().getName() != "MainThread":
-            if DEBUG:
-                print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
-                print_stack()
+        
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
+            print_stack()
         
         self.Freeze()
         

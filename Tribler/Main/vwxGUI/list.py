@@ -561,21 +561,14 @@ class List(wx.Panel):
         self.list.Layout()
         
     def __check_thread(self):
-        if currentThread().getName() != "MainThread":
-            if DEBUG:
-                print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
-                print_stack()
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+            print_stack()
     
     def Layout(self):
         self.__check_thread()
         return wx.Panel.Layout(self)
         
-    def __check_thread(self):
-        if currentThread().getName() != "MainThread":
-            if DEBUG:
-                print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
-                print_stack()
-    
 class SearchList(List):
     def __init__(self):
         self.guiutility = GUIUtility.getInstance()

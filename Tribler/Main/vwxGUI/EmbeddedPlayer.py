@@ -39,6 +39,9 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def __init__(self, parent, utility, vlcwrap, bg, border = True):
         wx.Panel.__init__(self, parent, -1)
+        
+        self.__check_thread()
+        
         self.utility = utility
         self.parent = parent
         self.border = border
@@ -169,7 +172,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if event.LeftDown():
             if self.mute.isToggled(): # unmute
                 self.mute.setToggled(False)
-            if event.GetEventObject().GetImageNameitem() == 'vol1':
+            if event.GetEventObject().GetImageName() == 'vol1':
                 self.volume = 0.16
             if event.GetEventObject().GetImageName() == 'vol2':
                 self.volume = 0.32
@@ -206,6 +209,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.volume = self.oldvolume
         else:
             self.volume = 0
+            
         self.updateVol(self.volume) 
         self.SetVolume(self.volume)
         self.mute.setToggled(not self.mute.isToggled())
@@ -219,6 +223,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.vol6.setSelected(volume >= 1.00)
 
     def Load(self,url,streaminfo = None):
+        self.__check_thread()
+        
         if DEBUG:
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
 
@@ -260,6 +266,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.playtimer = DelayTimer(self)
 
     def Play(self, evt=None):
+        self.__check_thread()
+        
         if DEBUG:
             print >>sys.stderr,"embedplay: Play pressed"
         
@@ -274,6 +282,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwrap.start()
 
     def Pause(self, evt=None):
+        self.__check_thread()
+        
         """ Toggle between playing and pausing of current item """
         if DEBUG:
             print >>sys.stderr,"embedplay: Pause pressed"
@@ -285,6 +295,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwrap.pause()
 
     def PlayPause(self, evt=None):
+        self.__check_thread()
+        
         """ Toggle between playing and pausing of current item """
         if DEBUG:
             print >>sys.stderr,"embedplay: PlayPause pressed"
@@ -302,6 +314,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                     self.vlcwrap.resume()
 
     def Seek(self, evt=None):
+        self.__check_thread()
+        
         if DEBUG:
             print >>sys.stderr,"embedplay: Seek"
         
@@ -368,6 +382,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwrap.resume()
     
     def _ToggleFullScreen(self):
+        self.__check_thread()
+        
         if isinstance(self.parent, wx.Frame): #are we shown in popup frame
             if self.ctrlsizer.IsShown(0):
                 self.parent.ShowFullScreen(True)
@@ -445,6 +461,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwrap.sound_set_volume(volume)  ## float(self.volume.GetValue()) / 100
 
     def Stop(self):
+        self.__check_thread()
+        
         if DEBUG:
             print >> sys.stderr, "embedplay: Stop"
         self.OnMinimize()
@@ -532,6 +550,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.fsbtn.Disable()
 
     def UpdateSlider(self, evt):
+        self.__check_thread()
+        
         ##if not self.volumeicon.isToggled():
         ##    self.volume.SetValue(int(self.vlcwrap.sound_get_volume() * 100))
 
@@ -590,6 +610,11 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.player_img.Show(False)
 
             self.utility.guiUtility.frame.Layout()
+            
+    def __check_thread(self):
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+            print_stack()
 
 class VLCLogoWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video

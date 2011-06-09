@@ -168,7 +168,7 @@ class tribler_topButton(wx.Panel):
             
             #if both width and height were smaller
             if rect[0] + rect[2] > bitmapSize[0] and rect[1] + rect[3] > bitmapSize[1]:
-                 rects.append(((bitmapSize[0]-rect[0],bitmapSize[1] - rect[1]),[0,0,rect[0],rect[1]]))
+                rects.append(((bitmapSize[0]-rect[0],bitmapSize[1] - rect[1]),[0,0,rect[0],rect[1]]))
             
             bmp = wx.EmptyBitmap(rect[2], rect[3]) 
             dc = wx.MemoryDC(bmp)
@@ -244,7 +244,10 @@ class SwitchButton(tribler_topButton):
             i+=1
         
     def setToggled(self, b):
-        self.state = self.state | tribler_topButton.TOGGLED
+        if b:
+            self.state = self.state | tribler_topButton.TOGGLED
+        else:
+            self.state = self.state ^ tribler_topButton.TOGGLED
         self.Refresh()
         
     def isToggled(self):
