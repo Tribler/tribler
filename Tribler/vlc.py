@@ -66,29 +66,30 @@ if sys.platform.startswith('linux'):
 elif sys.platform.startswith('win'):
     p = find_library('libvlc.dll')
     if p is None:
-        try:  # some registry settings
-            import _winreg as w  # leaner than win32api, win32con
-            for r in w.HKEY_LOCAL_MACHINE, w.HKEY_CURRENT_USER:
-                try:
-                    r = w.OpenKey(r, 'Software\\VideoLAN\\VLC')
-                    plugin_path, _ = w.QueryValueEx(r, 'InstallDir')
-                    w.CloseKey(r)
-                    break
-                except w.error:
-                    pass
-            del r, w
-        except ImportError:  # no PyWin32
-            pass
+        # Tribler installs VLC in the cwd
+        if os.path.exists('VLC\\libvlc.dll'):
+            plugin_path = 'VLC'
+        if plugin_path is None:
+            try:  # some registry settings
+                import _winreg as w  # leaner than win32api, win32con
+                for r in w.HKEY_LOCAL_MACHINE, w.HKEY_CURRENT_USER:
+                    try:
+                        r = w.OpenKey(r, 'Software\\VideoLAN\\VLC')
+                        plugin_path, _ = w.QueryValueEx(r, 'InstallDir')
+                        w.CloseKey(r)
+                        break
+                    except w.error:
+                        pass
+                del r, w
+            except ImportError:  # no PyWin32
+                pass
         if plugin_path is None:
              # try some standard locations.
-# 09/06/11 Boudewijn: a quick and dirty solution to find the Tribler installed libvlc.dll on Windows
-            for p in ('C:\\Program Files\\VideoLan\\VLC',
-                      'C:\\VideoLan\\VLC',
-                      'C:\\Program Files\\VLC',
-                      'C:\\VLC',
-                      'VLC'):
-                if os.path.exists(p + '\\libvlc.dll'):
-                    plugin_path = p
+            for p in ('Program Files\\VideoLan\\', 'VideoLan\\',
+                      'Program Files\\',           ''):
+                p = 'C:\\' + p + 'VLC\\libvlc.dll'
+                if os.path.exists(p):
+                    plugin_path = os.path.dirname(p)
                     break
         if plugin_path is not None:  # try loading
             p = os.getcwd()
