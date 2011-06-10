@@ -138,13 +138,14 @@ class ABCApp(wx.App):
                     ubuntu = True
                     
             print >>sys.stderr,"tribler: Activating workaround for Ubuntu?",ubuntu
-                    
+            
             if not redirectstderrout and ubuntu:
                 # On Ubuntu 8.10 not redirecting output causes the program to quit
                 wx.App.__init__(self, redirect=True)
             else:
                 wx.App.__init__(self, redirectstderrout)
-        except:
+            
+        except Exception as e:
             # boudewijn: wx messes around with streams
             import sys
             sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
@@ -155,6 +156,11 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         try:
+            bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
+            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
+            wx.Yield()
+            
+            
             import sys
             sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
 
@@ -168,16 +174,13 @@ class ABCApp(wx.App):
             """
             #self.Bind(wx.EVT_IDLE, self.OnIdle)
             
+            
         
             # Set locale to determine localisation
             #locale.setlocale(locale.LC_ALL, '')
 
             sys.stderr.write('Client Starting Up.\n')
             sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
-
-            bm = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
-            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
-            wx.Yield()
             
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()    
@@ -976,9 +979,9 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         if npeers == 0 and logmsg is not None:
             msg = logmsg
         elif npeers == 1:
-            msg = "Prebuffering "+pstr+"% done (connected to 1 person). " + intime
+            msg = "Prebuffering "+pstr+"% done (connected to 1 peer). " + intime
         else:
-            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people). " + intime
+            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" peers). " + intime
             
         try:
             d = ds.get_download()
@@ -1003,12 +1006,6 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     else:
         msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
     """
-    if playable:
-        if videoplayer_mediastate == MEDIASTATE_PAUSED and not ds.get_status() == DLSTATUS_SEEDING:
-            msg = "Buffering... " + msg
-        else:
-            msg = ""
-
     return [topmsg,msg,said_start_playback,decodeprogress]
         
         

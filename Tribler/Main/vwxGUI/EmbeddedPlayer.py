@@ -30,7 +30,6 @@ from list_footer import ListFooter
 
 DEBUG = False
 
-
 class EmbeddedPlayerPanel(wx.Panel):
     """
     The Embedded Player consists of a VLCLogoWindow and the media controls such 
@@ -252,7 +251,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.timer is None:
                 self.timer = wx.Timer(self)
                 self.Bind(wx.EVT_TIMER, self.UpdateSlider)
-            self.timer.Start(200)
+            self.timer.Start(500)
         self.enableFullScreen()
         self.enablePlay()
         self.enableScroll()
@@ -275,11 +274,13 @@ class EmbeddedPlayerPanel(wx.Panel):
         
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            self.vlcwin.stop_animation()
-
             if self.GetState() != MEDIASTATE_PLAYING:
+                self.vlcwin.stop_animation()
+
                 self.ppbtn.setToggled(False)
                 self.vlcwrap.start()
+            elif DEBUG:
+                print >>sys.stderr,"embedplay: Play pressed, already playing"
 
     def Pause(self, evt=None):
         self.__check_thread()
@@ -293,6 +294,21 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.GetState() == MEDIASTATE_PLAYING:
                 self.ppbtn.setToggled(True)
                 self.vlcwrap.pause()
+            elif DEBUG:
+                print >>sys.stderr,"embedplay: Pause pressed, not playing"
+                
+            
+    def Resume(self, evt=None):
+        self.__check_thread()
+        
+        if DEBUG:
+            print >>sys.stderr,"embedplay: Resume pressed"
+        
+        if self.vlcwrap:
+            if self.GetState() != MEDIASTATE_PLAYING:
+                self.vlcwin.stop_animation()
+                self.ppbtn.setToggled(False)
+                self.vlcwrap.resume()
 
     def PlayPause(self, evt=None):
         self.__check_thread()
@@ -303,15 +319,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            if self.GetState() == MEDIASTATE_PLAYING:
-                self.ppbtn.setToggled(True)
-                self.vlcwrap.pause()
-
-            else:
-                if self.play_enabled:
-                    self.vlcwin.stop_animation()
-                    self.ppbtn.setToggled(False)
-                    self.vlcwrap.resume()
+            self.vlcwrap.resume()
+            self.ppbtn.setToggled(not self.ppbtn.isToggled())
 
     def Seek(self, evt=None):
         self.__check_thread()
@@ -486,16 +495,11 @@ class EmbeddedPlayerPanel(wx.Panel):
             
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            status = self.vlcwrap.get_stream_information_status()
-
+            status = self.vlcwrap.get_our_state()
             if DEBUG:
                 print >>sys.stderr,"embedplay: GetState",status
-
-            import Tribler.vlc as vlc
-            if status == vlc.State.Playing:
-                return MEDIASTATE_PLAYING
-            elif status == vlc.State.Paused:
-                return MEDIASTATE_PAUSED
+                
+            return status
         
         # catchall
         return MEDIASTATE_STOPPED
@@ -513,11 +517,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.UpdateProgressSlider(pieces_complete)
     
     def SetPlayerStatus(self,s):
-        if sys.platform == 'win32':
-            msg = "\n".join(wrap(s,64))
-        else:
-            msg = "\n".join(wrap(s,48))
-        self.SetLoadingText(msg)
+        self.SetLoadingText(s)
 
     def SetContentName(self,s):
         self.vlcwin.set_content_name(s)
@@ -528,8 +528,11 @@ class EmbeddedPlayerPanel(wx.Panel):
     def SetLoadingText(self,text):
         if text == None:
             text = ''
+            
         if text != self.statuslabel.GetLabel():
             self.statuslabel.SetLabel(text)
+            self.statuslabel.Refresh()
+            self.Layout()
 
     #
     # Internal methods

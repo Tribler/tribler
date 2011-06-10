@@ -237,11 +237,16 @@ class GUIUtility:
             if sf is None:
                 return
             
-            input = sf.GetValue().strip()
+            input = sf.GetValue()
+        
+        if input:
+            input = input.strip()
             if input == '':
                 return
         else:
-            self.frame.top_bg.searchField.SetValue(input)
+            return
+        
+        self.frame.top_bg.searchField.SetValue(input)
             
         if input.startswith("http://"):
             if self.frame.startDownloadFromUrl(str(input)):

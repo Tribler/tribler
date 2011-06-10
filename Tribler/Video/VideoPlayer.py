@@ -584,11 +584,11 @@ class VideoPlayer:
                 
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None: 
-                self.videoframe.get_videopanel().PlayPause()
+                self.videoframe.get_videopanel().Pause()
             self.set_player_status("Buffering...")
         elif event == VODEVENT_RESUME:
             if self.videoframe is not None:
-                self.videoframe.get_videopanel().PlayPause()
+                self.videoframe.get_videopanel().Resume()
             self.set_player_status("")
 
     def ask_user_to_select_video(self,videofiles):

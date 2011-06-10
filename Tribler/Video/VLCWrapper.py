@@ -313,7 +313,7 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: stop"
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
-            self.vlc.libvlc_media_player_stop(self.player);
+            self.vlc.libvlc_media_player_stop(self.player)
         else:
             self.media.stop()
 
@@ -325,7 +325,7 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: pause"
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
-            self.vlc.libvlc_media_player_pause(self.player);
+            self.vlc.libvlc_media_player_set_pause(self.player, 1)
         else:
             self.media.pause()
 
@@ -337,7 +337,7 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: resume"
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
-            self.vlc.libvlc_media_player_pause(self.player);
+            self.vlc.libvlc_media_player_pause(self.player)
         else:
             self.media.resume()
 
