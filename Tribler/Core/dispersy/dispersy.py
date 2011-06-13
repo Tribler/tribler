@@ -1001,8 +1001,8 @@ class Dispersy(Singleton):
             dprint("[", clock() - debug_begin, " pct] ", sum(len(batch) for batch in batches.itervalues()), " incoming packets after candidate table update")
             debug_handled = {}
 
-        # process the packets in priority order
-        for meta, batch in sorted(batches.iteritems(), cmp=lambda x, y: x[0].priority - y[0].priority):
+        # process the packets in priority order, high values first
+        for meta, batch in sorted(batches.iteritems(), cmp=lambda x, y: x[0].priority - y[0].priority, reverse=True):
             # convert binary packets into Message.Implementation instances
             messages = list(self._convert_batch_into_messages(batch))
             assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)

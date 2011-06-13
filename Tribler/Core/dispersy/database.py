@@ -9,6 +9,7 @@ This module provides basic database functionalty and simple version control.
 @contact: dispersy@frayja.com
 """
 
+import atexit
 import thread
 import hashlib
 import sqlite3
@@ -35,27 +36,8 @@ class Database(Singleton):
         self._connection = sqlite3.Connection(file_path, isolation_level=None)
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
-
-# some pragma commands are not available on old sqlite versions...
-#         # database configuration (pragma)
-#         if __debug__:
-#             cache_size, = self._cursor.execute(u"PRAGMA cache_size").next()
-#             page_size, = self._cursor.execute(u"PRAGMA page_size").next()
-#             page_count, = self._cursor.execute(u"PRAGMA page_count").next()
-#             dprint("page_size: ", page_size, " (for currently ", page_count * page_size, " bytes in database)")
-#             dprint("cache_size: ", cache_size, " (for maximal ", cache_size * page_size, " bytes in memory)")
-
-        synchronous, = self._cursor.execute(u"PRAGMA synchronous").next()
-        if __debug__: dprint("synchronous: ", synchronous, " (", {0:"OFF", 1:"NORMAL", 2:"FULL"}[synchronous])
-        if not synchronous == 0:
-            if __debug__: dprint("synchronous: ", synchronous, " (", {0:"OFF", 1:"NORMAL", 2:"FULL"}[synchronous], ") --> 0 (OFF)")
-            self._cursor.execute(u"PRAGMA synchronous = 0")
-
-        temp_store, = self._cursor.execute(u"PRAGMA temp_store").next()
-        if __debug__: dprint("temp_store: ", temp_store, " (", {0:"DEFAULT", 1:"FILE", 2:"MEMORY"}[temp_store])
-        if not temp_store == 3:
-            if __debug__: dprint("temp_store: ", temp_store, " (", {0:"DEFAULT", 1:"FILE", 2:"MEMORY"}[temp_store], ") --> 3 (MEMORY)")
-            self._cursor.execute(u"PRAGMA temp_store = 3")
+        self._transaction = ""
+        atexit.register(self.close)
 
         # check is the database contains an 'option' table
         try:
@@ -78,11 +60,7 @@ class Database(Singleton):
 
     def __enter__(self):
         """
-        Start a database transaction block.
-
-        Each insert or update query requires a transaction block.  The sqlite3 module that we use
-        will create transaction blocks automatically.  However, a transaction block needs to be
-        committed.
+        Enter a database transaction block.
 
         Using the __enter__ and __exit__ methods we can group multiple insert and update queries
         together, causing only one transaction block to be used, hence increasing database
@@ -95,26 +73,38 @@ class Database(Singleton):
 
         @return: The method self.execute
         """
-        # _connection.__enter__() introduced in Python 2.6
-        # self._connection.__enter__()
+        if self._transaction == "implicit":
+            self._cursor.execute(u"COMMIT")
+        elif self._transaction == "explicit":
+            raise RuntimeException("Nested 'with' statement")
+        self._transaction = "explicit"
         self._cursor.execute(u"BEGIN")
         return self.execute
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
-        End a database transaction block.
+        Exit a database transaction block.
 
-        @see: _enter__
+        Using the __enter__ and __exit__ methods we can group multiple insert and update queries
+        together, causing only one transaction block to be used, hence increasing database
+        performance.  When __exit__ is called the transaction block is commited.
         """
-        # _connection.__exit__() introduced in Python 2.6
-        # return self._connection.__exit__(exc_type, exc_value, traceback)
+        assert self._transaction == "explicit"
         if exc_type is None:
             self._cursor.execute(u"COMMIT")
+            self._transaction = ""
             return True
         else:
             if __debug__: dprint("rollback", level="error")
             self._cursor.execute(u"ROLLBACK")
             return False
+
+    def close(self):
+        self._connection.commit()
+        self._connection.close()
+        if __debug__:
+            self._cursor = None
+            self._connection = None
 
     @property
     def last_insert_rowid(self):
@@ -136,12 +126,12 @@ class Database(Singleton):
         return self._cursor.rowcount
         # return self._connection.changes()
 
-    def execute(self, statements, bindings=()):
+    def execute(self, statement, bindings=()):
         """
-        Execute one of more SQL statements.
+        Execute one SQL statement.
 
-        All SQL queries must be presented in unicode format.  This is to ensure that no unicode
-        exeptions occur when the bindings are merged into the statements.
+        A SQL query must be presented in unicode format.  This is to ensure that no unicode
+        exeptions occur when the bindings are merged into the statement.
 
         Furthermore, the bindings may not contain any strings either.  For a 'string' the unicode
         type must be used.  For a binary string the buffer(...) type must be used.
@@ -151,28 +141,34 @@ class Database(Singleton):
         sqlite and all proper escaping is done, making this the preferred way of adding variables to
         the SQL query.
 
-        @param statements: the SQL statements that are to be executed.
-        @type statements: unicode
+        @param statement: the SQL statement that is to be executed.
+        @type statement: unicode
 
-        @param bindings: the values that must be set to the placeholders in statements.
+        @param bindings: the values that must be set to the placeholders in statement.
         @type bindings: tuple
 
         @returns: unknown
         @raise sqlite.Error: unknown
         """
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
-        assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
+        assert isinstance(statement, unicode), "The SQL statement must be given in unicode"
         assert isinstance(bindings, (tuple, list, dict)), "The bindings must be a tuple, list, or dictionary"
         assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
-        if __debug__: dprint(statements, " <-- ", bindings)
+        if __debug__: dprint(statement, " <-- ", bindings)
+
+        if self._transaction == "" and not statement.upper().startswith("SELECT"):
+            assert any(statement.upper().startswith(x) for x in ["INSERT", "UPDATE", "DELETE", "REPLACE"])
+            self._transaction = "implicit"
+            self._cursor.execute(u"BEGIN")
+
         try:
-            return self._cursor.execute(statements, bindings)
+            return self._cursor.execute(statement, bindings)
 
         except sqlite3.Error, exception:
             if __debug__:
                 dprint(exception=True, level="warning")
                 dprint("Filename: ", self._debug_file_path, level="warning")
-                dprint(statements, level="warning")
+                dprint(statement, level="warning")
                 dprint(bindings, level="warning")
             raise
 
@@ -180,6 +176,12 @@ class Database(Singleton):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
         if __debug__: dprint(statements)
+
+        if self._transaction == "" and not statement.upper().startswith("SELECT"):
+            assert any(statement.upper().startswith(x) for x in ["INSERT", "UPDATE", "DELETE", "REPLACE"])
+            self._transaction = "implicit"
+            self._cursor.execute(u"BEGIN")
+
         try:
             return self._cursor.executescript(statements)
 
@@ -190,12 +192,12 @@ class Database(Singleton):
                 dprint(statements, level="warning")
             raise
 
-    def executemany(self, statements, sequenceofbindings):
+    def executemany(self, statement, sequenceofbindings):
         """
-        Execute one of more SQL statements several times.
+        Execute one SQL statement several times.
 
         All SQL queries must be presented in unicode format.  This is to ensure that no unicode
-        exeptions occur when the bindings are merged into the statements.
+        exeptions occur when the bindings are merged into the statement.
 
         Furthermore, the bindings may not contain any strings either.  For a 'string' the unicode
         type must be used.  For a binary string the buffer(...) type must be used.
@@ -205,10 +207,10 @@ class Database(Singleton):
         sqlite and all proper escaping is done, making this the preferred way of adding variables to
         the SQL query.
 
-        @param statements: the SQL statements that are to be executed.
-        @type statements: unicode
+        @param statement: the SQL statement that is to be executed.
+        @type statement: unicode
 
-        @param bindings: a sequence of values that must be set to the placeholders in statements.
+        @param bindings: a sequence of values that must be set to the placeholders in statement.
          Each element in sequence is another tuple containing bindings.
         @type bindings: list containing tuples
 
@@ -216,19 +218,25 @@ class Database(Singleton):
         @raise sqlite.Error: unknown
         """
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
-        assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
+        assert isinstance(statement, unicode), "The SQL statement must be given in unicode"
         assert isinstance(sequenceofbindings, (tuple, list)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
         assert not filter(lambda x: not isinstance(x, (tuple, list)), sequenceofbindings), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
         assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), sequenceofbindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
-        if __debug__: dprint(statements)
+        if __debug__: dprint(statement)
+
+        if self._transaction == "" and not statement.upper().startswith("SELECT"):
+            assert any(statement.upper().startswith(x) for x in ["INSERT", "UPDATE", "DELETE", "REPLACE"])
+            self._transaction = "implicit"
+            self._cursor.execute(u"BEGIN")
+
         try:
-            return self._cursor.executemany(statements, sequenceofbindings)
+            return self._cursor.executemany(statement, sequenceofbindings)
 
         except sqlite3.Error, exception:
             if __debug__:
                 dprint(exception=True)
                 dprint("Filename: ", self._debug_file_path)
-                dprint(statements)
+                dprint(statement)
             raise
 
     def commit(self):
@@ -264,10 +272,20 @@ if __debug__:
 
         db = TestDatabase.get_instance(u"test.db")
         db.execute(u"CREATE TABLE pair (key INTEGER, value TEXT)")
-        db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (1, u"foo"))
-        db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (2, u"bar"))
-        db.commit()
+        with db as execute:
+            for i in xrange(10000):
+                execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
+        # db.commit()
+
+        for i in xrange(10000):
+            execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
+
+        # db.execute(u"BEGIN")
+        # db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
+        # db.execute(u"COMMIT")
 
         with db as execute:
             execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
             execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (4, u"milk"))
+
+        db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (2, u"burp"))
