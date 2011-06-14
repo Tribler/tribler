@@ -3299,7 +3299,12 @@ class Dispersy(Singleton):
         """
         # when something is removed or changed, the major version number is incremented.  when
         # somethind is added, the minor version number is incremented.
-        info = {"version":1.1, "class":"Dispersy"}
+
+        # 1.1: added info["statistics"]
+        # 1.2: bugfix in Community.free_sync_range, should free more ranges; changed
+        #      dispersy_candidate_request_member_count to 3 down from 10
+
+        info = {"version":1.2, "class":"Dispersy"}
 
         if statistics:
             info["statistics"] = self._statistics.reset()

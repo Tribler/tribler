@@ -37,7 +37,7 @@ class Database(Singleton):
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
         self._transaction = ""
-        atexit.register(self.close)
+        atexit.register(self.unsafe_commit)
 
         # check is the database contains an 'option' table
         try:
@@ -76,7 +76,7 @@ class Database(Singleton):
         if self._transaction == "implicit":
             self._cursor.execute(u"COMMIT")
         elif self._transaction == "explicit":
-            raise RuntimeException("Nested 'with' statement")
+            raise RuntimeError("Nested 'with' statement")
         self._transaction = "explicit"
         self._cursor.execute(u"BEGIN")
         return self.execute
@@ -99,12 +99,13 @@ class Database(Singleton):
             self._cursor.execute(u"ROLLBACK")
             return False
 
-    def close(self):
-        self._connection.commit()
-        self._connection.close()
-        if __debug__:
-            self._cursor = None
-            self._connection = None
+    def unsafe_commit(self):
+        """
+        Automatically called using the atexit module.
+        """
+        if self._transaction == "implicit":
+            cursor = self._connection.cursor()
+            cursor.execute(u"COMMIT")
 
     @property
     def last_insert_rowid(self):
@@ -156,8 +157,7 @@ class Database(Singleton):
         assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
         if __debug__: dprint(statement, " <-- ", bindings)
 
-        if self._transaction == "" and not statement.upper().startswith("SELECT"):
-            assert any(statement.upper().startswith(x) for x in ["INSERT", "UPDATE", "DELETE", "REPLACE"])
+        if self._transaction == "":
             self._transaction = "implicit"
             self._cursor.execute(u"BEGIN")
 
@@ -177,8 +177,9 @@ class Database(Singleton):
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
         if __debug__: dprint(statements)
 
-        if self._transaction == "" and not statement.upper().startswith("SELECT"):
-            assert any(statement.upper().startswith(x) for x in ["INSERT", "UPDATE", "DELETE", "REPLACE"])
+        if self._transaction == "":
+            # we assume that the entire script needs to be in an implicit transaction (i.e. contains
+            # INSERT, UPDATE, etc. statements)
             self._transaction = "implicit"
             self._cursor.execute(u"BEGIN")
 
@@ -224,8 +225,7 @@ class Database(Singleton):
         assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), sequenceofbindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
         if __debug__: dprint(statement)
 
-        if self._transaction == "" and not statement.upper().startswith("SELECT"):
-            assert any(statement.upper().startswith(x) for x in ["INSERT", "UPDATE", "DELETE", "REPLACE"])
+        if self._transaction == "":
             self._transaction = "implicit"
             self._cursor.execute(u"BEGIN")
 
@@ -264,7 +264,7 @@ class Database(Singleton):
         """
         raise NotImplementedError()
 
-if __debug__:
+if 1 or __debug__:
     if __name__ == "__main__":
         class TestDatabase(Database):
             def check_database(self, database_version):
@@ -284,8 +284,19 @@ if __debug__:
         # db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
         # db.execute(u"COMMIT")
 
+        for i in xrange(10):
+            with db:
+                for row in db.execute(u"SELECT * FROM pair"):
+                    pass
+
         with db as execute:
             execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
             execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (4, u"milk"))
 
+        for row in db.execute(u"SELECT * FROM pair"):
+            pass
+
         db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (2, u"burp"))
+
+        for row in db.execute(u"SELECT * FROM pair"):
+            pass

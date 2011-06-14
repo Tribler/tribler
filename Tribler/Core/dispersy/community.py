@@ -469,7 +469,7 @@ class Community(object):
         The number of members that a dispersy-candidate-request message is sent to each interval.
         @rtype: int
         """
-        return 10
+        return 3
 
     @property
     def dispersy_candidate_request_destination_diff_range(self):
@@ -758,7 +758,7 @@ class Community(object):
 
         # merge neighboring ranges
         if len(self._sync_ranges) > 1:
-            for low_index in xrange(len(self._sync_ranges)-1, 1, -1):
+            for low_index in xrange(len(self._sync_ranges)-1, 0, -1):
 
                 start = self._sync_ranges[low_index]
                 end_index = -1
@@ -766,7 +766,7 @@ class Community(object):
                 if used == start.capacity:
                     continue
 
-                for index in xrange(low_index-1, 1, -1):
+                for index in xrange(low_index-1, -1, -1):
                     current = self._sync_ranges[index]
                     current_used = current.capacity - current.space_remaining - current.space_freed
                     if current_used == current.capacity:
@@ -785,7 +785,7 @@ class Community(object):
                                                                                                                       (self._database_id, self._sync_ranges[low_index].time_low, time_high))))
                     del self._sync_ranges[end_index:low_index]
 
-                    # break.  the loop over low_index may be invalid now
+                    # break.  because the loop over low_index may be invalid now
                     break
 
     def update_sync_range(self, messages):
