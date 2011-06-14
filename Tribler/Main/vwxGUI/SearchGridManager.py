@@ -389,29 +389,31 @@ class TorrentManager:
         
         # TODO: do all filtering in DB query
         def torrentFilter(torrent):
-            library = (mode == 'libraryMode')
-            okLibrary = not library or (torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != "")
+            #allow all files in library mode
+            if mode == 'libraryMode':
+                return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
             
+            #show dead torrents in library
             okCategory = False
-            categories = torrent.get("category", [])
-            if not categories:
-                categories = ["other"]
-            if categorykey == 'all':
-                for torcat in categories:
-                    if torcat.lower() in enabledcatslow:
-                        okCategory = True
-                        break
-            elif categorykey in [cat.lower() for cat in categories]:
-                okCategory = True
+            if not okCategory:
+                categories = torrent.get("category", [])
+                if not categories:
+                    categories = ["other"]
+                if categorykey == 'all':
+                    for torcat in categories:
+                        if torcat.lower() in enabledcatslow:
+                            okCategory = True
+                            break
+                elif categorykey in [cat.lower() for cat in categories]:
+                    okCategory = True
             
             if not okCategory:
                 self.filteredResults += 1
             
-            #show dead torrents in library
-            okGood = library or torrent['status'] != 'dead'
+            okGood = torrent['status'] != 'dead'
                         
             #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
-            return okLibrary and okCategory and okGood
+            return okCategory and okGood
         
         # 1. Local search puts hits in self.hits
         if DEBUG:
