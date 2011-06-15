@@ -54,6 +54,10 @@ bless --folder dist/temp/mnt --openfolder dist/temp/mnt
 # hack: wait for completion
 sleep 1
 
+# Arno, 2011-05-15: Snow Leopard gives diff behaviour, so set initial 1000 bounds to normal size
+# and added close/open after set position, following
+# http://stackoverflow.com/questions/96882/how-do-i-create-a-nice-looking-dmg-for-mac-os-x-using-command-line-tools
+
 # position items
 # oddly enough, 'set f .. as alias' can fail, but a reboot fixes that
 osascript -e "tell application \"Finder\"" \
@@ -65,7 +69,7 @@ osascript -e "tell application \"Finder\"" \
 -e "          set statusbar visible to false" \
 -e "          set current view to icon view" \
 -e "          delay 1 -- Sync" \
--e "          set the bounds to {50, 100, 1000, 1000} -- Big size so the finder won't do silly things" \
+-e "          set the bounds to {50, 100, 600, 400} -- Big size so the finder won't do silly things" \
 -e "       end tell" \
 -e "       delay 1 -- Sync" \
 -e "       set icon size of the icon view options of container window to 128" \
@@ -74,6 +78,8 @@ osascript -e "tell application \"Finder\"" \
 -e "       set position of item \"${APPNAME}.app\" to {150, 140}" \
 -e "       set position of item \"Applications\" to {410, 140}" \
 -e "       set the bounds of the container window to {50, 100, 600, 400}" \
+-e "       close" \
+-e "       open" \
 -e "       update without registering applications" \
 -e "       delay 5 -- Sync" \
 -e "       close" \

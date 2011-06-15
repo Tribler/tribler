@@ -61,11 +61,6 @@ try:
 except:
     print "WARNING: Not including Growl support."
 
-# ----- import VLC
-
-#import vlc
-
-#vlc = vlc.MediaControl(["--plugin-path","macbinaries/vlc_plugins"])
 
 # =================
 # build Tribler.app
@@ -138,10 +133,10 @@ setup(
            + filterincludes( includedir( LIBRARYNAME+"/" ), lambda x: x.endswith(".sql") )
 
            # add VLC plugins
-           + includedir( "macbinaries/vlc_plugins" )
+           + includedir( "vlc" )
 
            # add ffmpeg binary
-           + [("macbinaries",["macbinaries/ffmpeg"])]
+           + [("vlc",["vlc/ffmpeg"])]
             ,
     } }
 )

@@ -45,7 +45,13 @@ class VLCWrapper:
         setting the window.
         """
         try:
-           import Tribler.vlc as vlc
+            if sys.platform == "darwin":
+                oldpath = os.getcwd()
+                os.chdir(os.path.join(self.installdir,'vlc','lib'))
+                import vlc.lib.vlc as vlc
+                os.chdir(oldpath)
+        else:
+                import Tribler.vlc as vlc
         except:
             print_stack()
             print_exc()
@@ -108,8 +114,8 @@ class VLCWrapper:
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             if sys.platform == 'win32':
                 self.vlc.libvlc_media_player_set_hwnd(self.player,xid);
-            elif sys.platform == 'darwin':
-                self.vlc.libvlc_media_player_set_nsobject(self.player,xid);
+            #elif sys.platform == 'darwin':
+            #    self.vlc.libvlc_media_player_set_agl(self.player,xid);
             else: # Linux
                 self.vlc.libvlc_media_player_set_xwindow(self.player,xid);
         else:
@@ -212,10 +218,7 @@ class VLCWrapper:
         
         # Arno, 2009-07-22: Not sure whether sys.argv0 gives right dir.
         if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/macbinaries/vlc_plugins" % (
-                 # location of plugins: next to tribler.py
-                 os.path.abspath(os.path.dirname(sys.argv[0]))
-                 )]
+            params += ["--plugin-path", "%s/vlc/plugins" % ( self.installdir) ]
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
             if sys.platform == 'win32':

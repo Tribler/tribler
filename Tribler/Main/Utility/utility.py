@@ -193,7 +193,7 @@ class Utility:
                 defaults['videoplayerpath'] = vlcpath
             ffmpegpath = find_prog_in_PATH("ffmpeg")
             if ffmpegpath is None:
-                defaults['videoanalyserpath'] = "macbinaries/ffmpeg"
+                defaults['videoanalyserpath'] = "vlc/ffmpeg"
             else:
                 defaults['videoanalyserpath'] = ffmpegpath
         else:
