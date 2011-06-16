@@ -188,7 +188,13 @@ class Utility:
             defaults['mintray'] = '0'  # tray doesn't make sense on Mac
             vlcpath = find_prog_in_PATH("vlc")
             if vlcpath is None:
-                defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
+                #second try
+                vlcpath = "/Applications/VLC.app"
+                if not os.path.exists(vlcpath):
+                    vlcpath = None
+            
+            if vlcpath is None:
+                    defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
             else:
                 defaults['videoplayerpath'] = vlcpath
             ffmpegpath = find_prog_in_PATH("ffmpeg")
