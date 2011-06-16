@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 #batch size should be a nice divider of max size
-LIST_ITEM_BATCH_SIZE = 36
+LIST_ITEM_BATCH_SIZE = 4
 LIST_ITEM_MAX_SIZE = 250
 LIST_RATE_LIMIT = 1
 

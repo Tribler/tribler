@@ -701,7 +701,7 @@ class AbstractListBody():
         self.done = False
         
         if len(data) > 0:
-            self.CreateItems()
+            self.CreateItems(nr_items_to_create = 3 * LIST_ITEM_BATCH_SIZE)
             
             #Try to yield
             try:
@@ -711,8 +711,8 @@ class AbstractListBody():
             
         elif message != '':
             self.ShowMessage(message)
-            
-        if len(data) < LIST_ITEM_BATCH_SIZE:
+        
+        if self.done:
             self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
         else:
             self.Bind(wx.EVT_IDLE, self.OnIdle)
@@ -768,17 +768,18 @@ class AbstractListBody():
                 nr_items_to_add -= 1
             
             else:
-                if message != '':
-                    message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
-                else:
-                    message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
-                    
-                remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
-                self.loadNext.SetLabel("Show next %d items"%remainingItems)
-                self.loadNext.Enable()
-                self.loadNext.Show()
-                
                 done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
+
+                if done:
+                    if message != '':
+                        message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
+                    else:
+                        message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
+                        
+                    remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
+                    self.loadNext.SetLabel("Show next %d items"%remainingItems)
+                    self.loadNext.Enable()
+                    self.loadNext.Show()
                 break
        
         if message != '':

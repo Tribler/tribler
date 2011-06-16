@@ -233,6 +233,9 @@ class PeerDBHandler(BasicDBHandler):
     def getPeerID(self, permid):
         return self._db.getPeerID(permid)
 
+    def getPeerIDS(self, permids):
+        return self._db.getPeerIDS(permids)
+
     def getPeer(self, permid, keys=None):
         if keys is not None:
             res = self.getOne(keys, permid=bin2str(permid))
@@ -438,7 +441,23 @@ class PeerDBHandler(BasicDBHandler):
             return str2bin(permid)
         else:
             return None
+    
+    def getPermids(self, peer_ids):
+        parameters = '?,'*len(peer_ids)
+        sql = "SELECT permid, peer_id FROM Peer WHERE peer_id IN ("+parameters[:-1]+")"
         
+        results = {}
+        for permid, peer_id in self._db.fetchall(sql, peer_ids):
+            results[peer_id] = str2bin(permid)
+        
+        to_return = []
+        for peer_id in peer_ids:
+            if peer_id in results:
+                to_return.append(results[peer_id])
+            else:
+                to_return.append(None)
+        return to_return
+            
     def getNumberPeers(self, category_name = 'all'):
         # 28/07/08 boudewijn: counting the union from two seperate
         # select statements is faster than using a single select
@@ -2225,15 +2244,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
         # now that we only have those torrents left in which we are actually interested, 
         # replace torrent id by user's search terms for torrent id
-        termdb = TermDBHandler.getInstance()
         searchdb = SearchDBHandler.getInstance()
+        torrent_ids = [pref[1] for pref in recent_preflist_with_clicklog]
+        terms_dict = searchdb.getMyTorrentsSearchTermsStr(torrent_ids)
+        
         for pref in recent_preflist_with_clicklog:
-            torrent_id = pref[1]
-            search_terms = [term.encode("UTF-8") for term, in searchdb.getMyTorrentSearchTermsStr(torrent_id)]
-
+            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
+            
             # Arno, 2010-02-02: Explicit encoding
             pref[1] = search_terms
-
         return recent_preflist_with_clicklog
 
     def searchterms2utf8pref(self,termdb,search_terms):            
@@ -2276,22 +2295,20 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
         # now that we only have those torrents left in which we are actually interested, 
         # replace torrent id by user's search terms for torrent id
-        termdb = TermDBHandler.getInstance()
         searchdb = SearchDBHandler.getInstance()
-        tempTorrentList = []
+        
+        tempTorrentList = [pref[1] for pref in recent_preflist_with_swarmsize]
+        terms_dict = searchdb.getMyTorrentsSearchTermsStr(tempTorrentList)
+        
         for pref in recent_preflist_with_swarmsize:
-            torrent_id = pref[1]
-            tempTorrentList.append(torrent_id)
-            
-            # Arno, 2010-02-02: Explicit encoding
-            search_terms = [term.encode("UTF-8") for term, in searchdb.getMyTorrentSearchTermsStr(torrent_id)]
+            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
             pref[1] = search_terms
         
         #Step 3: appending swarm size info to the end of the inner lists
         swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
 
         index = 0
-        for  index in range(0,len(swarmSizeInfoList)):
+        for index in range(0,len(swarmSizeInfoList)):
             recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][1]) # number of seeders
             recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][2])# number of leechers
             recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][3])  # age of the report 
@@ -2497,7 +2514,25 @@ class BarterCastDBHandler(BasicDBHandler):
             return 'non-tribler'
         else:
             return self.peer_db.getPermid(peer_id)
-
+        
+    def getPermids(self, peer_ids):
+        to_select = []
+        to_return = []
+        
+        for peer_id in peer_ids:
+            # by convention '-1' is the id of non-tribler peers
+            if peer_id == -1:
+                to_return.append("non-tribler")
+            else:
+                to_select.append(peer_id)
+                to_return.append(None)
+        
+        if len(to_select) > 0:
+            permids = self.peer_db.getPermids(to_select)
+            for i in xrange(len(to_return)):
+                if to_return[i] == None:
+                    to_return[i] = permids.pop()
+        return to_return
 
     def getPeerID(self, permid):
         
@@ -2506,6 +2541,26 @@ class BarterCastDBHandler(BasicDBHandler):
             return -1
         else:
             return self.peer_db.getPeerID(permid)
+        
+    def getPeerIDS(self, permids):
+        to_select = []
+        to_return = []
+        
+        for permid in permids:
+            # by convention '-1' is the id of non-tribler peers
+            if permid == "non-tribler":
+                to_return.append(-1)
+            else:
+                to_select.append(permid)
+                to_return.append(None)
+        
+        if len(to_select) > 0:
+            peer_ids = self.peer_db.getPeerIDS(to_select)
+            for i in xrange(len(to_return)):
+                if to_return[i] == -1:
+                    to_return[i] = peer_ids.pop()
+        return to_return
+        
 
     def getItem(self, (permid_from, permid_to), default=False):
 
@@ -2787,9 +2842,13 @@ class BarterCastDBHandler(BasicDBHandler):
                 min = top[-1][1]
 
         # Now convert to permid
+        peer_ids = [val[0] for val in top]
+        perm_ids = self.getPermids(peer_ids)
+        
         permidtop = []
-        for peer_id,up,down in top:
-            permid = self.getPermid(peer_id)
+        for i in xrange(len(top)):
+            peer_id,up,down = top[i]
+            permid = perm_ids[i]
             permidtop.append((permid,up,down))
 
         result = {}
@@ -2813,9 +2872,9 @@ class BarterCastDBHandler(BasicDBHandler):
     ################################
     def update_network(self):
 
-
-        keys = self.getPeerIDPairs() #getItemList()
-
+        #Niels: This seems useless, removing...
+        #keys = self.getPeerIDPairs() #getItemList()
+        pass
 
     ################################
     def getMyReputation(self, alpha = ALPHA):
@@ -2983,7 +3042,14 @@ class VoteCastDBHandler(BasicDBHandler):
             records.append((str2bin(record[0]),record[1], record[2]))
             
         return records #allrecords... Nitin: should have been records
-    
+
+    def getMyVotes(self):
+        sql = "SELECT mod_id, vote from VoteCast where voter_id==?"
+        
+        return_dict = {}
+        for mod_id, vote in self._db.fetchall(sql,(permid_for_user(self.my_permid),)):
+            return_dict[mod_id] = vote
+        return return_dict
 
     def hasSubscription(self, permid, voter_peerid): ##
         sql = 'select mod_id, voter_id from VoteCast where mod_id==? and voter_id==? and vote=2'
@@ -3493,7 +3559,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        return self.getAllChannels()[:20]
+        return self.getAllChannels()[:max_nr]
 
     def getMySubscribedChannels(self):
         #Sometimes we have no actual channelcast entries, but do know this channel
@@ -3522,8 +3588,17 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         if allChannels:
             votedict = self.votecast_db.getAllPosNegVotes()
+            my_votes = self.votecast_db.getMyVotes()
+            
+            #append all other channels as (0,0)
+            for result in results:
+                if result[0] not in votedict:
+                    votedict[result[0]] = (0,0)
+                if result[0] not in my_votes:
+                    my_votes[result[0]] = 0
         else:
             votedict = {}
+            my_votes = {}
             
         for result in results:
             if result[0] not in votedict:
@@ -3533,11 +3608,16 @@ class ChannelCastDBHandler(BasicDBHandler):
             nr_votes = nr_favorites + nr_spam
             if nr_votes >= minvotes and nr_votes <= maxvotes:
                 nr_torrents, max_timestamp = self._db.fetchone(sqla, (result[0], self.torrent_db.status_table['dead']))
+                
                 name = self._db.fetchone(sqlb, (result[0], max_timestamp)) or ''
                 name = name[:40] #max 40 characters long
-                my_vote = self.votecast_db.getVote(result[0], bin2str(self.my_permid))
                 
-                channels.append((result[0], name, max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote))
+                if result[0] not in my_votes:
+                    vote = self.votecast_db.getVote(result[0], bin2str(self.my_permid))
+                else:
+                    vote = my_votes[result[0]] 
+                                
+                channels.append((result[0], name, max_timestamp, nr_favorites, nr_torrents, nr_spam, vote))
                 
         def channel_sort(a, b):
             #first compare local vote, spam -> return -1
@@ -4332,6 +4412,20 @@ class SearchDBHandler(BasicDBHandler):
     def getMyTorrentSearchTermsStr(self, torrent_id):
         sql = "SELECT distinct term FROM ClicklogSearch, ClicklogTerm WHERE ClicklogSearch.term_id = ClicklogTerm.term_id AND torrent_id = ? AND peer_id = ? ORDER BY term_order"
         return self._db.fetchall(sql, (torrent_id, 0))
+    
+    def getMyTorrentsSearchTermsStr(self, torrent_ids):
+        return_dict = {}
+        for torrent_id in torrent_ids:
+            return_dict[torrent_id] = set()
+        
+        parameters = '?,'*len(torrent_ids)
+        sql = "SELECT torrent_id, term FROM ClicklogSearch, ClicklogTerm WHERE ClicklogSearch.term_id = ClicklogTerm.term_id AND torrent_id IN ("+parameters[:-1]+") AND peer_id = ? ORDER BY term_order"
+        
+        parameters = torrent_ids[:]
+        parameters.append(0)
+        for torrent_id, term in self._db.fetchall(sql, parameters):
+            return_dict[torrent_id].add(term)
+        return return_dict
                 
     ### currently unused
                   

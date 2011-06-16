@@ -261,6 +261,7 @@ class SQLiteCacheDBBase:
             #
             self.applied_pragma_sync_norm = True 
             cur.execute("PRAGMA synchronous = NORMAL;")
+            cur.execute("PRAGMA cache_size = 10000;")
             
         return cur
     
@@ -801,6 +802,30 @@ class SQLiteCacheDBBase:
             self.permid_id[permid] = peer_id
         
         return peer_id
+    
+    def getPeerIDS(self, permids):
+        to_select = []
+        
+        for permid in permids:
+            assert isinstance(permid, str), permid
+            
+            if permid not in self.permid_id:
+                to_select.append(permid)
+        
+        if len(to_select) > 0:
+            parameters = '?,'*len(to_select)
+            sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN ("+parameters[:-1]+")"
+            peerids = self.fetchall(sql_get_peer_ids, to_select)
+            for peer_id, permid in peerids:
+                self.permid_id[permid] = peer_id
+        
+        to_return = []
+        for permid in permids:
+            if permid in self.permid_id:
+                to_return.append(self.permid_id[permid])
+            else:
+                to_return.append(None)
+        return to_return
     
     def hasPeer(self, permid, check_db=False):
         if not check_db:
