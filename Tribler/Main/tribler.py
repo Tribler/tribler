@@ -249,7 +249,7 @@ class ABCApp(wx.App):
                 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             # or sys.platform == 'darwin'
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
                 vlcwrap = self.videoplayer.get_vlcwrap()
             else:
                 vlcwrap = None
