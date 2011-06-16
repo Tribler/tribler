@@ -50,7 +50,7 @@ class VLCWrapper:
                 os.chdir(os.path.join(self.installdir,'vlc','lib'))
                 import vlc.lib.vlc as vlc
                 os.chdir(oldpath)
-        else:
+            else:
                 import Tribler.vlc as vlc
         except:
             print_stack()
