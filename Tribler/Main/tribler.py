@@ -246,9 +246,14 @@ class ABCApp(wx.App):
 
             # videopanel
             self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
+                
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             # or sys.platform == 'darwin'
-            vlcwrap = self.videoplayer.get_vlcwrap()
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
+                vlcwrap = self.videoplayer.get_vlcwrap()
+            else:
+                vlcwrap = None
+            
             if self.guiUtility.useExternalVideo:
                 self.frame.videoparentpanel = None
                 
