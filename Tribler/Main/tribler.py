@@ -248,27 +248,20 @@ class ABCApp(wx.App):
                 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             # or sys.platform == 'darwin'
+            self.frame.videoparentpanel = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
                 vlcwrap = self.videoplayer.get_vlcwrap()
-            else:
-                vlcwrap = None
             
-            self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
-            if self.guiUtility.useExternalVideo:
-                self.frame.videoparentpanel = None
+                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
+                if self.guiUtility.useExternalVideo:
+                    self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
+                    self.videoplayer.set_videoframe(self.frame.videoframe)
+                else:
+                    self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
+                    
+                    self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
+                    self.videoplayer.set_videoframe(self.frame.videoframe)
                 
-                self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
-                self.videoplayer.set_videoframe(self.frame.videoframe)
-            else:
-                self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
-                
-                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
-                self.videoplayer.set_videoframe(self.frame.videoframe)
-                
-            if vlcwrap == None:
-                videopanel = xrc.XRCCTRL(self.frame,"videopanel")
-                videopanel.Show(False)
-        
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
