@@ -641,9 +641,10 @@ class MainFrame(wx.Frame):
             else:
                 print  >> sys.stderr,"main: onIconify event None"
         
-        if event.Iconized():                                                                                                               
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.pause_playback() # when minimzed pause playback
+        if event.Iconized():
+            #Niels, 2011-06-17: why pause the video? This does not make any sense                                                                                                               
+            #videoplayer = VideoPlayer.getInstance()
+            #videoplayer.pause_playback() # when minimzed pause playback
 
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
@@ -654,8 +655,11 @@ class MainFrame(wx.Frame):
                 
             self.GUIupdate = False
         else:
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.resume_playback()
+            #Niels, 2011-06-17: why pause the video? This does not make any sense
+            #at least make it so, that it will only resume if it was actually paused by the minimize action
+            
+            #videoplayer = VideoPlayer.getInstance()
+            #videoplayer.resume_playback()
                 
             self.GUIupdate = True
         if event is not None:
