@@ -226,6 +226,16 @@ class VideoPlayer:
             if reset:
                 self.videoframe.get_videopanel().Reset()
         self.set_vod_download(None)
+        
+    def pause_playback(self):
+        """ Pause playback in current video window """
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().Pause()
+    
+    def resume_playback(self):
+        """ Resume playback in current video window """
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().Resume()
 
     def show_loading(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:

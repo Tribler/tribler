@@ -640,24 +640,22 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: onIconify(",event.Iconized()
             else:
                 print  >> sys.stderr,"main: onIconify event None"
+        
         if event.Iconized():                                                                                                               
             videoplayer = VideoPlayer.getInstance()
-            videoplayer.videoframe.get_videopanel().Pause() # when minimzed pause playback
+            videoplayer.pause_playback() # when minimzed pause playback
 
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
                 self.tbicon.updateIcon(True)
+                
                 #Niels, 2011-02-21: on Win7 hiding window is not consistent with default behaviour 
                 #self.Show(False)
                 
             self.GUIupdate = False
         else:
             videoplayer = VideoPlayer.getInstance()
-            embed = videoplayer.videoframe.get_videopanel()
-            if embed.GetState() == MEDIASTATE_PAUSED:
-                embed.ppbtn.setToggled(False)
-                embed.vlcwin.setloadingtext('')
-                embed.vlcwrap.resume()
+            videoplayer.resume_playback()
                 
             self.GUIupdate = True
         if event is not None:
