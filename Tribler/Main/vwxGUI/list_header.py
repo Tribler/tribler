@@ -370,19 +370,24 @@ class SubTitleHeader(TitleHeader):
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
+        self.add = wx.Button(parent, -1, "+", style = wx.BU_EXACTFIT)
+        self.add.SetToolTipString('Add a .torrent from an external source.')
+        
         self.resume = wx.Button(parent, -1, "Resume")
         self.stop = wx.Button(parent, -1, "Stop")
         self.delete = wx.Button(parent, -1, "Delete")
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddStretchSpacer()
+        hSizer.Add(self.add)
         hSizer.Add(self.resume)
         hSizer.Add(self.stop)
         hSizer.Add(self.delete)
         self.SetStates(False, False, False)
         return hSizer
 
-    def SetEvents(self, resume, stop, delete):
+    def SetEvents(self, add, resume, stop, delete):
+        self.add.Bind(wx.EVT_BUTTON, add)
         self.resume.Bind(wx.EVT_BUTTON, resume)
         self.stop.Bind(wx.EVT_BUTTON, stop)
         self.delete.Bind(wx.EVT_BUTTON, delete)

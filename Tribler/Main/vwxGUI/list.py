@@ -744,7 +744,7 @@ class LibaryList(List):
     def CreateHeader(self):
         header = ButtonHeader(self, self.columns)
         header.SetTitle('Library')
-        header.SetEvents(self.OnResume, self.OnStop, self.OnDelete)
+        header.SetEvents(self.OnAdd, self.OnResume, self.OnStop, self.OnDelete)
         return header
     
     def CreateFooter(self):
@@ -821,6 +821,13 @@ class LibaryList(List):
 
     def OnCollapseInternal(self, item):
         self.header.SetStates(False, False, False)
+
+    def OnAdd(self, event):
+        dlg = wx.FileDialog(None, "Please select the a .torrent file.", wildcard = "torrent (*.torrent)|*.torrent", style = wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPath()
+            self.guiutility.frame.startDownload(filename, fixtorrent = True)
+        dlg.Destroy()
 
     def OnPlay(self, event):
         item = self.list.GetExpandedItem()

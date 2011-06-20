@@ -106,8 +106,7 @@ class FileDropTarget(wx.FileDropTarget):
                 if not found:
                     break
             try:
-                self.FixTorrent(filename)
-                self.frame.startDownload(filename, destdir = destdir)
+                self.frame.startDownload(filename, destdir = destdir, fixtorrent = True)
             except IOError:
                 dlg = wx.MessageDialog(None,
                            self.frame.utility.lang.get("filenotfound"),
@@ -116,25 +115,6 @@ class FileDropTarget(wx.FileDropTarget):
                 dlg.ShowModal()
                 dlg.Destroy()
         return True
-
-    def FixTorrent(self, filename):
-        f = open(filename,"rb")
-        bdata = f.read()
-        f.close()
-        
-        #Check if correct bdata
-        try:
-            bdecode(bdata)
-        except ValueError:
-            #Try reading using sloppy
-            try:
-                bdata = bencode(bdecode(bdata, 1))
-                #Overwrite with non-sloppy torrent
-                f = open(filename,"wb")
-                f.write(bdata)
-                f.close()
-            except:
-                pass
 
 # Custom class loaded by XRC
 class MainFrame(wx.Frame):
@@ -302,10 +282,14 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
+        
+        if fixtorrent and torrentfilename:
+            self.fixTorrent(torrentfilename)
+        
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
@@ -388,6 +372,25 @@ class MainFrame(wx.Frame):
             print_exc()
             self.onWarning(e)
         return None
+    
+    def fixTorrent(self, filename):
+        f = open(filename,"rb")
+        bdata = f.read()
+        f.close()
+        
+        #Check if correct bdata
+        try:
+            bdecode(bdata)
+        except ValueError:
+            #Try reading using sloppy
+            try:
+                bdata = bencode(bdecode(bdata, 1))
+                #Overwrite with non-sloppy torrent
+                f = open(filename,"wb")
+                f.write(bdata)
+                f.close()
+            except:
+                pass
 
 
     def show_saved(self):
