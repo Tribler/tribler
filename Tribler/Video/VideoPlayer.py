@@ -697,8 +697,9 @@ class VideoPlayer:
 
 
     def exec_video_player(self,cmd):
-        if DEBUG:
+        if DEBUG or True:
             print >>sys.stderr,"videoplay: Command is @"+cmd+"@"
+        
         # I get a weird problem on Linux. When doing a
         # os.popen2("vlc /tmp/file.wmv") I get the following error:
         #[00000259] main interface error: no suitable interface module
@@ -708,7 +709,7 @@ class VideoPlayer:
         # os.system("vlc /tmp/file.wmv")
         # but that halts Tribler, as it waits for the created shell to
         # finish. Hmmmm....
-        #
+
         try:
             if sys.platform == 'win32':
                 #os.system(cmd)
