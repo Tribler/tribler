@@ -791,6 +791,9 @@ class TorrentDetails(wx.Panel):
             
             if not ds or ds.get_status() == DLSTATUS_STOPPED:
                 label = 'Download is stopped'
+                
+                if self.vod_log:
+                    self.vod_log.Hide()
             elif ds.is_vod():
                 label = 'You are streaming this torrent'
                 if getattr(self, 'play', False):
