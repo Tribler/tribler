@@ -32,6 +32,7 @@ import traceback
 
 from Tribler.community.simpledispersytest.community import SimpleDispersyTestCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.community import HardKilledCommunity
 
 if sys.platform == 'win32':
@@ -304,12 +305,13 @@ class TriblerLaunchMany(Thread):
             MagnetHandler.get_instance(self.rawserver)
 
         self.dispersy = None
+        self.dispersy_thread = None
         self.session.dispersy_member = None
         if config['dispersy']:
             # Dispersy needs to run on a thread.  We use a RawServer instance.
-            self.dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
-            self.dispersy_rawserver.add_task(self.start_dispersy, 7.5)
-            Thread(target=self.dispersy_rawserver.listen_forever, args=(None,), name="DispersyThread").start()
+            self.dispersy_thread = Callback()
+            self.dispersy_thread.register(self.start_dispersy, delay=7.5)
+            self.dispersy_thread.start(name="Dispersy")
 
     def start_dispersy(self):
         class DispersySocket(object):
@@ -353,7 +355,7 @@ class TriblerLaunchMany(Thread):
         sqlite_db_path = os.path.join(config['state_dir'], u"sqlite")
         if not os.path.isdir(sqlite_db_path):
             os.makedirs(sqlite_db_path)
-        self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, sqlite_db_path)
+        self.dispersy = Dispersy.get_instance(self.dispersy_thread, sqlite_db_path)
         self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
 
         from Tribler.Core.Overlay.permid import read_keypair
@@ -710,7 +712,9 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         if self.udppuncture_handler is not None:
             self.udppuncture_handler.shutdown()
-        
+        if self.dispersy_thread:
+            self.dispersy_thread.stop()
+
     def network_shutdown(self):
         try:
             # Detect if megacache is enabled

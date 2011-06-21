@@ -9,7 +9,6 @@ This module provides basic database functionalty and simple version control.
 @contact: dispersy@frayja.com
 """
 
-import atexit
 import thread
 import hashlib
 import sqlite3
@@ -37,7 +36,30 @@ class Database(Singleton):
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
         self._transaction = ""
-        atexit.register(self.unsafe_commit)
+
+        #
+        # PRAGMA synchronous = 0 | OFF | 1 | NORMAL | 2 | FULL;
+        #
+        # Query or change the setting of the "synchronous" flag.  The first (query) form will return
+        # the synchronous setting as an integer.  When synchronous is FULL (2), the SQLite database
+        # engine will use the xSync method of the VFS to ensure that all content is safely written
+        # to the disk surface prior to continuing.  This ensures that an operating system crash or
+        # power failure will not corrupt the database.  FULL synchronous is very safe, but it is
+        # also slower.  When synchronous is NORMAL (1), the SQLite database engine will still sync
+        # at the most critical moments, but less often than in FULL mode.  There is a very small
+        # (though non-zero) chance that a power failure at just the wrong time could corrupt the
+        # database in NORMAL mode.  But in practice, you are more likely to suffer a catastrophic
+        # disk failure or some other unrecoverable hardware fault.  With synchronous OFF (0), SQLite
+        # continues without syncing as soon as it has handed data off to the operating system.  If
+        # the application running SQLite crashes, the data will be safe, but the database might
+        # become corrupted if the operating system crashes or the computer loses power before that
+        # data has been written to the disk surface.  On the other hand, some operations are as much
+        # as 50 or more times faster with synchronous OFF.
+        #
+        # The default setting is synchronous = FULL.
+        #
+        if __debug__: dprint("PRAGMA synchronous = NORMAL")
+        self._cursor.execute(u"PRAGMA synchronous = NORMAL")
 
         # check is the database contains an 'option' table
         try:
@@ -74,11 +96,13 @@ class Database(Singleton):
         @return: The method self.execute
         """
         if self._transaction == "implicit":
+            if __debug__: dprint("COMMIT")
             self._cursor.execute(u"COMMIT")
         elif self._transaction == "explicit":
             raise RuntimeError("Nested 'with' statement")
-        self._transaction = "explicit"
+        if __debug__: dprint("BEGIN")
         self._cursor.execute(u"BEGIN")
+        self._transaction = "explicit"
         return self.execute
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -91,21 +115,15 @@ class Database(Singleton):
         """
         assert self._transaction == "explicit"
         if exc_type is None:
+            if __debug__: dprint("COMMIT")
             self._cursor.execute(u"COMMIT")
             self._transaction = ""
             return True
         else:
-            if __debug__: dprint("rollback", level="error")
+            if __debug__: dprint("ROLLBACK", level="error")
             self._cursor.execute(u"ROLLBACK")
+            self._transaction = ""
             return False
-
-    def unsafe_commit(self):
-        """
-        Automatically called using the atexit module.
-        """
-        if self._transaction == "implicit":
-            cursor = self._connection.cursor()
-            cursor.execute(u"COMMIT")
 
     @property
     def last_insert_rowid(self):
@@ -155,13 +173,14 @@ class Database(Singleton):
         assert isinstance(statement, unicode), "The SQL statement must be given in unicode"
         assert isinstance(bindings, (tuple, list, dict)), "The bindings must be a tuple, list, or dictionary"
         assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
-        if __debug__: dprint(statement, " <-- ", bindings)
 
         if self._transaction == "":
-            self._transaction = "implicit"
+            if __debug__: dprint("BEGIN")
             self._cursor.execute(u"BEGIN")
+            self._transaction = "implicit"
 
         try:
+            if __debug__: dprint(statement, " <-- ", bindings)
             return self._cursor.execute(statement, bindings)
 
         except sqlite3.Error, exception:
@@ -175,15 +194,16 @@ class Database(Singleton):
     def executescript(self, statements):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
-        if __debug__: dprint(statements)
 
         if self._transaction == "":
             # we assume that the entire script needs to be in an implicit transaction (i.e. contains
             # INSERT, UPDATE, etc. statements)
-            self._transaction = "implicit"
+            if __debug__: dprint("BEGIN")
             self._cursor.execute(u"BEGIN")
+            self._transaction = "implicit"
 
         try:
+            if __debug__: dprint(statements)
             return self._cursor.executescript(statements)
 
         except sqlite3.Error, exception:
@@ -223,13 +243,14 @@ class Database(Singleton):
         assert isinstance(sequenceofbindings, (tuple, list)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
         assert not filter(lambda x: not isinstance(x, (tuple, list)), sequenceofbindings), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
         assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), sequenceofbindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
-        if __debug__: dprint(statement)
 
         if self._transaction == "":
-            self._transaction = "implicit"
+            if __debug__: dprint("BEGIN")
             self._cursor.execute(u"BEGIN")
+            self._transaction = "implicit"
 
         try:
+            if __debug__: dprint(statement)
             return self._cursor.executemany(statement, sequenceofbindings)
 
         except sqlite3.Error, exception:
@@ -240,7 +261,13 @@ class Database(Singleton):
             raise
 
     def commit(self):
-        return self._connection.commit()
+        if self._transaction == "implicit":
+            if __debug__: dprint("COMMIT")
+            self._cursor.execute(u"COMMIT")
+            self._transaction = ""
+            return self._connection.commit()
+        # otherwise there is either nothing to commit OR we are in an explicit transaction that will
+        # be committed on __exit__
 
     # def _on_rollback(self):
     #     if __debug__: dprint("ROLLBACK", level="warning")
@@ -264,39 +291,53 @@ class Database(Singleton):
         """
         raise NotImplementedError()
 
-if 1 or __debug__:
+if __debug__:
     if __name__ == "__main__":
         class TestDatabase(Database):
             def check_database(self, database_version):
                 pass
 
-        db = TestDatabase.get_instance(u"test.db")
+        import time
+
+        db = TestDatabase(u"test.db")
         db.execute(u"CREATE TABLE pair (key INTEGER, value TEXT)")
-        with db as execute:
-            for i in xrange(10000):
-                execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
-        # db.commit()
 
-        for i in xrange(10000):
-            execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
+        a = time.time()
+        for i in xrange(1000):
+            db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
 
-        # db.execute(u"BEGIN")
-        # db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
-        # db.execute(u"COMMIT")
+        b = time.time()
+        with db:
+            for i in xrange(1000):
+                db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
 
-        for i in xrange(10):
-            with db:
-                for row in db.execute(u"SELECT * FROM pair"):
-                    pass
+        c = time.time()
+        for i in xrange(1000):
+            for row in db.execute(u"SELECT * FROM pair WHERE key = ?", (u"-%d-" % i,)):
+                pass
 
-        with db as execute:
-            execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (3, u"moo"))
-            execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (4, u"milk"))
+        d = time.time()
+        for i in xrange(2000, 3000):
+            db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
 
-        for row in db.execute(u"SELECT * FROM pair"):
+        try:
+            db.execute(u"INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42)")
+            print "ERROR"
+            assert False
+        except:
             pass
 
-        db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (2, u"burp"))
+        l = list(db.execute(u"SELECT * FROM pair WHERE key BETWEEN 2000 AND 3000"))
+        if not len(l) == 1000:
+            print "ERROR"
+            assert False
 
-        for row in db.execute(u"SELECT * FROM pair"):
-            pass
+        e = time.time()
+        db.commit()
+
+        f = time.time()
+        print "implicit insert:", b - a
+        print "explicit insert:", c - b
+        print "select:", d - c
+        print "test1: ", e - d
+        print "close: ", f - e

@@ -49,7 +49,7 @@ class SimpleDispersyTestCommunity(Community):
         self._status.create_and_add_event("__init__^" + self._cid.encode("HEX"), ["full-sync", "last-1-sync"])
         self._status.create_and_add_event("info^" + self._cid.encode("HEX"), [self._dispersy.info()])
         self._status.report_now()
-        self._dispersy.rawserver.add_task(self._periodically_info, 60)
+        self._dispersy.callback.register(self._periodically_info, delay=60.0)
 
     def initiate_meta_messages(self):
         return [Message(self, u"full-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=1), TextPayload(), self.check_full_sync, self.on_full_sync),
@@ -116,5 +116,7 @@ class SimpleDispersyTestCommunity(Community):
         self._status.create_and_add_event("on_last_1_sync^" + self._cid.encode("HEX"), [(message.address, message.distribution.global_time, message.payload.text) for message in messages])
 
     def _periodically_info(self):
-        self._status.create_and_add_event("info^" + self._cid.encode("HEX"), [self._dispersy.info(attributes=False)])
-        self._dispersy.rawserver.add_task(self._periodically_info, 60)
+        while True:
+            self._status.create_and_add_event("info^" + self._cid.encode("HEX"), [self._dispersy.info(attributes=False)])
+            yield 60.0
+

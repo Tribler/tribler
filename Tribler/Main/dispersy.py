@@ -14,6 +14,7 @@ import optparse
 
 # from Tribler.Community.Discovery.Community import DiscoveryCommunity
 from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.dispersy import Dispersy
 
 if __debug__:
@@ -71,15 +72,15 @@ def main():
     def on_non_fatal_error(error):
         print >> sys.stderr, "Rawserver non fatal error:", error
 
-    # start Dispersy
     def start():
-        dispersy = Dispersy.get_instance(dispersy_rawserver, opt.statedir)
-        dispersy.socket = DispersySocket(socket_rawserver, dispersy, opt.port, opt.ip)
+        # start Dispersy
+        dispersy = Dispersy.get_instance(callback, opt.statedir)
+        dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         # load the script parser
         if opt.script:
             from Tribler.Core.dispersy.script import Script
-            script = Script.get_instance(dispersy_rawserver)
+            script = Script.get_instance(callback)
 
             if not opt.disable_dispersy_script:
                 from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
@@ -126,11 +127,10 @@ def main():
             #     script.add("barter", BarterScript)
             #     script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
 
-            # bump the rawservers, or they will delay everything... since they suck.
-            def bump():
-                pass
-            socket_rawserver.add_task(bump)
-            dispersy_rawserver.add_task(bump)
+            # # bump the rawserver, or it will delay everything... since it sucks.
+            # def bump():
+            #     pass
+            # rawserver.add_task(bump)
 
             script.load(opt.script)
 
@@ -138,7 +138,7 @@ def main():
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=u".")
     command_line_parser.add_option("--ip", action="store", type="string", default="0.0.0.0", help="Dispersy uses this ip")
     command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
-    command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=60.0)
+    command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=1.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
     # command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
     # command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
@@ -151,43 +151,24 @@ def main():
     opt, args = command_line_parser.parse_args()
     print "Press Ctrl-C to stop Dispersy"
 
-    # start RawServer
-    dispersy_done_flag = threading.Event()
+    # start threads
     session_done_flag = threading.Event()
+    rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
+    callback = Callback()
+    callback.start(name="Dispersy")
+    callback.register(start)
 
-    socket_rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
-    dispersy_rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
-
-    def rawserver_sucks_part_one():
-        """
-        The rawserver does not call the failfunc method when there is a failure, i.e. an excaption
-        is raised.  Hence we have to 'manually' close the other thread.
-        """
-        try:
-            dispersy_rawserver.listen_forever(None)
-        except Exception, e:
-            global exit_exception
-            exit_exception = e
-
-            session_done_flag.set()
-            def do_nothing():
-                pass
-            socket_rawserver.add_task(do_nothing)
-
-            raise
-    threading.Thread(target=rawserver_sucks_part_one).start()
-    dispersy_rawserver.add_task(start)
-
-    def rawserver_sucks_part_two():
-        """
-        The rawserver does NOT detect when session_done_flag is set.  It only checks when it get
-        frequent tasks to perform.
-        """
-        socket_rawserver.add_task(rawserver_sucks_part_two, 1.0)
-    socket_rawserver.add_task(rawserver_sucks_part_two, 1.0)
-    socket_rawserver.listen_forever(None)
-    session_done_flag.set()
-    time.sleep(1)
+    def watchdog():
+        while True:
+            try:
+                yield 333.3
+            except GeneratorExit:
+                rawserver.shutdown()
+                session_done_flag.set()
+                break
+    callback.register(watchdog)
+    rawserver.listen_forever(None)
+    callback.stop()
 
 if __name__ == "__main__":
     exit_exception = None

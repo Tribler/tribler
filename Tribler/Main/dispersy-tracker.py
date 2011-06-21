@@ -16,7 +16,8 @@ import optparse
 
 from Tribler.Core.Overlay.permid import read_keypair
 from Tribler.Core.BitTornado.RawServer import RawServer
-from Tribler.Core.dispersy.community import Community
+from Tribler.Core.dispersy.callback import Callback
+from Tribler.Core.dispersy.community import Community, HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.member import MyMember
@@ -177,6 +178,17 @@ def main():
         print >> sys.stderr, error
         session_done_flag.set()
 
+    def start():
+        # start Dispersy
+        dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
+        dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
+
+        # load all HardKilledCommunity communities
+        print "Restored", len(HardKilledCommunity.load_communities()), "hard-killed communities"
+
+        # load the existing Tracker communities
+        print "Restored", len(TrackerCommunity.load_communities()), "tracker communities"
+
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")
     command_line_parser.add_option("--ip", action="store", type="string", default="0.0.0.0", help="Dispersy uses this ip")
@@ -188,20 +200,24 @@ def main():
     opt, args = command_line_parser.parse_args()
     print "Press Ctrl-C to stop Dispersy"
 
-    # start RawServer
+    # start threads
     session_done_flag = threading.Event()
     rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
+    callback = Callback()
+    callback.start(name="Dispersy")
+    callback.register(start)
 
-    # start Dispersy
-    dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
-    dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
-
-    # load the existing Tracker communities
-    print "Restored", len(TrackerCommunity.load_communities()), "tracker communities"
-
+    def watchdog():
+        while True:
+            try:
+                yield 333.3
+            except GeneratorExit:
+                rawserver.shutdown()
+                session_done_flag.set()
+                break
+    callback.register(watchdog)
     rawserver.listen_forever(None)
-    session_done_flag.set()
-    time.sleep(1)
+    callback.stop()
 
 if __name__ == "__main__":
     main()

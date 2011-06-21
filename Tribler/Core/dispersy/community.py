@@ -112,12 +112,11 @@ class Community(object):
         cid = sha1(master_public_key).digest()
 
         database = DispersyDatabase.get_instance()
-        with database as execute:
-            execute(u"INSERT INTO community (user, classification, cid, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_public_key)))
-            database_id = database.last_insert_rowid
-            execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(master_public_key)))
-            execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(master_public_key), buffer(master_private_key)))
-            execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
+        database.execute(u"INSERT INTO community (user, classification, cid, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_public_key)))
+        database_id = database.last_insert_rowid
+        database.execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(master_public_key)))
+        database.execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(master_public_key), buffer(master_private_key)))
+        database.execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
 
         # new community instance
         community = cls.load_community(cid, master_public_key, *args, **kargs)
@@ -415,13 +414,12 @@ class Community(object):
 
         else:
             mapping = {authorize.database_id:authorize.handle_callback, revoke.database_id:revoke.handle_callback}
-            with self._dispersy_database as execute:
-                for name, packet in execute(u"SELECT name, packet FROM sync WHERE community = ? AND name IN (?, ?) ORDER BY global_time, packet", (self.database_id, authorize.database_id, revoke.database_id)):
-                    packet = str(packet)
-                    # TODO: when a packet conversion fails we must drop something, and preferably check
-                    # all messages in the database again...
-                    message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-                    mapping[name]([message])
+            for name, packet in self._dispersy.database.execute(u"SELECT name, packet FROM sync WHERE community = ? AND name IN (?, ?) ORDER BY global_time, packet", (self.database_id, authorize.database_id, revoke.database_id)):
+                packet = str(packet)
+                # TODO: when a packet conversion fails we must drop something, and preferably check
+                # all messages in the database again...
+                message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+                mapping[name]([message])
 
     # @property
     def __get_dispersy_auto_load(self):
@@ -779,11 +777,17 @@ class Community(object):
 
                 if end_index >= 0:
                     time_high = self._sync_ranges[end_index - 1].time_low - 1 if end_index > 0 else self._time_high
+                    if __debug__:
+                        dprint("merge sync range [", self._sync_ranges[low_index].time_low, ":", time_high, "]")
+                        dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
 
                     self._sync_ranges[low_index].clear()
                     map(self._sync_ranges[low_index].add, (str(packet) for packet, in self._dispersy.database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ?",
                                                                                                                       (self._database_id, self._sync_ranges[low_index].time_low, time_high))))
                     del self._sync_ranges[end_index:low_index]
+
+                    if __debug__:
+                        dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
 
                     # break.  because the loop over low_index may be invalid now
                     break
@@ -801,88 +805,91 @@ class Community(object):
         if __debug__: dprint("updating ", len(messages), " messages")
 
         for message_index, message in zip(count(), sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))):
-            last_time_low = 0
+            if __debug__: last_time_low = 0
 
             for index, sync_range in zip(count(), self._sync_ranges):
                 if sync_range.time_low <= message.distribution.global_time:
 
-                    if sync_range.space_remaining <= 0:
+                    # possibly add a new sync range
+                    if sync_range.space_remaining <= sync_range.space_freed:
                         if message.distribution.global_time > self._time_high:
                             assert last_time_low == last_time_low if last_time_low else self._time_high
                             assert index == 0
-                            # add a new sync range
                             sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                             self._sync_ranges.insert(0, sync_range)
                             if __debug__: dprint("new ", sync_range.bloom_filters[0].capacity, " capacity filter created for range [", sync_range.time_low, ":inf]")
 
-                        else:
-                            assert last_time_low >= 0
-                            assert index >= 0
-                            if last_time_low == 0:
-                                last_time_low = self._time_high + 1
-
-                            # get all items in this range (from the database, and from this call to update_sync_range)
-                            items = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ?", (self.database_id, sync_range.time_low, last_time_low - 1)))
-                            items.extend((msg.distribution.global_time, msg.packet) for msg in messages[:message_index] if sync_range.time_low <= msg.distribution.global_time < last_time_low)
-                            items.sort()
-                            # split the current range
-                            index_middle = int((len(items) + 1) / 2)
-                            time_middle = items[index_middle][0]
-                            # the middle index may not be the same as len(ITEMS)/2 because
-                            # TIME_MIDDLE may occur any number of times in ITEMS.  It may even be
-                            # that all elements in ITEMS are at TIME_MIDDLE.
-                            for skew in xrange(1, index_middle + 1):
-                                if items[index_middle-skew][0] != time_middle:
-                                    index_middle -= skew - 1
-                                    break
-                                if len(items) > index_middle+skew and items[index_middle+skew][0] != time_middle:
-                                    index_middle += skew
-                                    break
-                            else:
-                                # did not break, meaning, every items in this sync range has the
-                                # same global time.  we can not split this range, false positives
-                                # will be the result.
-                                if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
-                                assert not filter(lambda x: not x[0] == time_middle, items)
-                                index_middle = 0
-
-                            if index_middle:
-                                time_middle = items[index_middle][0]
-
-                                if __debug__: dprint("split [", sync_range.time_low, ":", last_time_low - 1, "] into [", sync_range.time_low, ":", time_middle - 1, "] and [", time_middle, ":", last_time_low - 1, "] with ", len(items[:index_middle]), " and ", len(items[index_middle:]), " items, respectively")
-                                assert index_middle == 0 or items[index_middle-1][0] < items[index_middle][0]
-
-                                # clear and fill range [sync_range.time_low:time_middle-1]
-                                sync_range.clear()
-                                map(sync_range.add, (str(packet) for _, packet in items[:index_middle]))
-                                if __debug__:
-                                    for global_time, _, in items[:index_middle]:
-                                        dprint("re-add in [", sync_range.time_low, ":", time_middle - 1, "] @", global_time)
-                                        assert sync_range.time_low <= global_time < time_middle
-
-                                # create and fill range [time_middle:last_time_low-1]
-                                new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
-                                self._sync_ranges.insert(index, new_sync_range)
-                                map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
-                                if __debug__:
-                                    for global_time, _, in items[index_middle:]:
-                                        dprint("re-add in [", new_sync_range.time_low, ":", last_time_low - 1, "] @", global_time)
-                                        assert new_sync_range.time_low <= global_time < last_time_low
-
-                                # make sure we use the correct sync range to add the message
-                                if message.distribution.global_time >= new_sync_range.time_low:
-                                    sync_range = new_sync_range
-                                else:
-                                    last_time_low = new_sync_range.time_low
-
+                    # add the packet
                     sync_range.add(message.packet)
-                    if __debug__: dprint("add in [", sync_range.time_low, ":", last_time_low - 1 if last_time_low else "inf", "] ", message.name, "@", message.distribution.global_time, "; remaining: ", sync_range.space_remaining)
+                    if __debug__: dprint("add in [", sync_range.time_low, ":", last_time_low - 1 if last_time_low else "inf", "] ", message.name, "@", message.distribution.global_time, "; remaining: ", sync_range.space_remaining, " (", sync_range.space_remaining - sync_range.space_freed, " effectively)")
                     assert message.distribution.global_time >= sync_range.time_low
                     break
 
-                last_time_low = sync_range.time_low
+                if __debug__: last_time_low = sync_range.time_low
             self._time_high = max(self._time_high, message.distribution.global_time)
         self._global_time = max(self._global_time, self._time_high)
+
+        # possibly split sync ranges
+        while True:
+            last_time_low = self._time_high + 1
+            for index, sync_range in zip(count(), self._sync_ranges):
+                if sync_range.space_remaining < sync_range.space_freed and sync_range.time_low < last_time_low:
+                    assert last_time_low >= 0
+                    assert index >= 0
+
+                    # get all items in this range (from the database, and from this call to update_sync_range)
+                    items = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ? ORDER BY global_time, packet", (self.database_id, sync_range.time_low, last_time_low - 1)))
+                    # split the current range
+                    index_middle = int((len(items) + 1) / 2)
+                    time_middle = items[index_middle][0]
+                    # the middle index may not be the same as len(ITEMS)/2 because
+                    # TIME_MIDDLE may occur any number of times in ITEMS.  It may even be
+                    # that all elements in ITEMS are at TIME_MIDDLE.
+                    for skew in xrange(1, index_middle + 1):
+                        if items[index_middle-skew][0] != time_middle:
+                            index_middle -= skew - 1
+                            break
+                        if len(items) > index_middle+skew and items[index_middle+skew][0] != time_middle:
+                            index_middle += skew
+                            break
+                    else:
+                        # did not break, meaning, every items in this sync range has the
+                        # same global time.  we can not split this range, this will result
+                        # in an increased chance for false positives
+                        if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
+                        assert not filter(lambda x: not x[0] == time_middle, items)
+                        index_middle = 0
+
+                    if index_middle > 0:
+                        time_middle = items[index_middle][0]
+
+                        if __debug__: dprint("split [", sync_range.time_low, ":", last_time_low - 1, "] into [", sync_range.time_low, ":", time_middle - 1, "] and [", time_middle, ":", last_time_low - 1, "] with ", len(items[:index_middle]), " and ", len(items[index_middle:]), " items, respectively")
+                        assert index_middle == 0 or items[index_middle-1][0] < items[index_middle][0]
+
+                        # clear and fill range [sync_range.time_low:time_middle-1]
+                        sync_range.clear()
+                        map(sync_range.add, (str(packet) for _, packet in items[:index_middle]))
+                        if __debug__:
+                            for global_time, _, in items[:index_middle]:
+                                dprint("re-add in [", sync_range.time_low, ":", time_middle - 1, "] @", global_time)
+                                assert sync_range.time_low <= global_time < time_middle
+
+                        # create and fill range [time_middle:last_time_low-1]
+                        new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+                        self._sync_ranges.insert(index, new_sync_range)
+                        map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
+                        if __debug__:
+                            for global_time, _, in items[index_middle:]:
+                                dprint("re-add in [", new_sync_range.time_low, ":", last_time_low - 1, "] @", global_time)
+                                assert new_sync_range.time_low <= global_time < last_time_low
+                        break
+
+                last_time_low = sync_range.time_low
+
+            else:
+                # did not break, meaning, we can not split any more sync ranges
+                break
+            dprint("potential endless loop")
 
     def get_subjective_set(self, member, cluster):
         """
