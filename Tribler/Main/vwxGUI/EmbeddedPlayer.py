@@ -517,6 +517,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.UpdateProgressSlider(pieces_complete)
     
     def SetPlayerStatus(self,s):
+        if sys.platform == 'win32':
+            s = "\n".join(wrap(s,64))
+        
         self.SetLoadingText(s)
 
     def SetContentName(self,s):
