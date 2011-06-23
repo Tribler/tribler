@@ -368,7 +368,7 @@ class TorrentDetails(AbstractDetails):
                 
             foundSubtitles = len(curlang) > 0
             
-            subtitlePanel, vSizer = self._create_tab("Subtitles")
+            subtitlePanel, vSizer = self._create_tab(self.notebook, "Subtitles")
             vSizer.AddSpacer((-1, 3))
             
             if not finished:

@@ -5,13 +5,14 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import _set_font
 from Tribler.Core.API import *
 
-
 from list import *
 from list_footer import *
 from list_header import *
 from list_body import *
 from list_details import *
 from __init__ import *
+
+DEBUG = False
 
 class ChannelManager():
     def __init__(self, list):
