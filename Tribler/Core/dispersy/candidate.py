@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from dispersydatabase import DispersyDatabase
+from member import Member
 
 class Candidate(object):
     """
