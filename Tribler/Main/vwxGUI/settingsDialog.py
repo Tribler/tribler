@@ -276,9 +276,6 @@ class SettingsDialog(wx.Dialog):
                     print_exc()
                     
             scfg.save(cfgfilename)
-            
-            channelcast_db = self.utility.session.open_dbhandler(NTFY_CHANNELCAST) 
-            channelcast_db.updateMyChannelName(self.myname)
             self.guiUtility.toggleFamilyFilter(self.elements['familyFilter'].GetSelection() == 0)
             
             selectedPopup = self.elements['externalplayer'].GetSelection() == 1
