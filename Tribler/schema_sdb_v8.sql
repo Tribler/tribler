@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS ChannelMetaData (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   type_id               integer         NOT NULL,
-  value                 integer         NOT NULL,
+  value                 text            NOT NULL,
   prev_modification     integer,
   prev_global_time      integer,
   inserted              integer         DEFAULT (strftime('%s','now')),
@@ -554,7 +554,7 @@ CREATE TABLE IF NOT EXISTS MetaDataChannel (
 );
 CREATE INDEX IF NOT EXISTS MeChannelIndex ON MetaDataChannel(channel_id);
 
-CREATE TABLE ChannelVotes (
+CREATE TABLE IF NOT EXISTS ChannelVotes (
   channel_id            integer,
   voter_id              integer,
   dispersy_id           integer,
@@ -565,7 +565,7 @@ CREATE TABLE ChannelVotes (
 CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
 CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
 
-CREATE TABLE TorrentFiles (
+CREATE TABLE IF NOT EXISTS TorrentFiles (
   torrent_id            integer NOT NULL,
   path                  text    NOT NULL,
   length                integer NOT NULL,
@@ -573,12 +573,22 @@ CREATE TABLE TorrentFiles (
 );
 CREATE INDEX IF NOT EXISTS TorFileIndex ON TorrentFiles(torrent_id);
 
-CREATE TABLE TorrentCollecting (
+CREATE TABLE IF NOT EXISTS TorrentCollecting (
   torrent_id            integer NOT NULL,
   source                text    NOT NULL,
   PRIMARY KEY (torrent_id, source)
 );
 CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
+
+CREATE TABLE IF NOT EXISTS TorrentMarkings (
+  channeltorrent_id     integer NOT NULL,
+  peer_id               integer,
+  global_time           integer,
+  type                  text    NOT NULL,
+  time_stamp            integer NOT NULL,
+  PRIMARY KEY (channeltorrent_id, peer_id)
+);
+CREATE INDEX IF NOT EXISTS TorMarkIndex ON TorrentMarkings(channeltorrent_id);
 
 
 

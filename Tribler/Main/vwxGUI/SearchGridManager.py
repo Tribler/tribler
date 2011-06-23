@@ -75,6 +75,7 @@ class TorrentManager:
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
         # delay. the value needs to be a positive integer.
+        self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
         self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
@@ -373,9 +374,16 @@ class TorrentManager:
         for ds in dslist:
             infohash = ds.get_download().get_def().get_infohash()
             
-            progress = (ds.get_progress() or 0.0) * 100.0
+            status = ds.get_status()
+            if status == DLSTATUS_SEEDING:
+                progress = 100
+            elif status == DLSTATUS_DOWNLOADING:
+                progress = (ds.get_progress() or 0.0) * 100.0
+            else:
+                progress = False
+            
             #update progress if difference is larger than 5%
-            if progress - self.cache_progress.get(infohash, 0) > 5:
+            if progress and progress - self.cache_progress.get(infohash, 0) > 5:
                 self.cache_progress[infohash] = progress
                 try:
                     self.mypref_db.updateProgress(infohash, progress, commit = False)
@@ -451,7 +459,6 @@ class TorrentManager:
             if mode == 'libraryMode':
                 return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
             
-            #show dead torrents in library
             okCategory = False
             if not okCategory:
                 categories = torrent.get("category", [])
@@ -917,6 +924,12 @@ class ChannelSearchGridManager:
     def getMyVote(self, channel_id):
         return self.votecastdb.getVote(channel_id, None)
     
+    def getTorrentMarkings(self, channeltorrent_id):
+        return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
+    
+    def getTorrentModifications(self, channeltorrent_id):
+        return self.channelcast_db.getTorrentModifications(channeltorrent_id)
+    
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         assert 'ChannelTorrents.name' in keys and 'CollectedTorrent.name' in keys, "Require ChannelTorrents.name and CollectedTorrent.name in keys"
         data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, keys)
@@ -938,7 +951,7 @@ class ChannelSearchGridManager:
         return self._fix_torrents(hits, filterTorrents)
     
     def getRecentTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys, limit)
+        hits = self.channelcast_db.getRecentTorrentsFromChannelId(channel_id, keys, limit)
         return self._fix_torrents(hits, filterTorrents)
 
     def getTorrentsNotInPlaylist(self, channel_id, keys, filterTorrents = True):
@@ -966,6 +979,12 @@ class ChannelSearchGridManager:
             #Prefer channeltorrents name, but use collectedtorrent as backup
             data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']  
         return len(hits), nrFiltered, hits
+
+    def getRecentModificationsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
+        return self.channelcast_db.getRecentModificationsFromChannelId(channel_id, keys, limit)
+
+    def getRecentModificationsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
+        return self.channelcast_db.getRecentModificationsFromPlaylist(playlist_id, keys, limit)
     
     def _applyFF(self, hits):
         enabledcattuples = self.category.getCategoryNames()
@@ -1029,7 +1048,7 @@ class ChannelSearchGridManager:
         to_be_removed = set()
         
         sql = "SELECT distinct infohash FROM PlaylistTorrents PL, ChannelTorrents CT, Torrent T WHERE PL.channeltorrent_id = CT.id AND CT.torrent_id = T.torrent_id AND playlist_id = ?"
-        records = self._db.fetchall(sql,(playlist_id,))
+        records = self.channelcast_db._db.fetchall(sql,(playlist_id,))
         for infohash, in records:
             infohash = str2bin(infohash)
             if infohash in to_be_created:
@@ -1037,11 +1056,13 @@ class ChannelSearchGridManager:
             else:
                 to_be_removed.add(infohash)
         
-        def dispersy_thread():
-            community = self._disp_get_community_from_channel_id(channel_id)
-            community.create_playlist_torrents(playlist_id, to_be_created)
+        if len(to_be_created) > 0:
+            def dispersy_thread():
+                community = self._disp_get_community_from_channel_id(channel_id)
+                community.create_playlist_torrents(playlist_id, to_be_created)
             
-        self.dispersy.rawserver.add_task(dispersy_thread)
+            self.dispersy.rawserver.add_task(dispersy_thread)
+        
     
     def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
         infohash = None
@@ -1156,7 +1177,17 @@ class ChannelSearchGridManager:
             self.votecastdb.spam(channel_id)
         else:
             self.votecastdb.unsubscribe(channel_id)
-                
+    
+    def markTorrent(self, channel_id, infohash, type, timestamp = None):
+        if not timestamp:
+            timestamp = int(time())
+        
+        def dispersy_thread():
+            community = self._disp_get_community_from_channel_id(channel_id)
+            community._disp_create_mark_torrent(infohash, type, timestamp)
+        
+        self.dispersy.rawserver.add_task(dispersy_thread)
+        
     def getChannelForTorrent(self, infohash):
         return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
     

@@ -695,3 +695,10 @@ class ImageScrollablePanel(ScrolledPanel):
     def SetBitmap(self, bitmap):
         self.bitmap = bitmap
         self.Refresh()
+        
+        
+def _set_font(control, size_increment = 0, fontweight = wx.FONTWEIGHT_NORMAL):
+    font = control.GetFont()
+    font.SetPointSize(font.GetPointSize() + size_increment)
+    font.SetWeight(fontweight)
+    control.SetFont(font)

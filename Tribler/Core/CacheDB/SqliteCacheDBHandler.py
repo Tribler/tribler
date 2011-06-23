@@ -1,5 +1,5 @@
 # Written by Jie Yang
-# Updated by George Milescu
+# Modified by George Milescu
 # see LICENSE.txt for license information
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py 
 # for any function you add to database. 
@@ -234,7 +234,7 @@ class PeerDBHandler(BasicDBHandler):
 
     def getPeerID(self, permid):
         return self._db.getPeerID(permid)
-
+    
     def getPeerIDS(self, permids):
         return self._db.getPeerIDS(permids)
     
@@ -451,7 +451,7 @@ class PeerDBHandler(BasicDBHandler):
             return str2bin(permid)
         else:
             return None
-    
+        
     def getPermids(self, peer_ids):
         parameters = '?,'*len(peer_ids)
         sql = "SELECT permid, peer_id FROM Peer WHERE peer_id IN ("+parameters[:-1]+")"
@@ -467,7 +467,7 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 to_return.append(None)
         return to_return
-            
+        
     def getNumberPeers(self, category_name = 'all'):
         # 28/07/08 boudewijn: counting the union from two seperate
         # select statements is faster than using a single select
@@ -1880,27 +1880,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['channel_permid'] = ""
             if torrent['channel_name'] is None:
                 torrent['channel_name'] = ""
-                            
-            # check if this torrent belongs to more than one channel
-            if torrent['infohash'] in torrents_dict:
-                old_record = torrents_dict[torrent['infohash']]
-                # check if this channel has votes and if so, is it better than previous channel
-                if torrent['channel_permid'] in votes:
-                    numsubscriptions, negvotes = votes[torrent['channel_permid']] 
-                    if numsubscriptions-negvotes > old_record['subscriptions'] - old_record['neg_votes']:
-                        #print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
-                        old_record['channel_permid'] = torrent['channel_permid']
-                        old_record['channel_name'] = torrent['channel_name']
-                        old_record['subscriptions'] = numsubscriptions
-                        old_record['neg_votes'] = negvotes
-                else:
-                    if old_record['subscriptions'] - old_record['neg_votes'] < 0: # SPAM cutoff
-                        old_record['channel_permid'] = torrent['channel_permid']
-                        old_record['channel_name'] = torrent['channel_name']
-                        old_record['subscriptions'] = 0
-                        old_record['neg_votes'] = 0
-                continue
-
+            
             try:
                 torrent['source'] = self.id2src[torrent['source_id']]
             except:
@@ -2016,7 +1996,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         return [str2bin(infohash) for infohash in res if not infohash is None]
         
-    def selectTorrentToCheck(self, policy='random', infohash=None, return_value=None):    # for tracker checking
+    def selectTorrentToCheck(self, policy='random', infohash=None):    # for tracker checking
         """ select a torrent to update tracker info (number of seeders and leechers)
         based on the torrent checking policy.
         RETURN: a dictionary containing all useful info.
@@ -2061,8 +2041,9 @@ class TorrentDBHandler(BasicDBHandler):
                          limit 1 """%last_check_threshold
             res = self._db.fetchone(sql)
         else:
+            #Niels: If we specifiy a particular torrent, allow for non-collected torrents (ie torrent from channels can have trackers before the .torrent is collected)
             sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
-                     from CollectedTorrent T, TorrentTracker TT
+                     from Torrent T, TorrentTracker TT
                      where TT.torrent_id=T.torrent_id and announce_tier=1
                      and infohash=? 
                   """
@@ -2073,16 +2054,15 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_file_name = res[3]
             torrent_dir = self.getTorrentDir()
             torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            if res is not None:
-                res = {'torrent_id':res[0], 
-                       'ignored_times':res[1], 
-                       'retried_times':res[2], 
-                       'torrent_path':torrent_path,
-                       'infohash':str2bin(res[4])
-                      }
-            return_value['torrent'] = res
-        return_value['event'].set()
-
+            
+            res = {'torrent_id':res[0], 
+                   'ignored_times':res[1], 
+                   'retried_times':res[2], 
+                   'torrent_path':torrent_path,
+                   'infohash':str2bin(res[4]),
+                   'status':self.id2status[res[5]]
+                  }
+            return res
 
     def getTorrentsFromSource(self,source):
         """ Get all torrents from the specified Subscription source. 
@@ -3106,6 +3086,14 @@ class VoteCastDBHandler(BasicDBHandler):
     def getEffectiveVoteFromPermid(self, channel_permid):
         channel_id = self.peer_db.getPeerID(self.my_permid)
         return self.getEffectiveVote(channel_id)
+    
+    def getMyVotes(self):
+        sql = "SELECT channel_id, vote FROM ChannelVotes WHERE voter_id ISNULL"
+        
+        return_dict = {}
+        for channel_id, vote in self._db.fetchall(sql):
+            return_dict[channel_id] = vote
+        return return_dict
                         
 #end votes
 
@@ -3136,10 +3124,11 @@ class ChannelCastDBHandler:
             self.notifier = Notifier.getInstance()
         except:
             print >> sys.stderr, "Channels: could not make a connection to table"
-
+        
+        self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
         self._channel_id = self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
         self.my_dispersy_cid = None
-        if True or DEBUG:
+        if DEBUG:
             print >> sys.stderr, "Channels: my channel is", self._channel_id
     
     def registerSession(self, session):
@@ -3221,11 +3210,12 @@ class ChannelCastDBHandler:
     def deleteTorrent(self, channel_id, torrent_id):
         #TODO, connect with dispersy, decrement nr_torrents!
         raise NotImplementedError()
+    
         """
         sql = 'Delete From ChannelCast where infohash=? and publisher_id=?'
         self._db.execute_write(sql,(bin2str(infohash),bin2str(self.my_permid),))
-        """    
-    
+        """
+        
     def on_torrents_from_dispersy(self, torrentlist):
         print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
         
@@ -3251,9 +3241,6 @@ class ChannelCastDBHandler:
             
             insert_data.append((dispersy_id, torrent_id, channel_id, name, timestamp))
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
-            
-            if len(trackers) > 0:
-                self.torrent_db._addTorrentTrackerList(torrent_id, trackers[0], [], commit = False)
 
         sql_insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, name, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(sql_insert_torrent, insert_data, commit = False)
@@ -3338,6 +3325,11 @@ class ChannelCastDBHandler:
                 self._db.execute_write(update_channel, (int(time()), self.getNrTorrentsInChannel(channel_id), channel_id), commit = False)
         
         self._db.commit()
+        
+    def deleteTorrentFromChannel(self, channel_id):
+        #remove all non-dispersy torrents
+        sql = "DELETE FROM ChannelTorrents WHERE channel_id = ? AND dispersy_id = ?"
+        self._db.execute_write(sql, (channel_id, -1))
     
     #dispersy receiving comments
     def on_comment_from_dispersy(self, channel_id, dispersy_id, mid_global_time, peer_id, comment, timestamp, reply_to, reply_after, playlist_dispersy_id, infohash):
@@ -3396,25 +3388,56 @@ class ChannelCastDBHandler:
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
         
-    def on_metadata_from_dispersy(self, type, link_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time):
+    def on_metadata_from_dispersy(self, type, channeltorrent_id, playlist_id, channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time):
         sql = "INSERT INTO ChannelMetaData (dispersy_id, type_id, value, prev_modification, prev_global_time) VALUES (?, ?, ?, ?, ?); SELECT last_insert_rowid();"
         metadata_id = self._db.fetchone(sql, (dispersy_id, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time))
         
-        if type == u"torrent":
+        if channeltorrent_id:
             sql = "INSERT INTO MetaDataTorrent (metadata_id, channeltorrent_id) VALUES (?,?)"
-            self._db.execute_write(sql, (metadata_id, link_id), commit = False)
+            self._db.execute_write(sql, (metadata_id, channeltorrent_id), commit = False)
             
-        elif type == u"playlist":
+            self.notifier.notify(NTFY_MODIFICATIONS, NTFY_INSERT, channeltorrent_id)
+        
+        if playlist_id:
             sql = "INSERT INTO MetaDataPlaylist (metadata_id, playlist_id) VALUES (?,?)"
-            self._db.execute_write(sql, (metadata_id, link_id), commit = False)
+            self._db.execute_write(sql, (metadata_id, playlist_id), commit = False)
             
-        elif type == u"channel":
-            sql = "INSERT INTO MetaDataChannel (metadata_id, channel_id) VALUES (?,?)"
-            self._db.execute_write(sql, (metadata_id, link_id), commit = False)
+            self.notifier.notify(NTFY_MODIFICATIONS, NTFY_INSERT, playlist_id)
+            
+        sql = "INSERT INTO MetaDataChannel (metadata_id, channel_id) VALUES (?,?)"
+        self._db.execute_write(sql, (metadata_id, channel_id), commit = False)
+        
+        self.notifier.notify(NTFY_MODIFICATIONS, NTFY_INSERT, channel_id)
 
         #try fo fix loose reply_to and reply_after pointers
         sql =  "UPDATE ChannelMetaData SET prev_modification = ? WHERE prev_modification = ?;"
         self._db.execute_write(sql, (dispersy_id, buffer(mid_global_time)))
+        
+    def on_warning(self, channel_id, dispersy_id, peer_id, by_peer_id, cause, message, timestamp):
+        sql = "INSERT INTO Warnings (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, time_stamp) VALUES (?,?,?,?,?,?,?)"
+        self._db.execute_write(sql, (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, timestamp))
+        
+    def on_mark_torrent(self, channel_id, global_time, peer_id, infohash, type, timestamp):
+        channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
+        
+        if peer_id:
+            select = "SELECT global_time FROM TorrentMarkings WHERE channeltorrent_id = ? AND peer_id = ?"
+            prev_global_time = self._db.fetchone(select, (channeltorrent_id, peer_id))
+        else:
+            select = "SELECT global_time FROM TorrentMarkings WHERE channeltorrent_id = ? AND peer_id IS NULL"
+            prev_global_time = self._db.fetchone(select, (channeltorrent_id, ))
+        
+        if prev_global_time:
+            if global_time > prev_global_time:
+                if peer_id:
+                    sql = "DELETE FROM TorrentMarkings WHERE channeltorrent_id = ? AND peer_id = ?"
+                    self._db.execute_write(sql, (channeltorrent_id, peer_id), commit = False)
+                else:
+                    sql = "DELETE FROM TorrentMarkings WHERE channeltorrent_id = ? AND peer_id IS NULL"
+                    self._db.execute_write(sql, (channeltorrent_id, ), commit = False)
+                    
+        sql = "INSERT INTO TorrentMarkings (global_time, channeltorrent_id, peer_id, type, time_stamp) VALUES (?,?,?,?,?)"
+        self._db.execute_write(sql, (global_time, channeltorrent_id, peer_id, type, timestamp))
     
     def selectTorrentsToCollect(self, channel_id = None):
         if channel_id:
@@ -3513,6 +3536,15 @@ class ChannelCastDBHandler:
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
     
+    def getRecentModificationsFromChannelId(self, channel_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataChannel, ChannelMetaData WHERE MetaDataChannel.metadata_id = ChannelMetaData.id AND channel_id = ? ORDER BY inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (channel_id,))
+        
+        modifications = [dict(zip(keys,result)) for result in results]
+        return modifications
+    
     def getTorrentsFromPlaylist(self, playlist_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents, PlaylistTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? ORDER BY time_stamp DESC"
         if limit:
@@ -3526,6 +3558,15 @@ class ChannelCastDBHandler:
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (playlist_id,))
         return self.__fixTorrents(keys, results)
+    
+    def getRecentModificationsFromPlaylist(self, playlist_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataPlaylist, ChannelMetaData WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND channel_id = ? ORDER BY inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        results = self._db.fetchall(sql, (playlist_id,))
+        
+        modifications = [dict(zip(keys,result)) for result in results]
+        return modifications
     
     def getTorrentsNotInPlaylist(self, channel_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY time_stamp DESC"
@@ -3614,93 +3655,7 @@ class ChannelCastDBHandler:
                     results.append((channel_id, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []
-        
-        """
-        SHOULD BE MOVED INTO DISPERSY
-        elif query[0] == 'p':
-            # search channel's torrents based on permid
-            q = query[2:]
-            arguments = q.split()
-            records = []
-            
-            allrecords = []
-
-            if len(arguments) == 1:
-                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
-                allrecords = self._db.fetchall(s,(q,))
-                
-            else:
-                publisher_id = arguments[0]
-                min_timestamp = int(arguments[1])
-                max_timestamp = int(arguments[2])
-                nr_items = int(arguments[3])
-                
-                my_channel = publisher_id == bin2str(self.my_permid)
-                my_vote = self.votecast_db.getVote(publisher_id, bin2str(self.my_permid))
-                
-                if my_channel or my_vote == 2: 
-                    record = self.getTimeframeForChannel(publisher_id)
-                    if record:
-                        #does the peer have any missing items in its timeframe?
-                        s = "select count(distinct infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
-                        timeframe_items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
-                        
-                        #detect if we have older items, newer items
-                        older_items = record[0] < min_timestamp
-                        newer_items = record[1] > max_timestamp
-                        
-                        if timeframe_items > nr_items:
-                            #his timeframe is incorrect
-                            
-                            nr_items_return = nr_items + 1
-                            if nr_items_return < 50:
-                                nr_items_return = 50
-                            
-                            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
-                            allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
-                        
-                        elif timeframe_items < nr_items:
-                            #my timeframe is incorrect or he has more data
-                            #print >> sys.stderr, "HE HAS MORE DATA"
-                            
-                            from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
-                            channelcast = ChannelCastCore.getInstance()
-                            
-                            if older_items or newer_items:
-                                #print >> sys.stderr, "REQUESTING TIMEFRAME FIX"
-                                
-                                #our timeframe needs fixing, request all his items
-                                #request nr_items-1, this will ensure that he will send us all his items back
-                                channelcast.updateAChannel(publisher_id, timeframe = (min_timestamp, max_timestamp, nr_items-1))
-                                
-                            else:
-                                #we did not yet caught up with all other peers, do nothing
-                                pass
-                        else:
-                            #timeframes are correct
-                            if older_items or newer_items:
-                                #return max 50 newer, append with old
-                                s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
-                                allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
-                                
-                                if len(allrecords) < 50:
-                                    s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
-                                    allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
-                            else:
-                                #print >> sys.stderr, "WE HAVE SAME DATA"
-                                pass
-                    else:
-                        #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
-                        pass
-                    
-            for record in allrecords:
-                records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
-                
-            return records #channelList#
-         
-        # Query is invalid: hence, it should not even come here
-        return None
-        """
+       
     def getChannel(self, channel_id):
         sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id = ?"
         channels = self._getChannels(sql, (channel_id,))
@@ -3711,21 +3666,16 @@ class ChannelCastDBHandler:
             sql = "Select description From Channels Where id = ?"
             channel.append(self._db.fetchone(sql, (channel_id, )))
             return channel 
-    
-    def getChannels(self, permids):
-        publishers = "','".join(permids)
-        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id IN ('" + publishers + "')"
-        return self._getChannels(sql)
-   
+      
     def getAllChannels(self):
         """ Returns all the channels """
         sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
-        return self._getChannels(sql, allChannels = True)
+        return self._getChannels(sql)
     
     def getNewChannels(self, updated_since = 0):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
-        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
-        return self._getChannels(sql, maxvotes = 0, updated_since = updated_since)
+        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE nr_favorite = 0 AND nr_spam = 0 AND modified > ?"
+        return self._getChannels(sql, (updated_since, ))
     
     def getLatestUpdated(self, max_nr = 20):
         def channel_sort(a,b):
@@ -3747,43 +3697,28 @@ class ChannelCastDBHandler:
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
-        return self._getChannels(sql)[:max_nr]
+        sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels ORDER BY nr_favorite DESC LIMIT ?"
+        return self._getChannels(sql, (max_nr, ))
 
     def getMySubscribedChannels(self):
         sql = "SELECT id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         return self._getChannels(sql)
-
-    def getTimeframeForChannel(self, publisher_id):
-        sql = 'Select min(time_stamp), max(time_stamp), count(distinct infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
-        return  self._db.fetchone(sql, (publisher_id,))
     
-    def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None, allChannels = False):
+    def _getChannels(self, sql, args = None, cmpF = None):
         """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
         
-        if allChannels:
-            my_votes = self.votecast_db.getMyVotes()
-            
-            #append all other channels as (0,0)
-            for result in results:
-                if result[0] not in my_votes:
-                    my_votes[result[0]] = 0
-        else:
-            my_votes = {}
-
+        my_votes = self.votecast_db.getMyVotes()
+        #append all other channels as (0,0)
+        for result in results:
+            if result[0] not in my_votes:
+                my_votes[result[0]] = 0
+        
         for channel_id, channel_name, dispersy_cid, modified, nr_torrents, nr_favorites, nr_spam in results:
-            nr_votes = nr_favorites + nr_spam
-            
-            if nr_votes >= minvotes and nr_votes <= maxvotes:
-                if result[0] not in my_votes:
-                    my_vote = self.votecast_db.getVote(result[0], bin2str(self.my_permid))
-                else:
-                    my_vote = my_votes[result[0]]
-
-                channels.append((channel_id, channel_name[:40], modified, nr_favorites, nr_torrents, nr_spam, my_vote, dispersy_cid != '-1', dispersy_cid))
-
+            my_vote = my_votes[channel_id]
+            channels.append((channel_id, channel_name[:40], modified, nr_favorites, nr_torrents, nr_spam, my_vote, dispersy_cid != '-1', dispersy_cid))
+                
         def channel_sort(a, b):
             #first compare local vote, spam -> return -1
             if a[6] == -1:
@@ -3817,6 +3752,18 @@ class ChannelCastDBHandler:
 
         nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)
         return nr_favorites
+    
+    def getTimeframeForChannel(self, channel_id):
+        sql = 'Select min(time_stamp), max(time_stamp), count(distinct infohash) From ChannelTorrents Where channel_id = ?'
+        return  self._db.fetchone(sql, (channel_id,))
+    
+    def getTorrentMarkings(self, channeltorrent_id):
+        sql = "SELECT type, count(*) FROM TorrentMarkings WHERE channeltorrent_id = ? GROUP BY type"
+        return self._db.fetchall(sql, (channeltorrent_id,))
+    
+    def getTorrentModifications(self, channeltorrent_id):
+        sql = "SELECT id, type_id, value, inserted FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY prev_global_time DESC"
+        return self._db.fetchall(sql, (channeltorrent_id,))
 
     def getMostPopularChannelFromTorrent(self, infohash):
         """Returns channel id, name, nrfavorites of most popular channel if any"""
@@ -3835,10 +3782,6 @@ class ChannelCastDBHandler:
                     max_name = name
                     max_vote = nr_favorites
             return (max_id, max_name, max_vote)
-         
-    def getNrChannels(self):
-        sql = "select count(distinct publisher_id) from ChannelCast"
-        return self._db.fetchone(sql)
             
 class GUIDBHandler:
     """ All the functions of this class are only (or mostly) used by GUI.

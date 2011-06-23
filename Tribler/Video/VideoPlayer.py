@@ -697,9 +697,8 @@ class VideoPlayer:
 
 
     def exec_video_player(self,cmd):
-        if DEBUG or True:
+        if DEBUG:
             print >>sys.stderr,"videoplay: Command is @"+cmd+"@"
-        
         # I get a weird problem on Linux. When doing a
         # os.popen2("vlc /tmp/file.wmv") I get the following error:
         #[00000259] main interface error: no suitable interface module
@@ -709,7 +708,7 @@ class VideoPlayer:
         # os.system("vlc /tmp/file.wmv")
         # but that halts Tribler, as it waits for the created shell to
         # finish. Hmmmm....
-
+        #
         try:
             if sys.platform == 'win32':
                 #os.system(cmd)
@@ -1010,14 +1009,6 @@ def return_feasible_playback_modes(syspath):
                 raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
             # pylint: enable-msg=E1101
         l.append(PLAYBACKMODE_INTERNAL)
-# boudewijn: 06/06/2011: if import vlc was ok, then we can also find the vlc dll/so
-#        vlcpath = os.path.join(syspath,"vlc")
-#        if sys.platform == 'win32':
-#            
-#            if os.path.isdir(vlcpath):
-#                l.append(PLAYBACKMODE_INTERNAL)
-#        else:
-#            l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
         print_exc()
     

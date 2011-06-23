@@ -174,8 +174,6 @@ class ChannelSearchManager:
             self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
     
     def _on_data(self, data, title, total_items):
-        data = [channel for channel in data if channel[4] > 0]
-        
         data = [channel for channel in data if channel[CHANNEL_NR_TORRENTS] > 0]
         self.list.SetData(data)
         self.list.SetTitle(title, len(data))
@@ -192,20 +190,19 @@ class ChannelSearchManager:
                 self.do_or_schedule_refresh(force_refresh)
         else:
             self.list.DeselectAll()
-        
-    def channelUpdated(self, permid, votecast = False):
-        if self.list.ready: 
-            if self.list.InList(permid): #one item updated
-                
-                if self.list.ShouldGuiUpdate(): #only update if shown
-                    data = self.channelsearch_manager.getChannel(permid)
+           
+    def channelUpdated(self, id, votecast = False):
+        if self.list.ready:
+            #only update when shown
+            if self.list.IsShownOnScreen():
+                if self.list.InList(id):
+                    data = self.channelsearch_manager.getChannel(id)
                     if data:
                         self.list.RefreshData(id, data)
-                else:    
-                    self.dirtyset.add(permid)
-                    self.list.dirty = True
-                    
-            elif not votecast: #should we update complete list
+                elif self.category in ['All', 'New']:
+                    #Show new channel, but only if we are not showing search results
+                    self.refresh()
+            elif not votecast:
                 if self.category == 'All':
                     update = True
                 elif self.category == 'Popular':
@@ -908,6 +905,7 @@ class ChannelList(List):
         self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mychannel.png"), wx.BITMAP_TYPE_ANY)
         self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         
+        self.select_popular = True
         self.my_id = self.guiutility.channelsearch_manager.channelcast_db._channel_id
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
     
@@ -1011,96 +1009,6 @@ class ChannelList(List):
         #to reset icons we have to reset the complete list :(
         self.list.Reset()        
         self.GetManager().refresh()
-
-    def SetTitle(self, title):
-        self.title = title
-        self.header.SetTitle("%s's channel"%title)
-    
-    def SetDescription(self, description):
-        self.header.SetDescription(description)
-   
-    def toggleFamilyFilter(self):
-        self.guiutility.toggleFamilyFilter()
-        self.guiutility.showChannel(self.title, self.publisher_id)
-   
-    def GetManager(self):
-        if getattr(self, 'manager', None) == None:
-            self.manager = ChannelManager(self) 
-        return self.manager
-    
-    def SetData(self, data):
-        List.SetData(self, data)
-        
-        data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
-        return self.list.SetData(data)
-    
-    def SetNrResults(self, nr, nr_filtered):
-        if isinstance(nr, int):
-            self.total_results = nr
-            if self.total_results == 1:
-                self.header.SetSubTitle('Discovered %d torrent'%self.total_results)
-            else:
-                self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
-        
-        SearchList.SetNrResults(self, None, nr_filtered, None, None)
-    
-    def RefreshData(self, key, data):
-        List.RefreshData(self, key, data)
-        
-        data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
-        self.list.RefreshData(key, data)
-        
-        item = self.list.GetItem(key)
-        panel = item.GetExpandedPanel()
-        if panel:
-            panel.UpdateStatus()
-    
-    def Reset(self):
-        SearchList.Reset(self)
-        self.publisher_id = 0
-    
-    def OnExpand(self, item):
-        panel = SearchList.OnExpand(self, item)
-        panel.ShowChannelAd(False)
-        return panel
-        
-    def OnRemoveVote(self, event):
-        self.channelsearch_manager.remove_vote(self.publisher_id)
-        self.footer.SetStates(False, False)
-    
-    def OnFavorite(self, event = None):
-        self.channelsearch_manager.favorite(self.publisher_id)
-        self.footer.SetStates(False, True)
-        
-        #Request all items from connected peers
-        channelcast = BuddyCastFactory.getInstance().channelcast_core
-        channelcast.updateAChannel(self.publisher_id)
-        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-        
-    def OnSpam(self, event):
-        dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
-        if dialog.ShowModal() == wx.ID_YES:
-            self.channelsearch_manager.spam(self.publisher_id)
-            self.footer.SetStates(True, False)
-            self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
-        dialog.Destroy()
-    
-    def OnBack(self, event):
-        self.guiutility.GoBack()
-        
-    def StartDownload(self, torrent):
-        states = self.footer.GetStates()
-        if not states[1]:
-            nrdownloaded = self.channelsearch_manager.getNrTorrentsDownloaded(self.publisher_id) + 1
-            if  nrdownloaded > 1:
-                dial = wx.MessageDialog(self, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
-                if dial.ShowModal() == wx.ID_YES:
-                    self.OnFavorite()
-                    self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
-                else:
-                    self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
-                dial.Destroy()
-        SearchList.StartDownload(self, torrent)
         
 class ChannelCategoriesList(List):
     def __init__(self):

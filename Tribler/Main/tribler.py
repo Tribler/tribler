@@ -477,6 +477,7 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
 
         # set port number in GuiUtility
         if DEBUG:
@@ -782,12 +783,12 @@ class ABCApp(wx.App):
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
             def guiCall():
-                wx.CallAfter(self.gui_ntfy_channelupdates, objectID, subject == NTFY_VOTECAST)
+                wx.CallAfter(self.gui_ntfy_channelupdates, objectID, changeType, subject == NTFY_VOTECAST)
             
             #wrap in guiserver to prevent multiple refreshes
             self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
     
-    def gui_ntfy_channelupdates(self, channel_id, votecast):
+    def gui_ntfy_channelupdates(self, channel_id, changeType, votecast):
         manager = self.frame.channellist.GetManager()
         manager.channelUpdated(channel_id, votecast)
         
@@ -795,10 +796,11 @@ class ABCApp(wx.App):
         manager.channelUpdated(channel_id)
         
         if changeType == NTFY_CREATE:
-            self.frame.channellist.SetMyChannelId(objectID)
-            self.frame.managechannel.SetMyChannelId(objectID)
+            self.frame.selectedchannellist.SetMyChannelId(channel_id)
+            self.frame.channellist.SetMyChannelId(channel_id)
+            self.frame.managechannel.SetMyChannelId(channel_id)
             
-        self.frame.managechannel.channelUpdated(objectID)
+        self.frame.managechannel.channelUpdated(channel_id)
         
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
@@ -828,6 +830,14 @@ class ABCApp(wx.App):
     def gui_ntfy_commentupdates(self, subject, changeType, objectID, *args):
         self.frame.selectedchannellist.OnCommentCreated(objectID)
         self.frame.playlist.OnCommentCreated(objectID)
+        
+    def sesscb_ntfy_modificationupdates(self, subject, changeType, objectID, *args):
+        if self.ready and self.frame.ready:
+            wx.CallAfter(self.gui_ntfy_modificationupdates,subject,changeType,objectID, *args)
+        
+    def gui_ntfy_modificationupdates(self, subject, changeType, objectID, *args):
+        self.frame.selectedchannellist.OnModificationCreated(objectID)
+        self.frame.playlist.OnModificationCreated(objectID)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

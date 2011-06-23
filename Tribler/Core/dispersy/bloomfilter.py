@@ -17,7 +17,7 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 
 from array import array
 from hashlib import sha1, sha256, sha384, sha512, md5
-from math import ceil, log, pow
+from math import ceil, log, pow, exp
 from struct import unpack_from, unpack, pack
 
 from decorator import Constructor, constructor
@@ -136,8 +136,10 @@ class BloomFilter(Constructor):
         assert bits_per_slice > 0
         assert isinstance(prefix, str)
         assert len(prefix) <= 255
+        
         self._num_slices = num_slices
         self._bits_per_slice = bits_per_slice
+        
         self._prefix = prefix
         self._make_hashes = _make_hashfuncs(num_slices, bits_per_slice, prefix)
         self._bytes = array("B", (0 for _ in xrange(int(ceil(num_slices * bits_per_slice / 8.0)))))
@@ -167,17 +169,19 @@ class BloomFilter(Constructor):
         assert capacity > 0, "Capacity must be > 0"
         assert isinstance(prefix, str)
         assert len(prefix) <= 255
-        # given M = num_bits, k = num_slices, p = error_rate, n = capacity
-        # solving for m = bits_per_slice
-        # n ~= M * ((ln(2) ** 2) / abs(ln(P)))
-        # n ~= (k * m) * ((ln(2) ** 2) / abs(ln(P)))
-        # m ~= n * abs(ln(P)) / (k * (ln(2) ** 2))
+        
+        
+        self._capacity = capacity
         self._num_slices = int(ceil(log(1 / error_rate, 2)))
         assert self._num_slices > 0
+        
         # the error_rate constraint assumes a fill rate of 1/2
         # so we double the capacity to simplify the API
-        self._bits_per_slice = int(((capacity * log(error_rate)) / log(1.0 / (pow(2.0, log(2.0)))) ) / self._num_slices)
+        
+        bits = ceil (-(capacity * log(error_rate)) / (log(2) ** 2))  
+        self._bits_per_slice = int(bits / self._num_slices)
         assert self._bits_per_slice > 0
+        
         self._prefix = prefix
         self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice, prefix)
         self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
@@ -206,10 +210,18 @@ class BloomFilter(Constructor):
         assert bits > 0, "Bits must be > 0"
         assert isinstance(prefix, str)
         assert len(prefix) <= 255
+        
+        #from Scalable Bloom filters
+        #n ~= bits * ((ln 2)^2) / | ln error_rate |
+        #k = log2(1 / error_rate)
+        self._capacity = bits * ((log(2) ** 2) / abs(log(error_rate)))
+        
         self._num_slices = int(ceil(log(1 / error_rate, 2)))
         assert self._num_slices > 0
+        
         self._bits_per_slice = bits / self._num_slices
         assert self._bits_per_slice > 0
+        
         self._prefix = prefix
         self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice, prefix)
         self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
@@ -247,8 +259,10 @@ class BloomFilter(Constructor):
         assert isinstance(offset, (int, long))
         assert isinstance(prefix, str)
         assert len(prefix) <= 255
+        
         self._num_slices = num_slices
         self._bits_per_slice = bits_per_slice
+        
         self._prefix = prefix
         self._make_hashes = _make_hashfuncs(num_slices, bits_per_slice, prefix)
         self._bytes = array("B", data[offset:offset+int(ceil(num_slices*bits_per_slice/8.0))])
@@ -259,8 +273,8 @@ class BloomFilter(Constructor):
         Calculate the optimal error rate from the current settings.
         @rtype: float
         """
-        # self._num_slices = int(ceil(log(1 / error_rate, 2)))
-        return 1.0 / pow(self._num_slices, 2.0)
+        p = exp(- self._num_slices * self._capacity/self.size)
+        return (1 - p) ** self._num_slices
 
     @property
     def capacity(self):
@@ -268,8 +282,10 @@ class BloomFilter(Constructor):
         Calculate the optimal capacity from the current setting.
         @rtype: long
         """
-        # self._bits_per_slice = int(((capacity * log(error_rate)) / log(1.0 / (pow(2.0, log(2.0)))) ) / self._num_slices)
-        return long(self._num_slices * self._bits_per_slice * log(1.0 / (pow(2.0, log(2.0)))) / log(self.error_rate))
+        
+        #from Scalable Bloom filters
+        #n ~= bits * ((ln 2)^2) / | ln error_rate |
+        return int(self.size * ((log(2) ** 2) / abs(log(self.error_rate))))
 
     @property
     def num_slices(self):
@@ -497,14 +513,108 @@ class BloomFilter(Constructor):
     #     """
     #     return pack("!LLB", self._num_slices, self._bits_per_slice, len(self._prefix)) + self._prefix + self._bytes.tostring()
 
+
+class FasterBloomFilter(object):
+    def __init__(self, f, m, prefix = ''):
+        self._f = f 
+        self._m = m
+        self._prefix = prefix
+          
+        #calculate others
+        self._n = int(m * ((log(2) ** 2) / abs(log(f))))
+        self._k = int(ceil(log(2) * (m / self._n)))
+        
+        #determine hash function
+        if m >= (1 << 31):
+            fmt_code, chunk_size = 'Q', 8
+        elif m >= (1 << 15):
+            fmt_code, chunk_size = 'L', 4
+        else:
+            fmt_code, chunk_size = 'H', 2
+        
+        #we need atmost chunk_size * k bits from our hash function
+        bits_required = chunk_size * self._k * 8
+        assert bits_required <= 512, 'Combining multiple hashfunctions is not implemented, cannot create a hash for %d bits'%bits_required
+
+        if bits_required > 384:
+            hashfn = sha512
+        elif bits_required > 256:
+            hashfn = sha384
+        elif bits_required > 160:
+            hashfn = sha256
+        elif bits_required > 128:
+            hashfn = sha1
+        else:
+            hashfn = md5
+        self._fmt = '!' + (fmt_code * self._k) + ('x' * (hashfn().digest_size - bits_required/8))
+        self._salt = hashfn(prefix)
+        
+        #python documentation states: a long is a signed number of arbitrary length
+        self.filter = 0L
+    
+    def _hashes(self, key):
+        h = self._salt.copy()
+        h.update(key)
+        
+        digest = h.digest()
+        indexes = unpack(self._fmt, digest)
+        return [index % self._m for index in indexes]
+        
+    def add(self, key):
+        bits = 0L
+        for pos in self._hashes(key):
+            bits |= 1 << pos
+        
+        self.filter |= bits
+      
+    def __contains__(self, key):
+        filter = self.filter
+        for pos in self._hashes(key):
+            if not filter & (1 << pos):
+                return False 
+        return True
+    
+    
+    @property
+    def error_rate(self):
+        return self._f
+
+    @property
+    def capacity(self):
+        return self._n
+    
+    @property
+    def size(self):
+        return self._m
+
+    @property
+    def num_slices(self):
+        return -1
+
+    @property
+    def bits_per_slice(self):
+        return -1
+
+    @property
+    def prefix(self):
+        """
+        The prefix.
+        @rtype: string
+        """
+        return self._prefix
+
+    @property
+    def bytes(self):
+        return bin(self.filter)
+
 if __debug__:
     def _performance_test():
-        def test2(bits, count):
+        def test2(bits, count, constructor = BloomFilter):
             generate_begin = time()
             ok = 0
             data = [(i, sha1(str(i)).digest()) for i in xrange(count)]
             create_begin = time()
-            bloom = BloomFilter(bits, 0.0001)
+            bloom = constructor(0.0001, bits)
             fill_begin = time()
             for i, h in data:
                 if i % 2 == 0:
@@ -520,10 +630,10 @@ if __debug__:
             print "generate: {generate:.1f}; create: {create:.1f}; fill: {fill:.1f}; check: {check:.1f}; write: {write:.1f}".format(generate=create_begin-generate_begin, create=fill_begin-create_begin, fill=check_begin-fill_begin, check=write_begin-check_begin, write=write_end-write_begin)
             print string.encode("HEX")[:100], "{len} bytes; ({ok}/{total} ~{part:.0%})".format(len=len(string), ok=ok, total=count, part=1.0*ok/count)
 
-        def test(bits, count):
+        def test(bits, count, constructor = BloomFilter):
             ok = 0
             create_begin = time()
-            bloom = BloomFilter(bits, 0.0001)
+            bloom = constructor(0.0001, bits)
             fill_begin = time()
             for i in xrange(count):
                 if i % 2 == 0:
@@ -543,12 +653,33 @@ if __debug__:
         b.add("Hello")
         data = str(b)
 
-        c = BloomFilter(data, 0)
-        assert "Hello" in c
-        assert not "Bye" in c
+        #c = BloomFilter(data, 0)
+        #assert "Hello" in c
+        #assert not "Bye" in c
+        
+        test2(10, 10,FasterBloomFilter)
+        test2(10, 100,FasterBloomFilter)
+        test2(100, 100,FasterBloomFilter)
+        test2(100, 1000,FasterBloomFilter)
+        test2(1000, 1000,FasterBloomFilter)
+        test2(1000, 10000,FasterBloomFilter)
+        test2(10000, 10000,FasterBloomFilter)
+        test2(10000, 100000,FasterBloomFilter)
+        
+        test(10, 10,FasterBloomFilter)
+        test(10, 100,FasterBloomFilter)
+        test(100, 100,FasterBloomFilter)
+        test(100, 1000,FasterBloomFilter)
+        test(1000, 1000,FasterBloomFilter)
+        test(1000, 10000,FasterBloomFilter)
+        test(10000, 10000,FasterBloomFilter)
+        test(10000, 100000,FasterBloomFilter)
+        test(100000, 100000,FasterBloomFilter)
+        test(100000, 1000000,FasterBloomFilter)
+        
 
-        test2(10, 10)
-        test2(10, 100)
+        #test2(10, 10)
+        #test2(10, 100)
 
 # generate: 0.0; create: 0.0; fill: 0.0; check: 0.0; write: 0.0
 # 0a0000001d000000241400480001840684024080408012800008012424018008a0401001080280008500241000 45 bytes; (10/10 ~100%)
@@ -579,8 +710,8 @@ if __debug__:
 # generate: 0.2; create: 0.0; fill: 0.7; check: 1.3; write: 0.0
 # 0a00000054700000fbfffffeffffffbbfffffff7edbfffffff7fdffff7dbffffffffffbf9efafffbfffff5dddbdfffffd7ff 35953 bytes; (92622/100000 ~93%)
 
-        test(10, 10)
-        test(10, 100)
+        #test(10, 10)
+        #test(10, 100)
 
 # create: 0.0; fill: 0.0; check: 0.0; write: 0.0
 # 0a0000001d00000081012001030240322100040400440c510024402060400100010410088c0005020a18020100 45 bytes; (10/10 ~100%)
@@ -613,12 +744,7 @@ if __debug__:
 
         test(100000, 100000)
         test(100000, 1000000)
-
-# create: 0.1; fill: 1.2; check: 2.0; write: 0.0
-# 0a00000040630400a4910840004240c0000220402010202000e003004101140003300180100400050422016004a005188084 359448 bytes; (100000/100000 ~100%)
-# create: 0.1; fill: 12.3; check: 21.7; write: 0.0
-# 0a00000040630400ffdffc5d45fff7ddcdaff6fffff57f3f3ffff77bfd7fbf5eb7b9f7ffff96f63fcefbcbefcfef2dff9ff5 359448 bytes; (927286/1000000 ~93%)
-# create: 0.1; fill: 122.8; check: 237.7; write: 0.0
+        
 
     def _taste_test():
         def pri(f, m, invert=False):
@@ -770,10 +896,11 @@ if __debug__:
             for d in ["%i" % i for i in xrange(10000, 1100)]:
                 assert not d in b
 
-    def _test_false_positives():
+    def _test_false_positives(constructor = BloomFilter):
         for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4]:
-            a = BloomFilter(error_rate, 1024*8)
+            a = constructor(error_rate, 1024*8)
             p(a)
+            
             data = ["%i" % i for i in xrange(int(a.capacity))]
             map(a.add, data)
 
@@ -785,15 +912,17 @@ if __debug__:
             print "Errors:", errors, "/", i + 1, " ~ ", errors / (i + 1.0)
             print
 
-    def _test_prefix_false_positives():
-        for error_rate in [0.9, 0.0001, 0.001, 0.01, 0.1, 0.4]:
-            a = BloomFilter(error_rate, 10374, prefix="A")
-            b = BloomFilter(error_rate, 10374, prefix="B")
-            c = BloomFilter(error_rate, 10374, prefix="C")
-            d = BloomFilter(error_rate, 10374, prefix="D")
+    def _test_prefix_false_positives(constructor = BloomFilter):
+        for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+            a = constructor(error_rate, 10374, prefix="A")
+            b = constructor(error_rate, 10374, prefix="B")
+            c = constructor(error_rate, 10374, prefix="C")
+            d = constructor(error_rate, 10374, prefix="D")
             p(a)
             print "Estimated errors:", a.error_rate, "->", a.error_rate * b.error_rate, "->", a.error_rate * b.error_rate * c.error_rate, "->", a.error_rate * b.error_rate * c.error_rate * d.error_rate
-            data = ["%i" % i for i in xrange(int(a.capacity / 2))]
+            
+            #we fill each bloomfilter up to its capacity
+            data = ["%i" % i for i in xrange(a.capacity)]
             map(a.add, data)
             map(b.add, data)
             map(c.add, data)
@@ -803,7 +932,9 @@ if __debug__:
             two_errors = 0
             three_errors = 0
             four_errors = 0
-            for i in xrange(100000):
+            
+            #we check what happens if we check twice the capacity
+            for i in xrange(a.capacity * 2):
                 if "X%i" % i in a:
                     errors += 1
                     if "X%i" % i in b:
@@ -817,7 +948,7 @@ if __debug__:
             print
 
     def p(b, postfix=""):
-        print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b._num_slices, "bits-per-slice:", b._bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
+        print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
 
     if __name__ == "__main__":
         #_performance_test()
@@ -825,8 +956,10 @@ if __debug__:
         # _test_occurrence()
         # _test_documentation()
         # _test_save_load()
-        # _test_false_positives()
-        # _test_prefix_false_positives()
+        _test_false_positives()
+        _test_false_positives(FasterBloomFilter)
+        _test_prefix_false_positives()
+        _test_prefix_false_positives(FasterBloomFilter)
 
         MTU = 1500 # typical MTU
         # MTU = 576 # ADSL
@@ -845,3 +978,5 @@ if __debug__:
         p(b3)
         b3 = BloomFilter(0.1, BITS)
         p(b3)
+        b4 = BloomFilter(0.5, BITS)
+        p(b4)

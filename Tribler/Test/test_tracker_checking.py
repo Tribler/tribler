@@ -4,9 +4,6 @@
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from time import sleep
 
-
-
-
 def run():
     print "start run"
 #    torrent_db = TorrentDBHandler.getInstance()
@@ -16,9 +13,6 @@ def run():
 #
 #    for idata in data[54:100]:
 #        trackerChecking(idata)
-    for x in range(1000):        
-        t = TorrentChecking()
-        t.start()
-        sleep(2)
-
+    t = TorrentChecking(2)
+    
 run()

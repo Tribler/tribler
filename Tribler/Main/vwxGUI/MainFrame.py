@@ -1,6 +1,5 @@
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
-# Updated by George Milescu
 #
 # Description : Main ABC [Yet Another Bittorrent Client] python script.
 #               you can run from source code by using

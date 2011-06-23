@@ -919,12 +919,11 @@ class TriblerLaunchMany(Thread):
 
         self.update_torrent_checking_period()
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
-        #        print "torrent_checking start"
         try:
             from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
             
-            t = TorrentChecking()
-            t.start()
+            t = TorrentChecking.getInstance(self.torrent_checking_period)
+            t.setInterval(self.torrent_checking_period)
         except Exception, e:
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)

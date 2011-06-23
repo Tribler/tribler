@@ -266,7 +266,6 @@ class GUIUtility:
                 return
         else:
             return
-        
         self.frame.top_bg.searchField.SetValue(input)
             
         if input.startswith("http://"):

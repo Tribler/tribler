@@ -1,8 +1,4 @@
 # Written by Niels Zeilemaker
-import wx
-import sys
-import os
-
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -10,6 +6,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from __init__ import LIST_RADIUS
 import sys
 import wx
+import os
 
 
 class ListHeaderIcon:

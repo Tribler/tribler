@@ -68,7 +68,7 @@ class CommentPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, text, timestamp, reply_to_packet, reply_to_mid, reply_to_global_time, reply_after_packet, reply_after_mid, reply_after_global_time, playlist_packet, infohash):
             assert isinstance(text, unicode)
-            assert len(text) < 2**16
+            assert len(text) < 1024
             assert isinstance(timestamp, (int, long)) 
             
             assert not reply_to_packet or isinstance(reply_to_packet, Packet)
@@ -149,6 +149,73 @@ class CommentPayload(Payload):
         @property
         def infohash(self):
             return self._infohash
+        
+class WarningPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, text, timestamp, packet, mid, global_time):
+            
+            assert not packet or isinstance(packet, Packet)
+            assert not mid or isinstance(mid, str), 'mid is a %s'%type(mid)
+            assert not mid or len(mid) == 20, 'mid has length %d'%len(mid)
+            assert not global_time or isinstance(global_time, (int, long)), 'global_time is a %s'%type(global_time)
+            
+            assert isinstance(text, unicode)
+            assert len(text) < 1024
+            assert isinstance(timestamp, (int, long)) 
+            
+            super(WarningPayload.Implementation, self).__init__(meta)
+            self._text = text
+            self._timestamp = timestamp
+            self._packet = packet
+            self._mid = mid
+            self._global_time = global_time
+            
+        @property
+        def text(self):
+            return self._text
+        
+        @property
+        def timestamp(self):
+            return self._timestamp
+
+        @property
+        def packet(self):
+            return self._packet
+        
+        @property
+        def mid(self):
+            return self._mid
+        
+        @property
+        def global_time(self):
+            return self._global_time
+
+class MarkTorrentPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, infohash, type_str, timestamp):
+            assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
+            assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
+            
+            assert isinstance(type_str, unicode)
+            assert len(type_str) < 25
+            assert isinstance(timestamp, (int, long))
+            
+            super(MarkTorrentPayload.Implementation, self).__init__(meta)
+            self._infohash = infohash
+            self._type = type_str
+            self._timestamp = timestamp
+        
+        @property
+        def infohash(self):
+            return self._infohash
+        
+        @property
+        def type(self):
+            return self._type
+        
+        @property
+        def timestamp(self):
+            return self._timestamp
 
 class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):

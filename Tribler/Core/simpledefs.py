@@ -1,5 +1,4 @@
 # Written by Arno Bakker 
-# Updated by George Milescu
 # see LICENSE.txt for license information
 """ Simple definitions for the Tribler Core. """
 import os
@@ -57,6 +56,7 @@ NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
 NTFY_PLAYLISTS = 'playlists'
 NTFY_COMMENTS = 'comments'
+NTFY_MODIFICATIONS = 'modifications'
 NTFY_PREFERENCES = 'preferences'
 NTFY_SUPERPEERS = 'superpeers' # use NTFY_PEERS !!
 NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!

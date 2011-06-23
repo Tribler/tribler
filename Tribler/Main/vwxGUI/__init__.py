@@ -18,6 +18,7 @@ LIST_RADIUS = 7
 CHANNEL_REQ_COLUMNS = ['infohash', 'CollectedTorrent.torrent_id', 'CollectedTorrent.name', 'ChannelTorrents.name', 'ChannelTorrents.id', 'ChannelTorrents.channel_id', 'description', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
 PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
 COMMENT_REQ_COLUMNS = ['id', 'dispersy_id', 'name', 'Peer.peer_id', 'comment', 'time_stamp']
+MODIFICATION_REQ_COLUMNS = ['id', 'type_id', 'value']
 
 CHANNEL_ID = 0
 CHANNEL_NAME = 1
@@ -29,3 +30,5 @@ CHANNEL_MY_VOTE = 6
 CHANNEL_IS_DISPERSY = 7
 CHANNEL_DISPERSY_CID = 8
 CHANNEL_DESCRIPTION = -1
+
+CHANNEL_MAX_NON_FAVORITE = 50

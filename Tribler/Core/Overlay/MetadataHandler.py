@@ -1,5 +1,4 @@
 # Written by Jie Yang, Arno Bakker
-# Updated by George Milescu
 # see LICENSE.txt for license information
 import sys
 import os
@@ -468,8 +467,8 @@ class MetadataHandler:
         "Upon the reception of a new discovered torrent, directly check its tracker"
         if DEBUG:
             print >> sys.stderr, "metadata: checking tracker status of new torrent"
-        check = TorrentChecking(torrent['infohash'])
-        check.start()
+        t = TorrentChecking.getInstance()
+        t.addToQueue(torrent['infohash'])
         
     def write_torrent(self, metadata, dir, name):
         try:

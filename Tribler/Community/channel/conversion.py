@@ -16,6 +16,8 @@ class ChannelConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"modification"), self._encode_modification, self._decode_modification)
         self.define_meta_message(chr(6), community.get_meta_message(u"playlist_torrent"), self._encode_playlist_torrent, self._decode_playlist_torrent)
         self.define_meta_message(chr(7), community.get_meta_message(u"missing-channel"), self._encode_missing_channel, self._decode_missing_channel)
+        self.define_meta_message(chr(8), community.get_meta_message(u"warning"), self._encode_warning, self._decode_warning)
+        self.define_meta_message(chr(9), community.get_meta_message(u"mark_torrent"), self._encode_mark_torrent, self._decode_mark_torrent)
 
     def _encode_channel(self, message):
         return encode((message.payload.name, message.payload.description)),
@@ -170,6 +172,82 @@ class ChannelConversion(BinaryConversion):
         if infohash and not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
         return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_to_mid, reply_to_global_time, reply_after, reply_after_mid, reply_after_global_time, playlist, infohash)
+    
+    def _encode_warning(self, message):
+        dict = {"text":message.payload.text,
+                "timestamp":message.payload.timestamp}
+        
+        packet = message.payload.reply_to_packet
+        if packet:
+            dict["mid"] = message.payload.mid
+            dict["global-time"] = message.payload.global_time
+        return encode(dict),
+
+    def _decode_warning(self, meta_message, offset, data):
+        try:
+            offset, dic = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the payload")
+
+        if not "text" in dic:
+            raise DropPacket("Missing 'text'")
+        text = dic["text"]
+        if not (isinstance(text, unicode) and len(text) < 2**16):
+            raise DropPacket("Invalid 'text' type or value")
+        
+        if not "timestamp" in dic:
+            raise DropPacket("Missing 'timestamp'")
+        timestamp = dic["timestamp"]
+        if not isinstance(timestamp, (int, long)):
+            raise DropPacket("Invalid 'timestamp' type or value")
+
+        mid = dic.get("mid", None)
+        if mid and not (isinstance(mid, str) and len(mid) == 20):
+            raise DropPacket("Invalid 'mid' type or value")
+        
+        global_time = dic.get("global-time", None)
+        if global_time and not isinstance(global_time, (int, long)):
+            raise DropPacket("Invalid 'global-time' type")
+        try:
+            packet_id, packet, message_name = self._get_message(global_time, mid)
+            packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        except:
+            packet = None
+
+        return offset, meta_message.payload.implement(text, timestamp, packet, mid, global_time)
+    
+    def _encode_mark_torrent(self, message):
+        dict = {"infohash":message.payload.infohash,
+                "timestamp":message.payload.timestamp,
+                "type":message.payload.type}
+        
+        return encode(dict),
+
+    def _decode_mark_torrent(self, meta_message, offset, data):
+        try:
+            offset, dic = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the payload")
+
+        if not "infohash" in dic:
+            raise DropPacket("Missing 'infohash'")
+        infohash = dic["infohash"]
+        if not (isinstance(infohash, str) and len(infohash) == 20):
+            raise DropPacket("Invalid 'infohash' type or value")
+        
+        if not "timestamp" in dic:
+            raise DropPacket("Missing 'timestamp'")
+        timestamp = dic["timestamp"]
+        if not isinstance(timestamp, (int, long)):
+            raise DropPacket("Invalid 'timestamp' type or value")
+        
+        if not "type" in dic:
+            raise DropPacket("Missing 'type'")
+        type = dic["type"]
+        if not (isinstance(type, unicode) and len(type) < 25):
+            raise DropPacket("Invalid 'type' type or value")
+
+        return offset, meta_message.payload.implement(infohash, type, timestamp)
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()

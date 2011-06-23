@@ -1,5 +1,5 @@
 # Written by Jie Yang
-# Updated by George Milescu
+# Modified by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -453,7 +453,29 @@ class SQLiteCacheDBBase:
 
     def execute_read(self, sql, args=None):
         # this is only called for reading. If you want to write the db, always use execute_write or executemany
-        return self._execute(sql, args)
+        try:
+            return self._execute(sql, args)
+        
+        except Exception, msg:
+            return self.retry_if_busy_or_fail(msg, 0, sql, args)
+    
+    def retry_if_busy_or_fail(self, e, tries, sql=None, args = None):
+        if str(e).startswith("BusyError"):
+            print >>sys.stderr,"sqlcachedb: retry: after", str(e), repr(sql)
+            
+            try:
+                return self._execute(sql, args)
+            
+            except Exception,e2:
+                if tries < 5:   #self.max_commit_retries
+                    # Spec is unclear whether next commit will also has 
+                    # 'busytimeout' seconds to try to get a write lock.
+                    sleep(pow(2.0,tries+2)/100.0)
+                    return self.retry_if_busy_or_fail(e2, tries+1, sql, args)
+                else:
+                    raise Exception, e2
+        else:
+            raise Exception, e
     
     def execute_write(self, sql, args=None, commit=True):
         self.cache_transaction(sql, args)
@@ -1340,7 +1362,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
               type_id               integer         NOT NULL,
-              value                 integer         NOT NULL,
+              value                 text            NOT NULL,
               prev_modification     integer,
               prev_global_time      integer,
               inserted              integer         DEFAULT (strftime('%s','now')),
@@ -1407,6 +1429,16 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               PRIMARY KEY (torrent_id, source)
             );
             CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
+            
+            CREATE TABLE TorrentMarkings (
+              channeltorrent_id     integer NOT NULL,
+              peer_id               integer,
+              global_time           integer,
+              type                  text    NOT NULL,
+              time_stamp            integer NOT NULL,
+              PRIMARY KEY (channeltorrent_id, peer_id)
+            );
+            CREATE INDEX IF NOT EXISTS TorMarkIndex ON TorrentMarkings(channeltorrent_id);
 
             """
             self.execute_write(sql, commit=False)
@@ -1551,7 +1583,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 my_permid = bin2str(my_permid)
             
             #start converting channelcastdb to new format
-            select_channels = "SELECT publisher_id, max(time_stamp) FROM ChannelCast WHERE publisher_name <> '' GROUP BY publisher_id"
+            select_channels = "SELECT publisher_id, min(time_stamp), max(time_stamp) FROM ChannelCast WHERE publisher_name <> '' GROUP BY publisher_id"
             select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ? LIMIT 1"
             
             select_channel_torrent = "SELECT CollectedTorrent.torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash Order By time_stamp DESC"
@@ -1560,7 +1592,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             select_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
             select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
             
-            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?)"
+            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description, inserted, modified) VALUES (?, ?, ?, ?, ?, ?)"
             insert_channel_contents = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
             update_channel = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
@@ -1576,8 +1608,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             t1 = time()
             
             channels = self.fetchall(select_channels)
-            for publisher_id, timestamp in channels:
-                channel_name = self.fetchone(select_channel_name, (publisher_id, timestamp))
+            for publisher_id, mintimestamp, maxtimestamp in channels:
+                channel_name = self.fetchone(select_channel_name, (publisher_id, maxtimestamp))
                 
                 if publisher_id == my_permid:
                     accepted_channels.add(publisher_id)
@@ -1587,7 +1619,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 peer_id = self.getPeerID(str2bin(publisher_id))
                 if peer_id:
                     accepted_channels.add(publisher_id)
-                    to_be_inserted.append((-1, peer_id, channel_name, ''))
+                    to_be_inserted.append((-1, peer_id, channel_name, '', mintimestamp, maxtimestamp))
             
             self.executemany(insert_channel, to_be_inserted)
             
@@ -1732,7 +1764,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     from Tribler.Core.TorrentDef import TorrentDef
                     
                     dispersy = Dispersy.get_instance()
-                    dispersy.rawserver.add_task(create_my_channel, 5)
+                    dispersy.rawserver.add_task(create_my_channel, 10)
                     session.remove_observer(dispersy_started)
                 
                 session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])

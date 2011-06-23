@@ -199,22 +199,21 @@ class ChannelResultFooter(ListFooter):
         
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):
+        self.hSizer = hSizer
+        
         self.message = wx.StaticText(self)
         self.message.SetMinSize((1,-1))
         font = self.message.GetFont()
         font.SetPointSize(font.GetPointSize()+2)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.message.SetFont(font)
-        hSizer.Add(self.message, 1, wx.TOP|wx.BOTTOM|wx.ALIGN_BOTTOM, 3)
+        
+        self.subtitle = wx.StaticText(self)
+        self.subtitle.SetMinSize((1,-1))
         
         self.manage = wx.Button(self, -1, 'Edit this Channel')
-        self.manage.Show(False)
         self.spam = wx.Button(self, -1, 'Mark as Spam')
         self.favorite = wx.Button(self, -1, 'Mark as Favorite')
-        
-        hSizer.Add(self.manage, 0, wx.TOP|wx.BOTTOM, 3)
-        hSizer.Add(self.spam, 0, wx.TOP|wx.BOTTOM, 3)
-        hSizer.Add(self.favorite, 0, wx.TOP|wx.BOTTOM, 3)
         
     def SetEvents(self, spam, favorite, remove, manage):
         self.spam_eventhandler = spam
@@ -224,34 +223,57 @@ class ChannelFooter(ListFooter):
     
     def SetStates(self, spam, favorite, manage = None):
         self.Freeze()
-
-        if manage != None:
-            self.manage.Show(manage)
-            self.spam.Show(not manage)
-            self.favorite.Show(not manage)
-     
-        if self.spam.IsShown():
-            if spam:
-                self.spam.SetLabel('This is not Spam')
-                self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
-            else:
-                self.spam.SetLabel('Mark as Spam')
-                self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
-                
-            if favorite:
-                self.favorite.SetLabel('Remove Favorite')
-                self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
-            else:
-                self.favorite.SetLabel('Mark as Favorite')
-                self.favorite.Bind(wx.EVT_BUTTON, self.favorite_eventhandler)
-                
+        self.hSizer.Clear()
+        
+        explicit_vote = spam or favorite or manage
+        if explicit_vote:
+            self.hSizer.Add(self.message, 1, wx.TOP|wx.BOTTOM|wx.ALIGN_BOTTOM|wx.LEFT, 3)
+            
             if spam:
                 self.message.SetLabel("You have marked this Channel as Spam.")
+                self.spam.SetLabel('This is not Spam')
+                self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+
+                self.hSizer.Add(self.spam, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
+                
             elif favorite:
                 self.message.SetLabel("Thank you for marking this Channel as your Favorite.")
+                self.favorite.SetLabel('Remove Favorite')
+                self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+                
+                self.hSizer.Add(self.favorite, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
+                
             else:
-                self.message.SetLabel("What do you think of this Channel? Mark it as Spam or as a Favorite.")
+                self.message.SetLabel("You can edit this channel")
+                self.hSizer.Add(self.manage, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
+        else:
+            self.message.SetLabel("You are looking at a preview of this Channel.")
+            self.subtitle.SetLabel("If you want to see more of it, press the 'Mark as Favorite' button.\nTribler will then more aggressively download updates making sure you always have access to the newest content.")
+            
+            self.spam.SetLabel('Mark as Spam')
+            self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
+                
+            self.favorite.SetLabel('Mark as Favorite')
+            self.favorite.Bind(wx.EVT_BUTTON, self.favorite_eventhandler)
+            
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            vSizer.Add(self.message, 0, wx.EXPAND)
+            vSizer.Add(self.subtitle, 0, wx.EXPAND)
+            
+            buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+            buttonSizer.Add(self.spam)
+            buttonSizer.Add(wx.StaticText(self, -1, 'or'), wx.LEFT|wx.RIGHT|wx.ALIGN_CENTRE_VERTICAL, 3)
+            buttonSizer.Add(self.favorite)
+            
+            vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, 10)
+            self.hSizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 10)
         
+        self.favorite.Show(favorite or not explicit_vote)
+        self.spam.Show(spam or not explicit_vote)
+        self.manage.Show(manage)
+        self.subtitle.Show(not explicit_vote)
+        
+        self.hSizer.Layout()
         self.Layout()
         self.Thaw()
     

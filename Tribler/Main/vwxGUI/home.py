@@ -3,7 +3,6 @@ import wx
 import sys
 import os
 import random
-from time import time, strftime
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
@@ -433,6 +432,7 @@ class BuzzPanel(HomePanel):
         
         self.GetBuzzFromDB()  
         self.refresh = 1
+        self.OnRefreshTimer()
         
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
