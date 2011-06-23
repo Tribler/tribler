@@ -3,6 +3,8 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 import sys
+from threading import currentThread
+from traceback import print_stack
 from time import time
 import re
 
@@ -140,14 +142,18 @@ class ListItem(wx.Panel):
         self.AddEvents(self)
     
     def AddEvents(self, control):
-        control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        if not isinstance(control, wx.Button):
+            control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        else:
+            control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
+            control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
         control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         func = getattr(control, 'GetChildren', False)
         if func:
             for child in func():
                 self.AddEvents(child)
-      
+          
     def GetIcon(self, background, state):
         return ListIcon.getInstance().getBitmap(self, self.icontype, background, state)
         
@@ -349,7 +355,6 @@ class AbstractListBody():
         self.list_selected = LIST_SELECTED
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.SetSizer(hSizer)
         
         self.listpanel = wx.Panel(self)
         
@@ -357,14 +362,17 @@ class AbstractListBody():
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.listpanel.SetSizer(self.vSizer)
         hSizer.Add(self.listpanel, 1)
+        self.SetSizer(hSizer)
+        
     
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
         self.messagePanel.SetBackgroundColour(wx.WHITE)
+        self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
-        self.loadNext = wx.Button(self.messagePanel, -1, "Show next %d items"%LIST_ITEM_MAX_SIZE)
+        self.loadNext = wx.Button(self.messagePanel)
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()
         
@@ -392,6 +400,9 @@ class AbstractListBody():
             if self.columns[i].get('sizeCol', False):
                 self.filtersizecolumn = i
                 break
+            
+        #sorting
+        self.sortcolumn = None
         
         #queue lists
         self.done = True
@@ -417,28 +428,38 @@ class AbstractListBody():
         self.Scroll(-1, 0)
         self.Freeze()
         
-        def sortby(b, a):
-            if a[0] in self.items:
-                a = self.items[a[0]].data[column]
-            else:
-                a = a[1][column]
-                
-            if b[0] in self.items:
-                b = self.items[b[0]].data[column]
-            else:
-                b = b[1][column] 
-            
-            return cmp(a, b)
-
-        self.data = sorted(self.data, cmp = sortby, reverse=reverse)
+        self.sortcolumn = column
+        self.sortreverse = reverse
+        self.DoSort()
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
         self.CreateItems()
         
         self.Thaw()
+        
+    def DoSort(self):
+        def sortby(b, a):
+            if a[0] in self.items:
+                a = self.items[a[0]].data[self.sortcolumn]
+            else:
+                a = a[1][self.sortcolumn]
+                
+            if b[0] in self.items:
+                b = self.items[b[0]].data[self.sortcolumn]
+            else:
+                b = b[1][self.sortcolumn] 
+            
+            return cmp(a, b)
+        
+        if self.sortcolumn != None:
+            self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
     
     def FilterItems(self, keyword, column = 0):
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"ListBody: FilterItems thread",currentThread().getName(),"is NOT MainThread"
+            print_stack()
+        
         new_filter = keyword.lower().strip()
         if new_filter != self.filter or column != self.filtercolumn:
             self.sizefiler = None
@@ -534,8 +555,8 @@ class AbstractListBody():
         self.Thaw()
         
     def OnChange(self, scrollToTop = False):
-        self.Layout()
         self.vSizer.Layout()
+        self.Layout()
         
         #Determine scrollrate
         if not self.rate:
@@ -558,6 +579,7 @@ class AbstractListBody():
         self.filter = ''
         self.sizefiler = None
         self.filtercolumn = 0
+        self.sortcolumn = None
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
@@ -589,19 +611,31 @@ class AbstractListBody():
             self.Scroll(-1, sy)
 
     def ShowMessage(self, message):
-        self.Freeze()
-        
-        self.messageText.SetLabel(message)
-        self.loadNext.Hide()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
-
-        self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-        self.messagePanel.Layout()
-        self.messagePanel.Show()
-        
-        self.OnChange()
-        self.Thaw()
+        if not self.messagePanel.IsShown():
+            self.Freeze()
+            
+            self.messageText.SetLabel(message)
+            self.loadNext.Hide()
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
+    
+            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+            self.messagePanel.Layout()
+            self.messagePanel.Show()
+            
+            self.OnChange()
+            self.Thaw()
+        else:
+            self.messageText.SetLabel(message)
+            self.messagePanel.Layout()
+    
+    def ShowLoading(self):
+        self.ShowMessage('Loading, please wait.')
+        #Try to yield, allows us to show loading text
+        try:
+            wx.Yield()
+        except:
+            pass
     
     def RefreshData(self, key, data):
         if key in self.items:
@@ -633,54 +667,71 @@ class AbstractListBody():
                 self.dataTimer = wx.CallLater(call_in, doSetData) 
             else:
                 self.dataTimer.Restart(call_in)
-                
-        #apply quickfilter
-        if self.filter != '' or self.sizefiler:
-            data = filter(self.MatchFilter, data)
-            self.parent_list.SetFilteredResults(len(data))
         
-        return len(data)
+        if data:
+            #apply quickfilter
+            if self.filter != '' or self.sizefiler:
+                data = filter(self.MatchFilter, data)
+            
+            #return filtered nr_items after quickfilter is applied
+            return len(data)
         
     def __SetData(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
+        
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
+            print_stack()
+        
         self.Freeze()
+        
+        message = ''
         
         #apply quickfilter
         if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
+            self.parent_list.SetFilteredResults(len(data))
+
             if len(data) == 0:
                 message = "0" + self.__GetFilterMessage()[12:]
-                self.ShowMessage(message)
         else:
             data = self.raw_data
-        
-        if data:
-            self.vSizer.ShowItems(False)
-            self.vSizer.Clear()
-            if len(self.items) == 0:
-                #new data
-                if len(data) > LIST_ITEM_BATCH_SIZE:
-                    self.ShowMessage('Loading, please wait.')
-                    
-                    #Try to yield, allows us to show loading text
-                    try:
-                        wx.Yield()
-                    except:
-                        pass
-                self.highlightSet = set()
-            else:
-                cur_keys = set([curdata[0] for curdata in self.data[:LIST_ITEM_MAX_SIZE]])
-                self.highlightSet = set([curdata[0] for curdata in data[:LIST_ITEM_MAX_SIZE] if curdata[0] not in cur_keys])
-
-            self.data = data
-            self.done = False
             
-            self.CreateItems()
-            if len(self.data) < LIST_ITEM_BATCH_SIZE:
-                self.Bind(wx.EVT_IDLE, None) #unbinding unnecessary event handler seems to improve visual performance
-            else:
-                self.Bind(wx.EVT_IDLE, self.OnIdle)
+        if not data:
+            data = []
+        
+        self.vSizer.ShowItems(False)
+        self.vSizer.Clear()
+        if len(self.items) == 0:
+            #new data
+            if len(data) > LIST_ITEM_BATCH_SIZE:
+                self.ShowLoading()
+            self.highlightSet = set()
+        else:
+            cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
+            self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
+
+        self.data = data
+        self.DoSort()
+        self.done = False
+        
+        if len(data) > 0:
+            self.CreateItems(nr_items_to_create = 3 * LIST_ITEM_BATCH_SIZE)
+            
+            #Try to yield
+            try:
+                wx.Yield()
+            except:
+                pass
+            
+        elif message != '':
+            self.ShowMessage(message)
+        
+        if self.done:
+            self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
+        else:
+            self.Bind(wx.EVT_IDLE, self.OnIdle)
         
         self.Thaw()
         
@@ -688,10 +739,10 @@ class AbstractListBody():
         if not self.done and self.data:
             self.CreateItems()
             
-            #idle event also paints search animation use requestmore to show this update
+            #idle event also paints search animation, use request more to show this update
             event.RequestMore(not self.done)
             if self.done:
-                self.Bind(wx.EVT_IDLE, None)
+                self.Unbind(wx.EVT_IDLE)
 
     def OnLoadMore(self, event):
         self.loadNext.Disable()
@@ -701,6 +752,7 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "ListBody: Creating items"
         
+        initial_nr_items_to_add = nr_items_to_add    
         done = True
         t1 = time()
 
@@ -721,19 +773,12 @@ class AbstractListBody():
                 key, item_data, original_data = curdata
                 create_method = ListItem
             
-            if nr_items_to_add > 0:
-                if key in self.items:
-                    item = self.items[key]
-                    
-                elif nr_items_to_create > 0:
-                    item = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
-                    self.items[key] = item
-                    
+            if nr_items_to_add > 0 and nr_items_to_create > 0:
+                if key not in self.items:
+                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                     nr_items_to_create -= 1
-                else:
-                    done = False
-                    break
                 
+                item = self.items[key]
                 sizer = self.vSizer.GetItem(item)
                 if not sizer:
                     self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
@@ -744,15 +789,20 @@ class AbstractListBody():
                         self.highlightSet.remove(key)
                                             
                 nr_items_to_add -= 1
+            
             else:
-                if message != '':
-                    message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
-                else:
-                    message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
-                self.loadNext.Enable()
-                self.loadNext.Show()
-                
-                done = True
+                done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
+
+                if done:
+                    if message != '':
+                        message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
+                    else:
+                        message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
+                        
+                    remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
+                    self.loadNext.SetLabel("Show next %d items"%remainingItems)
+                    self.loadNext.Enable()
+                    self.loadNext.Show()
                 break
        
         if message != '':
@@ -764,9 +814,10 @@ class AbstractListBody():
             
         self.OnChange()
         self.Thaw()
+        
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1
+            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1, "done:", self.done
         
     def GetItem(self, key):
         return self.items[key]
@@ -791,13 +842,14 @@ class AbstractListBody():
     def Select(self, key, raise_event = True):
         self.DeselectAll()
         
-        if raise_event:
-            self.items[key].OnClick(None)
-        else:
-            self.items[key].expanded = True
-            self.cur_expanded = self.items[key]
-            
-        self.items[key].ShowSelected()
+        if key in self.items:
+            if raise_event:
+                self.items[key].OnClick(None)
+            else:
+                self.items[key].expanded = True
+                self.cur_expanded = self.items[key]
+                
+            self.items[key].ShowSelected()
     
     def DeselectAll(self):
         for _, item in self.items.iteritems():

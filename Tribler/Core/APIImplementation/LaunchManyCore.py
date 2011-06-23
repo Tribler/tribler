@@ -1,6 +1,8 @@
 # Written by Arno Bakker 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
+import errno
 import sys
 import os
 import pickle
@@ -29,7 +31,10 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import traceback
+from Tribler.community.simpledispersytest.community import SimpleDispersyTestCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.callback import Callback
+from Tribler.Core.dispersy.community import HardKilledCommunity
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -98,7 +103,7 @@ class TriblerLaunchMany(Thread):
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         self.shutdownstarttime = None
          
-        # do_cache -> do_overlay -> (do_buddycast, do_download_help)
+        # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler, SimilarityDBHandler, PopularityDBHandler      
@@ -200,7 +205,7 @@ class TriblerLaunchMany(Thread):
             self.secure_overlay = SecureOverlay.getInstance()
             self.secure_overlay.register(self, config['overlay_max_message_length'])
             
-            # Set policy for which peer requests (dl_helper, rquery) to answer and which to ignore
+            # Set policy for which peer requests (proxy relay request, rquery) to answer and which to ignore
                         
             self.overlay_apps = OverlayApps.getInstance()
             # Default policy, override with Session.set_overlay_request_policy()
@@ -219,13 +224,15 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.start_listening()
 
             if config['multicast_local_peer_discovery']:
-               self.setup_multicast_discovery()
+                self.setup_multicast_discovery()
         
         else:
             self.secure_overlay = None
             self.overlay_apps = None
             config['buddycast'] = 0
-            config['download_help'] = 0
+            # ProxyService_
+            config['proxyservice_status'] = PROXYSERVICE_OFF
+            # _ProxyService
             config['socnet'] = 0
             config['rquery'] = 0
 
@@ -300,18 +307,19 @@ class TriblerLaunchMany(Thread):
             MagnetHandler.get_instance(self.rawserver)
 
         self.dispersy = None
+        self.dispersy_thread = None
         self.session.dispersy_member = None
         if config['dispersy']:
             # Dispersy needs to run on a thread.  We use a RawServer instance.
-            self.dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
-            self.dispersy_rawserver.add_task(self.start_dispersy)
-            Thread(target=self.dispersy_rawserver.listen_forever, args=(None,)).start()
+            self.dispersy_thread = Callback()
+            self.dispersy_thread.register(self.start_dispersy, delay=7.5)
+            self.dispersy_thread.start(name="Dispersy")
 
     def start_dispersy(self):
         class DispersySocket(object):
             def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
                 while True:
-                    if __debug__: print >>sys.stderr, "Dispersy listening at ", port
+                    if __debug__: print >>sys.stderr, "Dispersy listening at", port
                     try:
                         self.socket = rawserver.create_udpsocket(port, ip)
                     except socket.error as error:
@@ -349,7 +357,7 @@ class TriblerLaunchMany(Thread):
         sqlite_db_path = os.path.join(config['state_dir'], u"sqlite")
         if not os.path.isdir(sqlite_db_path):
             os.makedirs(sqlite_db_path)
-        self.dispersy = Dispersy.get_instance(self.dispersy_rawserver, sqlite_db_path)
+        self.dispersy = Dispersy.get_instance(self.dispersy_thread, sqlite_db_path)
         self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
 
         from Tribler.Core.Overlay.permid import read_keypair
@@ -359,23 +367,24 @@ class TriblerLaunchMany(Thread):
         from Tribler.Core.dispersy.member import MyMember
         self.session.dispersy_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
+        # load all HardKilledCommunity communities
+        HardKilledCommunity.load_communities()
+
         # start AllChannelCommunity
         AllChannelCommunity.load_communities(self.session.dispersy_member)
 
         # start each ChannelCommunity that we joined
         communities = ChannelCommunity.load_communities()
 
+        # we will test Dispersy using a simple community that everyone belongs to and periodically
+        # relays messages
+        try:
+            SimpleDispersyTestCommunity.load_hardcoded_community()
+        except ValueError:
+            SimpleDispersyTestCommunity.join_hardcoded_community(self.session.dispersy_member)
+
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
-
-        # # test script for the AllChannelCommunity
-        # from Tribler.Core.dispersy.script import Script
-        # from Tribler.Community.allchannel.script import AllChannelScript
-        # from Tribler.Community.channel.script import ChannelScript
-        # script = Script.get_instance(self.dispersy_rawserver)
-        # script.add("allchannel", AllChannelScript)
-        # script.add("channel", ChannelScript)
-        # script.load("channel")
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
@@ -711,7 +720,9 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         if self.udppuncture_handler is not None:
             self.udppuncture_handler.shutdown()
-        
+        if self.dispersy_thread:
+            self.dispersy_thread.stop()
+
     def network_shutdown(self):
         try:
             # Detect if megacache is enabled
@@ -761,10 +772,17 @@ class TriblerLaunchMany(Thread):
         """ Called at creation time """
         ip = get_my_wan_ip()
         if ip is None:
-            host = socket.gethostbyname_ex(socket.gethostname())
-            ipaddrlist = host[2]
-            for ip in ipaddrlist:
-                return ip
+            
+            #Niels: user in the forums reported that this 
+            #socket.gethostname + socket.gethostbyname raised an exception
+            #returning 127.0.0.1 if it does
+            try:
+                host = socket.gethostbyname_ex(socket.gethostname())
+                ipaddrlist = host[2]
+                for ip in ipaddrlist:
+                    return ip
+            except:
+                pass
             return '127.0.0.1'
         else:
             return ip
@@ -892,7 +910,7 @@ class TriblerLaunchMany(Thread):
         if self.overlay_apps and self.overlay_apps.metadata_handler:
             ntorrents = self.overlay_apps.metadata_handler.num_torrents
             if ntorrents > 0:
-                self.torrent_checking_period = min(max(86400/ntorrents, 15), 300)
+                self.torrent_checking_period = min(max(86400/ntorrents, 30), 300)
         #print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
         #self.torrent_checking_period = 1    ### DEBUG, remove it before release!!    
 
@@ -911,17 +929,21 @@ class TriblerLaunchMany(Thread):
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)
 
-    def get_coopdl_role_object(self,infohash,role):
+    # ProxyService_
+    #
+    def get_proxyservice_object(self, infohash, role):
         """ Called by network thread """
         role_object = None
         self.sesslock.acquire()
         try:
             if infohash in self.downloads:
                 d = self.downloads[infohash]
-                role_object = d.get_coopdl_role_object(role)
+                role_object = d.get_proxyservice_object(role)
         finally:
             self.sesslock.release()
         return role_object
+    #
+    # _ProxyService
 
         
     def h4xor_reset_init_conn_counter(self):

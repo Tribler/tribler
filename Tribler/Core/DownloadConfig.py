@@ -1,4 +1,5 @@
-# Written by Arno Bakker, George Milescu 
+# Written by Arno Bakker
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 """ Controls how a TorrentDef is downloaded (rate, where on disk, etc.) """
 
@@ -51,6 +52,25 @@ class DownloadConfigInterface:
 
         self.dlconfig['saveas'] = get_default_dest_dir()
 
+    
+    def updateToCurrentVersion(self):
+        """ Will update this DownloadConfig to the latest version
+        @return list of added field if update was necessary
+        @return None if version was current
+        """
+        
+        oldver = self.dlconfig['version']
+        if oldver != DLDEFAULTS_VERSION:
+            updatedFields = []
+            
+            for key in dldefaults.keys():
+                if key not in self.dlconfig:
+                    self.dlconfig[key] = dldefaults[key]
+                    updatedFields.append(key)
+            self.dlconfig['version'] = DLDEFAULTS_VERSION
+            
+            return updatedFields
+        return None
 
     def set_dest_dir(self,path):
         """ Sets the directory where to save this Download.
@@ -62,6 +82,17 @@ class DownloadConfigInterface:
         """ Gets the directory where to save this Download.
         """
         return self.dlconfig['saveas']
+    
+    def get_show_saveas(self):
+        """ Gets the boolean indicating if we should show a dialog where to save a torrent
+        """
+        return self.dlconfig['showsaveas']
+    
+    def set_show_saveas(self, show):
+        """ Sets the boolean indicating if we should show a dialog where to save a torrent
+        @param show Boolean to show a dialog
+        """
+        self.dlconfig['showsaveas'] = show
 
     def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Download the torrent in Video-On-Demand mode or as live stream.
@@ -289,67 +320,51 @@ class DownloadConfigInterface:
     #
     # ProxyService_ parameters
     #
-    def get_coopdl_role(self):
-        """ Returns the role which the download plays in a cooperative download,
-        <pre>
-        - COOPDL_ROLE_COORDINATOR: other peers help this download
-        - COOPDL_ROLE_HELPER: this download helps another peer download faster.
-        </pre>
-        The default is coordinator, and it is set to helper by the
-        set_coopdl_coordinator_permid() method. 
+    def set_proxyservice_role(self, role):
+        """ Sets the download config proxyservice_role property 
         """
-        return self.dlconfig['coopdl_role']
+        if role == PROXYSERVICE_ROLE_NONE or role == PROXYSERVICE_ROLE_DOE or role == PROXYSERVICE_ROLE_PROXY:
+            self.dlconfig['proxyservice_role'] = role
+        else:
+            self.dlconfig['proxyservice_role'] = PROXYSERVICE_ROLE_NONE
 
-    def set_coopdl_coordinator_permid(self,permid):
-        """ Calling this method makes this download a helper in a cooperative
-        download, helping the peer identified by the specified permid. This peer
-        acts as coordinator, telling this download which parts of the content
-        to download. 
-        @param permid A PermID.
+    def get_proxyservice_role(self):
+        """ Returns the role which the download plays in a proxy download,
         """
-        self.dlconfig['coopdl_role'] = COOPDL_ROLE_HELPER
-        self.dlconfig['coopdl_coordinator_permid'] = permid
+        return self.dlconfig['proxyservice_role']
 
-    def get_coopdl_coordinator_permid(self):
-        """ Returns the configured coordinator permid.
-        @return A PermID
-        """
-        return self.dlconfig['coopdl_coordinator_permid'] 
 
-    # See DownloadRuntime config for adding, removing and getting list of
-    # helping peers.
-
-    def set_proxy_mode(self,value):
-        """ Set the proxymode for current download
+    def set_doe_mode(self, mode):
+        """ Set the doe mode for current download
         .
-        @param value: the proxyservice mode: PROXY_MODE_OFF, PROXY_MODE_PRIVATE or PROXY_MODE_SPEED
+        @param mode: the doe mode: DOE_MODE_OFF, DOE_MODE_PRIVATE or DOE_MODE_SPEED
         """
-        if value == PROXY_MODE_OFF or value == PROXY_MODE_PRIVATE or value == PROXY_MODE_SPEED:
-            self.dlconfig['proxy_mode'] = value
+        if mode == DOE_MODE_OFF or mode == DOE_MODE_PRIVATE or mode == DOE_MODE_SPEED:
+            self.dlconfig['doe_mode'] = mode
         else:
             # If the method is called with an incorrect value, turn off the ProxyMode for this download
-            self.dlconfig['proxy_mode'] = PROXY_MODE_OFF
+            self.dlconfig['doe_mode'] = DOE_MODE_OFF
 
-    def get_proxy_mode(self):
-        """ Returns the proxymode of the client.
-        @return: one of the possible three values: PROXY_MODE_OFF, PROXY_MODE_PRIVATE, PROXY_MODE_SPEED
+    def get_doe_mode(self):
+        """ Returns the doemode of the client.
+        @return: one of the possible three values: DOE_MODE_OFF, DOE_MODE_PRIVATE, DOE_MODE_SPEED
         """
-        return self.dlconfig['proxy_mode']
+        return self.dlconfig['doe_mode']
     
-    def set_no_helpers(self,value):
-        """ Set the maximum number of helpers used for a download.
+    def set_no_proxies(self,value):
+        """ Set the maximum number of proxies used for a download.
         @param value: a positive integer number
         """
         if value >= 0:
-            self.dlconfig['max_helpers'] = value
+            self.dlconfig['max_proxies'] = value
         else:
-            self.dlconfig['max_helpers'] = 0
+            self.dlconfig['max_proxies'] = 0
 
-    def get_no_helpers(self):
-        """ Returns the maximum number of helpers used for a download. 
+    def get_no_proxies(self):
+        """ Returns the maximum number of proxies used for a download. 
         @return: a positive integer number
         """
-        return self.dlconfig['max_helpers']
+        return self.dlconfig['max_proxies']
     #
     # _ProxyService
     #

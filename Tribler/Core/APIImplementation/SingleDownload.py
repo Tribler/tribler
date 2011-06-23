@@ -1,4 +1,5 @@
-# Written by Arno Bakker, George Milescu 
+# Written by Arno Bakker
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 
 import sys
@@ -31,7 +32,7 @@ DEBUG = False
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,get_extip_func,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback,lmhashcheckcompletecallback):
+    def __init__(self, infohash, metainfo, kvconfig, multihandler, get_extip_func, listenport, videoanalyserpath, vodfileindex, set_error_func, pstate, lmvodeventcallback, lmhashcheckcompletecallback, dlinstance):
         self.dow = None
         self.set_error_func = set_error_func
         self.videoinfo = None
@@ -44,6 +45,13 @@ class SingleDownload:
         self.infohash = infohash
         self.b64_infohash = b64encode(infohash)
         self.repexer = None
+        # ProxyService_
+        #
+        self.dlinstance = dlinstance
+        #
+        # _proxyService
+        
+        
         try:
             self.dldoneflag = Event()
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
@@ -75,7 +83,8 @@ class SingleDownload:
                             self.dlrawserver,
                             get_extip_func,
                             listenport,
-                            videoanalyserpath
+                            videoanalyserpath,
+                            self.dlinstance
                             )
         
             file = self.dow.saveAs(self.save_as)
@@ -224,29 +233,29 @@ class SingleDownload:
     #
     def get_stats(self,getpeerlist):
         logmsgs = self.logmsgs[:] # copy
-        coopdl_helpers = []
-        coopdl_coordinator = None
-        if self.dow is not None:
-            if not self.dow.helper is None:
-                coopdl_coordinator = self.dow.helper.get_coordinator_permid() 
-            if self.dow.coordinator is not None: 
-                # No coordinator when you're a helper
-                peerreclist = self.dow.coordinator.network_get_asked_helpers_copy()
-                for peerrec in peerreclist:
-                    coopdl_helpers.append(peerrec['permid'])
+        # ProxyService_
+        #
+        proxyservice_proxy_list = []
+        proxyservice_doe_list = []
+        if self.dow is not None and self.dow.proxydownloader is not None:
+            proxyservice_doe_list = list(self.dow.proxydownloader.proxy.doe_nodes)
+            proxyservice_proxy_list = list(self.dow.proxydownloader.doe.confirmed_proxies)
+        #
+        # _ProxyService
+
         if self._getstatsfunc is None:
-            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs,coopdl_helpers,coopdl_coordinator)
+            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs,proxyservice_proxy_list,proxyservice_doe_list)
         elif self._getstatsfunc == SPECIAL_VALUE:
             stats = {}
             stats['frac'] = self.hashcheckfrac
-            return (DLSTATUS_HASHCHECKING,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
+            return (DLSTATUS_HASHCHECKING,stats,logmsgs,proxyservice_proxy_list,proxyservice_doe_list)
         else:
             # RePEX: if we're repexing, set our status
             if self.repexer is not None:
                 status = DLSTATUS_REPEXING
             else:
                 status = None
-            return (status,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers,coopdl_coordinator)
+            return (status,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,proxyservice_proxy_list,proxyservice_doe_list)
 
     def get_infohash(self):
         return self.infohash
@@ -349,23 +358,17 @@ class SingleDownload:
         return repexer
     
     #
-    # Cooperative download
+    # ProxyService
     #
-    def ask_coopdl_helpers(self,peerreclist):
-        if self.dow is not None:
-            self.dow.coordinator.send_ask_for_help(peerreclist)
-
-    def stop_coopdl_helpers(self,peerreclist):
-        if self.dow is not None:
-            self.dow.coordinator.send_stop_helping(peerreclist,force=True)
-
-    def get_coopdl_role_object(self,role):
-        # Used by Coordinator/HelperMessageHandler indirectly
-        if self.dow is not None:
-            if role == COOPDL_ROLE_COORDINATOR:
-                return self.dow.coordinator
+    def get_proxyservice_object(self, role):
+        # Used by DoeMessageHandler and ProxyMessageHandler indirectly
+        if self.dow is not None and self.dow.proxydownloader is not None:
+            if role == PROXYSERVICE_DOE_OBJECT:
+                return self.dow.proxydownloader.doe
+            elif role == PROXYSERVICE_PROXY_OBJECT:
+                return self.dow.proxydownloader.proxy
             else:
-                return self.dow.helper
+                return None
         else:
             return None
 

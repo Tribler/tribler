@@ -47,6 +47,10 @@ class ChannelCastCore:
 
     def __init__(self, data_handler, overlay_bridge, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class """
+        if ChannelCastCore.__single:
+            raise RuntimeError, "ChannelCastCore is singleton"
+        ChannelCastCore.__single = self
+        
         #Keep reference to interval-function of BuddycastFactory
         self.interval = buddycast_interval_function
         self.data_handler = data_handler
@@ -84,21 +88,15 @@ class ChannelCastCore:
         #self.richMetadataInterceptor = RichMetadataInterceptor(self.metadataDbHandler,self.votecastdb,
         #                                                       self.my_permid, subtitleSupport, self.peersHaveManger,
         #                                                       self.notifier)
-        
-        
-
     
     def initialized(self):
         return self.buddycast_core is not None
- 
-
 
     def getInstance(*args, **kw):
         if ChannelCastCore.__single is None:
             ChannelCastCore(*args, **kw)
         return ChannelCastCore.__single
     getInstance = staticmethod(getInstance)
-
     def gotChannelCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receive and handle a ChannelCast message """
         # ChannelCast feature starts from eleventh version; hence, do not receive from lower version peers
@@ -175,33 +173,31 @@ class ChannelCastCore:
         
     def _updateChannelInternal(self, query_permid, query, hits):
         listOfAdditions = list()
-        #NIELS: disable channelcast for now
-        return listOfAdditions
-        
-        # a single read from the db is more efficient
-        all_spam_channels = self.votecastdb.getChannelsWithNegVote(None)
-        permid_channel_id = self.channelcastdb.getPermChannelIdDict()
-        
-        for k,v in hits.items():
-            #create new channel if not found
-            if v['publisher_id'] not in permid_channel_id:
-                permid_channel_id[v['publisher_id']] = self.channelcastdb.on_channel_from_channelcast(v['publisher_id'], v['publisher_name'])
-            
-            #add local channel_id to all messages    
-            v['channel_id'] = permid_channel_id[v['publisher_id']]
-            
-            #check if the record belongs to a channel who we have "reported spam" (negative vote)
-            if v['channel_id'] in all_spam_channels:
-                # if so, ignore the incoming record
-                continue
-            
-            # make everything into "string" format, if "binary"
-            hit = (v['channel_id'],v['publisher_name'],v['infohash'],'NAME UNKNOWN',v['time_stamp'])
-            listOfAdditions.append(hit)
-            
-        
-        # Arno, 2010-06-11: We're on the OverlayThread
-        self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
+
+        if len(hits) > 0:
+            # a single read from the db is more efficient
+            all_spam_channels = self.votecastdb.getPublishersWithNegVote(bin2str(self.session.get_permid()))
+            permid_channel_id = self.channelcastdb.getPermChannelIdDict()
+
+            for k,v in hits.items():
+                #create new channel if not found
+                if v['publisher_id'] not in permid_channel_id:
+                    permid_channel_id[v['publisher_id']] = self.channelcastdb.on_channel_from_channelcast(v['publisher_id'], v['publisher_name'])
+
+                #add local channel_id to all messages
+                v['channel_id'] = permid_channel_id[v['publisher_id']]
+
+                #check if the record belongs to a channel who we have "reported spam" (negative vote)
+                if bin2str(v['publisher_id']) in all_spam_channels:
+                    # if so, ignore the incoming record
+                    continue
+
+                # make everything into "string" format, if "binary"
+                hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
+                listOfAdditions.append(hit)
+
+            # Arno, 2010-06-11: We're on the OverlayThread
+            self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
         return listOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
@@ -215,6 +211,38 @@ class ChannelCastCore:
             infohashes.add(hit[2])
             
         my_favorites = self.votecastdb.getChannelsWithPosVote(bin2str(self.my_permid))
+
+#         if query and query.startswith('CHANNEL p') and len(publisher_ids) == 1:
+#             publisher_id = publisher_ids.pop()
+#             publisher_ids.add(publisher_id)
+            
+#             nr_torrents = self.channelcastdb.getNrTorrentsInChannel(publisher_id)
+#             if len(infohashes) > nr_torrents:
+#                 if len(infohashes) > 50 and len(infohashes) > nr_torrents +1: #peer not behaving according to spec, ignoring
+#                     if DEBUG:
+#                         print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
+#                     return
+                
+#                 #if my channel, never remove all currently received
+#                 if bin2str(self.session.get_permid()) != publisher_id:
+#                     self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
+#             if DEBUG:
+#                 print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
+#         else:
+#             #ignore all my favorites, randomness will cause problems with timeframe
+#             my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
+            
+#             #filter listOfAdditions
+#             listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
+            
+#             #request channeltimeframes for subscribed channels
+#             for publisher_id in my_favorites:
+#                 if publisher_id in publisher_ids:
+#                     self.updateAChannel(publisher_id, [query_permid])
+#                     publisher_ids.remove(publisher_id) #filter publisher_ids
+            
+#         #08/04/10: Andrea: processing rich metadata part.
+#         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
         #request updates for subscribed channels
         for channel_id in my_favorites:
@@ -237,23 +265,34 @@ class ChannelCastCore:
                 self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(channel_id) ,3)
     
     def updateMySubscribedChannels(self):
+        def update(permids):
+            permid = permids.pop()
+
         #TODO: DETECT DISPERSY CHANNELS
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
         for channel in subscribed_channels:
             permid = self.channelcastdb.getPermidForChannel(channel[0])
+
             self.updateAChannel(permid)
+            
+            if len(permids) > 0:
+                self.overlay_bridge.add_task(lambda: update(permids), 20)
+        
+        subscribed_channels = self.channelcastdb.getMySubscribedChannels()
+        permids = [values[0] for values in subscribed_channels]
+        if len(permids) > 0:
+            update(permids)
         
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
     
-    def updateAChannel(self, publisher_id, peers = None):
+    def updateAChannel(self, publisher_id, peers = None, timeframe = None):
         if peers == None:
             peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
         shuffle(peers)
-        
         # Create separate task which does all the requesting
-        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers))
+        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers, timeframe))
     
-    def _sequentialQueryPeers(self, publisher_id, peers):
+    def _sequentialQueryPeers(self, publisher_id, peers, timeframe = None):
         def seqtimeout(permid):
             if peers and permid == peers[0][0]:
                 peers.pop(0)
@@ -271,7 +310,16 @@ class ChannelCastCore:
                 permid, selversion = peers[0]
                 
                 q = "CHANNEL p "+publisher_id
-                self.session.query_peers(q, [permid] ,usercallback = seqcallback)
+                
+                if timeframe:
+                    record = timeframe
+                else:
+                    record = self.channelcastdb.getTimeframeForChannel(publisher_id)
+                
+                if record:
+                    q+= " "+" ".join(map(str,record))
+                self.session.query_peers(q,[permid],usercallback = seqcallback)
+
                 self.overlay_bridge.add_task(lambda: seqtimeout(permid), 30)
         peers = peers[:]
         dorequest()

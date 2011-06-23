@@ -28,15 +28,22 @@ class Conversion(object):
                        "decode-meta":0.0, "decode-authentication":0.0, "decode-destination":0.0, "decode-distribution":0.0, "decode-payload":0.0,
                        "verify-true":0.0, "verify-false":0.0, "sign":0.0}
 
-    def __init__(self, community, version):
+    def __init__(self, community, dispersy_version, community_version):
         """
         COMMUNITY instance that this conversion belongs to.
-        VERSION is the conversion identifyer (on the wire version).
+        DISPERSY_VERSION is the dispersy conversion identifier (on the wire version; must be one byte).
+        COMMUNIY_VERSION is the community conversion identifier (on the wire version; must be one byte).
+
+        COMMUNIY_VERSION may not be '\x00' or '\xff'.  '\x00' is used by the DefaultConversion until
+        a proper conversion instance can be made for the Community.  '\xff' is reserved for when
+        more than one byte is needed as a version indicator.
         """
         if __debug__: from community import Community
         assert isinstance(community, Community), type(community)
-        assert isinstance(version, str), type(version)
-        assert len(version) == 2, version
+        assert isinstance(dispersy_version, str), type(dispersy_version)
+        assert len(dispersy_version) == 1, dispersy_version
+        assert isinstance(community_version, str), type(community_version)
+        assert len(community_version) == 1, community_version
 
         # the dispersy database
         self._dispersy_database = DispersyDatabase.get_instance()
@@ -46,15 +53,26 @@ class Conversion(object):
 
         # the messages that this instance can handle, and that this instance produces, is identified
         # by _prefix.
-        self._prefix = community.cid + version
+        self._prefix = dispersy_version + community_version + community.cid
+        assert len(self._prefix) == 22 # when this assumption changes, we need to ensure the
+                                       # dispersy_version and community_version properties are
+                                       # returned correctly
 
     @property
     def community(self):
         return self._community
 
     @property
+    def dispersy_version(self):
+        return self._prefix[0]
+
+    @property
+    def community_version(self):
+        return self._prefix[1]
+
+    @property
     def version(self):
-        return self._prefix[20:22]
+        return (self._prefix[0], self._prefix[1])
 
     @property
     def prefix(self):
@@ -72,9 +90,9 @@ class Conversion(object):
 
     def decode_message(self, address, data):
         """
-        DATA is a string, where the first 20 bytes indicate the CID,
-        the next 2 bytes the on-the-wite VERSION, and the rest forms
-        the message payload.
+        DATA is a string, where the first byte is the on-the-wire Dispersy version, the second byte
+        is the on-the-wire Community version and the following 20 bytes is the Community Identifier.
+        The rest is the message payload.
 
         Returns a Message instance.
         """
@@ -85,8 +103,11 @@ class Conversion(object):
 
     def encode_message(self, message):
         """
-        Encode a Message instance into a binary string that starts
-        with CID and the on-the-wire VERSION.
+        Encode a Message instance into a binary string where the first byte is the on-the-wire
+        Dispersy version, the second byte is the on-the-wire Community version and the following 20
+        bytes is the Community Identifier.  The rest is the message payload.
+
+        Returns a binary string.
         """
         assert isinstance(message, Message)
         raise NotImplementedError("The subclass must implement encode_message")
@@ -98,8 +119,8 @@ class BinaryConversion(Conversion):
     This conversion is intended to be as space efficient as possible.
     All data is encoded in a binary form.
     """
-    def __init__(self, community, version):
-        Conversion.__init__(self, community, version)
+    def __init__(self, community, community_version):
+        Conversion.__init__(self, community, "\x00", community_version)
         self._encode_distribution_map = {FullSyncDistribution.Implementation:self._encode_full_sync_distribution,
                                          LastSyncDistribution.Implementation:self._encode_last_sync_distribution,
                                          DirectDistribution.Implementation:self._encode_direct_distribution}
@@ -132,22 +153,6 @@ class BinaryConversion(Conversion):
         define(242, u"dispersy-revoke", self._encode_revoke, self._decode_revoke)
         define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
         define(240, u"dispersy-subjective-set-request", self._encode_subjective_set_request, self._decode_subjective_set_request)
-
-#         self.define_meta_message(chr(254), community.get_meta_message(u"dispersy-missing-sequence"), self._encode_missing_sequence, self._decode_missing_sequence)
-#         self.define_meta_message(chr(253), community.get_meta_message(u"dispersy-sync"), self._encode_sync, self._decode_sync)
-#         self.define_meta_message(chr(252), community.get_meta_message(u"dispersy-signature-request"), self._encode_signature_request, self._decode_signature_request)
-#         self.define_meta_message(chr(251), community.get_meta_message(u"dispersy-signature-response"), self._encode_signature_response, self._decode_signature_response)
-#         self.define_meta_message(chr(250), community.get_meta_message(u"dispersy-candidate-request"), self._encode_candidate_request, self._decode_candidate_request)
-#         self.define_meta_message(chr(249), community.get_meta_message(u"dispersy-candidate-response"), self._encode_candidate_response, self._decode_candidate_response)
-#         self.define_meta_message(chr(248), community.get_meta_message(u"dispersy-identity"), self._encode_identity, self._decode_identity)
-#         self.define_meta_message(chr(247), community.get_meta_message(u"dispersy-identity-request"), self._encode_identity_request, self._decode_identity_request)
-# #         self.define_meta_message(chr(246), community.get_meta_message(u"dispersy-similarity"), self._encode_similarity, self._decode_similarity)
-# #         self.define_meta_message(chr(245), community.get_meta_message(u"dispersy-similarity-request"), self._encode_similarity_request, self._decode_similarity_request)
-#         self.define_meta_message(chr(244), community.get_meta_message(u"dispersy-destroy-community"), self._encode_destroy_community, self._decode_destroy_community)
-#         self.define_meta_message(chr(243), community.get_meta_message(u"dispersy-authorize"), self._encode_authorize, self._decode_authorize)
-#         self.define_meta_message(chr(242), community.get_meta_message(u"dispersy-revoke"), self._encode_revoke, self._decode_revoke)
-#         self.define_meta_message(chr(241), community.get_meta_message(u"dispersy-subjective-set"), self._encode_subjective_set, self._decode_subjective_set)
-#         self.define_meta_message(chr(240), community.get_meta_message(u"dispersy-subjective-set-request"), self._encode_subjective_set_request, self._decode_subjective_set_request)
 
     def define_meta_message(self, byte, message, encode_payload_func, decode_payload_func):
         assert isinstance(byte, str)
@@ -243,9 +248,9 @@ class BinaryConversion(Conversion):
     def _encode_candidate_request(self, message):
         bytes = [inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
                  inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
-                 message.payload.source_default_conversion]
+                 message.payload.source_default_conversion[0], message.payload.source_default_conversion[1]]
         for address, age in message.payload.routes:
-            bytes.extend((inet_aton(address[0]), pack("!HB", address[1], int(min(255, age)))))
+            bytes.extend((inet_aton(address[0]), pack("!HH", address[1], int(min(2**16-1, age)))))
         return bytes
 
     def _decode_candidate_request(self, meta_message, offset, data):
@@ -256,13 +261,13 @@ class BinaryConversion(Conversion):
         offset += 6
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
-        source_default_conversion = data[offset:offset+2]
+        source_default_conversion = (data[offset], data[offset+1])
         offset += 2
 
         routes = []
-        while len(data) >= offset + 7:
-            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HB", data, offset+4))
-            offset += 7
+        while len(data) >= offset + 8:
+            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HH", data, offset+4))
+            offset += 8
             routes.append(((host, port), float(age)))
 
         return offset, meta_message.payload.implement(source_address, destination_address, source_default_conversion, routes)
@@ -271,9 +276,9 @@ class BinaryConversion(Conversion):
         bytes = [message.payload.request_identifier,
                  inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
                  inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
-                 message.payload.source_default_conversion]
+                 message.payload.source_default_conversion[0], message.payload.source_default_conversion[1]]
         for address, age in message.payload.routes:
-            bytes.extend((inet_aton(address[0]), pack("!HB", address[1], int(min(255, age)))))
+            bytes.extend((inet_aton(address[0]), pack("!HH", address[1], int(min(2**16-1, age)))))
         return bytes
 
     def _decode_candidate_response(self, meta_message, offset, data):
@@ -286,13 +291,13 @@ class BinaryConversion(Conversion):
         offset += 6
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
-        source_default_conversion = data[offset:offset+2]
+        source_default_conversion = (data[offset], data[offset+1])
         offset += 2
 
         routes = []
-        while len(data) >= offset + 7:
-            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HB", data, offset+4))
-            offset += 7
+        while len(data) >= offset + 8:
+            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HH", data, offset+4))
+            offset += 8
             routes.append(((host, port), float(age)))
 
         return offset, meta_message.payload.implement(request_identifier, source_address, destination_address, source_default_conversion, routes)
@@ -714,6 +719,9 @@ class BinaryConversion(Conversion):
             self.debug_stats["sign"] += clock() - debug_begin
             dprint(message.name, " head+body+sig ", len(packet), " bytes")
 
+            if len(packet) > 1500 - 60 - 8:
+                dprint("Packet size for ", message.name, " exceeds MTU - TCPheader - UDPheader (", len(packet), " bytes)", level="warning")
+
         # dprint(message.packet.encode("HEX"))
         return packet
 
@@ -988,4 +996,4 @@ class DefaultConversion(BinaryConversion):
     payload conversion for the Community specific messages.
     """
     def __init__(self, community):
-        super(DefaultConversion, self).__init__(community, "\x00\x00")
+        super(DefaultConversion, self).__init__(community, "\x00")

@@ -268,7 +268,7 @@ class RoutingManager(object):
                 # 50% of the rnode's RTT (ie. two times faster). After two
                 # hours, a rnode cannot be replaced becouse of better RTT.
 #                print 'RTT replacement: newRTT: %f, oldRTT: %f, age: %f' % (
-                    rtt, rnode.rtt, current_time - rnode.bucket_insertion_ts)
+#                    rtt, rnode.rtt, current_time - rnode.bucket_insertion_ts)
                 rnode_to_be_replaced = rnode
                 break
         if rnode_to_be_replaced:

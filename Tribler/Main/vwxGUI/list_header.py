@@ -1,5 +1,12 @@
 # Written by Niels Zeilemaker
+import wx
+import sys
+import os
+
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
+from Tribler.__init__ import LIBRARYNAME
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
 from __init__ import LIST_RADIUS
 import sys
 import wx
@@ -368,19 +375,24 @@ class SubTitleHeader(TitleHeader):
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
+        self.add = wx.Button(parent, -1, "+", style = wx.BU_EXACTFIT)
+        self.add.SetToolTipString('Add a .torrent from an external source.')
+        
         self.resume = wx.Button(parent, -1, "Resume")
         self.stop = wx.Button(parent, -1, "Stop")
         self.delete = wx.Button(parent, -1, "Delete")
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddStretchSpacer()
+        hSizer.Add(self.add)
         hSizer.Add(self.resume)
         hSizer.Add(self.stop)
         hSizer.Add(self.delete)
         self.SetStates(False, False, False)
         return hSizer
 
-    def SetEvents(self, resume, stop, delete):
+    def SetEvents(self, add, resume, stop, delete):
+        self.add.Bind(wx.EVT_BUTTON, add)
         self.resume.Bind(wx.EVT_BUTTON, resume)
         self.stop.Bind(wx.EVT_BUTTON, stop)
         self.delete.Bind(wx.EVT_BUTTON, delete)
@@ -527,6 +539,65 @@ class SearchHeader(FamilyFilterHeader):
         FamilyFilterHeader.Reset(self)
         self.subtitle.SetLabel('')
         self.filter.Clear()
+        
+class SearchHelpHeader(SearchHeader):
+    def GetRightTitlePanel(self, parent):
+        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+
+        #filename = os.path.join(os.path.dirname(__file__), "images", "help.png")
+        gui_utility = GUIUtility.getInstance()
+        filename = os.path.join(gui_utility.vwxGUI_path, "images", "help.png")
+        help = wx.StaticBitmap(parent, -1, wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+        help.Bind(wx.EVT_LEFT_UP, self.helpClick)
+        hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
+
+        return hSizer
+
+    def helpClick(self,event=None):
+        title = 'Search within results'
+        html = """<p>
+        <u>Search within results</u> allows you to filter a list with ease.<br>
+        Typing a simple string, will allow you to filter items. <br>
+        If you type 'ab', only items matching it will be shown: 
+        <ul>
+            <li><b>AB</b>C</li>
+            <li><b>ab</b>c</li>
+            <li>d<b>ab</b>c</li>
+        </ul>
+        <hr>
+        But you can specify more advanced queries. Search within results will additionally allow you to use regex and size filters.
+        I.e. 
+        <ul>
+            <li>'\d{4}' will show only items with a 4 digit number</li>
+            <li>'size=100:200' will show items between 100 and 200 Mbytes</li>
+            <li>'size=:200' will show items smaller than 200 Mbytes</li>
+            <li>'size=100:' will show items larger than 100 Mbytes</li>
+        </ul>
+        </p>"""
+        
+        dlg = wx.Dialog(None, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
+        dlg.SetBackgroundColour(wx.WHITE)
+
+        sizer = wx.FlexGridSizer(2,2)
+        
+        icon = wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MESSAGE_BOX))
+        sizer.Add(icon, 0, wx.TOP, 10)
+        
+        hwin = wx.html.HtmlWindow(dlg, -1, size = (500, 300))
+        hwin.SetPage(html)
+        sizer.Add(hwin)
+        
+        sizer.Add((10,0))
+        
+        btn = wx.Button(dlg, wx.ID_OK, 'Ok')
+        sizer.Add(btn, 0, wx.ALIGN_RIGHT, 5)
+        
+        border = wx.BoxSizer()
+        border.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        
+        dlg.SetSizerAndFit(border)
+        dlg.ShowModal()
+        dlg.Destroy()
 
 class ChannelHeader(SearchHeader):
     DESCRIPTION_MAX_HEIGTH = 100
@@ -575,6 +646,7 @@ class ChannelHeader(SearchHeader):
                 dirty = True
             
             if bestHeight < self.DESCRIPTION_MAX_HEIGTH:
+
                 descriptionSpacer = self.radius + 3
                 if self.descriptionSpacer.GetSize()[0] != descriptionSpacer:
                     self.descriptionSpacer.SetSpacer((descriptionSpacer, 0))

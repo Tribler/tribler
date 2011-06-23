@@ -1,4 +1,5 @@
-# Written by Arno Bakker, George Milescu
+# Written by Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 #
 # All applications on top of the SecureOverlay should be started here.
@@ -12,8 +13,9 @@ import sys
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from Tribler.Core.ProxyService.CoordinatorMessageHandler import CoordinatorMessageHandler
-from Tribler.Core.ProxyService.HelperMessageHandler import HelperMessageHandler
+from Tribler.Core.ProxyService.DoeMessageHandler import DoeMessageHandler
+from Tribler.Core.ProxyService.ProxyMessageHandler import ProxyMessageHandler
+from Tribler.Core.ProxyService.ProxyPeerManager import ProxyPeerManager
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckMsgHandler
 from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler 
@@ -45,8 +47,9 @@ class OverlayApps:
         if OverlayApps.__single:
             raise RuntimeError, "OverlayApps is Singleton"
         OverlayApps.__single = self 
-        self.coord_handler = None
-        self.help_handler = None
+        self.doe_handler = None
+        self.proxy_handler = None
+        self.proxy_peer_manager = None
         self.metadata_handler = None
         self.buddycast = None
         self.collect = None
@@ -149,27 +152,35 @@ class OverlayApps:
         else:
             self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
 
-
+        # ProxyService_
+        #
         # Create handler for metadata messages in two parts, as 
-        # download help needs to know the metadata_handler and we need
-        # to know the download helper handler.
+        # ProxyService needs to know the metadata_handler and we need
+        # to know the proxy message handler.
         # Part 1:
         self.metadata_handler = MetadataHandler.getInstance()
 
-        if config['download_help']:
-            # Create handler for messages to dlhelp coordinator
-            self.coord_handler = CoordinatorMessageHandler(launchmany)
-            self.register_msg_handler(HelpHelperMessages, self.coord_handler.handleMessage)
+        # Create handler for messages to doe
+        self.doe_handler = DoeMessageHandler(launchmany)
+        self.register_msg_handler(ProxyMessages, self.doe_handler.handleMessage)
 
-            # Create handler for messages to dlhelp helper
-            self.help_handler = HelperMessageHandler()
-            self.help_handler.register(session,self.metadata_handler,config['download_help_dir'],config.get('coopdlconfig', False))
-            self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
-
-        # Part 2:
-        self.metadata_handler.register(overlay_bridge, self.help_handler, launchmany, config)
-        self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
+        # Create handler for messages to proxy
+        self.proxy_handler = ProxyMessageHandler()
+        self.proxy_handler.register(session, self.metadata_handler, config['proxyservice_dir'], config.get('proxy_default_dlcfg', False))
+        self.register_msg_handler(DoeMessages, self.proxy_handler.handleMessage)
         
+        # Part 2:
+        # Register the ProxyHandler to be called when a .torrent is in
+        self.metadata_handler.register(overlay_bridge, self.proxy_handler, launchmany, config)
+        self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
+
+        # Create the ProxyPeerManager
+        self.proxy_peer_manager = ProxyPeerManager(launchmany)
+        #
+        # _ProxyService
+        
+        # 09-02-2011 Niels: disabling subtitles (no more channelcast
+        config['subtitles_collecting'] = False
         
         # 09-02-2011 Niels: disabling subtitles (no more channelcast
         config['subtitles_collecting'] = False
@@ -218,7 +229,7 @@ class OverlayApps:
             
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
-
+            
         if config['dialback']:
             self.dialback_handler = DialbackMsgHandler.getInstance()
             # The Dialback mechanism needs the real rawserver, not the overlay_bridge
@@ -262,6 +273,19 @@ class OverlayApps:
             # Arno: to prevent concurrency between mainthread and overlay
             # thread where BuddyCast schedules tasks
             self.buddycast.register2()
+
+            # ProxyService_
+            #
+            # Register the ProxyPeerManager with BuddyCast
+            # The ProxyPeerManager has to register after the BuddyCastCore object is created by the BuddyCastFactory.
+            # The BuddyCastCore object is created in a method scheduled by the overlay_bridge.
+            # If the ProxyPeerManager.register is also scheduled by the overlay_bridge, it will be executed after the
+            # BuddyCastCore is created (overlay_bridge executes the scheduled tasks in the order of their execution)
+            if self.proxy_peer_manager:
+                self.overlay_bridge.add_task(self.proxy_peer_manager.register, 0)
+            #
+            # _ProxyService
+
     
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start

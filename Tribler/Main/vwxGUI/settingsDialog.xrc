@@ -6,7 +6,7 @@
   		</font> 
         <style>wxDEFAULT_DIALOG_STYLE</style>
         <title>Settings</title>
-        <size>600, 400</size>
+        <size>600, 500</size>
         <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
             <object class="sizeritem">
@@ -116,7 +116,7 @@
                                         </object>
                                         <object class="sizeritem">
                                             <object class="wxStaticText">
-                                                <label>Save files to</label>
+                                                <label>Save files to:</label>
                                             </object>
                                         </object>
                                         <object class="sizeritem">
@@ -126,6 +126,7 @@
                                                     <object class="wxTextCtrl" name="diskLocationCtrl">
                                                         <style>wxTE_PROCESS_ENTER</style>
                                                     </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
 													<option>1</option>
                                                 </object>
                                                 <object class="sizeritem">
@@ -136,6 +137,12 @@
                                             </object>
 											<flag>wxEXPAND</flag>
                                         </object>
+                                        <object class="sizeritem">
+	                                        <object class="wxCheckBox" name="diskLocationChoice">
+												<label>Let me choose a location for every download</label>
+												<checked>0</checked>
+											</object>
+										</object>
 										<object class="sizeritem">
                                             <object class="wxStaticLine">
                                                 <size>-1, 1</size>

@@ -1,4 +1,5 @@
-# Written by Arno Bakker and Bram Cohen, George Milescu 
+# Written by Arno Bakker and Bram Cohen
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 """ Default values for all configurarable parameters of the Core"""
 #
@@ -49,7 +50,6 @@ sessdefaults['crawler'] = True
 sessdefaults['buddycast'] = True
 sessdefaults['magnetlink'] = True
 sessdefaults['start_recommender'] = True
-sessdefaults['download_help'] = True
 sessdefaults['torrent_collecting'] = True
 sessdefaults['superpeer'] = False
 sessdefaults['overlay_log'] = None
@@ -71,14 +71,14 @@ sessdefaults['nickname'] = '__default_name__' # is replaced with hostname in Lau
 sessdefaults['mugshot'] = None
 sessdefaults['videoanalyserpath'] = None
 sessdefaults['overlay_max_message_length'] = 2 ** 23
-sessdefaults['download_help_dir'] = None
+sessdefaults['proxyservice_dir'] = None
 sessdefaults['bartercast'] = True
 sessdefaults['superpeer_file'] = None
 sessdefaults['crawler_file'] = None
 sessdefaults['buddycast_collecting_solution'] = BCCOLPOLICY_SIMPLE
 sessdefaults['peer_icon_path'] = None
 sessdefaults['stop_collecting_threshold'] = 200
-sessdefaults['coopdlconfig'] = None
+sessdefaults['proxy_default_dlcfg'] = None
 sessdefaults['family_filter'] = True
 sessdefaults['nat_detect'] = True
 sessdefaults['puncturing_internal_port'] = 6700
@@ -92,7 +92,7 @@ sessdefaults['votecast_random_votes']=25
 sessdefaults['channelcast_recent_own_subscriptions'] = 13
 sessdefaults['channelcast_random_own_subscriptions'] = 12 
 sessdefaults['dispersy'] = True
-sessdefaults['dispersy_port'] = 6711
+sessdefaults['dispersy_port'] = 7759
 
 # 14-04-2010, Andrea: settings to limit the results for a remote query in channels
 # if there are too many results the gui got freezed for a considerable amount of
@@ -104,8 +104,11 @@ sessdefaults['subtitles_collecting'] = True
 sessdefaults['subtitles_collecting_dir'] = None
 sessdefaults['subtitles_upload_rate'] = 1024 # KB/s 
 
-# ProxyService global config
+# ProxyService_
+#
 sessdefaults['proxyservice_status'] = PROXYSERVICE_OFF
+#
+# _ProxyService
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None
@@ -154,7 +157,8 @@ sessdefaults.update(trackerdefaults)
 # History: 
 #  Version 2: as released in Tribler 4.5.0
 #  Version 3: 
-DLDEFAULTS_VERSION = 3
+#  Version 4: allow users to specify a download directory every time
+DLDEFAULTS_VERSION = 5
 dldefaults = {}
 dldefaults['version'] = DLDEFAULTS_VERSION
 dldefaults['max_uploads'] = 7
@@ -167,6 +171,7 @@ dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fa
 dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
 dldefaults['saveas'] = None # Set to get_default_destdir()
+dldefaults['showsaveas'] = False # Allow users to choose directory for every new download
 dldefaults['max_slice_length'] = 2 ** 17
 dldefaults['max_rate_period'] = 20.0
 dldefaults['upload_rate_fudge'] = 5.0
@@ -206,10 +211,10 @@ dldefaults['auto_flush'] = 0
 #
 # Tribler per-download opts
 #
-dldefaults['coopdl_role'] = COOPDL_ROLE_COORDINATOR
-dldefaults['coopdl_coordinator_permid'] = ''
-dldefaults['proxy_mode'] = PROXY_MODE_OFF
-dldefaults['max_helpers'] = 10
+dldefaults['proxyservice_role'] = PROXYSERVICE_ROLE_NONE
+dldefaults['doe_mode'] = DOE_MODE_OFF
+dldefaults['proxyservice_status'] = PROXYSERVICE_OFF
+dldefaults['max_proxies'] = 10
 dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None

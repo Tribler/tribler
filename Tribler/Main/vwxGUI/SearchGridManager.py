@@ -75,7 +75,6 @@ class TorrentManager:
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
         # delay. the value needs to be a positive integer.
-        self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
         self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
@@ -124,9 +123,8 @@ class TorrentManager:
             return torrent_filename
         
         #.torrent not found, try to download from peers
-        if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
-            if self.downloadTorrentfileFromPeers(torrent, callback):
-                return (True, "from peers")
+        if self.downloadTorrentfileFromPeers(torrent, callback):
+            return (True, "from peers")
         
         torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, get_collected_torrent_filename(torrent['infohash']))
@@ -143,7 +141,7 @@ class TorrentManager:
         def torrentdef_retrieved(tdef):
             tdef.save(torrent_filename)
             callback(torrent['infohash'], torrent, torrent_filename)
-        print >> sys.stderr, magnetlink
+
         return (TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved), "from dht")
              
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio = 0):
@@ -169,17 +167,13 @@ class TorrentManager:
         # return False when duplicate
         if not duplicate and torrent.get('query_torrent_was_requested', False):
             return False
-
-        # return False when there are no sources to retrieve the
-        # torrent from
-        if not 'query_permids' in torrent:
-            if DEBUG:
-                print >> sys.stderr, "standardDetails: _download_torrentfile_from_peers: can not download .torrent file. No known source peers"
-            return False
-
+        
         torrent['query_torrent_was_requested'] = True
-        for permid in torrent['query_permids']:
-            self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
+        if not 'query_permids' in torrent or len(torrent['query_permids']) == 0:
+            self.guiUtility.utility.session.download_torrentfile(torrent['infohash'], callback, prio)
+        else:
+            for permid in torrent['query_permids']:
+                self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
         
         return True
     
@@ -328,9 +322,12 @@ class TorrentManager:
             playd = videoplayer.get_vod_download()
             
             if playd == ds.download:
-               self._get_videoplayer(ds).stop_playback()
+                self._get_videoplayer(ds).stop_playback()
             
-            self.guiUtility.utility.session.remove_download(ds.get_download(), removecontent = removecontent)
+        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+        
+    def deleteTorrentDownload(self, download, infohash, removecontent = False):
+        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent)
             
         # Johan, 2009-03-05: we need long download histories for good 
         # semantic clustering.
@@ -450,40 +447,47 @@ class TorrentManager:
         
         # TODO: do all filtering in DB query
         def torrentFilter(torrent):
-            library = (mode == 'libraryMode')
-            okLibrary = not library or (torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != "")
+            #allow all files in library mode
+            if mode == 'libraryMode':
+                return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
             
+            #show dead torrents in library
             okCategory = False
-            categories = torrent.get("category", [])
-            if not categories:
-                categories = ["other"]
-            if categorykey == 'all':
-                for torcat in categories:
-                    if torcat.lower() in enabledcatslow:
-                        okCategory = True
-                        break
-            elif categorykey in [cat.lower() for cat in categories]:
-                okCategory = True
+            if not okCategory:
+                categories = torrent.get("category", [])
+                if not categories:
+                    categories = ["other"]
+                if categorykey == 'all':
+                    for torcat in categories:
+                        if torcat.lower() in enabledcatslow:
+                            okCategory = True
+                            break
+                elif categorykey in [cat.lower() for cat in categories]:
+                    okCategory = True
             
             if not okCategory:
                 self.filteredResults += 1
             
-            #show dead torrents in library
-            okGood = library or torrent['status'] != 'dead'
-            return okLibrary and okCategory and okGood
+            okGood = torrent['status'] != 'dead'
+            return okCategory and okGood
         
         # 1. Local search puts hits in self.hits
+        if DEBUG:
+            beginlocalsearch = time()
         new_local_hits = self.searchLocalDatabase(mode)
         
         if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items' % len(self.hits)
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
 
         # 2. Filter self.hits on category and status
+        if DEBUG:
+            beginfilterhits = time()
+            
         if new_local_hits:
             self.hits = filter(torrentFilter,self.hits)
 
         if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items' % len(self.hits)
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
@@ -509,11 +513,10 @@ class TorrentManager:
 
         # boudewijn: now that we have sorted the search results we
         # want to prefetch the top N torrents.
-        if not self.prefetch_callback.IsRunning():
-            self.prefetch_callback.Start(1000)
+        self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
 
         if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time() - beginsort))
+            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.addDownloadStates(self.hits)
 
         return [len(self.hits), self.filteredResults , self.hits]
@@ -835,7 +838,7 @@ class ChannelSearchGridManager:
         self.utility = guiUtility.utility
         
         # Contains all matches for keywords in DB, not filtered by category
-        self.hits = []
+        self.hits = {}
         
         self.searchmgr = None
         self.channelcast_db = None

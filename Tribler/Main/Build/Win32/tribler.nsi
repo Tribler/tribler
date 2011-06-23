@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "5.3.7"
+!define VERSION "5.3.8"
 
 !include "MUI.nsh"
 
@@ -12,7 +12,7 @@ OutFile "${PRODUCT}_${VERSION}.exe"
 
 ;Folder selection page
 InstallDir "$PROGRAMFILES\${PRODUCT}"
- 
+
 ;Remember install folder
 InstallDirRegKey HKCU "Software\${PRODUCT}" ""
 
@@ -83,9 +83,16 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 
 Section "!Main EXE" SecMain
  SectionIn RO
+
+ ; Boudewijn, need to remove stuff from previously installed version
+ RMDir /r "$INSTDIR"
+
+ ; Install Tribler stuff
  SetOutPath "$INSTDIR"
+ File /r Microsoft.VC90.CRT
  File *.txt
- File tribler.exe.manifest
+ ; Arno: Appears to be for CRT v6?
+ ; File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
  File /r vlc

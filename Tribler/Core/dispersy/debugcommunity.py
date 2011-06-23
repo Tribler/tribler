@@ -101,7 +101,7 @@ class DebugNode(Node):
 
 class DebugCommunityConversion(BinaryConversion):
     def __init__(self, community):
-        super(DebugCommunityConversion, self).__init__(community, "\x00\x02")
+        super(DebugCommunityConversion, self).__init__(community, "\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"last-1-test"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(2), community.get_meta_message(u"last-9-nosequence-test"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(3), community.get_meta_message(u"last-9-sequence-test"), self._encode_text, self._decode_text)

@@ -10,7 +10,7 @@ if __debug__:
 
 class AllChannelConversion(BinaryConversion):
     def __init__(self, community):
-        super(AllChannelConversion, self).__init__(community, "\x00\x01")
+        super(AllChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
         self.define_meta_message(chr(2), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
         self.define_meta_message(chr(3), community.get_meta_message(u"channel-search-request"), self._encode_channel_search_request, self._decode_channel_search_request)

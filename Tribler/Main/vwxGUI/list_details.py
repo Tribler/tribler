@@ -13,7 +13,6 @@ from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
@@ -21,7 +20,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, EditStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, EditStaticText, SelectableListCtrl
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -105,6 +104,8 @@ class AbstractDetails(wx.Panel):
         sizer.Add(vSizer)
         return vSizer
 
+VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
+
 class TorrentDetails(AbstractDetails):
     FINISHED = 3
     FINISHED_INACTIVE = 4
@@ -114,7 +115,7 @@ class TorrentDetails(AbstractDetails):
     
     VOD = 1
     INACTIVE = 0
-        
+
     def __init__(self, parent, torrent):
         wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
@@ -142,49 +143,66 @@ class TorrentDetails(AbstractDetails):
         self.canEdit = self.OnEdit
         self.isEditable = {}
         
-        self.loadTorrent()
+        #Load torrent using guitaskqueue
+        self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
         
     def loadTorrent(self):
-        requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
-        if requesttype:
+        try:
+            requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+            if requesttype:
+                #switch back to gui thread
+                wx.CallAfter(self._showRequestType, requesttype)
+        except wx.PyDeadObjectError:
+            pass
+    
+    def _showRequestType(self, requesttype):
+        try:
             self.messagePanel.SetLabel("Loading details, please wait.\nThe torrentfile is requested %s."%requesttype)
-
+            
             self.Layout()
             self.parent.parent_list.OnChange()
+        except wx.PyDeadObjectError:
+            pass
     
     def showTorrent(self, torrent, information):
+        #switch back to gui thread
         wx.CallAfter(self._showTorrent, torrent, information)
         
     def _showTorrent(self, torrent, information):
-        self.torrent = torrent
-        self.information = information
-        ds = self.torrent.get('ds', None)
-        
-        self.Freeze()
-        self.messagePanel.Show(False)
-        
-        self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
-        self._addTabs(ds)
-        self.details.Add(self.notebook, 65, wx.EXPAND)
-        
-        self.buttonPanel = wx.Panel(self)
-        self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
-        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.ShowPanel()
-        
-        self.buttonPanel.SetSizer(self.buttonSizer)
-        self.details.Add(self.buttonPanel,  35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
-        self.details.Layout()
-        
-        self.parent.parent_list.OnChange()
-        self.Thaw()
-        
-        self.isReady = True
-        self._Refresh(ds)
-        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+        try:
+            self.torrent = torrent
+            self.information = information
+            ds = self.torrent.get('ds', None)
+            
+            self.Freeze()
+            self.messagePanel.Show(False)
+            
+            self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+            self._addTabs(ds)
+            self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
 
+            self.details.Add(self.notebook, 65, wx.EXPAND)
+            
+            self.buttonPanel = wx.Panel(self)
+            self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
+            self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+            
+            self.ShowPanel()
+            
+            self.buttonPanel.SetSizer(self.buttonSizer)
+            self.details.Add(self.buttonPanel,  35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+            self.details.Layout()
+            
+            self.parent.parent_list.OnChange()
+            self.Thaw()
+            
+            self.isReady = True
+            self._Refresh(ds)
+
+            self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+        except wx.PyDeadObjectError:
+            pass
+  
     def _addTabs(self, ds):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
     
@@ -232,11 +250,13 @@ class TorrentDetails(AbstractDetails):
             _, self.status = self._add_row(overview, vSizer, "Status", "Unknown")
         else:
             _, self.status = self._add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
-        
-        torrentSizer.Add(vSizer, 0, wx.EXPAND)
+
+        torrentSizer.Add(vSizer, 1, wx.EXPAND)
         
         if diff > 1800: #force update if last update more than 30 minutes ago
             TorrentChecking(self.torrent['infohash']).start()
+
+        overview.SetupScrolling(rate_y = 5)
             
         #Create torrent overview
         if self.torrent.get('ChannelTorrents.id', False):
@@ -314,51 +334,54 @@ class TorrentDetails(AbstractDetails):
                     curlang.sort()
                     strlang = [lang[0] for lang in curlang]
             
-            vlc_supported = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
-            
             internalSubs = []
             for filename, size in self.information[2]:
                 root, extension = os.path.splitext(filename)
-                if extension in vlc_supported:
+                if extension in VLC_SUPPORTED_SUBTITLES:
                     internalSubs.append(filename)
             internalSubs.sort()
             
             for filename in internalSubs:
-                strlang.append(filename)
+                _, nicefilename = os.path.split(filename)
+                strlang.append(nicefilename)
                 curlang.append([filename])
+                
+            foundSubtitles = len(curlang) > 0
             
-            if len(curlang) > 0:
-                curlang.insert(0, ('','',''))
-                strlang.insert(0, '')
-                
-                subtitlePanel, vSizer = self._create_tab(self.notebook, "Subtitles", "Discovered Subtitles")
-                hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                
-                if finished:
-                    title = wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?")
-                else:
-                    title = wx.StaticText(subtitlePanel, -1, "Available subtitles:")
-                title.SetMinSize((1,-1))
-                hSizer.Add(title, 1, wx.ALIGN_CENTER_VERTICAL)
-                subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
-                subtitleChoice.items = curlang
-                
-                if finished:
-                    subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
-                
-                hSizer.Add(subtitleChoice)
-                vSizer.Add(hSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
-                
-                vSizer.AddStretchSpacer()
-                if finished:
-                    self._add_row(subtitlePanel, vSizer, None, "Please select a subtitle and click play.")
-                    
-                    self.requestingSub = wx.StaticText(subtitlePanel)
-                    self.requestingSub.Show(False)
-                    vSizer.Add(self.requestingSub, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
-                else:
-                    self._add_row(subtitlePanel, vSizer, None, "After you finished downloading this torrent you can select one to used with our player.")
-        
+            subtitlePanel, vSizer = self._create_tab("Subtitles")
+            vSizer.AddSpacer((-1, 3))
+            
+            if not finished:
+                title = 'After you finished downloading this torrent you can select a subtitle'
+            else:
+                title = 'You can now select a subtitle'
+            
+            if foundSubtitles:
+                title += ' found by Tribler or'
+            title += ' specified by you to be used with our player.'
+            self._add_row(subtitlePanel, vSizer, None, title, spacer = 3)
+            
+            vSizer.AddStretchSpacer()
+            
+            curlang.insert(0, ('','',''))
+            strlang.insert(0, 'No subtitle')
+            
+            curlang.append(('','',''))
+            strlang.append('Browse for a subtitle...')
+
+            self.subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
+            self.subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
+            self.subtitleChoice.Enable(False)
+            self.subtitleChoice.items = curlang
+              
+            self.requestingSub = wx.StaticText(subtitlePanel)
+            self.requestingSub.Show(False)
+            
+            self._add_row(subtitlePanel, vSizer, "Which subtitle do you want to use?", None, spacer = 3)
+            
+            vSizer.Add(self.subtitleChoice, 0, wx.ALIGN_RIGHT|wx.BOTTOM|wx.RIGHT, 3)
+            vSizer.Add(self.requestingSub, 0, wx.ALIGN_RIGHT|wx.BOTTOM|wx.RIGHT, 3)
+     
         #Create description
         """
         if self.torrent.get('comment', 'None') != 'None' and self.torrent['comment'] != '':
@@ -414,13 +437,13 @@ class TorrentDetails(AbstractDetails):
                 
                 elif newState in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
                     self._ShowDownloadProgress()
-                    
+
                 else:
                     self._ShowTorrentDetails()
-                
+
                 if getattr(self.parent, 'button', False):
                     self.parent.button.Enable(newState == TorrentDetails.INACTIVE)
-            
+
             self.Layout()
             self.buttonPanel.Thaw()
         else:
@@ -434,7 +457,9 @@ class TorrentDetails(AbstractDetails):
             self.noChannel = True
 
     def _ShowTorrentDetails(self):
-        self.buttonSizer.Add(wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent."), 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
+        subtitle = wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
+        subtitle.SetMinSize((1, -1))
+        self.buttonSizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
         
         self.buttonSizer.AddStretchSpacer()
         
@@ -474,6 +499,7 @@ class TorrentDetails(AbstractDetails):
                 
                 self.channeltext = LinkStaticText(self.buttonPanel, label)
                 self.channeltext.SetToolTipString(tooltip)
+                self.channeltext.SetMinSize((1, -1))
                 self.channeltext.channel = channel
                 self.channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                 self.channeltext.target = 'channel'
@@ -596,6 +622,12 @@ class TorrentDetails(AbstractDetails):
         play.Bind(wx.EVT_LEFT_DOWN, self.OnPlay)
         vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
         sizer.Add(vSizer, 0,wx.EXPAND, 3)
+             
+        if getattr(self, 'subtitleChoice', None):
+            self.subtitleChoice.Enable(True)
+        if getattr(self, 'subtitleBrowse', None):
+            self.subtitleBrowse.Enable(True)
+            self.removeSubtitle.Enable(True)
     
     def _GetPath(self, file = None):
         ds = self.torrent.get('ds', False)
@@ -711,46 +743,73 @@ class TorrentDetails(AbstractDetails):
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
                     startfile(file)
-                    
+    
+    def _ToggleSubtitleChoice(self, showChoice = None):
+        if not showChoice:
+            showChoice = not self.subtitleChoice.IsShown()
+        
+        self.subtitleChoice.Show(showChoice)
+        self.requestingSub.Show(not showChoice)
+        self.requestingSub.sizer.Layout()
+                   
     def OnSubtitle(self, event):
-        choice = event.GetEventObject()
-        selected = choice.GetSelection()
-        if selected > 0 and selected != wx.NOT_FOUND:
-            if len(choice.items[selected]) > 1:
-                (lang, channelid, subtitleinfo) = choice.items[selected]
+        selected = self.subtitleChoice.GetSelection()
+        nrItems =self.subtitleChoice.GetCount()
+        
+        if selected == 0 or selected == wx.NOT_FOUND:
+            self.RemoveSubtitle()
+            
+        elif selected == nrItems - 1:
+            self.OnSubtitleBrowse(event)
+            
+        else:
+            if len(self.subtitleChoice.items[selected]) > 1:
+                (lang, channelid, subtitleinfo) = self.subtitleChoice.items[selected]
                 
-                self.requestingSub.SetLabel('Requesting subtitle from peers, please wait.')
-                self.requestingSub.Show()
+                self.requestingSub.SetLabel('Requesting subtitle from peers...')
+                self._ToggleSubtitleChoice(False)
                                 
                 subsupport = SubtitlesSupport.getInstance()
                 subsupport.retrieveSubtitleContent(channelid, self.torrent['infohash'], subtitleinfo, self.OnRetrieveSubtitle)
                 
                 def subTimeout():
                     if self.requestingSub.IsShown():
-                        self.requestingSub.SetLabel('Did not receive subtitle yet, it probably failed. Mark channel as favorite for improved support.')
-                        wx.CallLater(3000, self.requestingSub.Show, False)
+                        self.requestingSub.SetLabel('Request failed, no peer responded with subtitle')
+                        wx.CallLater(3000, self._ToggleSubtitleChoice, True)
                 wx.CallLater(10000, subTimeout)
             else:
-                file = self._GetPath(choice.items[selected][0])
+                file = self._GetPath(self.subtitleChoice.items[selected][0])
+                self.uelog.addEvent(message="Subtitles: user choose a internal subtitle", type = 2)
                 self.SetSubtitle(file)
-        else:
-            self.RemoveSubtitle()
     
     def OnRetrieveSubtitle(self, subtitleinfo):
         self.SetSubtitle(subtitleinfo.getPath())
+        self.uelog.addEvent(message="Subtitles: user retrieved a subtitle", type = 2)
+        self.requestingSub.SetLabel('Got subtitle from peers')
+        wx.CallLater(3000, self._ToggleSubtitleChoice, True)
+            
+    def OnSubtitleBrowse(self, event):
+        wildcard = "*" + ";*".join(VLC_SUPPORTED_SUBTITLES)
+        wildcard = "Subtitles (%s) | %s"%(wildcard, wildcard)
         
-        if self.requestingSub.IsShown():
-            self.requestingSub.SetLabel('Got subtitle from peers.')
-            wx.CallLater(3000, self.requestingSub.Show, False)
+        dlg = wx.FileDialog(self, 'Please select your subtitle.', wildcard = wildcard, style = wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.uelog.addEvent(message="Subtitles: user choose his own subtitle", type = 2)
+            
+            file = dlg.GetPath()
+            self.SetSubtitle(file)
+        dlg.Destroy()
         
     def SetSubtitle(self, file):
-        #get largest playable file
-        (size, filename) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
+        _, ext = os.path.splitext(file)
+        if ext.lower() in VLC_SUPPORTED_SUBTITLES:
+            #get largest playable file
+            (size, filename) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
+            
+            filename = os.path.join(self._GetPath(), filename[0:filename.rfind(".")] + ext)
+            shutil.copy(file, filename)
         
-        filename = os.path.join(self._GetPath(), filename[0:filename.rfind(".")] + ".srt")
-        shutil.copy(file, filename)
-        
-    def RemoveSubtitle(self):
+    def RemoveSubtitle(self, event = None):
         (size, filename) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
         if filename[0:filename.rfind(".")] + ".srt" not in self.information[2]: #only actually remove this subtitle if it not in the .torrent
             filename = os.path.join(self._GetPath(), filename[0:filename.rfind(".")] + ".srt")
@@ -781,7 +840,7 @@ class TorrentDetails(AbstractDetails):
         
         torrentfeed = TorrentFeedThread.getInstance()
         torrentfeed.addFile(torrent_filename)
-        self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+        self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
         self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
     
     def UpdateStatus(self):
@@ -871,14 +930,14 @@ class TorrentDetails(AbstractDetails):
             
         elif state == TorrentDetails.INCOMPLETE_INACTIVE:
             label = 'This torrent is inactive'
-            
+        
         else:
             label = 'Liking what you see?'
         
         if getattr(self,'title', False) and self.title.GetLabel() != label:
             self.title.SetLabel(label)
             self.title.Refresh()
-            
+    
     def __del__(self):
         self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
 
@@ -898,20 +957,32 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails._addTabs(self, ds)
         
         #insert peers tab
-        self.peerList = SortedListCtrl(self.notebook, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        peersPanel = wx.Panel(self.notebook)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+         
+        self.peerList = SelectableListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = False)
         self.peerList.InsertColumn(0, 'IP-address')
         self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
         self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
-        self.peerList.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
-               
-        self.notebook.InsertPage(2, self.peerList, "Peers")
+        
+        finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
+        if not finished:
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.availability = wx.StaticText(peersPanel)
+            self._add_row(peersPanel, hSizer, 'Availability', self.availability, spacer = 3)
+            vSizer.Add(hSizer, 0, wx.EXPAND)
+        else:
+            self.availability = None
+
+        peersPanel.SetSizer(vSizer)
+        self.notebook.InsertPage(2, peersPanel, "Peers")
     
     def _SetTitle(self, state):
         TorrentDetails._SetTitle(self, state)
-        
+
         if state == TorrentDetails.INACTIVE:
             return
         
@@ -955,7 +1026,6 @@ class LibraryDetails(TorrentDetails):
                     self._AddVodAd(self.overviewPanel, self.overviewSizer)
                 
             elif self.state == TorrentDetails.VOD:
-                
                 #TODO: show buffer, bitrate etc
                 pass
                 
@@ -995,6 +1065,9 @@ class LibraryDetails(TorrentDetails):
         
     def _Refresh(self, ds):
         TorrentDetails._Refresh(self, ds)
+        
+        #register callback for peerlist update
+        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
         
         self.peerList.Freeze()
         def downsort(a, b):
@@ -1050,41 +1123,23 @@ class LibraryDetails(TorrentDetails):
                         print >> sys.stderr, "Could not format peer client version"
                 
                 index += 1
-        for i in xrange(index, self.peerList.GetItemCount() + 1):
-            self.peerList.DeleteItem(i)
-        
+
+        if self.availability:
+            self.availability.SetLabel("%.2f"%ds.get_availability())
+
         if index == 0:
             self.peerList.DeleteAllItems()
             self.peerList.InsertStringItem(index, "Not connected to any peers")
+        else:
+            while index < self.peerList.GetItemCount():
+                self.peerList.DeleteItem(index)
+                index += 1
         
         self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
-        self.peerList.SetColumnWidth(4, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
-    
-    def _CopyToClipboard(self, event):
-        if event.ControlDown():
-            if event.GetKeyCode() == 67: #ctrl + c
-                data = ""
-                
-                selected = self.peerList.GetFirstSelected()
-                while selected != -1:
-                    for col in xrange(self.peerList.GetColumnCount()):
-                        data += self.peerList.GetItem(selected, col).GetText() + "\t"
-                    data += "\n"
-                    selected = self.peerList.GetNextSelected(selected)
-                    
-                do = wx.TextDataObject()
-                do.SetText(data)
-                wx.TheClipboard.Open()
-                wx.TheClipboard.SetData(do)
-                wx.TheClipboard.Close()
-                
-            elif event.GetKeyCode() == 65: #ctrl + a
-                for index in xrange(self.peerList.GetItemCount()):
-                    self.peerList.Select(index)
 
 class ProgressPanel(wx.Panel):
     #eta style
@@ -1209,7 +1264,7 @@ class ProgressPanel(wx.Panel):
             elif havedigest:
                 self.pb.set_pieces(havedigest)
             elif progress > 0:
-                self.pb.setNormalPercentage(progress*100.0) # Show as having some
+                self.pb.setNormalPercentage(progress) # Show as having some
             else:
                 self.pb.reset(colour=0) # Show as having none
             self.pb.Refresh()

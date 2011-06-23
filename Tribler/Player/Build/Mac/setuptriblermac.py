@@ -45,12 +45,6 @@ import M2Crypto.m2
 if "ec_init" not in M2Crypto.m2.__dict__:
     print "WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
 
-# ----- import VLC
-
-#import vlc
-
-#vlc = vlc.MediaControl(["--plugin-path",os.getcwd()+"/macbinaries/vlc_plugins"])
-
 # =================
 # build SwarmPlayer.app
 # =================
@@ -111,10 +105,10 @@ setup(
            + includedir( LIBRARYNAME+"/Images" )
 
            # add VLC plugins
-           + includedir( "macbinaries/vlc_plugins" )
+           + includedir( "vlc" )
 
            # add ffmpeg binary
-           + ["macbinaries/ffmpeg"]
+           + ["vlc/ffmpeg"]
             ,
     } }
 )

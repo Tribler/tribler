@@ -50,6 +50,7 @@ class GUIUtility:
 
        # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
+        self.useExternalVideo = False
 
         # current GUI page
         self.guiPage = 'home'
@@ -61,8 +62,6 @@ class GUIUtility:
 
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
-
-        self.guiOpen = Event()
      
         self.mainColour = wx.Colour(216,233,240) # main color theme used throughout the interface      
 
@@ -120,6 +119,8 @@ class GUIUtility:
                 
                 #Show list
                 self.frame.searchlist.Show()
+                
+                wx.CallAfter(self.frame.searchlist.ScrollToEnd, False)
             else:
                 #Stop animation
                 self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
@@ -138,7 +139,9 @@ class GUIUtility:
                     self.frame.channelselector.Show()
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
-                    
+
+                    wx.CallAfter(self.frame.channellist.ScrollToEnd, False)
+
                 elif selectedcat == 'My Channel' and self.guiPage != 'mychannel':
                     page = 'mychannel'
                 else:
@@ -164,11 +167,12 @@ class GUIUtility:
             
             if page == 'selectedchannel':
                 self.frame.selectedchannellist.Show()
+
             elif self.guiPage == 'selectedchannel':
                 self.frame.selectedchannellist.Show(False)
-                
                 if page not in ['playlist','managechannel']:
                     self.frame.selectedchannellist.Reset()
+                wx.CallAfter(self.frame.channelcategories.ScrollToEnd, False)
             
             if page == 'playlist':
                 self.frame.playlist.Show()
@@ -254,11 +258,16 @@ class GUIUtility:
             if sf is None:
                 return
             
-            input = sf.GetValue().strip()
+            input = sf.GetValue()
+        
+        if input:
+            input = input.strip()
             if input == '':
                 return
         else:
-            self.frame.top_bg.searchField.SetValue(input)
+            return
+        
+        self.frame.top_bg.searchField.SetValue(input)
             
         if input.startswith("http://"):
             if self.frame.startDownloadFromUrl(str(input)):
@@ -273,7 +282,7 @@ class GUIUtility:
         else:
             wantkeywords = split_into_keywords(input)
             if len(' '.join(wantkeywords))  == 0:
-                self.frame.top_bg.Notify('Please enter a search term', wx.ART_INFORMATION)
+                self.Notify('Please enter a search term', wx.ART_INFORMATION)
             else:
                 self.frame.top_bg.StartSearch()
                 
@@ -282,7 +291,6 @@ class GUIUtility:
                     print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
                 
                 self.frame.searchlist.Freeze()
-                self.frame.searchlist.Reset()
                 self.ShowPage('search_results')
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
@@ -317,7 +325,7 @@ class GUIUtility:
             self.frame.channellist.Freeze()
         
         manager = self.frame.channellist.GetManager()
-        manager.SetCategory(category)
+        manager.SetCategory(category, True)
         
         if show:
             self.ShowPage('channels')
@@ -391,6 +399,9 @@ class GUIUtility:
         if curkeywords == wantkeywords and (hits + filtered) == 0:
             uelog = UserEventLogDBHandler.getInstance()
             uelog.addEvent(message="Search: nothing found for query: "+" ".join(wantkeywords), type = 2)
+            
+    def Notify(self, msg, icon= -1):
+        self.frame.top_bg.Notify(msg, icon)
      
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
@@ -432,6 +443,11 @@ class GUIUtility:
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
         wx.CallAfter(self.channelsearch_manager.gotRemoteHits, permid, kws, listOfAdditions)
+    
+    def ShouldGuiUpdate(self):
+        if self.frame.ready:
+            return self.frame.GUIupdate
+        return True
 
     #TODO: should be somewhere else
     def set_port_number(self, port_number):

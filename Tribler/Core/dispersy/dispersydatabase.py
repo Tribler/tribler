@@ -145,7 +145,7 @@ class DispersyDatabase(Database):
         """
         host = unicode(gethostbyname(u"dispersy1.tribler.org"))
         port = 6421
-        public_key = "3081a7301006072a8648ce3d020106052b810400270381920004015f83ac4e8fe506c4035853096187814b93dbe566dbb24f98c51252c3d3a346a1c5813c7db8ece549f92c5ca9fd1cd58018a60e92432bcc12a610760f35b5907094cb6d7cd4e67001a1ab08b3a626a3884ebb5fe69969c47aba087075c72a326ae62046867aa435d71b59a388b5ecbf100896d1ed36131a0c4f6c5c3cb4f19a341919e87976eb03cdea8d6d85704370".decode("HEX")
-        mid = "3a4abd4ebb317172c057728799a5e5ea88c6bffa".decode("HEX")
+        public_key = "3081a7301006072a8648ce3d020106052b810400270381920004008444b3016503206d4a3429621dc0dda85481124e3c823a44aaee3f489df396a138af05409c15af6af8c5d88520078cd7d95808dceb49800d8e3532b737b68496225ac43051f99f035a6fecab844ae214471f5dc0c247fcdc199900ed64afd136537543ca41229df6e597b30facfd7dd4ce6d04ef7ded4fe19118cd951fcd43e4930eb963741fd806b4e46bde04c142".decode("HEX")
+        mid = "69249b231d04650175c01a622504a95a2dbbc728".decode("HEX")
         self.execute(u"INSERT INTO user(mid, public_key) VALUES(?, ?)", (buffer(mid), buffer(public_key)))
         self.execute(u"INSERT INTO candidate(community, host, port) VALUES(0, ?, ?)", (host, port))

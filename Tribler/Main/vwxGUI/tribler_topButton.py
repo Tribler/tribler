@@ -170,7 +170,7 @@ class tribler_topButton(wx.Panel):
             
             #if both width and height were smaller
             if rect[0] + rect[2] > bitmapSize[0] and rect[1] + rect[3] > bitmapSize[1]:
-                 rects.append(((bitmapSize[0]-rect[0],bitmapSize[1] - rect[1]),[0,0,rect[0],rect[1]]))
+                rects.append(((bitmapSize[0]-rect[0],bitmapSize[1] - rect[1]),[0,0,rect[0],rect[1]]))
             
             bmp = wx.EmptyBitmap(rect[2], rect[3]) 
             dc = wx.MemoryDC(bmp)
@@ -246,7 +246,10 @@ class SwitchButton(tribler_topButton):
             i+=1
         
     def setToggled(self, b):
-        self.state = self.state | tribler_topButton.TOGGLED
+        if b:
+            self.state = self.state | tribler_topButton.TOGGLED
+        else:
+            self.state = self.state ^ tribler_topButton.TOGGLED
         self.Refresh()
         
     def isToggled(self):
@@ -328,7 +331,6 @@ class LinkStaticText(wx.Panel):
             self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
-            
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
@@ -447,17 +449,60 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         ListCtrlAutoWidthMixin.__init__(self)
 
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         
         ColumnSorterMixin.__init__(self, numColumns)
         ListCtrlAutoWidthMixin.__init__(self)
 
         self.itemDataMap = {}
+        if tooltip:
+            self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
     
     def GetListCtrl(self):
         return self
     
+    def OnMouseMotion(self, event):
+        tooltip = ''
+        row, _ = self.HitTest(event.GetPosition())
+        if row >= 0:
+            try:
+                for col in xrange(self.GetColumnCount()):
+                    tooltip += self.GetItem(row, col).GetText() + "\t"
+                
+                if len(tooltip) > 0:
+                    tooltip = tooltip[:-1]
+            except:
+                pass
+        self.SetToolTipString(tooltip)
+        
+class SelectableListCtrl(SortedListCtrl):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+        SortedListCtrl.__init__(self, parent, numColumns, style, tooltip)
+        self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
+    
+    def _CopyToClipboard(self, event):
+        if event.ControlDown():
+            if event.GetKeyCode() == 67: #ctrl + c
+                data = ""
+                
+                selected = self.GetFirstSelected()
+                while selected != -1:
+                    for col in xrange(self.GetColumnCount()):
+                        data += self.GetItem(selected, col).GetText() + "\t"
+                    data += "\n"
+                    selected = self.GetNextSelected(selected)
+                    
+                do = wx.TextDataObject()
+                do.SetText(data)
+                wx.TheClipboard.Open()
+                wx.TheClipboard.SetData(do)
+                wx.TheClipboard.Close()
+                
+            elif event.GetKeyCode() == 65: #ctrl + a
+                for index in xrange(self.GetItemCount()):
+                    self.Select(index)
+        
 class TextCtrlAutoComplete(wx.TextCtrl):
     def __init__ (self, parent, choices = [], entrycallback = None, selectcallback = None, **therest):
         '''

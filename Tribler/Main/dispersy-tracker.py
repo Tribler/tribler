@@ -16,7 +16,8 @@ import optparse
 
 from Tribler.Core.Overlay.permid import read_keypair
 from Tribler.Core.BitTornado.RawServer import RawServer
-from Tribler.Core.dispersy.community import Community
+from Tribler.Core.dispersy.callback import Callback
+from Tribler.Core.dispersy.community import Community, HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.member import MyMember
@@ -31,7 +32,7 @@ if sys.platform == 'win32':
 else:
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
-class TrackerConversion(BinaryConversion):
+class BinaryTrackerConversion(BinaryConversion):
     pass
 
 class TrackerCommunity(Community):
@@ -72,8 +73,7 @@ class TrackerCommunity(Community):
         for name in [u"dispersy-candidate-request",
                      u"dispersy-candidate-response",
                      u"dispersy-identity",
-                     u"dispersy-identity-request",
-                     u"dispersy-destroy-community"]:
+                     u"dispersy-identity-request"]:
             self._meta_messages[name] = meta_messages[name]
 
     @property
@@ -82,12 +82,27 @@ class TrackerCommunity(Community):
         # do not understand
         return 0.0
 
+    @property
+    def dispersy_candidate_request_interval(self):
+        # as a tracker we mostly rely on incoming candidate requests
+        return 300.0
+
     def initiate_meta_messages(self):
         return []
 
+    def initiate_conversions(self):
+        return [BinaryTrackerConversion(self, "\x00")]
+
     def get_conversion(self, prefix=None):
         if not prefix in self._conversions:
-            self._conversions[prefix] = TrackerConversion(self, prefix[20:22])
+
+            # the dispersy version MUST BE available.  Currently we
+            # only support \x00: BinaryConversion
+            if prefix[0] == "\x00":
+                self._conversions[prefix] = BinaryTrackerConversion(self, prefix[1])
+
+            else:
+                raise KeyError("Unknown conversion")
 
             # use highest version as default
             if None in self._conversions:
@@ -101,7 +116,7 @@ class TrackerCommunity(Community):
 class TrackerDispersy(Dispersy):
     @classmethod
     def get_instance(cls, *args, **kargs):
-        kargs["singleton_superclass"] = Dispersy
+        kargs["singleton_placeholder"] = Dispersy
         return super(TrackerDispersy, cls).get_instance(*args, **kargs)
 
     def __init__(self, rawserver, statedir):
@@ -111,10 +126,12 @@ class TrackerDispersy(Dispersy):
         keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
         self._my_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
-    def get_community(self, cid):
-        if not cid in self._communities:
+    def get_community(self, cid, load=False, auto_load=True):
+        try:
+            return super(TrackerDispersy, self).get_community(cid, load, auto_load)
+        except KeyError:
             self._communities[cid] = TrackerCommunity.join_community(cid, "", self._my_member)
-        return self._communities[cid]
+            return self._communities[cid]
 
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
@@ -161,6 +178,17 @@ def main():
         print >> sys.stderr, error
         session_done_flag.set()
 
+    def start():
+        # start Dispersy
+        dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
+        dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
+
+        # load all HardKilledCommunity communities
+        print "Restored", len(HardKilledCommunity.load_communities()), "hard-killed communities"
+
+        # load the existing Tracker communities
+        print "Restored", len(TrackerCommunity.load_communities()), "tracker communities"
+
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")
     command_line_parser.add_option("--ip", action="store", type="string", default="0.0.0.0", help="Dispersy uses this ip")
@@ -172,20 +200,24 @@ def main():
     opt, args = command_line_parser.parse_args()
     print "Press Ctrl-C to stop Dispersy"
 
-    # start RawServer
+    # start threads
     session_done_flag = threading.Event()
     rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
+    callback = Callback()
+    callback.start(name="Dispersy")
+    callback.register(start)
 
-    # start Dispersy
-    dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
-    dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
-
-    # load the existing Tracker communities
-    print "Restored", len(TrackerCommunity.load_communities()), "tracker communities"
-
+    def watchdog():
+        while True:
+            try:
+                yield 333.3
+            except GeneratorExit:
+                rawserver.shutdown()
+                session_done_flag.set()
+                break
+    callback.register(watchdog)
     rawserver.listen_forever(None)
-    session_done_flag.set()
-    time.sleep(1)
+    callback.stop()
 
 if __name__ == "__main__":
     main()

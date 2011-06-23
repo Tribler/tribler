@@ -99,6 +99,9 @@ class Timeline(object):
                     except StopIteration():
                         if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (not authorized)", level="warning")
                         return False
+                else:
+                    if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (no authorization)", level="warning")
+                    return False
 
             else:
                 raise NotImplementedError("Unknown Resolution")
@@ -172,9 +175,9 @@ class Timeline(object):
     def revoke(self, author, global_time, permission_triplets):
         if __debug__:
             from authentication import MemberAuthentication
-            from member import Member, Private
+            from member import Member
             from message import Message
-            assert isinstance(author, Private)
+            assert isinstance(author, Member)
             assert isinstance(global_time, (int, long))
             assert global_time > 0
             assert isinstance(permission_triplets, list)

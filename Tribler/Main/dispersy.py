@@ -14,6 +14,7 @@ import optparse
 
 # from Tribler.Community.Discovery.Community import DiscoveryCommunity
 from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.dispersy import Dispersy
 
 if __debug__:
@@ -71,23 +72,18 @@ def main():
     def on_non_fatal_error(error):
         print >> sys.stderr, "Rawserver non fatal error:", error
 
-    # start Dispersy
     def start():
-        dispersy = Dispersy.get_instance(dispersy_rawserver, opt.statedir)
-        dispersy.socket = DispersySocket(socket_rawserver, dispersy, opt.port, opt.ip)
-
-        # # load the Discovery community
-        # discovery, = DiscoveryCommunity.load_communities()
-        # assert discovery == DiscoveryCommunity.get_instance()
+        # start Dispersy
+        dispersy = Dispersy.get_instance(callback, opt.statedir)
+        dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         # load the script parser
         if opt.script:
             from Tribler.Core.dispersy.script import Script
-            script = Script.get_instance(dispersy_rawserver)
+            script = Script.get_instance(callback)
 
             if not opt.disable_dispersy_script:
                 from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
-                from Tribler.Community.discovery.script import DiscoveryUserScript, DiscoveryCommunityScript, DiscoverySyncScript
                 script.add("dispersy-classification", DispersyClassificationScript)
                 script.add("dispersy-timeline", DispersyTimelineScript)
                 script.add("dispersy-candidate", DispersyCandidateScript)
@@ -98,42 +94,43 @@ def main():
                 script.add("dispersy-signature", DispersySignatureScript)
                 script.add("dispersy-member-tag", DispersyMemberTagScript)
                 script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
-                script.add("discovery-user", DiscoveryUserScript)
-                script.add("discovery-community", DiscoveryCommunityScript)
-                script.add("discovery-sync", DiscoverySyncScript)
 
-            if not opt.disable_allchannel_script:
-                from Tribler.Community.allchannel.script import AllChannelScript
-                script = Script.get_instance(dispersy_rawserver)
-                script.add("allchannel", AllChannelScript, include_with_all=False)
-                
-                from Tribler.Community.allchannel.script import AllChannelScenarioScript
-                args = {}
-                if opt.script_args:
-                    for arg in opt.script_args.split(','):
-                        key, value = arg.split('=')
-                        args[key] = value
+            if not opt.disable_simple_dispersy_test_script:
+                from Tribler.community.simpledispersytest.script import GenerateMessageBatchScript, GenerateMessagesScript, KillCommunityScript
+                script.add("simpledispersytest-generate-batch", GenerateMessageBatchScript, include_with_all=False)
+                script.add("simpledispersytest-generate-messages", GenerateMessagesScript, include_with_all=False)
+                script.add("simpledispersytest-destroy-community", KillCommunityScript, include_with_all=False)
 
-                script.add("allchannel-scenario", AllChannelScenarioScript, args, include_with_all=False)
+            # if not opt.disable_allchannel_script:
+            #     from Tribler.Community.allchannel.script import AllChannelScript
+            #     script = Script.get_instance(dispersy_rawserver)
+            #     script.add("allchannel", AllChannelScript, include_with_all=False)
 
-            if not opt.disable_barter_script:
-                from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
+            #     from Tribler.Community.allchannel.script import AllChannelScenarioScript
+            #     args = {}
+            #     if opt.script_args:
+            #         for arg in opt.script_args.split(','):
+            #             key, value = arg.split('=')
+            #             args[key] = value
 
-                args = {}
-                if opt.script_args:
-                    for arg in opt.script_args.split(','):
-                        key, value = arg.split('=')
-                        args[key] = value
+            #     script.add("allchannel-scenario", AllChannelScenarioScript, args, include_with_all=False)
 
-                script.add("barter", BarterScript)
-                script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
-                
+            # if not opt.disable_barter_script:
+            #     from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
 
-            # bump the rawservers, or they will delay everything... since they suck.
-            def bump():
-                pass
-            socket_rawserver.add_task(bump)
-            dispersy_rawserver.add_task(bump)
+            #     args = {}
+            #     if opt.script_args:
+            #         for arg in opt.script_args.split(','):
+            #             key, value = arg.split('=')
+            #             args[key] = value
+
+            #     script.add("barter", BarterScript)
+            #     script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
+
+            # # bump the rawserver, or it will delay everything... since it sucks.
+            # def bump():
+            #     pass
+            # rawserver.add_task(bump)
 
             script.load(opt.script)
 
@@ -141,10 +138,11 @@ def main():
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=u".")
     command_line_parser.add_option("--ip", action="store", type="string", default="0.0.0.0", help="Dispersy uses this ip")
     command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
-    command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=60.0)
+    command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=1.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
-    command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
-    command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
+    # command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
+    # command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
+    command_line_parser.add_option("--disable-simple-dispersy-test-script", action="store_true", help="Include simple-dispersy-test scripts", default=False)
     command_line_parser.add_option("--disable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
@@ -153,43 +151,24 @@ def main():
     opt, args = command_line_parser.parse_args()
     print "Press Ctrl-C to stop Dispersy"
 
-    # start RawServer
-    dispersy_done_flag = threading.Event()
+    # start threads
     session_done_flag = threading.Event()
+    rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
+    callback = Callback()
+    callback.start(name="Dispersy")
+    callback.register(start)
 
-    socket_rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
-    dispersy_rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
-
-    def rawserver_sucks_part_one():
-        """
-        The rawserver does not call the failfunc method when there is a failure, i.e. an excaption
-        is raised.  Hence we have to 'manually' close the other thread.
-        """
-        try:
-            dispersy_rawserver.listen_forever(None)
-        except Exception, e:
-            global exit_exception
-            exit_exception = e
-
-            session_done_flag.set()
-            def do_nothing():
-                pass
-            socket_rawserver.add_task(do_nothing)
-
-            raise
-    threading.Thread(target=rawserver_sucks_part_one).start()
-    dispersy_rawserver.add_task(start)
-
-    def rawserver_sucks_part_two():
-        """
-        The rawserver does NOT detect when session_done_flag is set.  It only checks when it get
-        frequent tasks to perform.
-        """
-        socket_rawserver.add_task(rawserver_sucks_part_two, 1.0)
-    socket_rawserver.add_task(rawserver_sucks_part_two, 1.0)
-    socket_rawserver.listen_forever(None)
-    session_done_flag.set()
-    time.sleep(1)
+    def watchdog():
+        while True:
+            try:
+                yield 333.3
+            except GeneratorExit:
+                rawserver.shutdown()
+                session_done_flag.set()
+                break
+    callback.register(watchdog)
+    rawserver.listen_forever(None)
+    callback.stop()
 
 if __name__ == "__main__":
     exit_exception = None

@@ -1,4 +1,5 @@
 # Written by John Hoffman
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 # Patched by Diego Andres Rabaioli.
@@ -20,18 +21,6 @@ from Tribler.Core.BitTornado.__init__ import product_name,version_short
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.Utilities.timeouturlopen import find_proxy
 
-# ProxyService_
-#
-try:
-    from Tribler.Core.ProxyService.Helper import SingleDownloadHelperInterface
-except ImportError:
-    class SingleDownloadHelperInterface:
-        
-        def __init__(self):
-            pass
-#
-# _ProxyService
-
 DEBUG = False
 
 EXPIRE_TIME = 60 * 60
@@ -45,10 +34,9 @@ class haveComplete:
         return True
 haveall = haveComplete()
 
-class SingleDownload(SingleDownloadHelperInterface):
+class SingleDownload():
 
     def __init__(self, downloader, url):
-        SingleDownloadHelperInterface.__init__(self)
         self.downloader = downloader
         self.baseurl = url
         
@@ -128,26 +116,20 @@ class SingleDownload(SingleDownloadHelperInterface):
         session.uch.perform_usercallback(self._download)
 
     def _download(self):
-# 2fastbt_
         self.request_lock.acquire()
         if DEBUG:
             print "http-sdownload: download()"
-        if self.is_frozen_by_helper():
-            if DEBUG:
-                print "http-sdownload: blocked, rescheduling"
-            self.resched(1)
-            return
-# _2fastbt    
+
         self.cancelled = False
         if self.downloader.picker.am_I_complete():
             self.downloader.downloads.remove(self)
             return
         self.index = self.downloader.picker.next(haveall, self._want, self)
-# 2fastbt_
-        if self.index is None and self.frozen_by_helper:
+
+        if self.index is None:
             self.resched(0.01)
             return
-# _2fastbt
+
         if ( self.index is None and not self.endflag
                      and not self.downloader.peerdownloader.has_downloaders() ):
             self.endflag = True
@@ -313,14 +295,6 @@ class SingleDownload(SingleDownloadHelperInterface):
             s += ','
         s += str(begin)+'-'+str(begin+length-1)
         return s
-
-# 2fastbt_
-    def helper_forces_unchoke(self):
-        pass
-
-    def helper_set_freezing(self,val):
-        self.frozen_by_helper = val
-# _2fastbt
 
     def slow_start_wake_up( self ):
         self.video_support_slow_start = False

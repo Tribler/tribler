@@ -1,8 +1,8 @@
 REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
-set PYTHONHOME=\Python254
-REM Arno: Add . to find our core (py 2.5)
+set PYTHONHOME=c:\Python271
+REM Arno: Add . to find our core
 set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
 
@@ -51,6 +51,27 @@ REM packs them in the installer .EXE
 
 mkdir dist\installdir
 
+REM Arno, 2011-02-22: Python 2.7 requires Microsoft.VC90.CRT version 9.0.21022.8
+REM   http://www.py2exe.org/index.cgi/Tutorial
+REM This version is available in the vcredist_x86.exe for Visual Studio 2008 (NOT SP1)
+REM  http://www.microsoft.com/downloads/en/details.aspx?FamilyID=9b2da534-3e03-4391-8a4d-074b9f2bc1bf&displaylang=en
+REM Date published: 29-11-2007
+REM Joyfully the paths for this CRT are different on XP and Win7 and the WinSxS
+REM dir appears to be special when using wildcards....
+
+IF EXIST C:\WINDOWS\WinSxS\x86_Microsoft.VC90.CRT_1fc8b3b9a1e18e3b_9.0.21022.8_x-ww_d08d0375 (
+set CRTFULLNAME=x86_Microsoft.VC90.CRT_1fc8b3b9a1e18e3b_9.0.21022.8_x-ww_d08d0375
+) ELSE (
+set CRTFULLNAME=x86_microsoft.vc90.crt_1fc8b3b9a1e18e3b_9.0.21022.8_none_bcb86ed6ac711f91
+) 
+
+xcopy C:\WINDOWS\WinSxS\%CRTFULLNAME% dist\installdir\Microsoft.VC90.CRT /S /I
+copy C:\WINDOWS\WinSxS\Manifests\%CRTFULLNAME%.manifest dist\installdir\Microsoft.VC90.CRT\Microsoft.VC90.CRT.manifest
+
+REM Arno: py2exe for Python 2.7 needs msvcp90.dll to be in topdir
+copy C:\WINDOWS\WinSxS\%CRTFULLNAME%\msvcp90.dll .
+
+
 %PYTHONHOME%\python.exe -O Tribler\Main\Build\Win32\setuptribler.py py2exe
 
 REM Arno: Move py2exe results to installdir
@@ -91,6 +112,7 @@ copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
+copy vlc.py dist\installdir\vlc.py
 
 copy reset*.bat dist\installdir
 

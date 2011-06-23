@@ -1,4 +1,5 @@
-# Written by Bram Cohen and Pawel Garbacki, George Milescu
+# Written by Bram Cohen and Pawel Garbacki
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -48,11 +49,7 @@ from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilena
 
 #ProxyService_
 #
-from Tribler.Core.ProxyService.Coordinator import Coordinator
-from Tribler.Core.ProxyService.Helper import Helper
-from Tribler.Core.ProxyService.RatePredictor import ExpSmoothRatePredictor
-import sys
-from traceback import print_exc,print_stack
+from Tribler.Core.ProxyService.ProxyDownloader import ProxyDownloader
 #
 #_ProxyService
 
@@ -67,7 +64,7 @@ DEBUG = False
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, logerrorfunc, doneflag, 
                  config, response, infohash, id, rawserver, get_extip_func, port,
-                 videoanalyserpath):
+                 videoanalyserpath, dlinstance):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -114,6 +111,12 @@ class BT1Download:
         self.videoinfo = None
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None
+        # ProxyService_
+        #
+        self.proxydownloader= None
+        self.dlinstance = dlinstance
+        #
+        # _ProxyService
         
 
         self.selector_enabled = config['selector_enabled']
@@ -123,67 +126,28 @@ class BT1Download:
         self.checking = False
         self.started = False
 
-        # ProxyService_
-        #
-        self.helper = None
-        self.coordinator = None
-        self.rate_predictor = None
-        #
-        # _ProxyService
-
-        # 2fastbt_
         try:
-            
-            # 03/01/11 boudewijn: when self.coordinator or self.helper
-            # is set, a lot of data is logged.  Unfortunately either
-            # is set for -any- download, not only the 2010 test
-            # torrent.  This resulted in huge amounts of log, memory
-            # usage, and even crashes.
-            #
-            # if self.config['download_help']:
-            #     if DEBUG:
-            #         print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
-                
-            #     if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
-            #         from Tribler.Core.ProxyService.Coordinator import Coordinator
-                    
-            #         self.coordinator = Coordinator(self.infohash, self.len_pieces)
-            #     #if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
-            #     # Arno, 2008-05-20: removed Helper when coordinator, shouldn't need it.
-            #     # Reason to remove it is because it messes up PiecePicking: when a 
-            #     # helper, it calls _next() again after it returned None, probably
-            #     # to provoke a RESERVE_PIECE request to the coordinator.
-            #     # This change passes test_dlhelp.py
-            #     #
-            #     if self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
-            #         from Tribler.Core.ProxyService.Helper import Helper
-                    
-            #         self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
-            #         self.config['coopdl_role'] = ''
-            #         self.config['coopdl_coordinator_permid'] = ''
-
 
             if self.am_video_source:
                 from Tribler.Core.Video.VideoSource import PiecePickerSource
 
                 self.picker = PiecePickerSource(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'], helper = self.helper, coordinator = self.coordinator)
+                             config['rarest_first_priority_cutoff'])
             elif self.play_video:
                 # Jan-David: Start video-on-demand service
                 self.picker = PiecePickerVOD(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'], helper = self.helper, coordinator = self.coordinator, piecesize=self.piecesize)
+                             config['rarest_first_priority_cutoff'], piecesize=self.piecesize)
             elif self.svc_video:
                 # Ric: Start SVC VoD service TODO
                 self.picker = PiecePickerSVC(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'], helper = self.helper, coordinator = self.coordinator, piecesize=self.piecesize)
+                             config['rarest_first_priority_cutoff'], piecesize=self.piecesize)
             else:
                 self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'], helper = self.helper, coordinator = self.coordinator)
+                             config['rarest_first_priority_cutoff'])
             
         except:
             print_exc()
             print >> sys.stderr,"BT1Download: EXCEPTION in __init__ :'" + str(sys.exc_info()) + "' '"
-# _2fastbt
 
         self.choker = Choker(config, rawserver.add_task, 
                              self.picker, self.finflag.isSet)
@@ -401,6 +365,15 @@ class BT1Download:
         self.downmeasure.update_rate(x)
         self.ratemeasure.data_came_in(x)
 
+    # PRoxyService_
+    #
+    def _received_proxy_data(self, x):
+        self.downmeasure.update_rate(x)
+        self.ratemeasure.data_came_in(x)
+        self.downloader.external_data_received(x)
+    #
+    # _ProxyService
+
     def _received_http_data(self, x):
         self.downmeasure.update_rate(x)
         self.ratemeasure.data_came_in(x)
@@ -410,6 +383,7 @@ class BT1Download:
         self.downloader.cancel_piece_download(pieces)
         self.ghttpdownloader.cancel_piece_download(pieces)
         self.hhttpdownloader.cancel_piece_download(pieces)
+        self.proxydownloader.cancel_piece_download(pieces)
     def _reqmorefunc(self, pieces):
         self.downloader.requeue_piece_download(pieces)
 
@@ -452,19 +426,16 @@ class BT1Download:
             self.config['request_backlog'], self.config['max_rate_period'], 
             self.len_pieces, self.config['download_slice_size'], 
             self._received_data, self.config['snub_time'], self.config['auto_kick'], 
-            self._kick_peer, self._ban_peer, scheduler = self.rawserver.add_task)
+            self._kick_peer, self._ban_peer, bt1dl = self, scheduler = self.rawserver.add_task)
         self.downloader.set_download_rate(self.config['max_download_rate'])
 
         self.picker.set_downloader(self.downloader)
-# 2fastbt_
-        if self.coordinator is not None:
-            self.coordinator.set_downloader(self.downloader)
-
+        
         self.connecter = Connecter(self.response, self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.piecesize, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.get_extip_func, self.port, self.use_g2g,self.infohash,self.response.get('announce',None),self.info.has_key('live'))
-# _2fastbt
+                            self.rawserver.add_task, self.get_extip_func, self.port, self.use_g2g,self.infohash,self.response.get('announce',None),self.info.has_key('live'))
+
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
             self.config['keepalive_interval'], self.infohash, 
@@ -474,26 +445,13 @@ class BT1Download:
             if DEBUG:
                 print >> sys.stderr, "BT1Download: startEngine: Using initial peers", self.response["initial peers"]
             self.encoder.start_connections([(address, 0) for address in self.response["initial peers"]])
-#--- 2fastbt_
+
         if DEBUG:
             print str(self.config['exclude_ips'])
         for ip in self.config['exclude_ips']:
             if DEBUG:
                 print >>sys.stderr,"BT1Download: startEngine: Banning ip: " + str(ip)
             self.encoder_ban(ip)
-
-        if self.helper is not None:
-            from Tribler.Core.ProxyService.RatePredictor import ExpSmoothRatePredictor
-
-            self.helper.set_encoder(self.encoder)
-            self.encoder.set_helper(self.helper)
-            self.rate_predictor = ExpSmoothRatePredictor(self.rawserver, 
-                self.downmeasure, self.config['max_download_rate'])
-            self.picker.set_rate_predictor(self.rate_predictor)
-            self.rate_predictor.update()
-        if self.coordinator is not None:
-            self.coordinator.set_encoder(self.encoder)
-# _2fastbt
 
         self.ghttpdownloader = GetRightHTTPDownloader(self.storagewrapper, self.picker, 
             self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
@@ -502,6 +460,17 @@ class BT1Download:
         if self.response.has_key('url-list') and not self.finflag.isSet():
             for u in self.response['url-list']:
                 self.ghttpdownloader.make_download(u)
+
+        # ProxyService_
+        #
+        self.proxydownloader = ProxyDownloader(self, self.storagewrapper, self.picker, 
+            self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
+            self.config['max_rate_period'], self.infohash, self._received_proxy_data, 
+            self.connecter.got_piece, self.dlinstance, scheduler = self.rawserver.add_task)
+        self.picker.set_proxydownloader(self.proxydownloader)
+        self.downloader.set_proxydownloader(self.proxydownloader)
+        #
+        # _ProxyService
 
         self.hhttpdownloader = HoffmanHTTPDownloader(self.storagewrapper, self.picker, 
             self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
@@ -515,7 +484,7 @@ class BT1Download:
             self.fileselector.tie_in(self.picker, self._cancelfunc, self._reqmorefunc)
             if self.priority:
                 self.fileselector.set_priorities_now(self.priority)
-                                # erase old data once you've started modifying it
+                # erase old data once you've started modifying it
 
         # Ric: added svc case TODO check with play_video
         if self.svc_video:
@@ -611,7 +580,7 @@ class BT1Download:
             self.myid, self.infohash, self.config['http_timeout'], 
             self.logerrorfunc, self.excfunc, self.config['max_initiate'], 
             self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
-            self.unpauseflag,self.config)
+            self.unpauseflag, self.config)
 
         if self.play_video and self.voddownload is not None:
             rerequest.add_notifier( lambda x: self.voddownload.peers_from_tracker_report( len( x ) ) )

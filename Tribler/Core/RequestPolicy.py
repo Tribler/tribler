@@ -1,4 +1,5 @@
 # Written by Jelle Roozenburg 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 """ Controls the authorization of messages received via the Tribler Overlay """
 

@@ -148,6 +148,7 @@ class SeedingManager:
 
     def update_download_state(self, download_state):
         self.download_state = download_state
+        self.download_state.set_seeding_statistics(self.get_updated_storage())
     
     def is_conn_eligible(self, conn):
         if conn.use_g2g:
@@ -274,6 +275,6 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
         else:
             ratio = 1.0*ul/dl
     
-        if DEBUG: print >>sys.stderr, "GiveToGetRatioBasedSeedingapply:", dl, ul, ratio, self.Read('g2g_ratio', "int")/100.0
+        if True or DEBUG: print >>sys.stderr, "GiveToGetRatioBasedSeedingapply:", dl, ul, ratio, self.Read('g2g_ratio', "int")/100.0
         return ratio < self.Read('g2g_ratio', "int")/100.0
 

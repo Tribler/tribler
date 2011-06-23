@@ -100,7 +100,7 @@ class TorrentChecking(Thread):
             
             torrent = return_value['torrent']
             if DEBUG:
-                print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
+                print >> sys.stderr, "Torrent Checking: get value from DB:", torrent['infohash'] 
             
             if not torrent:
                 return
@@ -129,6 +129,15 @@ class TorrentChecking(Thread):
             # TODO: tracker checking also needs to be update
             if DEBUG:
                 print >> sys.stderr, "Tracker Checking"
+            
+            #Niels: update last_check_time now to prevent multiple requests
+            kw = { 'last_check_time': int(time()) }
+            if self.db_thread:
+                self.db_thread.add_task(lambda:
+                    TorrentDBHandler.getInstance().updateTracker(torrent['infohash'], kw))
+            else:
+                TorrentDBHandler.getInstance().updateTracker(torrent['infohash'], kw)    
+            
             trackerChecking(torrent)
             
             # Must come after tracker check, such that if tracker dead and DHT still alive, the
@@ -138,7 +147,6 @@ class TorrentChecking(Thread):
             self.updateTorrentInfo(torrent)            # set the ignored_times
             
             kw = {
-                'last_check_time': int(time()),
                 'seeder': torrent['seeder'],
                 'leecher': torrent['leecher'],
                 'status': torrent['status'],

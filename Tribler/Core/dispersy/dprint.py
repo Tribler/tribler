@@ -19,6 +19,7 @@ import inspect
 import re
 import socket
 from os import getcwd
+from pprint import pformat
 
 # maxsize is introduced in Python 2.6
 try:
@@ -71,7 +72,8 @@ _dprint_settings = {
     "stack_ident":None,                 # when stack is printed use this ident to determine the thread name
     "stderr":False,                     # write message to sys.stderr
     "stdout":True,                      # write message to sys.stdout
-    "style":"column"}                    # output style. either "short" or "column"
+    "style":"column",                   # output style. either "short" or "column"
+    "pprint":False}
 
 # We allow message filtering in a 'iptables like' fashion. Each
 # messages is passed to the ENTRY chain in _dprint_filters, when a
@@ -388,7 +390,7 @@ def _config_read():
 
     string = ["box_char", "glue", "line_char", "remote_host", "source_file", "source_function", "style"]
     int_ = ["box_width", "line_width", "remote_port", "source_line", "stack_origin_modifier"]
-    boolean = ["box", "binary", "exception", "exclude_policy", "line", "lines", "meta", "remote", "stack", "stderr", "stdout"]
+    boolean = ["box", "binary", "exception", "exclude_policy", "line", "lines", "meta", "pprint", "remote", "stack", "stderr", "stdout"]
     for line_number, line, before, after in sections["default"]:
         try:
             if before in string:
@@ -553,7 +555,7 @@ def dprint_pre(func):
         dprint("PRE ", args, kargs, source_file=source_file, source_line=source_line, source_function=source_function)
         return func(*args, **kargs)
     return wrapper
-    
+
 def dprint_post(func):
     source_file = inspect.getsourcefile(func)
     source_line = inspect.getsourcelines(func)[1]
@@ -584,7 +586,7 @@ def dprint(*args, **kargs):
     Create a message from ARGS and output it somewhere.
 
     The message can be send to:
-    - stdout 
+    - stdout
     - stderr (default)
     - remote (send message and context to external program)
 
@@ -728,6 +730,10 @@ def dprint(*args, **kargs):
         messages.extend(["%s: %s" % (str(k), str(v)) for k, v in args[0].items()])
     elif kargs["lines"]:
         messages.extend([str(v) for v in args])
+    elif kargs["pprint"] and len(args) == 1:
+        messages.extend(pformat(args[0]).split("\n"))
+    elif kargs["pprint"]:
+        messages.extend(pformat(args).split("\n"))
     else:
         messages.append(kargs["glue"].join([str(v) for v in args]))
 

@@ -18,7 +18,7 @@ from random import gauss, choice
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
-from conversion import DefaultConversion
+from conversion import BinaryConversion, DefaultConversion
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from decorator import documentation
 from destination import CommunityDestination, AddressDestination
@@ -106,23 +106,20 @@ class Community(object):
         @rtype: Community
         """
         assert isinstance(my_member, MyMember), my_member
-
-        # master key and community id
         ec = ec_generate_key(u"high")
-        master_key = ec_to_public_bin(ec)
-        cid = sha1(master_key).digest()
-        private_key = ec_to_private_bin(ec)
+        master_public_key = ec_to_public_bin(ec)
+        master_private_key = ec_to_private_bin(ec)
+        cid = sha1(master_public_key).digest()
 
         database = DispersyDatabase.get_instance()
-        with database as execute:
-            execute(u"INSERT INTO community (user, classification, cid, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_key)))
-            database_id = database.last_insert_rowid
-            execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(master_key)))
-            execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(master_key), buffer(private_key)))
-            execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
+        database.execute(u"INSERT INTO community (user, classification, cid, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_public_key)))
+        database_id = database.last_insert_rowid
+        database.execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(cid), buffer(master_public_key)))
+        database.execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(master_public_key), buffer(master_private_key)))
+        database.execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
 
         # new community instance
-        community = cls.load_community(cid, master_key, *args, **kargs)
+        community = cls.load_community(cid, master_public_key, *args, **kargs)
 
         # create the dispersy-identity for the master member
         meta = community.get_meta_message(u"dispersy-identity")
@@ -132,7 +129,7 @@ class Community(object):
                                  meta.payload.implement(("0.0.0.0", 0)))
         community.dispersy.store_update_forward([message], True, False, True)
 
-        # send out my initial dispersy-identity
+        # create the dispersy-identity for my member
         community.create_dispersy_identity()
 
         # authorize MY_MEMBER for each message
@@ -147,7 +144,7 @@ class Community(object):
         return community
 
     @classmethod
-    def join_community(cls, cid, master_key, my_member, *args, **kargs):
+    def join_community(cls, cid, master_public_key, my_member, *args, **kargs):
         """
         Join an existing community.
 
@@ -159,12 +156,12 @@ class Community(object):
         receive, send, and disseminate messages that do not require any permission to use.
 
         @param cid: The community identifier, i.e. the sha1 digest of
-        the master_key.
+        the master_public_key.
         @type cid: string
 
-        @param master_key: The public key of the master member of the community that is to be
+        @param master_public_key: The public key of the master member of the community that is to be
          joined.  This may be an empty sting.
-        @type master_key: string
+        @type master_public_key: string
 
         @param my_member: The Member that will be granted Permit, Authorize, and Revoke for all
          messages.
@@ -181,20 +178,21 @@ class Community(object):
         @return: The created community instance.
         @rtype: Community
 
-        @todo: we should probably change MASTER_KEY to require a master member instance, or the cid
+        @todo: we should probably change MASTER_PUBLIC_KEY to require a master member instance, or the cid
          that we want to join.
         """
         assert isinstance(cid, str)
         assert len(cid) == 20
-        assert isinstance(master_key, str)
-        assert not master_key or cid == sha1(master_key).digest()
+        assert isinstance(master_public_key, str)
+        assert not master_public_key or cid == sha1(master_public_key).digest()
         assert isinstance(my_member, MyMember)
+        if __debug__: dprint(cid.encode("HEX"))
         database = DispersyDatabase.get_instance()
         database.execute(u"INSERT INTO community(user, classification, cid, public_key) VALUES(?, ?, ?, ?)",
-                         (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_key)))
+                         (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_public_key)))
 
         # new community instance
-        community = cls.load_community(cid, master_key, *args, **kargs)
+        community = cls.load_community(cid, master_public_key, *args, **kargs)
 
         # send out my initial dispersy-identity
         community.create_dispersy_identity()
@@ -213,20 +211,30 @@ class Community(object):
         @rtype: list
         """
         database = DispersyDatabase.get_instance()
-        return [cls.load_community(str(cid), str(master_key), *args, **kargs)
-                for cid, master_key
+        return [cls.load_community(str(cid), str(master_public_key), *args, **kargs)
+                for cid, master_public_key
                 in list(database.execute(u"SELECT cid, public_key FROM community WHERE classification = ?", (cls.get_classification(),)))]
 
     @classmethod
-    def load_community(cls, cid, master_key, *args, **kargs):
+    def load_community(cls, cid, master_public_key, *args, **kargs):
         """
         Load a single community.
+
+        Will raise a ValueError exception when cid is unavailable.
+
+        @param cid: The community identifier, i.e. the sha1 digest of the master_public_key.
+        @type cid: string
+
+        @param master_public_key: The community identifier, i.e. the public key of the community
+         master member.  This may be an empty string.
+        @type cid: string
         """
         assert isinstance(cid, str)
         assert len(cid) == 20
-        assert isinstance(master_key, str)
-        assert not master_key or cid == sha1(master_key).digest()
-        community = cls(cid, master_key, *args, **kargs)
+        assert isinstance(master_public_key, str)
+        assert not master_public_key or cid == sha1(master_public_key).digest()
+        if __debug__: dprint(cid.encode("HEX"))
+        community = cls(cid, master_public_key, *args, **kargs)
 
         # tell dispersy that there is a new community
         community._dispersy.attach_community(community)
@@ -238,52 +246,53 @@ class Community(object):
         """
         Unload all communities that have the same classification as cls.
         """
+        if __debug__: dprint(self._cid.encode("HEX"))
         dispersy = Dispersy.get_instance()
         classification = cls.get_classification()
         for community in dispersy.get_communities():
             if community.get_classification() == classification:
                 community.unload_community()
 
-    def __init__(self, cid, master_key):
+    def __init__(self, cid, master_public_key):
         """
         Initialize a community.
 
         Generally a new community is created using create_community.  Or an existing community is
         loaded using load_communities.  These two methods prepare and call this __init__ method.
 
-        @param cid: The community identifier, i.e. the sha1 digest of
-         the master_key.
+        @param cid: The community identifier, i.e. the sha1 digest of the master_public_key.
         @type cid: string
 
-        @param master_key: The community identifier, i.e. the public key of the community master
-         member.  This may be an empty string.
+        @param master_public_key: The community identifier, i.e. the public key of the community
+         master member.  This may be an empty string.
         @type cid: string
         """
         assert isinstance(cid, str)
         assert len(cid) == 20
-        assert isinstance(master_key, str)
-        assert not master_key or cid == sha1(master_key).digest()
+        assert isinstance(master_public_key, str)
+        assert not master_public_key or cid == sha1(master_public_key).digest()
+        if __debug__: dprint(cid.encode("HEX"))
 
         # dispersy
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
 
         # obtain some generic data from the database
-        for database_id, db_master_key, user_public_key in self._dispersy_database.execute(u"""
+        for database_id, db_master_public_key, user_public_key in self._dispersy_database.execute(u"""
             SELECT community.id, community.public_key, user.public_key
             FROM community
             LEFT JOIN user ON community.user = user.id
             WHERE community.cid == ?
             LIMIT 1""", (buffer(cid),)):
             # the database returns <buffer> types, we use the binary <str> type internally
-            db_master_key = str(db_master_key)
+            db_master_public_key = str(db_master_public_key)
             user_public_key = str(user_public_key)
 
-            if not master_key:
-                master_key = db_master_key
+            if not master_public_key:
+                master_public_key = db_master_public_key
                 break
 
-            elif db_master_key == master_key:
+            elif db_master_public_key == master_public_key:
                 break
 
         else:
@@ -294,7 +303,7 @@ class Community(object):
         self._database_id = database_id
         self._my_member = MyMember.get_instance(user_public_key)
         self._master_member = None
-        self._initialize_master_member(master_key)
+        self._initialize_master_member(master_public_key)
         assert isinstance(self._database_id, (int, long))
         assert isinstance(self._my_member, MyMember)
         assert self._master_member is None or isinstance(self._master_member, MasterMember)
@@ -326,16 +335,16 @@ class Community(object):
         # cluster.  These are made when a meta message uses the SubjectiveDestination policy.
         # self._subjective_sets = self.get_subjective_sets(self._my_member)
 
-    def _initialize_master_member(self, master_key):
-        if master_key:
+    def _initialize_master_member(self, master_public_key):
+        if master_public_key:
             try:
-                private_master_key, = self._dispersy_database.execute(u"SELECT private_key FROM key WHERE public_key = ?", (buffer(master_key),)).next()
+                master_private_key, = self._dispersy_database.execute(u"SELECT private_key FROM key WHERE public_key = ?", (buffer(master_public_key),)).next()
             except StopIteration:
                 # we only have the public part of the master member
-                self._master_member = MasterMember.get_instance(master_key)
+                self._master_member = MasterMember.get_instance(master_public_key)
             else:
                 # we have the private part of the master member
-                self._master_member = ElevatedMasterMember.get_instance(master_key, str(private_master_key))
+                self._master_member = ElevatedMasterMember.get_instance(master_public_key, str(master_private_key))
 
     def _initialize_meta_messages(self):
         assert isinstance(self._meta_messages, dict)
@@ -405,13 +414,12 @@ class Community(object):
 
         else:
             mapping = {authorize.database_id:authorize.handle_callback, revoke.database_id:revoke.handle_callback}
-            with self._dispersy_database as execute:
-                for name, packet in execute(u"SELECT name, packet FROM sync WHERE community = ? AND name IN (?, ?) ORDER BY global_time, packet", (self.database_id, authorize.database_id, revoke.database_id)):
-                    packet = str(packet)
-                    # TODO: when a packet conversion fails we must drop something, and preferably check
-                    # all messages in the database again...
-                    message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-                    mapping[name]([message])
+            for name, packet in self._dispersy.database.execute(u"SELECT name, packet FROM sync WHERE community = ? AND name IN (?, ?) ORDER BY global_time, packet", (self.database_id, authorize.database_id, revoke.database_id)):
+                packet = str(packet)
+                # TODO: when a packet conversion fails we must drop something, and preferably check
+                # all messages in the database again...
+                message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+                mapping[name]([message])
 
     # @property
     def __get_dispersy_auto_load(self):
@@ -451,7 +459,7 @@ class Community(object):
         forwarded in a dispersy-candidate-request or dispersy-candidate-response message.
         @rtype: (float, float)
         """
-        return (0.0, 120.0)
+        return (0.0, 300.0)
 
     @property
     def dispersy_candidate_request_member_count(self):
@@ -459,7 +467,7 @@ class Community(object):
         The number of members that a dispersy-candidate-request message is sent to each interval.
         @rtype: int
         """
-        return 10
+        return 3
 
     @property
     def dispersy_candidate_request_destination_diff_range(self):
@@ -468,7 +476,7 @@ class Community(object):
         destination node, when sending a dispersy-candidate-request message.
         @rtype: (float, float)
         """
-        return (0.0, 30.0)
+        return (10.0, 30.0)
 
     @property
     def dispersy_candidate_request_destination_age_range(self):
@@ -486,7 +494,37 @@ class Community(object):
         from the database.
         @rtype: float
         """
-        return 1800.0
+        # 24 hours ~ 86400.0 seconds
+        return 86400.0
+
+    @property
+    def dispersy_candidate_limit(self):
+        """
+        The number of candidates to place in a dispersy-candidate request and response.
+
+        We want one dispersy-candidate-request/response message to fit within a single MTU.  There
+        are several numbers that need to be taken into account.
+
+        - A typical MTU is 1500 bytes
+
+        - A typical IP header is 20 bytes
+
+        - The maximum IP header is 60 bytes (this includes information for VPN, tunnels, etc.)
+
+        - The UDP header is 8 bytes
+
+        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, user,
+          global-time)
+
+        - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
+          The current value is: self._my_member.signature_length
+
+        - The dispersy-candidate-request/response message payload is 6 + 6 + 2 = 14 bytes (contains
+          my-external-address, their-external-address, our-conversion-version)
+
+        - Each candidate in the payload requires 4 + 2 + 2 bytes (host, port, age)
+        """
+        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 14) // 8
 
     @property
     def dispersy_sync_initial_delay(self):
@@ -498,7 +536,7 @@ class Community(object):
         The interval between sending dispersy-sync messages.
         @rtype: float
         """
-        return 20.0
+        return 30.0
 
     @property
     def dispersy_sync_bloom_filter_error_rate(self):
@@ -540,7 +578,8 @@ class Community(object):
 
         - The UDP header is 8 bytes
 
-        - The dispersy header is 20 + 2 + 1 + 20 + 8 = 51 bytes
+        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, user,
+          global-time)
 
         - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
           The current value is: self._my_member.signature_length
@@ -717,7 +756,7 @@ class Community(object):
 
         # merge neighboring ranges
         if len(self._sync_ranges) > 1:
-            for low_index in xrange(len(self._sync_ranges)-1, 1, -1):
+            for low_index in xrange(len(self._sync_ranges)-1, 0, -1):
 
                 start = self._sync_ranges[low_index]
                 end_index = -1
@@ -725,7 +764,7 @@ class Community(object):
                 if used == start.capacity:
                     continue
 
-                for index in xrange(low_index-1, 1, -1):
+                for index in xrange(low_index-1, -1, -1):
                     current = self._sync_ranges[index]
                     current_used = current.capacity - current.space_remaining - current.space_freed
                     if current_used == current.capacity:
@@ -738,13 +777,19 @@ class Community(object):
 
                 if end_index >= 0:
                     time_high = self._sync_ranges[end_index - 1].time_low - 1 if end_index > 0 else self._time_high
+                    if __debug__:
+                        dprint("merge sync range [", self._sync_ranges[low_index].time_low, ":", time_high, "]")
+                        dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
 
                     self._sync_ranges[low_index].clear()
                     map(self._sync_ranges[low_index].add, (str(packet) for packet, in self._dispersy.database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ?",
                                                                                                                       (self._database_id, self._sync_ranges[low_index].time_low, time_high))))
                     del self._sync_ranges[end_index:low_index]
 
-                    # break.  the loop over low_index may be invalid now
+                    if __debug__:
+                        dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
+
+                    # break.  because the loop over low_index may be invalid now
                     break
 
     def update_sync_range(self, messages):
@@ -760,88 +805,91 @@ class Community(object):
         if __debug__: dprint("updating ", len(messages), " messages")
 
         for message_index, message in zip(count(), sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))):
-            last_time_low = 0
+            if __debug__: last_time_low = 0
 
             for index, sync_range in zip(count(), self._sync_ranges):
                 if sync_range.time_low <= message.distribution.global_time:
 
-                    if sync_range.space_remaining <= 0:
+                    # possibly add a new sync range
+                    if sync_range.space_remaining <= sync_range.space_freed:
                         if message.distribution.global_time > self._time_high:
                             assert last_time_low == last_time_low if last_time_low else self._time_high
                             assert index == 0
-                            # add a new sync range
                             sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
                             self._sync_ranges.insert(0, sync_range)
                             if __debug__: dprint("new ", sync_range.bloom_filters[0].capacity, " capacity filter created for range [", sync_range.time_low, ":inf]")
 
-                        else:
-                            assert last_time_low >= 0
-                            assert index >= 0
-                            if last_time_low == 0:
-                                last_time_low = self._time_high + 1
-
-                            # get all items in this range (from the database, and from this call to update_sync_range)
-                            items = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ?", (self.database_id, sync_range.time_low, last_time_low - 1)))
-                            items.extend((msg.distribution.global_time, msg.packet) for msg in messages[:message_index] if sync_range.time_low <= msg.distribution.global_time < last_time_low)
-                            items.sort()
-                            # split the current range
-                            index_middle = int((len(items) + 1) / 2)
-                            time_middle = items[index_middle][0]
-                            # the middle index may not be the same as len(ITEMS)/2 because
-                            # TIME_MIDDLE may occur any number of times in ITEMS.  It may even be
-                            # that all elements in ITEMS are at TIME_MIDDLE.
-                            for skew in xrange(1, index_middle + 1):
-                                if items[index_middle-skew][0] != time_middle:
-                                    index_middle -= skew - 1
-                                    break
-                                if len(items) > index_middle+skew and items[index_middle+skew][0] != time_middle:
-                                    index_middle += skew
-                                    break
-                            else:
-                                # did not break, meaning, every items in this sync range has the
-                                # same global time.  we can not split this range, false positives
-                                # will be the result.
-                                if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
-                                assert not filter(lambda x: not x[0] == time_middle, items)
-                                index_middle = 0
-
-                            if index_middle:
-                                time_middle = items[index_middle][0]
-
-                                if __debug__: dprint("split [", sync_range.time_low, ":", last_time_low - 1, "] into [", sync_range.time_low, ":", time_middle - 1, "] and [", time_middle, ":", last_time_low - 1, "] with ", len(items[:index_middle]), " and ", len(items[index_middle:]), " items, respectively")
-                                assert index_middle == 0 or items[index_middle-1][0] < items[index_middle][0]
-
-                                # clear and fill range [sync_range.time_low:time_middle-1]
-                                sync_range.clear()
-                                map(sync_range.add, (str(packet) for _, packet in items[:index_middle]))
-                                if __debug__:
-                                    for global_time, _, in items[:index_middle]:
-                                        dprint("re-add in [", sync_range.time_low, ":", time_middle - 1, "] @", global_time)
-                                        assert sync_range.time_low <= global_time < time_middle
-
-                                # create and fill range [time_middle:last_time_low-1]
-                                new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
-                                self._sync_ranges.insert(index, new_sync_range)
-                                map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
-                                if __debug__:
-                                    for global_time, _, in items[index_middle:]:
-                                        dprint("re-add in [", new_sync_range.time_low, ":", last_time_low - 1, "] @", global_time)
-                                        assert new_sync_range.time_low <= global_time < last_time_low
-
-                                # make sure we use the correct sync range to add the message
-                                if message.distribution.global_time >= new_sync_range.time_low:
-                                    sync_range = new_sync_range
-                                else:
-                                    last_time_low = new_sync_range.time_low
-
+                    # add the packet
                     sync_range.add(message.packet)
-                    if __debug__: dprint("add in [", sync_range.time_low, ":", last_time_low - 1 if last_time_low else "inf", "] ", message.name, "@", message.distribution.global_time, "; remaining: ", sync_range.space_remaining)
+                    if __debug__: dprint("add in [", sync_range.time_low, ":", last_time_low - 1 if last_time_low else "inf", "] ", message.name, "@", message.distribution.global_time, "; remaining: ", sync_range.space_remaining, " (", sync_range.space_remaining - sync_range.space_freed, " effectively)")
                     assert message.distribution.global_time >= sync_range.time_low
                     break
 
-                last_time_low = sync_range.time_low
+                if __debug__: last_time_low = sync_range.time_low
             self._time_high = max(self._time_high, message.distribution.global_time)
         self._global_time = max(self._global_time, self._time_high)
+
+        # possibly split sync ranges
+        while True:
+            last_time_low = self._time_high + 1
+            for index, sync_range in zip(count(), self._sync_ranges):
+                if sync_range.space_remaining < sync_range.space_freed and sync_range.time_low < last_time_low:
+                    assert last_time_low >= 0
+                    assert index >= 0
+
+                    # get all items in this range (from the database, and from this call to update_sync_range)
+                    items = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ? ORDER BY global_time, packet", (self.database_id, sync_range.time_low, last_time_low - 1)))
+                    # split the current range
+                    index_middle = int((len(items) + 1) / 2)
+                    time_middle = items[index_middle][0]
+                    # the middle index may not be the same as len(ITEMS)/2 because
+                    # TIME_MIDDLE may occur any number of times in ITEMS.  It may even be
+                    # that all elements in ITEMS are at TIME_MIDDLE.
+                    for skew in xrange(1, index_middle + 1):
+                        if items[index_middle-skew][0] != time_middle:
+                            index_middle -= skew - 1
+                            break
+                        if len(items) > index_middle+skew and items[index_middle+skew][0] != time_middle:
+                            index_middle += skew
+                            break
+                    else:
+                        # did not break, meaning, every items in this sync range has the
+                        # same global time.  we can not split this range, this will result
+                        # in an increased chance for false positives
+                        if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
+                        assert not filter(lambda x: not x[0] == time_middle, items)
+                        index_middle = 0
+
+                    if index_middle > 0:
+                        time_middle = items[index_middle][0]
+
+                        if __debug__: dprint("split [", sync_range.time_low, ":", last_time_low - 1, "] into [", sync_range.time_low, ":", time_middle - 1, "] and [", time_middle, ":", last_time_low - 1, "] with ", len(items[:index_middle]), " and ", len(items[index_middle:]), " items, respectively")
+                        assert index_middle == 0 or items[index_middle-1][0] < items[index_middle][0]
+
+                        # clear and fill range [sync_range.time_low:time_middle-1]
+                        sync_range.clear()
+                        map(sync_range.add, (str(packet) for _, packet in items[:index_middle]))
+                        if __debug__:
+                            for global_time, _, in items[:index_middle]:
+                                dprint("re-add in [", sync_range.time_low, ":", time_middle - 1, "] @", global_time)
+                                assert sync_range.time_low <= global_time < time_middle
+
+                        # create and fill range [time_middle:last_time_low-1]
+                        new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+                        self._sync_ranges.insert(index, new_sync_range)
+                        map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
+                        if __debug__:
+                            for global_time, _, in items[index_middle:]:
+                                dprint("re-add in [", new_sync_range.time_low, ":", last_time_low - 1, "] @", global_time)
+                                assert new_sync_range.time_low <= global_time < last_time_low
+                        break
+
+                last_time_low = sync_range.time_low
+
+            else:
+                # did not break, meaning, we can not split any more sync ranges
+                break
+            dprint("potential endless loop")
 
     def get_subjective_set(self, member, cluster):
         """
@@ -882,22 +930,31 @@ class Community(object):
         """
         assert isinstance(member, Member)
 
-        # retrieve all the subjective sets that were created by member
-        meta_message = self.get_meta_message(u"dispersy-subjective-set")
         existing_sets = {}
-        sql = u"SELECT sync.packet FROM sync WHERE community = ? AND user = ? AND name = ?"
 
-        # dprint(sql)
-        # dprint((self._database_id, member.database_id, meta_message.database_id))
+        try:
+            meta_message = self.get_meta_message(u"dispersy-subjective-set")
 
-        for packet, in self._dispersy_database.execute(sql, (self._database_id, member.database_id, meta_message.database_id)):
-            assert isinstance(packet, buffer)
-            packet = str(packet)
-            conversion = self.get_conversion(packet[:22])
-            message = conversion.decode_message(("", -1), packet)
-            assert message.name == "dispersy-subjective-set"
-            assert not message.payload.cluster in existing_sets
-            existing_sets[message.payload.cluster] = message.payload.subjective_set
+        except KeyError:
+            # dispersy-subjective-set message is disabled
+            pass
+
+        else:
+
+            # retrieve all the subjective sets that were created by member
+            sql = u"SELECT sync.packet FROM sync WHERE community = ? AND user = ? AND name = ?"
+
+            # dprint(sql)
+            # dprint((self._database_id, member.database_id, meta_message.database_id))
+
+            for packet, in self._dispersy_database.execute(sql, (self._database_id, member.database_id, meta_message.database_id)):
+                assert isinstance(packet, buffer)
+                packet = str(packet)
+                conversion = self.get_conversion(packet[:22])
+                message = conversion.decode_message(("", -1), packet)
+                assert message.name == "dispersy-subjective-set"
+                assert not message.payload.cluster in existing_sets
+                existing_sets[message.payload.cluster] = message.payload.subjective_set
 
         # # either use an existing or create a new bloom filter for each subjective set (cluster)
         # # that we are using
@@ -1001,7 +1058,7 @@ class Community(object):
             # TODO we should not just trust this information, a member can put any address in their
             # dispersy-identity message.  The database should contain a column with a 'verified'
             # flag.  This flag is only set when a handshake was successfull.
-            sql = u"SELECT public_key FROM user WHERE host = ? AND port = ? -- and verified = 1"
+            sql = u"SELECT public_key FROM user WHERE host = ? AND port = ? -- AND verified = 1"
         else:
             sql = u"SELECT public_key FROM user WHERE host = ? AND port = ?"
         return [Member.get_instance(str(public_key)) for public_key, in list(self._dispersy_database.execute(sql, (unicode(address[0]), address[1])))]
@@ -1010,8 +1067,9 @@ class Community(object):
         """
         returns the conversion associated with prefix.
 
-        prefix is an optional 22 byte sting.  Where the first 20 bytes are the community id and the
-        last 2 bytes are the conversion version.
+        prefix is an optional 22 byte sting.  Where the first byte is
+        the dispersy version, the second byte is the community version
+        and the last 20 bytes is the community identifier.
 
         When no prefix is given, i.e. prefix is None, then the default Conversion is returned.
         Conversions are assigned to a community using add_conversion().
@@ -1083,6 +1141,11 @@ class Community(object):
         """
         A dispersy-destroy-community message is received.
 
+        Once a community is destroyed, it must be reclassified to ensure that it is not loaded in
+        its regular form.  This method returns the class that the community will be reclassified
+        into.  The default is either the SoftKilledCommunity or the HardKilledCommunity class,
+        depending on the received dispersy-destroy-community message.
+
         Depending on the degree of the destroy message, we will need to cleanup in different ways.
 
          - soft-kill: The community is frozen.  Dispersy will retain the data it has obtained.
@@ -1103,9 +1166,15 @@ class Community(object):
 
         @param message: The received message.
         @type message: Message.Implementation
+
+        @rtype: Community class
         """
         # override to implement community cleanup
-        pass
+        if message.payload.is_soft_kill:
+            raise NotImplementedError()
+
+        elif message.payload.is_hard_kill:
+            return HardKilledCommunity
 
     def get_meta_message(self, name):
         """
@@ -1161,16 +1230,73 @@ class Community(object):
 
         @rtype: [Conversion]
         """
+        raise NotImplementedError()
+
+class HardKilledCommunity(Community):
+    def _initialize_meta_messages(self):
+        super(HardKilledCommunity, self)._initialize_meta_messages()
+
+        # remove all messages that we no longer need
+        meta_messages = self._meta_messages
+        self._meta_messages = {}
+        for name in [u"dispersy-candidate-request",     # we still receive this message
+                     u"dispersy-candidate-response",    # we still send this message
+                     u"dispersy-identity",              # we still receive this message for new peers who send us
+                                                        # candidate requests
+                     u"dispersy-identity-request",      # we still send this to obtain identity messages
+                     u"dispersy-sync"]:                 # we still need to spread the destroy-community message
+            self._meta_messages[name] = meta_messages[name]
+
+    @property
+    def dispersy_candidate_request_initial_delay(self):
+        # we no longer send candidate messages
+        return 0.0
+
+    @property
+    def dispersy_candidate_request_interval(self):
+        # we no longer send candidate messages
+        return 0.0
+
+    @property
+    def dispersy_candidate_cleanup_age_threshold(self):
+        # all candidated can be removed
+        return 0.0
+
+    @property
+    def dispersy_sync_initial_delay(self):
+        # we no longer send sync messages
+        return 0.0
+
+    @property
+    def dispersy_sync_interval(self):
+        # we no longer send sync messages
+        return 0.0
+
+    def initiate_meta_messages(self):
+        # there are no community messages
+        return []
+
+    def initiate_conversions(self):
+        # TODO we will not be able to use this conversion because the community version will not
+        # match
         return [DefaultConversion(self)]
 
-    def dispersy_activity(self, addresses):
-        """
-        Called when dispersy activity is detected at certain addresses
+    def get_conversion(self, prefix=None):
+        if not prefix in self._conversions:
 
-        An address will be included even when the packets that we receive from that address are
-        delayed or dropped.
+            # the dispersy version MUST BE available.  Currently we
+            # only support \x00: BinaryConversion
+            if prefix[0] == "\x00":
+                self._conversions[prefix] = BinaryConversion(self, prefix[1])
 
-        @param addresses: The addresses from where we received packets.
-        @type addresses: [(str, int)]
-        """
-        pass
+            else:
+                raise KeyError("Unknown conversion")
+
+            # use highest version as default
+            if None in self._conversions:
+                if self._conversions[None].version < self._conversions[prefix].version:
+                    self._conversions[None] = self._conversions[prefix]
+            else:
+                self._conversions[None] = self._conversions[prefix]
+
+        return self._conversions[prefix]

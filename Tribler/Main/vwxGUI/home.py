@@ -3,20 +3,29 @@ import wx
 import sys
 import os
 import random
+from time import time, strftime
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl, SelectableListCtrl
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+
 from __init__ import LIST_GREY, LIST_BLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
+from Tribler.Core.Utilities.utilities import show_permid_short
+
+# ProxyService 90s Test_
+from Tribler.Core.simpledefs import *
+# _ProxyService 90s Test
 
 class Home(wx.Panel):
     def __init__(self):
@@ -74,6 +83,15 @@ class Stats(wx.Panel):
         self.activity = ActivityPanel(self)
         hSizer.Add(self.activity, 1, wx.EXPAND|wx.BOTTOM, 10)
         vSizer.Add(hSizer, 0, wx.EXPAND)
+
+        # ProxyService_
+        #
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(NetworkTestPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
+        hSizer.Add(ProxyDiscoveryPanel(self), 1, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(hSizer, 0, wx.EXPAND)
+        #
+        # _ProxyService
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
@@ -94,6 +112,7 @@ class HomePanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         
         self.guiutility = GUIUtility.getInstance()
+        self.guiserver = GUITaskQueue.getInstance()
         self.SetBackgroundColour(background)
      
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -146,12 +165,15 @@ class NetworkPanel(HomePanel):
         HomePanel.__init__(self, parent, 'Network info' , LIST_BLUE)
         
         self.torrentdb = TorrentDBHandler.getInstance()
+        self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
+        self.remotequerymsghandler = RemoteQueryMsgHandler.getInstance()
+
         self.timer = None
         
         session = Session.get_instance()
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
-        self.__OnNotify()
+        self.UpdateStats()
         
     def CreatePanel(self):
         def getBoldText(parent, text):
@@ -169,6 +191,15 @@ class NetworkPanel(HomePanel):
         self.nrFiles = wx.StaticText(panel)
         self.totalSize = wx.StaticText(panel)
         self.queueSize = wx.StaticText(panel)
+        self.nrChannels = wx.StaticText(panel)
+        self.nrConnected = wx.StaticText(panel)
+        
+        self.freeMem = None
+        try:
+            if wx.GetFreeMemory() != -1:
+                self.freeMem = wx.StaticText(panel)
+        except:
+            pass
         
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
@@ -181,27 +212,49 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.nrTorrents, 0, wx.EXPAND|wx.LEFT, 10)
         gridSizer.Add(wx.StaticText(panel, -1, 'Torrents in queue'), 0, wx.LEFT, 10)
         gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrChannels, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Connected peers'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrConnected, 0, wx.EXPAND|wx.LEFT, 10)
+        if self.freeMem:
+            gridSizer.Add(wx.StaticText(panel, -1, 'WX:Free memory'), 0, wx.LEFT, 10)
+            gridSizer.Add(self.freeMem, 0, wx.EXPAND|wx.LEFT, 10)
         
         vSizer.Add(gridSizer, 0, wx.EXPAND)
         panel.SetSizer(vSizer)
         return panel
     
     def OnNotify(self, subject, type, infohash):
-        if self.IsShownOnScreen():
-            wx.CallAfter(self.__OnNotify)
+        try:
+            if self.IsShownOnScreen():
+                self.UpdateStats()
+        except wx.PyDeadObjectError:
+            pass
              
-    def __OnNotify(self):
-        stats = self.torrentdb.getTorrentsStats()
+    def UpdateStats(self):
+        def db_callback():
+            stats = self.torrentdb.getTorrentsStats()
+            wx.CallAfter(self._UpdateStats, stats)
         
+        self.guiserver.add_task(db_callback, id = "NetworkPanel_UpdateStats")
+        
+    def _UpdateStats(self, stats):
         self.nrTorrents.SetLabel(str(stats[0]))
-        self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
+        if stats[1] is None:
+            self.totalSize.SetLabel(str(stats[1]))
+        else:
+            self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
+        self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
+        self.nrConnected.SetLabel('%d peers'%len(self.remotequerymsghandler.get_connected_peers()))
+        if self.freeMem:
+            self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
         
         if self.timer:
             self.timer.Restart(10000)
         else:
-            self.timer = wx.CallLater(10000, self.__OnNotify)
+            self.timer = wx.CallLater(10000, self.UpdateStats)
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
@@ -213,7 +266,7 @@ class NewTorrentPanel(HomePanel):
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
     
     def CreatePanel(self):
-        self.list = SortedListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list = SelectableListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Torrent')
         self.list.setResizeColumn(0)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
@@ -221,16 +274,25 @@ class NewTorrentPanel(HomePanel):
         return self.list
     
     def OnNotify(self, subject, type, infohash):
-        if self.IsShownOnScreen():
-            wx.CallAfter(self.__OnNotify, infohash)
-            
-    def __OnNotify(self, infohash):
-        torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
-        if torrent:
-            self.list.InsertStringItem(0, torrent['name'])
-            size = self.list.GetItemCount()
-            if size > 10:
-                self.list.DeleteItem(size-1)
+        try:
+            if self.IsShownOnScreen():
+                self.UpdateStats(infohash)
+        except wx.PyDeadObjectError:
+            pass
+
+    def UpdateStats(self, infohash):
+        def db_callback():
+            torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
+            if torrent:
+                wx.CallAfter(self._UpdateStats, torrent)
+        
+        self.guiserver.add_task(db_callback, id = "NewTorrentPanel_UpdateStats")
+        
+    def _UpdateStats(self, torrent):
+        self.list.InsertStringItem(0, torrent['name'])
+        size = self.list.GetItemCount()
+        if size > 10:
+            self.list.DeleteItem(size-1)
     
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()
@@ -253,13 +315,19 @@ class PopularTorrentPanel(NewTorrentPanel):
     def _onTimer(self, event):
         if self.IsShownOnScreen():
             self.RefreshList()
+            
     def RefreshList(self):
-        familyfilter_sql = Category.getInstance().get_family_filter_sql(self.torrentdb._getCategoryID)
-        if familyfilter_sql:
-            familyfilter_sql = familyfilter_sql[4:]
+        def db_callback():
+            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.torrentdb._getCategoryID)
+            if familyfilter_sql:
+                familyfilter_sql = familyfilter_sql[4:]
+            
+            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
+            wx.CallAfter(self._RefreshList, topTen)
         
-        topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
-
+        self.guiserver.add_task(db_callback, id = "PopularTorrentPanel_RefreshList")
+    
+    def _RefreshList(self, topTen):
         self.list.Freeze()
         self.list.DeleteAllItems()
         for item in topTen:
@@ -285,6 +353,7 @@ class TopContributorsPanel(HomePanel):
         self.list.InsertColumn(0, 'Name')
         self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
         self.list.setResizeColumn(0)
+        
         return self.list
 
     def _onTimer(self, event):
@@ -292,17 +361,22 @@ class TopContributorsPanel(HomePanel):
             self.RefreshList()
     
     def RefreshList(self):
-        self.topTen = self.barterdb.getTopNPeers(10)
-        
+        def db_callback():
+            topTen = self.barterdb.getTopNPeers(10)
+            wx.CallAfter(self._RefreshList, topTen)
+        self.guiserver.add_task(db_callback, id = "TopContributorsPanel_RefreshList")
+    
+    def _RefreshList(self, topTen):
         self.list.Freeze()
         self.list.DeleteAllItems()
-        for item in self.topTen['top']:
+        for item in topTen['top']:
             name = self.peerdb.getPeer(item[0], 'name')
             if name:
                 pos = self.list.InsertStringItem(sys.maxint, name)
                 self.list.SetStringItem(pos, 1, self.guiutility.utility.size_format(item[1], 1))
         
         self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.list.Layout()
         self.list.Thaw()
         
     def OnDoubleClick(self, event):
@@ -314,9 +388,10 @@ class ActivityPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Recent Activity' , LIST_BLUE)
 
     def onActivity(self, msg):
+        msg = strftime("%H:%M:%S ") + msg
         self.list.InsertStringItem(0, msg)
         size = self.list.GetItemCount()
-        if size > 20:
+        if size > 50:
             self.list.DeleteItem(size-1)
                 
 class BuzzPanel(HomePanel):
@@ -354,8 +429,10 @@ class BuzzPanel(HomePanel):
         self.panel.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
         self.panel.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
 
+        self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
+        
+        self.GetBuzzFromDB()  
         self.refresh = 1
-        self.OnRefreshTimer()
         
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
@@ -384,25 +461,28 @@ class BuzzPanel(HomePanel):
         self.ForceUpdate()
     
     def ForceUpdate(self):
-        self.buzz_cache = [[],[],[]]
+        self.GetBuzzFromDB()
         self.refresh = 1
-        wx.CallAfter(self.OnRefreshTimer)
+        
+    def GetBuzzFromDB(self):
+        # needs fine-tuning:
+        # (especially for cold-start/fresh Tribler install?)
+        samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
+        
+        self.buzz_cache = [[],[],[]]
+        buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
+        for i in range(len(buzz)):
+            random.shuffle(buzz[i])
+            self.buzz_cache[i] = buzz[i]
     
     def OnRefreshTimer(self, event = None):
         self.refresh -= 1
         if self.refresh <= 0:
-            if self.IsShownOnScreen():
-                # needs fine-tuning:
-                # (especially for cold-start/fresh Tribler install?)
-                samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
-                
+            if self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate():
                 # simple caching
                 # (does not check for possible duplicates within display_size-window!)
                 if any(len(row) < 10 for row in self.buzz_cache):
-                    buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
-                    for i in range(len(buzz)):
-                        random.shuffle(buzz[i])
-                        self.buzz_cache[i] = buzz[i]
+                    self.guiserver.add_task(self.GetBuzzFromDB, id = "BuzzPanel_GetBuzzFromDB")
                 
                 if self.guiutility.getFamilyFilter():
                     xxx_filter = self.xxx_filter.isXXX
@@ -410,7 +490,6 @@ class BuzzPanel(HomePanel):
                 else:
                     xxx_filter = lambda *args, **kwargs: False
                     self.header.SetFF(False)
-
                 
                 # consume cache
                 # Note: if a term is fetched from two different row caches, it is shown in the
@@ -433,33 +512,28 @@ class BuzzPanel(HomePanel):
             self.refresh = BuzzPanel.REFRESH_EVERY
             
         self.footer.SetTitle('Update in %d...'%self.refresh)
-                
-    def DisplayTerms(self, rows):
-        old_size = len(self.vSizer.GetChildren())
-        
-        self.Freeze()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
-        
-        cur_tags = []
-        def getStaticText(term, font = None):
-            if len(self.tags) > 0:
-                text = self.tags.pop()
-                text.SetLabel(term)
-            else:
-                text = wx.StaticText(self.panel, wx.ID_ANY, term)
-                text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-            
-            if font:
-                text.SetFont(font)
-            text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
-            text.SetToolTipString("Click to search for '%s'"%term)
-            cur_tags.append(text)
-            return text
-        
-        if rows is None or rows == []:
-            self.vSizer.Add(getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
+    
+    def getStaticText(self, term, font = None):
+        if len(self.tags) > 0:
+            text = self.tags.pop()
+            text.SetLabel(term)
         else:
+            text = wx.StaticText(self.panel, wx.ID_ANY, term)
+            text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        
+        if font:
+            text.SetFont(font)
+        text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
+        text.SetToolTipString("Click to search for '%s'"%term)
+        return text
+    
+    def DisplayTerms(self, rows):
+        if rows:
+            self.Freeze()
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
+            
+            cur_tags = []
             for i in range(len(rows)):
                 row = rows[i]
                 if len(row) == 0:
@@ -469,25 +543,24 @@ class BuzzPanel(HomePanel):
                 hSizer.AddStretchSpacer(2)
                 
                 for term, freq in row:
-                    text = getStaticText(term, self.TERM_FONTS[i])
+                    text = self.getStaticText(term, self.TERM_FONTS[i])
+                    cur_tags.append(text)
+                    
                     hSizer.Add(text, 0, wx.BOTTOM, self.TERM_BORDERS[i])
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()                    
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)
         
-        self.vSizer.ShowItems(True)
-        self.vSizer.Layout()
+            self.vSizer.ShowItems(True)
+            self.vSizer.Layout()
         
-        # destroy all unnecessary statictexts
-        for text in self.tags:
-            text.Destroy()
-        self.tags = cur_tags
+            # destroy all unnecessary statictexts
+            for text in self.tags:
+                text.Destroy()
+            self.tags = cur_tags
         
-        # call DoLayout if the # of rows changed 
-        new_size = len(self.vSizer.GetChildren())
-        if new_size != old_size:
             self.DoLayout()
-        self.Thaw()
+            self.Thaw()
     
     def DoPauseResume(self):
         def IsEnter(control):
@@ -564,4 +637,156 @@ class BuzzPanel(HomePanel):
             
             uelog = UserEventLogDBHandler.getInstance()
             uelog.addEvent(message=repr((term, self.last_shown_buzz)))
+            
+# ProxyService_
+#
+class NetworkTestPanel(HomePanel):
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Network Test' , LIST_BLUE)
         
+        self.timer = None
+        
+        self.UpdateStats()
+        
+    def CreatePanel(self):
+        def getBoldText(parent, text):
+            statictext = wx.StaticText(parent, -1, text)
+            font = statictext.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            statictext.SetFont(font)
+            return statictext
+        
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(wx.WHITE)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.eligibleCandidate = wx.StaticText(panel)
+        self.activeCandidate = wx.StaticText(panel)
+        self.testProgress = wx.StaticText(panel)
+        self.testDuration = wx.StaticText(panel)
+        self.nrPeers = wx.StaticText(panel)
+#        self.smallestChunk = wx.StaticText(panel)
+        
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        gridSizer.AddGrowableCol(1)
+        
+        gridSizer.Add(wx.StaticText(panel, -1, 'Eligible Candidate'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.eligibleCandidate, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Active Candidate'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.activeCandidate, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Test status'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.testProgress, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Test duration'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.testDuration, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, '# of peers used'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrPeers, 0, wx.EXPAND|wx.LEFT, 10)
+#        gridSizer.Add(wx.StaticText(panel, -1, 'Smallest chunk (MB)'), 0, wx.LEFT, 10)
+#        gridSizer.Add(self.smallestChunk, 0, wx.EXPAND|wx.LEFT, 10)
+
+        vSizer.Add(gridSizer, 0, wx.EXPAND)
+        panel.SetSizer(vSizer)
+        return panel
+    
+    def OnNotify(self, subject, type, infohash):
+        if self.IsShownOnScreen():
+            self.UpdateStats()
+             
+    def UpdateStats(self):
+        def stats_callback():
+            #candidate
+            from Tribler.Core.Session import Session
+            session = Session.get_instance()
+            if session.lm.overlay_apps.proxy_peer_manager.am_i_connectable():
+                eligibleCandidate = "Y"
+            else:
+                eligibleCandidate = "N"
+
+            #active candidate
+            if session.get_proxyservice_status() == PROXYSERVICE_ON:
+                activeCandidate = "Y"
+            else:
+                activeCandidate = "N"
+            if eligibleCandidate == "N":
+                activeCandidate = "N"
+
+            #testProgress
+            if session.get_90stest_state():
+                progress = "in progress..."
+            else:
+                progress = "done"
+            
+            # testDuration
+            if session.get_90stest_state():
+                duration = long(round(time() - session.start_time))
+            else:
+                duration = 0
+                
+            # nrPeers
+            nrPeers = 0
+            guiUtility = GUIUtility.getInstance()
+            torrentManager = guiUtility.torrentsearch_manager
+            dlist = guiUtility.utility.session.get_downloads()
+            for d in dlist:
+                safename = `d.get_def().get_name()`
+                if safename == "'Data.90s-test.8M.bin'":
+                    nrPeers = d.sd.dow.proxydownloader.doe.get_nr_used_proxies()
+            
+            stats = []
+            stats.append(eligibleCandidate)
+            stats.append(activeCandidate)
+            stats.append(progress)
+            stats.append(duration)
+            stats.append(nrPeers)
+            
+            wx.CallAfter(self._UpdateStats, stats)
+        
+        self.guiserver.add_task(stats_callback, id = "NetworkTest_UpdateStats")
+        
+    def _UpdateStats(self, stats):
+        self.eligibleCandidate.SetLabel(str(stats[0]))
+        self.activeCandidate.SetLabel(str(stats[1]))
+        self.testProgress.SetLabel(str(stats[2]))
+        self.testDuration.SetLabel(str(stats[3])+" sec")
+        self.nrPeers.SetLabel(str(stats[4]))
+#        self.largestChunk.SetLabel(str("0"+" MB"))
+#        self.smallestChunk.SetLabel(str("0"+" MB"))
+        
+        if self.timer:
+            self.timer.Restart(1000)
+        else:
+            self.timer = wx.CallLater(1000, self.UpdateStats)
+#
+# _ProxyService
+
+# ProxyService_
+#
+class ProxyDiscoveryPanel(NewTorrentPanel):
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Peer Discovery' , LIST_BLUE)
+
+        session = Session.get_instance()
+        session.add_observer(self.OnNotify, NTFY_PROXYDISCOVERY, [NTFY_INSERT])
+        
+        self.proxies=[]
+        self.OnNotify(None, None, None, session.lm.overlay_apps.proxy_peer_manager.available_proxies.keys())
+
+    def OnNotify(self, subject, changeType, objectID, *args):
+        """  Handler registered with the session observer
+        
+        @param subject The subject to observe, one of NTFY_* subjects (see simpledefs).
+        @param changeTypes The list of events to be notified of one of NTFY_* events.
+        @param objectID The specific object in the subject to monitor (e.g. a specific primary key in a database to monitor for updates.)
+        @param args: A list of optional arguments.
+        """
+        proxy_permid_list=args[0]
+        for proxy_permid in proxy_permid_list:
+            if proxy_permid not in self.proxies:
+                self.proxies.append(proxy_permid)
+                
+                msg = strftime("%H:%M:%S ") + show_permid_short(proxy_permid)
+                self.list.InsertStringItem(0, msg)
+                size = self.list.GetItemCount()
+                if size > 50:
+                    self.list.DeleteItem(size-1)
+#
+# _ProxyService

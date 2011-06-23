@@ -160,10 +160,10 @@ class ProgressBar(wx.Panel):
     def set_pieces(self, blocks):
         maxBlocks = max(self.GetClientRect().width, 100)
         haveBlocks = len(blocks)
+        
         if haveBlocks > maxBlocks: #we need to group the blocks
+            sblocks = [0]*maxBlocks
             nrBlocksPerPixel = haveBlocks/maxBlocks
-            
-            sblocks = [0]*haveBlocks
             for i in xrange(maxBlocks):
                 any = False
                 all = True
@@ -179,17 +179,30 @@ class ProgressBar(wx.Panel):
                     sblocks[i] = 2
                 elif any:
                     sblocks[i] = 1
-            self.set_blocks(sblocks)
+        else:
+            sblocks = []
+            for i in xrange(haveBlocks):
+                remainingPixels = maxBlocks - len(sblocks)
+                remainingBlocks = haveBlocks-i
+                nrPixelsToColour = int(remainingPixels/remainingBlocks)
+                
+                if blocks[i]:
+                    state = 2
+                else:
+                    state = 0
+                    
+                sblocks.extend([state]*nrPixelsToColour)
+        self.set_blocks(sblocks)
         
     def set_blocks(self,blocks):
         self.completed = all([x == 2 for x in blocks])
         self.blocks = blocks
         
     def setNormalPercentage(self, perc):
-        maxBlocks = self.GetClientRect().width
+        maxBlocks = max(self.GetClientRect().width, 100)
         
         sblocks = [2] * int(perc * maxBlocks)
-        sblocks += [0] * (maxBlocks-len(self.blocks))
+        sblocks += [0] * (maxBlocks-len(sblocks))
         self.set_blocks(sblocks)
 
     def reset(self,colour=0):

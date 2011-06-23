@@ -44,7 +44,17 @@ class VLCWrapper:
         GUI to instantly exit, we need to delay importing vlc and
         setting the window.
         """
-        import vlc
+        try:
+            if sys.platform == "darwin":
+                oldpath = os.getcwd()
+                os.chdir(os.path.join(self.installdir,'vlc','lib'))
+                import vlc.lib.vlc as vlc
+                os.chdir(oldpath)
+            else:
+                import Tribler.vlc as vlc
+        except:
+            print_stack()
+            print_exc()
         from Tribler.Video.VideoServer import VideoRawVLCServer
 
         # avoid another init
@@ -104,10 +114,10 @@ class VLCWrapper:
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             if sys.platform == 'win32':
                 self.vlc.libvlc_media_player_set_hwnd(self.player,xid);
-            elif sys.platform == 'darwin':
-                self.vlc.libvlc_media_player_set_nsobject(self.player,xid);
+            #elif sys.platform == 'darwin':
+            #    self.vlc.libvlc_media_player_set_agl(self.player,xid);
             else: # Linux
-                self.vlc.libvlc_media_player_set_xdrawable(self.player,xid);
+                self.vlc.libvlc_media_player_set_xwindow(self.player,xid);
         else:
             if sys.platform == 'darwin':
                 # pylint: disable-msg=E1101
@@ -208,10 +218,7 @@ class VLCWrapper:
         
         # Arno, 2009-07-22: Not sure whether sys.argv0 gives right dir.
         if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/macbinaries/vlc_plugins" % (
-                 # location of plugins: next to tribler.py
-                 os.path.abspath(os.path.dirname(sys.argv[0]))
-                 )]
+            params += ["--plugin-path", "%s/vlc/plugins" % ( self.installdir) ]
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
             if sys.platform == 'win32':
@@ -309,7 +316,7 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: stop"
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
-            self.vlc.libvlc_media_player_stop(self.player);
+            self.vlc.libvlc_media_player_stop(self.player)
         else:
             self.media.stop()
 
@@ -321,7 +328,7 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: pause"
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
-            self.vlc.libvlc_media_player_pause(self.player);
+            self.vlc.libvlc_media_player_set_pause(self.player, 1)
         else:
             self.media.pause()
 
@@ -333,7 +340,7 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: resume"
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
-            self.vlc.libvlc_media_player_pause(self.player);
+            self.vlc.libvlc_media_player_pause(self.player)
         else:
             self.media.resume()
 

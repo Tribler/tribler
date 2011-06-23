@@ -8,7 +8,7 @@ from traceback import print_exc
 
 class ChannelConversion(BinaryConversion):
     def __init__(self, community):
-        super(ChannelConversion, self).__init__(community, "\x00\x01")
+        super(ChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channel"), self._encode_channel, self._decode_channel)
         self.define_meta_message(chr(2), community.get_meta_message(u"torrent"), self._encode_torrent, self._decode_torrent)
         self.define_meta_message(chr(3), community.get_meta_message(u"playlist"), self._encode_playlist, self._decode_playlist)

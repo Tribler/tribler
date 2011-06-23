@@ -1,14 +1,16 @@
-# Written by Bram Cohen and Pawel Garbacki, George Milescu
+# Written by Bram Cohen and Pawel Garbacki
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 from random import randrange, shuffle
 from Tribler.Core.BitTornado.clock import clock
-# 2fastbt_
+from Tribler.Core.simpledefs import *
+# ProxyService_
 from traceback import extract_tb,print_stack
 from Tribler.Core.BitTornado.bitfield import Bitfield
 import sys
 import time
-# _2fastbt
+# _ProxyService
 
 try:
     True
@@ -25,12 +27,9 @@ DEBUG = False
 """
 
 class PiecePicker:
-# 2fastbt_
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20, helper = None, coordinator = None, rate_predictor = None):
-# TODO: fix PiecePickerSVC and PiecePickerVOD __init calls
-# _2fastbt
+                 priority_step = 20):
         # If we have less than the cutoff pieces, choose pieces at random. Otherwise,
         # go for rarest first.
         self.rarest_first_cutoff = rarest_first_cutoff
@@ -93,12 +92,14 @@ class PiecePicker:
         self.superseed = False
         self.seeds_connected = 0
 
-# 2fastbt_
-        self.helper = helper
-        self.coordinator = coordinator
-        self.rate_predictor = rate_predictor
+        # ProxuService_
+        #
+        self.proxydownloader = None
+        self.rate_predictor = None
         self.videostatus = None
-# _2fastbt
+        #
+        # _ProxyService
+        
         # Arno, 2010-08-11: STBSPEED, moved to fast_initialize()
         # self._init_interests()
 
@@ -174,36 +175,6 @@ class PiecePicker:
             self.interests.append([])
         self._shift_over(piece, self.interests[numint], self.interests[numint + 1])
         return False
-
-    # ProxyService_
-    #
-    def redirect_haves_to_coordinator(self, connection = None, helper_con = False, piece = None):
-        """ The method is called by the Downloader when a HAVE message is received.
-        
-        If the current node is a helper, it will send the HAVE information to the coordinator.
-        
-        @param connection: the connection for which the HAVE message was received
-        @param helper_con: True if it is a connection to a helper
-        @param piece: the received piece
-        """
-
-        if self.helper :
-            # The current node is a coordinator
-            if DEBUG:
-                print >> sys.stderr,"PiecePicker: proxy_got_have: sending haves to coordinator"
-            
-            # Create the piece list - a copy of numhaves for simplicity
-            piece_list = self.numhaves
-            print "sending piece_list=", piece_list
-            
-            # Send the bitfield
-            self.helper.send_proxy_have(piece_list)
-        else:
-            # if the node is a helper or a non-proxy node, do nothing
-            return
-    #
-    # _ProxyService
-
 
     def lost_have(self, piece):
         """ We lost a peer owning the given piece. """
@@ -287,6 +258,13 @@ class PiecePicker:
 
     def set_downloader(self,dl):
         self.downloader = dl
+        
+    # ProxyService_
+    #
+    def set_proxydownloader(self, proxydl):
+        self.proxydownloader = proxydl
+    #
+    # _ProxyService
 
     def _shift_over(self, piece, l1, l2):
         """ Moves 'piece' from interests list l1 to l2. """
@@ -374,106 +352,12 @@ class PiecePicker:
             self.crosscount2[numhaves+1] += 1
         self._remove_from_interests(piece)
 
-    # ProxyService_
-    #
-    def _proxynext(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None, proxyhave=None, lookatstarted=False, onlystarted=False):
-        """ Determine which piece to download next from a peer. _proxynext has three extra arguments compared to _next 
-        
-        @param haves: set of pieces owned by that peer
-        @param wantfunc: custom piece filter
-        @param complete_first: whether to complete partial pieces first 
-        @param helper_con: True for Coordinator, False for Helper
-        @param willrequest: 
-        @param connection:
-        @param proxyhave: a bitfield with the pieces that the helper "sees" in the swarm
-        @param lookatstarted: if True, the picker will search in the already started pieces first, and then in the available pieces
-        @param onlystarted: if True, the picker will only search in the already started pieces
-        @return: a piece number or None
-        """
-
-        # First few (rarest_first_cutoff) pieces are selected at random
-        # and completed. Subsequent pieces are downloaded rarest-first.
-
-        # cutoff = True:  random mode
-        #          False: rarest-first mode
-        cutoff = self.numgot < self.rarest_first_cutoff
-
-        # whether to complete existing partials first -- do so before the
-        # cutoff, or if forced by complete_first, but not for seeds.
-        complete_first = (complete_first or cutoff) and not haves.complete()
-
-        # most interesting piece
-        best = None
-
-        # interest level of best piece
-        bestnum = 2 ** 30
-
-        # select piece we started to download with best interest index.
-        if lookatstarted:
-            # No active requested (started) pieces will be rerequested
-            for i in self.started:
-                if proxyhave == None:
-                    proxyhave_i = False
-                else:
-                    proxyhave_i = proxyhave[i]
-                if (haves[i] or proxyhave_i) and wantfunc(i) and (self.helper is None or helper_con or not self.helper.is_ignored(i)):
-                    if self.level_in_interests[i] < bestnum:
-                        best = i
-                        bestnum = self.level_in_interests[i]
-
-        if best is not None:
-            # found a piece -- return it if we are completing partials first
-            # or if there is a cutoff
-            if complete_first or (cutoff and len(self.interests) > self.cutoff):
-                return best
-        
-        if onlystarted:
-            # Only look at started downloads - used by the helper
-            return best
-
-        if haves.complete():
-            # peer has all pieces - look for any more interesting piece
-            r = [ (0, min(bestnum, len(self.interests))) ]
-        elif cutoff and len(self.interests) > self.cutoff:
-            # no best piece - start looking for low-priority pieces first
-            r = [ (self.cutoff, min(bestnum, len(self.interests))),
-                      (0, self.cutoff) ]
-        else:
-            # look for the most interesting piece
-            r = [ (0, min(bestnum, len(self.interests))) ]
-#        print "piecepicker: r=", r
-
-        # select first acceptable piece, best interest index first.
-        # r is an interest-range
-        for lo, hi in r:
-            for i in xrange(lo, hi):
-                # Randomize the list of pieces in the interest level i
-                random_interests = []
-                random_interests.extend(self.interests[i])
-                shuffle(random_interests)
-                for j in random_interests:
-                    if proxyhave == None:
-                        proxyhave_j = False
-                    else:
-                        proxyhave_j = proxyhave[j]
-                    if (haves[j] or proxyhave_j) and wantfunc(j) and (self.helper is None or helper_con or not self.helper.is_ignored(j)):
-                        return j
-
-        if best is not None:
-            return best
-        return None
-    #
-    # _ProxyService
-
-# 2fastbt_
-    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
-# _2fastbt
+    def _next(self, haves, wantfunc, complete_first, willrequest=True, connection=None):
         """ Determine which piece to download next from a peer.
         
         @param haves: set of pieces owned by that peer
         @param wantfunc: custom piece filter
         @param complete_first: whether to complete partial pieces first 
-        @param helper_con: True for Coordinator, False for Helper
         @param willrequest: 
         @param connection: the connection object on which the returned piece will be requested
         @return: a piece number or None
@@ -498,9 +382,7 @@ class PiecePicker:
 
         # select piece we started to download with best interest index.
         for i in self.started:
-# 2fastbt_
-            if haves[i] and wantfunc(i) and (self.helper is None or helper_con or not self.helper.is_ignored(i)):
-# _2fastbt
+            if haves[i] and wantfunc(i):
                 if self.level_in_interests[i] < bestnum:
                     best = i
                     bestnum = self.level_in_interests[i]
@@ -516,8 +398,7 @@ class PiecePicker:
             r = [ (0, min(bestnum, len(self.interests))) ]
         elif cutoff and len(self.interests) > self.cutoff:
             # no best piece - start looking for low-priority pieces first
-            r = [ (self.cutoff, min(bestnum, len(self.interests))),
-                      (0, self.cutoff) ]
+            r = [ (self.cutoff, min(bestnum, len(self.interests))), (0, self.cutoff) ]
         else:
             # look for the most interesting piece
             r = [ (0, min(bestnum, len(self.interests))) ]
@@ -527,113 +408,76 @@ class PiecePicker:
         for lo, hi in r:
             for i in xrange(lo, hi):
                 for j in self.interests[i]:
-# 2fastbt_
-                    if haves[j] and wantfunc(j) and (self.helper is None or helper_con or not self.helper.is_ignored(j)):
-# _2fastbt
+                    if haves[j] and wantfunc(j):
                         return j
 
         if best is not None:
             return best
         return None
 
-# 2fastbt_
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces= [], willrequest = True, connection = None,  proxyhave = None):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, slowpieces= [], willrequest = True, connection = None):
         """ Return the next piece number to be downloaded
         
         @param haves: set of pieces owned by that peer
         @param wantfunc: custom piece filter
         @param sdownload: 
         @param complete_first: whether to complete partial pieces first
-        @param helper_con: True for Coordinator, False for Helper
         @param slowpieces: 
         @param willrequest: 
         @param connection: the connection object on which the returned piece will be requested
-        @param proxyhave: a bitfield with the pieces that the helper "sees" in the swarm
         @return: a piece number or None 
         """
-#        try:
-        # Helper connection (helper_con) is true for coordinator
-        # Helper connection (helper_con) is false for helpers 
-        # self.helper is None for Coordinator and is notNone for Helper
         while True:
-#            print "started =", self.started
-            if helper_con :
-                # The current node is a coordinator
-
-                # First try to request a piece that the peer advertised via a HAVE message
-                piece = self._proxynext(haves, wantfunc, complete_first, helper_con, willrequest = willrequest, connection = connection, proxyhave = None, lookatstarted=False)
-
-                # If no piece could be requested, try to find a piece that the node advertised via a PROXY_HAVE message
-                if piece is None:
-                    piece = self._proxynext(haves, wantfunc, complete_first, helper_con, willrequest = willrequest, connection = connection, proxyhave = proxyhave, lookatstarted=False)
-
-                    if piece is None:
-                        # The piece picker failed to return a piece
-                        if DEBUG:
-                            print >> sys.stderr,"PiecePicker: next: _next returned no pieces for proxyhave!",
-                        break
-                
-                if DEBUG:
-                    print >> sys.stderr,"PiecePicker: next: helper None or helper conn, returning", piece
-                    print >> sys.stderr,"PiecePicker: next: haves[", piece, "]=", haves[piece]
-                    print >> sys.stderr,"PiecePicker: next: proxyhave[", piece, "]=", proxyhave[piece]
-                if not haves[piece]:
-                    # If the piece was not advertised with a BT HAVE message, send a proxy request for it
-                    # Reserve the piece to one of the helpers
-                    self.coordinator.send_request_pieces(piece, connection.get_id())
-                    return None
-                else:
-                    # The piece was advertised with a BT HAVE message 
-                    # Return the selected piece
-                    return piece
-
-            if self.helper is not None:
-                # The current node is a helper
-                
-                # Look into the pieces that are already downloading
-                piece = self._proxynext(haves, wantfunc, complete_first, helper_con, willrequest = willrequest, connection = connection, proxyhave = None, lookatstarted=True, onlystarted=True)
-                if piece is not None:
-                    if DEBUG:
-                        print >> sys.stderr,"PiecePicker: next: helper: continuing already started download for", requested_piece
-                    return piece
-                
-                # If no already started downloads, look at new coordinator requests
-                requested_piece = self.helper.next_request()
+            # ProxyService_
+            #
+            # Check DownloadRuntimeConfig
+            if self.proxydownloader.dlinstance.get_proxyservice_role() == PROXYSERVICE_ROLE_PROXY:
+                # The node is a proxy for the current download
+                requested_piece = self.proxydownloader.proxy.next_request()
                 if requested_piece is not None:
                     if DEBUG:
-                        print >> sys.stderr,"PiecePicker: next: helper: got request from coordinator for", requested_piece
+                        print >> sys.stderr,"PiecePicker: next: proxy: got request from doe for", requested_piece
                     return requested_piece
                 else:
-                    # There is no pending requested piece from the coordinator
+                    # There is no pending requested piece from the doe
                     if DEBUG:
-                        print >> sys.stderr,"PiecePicker: next: helper: no piece pending"
+                        print >> sys.stderr,"PiecePicker: next: proxy: no piece pending"
                     return None
+            #
+            # _ProxyService
     
-            # The current node not a helper, neither a coordinator
+            # The current node not acting as a proxy
             # First try to request a piece that the peer advertised via a HAVE message
-            piece = self._next(haves, wantfunc, complete_first, helper_con, willrequest = willrequest, connection = connection)
+            piece = self._next(haves, wantfunc, complete_first, willrequest = willrequest, connection = connection)
 
             if piece is None:
                 # The piece picker failed to return a piece
                 if DEBUG:
-                    print >> sys.stderr,"PiecePicker: next: _next returned no pieces!",
+                    print >> sys.stderr,"PiecePicker: next: _next returned no pieces!"
                 break
 
             # We should never get here
             if DEBUG:
-                print >> sys.stderr,"PiecePicker: next: helper: an error occurred. Returning piece",piece
+                print >> sys.stderr,"PiecePicker: next: an error occurred. Returning piece",piece
             return piece
 
+        # ProxyService_
+        #
         # Arno, 2008-05-20: 2fast code: if we got capacity to DL something,
-        # ask coordinator what new pieces to dl for it.
-        if self.rate_predictor and self.rate_predictor.has_capacity():
-            return self._next(haves, wantfunc, complete_first, True, willrequest = willrequest, connection = connection)
-        else:
-            return None
+        # ask doe what new pieces to dl for it.
+#        if self.rate_predictor and self.rate_predictor.has_capacity():
+#            return self._next(haves, wantfunc, complete_first, willrequest = willrequest, connection = connection)
+#        else:
+#            return None
+        #
+        # _ProxyuService
 
+    # ProxyService_
+    #
     def set_rate_predictor(self, rate_predictor):
         self.rate_predictor = rate_predictor
-# _2fastbt
+    #
+    # _ProxyService
 
     def am_I_complete(self):
         return self.done

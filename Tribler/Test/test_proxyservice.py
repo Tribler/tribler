@@ -116,8 +116,8 @@ class TestDownloadHelp(TestAsServer):
     def states_callback(self,dslist):
         print >>sys.stderr,"stats: dslist",len(dslist)
         for ds in dslist:
-            print >>sys.stderr,"stats: coordinator",`ds.get_coopdl_coordinator()`
-            print >>sys.stderr,"stats: helpers",`ds.get_coopdl_helpers()`
+            print >>sys.stderr,"stats: coordinator",`ds.get_doe_list()`
+            print >>sys.stderr,"stats: helpers",`ds.get_proxy_list()`
         print >>sys.stderr, ""
         return (0.5,False)
 

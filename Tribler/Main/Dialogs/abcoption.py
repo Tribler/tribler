@@ -1,4 +1,5 @@
 # Written by ABC authors and Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 # TODO: 
@@ -1066,8 +1067,8 @@ class TriblerPanel(ABCOptionPanel):
         self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender')+" "+self.utility.lang.get('restartabc'))
         funcsection.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
-        self.dlhelp_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp')+" "+self.utility.lang.get('restartabc'))
-        funcsection.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        self.proxyservice_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.proxyservice_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
         self.collect_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlcollecting')+" "+self.utility.lang.get('restartabc'))
         funcsection.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
@@ -1103,10 +1104,14 @@ class TriblerPanel(ABCOptionPanel):
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(wx.StaticText(self, -1, ' ('+self.utility.lang.get('current_free_space')+' '), 0, wx.ALIGN_CENTER_VERTICAL)
         
-        current_free_space = getfreespace(self.utility.session.get_download_help_dir())/(2**20)
+        # ProxyService_
+        #
+        current_free_space = getfreespace(self.utility.session.get_proxyservice_dir())/(2**20)
         tc_threshold_box.Add(wx.StaticText(self, -1, str(current_free_space)), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')+')'), 0, wx.ALIGN_CENTER_VERTICAL)
         tcsection.Add(tc_threshold_box, 0, wx.EXPAND|wx.ALL, 5)
+        #
+        # _ProxyService
         
         tc_rate_box = wx.BoxSizer(wx.HORIZONTAL)    # set the rate of torrent collecting
         self.tc_rate = self.utility.makeNumCtrl(self, 5, min = 0, max = 999999)
@@ -1152,7 +1157,7 @@ class TriblerPanel(ABCOptionPanel):
         """ Loading values from configure file """
         
         buddycast = self.utility.session.get_buddycast()
-        coopdl = self.utility.session.get_download_help()
+        proxyservice = self.utility.session.get_proxyservice_status()
         torrcoll = self.utility.session.get_torrent_collecting()
         maxcolltorrents = self.utility.session.get_torrent_collecting_max_torrents()
         maxbcpeers = self.utility.session.get_buddycast_max_peers()
@@ -1160,7 +1165,7 @@ class TriblerPanel(ABCOptionPanel):
         collrate = self.utility.session.get_torrent_collecting_rate()
         
         self.rec_enable.SetValue(buddycast)
-        self.dlhelp_enable.SetValue(coopdl)
+        self.proxyservice_enable.SetValue(proxyservice)
         self.collect_enable.SetValue(torrcoll)
         self.ntorrents.SetValue(maxcolltorrents)
         self.npeers.SetValue(maxbcpeers)
@@ -1176,7 +1181,7 @@ class TriblerPanel(ABCOptionPanel):
         """ do sth. when user click apply of OK button """
         
         buddycast = self.rec_enable.GetValue()
-        coopdl = self.dlhelp_enable.GetValue()
+        proxyservice = self.proxyservice_enable.GetValue()
         torrcoll = self.collect_enable.GetValue()
         maxcolltorrents = int(self.ntorrents.GetValue())
         maxbcpeers = int(self.npeers.GetValue())
@@ -1195,7 +1200,7 @@ class TriblerPanel(ABCOptionPanel):
             except:
                 print_exc()
             try:
-                target.set_download_help(coopdl)
+                target.set_proxyservice_status(proxyservice)
             except:
                 print_exc()
             try:

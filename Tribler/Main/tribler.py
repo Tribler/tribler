@@ -80,6 +80,9 @@ from Tribler.Video.VideoServer import SimpleServer
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
+# ProxyService 90s Test_
+from Tribler.Core.simpledefs import *
+# _ProxyService 90s Test
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
@@ -108,7 +111,6 @@ class ABCApp(wx.App):
         self.state_dir = None
         self.error = None
         self.last_update = 0
-        self.update_freq = 0    # how often to update #peers/#torrents
         self.ready = False
 
         self.guiserver = GUITaskQueue.getInstance()
@@ -116,7 +118,6 @@ class ABCApp(wx.App):
         self.decodeprogress = 0
 
         self.old_reputation = 0
-        self.lastchannelrefresh = -1.0
         
         # ProxyService 90s Test_
         self.proxytest_reported = False
@@ -137,13 +138,14 @@ class ABCApp(wx.App):
                     ubuntu = True
                     
             print >>sys.stderr,"tribler: Activating workaround for Ubuntu?",ubuntu
-                    
+            
             if not redirectstderrout and ubuntu:
                 # On Ubuntu 8.10 not redirecting output causes the program to quit
                 wx.App.__init__(self, redirect=True)
             else:
                 wx.App.__init__(self, redirectstderrout)
-        except:
+            
+        except Exception as e:
             # boudewijn: wx messes around with streams
             import sys
             sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
@@ -154,6 +156,11 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         try:
+            bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
+            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
+            wx.Yield()
+            
+            
             import sys
             sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
 
@@ -167,16 +174,13 @@ class ABCApp(wx.App):
             """
             #self.Bind(wx.EVT_IDLE, self.OnIdle)
             
+            
         
             # Set locale to determine localisation
             #locale.setlocale(locale.LC_ALL, '')
 
             sys.stderr.write('Client Starting Up.\n')
             sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
-
-            bm = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
-            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
-            wx.Yield()
             
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()    
@@ -242,30 +246,30 @@ class ABCApp(wx.App):
             self.frame.librarylist = xrc.XRCCTRL(self.frame, "librarylist")
 
             # videopanel
-            self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean") or sys.platform == 'darwin'
-            vlcwrap = self.videoplayer.get_vlcwrap()
-            if self.guiUtility.useExternalVideo:
-                self.frame.videoparentpanel = None
                 
-                self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
-                self.videoplayer.set_videoframe(self.frame.videoframe)
-            else:
-                self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
+            # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
+            # or sys.platform == 'darwin'
+            self.frame.videoframe = None
+            self.frame.videoparentpanel = None
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
+                vlcwrap = self.videoplayer.get_vlcwrap()
+            
+                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
+                if self.guiUtility.useExternalVideo:
+                    self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
+                    self.videoplayer.set_videoframe(self.frame.videoframe)
+                else:
+                    self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
+                    
+                    self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
+                    self.videoplayer.set_videoframe(self.frame.videoframe)
                 
-                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
-                self.videoplayer.set_videoframe(self.frame.videoframe)
-        
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
             else:
                 self.frame.top_bg.Layout()
-            
-            # reputation
-            self.guiserver.add_task(self.guiservthread_update_reputation, .2)
           
-            self.setDBStats()
-            
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
 
@@ -291,6 +295,7 @@ class ABCApp(wx.App):
             
             wx.CallAfter(self.startWithRightView)
             wx.CallAfter(self.loadSessionCheckpoint)
+            wx.CallAfter(self.set_reputation)
             
             # start the torrent feed thread
             self.torrentfeed = TorrentFeedThread.getInstance()
@@ -310,6 +315,12 @@ class ABCApp(wx.App):
             reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
             
             self.ready = True
+            
+            # ProxyService 90s Test_
+            session = Session.get_instance()
+            session.add_observer(self.start_90s_dl, NTFY_GUI_STARTED, [NTFY_INSERT])
+            # _ProxyService 90s Test
+
         except Exception,e:
             print_exc()
             self.error = e
@@ -317,6 +328,79 @@ class ABCApp(wx.App):
             return False
 
         return True
+
+    # ProxyService 90s Test_
+    def start_90s_dl(self, subject, changeType, objectID, *args):
+        wx.CallAfter(self.gui_start_90s_dl)
+        
+    def gui_start_90s_dl(self):
+        # Test if the 90s file exists in the Session.get_state_dir() folder
+        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2")):
+            self.del_dl('restart')
+        else:
+            # Execute the 90s test
+    
+            # Mark test as active
+            session = Session.get_instance()
+            session.set_90stest_state(True)
+    
+            # Create the 90s empty file
+            open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2"), "w").close()
+            torrent_def = TorrentDef.load_from_url('http://proxytestreporter.tribler.org/Data.90s-test.8M.swarm.torrent')
+    
+            # Check if the torrent_def is a valid object
+            if torrent_def is None:
+                return
+    
+            # Start the 90s test download
+            guiUtility = GUIUtility.getInstance()
+            guiUtility.frame.startDownload(tdef = torrent_def, doemode=DOE_MODE_PRIVATE)
+    
+            # 300000ms = 300s = 5 minutes
+            wx.CallLater(300000, self.del_dl, '5minutetimeout')
+    
+    def del_dl(self, reasonwhy = ''):
+        if self._remove_download_by_name("'Data.90s-test.8M.bin'"):
+            status = get_status_holder("Proxy90secondsTest")
+            status.create_and_add_event("deleted-90s-test(%s)"%reasonwhy, [True])
+    
+        # Mark test as inactive
+        session = Session.get_instance()
+        session.set_90stest_state(False)
+        
+        # See if we need to turn on proxy-ing
+        turn_proxy_on = False
+        try:
+            curr_status = urllib.urlopen('http://proxytestreporter.tribler.org/test2.txt').readlines()
+            if curr_status[0].strip() == "on":
+                turn_proxy_on = True
+            else:
+                turn_proxy_on = False
+        except Exception:
+            print >> sys.stderr, "NetworkTest: verification failed"
+        
+        if turn_proxy_on:
+            session.set_proxyservice_status(PROXYSERVICE_ON)
+            
+    def _remove_download_by_name(self, name):
+        guiUtility = GUIUtility.getInstance()
+        torrentManager = guiUtility.torrentsearch_manager
+        
+        dlist = guiUtility.utility.session.get_downloads()
+        for d in dlist:
+            safename = `d.get_def().get_name()`
+            if safename == name:
+                infohash = d.get_def().get_infohash()
+                
+                torrentManager.deleteTorrentDownload(d, infohash, removecontent = True)
+                torrentManager.mypref_db.deletePreference(infohash)
+                
+                listManager = guiUtility.frame.librarylist.GetManager()
+                wx.CallAfter(listManager.refresh)
+                return True
+            
+        return False
+    # _ProxyService 90s Test
 
     def startAPI(self):
         
@@ -387,8 +471,6 @@ class ABCApp(wx.App):
 
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
@@ -409,14 +491,14 @@ class ABCApp(wx.App):
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-           #print_exc()
+            #print_exc()
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 
         # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
         self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
 
-        s.set_coopdlconfig(defaultDLConfig)
+        s.set_proxy_default_dlcfg(defaultDLConfig)
 
         # Loading of checkpointed Downloads delayed to allow GUI to paint,
         # see loadSessionCheckpoint
@@ -463,6 +545,7 @@ class ABCApp(wx.App):
         self.seedingstats_interval = self.seedingstats_settings[0][1]
         
         # Only allow updates to come in after we defined ratelimiter
+        self.prevActiveDownloads = []
         s.set_download_states_callback(self.sesscb_states_callback)
         
         # Load friends from friends.txt
@@ -478,10 +561,12 @@ class ABCApp(wx.App):
         #RePEXLogger.getInstance().start() #no more need for logging
         RePEXScheduler.getInstance().start()
 
-
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
-        wx.CallAfter(self.gui_states_callback,dslist)
+        def guiCall():
+            wx.CallAfter(self.gui_states_callback, dslist)
+        
+        self.guiserver.add_task(guiCall, id="DownloadStateCallback")
         return(1.0, True)
     
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
@@ -509,37 +594,24 @@ class ABCApp(wx.App):
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         return bc_db.total_up
 
-
     def set_reputation(self):
         """ set the reputation in the GUI"""
-        self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
-
-    def guiservthread_update_reputation(self):
-        """ update the reputation"""
-        # 26/10/09 boudewijn: the guiservthread_update_reputation will
-        # use parameters from self.frame.top_bg that have not yet been
-        # created. They are eventually created when the UI thread is
-        # ready for it. Therefore, we will set an 'init_ready'
-        # parameter when it is ready.
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.set_reputation)
-            self.guiserver.add_task(self.guiservthread_update_reputation,10.0)
-        else:
-            self.guiserver.add_task(self.guiservthread_update_reputation,.2)
+            self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
+            
+        wx.CallLater(10000, self.set_reputation)
         
     def gui_states_callback(self,dslist):
-        """ Called by MainThread  """
+        """ Called by GUITHREAD  """
         if DEBUG: 
-            print >>sys.stderr,"main: Stats:"
-        torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-        if DEBUG:
+            torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+            peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
             print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
             
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Print stats on Console
-            if True:
+            if DEBUG:
                 if self.rateprintcount % 5 == 0:
                     for ds in dslist:
                         safename = `ds.get_download().get_def().get_name()`
@@ -555,21 +627,24 @@ class ABCApp(wx.App):
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
                 # ProxyService 90s Test_
-                #safename = `ds.get_download().get_def().get_name()`
-                #if safename == "'Data.90s-test.8M.bin'":
-                    #status = get_status_holder("Proxy90secondsTest")
-                    #status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
+                if not self.proxytest_reported:
+                    safename = `ds.get_download().get_def().get_name()`
+                    if safename == "'Data.90s-test.8M.bin'":
+                        if ds.get_progress() <= 1.0:
+                            status = get_status_holder("Proxy90secondsTest")
+                            status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
                     
-                    # Report the logs when the download completes
-                    #if not self.proxytest_reported:
-                        #if ds.get_progress() == 1.0:
-                            #status.report_now()
-                            #self.proxytest_reported = True
+                            # Report the logs when the download completes
+                            if ds.get_progress() == 1.0:
+                                status.report_now()
+                                self.proxytest_reported = True
                 # _ProxyService 90s Test
-
                 if ds.get_download() == d:
                     playds = ds
-                    break
+                    
+                    #only break if proxytest is not active
+                    if self.proxytest_reported:
+                        break
             
             # Apply status displaying from SwarmPlayer
             if playds:
@@ -605,7 +680,31 @@ class ABCApp(wx.App):
                 #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
                 playds.vod_status_msg = text
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+            
+            # Check to see if a download has finished
+            newActiveDownloads = []
+            for ds in dslist:
+                state = ds.get_status() 
+                safename = ds.get_download().get_def().get_name()
                 
+                if state == DLSTATUS_DOWNLOADING:
+                    newActiveDownloads.append(safename)
+                elif state == DLSTATUS_SEEDING:
+                    if safename in self.prevActiveDownloads:
+                        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+                        
+            self.prevActiveDownloads = newActiveDownloads
+            
+# SelectiveSeeding_
+            # Apply seeding policy every 60 seconds, for performance
+            # Boudewijn 12/01/10: apply seeding policies immediately
+            # applyseedingpolicy = False
+            # if self.seedingcount % 60 == 0:
+            #     applyseedingpolicy = True
+            # self.seedingcount += 1
+            # if applyseedingpolicy:
+            self.seedingmanager.apply_seeding_policy(dslist)
+# _SelectiveSeeding            
             
             # Pass DownloadStates to libaryView
             try:
@@ -632,23 +731,6 @@ class ABCApp(wx.App):
             if adjustspeeds:
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
-                
-            # Update stats in lower right overview box
-            # self.guiUtility.refreshTorrentStats(dslist)
-            
-            # Upload overall upload states
-            # self.guiUtility.refreshUploadStats(dslist)
-            
-# SelectiveSeeding_
-            # Apply seeding policy every 60 seconds, for performance
-            # Boudewijn 12/01/10: apply seeding policies immediately
-            # applyseedingpolicy = False
-            # if self.seedingcount % 60 == 0:
-            #     applyseedingpolicy = True
-            # self.seedingcount += 1
-            # if applyseedingpolicy:
-            self.seedingmanager.apply_seeding_policy(dslist)
-# _SelectiveSeeding
             
 # Crawling Seeding Stats_
             if self.seedingstats_enabled == 1:
@@ -672,6 +754,11 @@ class ABCApp(wx.App):
 
     def loadSessionCheckpoint(self):
         self.utility.session.load_checkpoint()
+        
+        # ProxyService 90s Test_
+        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2")):
+            self.del_dl('restart')
+        # _ProxyService 90s Test
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -681,35 +768,6 @@ class ABCApp(wx.App):
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
-
-
-    def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):
-        """ Called by SessionCallback thread """
-        wx.CallAfter(self.setDBStats)
-        # Test
-        #if subject == NTFY_PEERS:
-        #    self.frame.friendsmgr.sesscb_friendship_callback(objectID,{})
-        
-    def setDBStats(self):
-        """ Set total # peers and torrents discovered """
-        
-        # Arno: GUI thread accessing database
-        now = time()
-        if now - self.last_update < self.update_freq:
-            return  
-        self.last_update = now
-        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
-        npeers = peer_db.getNumberPeers()
-        torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        nfiles = torrent_db.getNumberTorrents()
-        if nfiles > 30 and npeers > 30:
-            self.update_freq = 2
-        # Arno: not closing db connections, assuming main thread's will be 
-        # closed at end.
-                
-        #self.frame.numberPersons.SetLabel('%d' % npeers)
-        #self.frame.numberFiles.SetLabel('%d' % nfiles)
-        # print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
         # Called by SessionCallback thread
@@ -723,14 +781,18 @@ class ABCApp(wx.App):
 
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
+            def guiCall():
+                wx.CallAfter(self.gui_ntfy_channelupdates, objectID, subject == NTFY_VOTECAST)
+            
+            #wrap in guiserver to prevent multiple refreshes
+            self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
     
-    def gui_ntfy_channelupdates(self,subject,changeType,objectID,*args):
+    def gui_ntfy_channelupdates(self, channel_id, votecast):
         manager = self.frame.channellist.GetManager()
-        manager.channelUpdated(objectID)
+        manager.channelUpdated(channel_id, votecast)
         
         manager = self.frame.selectedchannellist.GetManager()
-        manager.channelUpdated(objectID)
+        manager.channelUpdated(channel_id)
         
         if changeType == NTFY_CREATE:
             self.frame.channellist.SetMyChannelId(objectID)
@@ -878,7 +940,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     
     logmsgs = ds.get_log_messages()
     logmsg = None
-    if len(logmsgs) > 0:
+    if DEBUG and len(logmsgs) > 0:
         print >>sys.stderr,"main: Log",logmsgs[0]
         logmsg = logmsgs[-1][1]
         
@@ -956,9 +1018,9 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         if npeers == 0 and logmsg is not None:
             msg = logmsg
         elif npeers == 1:
-            msg = "Prebuffering "+pstr+"% done (connected to 1 person). " + intime
+            msg = "Prebuffering "+pstr+"% done (connected to 1 peer). " + intime
         else:
-            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people). " + intime
+            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" peers). " + intime
             
         try:
             d = ds.get_download()
@@ -983,12 +1045,6 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     else:
         msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
     """
-    if playable:
-        if videoplayer_mediastate == MEDIASTATE_PAUSED and not ds.get_status() == DLSTATUS_SEEDING:
-            msg = "Buffering... " + msg
-        else:
-            msg = ""
-
     return [topmsg,msg,said_start_playback,decodeprogress]
         
         
@@ -1037,17 +1093,16 @@ def run(params = None):
             
             # Setup the statistic reporter while waiting for proper integration
             status = get_status_holder("LivingLab")
-            status.add_reporter(NullReporter("Periodically remove all events", 60))
+            status.add_reporter(NullReporter("Periodically remove all events", 0))
             #id = "Tribler client"
             #reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
             # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
             #status.add_reporter(reporter)
-
-            # ProxyService 90s Test_
-            #from Tribler.Core.Statistics.Status.ProxyTestReporter import *
-    
-            #status = get_status_holder("Proxy90secondsTest")
-            #status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 300, "id01"))
+            
+            # ProxyService 90s Test
+            from Tribler.Core.Statistics.Status.ProxyTestReporter import ProxyTestPeriodicReporter
+            status = get_status_holder("Proxy90secondsTest")
+            status.add_reporter(ProxyTestPeriodicReporter("Proxy90secondsTest", 300, "id01"))
             # _ProxyService 90s Test
 
             app.MainLoop()

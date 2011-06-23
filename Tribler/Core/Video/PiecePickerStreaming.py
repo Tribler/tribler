@@ -1,4 +1,5 @@
-# Written by Jan David Mol, Arno Bakker, George Milescu
+# Written by Jan David Mol, Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -77,9 +78,9 @@ class PiecePickerStreaming(PiecePicker):
 
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20, helper = None, coordinator = None, rate_predictor = None, piecesize = 0):
+                 priority_step = 20, piecesize = 0):
         PiecePicker.__init__( self, numpieces, rarest_first_cutoff, rarest_first_priority_cutoff,
-                              priority_step, helper, coordinator, rate_predictor)
+                              priority_step)
 
         # maximum existing piece number, to avoid scanning beyond it in next()
         self.maxhave = 0
@@ -287,13 +288,13 @@ class PiecePickerStreaming(PiecePicker):
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy
 
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True,connection=None,proxyhave=None):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, slowpieces=[], willrequest=True,connection=None):
         def newwantfunc( piece ):
             #print >>sys.stderr,"S",self.streaming_piece_filter( piece ),"!sP",not (piece in slowpieces),"w",wantfunc( piece )
             return not (piece in slowpieces) and wantfunc( piece )
 
         # fallback: original piece picker
-        p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
+        p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
         if DEBUGPP and self.videostatus.prebuffering:
             print >>sys.stderr,"PiecePickerStreaming: original PP.next returns",p
         # Arno, 2010-03-11: Njaal's CS something causes this to return None
@@ -306,7 +307,7 @@ class PiecePickerStreaming(PiecePicker):
             self.transporter.notify_playable()
         return p
 
-    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
+    def _next(self, haves, wantfunc, complete_first, willrequest=True, connection=None):
         """ First, complete any partials if needed. Otherwise, select a new piece. """
 
         #print >>sys.stderr,"PiecePickerStreaming: complete_first is",complete_first,"started",self.started
@@ -328,9 +329,7 @@ class PiecePickerStreaming(PiecePicker):
 
         # select piece we started to download with best interest index.
         for i in self.started:
-# 2fastbt_
-            if haves[i] and wantfunc(i) and (self.helper is None or helper_con or not self.helper.is_ignored(i)):
-# _2fastbt
+            if haves[i] and wantfunc(i):
                 if self.level_in_interests[i] < bestnum:
                     best = i
                     bestnum = self.level_in_interests[i]
@@ -341,9 +340,9 @@ class PiecePickerStreaming(PiecePicker):
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
 
-        p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
+        p = self.next_new(haves, wantfunc, complete_first, willrequest=willrequest, connection=connection)
         if DEBUG:
-             print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
+            print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
         return p
 
     def check_outstanding_requests(self, downloads):
@@ -420,13 +419,12 @@ class PiecePickerStreaming(PiecePicker):
         self.outstanding_requests[request] = time.time()
         return PiecePicker.requested(self, *request)
         
-    def next_new(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
+    def next_new(self, haves, wantfunc, complete_first, willrequest=True, connection=None):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer
         wantfunc:       custom piece filter
         complete_first: whether to complete partial pieces first
-        helper_con:
         willrequest:    whether the returned piece will actually be requested
 
         """
@@ -457,8 +455,7 @@ class PiecePickerStreaming(PiecePicker):
                 if not wantfunc(i): # Is there a piece in the range we want? 
                     continue
 
-                if self.helper is None or helper_con or not self.helper.is_ignored(i):
-                    return i
+                return i
 
             return None
 
@@ -486,8 +483,7 @@ class PiecePickerStreaming(PiecePicker):
                 if not wantfunc(i):
                     continue
 
-                if self.helper is None or helper_con or not self.helper.is_ignored(i):
-                    return i
+                return i
 
             return None
 
@@ -524,10 +520,9 @@ class PiecePickerStreaming(PiecePicker):
                         #print >>sys.stderr,"W",
                         if not wantfunc(i):
                             continue
-    
-                        if self.helper is None or helper_con or not self.helper.is_ignored(i):
-                            return i
 
+                        return i
+    
             return None
 
         def pick_rarest(f,t): #BitTorrent already shuffles the self.interests for us
@@ -544,8 +539,7 @@ class PiecePickerStreaming(PiecePicker):
                     if not wantfunc(i):
                         continue
 
-                    if self.helper is None or helper_con or not self.helper.is_ignored(i):
-                        return i
+                    return i
 
             return None
 

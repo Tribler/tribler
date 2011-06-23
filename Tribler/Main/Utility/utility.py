@@ -188,12 +188,18 @@ class Utility:
             defaults['mintray'] = '0'  # tray doesn't make sense on Mac
             vlcpath = find_prog_in_PATH("vlc")
             if vlcpath is None:
-                defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
+                #second try
+                vlcpath = "/Applications/VLC.app"
+                if not os.path.exists(vlcpath):
+                    vlcpath = None
+            
+            if vlcpath is None:
+                    defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
             else:
                 defaults['videoplayerpath'] = vlcpath
             ffmpegpath = find_prog_in_PATH("ffmpeg")
             if ffmpegpath is None:
-                defaults['videoanalyserpath'] = "macbinaries/ffmpeg"
+                defaults['videoanalyserpath'] = "vlc/ffmpeg"
             else:
                 defaults['videoanalyserpath'] = ffmpegpath
         else:
@@ -230,7 +236,7 @@ class Utility:
         bool_ = lambda x: x=="1" and True or False
         self._convert__helper_4_1__4_2(self.config, session_config.set_buddycast, "enablerecommender", bool_)
         self._convert__helper_4_1__4_2(self.config, session_config.set_buddycast_max_peers, "buddy_num", int)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_download_help, "enabledlhelp", bool_)
+        #self._convert__helper_4_1__4_2(self.config, session_config.set_download_help, "enabledlhelp", bool_)
         self._convert__helper_4_1__4_2(self.config, session_config.set_internal_tracker_url, "internaltrackerurl")
         self._convert__helper_4_1__4_2(self.config, session_config.set_listen_port, "minport", int)
         self._convert__helper_4_1__4_2(self.config, session_config.set_nickname, "myname")

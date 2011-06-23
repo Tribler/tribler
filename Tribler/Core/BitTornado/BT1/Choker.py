@@ -1,4 +1,5 @@
 # Written by Bram Cohen, Pawel Garbacki, Boxun Zhang
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 from random import randrange, shuffle
@@ -74,15 +75,6 @@ class Choker:
         self._rechoke()
 
     def _rechoke(self):
-        # 2fast
-        helper = self.picker.helper
-        if helper is not None and helper.coordinator is None and helper.is_complete():
-            for c in self.connections:
-                if not c.connection.is_coordinator_con():
-                    u = c.get_upload()
-                    u.choke()
-            return
-
         if self.paused:
             for c in self.connections:
                 c.get_upload().choke()
@@ -199,9 +191,7 @@ class Choker:
                             hit = True
                         
                 else:
-                    if not c.connection.is_coordinator_con() and not c.connection.is_helper_con():
-                        u.choke()
-                    elif u.is_choked():
+                    if u.is_choked():
                         to_unchoke.append(u)
 
         # 5. Unchoke selected candidates

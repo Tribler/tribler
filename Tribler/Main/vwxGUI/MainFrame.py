@@ -1,5 +1,6 @@
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
+# Updated by George Milescu
 #
 # Description : Main ABC [Yet Another Bittorrent Client] python script.
 #               you can run from source code by using
@@ -78,11 +79,34 @@ class FileDropTarget(wx.FileDropTarget):
         self.frame = frame
       
     def OnDropFiles(self, x, y, filenames):
-        print >> sys.stderr, filenames
+        destdir = None
         for filename in filenames:
+            if not filename.endswith(".torrent"):
+                #lets see if we can find a .torrent in this directory
+                head, _ = os.path.split(filename)
+                files = os.listdir(head)
+                
+                found = False
+                for file in files:
+                    if file.endswith(".torrent"): #this is the .torrent, use head as destdir to start seeding
+                        filename = os.path.join(head, file)
+                        destdir = head
+                        
+                        found = True        
+                        break
+                
+                if not found:
+                    dlg = wx.FileDialog(None, "Tribler needs a .torrent file to start seeding, please select the associated .torrent file.", wildcard = "torrent (*.torrent)|*.torrent", style = wx.FD_OPEN)
+                    if dlg.ShowModal() == wx.ID_OK:
+                        filename = dlg.GetPath()
+                        
+                        destdir = head
+                        found = True
+                    dlg.Destroy()
+                if not found:
+                    break
             try:
-                self.FixTorrent(filename)
-                self.frame.startDownload(filename)
+                self.frame.startDownload(filename, destdir = destdir, fixtorrent = True)
             except IOError:
                 dlg = wx.MessageDialog(None,
                            self.frame.utility.lang.get("filenotfound"),
@@ -91,25 +115,6 @@ class FileDropTarget(wx.FileDropTarget):
                 dlg.ShowModal()
                 dlg.Destroy()
         return True
-
-    def FixTorrent(self, filename):
-        f = open(filename,"rb")
-        bdata = f.read()
-        f.close()
-        
-        #Check if correct bdata
-        try:
-            bdecode(bdata)
-        except ValueError:
-            #Try reading using sloppy
-            try:
-                bdata = bencode(bdecode(bdata, 1))
-                #Overwrite with non-sloppy torrent
-                f = open(filename,"wb")
-                f.write(bdata)
-                f.close()
-            except:
-                pass
 
 # Custom class loaded by XRC
 class MainFrame(wx.Frame):
@@ -173,6 +178,7 @@ class MainFrame(wx.Frame):
             pass
 
         # Don't update GUI as often when iconized
+        self.GUIupdate = True
         self.oldframe = None
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
@@ -244,6 +250,11 @@ class MainFrame(wx.Frame):
         # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(self.startCMDLineTorrent)
         
+        # ProxyService 90s Test_
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
+        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
+        # _ProxyService 90s Test
         
     def startCMDLineTorrent(self):
         if self.params[0] != "":
@@ -262,7 +273,7 @@ class MainFrame(wx.Frame):
 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
-            self.top_bg.Notify("Download from magnet failed", wx.ART_WARNING)
+            self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
             return False
         return True
     
@@ -274,58 +285,77 @@ class MainFrame(wx.Frame):
                 return True
         except:
             print_exc()
-        self.top_bg.Notify("Download from url failed", wx.ART_WARNING)
+        self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,proxymode=None):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
+        
+        if fixtorrent and torrentfilename:
+            self.fixTorrent(torrentfilename)
+        
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            if destdir is not None:
-                dscfg.set_dest_dir(destdir)
-        
-            # ProxyService_
-            if proxymode is not None:
-                dscfg.set_proxy_mode(proxymode)
-            # _ProxyService
-        
-            videofiles = tdef.get_files(exts=videoextdefaults)
-            if vodmode and len(videofiles) == 0:
-                vodmode = False
-
-            if vodmode or tdef.get_live():
-                print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
-                videoplayer = VideoPlayer.getInstance()
-                result = videoplayer.start_and_play(tdef,dscfg)
-
-                # 02/03/09 boudewijn: feedback to the user when there
-                # are no playable files in the torrent
-                if not result:
-                    dlg = wx.MessageDialog(None,
-                               self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
-                               self.utility.lang.get("invalid_torrent_no_playable_files_title"),
-                               wx.OK|wx.ICON_ERROR)
-                    dlg.ShowModal()
-                    dlg.Destroy()
-            else:
-                print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
-                result = self.utility.session.start_download(tdef,dscfg)
             
-            if result:
-                self.show_saved()
+            cancelDownload = False
+            useDefault = not dscfg.get_show_saveas()
+            if not useDefault and not destdir:
+                dlg = wx.DirDialog(self, 'Please select a directory where to save %s.'%tdef.get_name())
+                dlg.SetPath(dscfg.get_dest_dir())
+                
+                if dlg.ShowModal() == wx.ID_OK:
+                    destdir = dlg.GetPath()
+                else:
+                    cancelDownload = True
+                dlg.Destroy()
             
-            # store result because we want to store clicklog data
-            # right after download was started, then return result
-            if clicklog is not None:
-                mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+            if not cancelDownload:
+                if destdir is not None:
+                    dscfg.set_dest_dir(destdir)
+            
+                # ProxyService 90s Test_
+                if doemode is not None:
+                    dscfg.set_doe_mode(doemode)
+                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
+                # _ProxyService 90s Test
+            
+                videofiles = tdef.get_files(exts=videoextdefaults)
+                if vodmode and len(videofiles) == 0:
+                    vodmode = False
+    
+                if vodmode or tdef.get_live():
+                    print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
+                    videoplayer = VideoPlayer.getInstance()
+                    result = videoplayer.start_and_play(tdef,dscfg)
+    
+                    # 02/03/09 boudewijn: feedback to the user when there
+                    # are no playable files in the torrent
+                    if not result:
+                        dlg = wx.MessageDialog(None,
+                                   self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
+                                   self.utility.lang.get("invalid_torrent_no_playable_files_title"),
+                                   wx.OK|wx.ICON_ERROR)
+                        dlg.ShowModal()
+                        dlg.Destroy()
+                else:
+                    print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
+                    result = self.utility.session.start_download(tdef,dscfg)
+                
+                if result:
+                    self.show_saved()
+                
+                # store result because we want to store clicklog data
+                # right after download was started, then return result
+                if clicklog is not None:
+                    mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+                    mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
 
-            return result  
+                return result  
 
         except DuplicateDownloadException:
             # show nice warning dialog
@@ -348,6 +378,25 @@ class MainFrame(wx.Frame):
             print_exc()
             self.onWarning(e)
         return None
+    
+    def fixTorrent(self, filename):
+        f = open(filename,"rb")
+        bdata = f.read()
+        f.close()
+        
+        #Check if correct bdata
+        try:
+            bdecode(bdata)
+        except ValueError:
+            #Try reading using sloppy
+            try:
+                bdata = bencode(bdecode(bdata, 1))
+                #Overwrite with non-sloppy torrent
+                f = open(filename,"wb")
+                f.write(bdata)
+                f.close()
+            except:
+                pass
 
 
     def show_saved(self):
@@ -355,9 +404,8 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self._wx_show_saved)
 
     def _wx_show_saved(self):
-        self.top_bg.Notify("Download started", wx.ART_INFORMATION)
+        self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
         self.librarylist.GetManager().refresh()
-
        
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
@@ -564,13 +612,18 @@ class MainFrame(wx.Frame):
         executable = os.path.join(path, executable)
         print >> sys.stderr, executable
         def start_tribler():
-            subprocess.Popen(executable)
+            try:
+                subprocess.Popen(executable)
+            except:
+                print_exc()
 
         atexit.register(start_tribler)
-        self.guiUtility.frame.OnCloseWindow()
+        #self.OnCloseWindow()
+        #self.Close(force = True)
+        sys.exit(0)
     
     def OnFind(self, event):
-        self.guiUtility.frame.top_bg.SearchFocus()
+        self.top_bg.SearchFocus()
     def OnNext(self, event):
         self.guiUtility.frame.top_bg.NextPage()
     def OnPrev(self, event):
@@ -587,6 +640,8 @@ class MainFrame(wx.Frame):
         
         if self.tbicon is not None:
             self.tbicon.updateIcon(False)
+            
+        self.GUIupdate = True
 
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
@@ -598,21 +653,28 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: onIconify(",event.Iconized()
             else:
                 print  >> sys.stderr,"main: onIconify event None"
-        if event.Iconized():                                                                                                               
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.videoframe.get_videopanel().Pause() # when minimzed pause playback
+        
+        if event.Iconized():
+            #Niels, 2011-06-17: why pause the video? This does not make any sense                                                                                                               
+            #videoplayer = VideoPlayer.getInstance()
+            #videoplayer.pause_playback() # when minimzed pause playback
 
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
                 self.tbicon.updateIcon(True)
-                self.Show(False)
+                
+                #Niels, 2011-02-21: on Win7 hiding window is not consistent with default behaviour 
+                #self.Show(False)
+                
+            self.GUIupdate = False
         else:
-            videoplayer = VideoPlayer.getInstance()
-            embed = videoplayer.videoframe.get_videopanel()
-            if embed.GetState() == MEDIASTATE_PAUSED:
-                embed.ppbtn.setToggled(False)
-                embed.vlcwin.setloadingtext('')
-                embed.vlcwrap.resume()
+            #Niels, 2011-06-17: why pause the video? This does not make any sense
+            #at least make it so, that it will only resume if it was actually paused by the minimize action
+            
+            #videoplayer = VideoPlayer.getInstance()
+            #videoplayer.resume_playback()
+                
+            self.GUIupdate = True
         if event is not None:
             event.Skip()
 
@@ -628,6 +690,7 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: onSize:",self.GetSize()
             else:
                 print  >> sys.stderr,"main: onSize: None"
+        self.GUIupdate = True
         if event is not None:
             if event.GetEventType() == wx.EVT_MAXIMIZE:
                 self.window.SetClientSize(self.GetClientSize())
@@ -716,11 +779,10 @@ class MainFrame(wx.Frame):
                 print_exc()
             
         self.utility.abcquitting = True
+        self.GUIupdate = False
         
         videoplayer = VideoPlayer.getInstance()
         videoplayer.stop_playback()
-        
-        self.guiUtility.guiOpen.clear()
 
         try:
             # Restore the window before saving size and position
@@ -787,67 +849,68 @@ class MainFrame(wx.Frame):
         result = dlg.ShowModal()
         dlg.Destroy()
 
-
-
     def setActivity(self,type,msg=u'',arg2=None):
-        #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
-        if self.utility is None:
-            if DEBUG:
-                print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
-            return
-            
-        if currentThread().getName() != "MainThread":
-            if DEBUG:
-                print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
-                print_stack()
-    
-        if type == NTFY_ACT_NONE:
-            prefix = msg
-            msg = u''
-        elif type == NTFY_ACT_ACTIVE:
-            prefix = u""
-            if msg == "no network":
-                text = "No network - last activity: %.1f seconds ago" % arg2
-                self.SetTitle(text)
-                print  >> sys.stderr,"main: Activity",`text`
-            elif self.GetTitle().startswith("No network"):
-                title = self.utility.lang.get('title') + \
-                        " " + \
-                        self.utility.lang.get('version')
-                self.SetTitle(title)
-                
-                
-        elif type == NTFY_ACT_UPNP:
-            prefix = self.utility.lang.get('act_upnp')
-        elif type == NTFY_ACT_REACHABLE:
-            prefix = self.utility.lang.get('act_reachable')
-        elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
-            prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
-        elif type == NTFY_ACT_MEET:
-            prefix = self.utility.lang.get('act_meet')
-        elif type == NTFY_ACT_GOT_METADATA:
-            prefix = self.utility.lang.get('act_got_metadata')
-            
-            if self.category.family_filter_enabled() and arg2 == 7: # XXX category
+        try:
+            #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
+            if self.utility is None:
                 if DEBUG:
-                    print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
+                    print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
                 return
-            
-        elif type == NTFY_ACT_RECOMMEND:
-            prefix = self.utility.lang.get('act_recommend')
-        elif type == NTFY_ACT_DISK_FULL:
-            prefix = self.utility.lang.get('act_disk_full')   
-        elif type == NTFY_ACT_NEW_VERSION:
-            prefix = self.utility.lang.get('act_new_version')   
-        if msg == u'':
-            text = prefix
-        else:
-            text = unicode( prefix+u' '+msg)
-            
-        if DEBUG:
-            print  >> sys.stderr,"main: Activity",`text`
-        self.SRstatusbar.onActivity(text)
-        self.stats.onActivity(text)
+                
+            if currentThread().getName() != "MainThread":
+                if DEBUG:
+                    print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+                    print_stack()
+        
+            if type == NTFY_ACT_NONE:
+                prefix = msg
+                msg = u''
+            elif type == NTFY_ACT_ACTIVE:
+                prefix = u""
+                if msg == "no network":
+                    text = "No network - last activity: %.1f seconds ago" % arg2
+                    self.SetTitle(text)
+                    print  >> sys.stderr,"main: Activity",`text`
+                elif self.GetTitle().startswith("No network"):
+                    title = self.utility.lang.get('title') + \
+                            " " + \
+                            self.utility.lang.get('version')
+                    self.SetTitle(title)
+                    
+                    
+            elif type == NTFY_ACT_UPNP:
+                prefix = self.utility.lang.get('act_upnp')
+            elif type == NTFY_ACT_REACHABLE:
+                prefix = self.utility.lang.get('act_reachable')
+            elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
+                prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
+            elif type == NTFY_ACT_MEET:
+                prefix = self.utility.lang.get('act_meet')
+            elif type == NTFY_ACT_GOT_METADATA:
+                prefix = self.utility.lang.get('act_got_metadata')
+                
+                if self.category.family_filter_enabled() and arg2 == 7: # XXX category
+                    if DEBUG:
+                        print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
+                    return
+                
+            elif type == NTFY_ACT_RECOMMEND:
+                prefix = self.utility.lang.get('act_recommend')
+            elif type == NTFY_ACT_DISK_FULL:
+                prefix = self.utility.lang.get('act_disk_full')   
+            elif type == NTFY_ACT_NEW_VERSION:
+                prefix = self.utility.lang.get('act_new_version')   
+            if msg == u'':
+                text = prefix
+            else:
+                text = unicode( prefix+u' '+msg)
+                
+            if DEBUG:
+                print  >> sys.stderr,"main: Activity",`text`
+            self.SRstatusbar.onActivity(text)
+            self.stats.onActivity(text)
+        except wx.PyDeadObjectError:
+            pass
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """

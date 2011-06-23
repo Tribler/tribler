@@ -226,6 +226,16 @@ class VideoPlayer:
             if reset:
                 self.videoframe.get_videopanel().Reset()
         self.set_vod_download(None)
+        
+    def pause_playback(self):
+        """ Pause playback in current video window """
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().Pause()
+    
+    def resume_playback(self):
+        """ Resume playback in current video window """
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().Resume()
 
     def show_loading(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
@@ -584,11 +594,11 @@ class VideoPlayer:
                 
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None: 
-                self.videoframe.get_videopanel().PlayPause()
+                self.videoframe.get_videopanel().Pause()
             self.set_player_status("Buffering...")
         elif event == VODEVENT_RESUME:
             if self.videoframe is not None:
-                self.videoframe.get_videopanel().PlayPause()
+                self.videoframe.get_videopanel().Resume()
             self.set_player_status("")
 
     def ask_user_to_select_video(self,videofiles):
@@ -687,8 +697,9 @@ class VideoPlayer:
 
 
     def exec_video_player(self,cmd):
-        if DEBUG:
+        if DEBUG or True:
             print >>sys.stderr,"videoplay: Command is @"+cmd+"@"
+        
         # I get a weird problem on Linux. When doing a
         # os.popen2("vlc /tmp/file.wmv") I get the following error:
         #[00000259] main interface error: no suitable interface module
@@ -698,7 +709,7 @@ class VideoPlayer:
         # os.system("vlc /tmp/file.wmv")
         # but that halts Tribler, as it waits for the created shell to
         # finish. Hmmmm....
-        #
+
         try:
             if sys.platform == 'win32':
                 #os.system(cmd)
@@ -984,7 +995,13 @@ def parse_playtime_to_secs(hhmmss):
 def return_feasible_playback_modes(syspath):
     l = []
     try:
-        import vlc
+        if sys.platform == "darwin":
+            oldpath = os.getcwd()
+            os.chdir(os.path.join(syspath,'vlc','lib'))
+            import vlc.lib.vlc as vlc
+            os.chdir(oldpath)
+        else:
+            import Tribler.vlc as vlc
 
         if USE_VLC_RAW_INTERFACE:
             # check if the special raw interface is available
@@ -992,12 +1009,15 @@ def return_feasible_playback_modes(syspath):
             if not inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
                 raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
             # pylint: enable-msg=E1101
-        vlcpath = os.path.join(syspath,"vlc")
-        if sys.platform == 'win32':
-            if os.path.isdir(vlcpath):
-                l.append(PLAYBACKMODE_INTERNAL)
-        else:
-            l.append(PLAYBACKMODE_INTERNAL)
+        l.append(PLAYBACKMODE_INTERNAL)
+# boudewijn: 06/06/2011: if import vlc was ok, then we can also find the vlc dll/so
+#        vlcpath = os.path.join(syspath,"vlc")
+#        if sys.platform == 'win32':
+#            
+#            if os.path.isdir(vlcpath):
+#                l.append(PLAYBACKMODE_INTERNAL)
+#        else:
+#            l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
         print_exc()
     

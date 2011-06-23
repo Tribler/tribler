@@ -29,15 +29,12 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         return DefaultDownloadStartupConfig.__single
     getInstance = staticmethod(getInstance)
 
-    def updateToCurrentVersion(self):
-        oldver = self.dlconfig['version']
-        if oldver != DLDEFAULTS_VERSION:
-            for key in dldefaults.keys():
-                if key not in self.dlconfig:
-                    print >>sys.stderr,"DefaultDownloadStartupConfig: Adding field",key
-                    self.dlconfig[key] = dldefaults[key]
-            self.dlconfig['version'] = DLDEFAULTS_VERSION
 
+    def updateToCurrentVersion(self):
+        newKeys = DownloadStartupConfig.updateToCurrentVersion(self)
+        if newKeys:
+            for key in newKeys:
+                print >>sys.stderr,"DefaultDownloadStartupConfig: Adding field",key
     #
     # Class method
     #

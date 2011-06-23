@@ -1,4 +1,5 @@
-# Written by Bram Cohen and Pawel Garbacki, George Milescu
+# Written by Bram Cohen and Pawel Garbacki
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -10,18 +11,7 @@ from base64 import b64encode
 from Tribler.Core.BitTornado.clock import clock
 from Tribler.Core.Statistics.Status.Status import get_status_holder
 from Tribler.Core.DecentralizedTracking.repex import REPEX_LISTEN_TIME
-
-#ProxyService_
-#
-try:
-    from Tribler.Core.ProxyService.Helper import SingleDownloadHelperInterface
-except ImportError:
-    class SingleDownloadHelperInterface:
-        
-        def __init__(self):
-            pass
-#
-#_ProxyService
+from Tribler.Core.simpledefs import *
 
 try:
     True
@@ -171,13 +161,8 @@ class BadDataGuard:
             self.stats.numgood += 1
             self.lastindex = index
 
-# 2fastbt_
-class SingleDownload(SingleDownloadHelperInterface):
-# _2fastbt
+class SingleDownload():
     def __init__(self, downloader, connection):
-# 2fastbt_
-        SingleDownloadHelperInterface.__init__(self)
-# _2fastbt
         self.downloader = downloader
         self.connection = connection
         self.choked = True
@@ -192,10 +177,6 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.backlog = 2
         self.ip = connection.get_ip()
         self.guard = BadDataGuard(self)
-# 2fastbt_
-        self.helper = downloader.picker.helper
-        self.proxy_have = Bitfield(downloader.numpieces)
-# _2fastbt
 
         # boudewijn: VOD needs a download measurement that is not
         # averaged over a 'long' period. downloader.max_rate_period is
@@ -325,23 +306,24 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.downloader.piece_flunked(index)
             return False
 
-        # ProxyService_
-        # ProxyService 90s Test_
-        #if self.downloader.picker.helper is not None or self.downloader.picker.coordinator is not None:
-            #status = get_status_holder("Proxy90secondsTest")
-            #status.create_and_add_event("downloaded-piece", [index, begin, length, self.ip])
-        # _ProxyService 90s Test
-
-#        print >> sys.stderr, "Got piece=", index, "begin=", begin, "len=", length, "from", self.ip
-        # _ProxyService
-        
         # boudewijn: we need more accurate (if possibly invalid)
         # measurements on current download speed
         self.downloader.picker.got_piece(index, begin, length)
 
-#        print "Got piece=", index, "begin=", begin, "len=", length
         if self.downloader.storage.do_I_have(index):
+            # The piece (actual piece, not chunk) is complete
             self.downloader.picker.complete(index)
+            
+            # ProxyService_
+            #
+            if DEBUG:
+                print >>sys.stderr, "downloader: got_piece. Searching if piece", index, "was requested by a doe node."
+            if index in self.downloader.proxydownloader.proxy.currently_downloading_pieces:
+                # get_piece(index, 0, -1) returns the complete piece data
+                [piece_data, hash_list] = self.downloader.storage.get_piece(index, 0, -1)
+                self.downloader.proxydownloader.proxy.retrieved_piece(index, piece_data)
+            #
+            # _ProxyService
 
         if self.downloader.endgamemode:
             for d in self.downloader.downloads:
@@ -367,40 +349,23 @@ class SingleDownload(SingleDownloadHelperInterface):
     
         return self.downloader.storage.do_I_have(index)
 
-# 2fastbt_
-    def helper_forces_unchoke(self):
-        self.choked = False
-# _2fastbt
-
     def _request_more(self, new_unchoke = False, slowpieces = []):
-# 2fastbt_
-        if DEBUG:
-            print >>sys.stderr,"Downloader: _request_more()"
-        if self.helper is not None and self.is_frozen_by_helper():
-            if DEBUG:
-                print >>sys.stderr,"Downloader: _request_more: blocked, returning"
-            return
-# _2fastbt    
         if self.choked:
             if DEBUG:
                 print >>sys.stderr,"Downloader: _request_more: choked, returning"
             return
-# 2fastbt_
-        # do not download from coordinator
-        if self.connection.connection.is_coordinator_con():
-            if DEBUG:
-                print >>sys.stderr,"Downloader: _request_more: coordinator conn"
-            return
-# _2fastbt
+
         if self.downloader.endgamemode:
             self.fix_download_endgame(new_unchoke)
             if DEBUG:
                 print >>sys.stderr,"Downloader: _request_more: endgame mode, returning"
             return
+
         if self.downloader.paused:
             if DEBUG:
                 print >>sys.stderr,"Downloader: _request_more: paused, returning"
             return
+
         if len(self.active_requests) >= self._backlog(new_unchoke):
             if DEBUG:
                 print >>sys.stderr,"Downloader: more req than unchoke (active req: %d >= backlog: %d)" % (len(self.active_requests), self._backlog(new_unchoke))
@@ -436,32 +401,20 @@ class SingleDownload(SingleDownloadHelperInterface):
             #st = time.time()
             #print "DOWNLOADER self.have=", self.have.toboollist()
             
-            # This is the PiecePicker call is the current client is a Coordinator
+            # This is the PiecePicker call if the current client is a Doe
+            # TODO: check if the above comment is true
             interest = self.downloader.picker.next(self.have,
                                self.downloader.storage.do_I_have_requests,
                                self,
                                self.downloader.too_many_partials(),
-                               self.connection.connection.is_helper_con(),
-                               slowpieces = slowpieces, connection = self.connection, proxyhave = self.proxy_have)
+                               slowpieces = slowpieces, connection = self.connection)
             #et = time.time()
             #diff = et-st
-            diff=-1
             if DEBUG:
+                diff=-1
                 print >>sys.stderr,"Downloader: _request_more: next() returned",interest,"took %.5f" % (diff)                               
             if interest is None:
                 break
-            
-            if self.helper and self.downloader.storage.inactive_requests[interest] is None:
-                # The current node is a helper and received a request from a coordinator for a piece it has already downloaded
-                # Should send a Have message to the coordinator
-                self.connection.send_have(interest)
-                break
-
-            if self.helper and self.downloader.storage.inactive_requests[interest] == []:
-                # The current node is a helper and received a request from a coordinator for a piece that is downloading
-                # (all blocks are requested to the swarm, and have not arrived yet)
-                break
-
             
             self.example_interest = interest
             self.send_interested()
@@ -493,32 +446,19 @@ class SingleDownload(SingleDownloadHelperInterface):
                         break
                 else:
                     continue
-# 2fastbt_
+
                 #st = time.time()
                 interest = self.downloader.picker.next(d.have,
                                    self.downloader.storage.do_I_have_requests,
                                    self, # Arno, 2008-05-22; self -> d? Original Pawel code
                                    self.downloader.too_many_partials(),
-                                   self.connection.connection.is_helper_con(), willrequest=False,connection=self.connection, proxyhave = self.proxy_have)
+                                   willrequest=False,connection=self.connection)
                 #et = time.time()
                 #diff = et-st
-                diff=-1
                 if DEBUG:                                   
+                    diff=-1
                     print >>sys.stderr,"Downloader: _request_more: next()2 returned",interest,"took %.5f" % (diff)
 
-                if interest is not None:
-                    # The helper has at least one piece that the coordinator requested 
-                    if self.helper and self.downloader.storage.inactive_requests[interest] is None:
-                        # The current node is a helper and received a request from a coordinator for a piece it has already downloaded
-                        # Should send a Have message to the coordinator
-                        self.connection.send_have(interest)
-                        break
-                    if self.helper and self.downloader.storage.inactive_requests[interest] == []:
-                        # The current node is a helper and received a request from a coordinator for a piece that is downloading
-                        # (all blocks are requested to the swarm, and have not arrived yet)
-                        break
-
-# _2fastbt
                 if interest is None:
                     d.send_not_interested()
                 else:
@@ -532,21 +472,17 @@ class SingleDownload(SingleDownloadHelperInterface):
 
 
     def fix_download_endgame(self, new_unchoke = False):
-# 2fastbt_
-        # do not download from coordinator
-        if self.downloader.paused or self.connection.connection.is_coordinator_con():
-            if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: paused", self.downloader.paused, "or is_coordinator_con", self.connection.connection.is_coordinator_con()
+        if self.downloader.paused:
+            if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: paused", self.downloader.paused
             return
-# _2fastbt
 
         if len(self.active_requests) >= self._backlog(new_unchoke):
             if not (self.active_requests or self.backlog) and not self.choked:
                 self.downloader.queued_out[self] = 1
             if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: returned"
             return
-# 2fastbt_
-        want = [a for a in self.downloader.all_requests if self.have[a[0]] and a not in self.active_requests and (self.helper is None or self.connection.connection.is_helper_con() or not self.helper.is_ignored(a[0]))]
-# _2fastbt
+
+        want = [a for a in self.downloader.all_requests if self.have[a[0]] and a not in self.active_requests]
         if not (self.active_requests or want):
             self.send_not_interested()
             if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: not interested"
@@ -560,11 +496,8 @@ class SingleDownload(SingleDownloadHelperInterface):
         del want[self.backlog - len(self.active_requests):]
         self.active_requests.extend(want)
         for piece, begin, length in want:
-# 2fastbt_
-            if self.helper is None or self.connection.connection.is_helper_con() or self.helper.reserve_piece(piece,self):
-                self.connection.send_request(piece, begin, length)
-                self.downloader.chunk_requested(length)
-# _2fastbt
+            self.connection.send_request(piece, begin, length)
+            self.downloader.chunk_requested(length)
 
     def got_have(self, index):
 #        print >>sys.stderr,"Downloader: got_have",index
@@ -590,8 +523,8 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.downloader.picker.got_have(index,self.connection)
         # ProxyService_
         #
-        # Aggregate the haves bitfields and send them to the coordinator
-        # If I am a coordinator, i will exit shortly
+        # Aggregate the haves bitfields and send them to the doe nodes
+        # If I am a doe, i will exit shortly
         self.downloader.aggregate_and_send_haves()
         #
         # _ProxyService
@@ -692,7 +625,7 @@ class SingleDownload(SingleDownloadHelperInterface):
                         self.downloader.picker.got_have(i,self.connection)
             # ProxyService_
             #
-            # Aggregate the haves bitfields and send them to the coordinator
+            # Aggregate the haves bitfields and send them to the doe nodes
             # ARNOPS: Shouldn't this be done after have = validhave?
             self.downloader.aggregate_and_send_haves()
             #
@@ -736,11 +669,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         return self.short_term_measure.get_rate()
 
     def is_snubbed(self):
-# 2fastbt_
-        if not self.choked and clock() - self.last2 > self.downloader.snub_time and \
-            not self.connection.connection.is_helper_con() and \
-            not self.connection.connection.is_coordinator_con():
-# _2fastbt
+        if not self.choked and clock() - self.last2 > self.downloader.snub_time:
             for index, begin, length in self.active_requests:
                 self.connection.send_cancel(index, begin, length)
             self.got_choke()    # treat it just like a choke
@@ -752,7 +681,7 @@ class SingleDownload(SingleDownloadHelperInterface):
 class Downloader:
     def __init__(self, infohash, storage, picker, backlog, max_rate_period,
                  numpieces, chunksize, measurefunc, snub_time,
-                 kickbans_ok, kickfunc, banfunc, scheduler = None):
+                 kickbans_ok, kickfunc, banfunc, bt1dl, scheduler = None):
         self.infohash = infohash
         self.b64_infohash = b64encode(infohash)
         self.storage = storage
@@ -787,6 +716,12 @@ class Downloader:
         self.requeueing = False
         self.paused = False
         self.scheduler = scheduler
+        # ProxyService_
+        #
+        self.bt1dl = bt1dl
+        self.proxydownloader = None
+        #
+        # _ProxyService
 
         # hack: we should not import this since it is not part of the
         # core nor should we import here, but otherwise we will get
@@ -799,13 +734,6 @@ class Downloader:
 
         # check periodicaly
         self.scheduler(self.dlr_periodic_check, 1)
-
-        # ProxyService_
-        # Add a reference to self for the helper object
-        if self.picker is not None:
-            if self.picker.helper is not None:
-                self.picker.helper.set_downloader(self)
-        # _ProxyService
 
     def dlr_periodic_check(self):
         self.picker.check_outstanding_requests(self.downloads)
@@ -820,6 +748,15 @@ class Downloader:
     def set_download_rate(self, rate):
         self.download_rate = rate * 1000
         self.bytes_requested = 0
+
+    # ProxyService_
+    #
+    def set_proxydownloader(self, proxydownloader):
+        """ TODO:
+        """
+        self.proxydownloader = proxydownloader
+    #
+    # _ProxyService
         
     def queue_limit(self):
         if not self.download_rate:
@@ -892,6 +829,11 @@ class Downloader:
         self.perip[ip].numconnections -= 1
         if self.perip[ip].lastdownload == download:
             self.perip[ip].lastdownload = None
+            
+        #Niels: clean perip dictionary (only keep stats of badly behaving peers), this will otherwise grow indefinitely.
+        if self.perip[ip].numconnections == 0 and len(self.perip[ip].bad) == 0:
+            del self.perip[ip]
+            
         self.downloads.remove(download)
         if self.endgamemode and not self.downloads: # all peers gone
             self._reset_endgame()
@@ -1192,28 +1134,36 @@ class Downloader:
     #
     def aggregate_and_send_haves(self):
         """ Aggregates the information from the haves bitfields for all the active connections,
-        then calls the helper class to send the aggregated information as a PROXY_HAVE message 
+        then calls the proxy class to send the aggregated information as a PROXY_HAVE message 
         """
-        if self.picker.helper:
-            # The current node is a coordinator
+        DEBUG=False
+        proxyservice_role = self.proxydownloader.dlinstance.get_proxyservice_role()
+        if proxyservice_role == PROXYSERVICE_ROLE_PROXY:
+            # The current node is a proxy
             if DEBUG:
-                print >> sys.stderr,"Downloader: aggregate_and_send_haves: helper None or helper conn"
+                print >> sys.stderr,"Downloader: aggregate_and_send_haves"
             
             # haves_vector is a matrix, having on each line a Bitfield
-            haves_vector = [None] * len(self.downloads)
+            # len(self.downloads) = the number of connections to swarm peers
+            # +1 = me (the pieces i have locally)
+            haves_vector = [None] * (len(self.downloads)+1)
             for i in range(0, len(self.downloads)):
                 haves_vector[i] = self.downloads[i].have
+            
+            haves_vector[len(self.downloads)] = self.storage.get_have_copy()
             
             #Calculate the aggregated haves
             aggregated_haves = Bitfield(self.numpieces)
             for piece in range (0, self.numpieces):
                 aggregated_value = False
                 # For every column in the haves_vector matrix
-                for d in range(0, len(self.downloads)):
+                for d in range(0, len(self.downloads)+1):
                     # For every active connection
                     aggregated_value = aggregated_value or haves_vector[d][piece] # Logical OR operation 
                 aggregated_haves[piece] = aggregated_value
             
-            self.picker.helper.send_proxy_have(aggregated_haves)
+            if DEBUG:
+                print >> sys.stderr, "Downloader: aggregate_and_send_haves" #, len(self.downloads), aggregated_haves.toboollist()
+            self.proxydownloader.proxy.send_proxy_have(aggregated_haves)
     #
     # _ProxyService

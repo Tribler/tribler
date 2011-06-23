@@ -32,56 +32,56 @@ class Singleton(object):
     _singleton_lock = RLock()
 
     @classmethod
-    def has_instance(cls, singleton_superclass=None):
+    def has_instance(cls, singleton_placeholder=None):
         """
         Returns the existing singleton instance or None
         """
-        if singleton_superclass is None:
-            singleton_superclass = cls
+        if singleton_placeholder is None:
+            singleton_placeholder = cls
 
-        with singleton_superclass._singleton_lock:
-            if hasattr(singleton_superclass, "_singleton_instance"):
-                return getattr(singleton_superclass, "_singleton_instance")
+        with singleton_placeholder._singleton_lock:
+            if hasattr(singleton_placeholder, "_singleton_instance"):
+                return getattr(singleton_placeholder, "_singleton_instance")
 
     @classmethod
     def get_instance(cls, *args, **kargs):
         """
         Returns the existing singleton instance or create one
         """
-        if "singleton_superclass" in kargs:
-            singleton_superclass = kargs.pop("singleton_superclass")
+        if "singleton_placeholder" in kargs:
+            singleton_placeholder = kargs.pop("singleton_placeholder")
         else:
-            singleton_superclass = cls
+            singleton_placeholder = cls
 
-        with singleton_superclass._singleton_lock:
-            if not hasattr(singleton_superclass, "_singleton_instance"):
-                setattr(singleton_superclass, "_singleton_instance", singleton_superclass(*args, **kargs))
-            return getattr(singleton_superclass, "_singleton_instance")
+        with singleton_placeholder._singleton_lock:
+            if not hasattr(singleton_placeholder, "_singleton_instance"):
+                setattr(singleton_placeholder, "_singleton_instance", cls(*args, **kargs))
+            return getattr(singleton_placeholder, "_singleton_instance")
 
     @classmethod
-    def del_instance(cls, singleton_superclass=None):
+    def del_instance(cls, singleton_placeholder=None):
         """
         Removes the existing singleton instance
         """
-        if singleton_superclass is None:
-            singleton_superclass = cls
+        if singleton_placeholder is None:
+            singleton_placeholder = cls
 
-        assert not singleton_superclass.referenced_instance(singleton_superclass), "You are deleting a singleton instance while this instance is referenced.  This may cause multiple singleton instance to exist and is therefore refused.  Ensure that your code does not reference this instance before deleting."
+        assert not singleton_placeholder.referenced_instance(singleton_placeholder), "You are deleting a singleton instance while this instance is referenced.  This may cause multiple singleton instance to exist and is therefore refused.  Ensure that your code does not reference this instance before deleting."
 
-        with singleton_superclass._singleton_lock:
-            if hasattr(singleton_superclass, "_singleton_instance"):
-                delattr(singleton_superclass, "_singleton_instance")
+        with singleton_placeholder._singleton_lock:
+            if hasattr(singleton_placeholder, "_singleton_instance"):
+                delattr(singleton_placeholder, "_singleton_instance")
 
     @classmethod
-    def referenced_instance(cls, singleton_superclass=None):
+    def referenced_instance(cls, singleton_placeholder=None):
         """
         Returns True if this singleton instance is referenced.
         """
-        if singleton_superclass is None:
-            singleton_superclass = cls
+        if singleton_placeholder is None:
+            singleton_placeholder = cls
 
-        with singleton_superclass._singleton_lock:
-            if hasattr(singleton_superclass, "_singleton_instance"):
+        with singleton_placeholder._singleton_lock:
+            if hasattr(singleton_placeholder, "_singleton_instance"):
                 return len(get_referrers(getattr(cls, "_singleton_instance"))) > 1
         return False
 

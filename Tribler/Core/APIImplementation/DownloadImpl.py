@@ -1,4 +1,5 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -74,8 +75,8 @@ class DownloadImpl:
             elif 'announce-list' in metainfo:
                 for tier in metainfo['announce-list']:
                     if itrackerurl in tier or slashless in tier:
-                         usingitracker = True
-                         break
+                        usingitracker = True
+                        break
                   
             if usingitracker:
                 if DEBUG:
@@ -92,6 +93,7 @@ class DownloadImpl:
                 cdcfg = DownloadStartupConfig()
             else:
                 cdcfg = dcfg
+                cdcfg.updateToCurrentVersion()
             self.dlconfig = copy.copy(cdcfg.dlconfig)
             
 
@@ -261,7 +263,7 @@ class DownloadImpl:
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,self.session.lm.get_ext_ip,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback,self.session.lm.hashcheck_done)
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,self.session.lm.get_ext_ip,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback,self.session.lm.hashcheck_done, self)
             sd = self.sd
             exc = self.error
             if lmcallback is not None:
@@ -307,8 +309,8 @@ class DownloadImpl:
                 # RePEX: try getting the swarmcache from SingleDownload or use our last known swarmcache:
                 swarmcache = self.sd.get_swarmcache() or swarmcache
                 
-                (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,coopdl_coordinator=coopdl_coordinator,swarmcache=swarmcache)
+                (status,stats,logmsgs,proxyservice_proxy_list,proxyservice_doe_list) = self.sd.get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,proxyservice_proxy_list=proxyservice_proxy_list,proxyservice_doe_list=proxyservice_doe_list,swarmcache=swarmcache)
                 self.progressbeforestop = ds.get_progress()
             
             if sessioncalling:
@@ -559,15 +561,15 @@ class DownloadImpl:
         return pstate
 
     #
-    # Coop download
+    # ProxyService
     #
-    def get_coopdl_role_object(self,role):
+    def get_proxyservice_object(self, role):
         """ Called by network thread """
         role_object = None
         self.dllock.acquire()
         try:
             if self.sd is not None:
-                role_object = self.sd.get_coopdl_role_object(role)
+                role_object = self.sd.get_proxyservice_object(role)
         finally:
             self.dllock.release()
         return role_object

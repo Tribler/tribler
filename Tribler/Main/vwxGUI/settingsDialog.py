@@ -1,5 +1,6 @@
 # Written by Richard Gwin
 # Modified by Niels Zeilemaker
+
 # see LICENSE.txt for license information
 import wx
 import wx.xrc as xrc
@@ -39,6 +40,7 @@ class SettingsDialog(wx.Dialog):
                              'sixhundreddDown', \
                              'unlimitedDown', \
                              'diskLocationCtrl', \
+                             'diskLocationChoice', \
                              'portChange', \
                              'externalplayer',\
                              'batchstart',\
@@ -80,6 +82,8 @@ class SettingsDialog(wx.Dialog):
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
         #Bind event listeners
+        self.elements['diskLocationChoice'].Bind(wx.EVT_CHECKBOX, self.OnDownloadChoice)
+        
         self.elements['zeroUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(0, event))
         self.elements['fiftyUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(50, event))
         self.elements['hundredUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(100, event))
@@ -148,6 +152,8 @@ class SettingsDialog(wx.Dialog):
         
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
+        self.elements['diskLocationCtrl'].Enable(not self.defaultDLConfig.get_show_saveas())
+        self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
         
         wx.CallAfter(self.Refresh)
     
@@ -161,6 +167,10 @@ class SettingsDialog(wx.Dialog):
             self.Refresh()
         except:
             pass
+    
+    def OnDownloadChoice(self, event):
+        checked = self.elements['diskLocationChoice'].IsChecked()
+        self.elements['diskLocationCtrl'].Enable(not checked)
 
     def setUp(self, value, event = None):
         self.resetUploadDownloadCtrlColour()
@@ -242,6 +252,11 @@ class SettingsDialog(wx.Dialog):
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
             
+            showSave = self.elements['diskLocationChoice'].IsChecked()
+            if showSave != self.defaultDLConfig.get_show_saveas():
+                self.defaultDLConfig.set_show_saveas(showSave)
+                self.saveDefaultDownloadConfig()
+                
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
                 self.saveDefaultDownloadConfig()
@@ -401,21 +416,53 @@ class SettingsDialog(wx.Dialog):
         scfg.save(cfgfilename)
     
     def moveCollectedTorrents(self, old_dir, new_dir):
-        #physical move
-        old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
-        new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
-        atexit.register(os.renames, old_dirtf, new_dirtf)
+        def move(old_dir, new_dir):
+            
+            #use os.renames as much as possible
+            #use single file/dir copy if target exists
+            def rename_or_merge(old, new):
+                if os.path.exists(old):
+                    if os.path.exists(new):
+                        files = os.listdir(old)
+                        for file in files:
+                            oldfile = os.path.join(old, file)
+                            newfile = os.path.join(new, file)
+                            
+                            if os.path.isdir(oldfile):
+                                rename_or_merge(oldfile, newfile)
+                            else:
+                                os.rename(oldfile, newfile)
+                    else:
+                        os.renames(old, new)
+            
+            #physical move
+            old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
+            new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
+            rename_or_merge(old_dirtf, new_dirtf)
+            
+            old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
+            new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
+            rename_or_merge(old_dirsf, new_dirsf)
         
-        old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
-        new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
-        atexit.register(os.renames, old_dirsf, new_dirsf)
+            # ProxyService_
+            old_dirdh = os.path.join(old_dir, 'proxyservice')
+            new_dirdh = os.path.join(new_dir, 'proxyservice')
+            rename_or_merge(old_dirdh, new_dirdh)
+            
+        atexit.register(move, old_dir, new_dir)
         
-        old_dirdh = os.path.join(old_dir, 'downloadhelp')
-        new_dirdh = os.path.join(new_dir, 'downloadhelp')
-        atexit.register(os.renames, old_dirdh, new_dirdh)
+        msg = "Please wait while we update your MegaCache..."
+        busyDlg = wx.BusyInfo(msg)
+        try:
+            time.sleep(0.3)
+            wx.Yield()
+        except:
+            pass
         
         #update db
-        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(new_dir)
+        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir, 'collected_torrent_files'))
+        
+        busyDlg.Destroy()
         
     def process_input(self):
         try:

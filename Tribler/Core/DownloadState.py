@@ -1,4 +1,5 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
+# Updated by George Milescu 
 # see LICENSE.txt for license information
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import time
@@ -22,7 +23,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=[],coopdl_coordinator=None,peerid=None,videoinfo=None,swarmcache=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,proxyservice_proxy_list=[],proxyservice_doe_list=[],peerid=None,videoinfo=None,swarmcache=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -43,8 +44,9 @@ class DownloadState(Serializable):
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.vod_status_msg = None
-        self.coopdl_helpers = coopdl_helpers
-        self.coopdl_coordinator = coopdl_coordinator
+        self.proxyservice_proxy_list = proxyservice_proxy_list
+        self.proxyservice_doe_list = proxyservice_doe_list
+        self.seedingstats = None #SeedingManager will update downloadstate with seedings stats (version, total_up, total_down, time_seeding)
         
         # RePEX: stored swarmcache from Download and store current time
         if swarmcache is not None:
@@ -178,6 +180,18 @@ class DownloadState(Serializable):
             return self.stats['stats'].upTotal
         else:
             return self.stats['stats'].downTotal
+        
+    def set_seeding_statistics(self, seedingstats):
+        self.seedingstats = seedingstats
+        
+    def get_seeding_statistics(self):
+        """
+        Returns the seedings stats for this download. Will only be availible after
+        SeedingManager update_download_state is called. 
+        Contains if not null, version, total_up, total_down, time_seeding
+        All values are stored by the seedingmanager, thus will not only contain current download session values
+        """
+        return self.seedingstats
     
     def get_eta(self):
         """
@@ -269,7 +283,41 @@ class DownloadState(Serializable):
             return []
         else:
             return self.haveslice
-
+        
+    def get_availability(self):
+        """ Return overall the availability of all pieces, using connected peers
+        Availability is defined as the number of complete copies of a piece, thus seeders
+        increment the availability by 1. Leechers provide a subset of piece thus we count the
+        overall availability of all pieces provided by the connected peers and use the minimum
+        of this + the average of all additional pieces.
+        """
+        nr_seeders_complete = 0
+        merged_bitfields = None
+        
+        peers = self.get_peerlist()
+        for peer in peers:
+            if peer['completed'] == 1 or peer['have'].complete():
+                nr_seeders_complete += 1
+            else:
+                boollist = peer['have'].toboollist()
+                if merged_bitfields == None:
+                    merged_bitfields = [0]*len(boollist)
+                
+                for i in range(len(boollist)):
+                    if boollist[i]:
+                        merged_bitfields[i] += 1
+        
+        if merged_bitfields:
+            #count the number of complete copies due to overlapping leecher bitfields 
+            nr_leechers_complete = min(merged_bitfields)
+            
+            #detect remainder of bitfields which are > 0
+            nr_more_than_min = len([x for x in merged_bitfields if x > nr_leechers_complete])
+            fraction_additonal = float(nr_more_than_min) / len(merged_bitfields)
+            
+            return nr_seeders_complete + nr_leechers_complete + fraction_additonal
+        return nr_seeders_complete
+        
     def get_vod_prebuffering_progress(self):
         """ Returns the percentage of prebuffering for Video-On-Demand already 
         completed.
@@ -367,6 +415,7 @@ class DownloadState(Serializable):
         'utotal' = Total uploaded from peer in KB
         'dtotal' = Total downloaded from peer in KB
         'completed' = Fraction of download completed by peer (0-1.0) 
+        'have' = Bitfield object for this peer if not complete
         'speed' = The peer's current total download speed (estimated)
         </pre>
         """
@@ -375,22 +424,24 @@ class DownloadState(Serializable):
         else:
             return self.stats['spew']
 
-
-    def get_coopdl_helpers(self):
-        """ Returns the peers currently helping.
+    # ProxyService_
+    #
+    def get_proxy_list(self):
+        """ Returns the peers currently proxying.
         @return A list of PermIDs.
         """
-        if self.coopdl_helpers is None:
+        if self.proxyservice_proxy_list is None:
             return []
         else:
-            return self.coopdl_helpers 
+            return self.proxyservice_proxy_list 
 
-    def get_coopdl_coordinator(self):
-        """ Returns the permid of the coordinator when helping that peer
-        in a cooperative download
-        @return A PermID.
+    def get_doe_list(self):
+        """ Returns the current list of doe nodes.
+        @return A list od PermIDs.
         """
-        return self.coopdl_coordinator
+        return self.proxyservice_doe_list
+    #
+    # _ProxyService
 
     #
     # RePEX: get swarmcache

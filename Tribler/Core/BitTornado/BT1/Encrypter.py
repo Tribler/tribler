@@ -1,4 +1,5 @@
-# Written by Bram Cohen, Pawel Garbacki, George Milescu
+# Written by Bram Cohen, Pawel Garbacki
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -14,7 +15,6 @@ from traceback import print_exc
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
 from Tribler.Core.BitTornado.BT1.convert import toint
 from Tribler.Core.Statistics.Status.Status import get_status_holder
-from Tribler.Core.ProxyService.ProxyServiceUtil import *
 
 try:
     True
@@ -113,29 +113,17 @@ incompletecounter = IncompleteCounter()
 # header, reserved, download id, my id, [length, message]
 
 class Connection:
-# 2fastbt_
     def __init__(self, Encoder, connection, id, ext_handshake = False, 
-                  locally_initiated = None, dns = None, coord_con = False, proxy_con = False, challenge = None, proxy_permid = None):
-# _2fastbt
+                  locally_initiated = None, dns = None):
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
         self.connecter = Encoder.connecter
         self.id = id
         self.readable_id = make_readable(id)
-        self.coord_con = coord_con
-        self.proxy_con = proxy_con
-        self.proxy_permid = proxy_permid
-        # Challenge sent by the coordinator to identify the Helper
-        self.challenge = challenge
         if locally_initiated is not None:
             self.locally_initiated = locally_initiated
-        elif coord_con:
-            self.locally_initiated = True
-        elif proxy_con:
-            self.locally_initiated = True
         else:
             self.locally_initiated = (id != None)
-# _2fastbt
         self.complete = False
         self.keepalive = lambda: None
         self.closed = False
@@ -163,14 +151,7 @@ class Connection:
         if ext_handshake:
             if DEBUG:
                 print >>sys.stderr,"Encoder.Connection: writing my peer-ID"
-            if coord_con:
-                # on the helper-coordinator BT communication a special peer id is used
-                if DEBUG:
-                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a doe, using challenge", self.challenge
-                proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
-                self.connection.write(proxy_peer_id)
-            else:
-                self.connection.write(self.Encoder.my_id)
+            self.connection.write(self.Encoder.my_id)
             self.next_len, self.next_func = 20, self.read_peer_id
         else:
             self.next_len, self.next_func = 1, self.read_header_len
@@ -190,11 +171,6 @@ class Connection:
 
     def get_id(self):
         return self.id
-
-    # ProxyService_
-    def get_proxy_permid(self):
-        return self.proxy_permid
-    # _ProxyService
 
     def get_readable_id(self):
         return self.readable_id
@@ -246,15 +222,7 @@ class Connection:
             return None
         if not self.locally_initiated:
             self.Encoder.connecter.external_connection_made += 1
-            if self.coord_con:
-                # I am a proxy
-                # on the helper-coordinator BT communication a special peer id is used
-                if DEBUG:
-                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a proxy, using challenge", self.challenge
-                proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
-                self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + proxy_peer_id)
-            else:
-                self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + self.Encoder.my_id)
+            self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + self.Encoder.my_id)
 
         return 20, self.read_peer_id
 
@@ -309,15 +277,7 @@ class Connection:
                 print >>sys.stderr,"Encoder.Connection: read_peer_id: self not complete!!!, returning None"
             return None
         if self.locally_initiated:
-            if self.coord_con:
-                # I am a proxy
-                # on the helper-coordinator BT communication a special peer id is used
-                if DEBUG:
-                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a proxy, using challenge", self.challenge
-                proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
-                self.connection.write(proxy_peer_id)
-            else:
-                self.connection.write(self.Encoder.my_id)
+            self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
             # Arno: open new conn from queue if at limit. Faster than RawServer task
             self.Encoder._start_connection_from_queue(sched=False)
@@ -343,7 +303,7 @@ class Connection:
         return None
 
     def _auto_close(self):
-        if not self.complete:# and not self.is_coordinator_con():
+        if not self.complete:
             if DEBUG:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
 
@@ -416,6 +376,8 @@ class Connection:
             if x is None:
                 if DEBUG:
                     print >>sys.stderr,"encoder: function failed",self.next_func
+                # Arno, 2011-05-10: Clean up function pointer refs
+                self.next_len, self.next_func = 1, self.read_dead
                 self.close()
                 return
             self.next_len, self.next_func = x
@@ -427,23 +389,6 @@ class Connection:
     def connection_lost(self, connection):
         if self.Encoder.connections.has_key(connection):
             self.sever()
-# 2fastbt_
-    def is_coordinator_con(self):
-        #if DEBUG:
-        #    print >>sys.stderr,"encoder: is_coordinator_con: coordinator is ", TODO
-        if self.coord_con:
-            return True
-        elif self.Encoder.helper is not None and self.Encoder.helper.is_coordinator_ip(self.get_ip()) and self.get_ip() != '127.0.0.1': # Arno: for testing
-            return True
-        else:
-            return False
-
-    def is_helper_con(self):
-        coordinator = self.connecter.coordinator
-        if coordinator is None:
-            return False
-        return coordinator.is_helper_ip(self.get_ip())
-# _2fastbt
 
     # NETWORK AWARE
     def na_set_address_distance(self):
@@ -486,6 +431,8 @@ class Encoder:
         self.banned = {}
         self.to_connect = set()
         self.trackertime = None
+        self.scheduled_request_new_peers = False
+        
         self.paused = False
         if self.config['max_connections'] == 0:
             self.max_connections = 2 ** 30
@@ -529,10 +476,11 @@ class Encoder:
         which are superfluous.
         """
         self.rerequest = None
-# 2fastbt_
-        self.toofast_banned = {}
-        self.helper = None
-# _2fastbt        
+        # ProxyService_
+        #
+        self.proxy = None
+        #
+        # _ProxyService        
 
         # hack: we should not import this since it is not part of the
         # core nor should we import here, but otherwise we will get
@@ -630,7 +578,7 @@ class Encoder:
             print_exc()
             raise
 
-    def start_connection(self, dns, id, coord_con = False, proxy_con = False, forcenew = False, challenge = None, proxy_permid = None):
+    def start_connection(self, dns, id, forcenew = False):
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
@@ -662,9 +610,9 @@ class Encoder:
                 return True
         try:
             if DEBUG:
-                print >>sys.stderr,"encoder: start_connection: Setting up new to peer", dns,"id",`id`, "proxy_con", proxy_con, "challenge", challenge
+                print >>sys.stderr,"encoder: start_connection: Setting up new to peer", dns,"id",`id`
             c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id, dns = dns, coord_con = coord_con, proxy_con = proxy_con, challenge = challenge, proxy_permid = proxy_permid)
+            con = Connection(self, c, id, dns = dns)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:
@@ -772,16 +720,16 @@ class Encoder:
     def pause(self, flag):
         self.paused = flag
 
-# 2fastbt_
-    def set_helper(self, helper):
-        """ Sets the current helper.
+    # ProxyService_
+    def set_proxy(self, proxy):
+        """ Sets the current proxy.
         
         Called from download_bt1.py
         
-        @param helper: the helper object associated with the current download
+        @param proxy: the proxy object associated with the current download
         """
-        self.helper = helper
-# _2fastbt    
+        self.proxy = proxy
+    # _ProxyService    
 
     def set_rerequester(self,rerequest):
         self.rerequest = rerequest
@@ -793,19 +741,28 @@ class Encoder:
         remaining_connections = len(self.connections) + len(self.to_connect)
         
         if DEBUG:
-            print >>sys.stderr,"encoder: admin_close: now-tt is", int(now-self.trackertime), "remaining connections", remaining_connections
+            if self.trackertime:
+                print >>sys.stderr,"encoder: admin_close: now-tt is", int(now-self.trackertime), "remaining connections", remaining_connections
+            else:
+                print >>sys.stderr,"encoder: admin_close: remaining connections", remaining_connections
         
-        if remaining_connections == 0 and self.trackertime:
+        if remaining_connections == 0 and self.trackertime and not self.scheduled_request_new_peers:
+            self.scheduled_request_new_peers = True
+            
             #no more peers to connect to :(, schedule a refresh
             schedule_refresh_in = max(60, int(300 - (now - self.trackertime)))
             
             if DEBUG:
                 print >>sys.stderr,"encoder: admin_close: want new peers in", schedule_refresh_in, "s"
             
+            def request_new():
+                    self.rerequest.encoder_wants_new_peers()
+                    self.scheduled_request_new_peers = False
+            
             if schedule_refresh_in <= 0:
-                self.rerequest.encoder_wants_new_peers()
+                request_new()
             else:
-                self.raw_server.add_task(self.rerequest.encoder_wants_new_peers, schedule_refresh_in)
+                self.raw_server.add_task(request_new, schedule_refresh_in)
 
             #reset trackertime
             self.trackertime = None

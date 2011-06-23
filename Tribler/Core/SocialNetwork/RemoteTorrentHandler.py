@@ -176,11 +176,12 @@ class TorrentRequester():
                     
                 self.nr_times_requested[infohash] = self.nr_times_requested.get(infohash, 0) + 1
                 
-                if DEBUG:
-                    print >>sys.stderr,"rtorrent: requesting", bin2str(infohash), bin2str(permid)
-                
-                #metadatahandler will only do actual request if torrentfile is not on disk
-                self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
+                if permid:
+                    if DEBUG:
+                        print >>sys.stderr,"rtorrent: requesting", bin2str(infohash), bin2str(permid)
+                    
+                    #metadatahandler will only do actual request if torrentfile is not on disk
+                    self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                 
                 #schedule a magnet lookup after X seconds
                 if self.prio <= 1 or (infohash not in self.sources and infohash in self.nr_times_requested and self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD):

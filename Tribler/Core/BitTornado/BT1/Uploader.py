@@ -1,4 +1,5 @@
 # Written by Bram Cohen
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
@@ -139,7 +140,7 @@ class Upload:
 
     def got_request(self, index, begin, length):
         if ((self.super_seeding and not index in self.seed_have_list)
-                   or (not self.connection.connection.is_coordinator_con() and not self.interested)
+                   or (not self.interested)
                    or length > self.max_slice_length):
             self.connection.close()
             return

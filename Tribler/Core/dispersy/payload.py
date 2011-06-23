@@ -142,8 +142,12 @@ class CandidatePayload(Payload):
             assert len(destination_address) == 2
             assert isinstance(destination_address[0], str)
             assert isinstance(destination_address[1], int)
-            assert isinstance(source_default_conversion, str)
+            assert isinstance(source_default_conversion, tuple)
             assert len(source_default_conversion) == 2
+            assert isinstance(source_default_conversion[0], str)
+            assert len(source_default_conversion[0]) == 1
+            assert isinstance(source_default_conversion[1], str)
+            assert len(source_default_conversion[1]) == 1
             assert isinstance(routes, (tuple, list))
             assert not filter(lambda route: not isinstance(route, tuple), routes)
             assert not filter(lambda route: not len(route) == 2, routes)

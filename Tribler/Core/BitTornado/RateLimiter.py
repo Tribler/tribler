@@ -1,4 +1,5 @@
 # Written by Bram Cohen and Pawel Garbacki
+# Updated by George Milescu
 # see LICENSE.txt for license information
 
 from clock import clock
@@ -76,10 +77,7 @@ class RateLimiter:
         else:
             conn.next_upload = self.last.next_upload
             self.last.next_upload = conn
-# 2fastbt_
-            if not conn.connection.is_coordinator_con():
-                self.last = conn
-# _2fastbt
+            self.last = conn
 
     def try_send(self, check_time = False):
         if DEBUG: print >>sys.stderr, "RateLimiter: try_send"
@@ -104,15 +102,11 @@ class RateLimiter:
                     cur.next_upload = None
                     cur = self.last.next_upload
             else:
-# 2fastbt_
-                if not cur.connection.is_coordinator_con() or not cur.upload.buffer:
-# _2fastbt
+                if not cur.upload.buffer:
                     self.last = cur
                     cur = cur.next_upload
-# 2fastbt_
                 else:
                     pass
-# _2fastbt
         else:
             # 01/04/10 Boudewijn: because we use a -very- small value
             # to indicate a 0bps rate, we will schedule the call to be
@@ -172,7 +166,3 @@ class RateLimiter:
             self.lasttime = clock()
             self.bytes_sent = 0
             self.autoadjustup = UP_DELAY_NEXT
-
-
-
-

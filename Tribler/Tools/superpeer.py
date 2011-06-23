@@ -1,4 +1,5 @@
 # Written by Arno Bakker 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 #
 # See www.tribler.org/trac/wiki/SuperpeerMode for considerations.
@@ -16,6 +17,7 @@ from traceback import print_exc
 from threading import Condition
 
 from Tribler.Core.API import *
+from Tribler.Core.simpledefs import *
 import Tribler.Core.BitTornado.parseargs as parseargs
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 import Tribler.Core.BuddyCast.buddycast as BuddyCastMod
@@ -52,7 +54,7 @@ def olthread_start_session():
     # Disable features
     sscfg.set_torrent_collecting(False)
     sscfg.set_torrent_checking(False)
-    sscfg.set_download_help(False)
+    sscfg.set_proxyservice_status(PROXYSERVICE_OFF)
     sscfg.set_dialback(False)
     sscfg.set_remote_query(False)
     sscfg.set_internal_tracker(False)
