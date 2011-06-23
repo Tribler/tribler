@@ -14,22 +14,23 @@ class Candidate(object):
         assert isinstance(incoming_time, unicode)
         assert isinstance(outgoing_time, unicode)
         assert isinstance(external_time, unicode)
-        self._address = (host, port)
+        self._host = host
+        self._port = port
         self._incoming_time = incoming_time
         self._outgoing_time = outgoing_time
         self._external_time = external_time
 
     @property
     def address(self):
-        return self._address
+        return (self._host, self._port)
 
     @property
     def host(self):
-        return self._address[0]
+        return self._host
 
     @property
     def port(self):
-        return self._address[1]
+        return self._port
 
     @property
     def incoming_time(self):
@@ -50,4 +51,4 @@ class Candidate(object):
         # This flag is only set when a handshake was successfull.
         return [Member.get_instance(str(public_key))
                 for public_key,
-                in list(DispersyDatabase.get_instance().execute(u"SELECT public_key FROM user WHERE host = ? AND port = ? -- AND verified = 1", self._address))]
+                in list(DispersyDatabase.get_instance().execute(u"SELECT public_key FROM user WHERE host = ? AND port = ? -- AND verified = 1", (unicode(self._host), self._port)))]
