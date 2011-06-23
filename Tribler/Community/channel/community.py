@@ -205,7 +205,7 @@ class ChannelCommunity(Community):
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),
-                                 meta.payload.implement([(infohash, timestamp, name, files, trackers)]))
+                                 meta.payload.implement(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
         log("dispersy.log", "created-barter-record", size = len(message.packet)) # TODO: should change this to something more specific to channels
@@ -214,21 +214,16 @@ class ChannelCommunity(Community):
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
         messages = []
         
-        max_torrents = 5 
         meta = self.get_meta_message(u"torrent")
-        while len(torrentlist) > 0:
-            curlist = torrentlist[:max_torrents]
+        for infohash, timestamp, name, files, trackers in torrentlist:
             message = meta.implement(meta.authentication.implement(self._my_member),
                                      meta.distribution.implement(self.claim_global_time()),
                                      meta.destination.implement(),
-                                     meta.payload.implement(curlist))
+                                     meta.payload.implement(infohash, timestamp, name, files, trackers))
             
-            log("dispersy.log", "created-torrent-record", size = len(message.packet), nr_torrents = len(curlist))
-            for _ in curlist:
-                log("dispersy.log", "created-barter-record")
-            
+            log("dispersy.log", "created-torrent-record", size = len(message.packet))
+            log("dispersy.log", "created-barter-record")
             messages.append(message)
-            torrentlist = torrentlist[max_torrents:]
             
         self._dispersy.store_update_forward(messages, store, update, forward)
         return messages
@@ -253,9 +248,8 @@ class ChannelCommunity(Community):
             if __debug__: dprint(message)
             
             dispersy_id = message.packet_id
-            for infohash, timestamp, name, files, trackers in message.payload.torrentlist:
-                torrentlist.append((self._channel_id, dispersy_id, infohash, timestamp, name, files, trackers))
-                infohashes.add(infohash)
+            torrentlist.append((self._channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
+            infohashes.add(message.payload.infohash)
             
             addresses.add(message.address)
             

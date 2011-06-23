@@ -47,11 +47,8 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(meta_message, offset, data)
 
     def _encode_torrent(self, message):
-        result = []
-        for infohash, timestamp, name, files, trackers in message.payload.torrentlist:
-            result.append((pack('!20sQ', infohash, timestamp), name, files, trackers))
-            
-        msg = encode(result)
+        msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, message.payload.files, message.payload.trackers
+        msg = encode(msg)
         return zlib.compress(msg, 9),
 
     def _decode_torrent(self, meta_message, offset, data):
@@ -63,24 +60,20 @@ class ChannelConversion(BinaryConversion):
         except ValueError:
             raise DropPacket("Unable to decode the torrent-payload")
         
-        torrentlist = []
-        for infohash_time, name, files, trackers in values:
-            if len(infohash_time) != 28:
-                raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28"%(len(infohash_time)))
-            infohash, timestamp = unpack_from('!20sQ', infohash_time)
+        infohash_time, name, files, trackers = values
+        if len(infohash_time) != 28:
+            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28"%(len(infohash_time)))
+        infohash, timestamp = unpack_from('!20sQ', infohash_time)
             
-            if not isinstance(name, unicode):
-                raise DropPacket("Invalid 'name' type")
-            
-            if not isinstance(files, tuple):
-                raise DropPacket("Invalid 'files' type")
-            
-            if not isinstance(trackers, tuple):
-                raise DropPacket("Invalid 'trackers' type")
-            
-            torrentlist.append((infohash, timestamp, name, files, trackers))
-            
-        return offset, meta_message.payload.implement(torrentlist)
+        if not isinstance(name, unicode):
+            raise DropPacket("Invalid 'name' type")
+        
+        if not isinstance(files, tuple):
+            raise DropPacket("Invalid 'files' type")
+        
+        if not isinstance(trackers, tuple):
+            raise DropPacket("Invalid 'trackers' type")
+        return offset, meta_message.payload.implement(infohash, timestamp, name, files, trackers)
 
     def _encode_comment(self, message):
         dict = {"text":message.payload.text,

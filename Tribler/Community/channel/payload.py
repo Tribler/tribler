@@ -22,28 +22,45 @@ class ChannelPayload(Payload):
 
 class TorrentPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, torrentlist):
-            assert isinstance(torrentlist, list)
+        def __init__(self, meta, infohash, timestamp, name, files, trackers):
+            assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
+            assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
+            assert isinstance(timestamp, (int, long))
             
-            for infohash, timestamp, name, files, trackers in torrentlist:
-                assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
-                assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
-                assert isinstance(timestamp, (int, long))
+            assert isinstance(name, unicode)
+            assert isinstance(files, tuple)
+            for path, length in files:
+                assert isinstance(path, unicode)
+                assert isinstance(length, (int, long))
                 
-                assert isinstance(name, unicode)
-                assert isinstance(files, tuple)
-                for path, length in files:
-                    assert isinstance(path, unicode)
-                    assert isinstance(length, (int, long))
-                    
-                assert isinstance(trackers, tuple)
+            assert isinstance(trackers, tuple)
             
             super(TorrentPayload.Implementation, self).__init__(meta)
-            self._torrentlist = torrentlist
+            self._infohash = infohash
+            self._timestamp = timestamp
+            self._name = name
+            self._files = files
+            self._trackers = trackers
 
         @property
-        def torrentlist(self):
-            return self._torrentlist
+        def infohash(self):
+            return self._infohash
+        
+        @property
+        def timestamp(self):
+            return self._timestamp
+        
+        @property
+        def name(self):
+            return self._name
+        
+        @property
+        def files(self):
+            return self._files
+        
+        @property
+        def trackers(self):
+            return self._trackers
 
 class PlaylistPayload(Payload):
     class Implementation(Payload.Implementation):

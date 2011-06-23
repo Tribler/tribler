@@ -163,7 +163,7 @@ class ChannelSearchManager:
                 elif self.category == 'All':
                     [total_items,data] = self.channelsearch_manager.getAllChannels()
                 elif self.category == 'Favorites':
-                    [total_items,data] = self.channelsearch_manager.getSubscriptions()
+                    [total_items,data] = self.channelsearch_manager.getMySubscriptions()
                 wx.CallAfter(self._on_data, data, title, total_items)
             
             self.guiserver.add_task(db_callback, id = "ChannelSearchManager_refresh")

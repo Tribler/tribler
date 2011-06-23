@@ -404,6 +404,9 @@ class PlaylistManager():
             
             self._refresh_list()
     
+    def refreshDirty(self):
+        self._refresh_list()
+    
     def _refresh_list(self):
         #TODO: Should look for children of this playlist
         total_items, nrfiltered, torrents = self.channelsearch_manager.getTorrentsFromPlaylist(self.list.id, CHANNEL_REQ_COLUMNS)
@@ -476,7 +479,10 @@ class ManageChannelFilesManager():
         self.list = list
         self.list.id = 0
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
-        
+    
+    def refreshDirty(self):
+        self.refresh()
+    
     def refresh(self):
         total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
         self.list.SetData(torrentList)
@@ -510,7 +516,10 @@ class ManageChannelPlaylistsManager():
         self.list = list
         self.list.id = 0
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
-        
+    
+    def refreshDirty(self):
+        self.refresh()    
+    
     def refresh(self):
         total_items, playlistList = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
         self.list.SetData(playlistList)

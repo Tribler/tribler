@@ -193,7 +193,7 @@ class ChannelCastCore:
                     continue
 
                 # make everything into "string" format, if "binary"
-                hit = (v['channel_id'],v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
+                hit = (v['channel_id'],v['publisher_name'],v['infohash'],v['torrentname'],v['time_stamp'])
                 listOfAdditions.append(hit)
 
             # Arno, 2010-06-11: We're on the OverlayThread
@@ -225,20 +225,26 @@ class ChannelCastCore:
                 self.channelcastdb.deleteTorrentFromChannel(channel_id)
             if DEBUG:
                 print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
+                
+            request_updates = False
         else:
             #filter listOfAdditions
             listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
             
-            #request channeltimeframes for subscribed channels
-            for channel_id in my_favorites:
-                if channel_id in channel_ids:
-                    self.updateAChannel(channel_id, [query_permid])
-                    channel_ids.remove(channel_id) #filter publisher_ids
+            request_updates = True
 
         #08/04/10: Andrea: processing rich metadata part.
         #self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
            
         self.channelcastdb.on_torrents_from_channelcast(listOfAdditions)
+        
+        if request_updates:
+            #request channeltimeframes for subscribed channels
+            for channel_id in my_favorites:
+                if channel_id in channel_ids:
+                    self.updateAChannel(channel_id, [query_permid])
+                    channel_ids.remove(channel_id) #filter publisher_ids
+        
         missing_infohashes = {}
         for channel_id in channel_ids:
             for infohash in self.channelcastdb.selectTorrentsToCollect(channel_id):
