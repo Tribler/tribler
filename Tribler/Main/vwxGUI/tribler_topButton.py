@@ -406,6 +406,25 @@ class VerticalGauge(wx.Panel):
     def OnEraseBackground(self, event):
         pass
             
+class EditText(wx.TextCtrl):
+    def __init__(self, parent, text, multiLine = False):
+        style = 0
+        if multiLine:
+            style = style | wx.TE_MULTILINE
+            
+        wx.TextCtrl.__init__(self, parent, -1, text, style = style)
+        self.original_text = text
+        
+    def IsChanged(self):
+        return self.original_text != self.GetValue()
+    
+    def Saved(self):
+        self.original_text = self.GetValue()
+
+    def GetChanged(self):
+        if self.IsChanged():
+            return self.GetValue()
+            
 class EditStaticText(wx.Panel):
     def __init__(self, parent, text, multiLine = False):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
@@ -416,10 +435,7 @@ class EditStaticText(wx.Panel):
         self.text.SetMinSize((1, -1))
         vSizer.Add(self.text, 0, wx.EXPAND)
         
-        if multiLine:
-            self.edit = wx.TextCtrl(self, -1, text, style = wx.TE_MULTILINE)
-        else:    
-            self.edit = wx.TextCtrl(self, -1, text)
+        self.edt = EditText(parent, text, multiLine)
         self.edit.Show(False)
         self.edit.SetMinSize((1, -1))
         vSizer.Add(self.edit, 0, wx.EXPAND)
@@ -437,11 +453,13 @@ class EditStaticText(wx.Panel):
         return self.edit.IsShown()
         
     def IsChanged(self):
-        return self.original_text != self.edit.GetValue()
+        return self.edit.IsChanged()
+    
+    def Saved(self):
+        self.edit.Saved()
 
     def GetChanged(self):
-        if self.IsChanged():
-            return self.edit.GetValue()
+        return self.edit.GetChanged()
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

@@ -3084,7 +3084,7 @@ class VoteCastDBHandler(BasicDBHandler):
         return pos_votes
 
     def getEffectiveVoteFromPermid(self, channel_permid):
-        channel_id = self.peer_db.getPeerID(self.my_permid)
+        channel_id = self.peer_db.getPeerID(channel_permid)
         return self.getEffectiveVote(channel_id)
     
     def getMyVotes(self):

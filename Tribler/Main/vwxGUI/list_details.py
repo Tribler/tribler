@@ -20,7 +20,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, EditStaticText, SelectableListCtrl, _set_font
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, EditText, SelectableListCtrl, _set_font
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -28,7 +28,7 @@ from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 
 class AbstractDetails(wx.Panel):
-    def _create_tab(self, notebook, tabname, header = None, onEdit = None, spacer = 3):
+    def _create_tab(self, notebook, tabname, header = None, spacer = 3):
         panel = wx.lib.scrolledpanel.ScrolledPanel(notebook)
         themeColour = self.notebook.GetThemeBackgroundColour()
         if themeColour.IsOk():
@@ -37,27 +37,7 @@ class AbstractDetails(wx.Panel):
         self.notebook.AddPage(panel, tabname)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        if onEdit != None:
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            hSizer.Add(vSizer, 1, wx.EXPAND)
-            
-            def OnClick(event):
-                edit.state = (edit.state + 1) % 2
-                edit.SetBitmapLabel(bitmaps[edit.state])
-                
-                onEdit(edit.state == 1)
-            
-            bitmaps = ['pencil_go.png', 'pencil_back.png']
-            bitmaps = [wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', bitmap)) for bitmap in bitmaps]
-            
-            edit = wx.BitmapButton(panel, -1, bitmaps[0])
-            edit.state = 0
-            edit.Bind(wx.EVT_BUTTON, OnClick)
-            hSizer.Add(edit, 0, wx.LEFT, 3)
-            
-            panel.SetSizer(hSizer)
-        else:
-            panel.SetSizer(vSizer)
+        panel.SetSizer(vSizer)
         
         if header:
             self._add_header(panel, vSizer, header, spacer)
@@ -138,8 +118,9 @@ class TorrentDetails(AbstractDetails):
         self.isReady = False
         self.noChannel = False
         
-        self.canEdit = self.OnEdit
         self.doMark = self.guiutility.frame.selectedchannellist.OnMarkTorrent
+        self.doSave = self.guiutility.frame.selectedchannellist.OnSaveTorrent
+        self.canEdit = False
         
         self.isEditable = {}
         
@@ -173,6 +154,9 @@ class TorrentDetails(AbstractDetails):
             self.torrent = torrent
             self.information = information
             ds = self.torrent.get('ds', None)
+            
+            if self.torrent.get('ChannelTorrents.id', False):
+                self.canEdit = True 
         
             self.Freeze()
             self.messagePanel.Show(False)
@@ -210,7 +194,7 @@ class TorrentDetails(AbstractDetails):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
     
         #Create torrent overview
-        overview, torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details', self.canEdit)
+        overview, torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details')
         category = self.torrent['category']
         if isinstance(category,list):
             category = ', '.join(category)
@@ -218,17 +202,13 @@ class TorrentDetails(AbstractDetails):
         vSizer = wx.FlexGridSizer(0, 2, 3, 3)
         vSizer.AddGrowableCol(1)
         
-        self.isEditable['name'] = EditStaticText(overview, self.torrent['name'])
-        self._add_row(overview, vSizer, "Name", self.isEditable['name'])
+        self._add_row(overview, vSizer, "Name", self.torrent['name'])
         
         if self.torrent.get('description', None) == None:
             description = 'No description yet, be the first to add a description.'
         else:
             description = self.torrent['description']
-            
-        self.isEditable['description'] = EditStaticText(overview, description, multiLine = True)
-        self._add_row(overview, vSizer, "Description", self.isEditable['description'])
-        
+        self._add_row(overview, vSizer, "Description", description)
         self._add_row(overview, vSizer, "Type", category.capitalize())
         self._add_row(overview, vSizer, "Uploaded", date.fromtimestamp(self.torrent['creation_date']).strftime('%Y-%m-%d'))
         
@@ -262,13 +242,35 @@ class TorrentDetails(AbstractDetails):
         if self.torrent.get('ChannelTorrents.id', False):
             markings = self.guiutility.channelsearch_manager.getTorrentMarkings(self.torrent['ChannelTorrents.id'])
             if len(markings) > 0:
+                torrentSizer.Add(wx.StaticLine(overview, -1, style = wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+                
                 msg = 'This torrent is marked as:'
                 for marktype, nr in markings:
                     msg += ' %s (%d)'%(marktype, nr)
-               
-                torrentSizer.AddSpacer((-1, 6))
-                self._add_row(overview, torrentSizer, None, msg, 3)
+                self._add_row(overview, torrentSizer, None, msg, 10)
+        
+        #Create edit tab
+        if self.canEdit:
+            edit, editSizer = self._create_tab(self.notebook, 'Edit', 'Modify Details')
             
+            vSizer = wx.FlexGridSizer(0, 2, 3, 3)
+            vSizer.AddGrowableCol(1)
+            
+            self.isEditable['name'] = EditText(edit, self.torrent['name'])
+            self.isEditable['description'] = EditText(edit, self.torrent.get('description', '') or '', True)
+            
+            self._add_row(edit, vSizer, "Name",self.isEditable['name'])
+            self._add_row(edit, vSizer, "Description",self.isEditable['description'])
+            
+            editSizer.Add(vSizer, 0, wx.EXPAND)
+            
+            def save(event):
+                self.doSave(self)
+            
+            saveButton = wx.Button(edit, -1, "Save")
+            saveButton.Bind(wx.EVT_BUTTON, save)
+            editSizer.Add(saveButton, 0, wx.ALIGN_RIGHT)
+        
         #Create torrent overview
         if self.torrent.get('ChannelTorrents.id', False):
             from channel import CommentList
@@ -423,14 +425,9 @@ class TorrentDetails(AbstractDetails):
                 for tracker in tracker_list:
                     self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
-        
-        
-        
-        
-#        bestSize = torrentSizer.GetSize()[1]
-#        overview.SetMinSize((-1, bestSize))
-#        self.notebook.SetMinSize((-1, self.notebook.GetBestSize()[1]))
-#        self.parent.parent_list.OnChange()
+                
+        bestSize = torrentSizer.GetSize()[1]
+        overview.SetMinSize((-1, bestSize))
 
     def ShowPanel(self, newState = None):
         if getattr(self, 'buttonSizer', False):
@@ -698,14 +695,18 @@ class TorrentDetails(AbstractDetails):
             manager = self.commentList.GetManager()
             nrcomments = manager.refresh()
             
-            self.notebook.SetPageText(1, "Comments(%d)"%nrcomments)
+            for i in range(self.notebook.GetPageCount()):
+                if self.notebook.GetPageText(i).startswith('Comments'):
+                    self.notebook.SetPageText(i, "Comments(%d)"%nrcomments)
             
     def OnModificationCreated(self, channeltorrent_id):
         if self.torrent.get('ChannelTorrents.id', False) == channeltorrent_id:
             manager = self.modificationList.GetManager()
             nrmodifications = manager.refresh()
             
-            self.notebook.SetPageText(2, "Modifications(%d)"%nrmodifications)
+            for i in range(self.notebook.GetPageCount()):
+                if self.notebook.GetPageText(i).startswith('Modifications'):
+                    self.notebook.SetPageText(i, "Modifications(%d)"%nrmodifications)
                         
     def GetChanged(self):
         newValues = {}
@@ -714,6 +715,10 @@ class TorrentDetails(AbstractDetails):
             if newValue:
                 newValues[key] = newValue
         return newValues
+
+    def Saved(self):
+        for editable in self.isEditable.values():
+            editable.Saved()
     
     def OnExplore(self, event):
         path = self._GetPath()

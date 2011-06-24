@@ -287,9 +287,16 @@ class SelectedChannelList(SearchList):
                 if len(changes)>0:
                     dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg.ShowModal() == wx.ID_YES:
-                        self.channelsearch_manager.modifyTorrent(self.id, item.original_data['ChannelTorrents.id'], changes)
+                        self.OnSaveTorrent(panel)
+                    dlg.Destroy()
             SearchList.OnCollapse(self, item, panel)
-        
+            
+    def OnSaveTorrent(self, panel):
+        changes = panel.GetChanged()
+        if len(changes)>0:
+            self.channelsearch_manager.modifyTorrent(self.id, panel.torrent['ChannelTorrents.id'], changes)
+            panel.Saved()
+            
     def OnRemoveVote(self, event):
         self.channelsearch_manager.remove_vote(self.id)
         self.SetVote(0)
@@ -1292,17 +1299,18 @@ class ActivityManager:
     
     def refresh(self):
         if self.playlist_id:
-            _, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS, limit = 10)
-            _, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS, limit = 10)
-            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS  + ['inserted'], limit = 10)
+            nrComments, commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS, limit = 10)
+            nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS, limit = 10)
+            nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS  + ['inserted'], limit = 10)
             recentModifications = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, MODIFICATION_REQ_COLUMNS  + ['inserted'], limit = 10)
         else:
-            _, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS, limit = 10)
-            _, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS, limit = 10)
-            _, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS + ['inserted'], limit = 10)
+            nrComments, commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS, limit = 10)
+            nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS, limit = 10)
+            nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS + ['inserted'], limit = 10)
             recentModifications = self.channelsearch_manager.getRecentModificationsFromChannelId(self.channel_id, MODIFICATION_REQ_COLUMNS + ['inserted'], limit = 10)
         
-        self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications)        
+        self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications)
+        return nrComments + nrTorrents + nrRecentTorrents + len(recentModifications)
 
 class ActivityList(List):
     def __init__(self, parent, parent_list):
@@ -1393,6 +1401,7 @@ class ModificationManager:
         data = self.channelsearch_manager.getTorrentModifications(self.channeltorrent_id)
         data = [(mod[0], self.modification_types[mod[1]], mod[2], mod[3]) for mod in data]
         self.list.SetData(data)
+        return len(data)
         
     def getNrModifications(self):
         return len(self.channelsearch_manager.getTorrentModifications(self.channeltorrent_id))  

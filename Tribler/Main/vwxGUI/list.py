@@ -406,6 +406,11 @@ class List(XRCPanel):
         assert self.ready, "List not ready"
         if self.ready:
             return self.list.items
+        
+    def GetExpandedItem(self):
+        assert self.ready, "List not ready"
+        if self.ready:
+            return self.list.GetExpandedItem()
     
     def Focus(self):
         assert self.ready, "List not ready"

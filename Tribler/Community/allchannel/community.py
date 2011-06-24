@@ -99,7 +99,6 @@ class AllChannelCommunity(Community):
         self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
         
         self._blocklist = {}
-        self._candidateset = set()
 
     def initiate_meta_messages(self):
         # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
@@ -130,14 +129,9 @@ class AllChannelCommunity(Community):
             if len(packets_to_sync) > 0:
                 log("dispersy.log", "trying-to-send-channelcast", nr_packets = len(packets_to_sync))
                 
-                #see if we need new candidates
-                if len(self._candidateset) == 0:
-                    self._candidateset = self._dispersy.select_candidate_addresses(self, 100)
-                
                 #loop through all candidates to see if we can find a non-blocked peer
-                while len(self._candidateset) > 0:
-                    address = self._candidateset.pop()
-                    members = self.get_members_from_address(address)
+                for candidate in self._dispersy.yield_online_candidates(self, 100):
+                    members = candidate.members
                     
                     blocked = True
                     for member in members: #see if any of the members of this address isn't blocked
@@ -180,14 +174,14 @@ class AllChannelCommunity(Community):
                                                      meta.destination.implement(),
                                                      meta.payload.implement(packets))
                             
-                            self._dispersy._send([address], [message.packet])
+                            self._dispersy._send([candidate.address], [message.packet])
                             
                             #we've send something to this peer, add to blocklist
                             for member in members:
                                 key = member.public_key
                                 self._blocklist[key] = now
                             
-                            log("dispersy.log", "sending-channelcast", address = address, messages = len(packets_to_sync), marked = favorites)
+                            log("dispersy.log", "sending-channelcast", address = candidate.address, messages = len(packets_to_sync), marked = favorites)
                             
                             #we're done
                             break
