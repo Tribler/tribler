@@ -8,8 +8,7 @@ report bugs in other modules.
 
 # todo: maybe add a feature that does not redisplay a msg that repeats itself again and again
 
-# from queue import Queue
-from pickle import dumps
+# from pickle import dumps
 from os.path import dirname, basename, expanduser, isfile, join
 from sys import stdout, stderr, exc_info
 # from threading import current_thread, Thread, Lock
@@ -17,8 +16,8 @@ from time import time
 from traceback import extract_stack, print_exception, print_stack, format_list
 import inspect
 import re
-import socket
-from os import getcwd
+# import socket
+# from os import getcwd
 from pprint import pformat
 
 # maxsize is introduced in Python 2.6
