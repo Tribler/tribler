@@ -1,4 +1,4 @@
-from cPickle import dumps
+from Tribler.Core.dispersy.encoding import encode
 from bz2 import compress
 from time import time
 import sys
@@ -21,18 +21,19 @@ class TUDelftReporter(LivingLabPeriodicReporter):
         if events:
             events = [{"name":event.get_name(), "time":event.get_time(), "values":event.get_values()} for event in events]
             data = (time(), self.device_id.encode("HEX"), events)
-            self.post(compress(dumps(data)))
+            self.post(compress(encode(data)))
         else:
             if DEBUG: print >> sys.stderr, "TUDelftReporter: Nothing to report"
 
-# if __name__ == "__main__":
-#    from Tribler.Core.Statistics.Status.Status import get_status_holder
+if __debug__:
+    if __name__ == "__main__":
+        from Tribler.Core.Statistics.Status.Status import get_status_holder
 
-#    status = get_status_holder("dispersy-simple-dispersy-test")
-#    status.add_reporter(TUDelftReporter("Periodically flush events to TUDelft", 5))
-#    status.create_and_add_event("foo", ["foo", "bar"])
-#    status.create_and_add_event("animals", ["bunnies", "kitties", "doggies"])
-#    status.create_and_add_event("numbers", range(255))
+        status = get_status_holder("dispersy-simple-dispersy-test")
+        status.add_reporter(TUDelftReporter("Periodically flush events to TUDelft", 5, "blabla"))
+        status.create_and_add_event("foo", ["foo", "bar"])
+        status.create_and_add_event("animals", ["bunnies", "kitties", "doggies"])
+        status.create_and_add_event("numbers", range(255))
 
-#    import time
-#    time.sleep(15)
+        from time import sleep
+        sleep(15)

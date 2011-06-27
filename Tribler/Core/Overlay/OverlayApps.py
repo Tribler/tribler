@@ -25,8 +25,8 @@ from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgH
 from Tribler.Core.Statistics.Crawler import Crawler
 from Tribler.Core.Statistics.DatabaseCrawler import DatabaseCrawler
 from Tribler.Core.Statistics.FriendshipCrawler import FriendshipCrawler
-from Tribler.Core.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
-from Tribler.Core.Statistics.VideoPlaybackCrawler import VideoPlaybackCrawler
+# from Tribler.Core.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
+# from Tribler.Core.Statistics.VideoPlaybackCrawler import VideoPlaybackCrawler
 from Tribler.Core.Statistics.RepexCrawler import RepexCrawler
 from Tribler.Core.Statistics.PunctureCrawler import PunctureCrawler
 from Tribler.Core.Statistics.ChannelCrawler import ChannelCrawler
@@ -88,17 +88,17 @@ class OverlayApps:
 
             database_crawler = DatabaseCrawler.get_instance()
             crawler.register_message_handler(CRAWLER_DATABASE_QUERY, database_crawler.handle_crawler_request, database_crawler.handle_crawler_reply)
-            seeding_stats_crawler = SeedingStatsCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
+            # seeding_stats_crawler = SeedingStatsCrawler.get_instance()
+            # crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
             friendship_crawler = FriendshipCrawler.get_instance(session)
             crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
             natcheck_handler = NatCheckMsgHandler.getInstance()
             natcheck_handler.register(launchmany)
             crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
             crawler.register_message_handler(CRAWLER_NATTRAVERSAL, natcheck_handler.gotUdpConnectRequest, natcheck_handler.gotUdpConnectReply)
-            videoplayback_crawler = VideoPlaybackCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_event_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
-            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, videoplayback_crawler.handle_info_crawler_request, videoplayback_crawler.handle_info_crawler_reply)
+            # videoplayback_crawler = VideoPlaybackCrawler.get_instance()
+            # crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_event_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
+            # crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, videoplayback_crawler.handle_info_crawler_request, videoplayback_crawler.handle_info_crawler_reply)
             repex_crawler = RepexCrawler.get_instance(session)
             crawler.register_message_handler(CRAWLER_REPEX_QUERY, repex_crawler.handle_crawler_request, repex_crawler.handle_crawler_reply)
             puncture_crawler = PunctureCrawler.get_instance()
@@ -118,13 +118,13 @@ class OverlayApps:
                     # allows access to tribler database (boudewijn)
                     crawler.register_crawl_initiator(database_crawler.query_initiator)
 
-                if "videoplayback" in sys.argv:
-                    # allows access to video-playback statistics (boudewijn)
-                    crawler.register_crawl_initiator(videoplayback_crawler.query_initiator)
+                # if "videoplayback" in sys.argv:
+                #     # allows access to video-playback statistics (boudewijn)
+                #     crawler.register_crawl_initiator(videoplayback_crawler.query_initiator)
 
-                if "seedingstats" in sys.argv:
-                    # allows access to seeding statistics (Boxun)
-                    crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator, frequency=60*30)
+                # if "seedingstats" in sys.argv:
+                #     # allows access to seeding statistics (Boxun)
+                #     crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator, frequency=60*30)
 
                 if "friendship" in sys.argv:
                     # allows access to friendship statistics (Ali)
