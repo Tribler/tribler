@@ -161,6 +161,31 @@ class safe_dict(dict):
         finally:
             self.lock.release()
 
+def stats_inc(stats, key, count=1):
+    print >> sys.stderr, "==", id(stats), "==", key
+    if key in stats:
+        stats[key] += count
+    else:
+        stats[key] = count
+
+def stats_execute(stats, sql):
+    # print >> sys.stderr, sql
+    for sql in sql.split(";"):
+        try:
+            key, rest = sql.strip().split(" ", 1)
+            stats_inc(stats, key.upper())
+        except:
+            key = sql.strip()
+            if key:
+                stats_inc(stats, key.upper())
+
+def stats_print(name, stats):
+    print "--", id(stats), "--", name, "--"
+    for key, count in sorted(stats.iteritems()):
+        print >> sys.stderr, "%5d" % count, key
+
+import atexit
+
 class SQLiteCacheDBBase:
     lock = threading.RLock()
 
@@ -179,6 +204,11 @@ class SQLiteCacheDBBase:
         self.category_table = None
         self.src_table = None
         self.applied_pragma_sync_norm = False
+        atexit.register(self._atexit)
+
+    def _atexit(self):
+        for thread_name, (stats, cur) in self.cursor_table.iteritems():
+            stats_print(thread_name, stats)
         
     def __del__(self):
         self.close()
@@ -186,7 +216,9 @@ class SQLiteCacheDBBase:
     def close(self, clean=False):
         # only close the connection object in this thread, don't close other thread's connection object
         thread_name = threading.currentThread().getName()
-        cur = self.getCursor(create=False)
+        stats, cur = self.getCursor(create=False)
+        stats_inc(stats, "-close")
+        stats_print(stats)
         
         if cur:
             con = cur.getconnection()
@@ -247,7 +279,7 @@ class SQLiteCacheDBBase:
         con.setbusytimeout(busytimeout)
 
         cur = con.cursor()
-        self.cursor_table[thread_name] = cur
+        self.cursor_table[thread_name] = ({}, cur)
         
         if not self.applied_pragma_sync_norm:
             # http://www.sqlite.org/pragma.html
@@ -404,7 +436,7 @@ class SQLiteCacheDBBase:
         pass    #TODO
 
     def readDBVersion(self):
-        cur = self.getCursor()
+        stats, cur = self.getCursor()
         sql = u"select value from MyInfo where entry='version'"
         res = self.fetchone(sql)
         if res:
@@ -427,12 +459,13 @@ class SQLiteCacheDBBase:
         self.transaction()
 
     def _execute(self, sql, args=None):
-        cur = self.getCursor()
+        stats, cur = self.getCursor()
 
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
         try:
+            stats_execute(stats, sql)
             if args is None:
                 return cur.execute(sql)
             else:
@@ -537,10 +570,15 @@ class SQLiteCacheDBBase:
             
     def _transaction(self, sql, args=None):
         if sql:
+            stats, cur = self.getCursor(create=True)
+            begin = time()
+
             sql = 'BEGIN TRANSACTION; \n' + sql + 'COMMIT TRANSACTION;'
             try:
                 self._execute(sql, args)
+                stats_inc(stats, "%ds-ok" % (time() - begin))
             except Exception,e:
+                stats_inc(stats, "%ds-err" % (time() - begin))
                 self.commit_retry_if_busy_or_rollback(e,0,sql=sql)
             
     def commit_retry_if_busy_or_rollback(self,e,tries,sql=None):
