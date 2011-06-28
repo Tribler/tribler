@@ -41,7 +41,9 @@ class Callback(object):
 
     def add_task(self, func, delay=0.0):
         import sys
+        import traceback
         print >> sys.stderr, "Depricated: Callback.add_task(FUNC, DELAY).  Use Callback.register(FUNC, delay=DELAY) instead"
+        traceback.print_stack()
         assert isinstance(delay, (int, float))
         return self.register(func, delay=float(delay))
 

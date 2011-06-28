@@ -3137,7 +3137,7 @@ class ChannelCastDBHandler:
     #dispersy helper functions
     def _get_my_dispersy_cid(self):
         if not self.my_dispersy_cid:
-            from Tribler.Community.channel.community import ChannelCommunity
+            from Tribler.community.channel.community import ChannelCommunity
             from Tribler.Core.dispersy.dispersy import Dispersy
             dispersy = Dispersy.get_instance()
             

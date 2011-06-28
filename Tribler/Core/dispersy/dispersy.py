@@ -270,6 +270,8 @@ class Dispersy(Singleton):
     @property
     def rawserver(self):
         import sys
+        import traceback
+        traceback.print_stack()
         print >> sys.stderr, "Depricated: Dispersy.rawserver.  Use Dispersy.callback instead"
         return self._callback
 

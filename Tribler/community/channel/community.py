@@ -64,7 +64,7 @@ class ChannelCommunity(Community):
             except:
                 pass
             
-        self._rawserver = self._dispersy.rawserver.add_task
+        self._register_task = self._dispersy.callback.register
 
     def initiate_meta_messages(self):
         if self.integrate_with_tribler:
@@ -160,9 +160,7 @@ class ChannelCommunity(Community):
         return [DefaultConversion(self), ChannelConversion(self)]
 
     def create_channel(self, name, description, store=True, update=True, forward=True):
-        def dispersy_thread():
-            self._disp_create_channel(name, description, store, update, forward)
-        self._rawserver(dispersy_thread)
+        self._register_task(self._disp_create_channel, (name, description, store, update, forward))
     
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"channel")
@@ -270,7 +268,7 @@ class ChannelCommunity(Community):
             message = self._disp_create_playlist(name, description)
             self._disp_create_playlist_torrents(infohashes, message, store, update, forward)
     
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
 
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
@@ -313,7 +311,7 @@ class ChannelCommunity(Community):
                 playlist_message = self._get_message_from_playlist_id(playlist_id)
             self._disp_create_comment(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store, update, forward)
     
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
 
     def _disp_create_comment(self, text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store=True, update=True, forward=True):
         reply_to_mid = None
@@ -390,7 +388,7 @@ class ChannelCommunity(Community):
                 latest_modification = self._get_latest_modification_from_channel_id(type_id)
                 self._disp_create_modification(type, value, modification_on_message, latest_modification, store, update, forward)
         
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
         
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
         def dispersy_thread():
@@ -403,7 +401,7 @@ class ChannelCommunity(Community):
                 latest_modification = self._get_latest_modification_from_playlist_id(playlist_id, type_id)
                 self._disp_create_modification(type, value, modification_on_message, latest_modification, store, update, forward)
         
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
     
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
         def dispersy_thread():
@@ -416,7 +414,7 @@ class ChannelCommunity(Community):
                 latest_modification = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
                 self._disp_create_modification(type, value, modification_on_message, latest_modification, store, update, forward)
                 
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
         
     def _disp_create_modification(self, modification_type, modifcation_value, modification_on, latest_modification, store=True, update=True, forward=True):
         latest_modification_mid = None
@@ -497,7 +495,7 @@ class ChannelCommunity(Community):
             message = self._get_message_from_playlist_id(playlist_id)
             self._disp_create_playlist_torrents(infohashes, message, store, update, forward)
             
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
         
     def _disp_create_playlist_torrents(self, infohashes, playlist_message, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist_torrent")
@@ -545,7 +543,7 @@ class ChannelCommunity(Community):
             cause = self._get_message_from_dispersy_id(cause)
             self._disp_create_warning(text, timestamp, cause, store, update, forward)
             
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
     
     def _disp_create_warning(self, text, timestamp, cause, store=True, update=True, forward=True):
         message = cause.load_message()
@@ -598,7 +596,7 @@ class ChannelCommunity(Community):
         def dispersy_thread():
             self._disp_create_mark_torrent(infohash, type, timestamp, store, update, forward)
             
-        self._rawserver(dispersy_thread)
+        self._register_task(dispersy_thread)
     
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")

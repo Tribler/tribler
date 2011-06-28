@@ -12,8 +12,6 @@ import time as timemod
 from threading import Event,Thread,enumerate
 from traceback import print_exc, print_stack
 
-from Tribler.Community.allchannel.community import AllChannelCommunity
-from Tribler.Community.channel.community import ChannelCommunity
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
@@ -31,10 +29,12 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import traceback
-from Tribler.community.simpledispersytest.community import SimpleDispersyTestCommunity
-from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.community import HardKilledCommunity
+from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.community.allchannel.community import AllChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.simpledispersytest.community import SimpleDispersyTestCommunity
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK

@@ -19,8 +19,8 @@ from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistr
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
 from Tribler.Core.dispersy.member import MyMember
 
-from Tribler.Community.channel.message import DelayMessageReqChannelMessage
-from Tribler.Community.channel.community import ChannelCommunity
+from Tribler.community.channel.message import DelayMessageReqChannelMessage
+from Tribler.community.channel.community import ChannelCommunity
 
 from distutils.util import execute
 
@@ -28,9 +28,9 @@ if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
     from lencoder import log
 
-CHANNELCAST_FIRST_MESSAGE = 3
-CHANNELCAST_INTERVAL = 15
-CHANNELCAST_BLOCK_PERIOD = 15*60
+CHANNELCAST_FIRST_MESSAGE = 3.0
+CHANNELCAST_INTERVAL = 15.0
+CHANNELCAST_BLOCK_PERIOD = 15.0 * 60.0
 
 class AllChannelCommunity(Community):
     """
@@ -95,8 +95,8 @@ class AllChannelCommunity(Community):
             self._peer_db = PeerDBStub(self._dispersy)
             self._notifier = False
         
-        self._rawserver = self.dispersy.rawserver.add_task
-        self._rawserver(self.create_channelcast, CHANNELCAST_FIRST_MESSAGE)
+        self._register_task = self.dispersy.callback.register
+        self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
         
         self._blocklist = {}
 
@@ -188,7 +188,7 @@ class AllChannelCommunity(Community):
         except:
             raise
         finally:
-            self._rawserver(self.create_channelcast, CHANNELCAST_INTERVAL)
+            self._register_task(self.create_channelcast, delay=CHANNELCAST_INTERVAL)
 
     def check_channelcast(self, messages):
         # no timeline check because NoAuthentication policy is used
@@ -246,9 +246,7 @@ class AllChannelCommunity(Community):
                     pass
     
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
-        def dispersy_thread():
-            self._disp_create_votecast(vote, timestamp, store, update, forward)
-        self._rawserver(dispersy_thread)
+        self._register_task(self._disp_create_votecast, (vote, timestamp, store, update, forward))
 
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community

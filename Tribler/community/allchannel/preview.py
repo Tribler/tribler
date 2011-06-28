@@ -1,4 +1,4 @@
-from Tribler.Community.channel.community import ChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity
 
 class PreviewChannelCommunity(ChannelCommunity):
     """

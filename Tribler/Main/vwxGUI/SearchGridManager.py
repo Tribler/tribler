@@ -19,8 +19,8 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
-from Tribler.Community.channel.community import ChannelCommunity
-from Tribler.Community.allchannel.preview import PreviewChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.allchannel.preview import PreviewChannelCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -31,7 +31,7 @@ from Tribler.Core.DecentralizedTracking.MagnetLink import MagnetLink
 
 from math import sqrt
 from __init__ import *
-from Tribler.Community.allchannel.community import AllChannelCommunity
+from Tribler.community.allchannel.community import AllChannelCommunity
 
 DEBUG = False
 
@@ -1033,14 +1033,14 @@ class ChannelSearchGridManager:
             community = ChannelCommunity.create_community(self.session.dispersy_member)
             community.create_channel(name, description)
         
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
     
     def createPlaylist(self, channel_id, name, description, infohashes = []):
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)
             community.create_playlist(name, description, infohashes)
 
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
         
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         #detect changes
@@ -1061,7 +1061,7 @@ class ChannelSearchGridManager:
                 community = self._disp_get_community_from_channel_id(channel_id)
                 community.create_playlist_torrents(playlist_id, to_be_created)
             
-            self.dispersy.rawserver.add_task(dispersy_thread)
+            self.dispersy.callback.register(dispersy_thread)
         
     
     def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
@@ -1073,7 +1073,7 @@ class ChannelSearchGridManager:
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)
             community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
     
     def modifyChannel(self, channel_id, name, description):
         dict = {'name':name, 'description':description}
@@ -1081,7 +1081,7 @@ class ChannelSearchGridManager:
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)
             community.modifyChannel(dict)
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
 
     def modifyPlaylist(self, channel_id, playlist_id, name, description):
         dict = {'name':name, 'description':description}
@@ -1089,14 +1089,14 @@ class ChannelSearchGridManager:
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)
             community.modifyPlaylist(playlist_id, dict)
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
     
     def modifyTorrent(self, channel_id, channeltorrent_id, dict_changes):
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)
             community.modifyTorrent(channeltorrent_id, dict_changes)
         
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
     
     def getPlaylistsFromChannelId(self, channel_id, keys):
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
@@ -1169,7 +1169,7 @@ class ChannelSearchGridManager:
                     if isinstance(community, AllChannelCommunity):
                         community._disp_create_votecast(dispersy_cid, vote, timestamp)
                         break
-            self.dispersy.rawserver.add_task(dispersy_thread)
+            self.dispersy.callback.register(dispersy_thread)
             
         elif vote == 2:
             self.votecastdb.subscribe(channel_id)
@@ -1186,7 +1186,7 @@ class ChannelSearchGridManager:
             community = self._disp_get_community_from_channel_id(channel_id)
             community._disp_create_mark_torrent(infohash, type, timestamp)
         
-        self.dispersy.rawserver.add_task(dispersy_thread)
+        self.dispersy.callback.register(dispersy_thread)
         
     def getChannelForTorrent(self, infohash):
         return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
