@@ -52,7 +52,7 @@ class Callback(object):
         assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
         assert isinstance(priority, int), "PRIORITY has invalid type: %s" % type(priority)
         assert isinstance(id_, str), "ID_ has invalid type: %s" % type(id_)
-        if __debug__: dprint("after ", delay, " seconds call ", call)
+        if __debug__: dprint("register", call, " after ", delay, " seconds")
         if kargs is None:
             kargs = {}
         with self._lock:
@@ -64,14 +64,44 @@ class Callback(object):
             self._event.set()
             return id_
 
-    def unregister(self, root_id):
+    def persistent_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0):
         """
-        Unregister a callback using the ROOT_ID obtained from the register(...) method
+        Register a callback only if ID_ has not already been registered.
+
+        Example:
+         > callback.persistent_register("my-id", my_func, ("first",), delay=60.0)
+         > callback.persistent_register("my-id", my_func, ("second",))
+         > -> my_func("first") will be called after 60 seconds, my_func("second") will not be called at all
+
+        Example:
+         > callback.register("my-id", my_func, ("first",), delay=60.0)
+         > callback.persistent_register("my-id", my_func, ("second",))
+         > -> my_func("first") will be called after 60 seconds, my_func("second") will not be called at all
         """
-        assert isinstance(root_id, (str, int)), "ROOT_ID has invalid type: %s" % type(root_id)
-        if __debug__: dprint(root_id)
+        assert isinstance(id_, str), "ID_ has invalid type: %s" % type(id_)
+        assert id_, "ID_ may not be an empty string"
+        assert hasattr(call, "__call__"), "CALL must be callable"
+        assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
+        assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
+        assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
+        assert isinstance(priority, int), "PRIORITY has invalid type: %s" % type(priority)
+        if __debug__: dprint("reregister ", call, " after ", delay, " seconds")
+        if kargs is None:
+            kargs = {}
         with self._lock:
-            self._new_actions.append(("unregister", root_id))
+            self._new_actions.append(("persistent-register", (self._timestamp + delay, 512 - priority, id_, (call, args, kargs))))
+            # wakeup if sleeping
+            self._event.set()
+            return id_
+
+    def unregister(self, id_):
+        """
+        Unregister a callback using the ID_ obtained from the register(...) method
+        """
+        assert isinstance(root_id, (str, int)), "ROOT_ID has invalid type: %s" % type(id_)
+        if __debug__: dprint(id_)
+        with self._lock:
+            self._new_actions.append(("unregister", id_))
 
     def start(self, name="Generic-Callback", wait=True):
         """
@@ -95,7 +125,11 @@ class Callback(object):
     def stop(self, timeout=10.0, wait=True):
         """
         Stop the asynchronous thread.
+
+        Deadlock will occur when called with wait=True on the same thread.
         """
+        assert isinstance(timeout, float)
+        assert isinstance(wait, bool)
         if __debug__: dprint()
         if self._state == "STATE_RUNNING":
             with self._lock:
@@ -140,6 +174,13 @@ class Callback(object):
                 for type_, action in new_actions:
                     if type_ == "register":
                         heappush(requests, action)
+                    elif type_ == "persistent-register":
+                        for tup in chain(requests, expired):
+                            if tup[2] == action[2]:
+                                break
+                        else:
+                            # no break, register callback
+                            heappush(requests, action)
                     else:
                         assert type_ == "unregister"
                         requests = [request for request in requests if not request[2] == action]
@@ -183,7 +224,7 @@ class Callback(object):
                         except:
                             dprint(exception=True, level="error")
                             if __debug__:
-                                self.stop()
+                                self.stop(wait=False)
                         else:
                             # schedule CALL again in RESULT seconds
                             assert isinstance(result, float)
@@ -198,7 +239,7 @@ class Callback(object):
                         except:
                             dprint(exception=True, level="error")
                             if __debug__:
-                                self.stop()
+                                self.stop(wait=False)
                         else:
                             if isinstance(result, GeneratorType):
                                 # we only received the generator, no actual call has been made to the

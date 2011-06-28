@@ -52,8 +52,8 @@ class SimpleDispersyTestCommunity(Community):
         self._dispersy.callback.register(self._periodically_info, delay=60.0)
 
     def initiate_meta_messages(self):
-        return [Message(self, u"full-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=1), TextPayload(), self.check_full_sync, self.on_full_sync),
-                Message(self, u"last-1-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=1), TextPayload(), self.check_last_1_sync, self.on_last_1_sync)]
+        return [Message(self, u"full-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=1), TextPayload(), self.check_full_sync, self.on_full_sync, delay=5.0),
+                Message(self, u"last-1-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=1), TextPayload(), self.check_last_1_sync, self.on_last_1_sync, delay=5.0)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), Conversion(self)]

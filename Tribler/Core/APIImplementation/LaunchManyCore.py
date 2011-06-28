@@ -713,7 +713,7 @@ class TriblerLaunchMany(Thread):
         if self.udppuncture_handler is not None:
             self.udppuncture_handler.shutdown()
         if self.dispersy_thread:
-            self.dispersy_thread.stop()
+            self.dispersy_thread.stop(timeout=2.0)
 
     def network_shutdown(self):
         try:

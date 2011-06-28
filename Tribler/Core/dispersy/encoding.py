@@ -81,7 +81,125 @@ _a_encode_mapping = {int:_a_encode_int,
                      dict:_a_encode_dictionary,
                      type(None):_a_encode_none}
 
-def encode(data):
+# def _b_uint_to_bytes(i):
+#     assert isinstance(i, (int, long))
+#     assert i >= 0
+#     if i == 0:
+#         return "\x00"
+
+#     else:
+#         bit8 = 16*8
+#         mask8 = 2**8-1
+#         mask7 = 2**7-1
+#         l = []
+#         while i:
+#             l.append(bit8 | mask7 & i)
+#             i >>= 7
+#         l[0] &= mask7
+#         return "".join(chr(k) for k in reversed(l))
+
+# from math import log
+# from struct import pack
+
+# def _b_encode_int(value, mapping):
+#     """
+#     42 --> (_b_uint_to_bytes(2), 'i', struct.pack('>h', 42))
+#     """
+#     assert isinstance(value, (int, long)), "VALUE has invalid type: %s" % type(value)
+#     length = 2 if value == 0 else int(log(value, 2) / 8) + 1
+#     return (_b_uint_to_bytes(length), "i", pack({1:">h", 2:">h", 3:">i", 4:">i", 5:">l", 6:">l", 7:">l", 8:">l"}.get(length, ">q"), value))
+
+# def _b_encode_float(value, mapping):
+#     """
+#     4.2 --> (_b_uint_to_bytes(4), 'f', struct.pack('>f', 4.2))
+#     """
+#     assert isinstance(value, float), "VALUE has invalid type: %s" % type(value)
+#     return (_b_uint_to_bytes(4), "f", pack(">f", value))
+
+# def _b_encode_unicode(value, mapping):
+#     """
+#     'foo-bar' --> (_b_uint_to_bytes(7), 's', 'foo-bar')
+#     """
+#     assert isinstance(value, unicode), "VALUE has invalid type: %s" % type(value)
+#     value = value.encode("UTF-8")
+#     return ("s", _b_uint_to_bytes(len(value)), value)
+
+# def _b_encode_bytes(value, mapping):
+#     """
+#     'foo-bar' --> (_b_uint_to_bytes(7), 'b', 'foo-bar')
+#     """
+#     assert isinstance(value, bytes), "VALUE has invalid type: %s" % type(value)
+#     return (_b_uint_to_bytes(len(value)), "b", value)
+
+# def _b_encode_list(values, mapping):
+#     """
+#     [1,2,3] --> [_b_uint_to_bytes(3), 'l'] + _b_encode_int(1) + _b_encode_int(2) + _b_encode_int(3)
+#     """
+#     assert isinstance(values, list), "VALUE has invalid type: %s" % type(value)
+#     encoded = [_b_uint_to_bytes(len(values)), "l"]
+#     extend = encoded.extend
+#     for value in values:
+#         extend(mapping[type(value)](value, mapping))
+#     return encoded
+
+# def _b_encode_tuple(values, mapping):
+#     """
+#     (1,2) --> [_b_uint_to_bytes(3), 't'] + _b_encode_int(1) + _b_encode_int(2)
+#     """
+#     assert isinstance(values, tuple), "VALUE has invalid type: %s" % type(value)
+#     encoded = [_b_uint_to_bytes(len(values)), "t"]
+#     extend = encoded.extend
+#     for value in values:
+#         extend(mapping[type(value)](value, mapping))
+#     return encoded
+
+# def _b_encode_dictionary(values, mapping):
+#     """
+#     {'foo':'bar', 'moo':'milk'} --> [_b_uint_to_bytes(2), 'd'] + _b_encode_bytes('foo') + _b_encode_bytes('bar') + _b_encode_bytes('moo') +_b_encode_bytes('milk')
+#     """
+#     assert isinstance(values, dict), "VALUE has invalid type: %s" % type(value)
+#     encoded = [_b_uint_to_bytes(len(values)), "d"]
+#     extend = encoded.extend
+#     for key, value in sorted(values.items()):
+#         assert type(key) in mapping, (key, values)
+#         assert type(value) in mapping, (value, values)
+#         extend(mapping[type(key)](key, mapping))
+#         extend(mapping[type(value)](value, mapping))
+#     return encoded
+
+# def _b_encode_none(values, mapping):
+#     """
+#     None --> [_b_uint_to_bytes(0), 'n']
+#     """
+#     return [_b_uint_to_bytes(0), 'n']
+
+# _b_encode_mapping = {int:_b_encode_int,
+#                      long:_b_encode_int,
+#                      float:_b_encode_float,
+#                      unicode:_b_encode_unicode,
+#                      str:_b_encode_bytes,
+#                      list:_b_encode_list,
+#                      tuple:_b_encode_tuple,
+#                      dict:_b_encode_dictionary,
+#                      type(None):_b_encode_none}
+
+# def bytes_to_uint(stream, offset=0):
+#     assert isinstance(stream, str)
+#     assert isinstance(offset, (int, long))
+#     assert offset >= 0
+#     bit8 = 16*8
+#     mask7 = 2**7-1
+#     i = 0
+#     while offset < len(stream):
+#         c = ord(stream[offset])
+#         i |= mask7 & c
+#         if not bit8 & c:
+#             return i
+#         offset += 1
+#         i <<= 7
+#     raise ValueError()
+
+def encode(data, version="a"):
     """
     Encode DATA into version 'a' binary stream.
 
@@ -94,7 +212,14 @@ def encode(data):
     The encoding process is done using version 'a' which is
     indicated by the first byte of the resulting binary stream.
     """
-    return "a" + "".join(_a_encode_mapping[type(data)](data, _a_encode_mapping))
+    assert isinstance(version, str)
+    if version == "a":
+        return "a" + "".join(_a_encode_mapping[type(data)](data, _a_encode_mapping))
+    elif version == "b":
+        raise ValueError("This version is not yet implemented")
+        # return "b" + "".join(_b_encode_mapping[type(data)](data, _b_encode_mapping))
+    else:
+        raise ValueError("Unknown encode version")
 
 def _a_decode_int(stream, offset, count, _):
     """
@@ -219,51 +344,79 @@ def decode(stream, offset=0):
 
 if __debug__:
     if __name__ == "__main__":
+        # def uint_to_bytes(i):
+        #     assert isinstance(i, (int, long))
+        #     assert i >= 0
+        #     if i == 0:
+        #         return "\x00"
 
-        def uint_to_bytes(i):
-            bit8 = 16*8
-            mask8 = 2**8-1
-            mask7 = 2**7-1
+        #     else:
+        #         bit8 = 16*8
+        #         mask8 = 2**8-1
+        #         mask7 = 2**7-1
+        #         l = []
+        #         while i:
+        #             l.append(bit8 | mask7 & i)
+        #             i >>= 7
+        #         l[0] &= mask7
+        #         return "".join(chr(k) for k in reversed(l))
 
-            l = []
-            while True:
-                if mask7 & i:
-                    l.append(bit8 | mask7 & i)
-                    i >>= 7
-                else:
-                    l[-1] &= mask7
-                    break
+        # def bytes_to_uint(stream, offset=0):
+        #     assert isinstance(stream, str)
+        #     assert isinstance(offset, (int, long))
+        #     assert offset >= 0
+        #     bit8 = 16*8
+        #     mask7 = 2**7-1
+        #     i = 0
+        #     while offset < len(stream):
+        #         c = ord(stream[offset])
+        #         i |= mask7 & c
+        #         if not bit8 & c:
+        #             return i
+        #         offset += 1
+        #         i <<= 7
+        #     raise ValueError()
 
-            j = 0
-            for k in reversed(l):
-                j <<= 8
-                j |= k
-            return j
+        # def test(i):
+        #     s = uint_to_bytes(i)
+        #     print "%5d %15s %8s" % (i, bin(i), s.encode("HEX")), [bin(ord(x)) for x in s]
+        #     j = bytes_to_uint(s + "kjdhsakdjhkjhsdasa")
+        #     assert i == j, (i, j)
+        #     return s
 
-        def bytes_to_uint(s):
-            pass
-
-        i = int("10110101010", 2)
-        s = uint_to_bytes(i)
-        print bin(s)
-        j = bytes_to_uint(s)
-
-        exit(0)
+        # # test(int("10110101010", 2))
+        # for i in xrange(-10, 1024*150):
+        #     if len(test(i)) > 2:
+        #         break
+        # exit(0)
 
         from Tribler.Core.BitTornado.bencode import bencode, bdecode
 
-        def test(in_):
+        def test(in_, verbose=True):
             value = in_
             s = encode(value)
             length, v = decode(s)
-            print "dispersy", length, ":", value, "->", s
-
+            if verbose:
+                print "dispersy A", length, ":", value, "->", s
+            else:
+                print "dispersy A", length
             assert len(s) == length, (len(s), length)
             assert value == v, (value, v)
 
             value = in_
+            s = encode(value, "b")
+            length = len(s)
+            # length, v = decode(s)
+            if verbose:
+                print "dispersy B", length, ":", value, "->", s
+            else:
+                print "dispersy B", length
+            # assert len(s) == length, (len(s), length)
+            # assert value == v, (value, v)
+
+            value = in_
             if isinstance(value, (float, type(None))):
-                print "btorrent", "not supported"
+                print "bittorrent", "not supported"
             else:
                 # exception: tuple types are encoded as list
                 if isinstance(value, tuple):
@@ -277,10 +430,14 @@ if __debug__:
                 s = bencode(value)
                 v = bdecode(s)
 
-                print "btorrent", len(s), ":", value, "->", s
+                if verbose:
+                    print "bittorrent", len(s), ":", value, "->", s
+                else:
+                    print "bittorrent", len(s)
                 assert value == v, (value, v)
             print
 
+        test(4242)
         test(42)
         test(42l)
         test(4.2)
@@ -294,4 +451,5 @@ if __debug__:
         test({u'foo':'bar'})
         test({4:2})
         test(None)
-        test(range(1000))
+        test(range(1000), False)
+        test(["F" * 20 for _ in range(1000)], False)

@@ -32,10 +32,9 @@ class Database(Singleton):
             self._debug_thread_ident = thread.get_ident()
             self._debug_file_path = file_path
 
-        self._connection = sqlite3.Connection(file_path, isolation_level=None)
+        self._connection = sqlite3.Connection(file_path)
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
-        self._transaction = ""
 
         #
         # PRAGMA synchronous = 0 | OFF | 1 | NORMAL | 2 | FULL;
@@ -95,15 +94,9 @@ class Database(Singleton):
 
         @return: The method self.execute
         """
-        if self._transaction == "implicit":
-            if __debug__: dprint("COMMIT")
-            self._cursor.execute(u"COMMIT")
-        elif self._transaction == "explicit":
-            raise RuntimeError("Nested 'with' statement")
-        if __debug__: dprint("BEGIN")
-        self._cursor.execute(u"BEGIN")
-        self._transaction = "explicit"
-        return self.execute
+        if __debug__: dprint("COMMIT")
+        self._connection.commit()
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
@@ -113,16 +106,13 @@ class Database(Singleton):
         together, causing only one transaction block to be used, hence increasing database
         performance.  When __exit__ is called the transaction block is commited.
         """
-        assert self._transaction == "explicit"
         if exc_type is None:
             if __debug__: dprint("COMMIT")
-            self._cursor.execute(u"COMMIT")
-            self._transaction = ""
+            self._connection.commit()
             return True
         else:
-            if __debug__: dprint("ROLLBACK", level="error")
-            self._cursor.execute(u"ROLLBACK")
-            self._transaction = ""
+            if __debug__: dprint("ROLLBACK")
+            self._connection.rollback()
             return False
 
     @property
@@ -174,11 +164,6 @@ class Database(Singleton):
         assert isinstance(bindings, (tuple, list, dict)), "The bindings must be a tuple, list, or dictionary"
         assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
 
-        if self._transaction == "":
-            if __debug__: dprint("BEGIN")
-            self._cursor.execute(u"BEGIN")
-            self._transaction = "implicit"
-
         try:
             if __debug__: dprint(statement, " <-- ", bindings)
             return self._cursor.execute(statement, bindings)
@@ -194,13 +179,6 @@ class Database(Singleton):
     def executescript(self, statements):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
         assert isinstance(statements, unicode), "The SQL statement must be given in unicode"
-
-        if self._transaction == "":
-            # we assume that the entire script needs to be in an implicit transaction (i.e. contains
-            # INSERT, UPDATE, etc. statements)
-            if __debug__: dprint("BEGIN")
-            self._cursor.execute(u"BEGIN")
-            self._transaction = "implicit"
 
         try:
             if __debug__: dprint(statements)
@@ -244,11 +222,6 @@ class Database(Singleton):
         assert not filter(lambda x: not isinstance(x, (tuple, list)), sequenceofbindings), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
         assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), sequenceofbindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
 
-        if self._transaction == "":
-            if __debug__: dprint("BEGIN")
-            self._cursor.execute(u"BEGIN")
-            self._transaction = "implicit"
-
         try:
             if __debug__: dprint(statement)
             return self._cursor.executemany(statement, sequenceofbindings)
@@ -261,13 +234,8 @@ class Database(Singleton):
             raise
 
     def commit(self):
-        if self._transaction == "implicit":
-            if __debug__: dprint("COMMIT")
-            self._cursor.execute(u"COMMIT")
-            self._transaction = ""
-            return self._connection.commit()
-        # otherwise there is either nothing to commit OR we are in an explicit transaction that will
-        # be committed on __exit__
+        if __debug__: dprint("COMMIT")
+        return self._connection.commit()
 
     # def _on_rollback(self):
     #     if __debug__: dprint("ROLLBACK", level="warning")
