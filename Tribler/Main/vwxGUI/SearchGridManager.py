@@ -589,6 +589,9 @@ class TorrentManager:
         29/06/11 boudewijn: from now on called on the GUITaskQueue instead on the wx MainThread to
         avoid blocking the GUI because of the database queries.
         """
+        self.guiserver.add_task(lambda: self._gotRemoteHits(permid, kws, answers), id = "TorrentSearchManager_gotRemoteHits")
+        
+    def _gotRemoteHits(self, permid, kws, answers):
         try:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
@@ -711,7 +714,7 @@ class TorrentManager:
                         # self.refreshGrid()
              
                 if numResults > 0:
-                    wx.CallAfter(self.refreshGrid)
+                    self.refreshGrid()
                     if DEBUG:
                         print >>sys.stderr,'TorrentSearchGridManager: gotRemoteHits: Refresh grid after new remote torrent hits came in'
                 return True
@@ -784,6 +787,7 @@ class ChannelSearchGridManager:
             raise RuntimeError, "ChannelSearchGridManager is singleton"
         ChannelSearchGridManager.__single = self
         self.guiUtility = guiUtility
+        self.guiserver = GUITaskQueue.getInstance()
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = {}
@@ -959,6 +963,9 @@ class ChannelSearchGridManager:
         
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
+        self.guiserver.add_task(lambda:self._gotRemoteHits(permid, kws, answers), id = "TorrentSearchManager_gotRemoteHits")
+        
+    def _gotRemoteHits(self, permid, kws, answers):
         #
         # @param permid: the peer who returned the answer to the query
         # @param kws: the keywords of the query that originated the answer
@@ -986,7 +993,7 @@ class ChannelSearchGridManager:
                         numResults +=1
                 
                 if numResults > 0:
-                    wx.CallAfter(self.refreshGrid)
+                    self.refreshGrid()
                     if DEBUG:
                         print >>sys.stderr,'ChannelSearchGridManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
                 return True

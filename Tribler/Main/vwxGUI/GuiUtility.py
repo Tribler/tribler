@@ -46,7 +46,6 @@ class GUIUtility:
         self.utility.guiUtility = self
         self.params = params
         self.frame = None
-        self.guiserver = GUITaskQueue.getInstance()
 
        # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
@@ -381,15 +380,11 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
-        def db_callback():
-            # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
-            # that kws is unicode and splits on all 'splittable' characters
-            kwstr = query[len('SIMPLE '):]
-            kws = split_into_keywords(kwstr)
-            self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
-        # 29/06/11 boudewijn: we can NOT schedule gotRemoteHits on the GUI thread because it used
-        # the database
-        self.guiserver.add_task(db_callback)
+        # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
+        # that kws is unicode and splits on all 'splittable' characters
+        kwstr = query[len('SIMPLE '):]
+        kws = split_into_keywords(kwstr)
+        self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
         
     def sesscb_got_channel_hits(self, permid, query, hits):
         '''
@@ -407,25 +402,13 @@ class GUIUtility:
         channelcast = BuddyCastFactory.getInstance().channelcast_core
         dictOfAdditions = channelcast.updateChannel(permid, query, hits)
 
-        # 29/06/11 boudewijn: note that the keys in dictOfAdditions contains the signature (whatever
-        # that is) and NOT the infohash.  this makes this result incompatible with
-        # SearchGridManager.getRemoteHits().  Hence these hits are NOT propagated there anymore.
+        # 22/01/10 boudewijn: use the split_into_keywords function to
+        # split.  This will ensure that kws is unicode and splits on
+        # all 'splittable' characters
+        kwstr = query[len("CHANNEL x "):]
+        kws = split_into_keywords(kwstr)
 
-        # # 22/01/10 boudewijn: use the split_into_keywords function to
-        # # split.  This will ensure that kws is unicode and splits on
-        # # all 'splittable' characters
-        # kwstr = query[len("CHANNEL x "):]
-        # kws = split_into_keywords(kwstr)
-
-        # #Code that calls GUI
-        # # 1. Grid needs to be updated with incoming hits, from each remote peer
-        # # 2. Sorting should also be done by that function
-
-        # def db_callback():
-        #     self.torrentsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
-        # # 29/06/11 boudewijn: we can NOT schedule gotRemoteHits on the GUI thread because it used
-        # # the database
-        # self.guiserver.add_task(db_callback)
+        self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
     
     def ShouldGuiUpdate(self):
         if self.frame.ready:
