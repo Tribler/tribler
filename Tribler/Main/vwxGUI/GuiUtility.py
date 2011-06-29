@@ -402,26 +402,30 @@ class GUIUtility:
         # Called by SessionCallback thread 
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
-        
+
         # Let channelcast handle inserting items etc.
         channelcast = BuddyCastFactory.getInstance().channelcast_core
         dictOfAdditions = channelcast.updateChannel(permid, query, hits)
 
-        # 22/01/10 boudewijn: use the split_into_keywords function to
-        # split.  This will ensure that kws is unicode and splits on
-        # all 'splittable' characters
-        kwstr = query[len("CHANNEL x "):]
-        kws = split_into_keywords(kwstr)
+        # 29/06/11 boudewijn: note that the keys in dictOfAdditions contains the signature (whatever
+        # that is) and NOT the infohash.  this makes this result incompatible with
+        # SearchGridManager.getRemoteHits().  Hence these hits are NOT propagated there anymore.
 
-        #Code that calls GUI
-        # 1. Grid needs to be updated with incoming hits, from each remote peer
-        # 2. Sorting should also be done by that function
+        # # 22/01/10 boudewijn: use the split_into_keywords function to
+        # # split.  This will ensure that kws is unicode and splits on
+        # # all 'splittable' characters
+        # kwstr = query[len("CHANNEL x "):]
+        # kws = split_into_keywords(kwstr)
 
-        def db_callback():
-            self.torrentsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
-        # 29/06/11 boudewijn: we can NOT schedule gotRemoteHits on the GUI thread because it used
-        # the database
-        self.guiserver.add_task(db_callback)
+        # #Code that calls GUI
+        # # 1. Grid needs to be updated with incoming hits, from each remote peer
+        # # 2. Sorting should also be done by that function
+
+        # def db_callback():
+        #     self.torrentsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
+        # # 29/06/11 boudewijn: we can NOT schedule gotRemoteHits on the GUI thread because it used
+        # # the database
+        # self.guiserver.add_task(db_callback)
     
     def ShouldGuiUpdate(self):
         if self.frame.ready:

@@ -262,6 +262,10 @@ class ChannelCastCore:
                 
                 # make everything into "string" format, if "binary"
                 hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
+                # 29/06/11 boudewijn: note that k contains the signature (whatever that is) and NOT
+                # the infohash.  this makes this result incompatible with
+                # SearchGridManager.getRemoteHits().  Hence these hits are NOT propagated there
+                # anymore.
                 dictOfAdditions[k] = hit
             
             # Arno, 2010-06-11: We're on the OverlayThread
