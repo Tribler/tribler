@@ -249,7 +249,7 @@ class ChannelCastCore:
         return self._updateChannelInternal(query_permid, query, hits)
         
     def _updateChannelInternal(self, query_permid, query, hits):
-        listOfAdditions = list()
+        dictOfAdditions = dict()
 
         if len(hits) > 0:
             # a single read from the db is more efficient
@@ -262,11 +262,11 @@ class ChannelCastCore:
                 
                 # make everything into "string" format, if "binary"
                 hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
-                listOfAdditions.append(hit)
+                dictOfAdditions[k] = hit
             
             # Arno, 2010-06-11: We're on the OverlayThread
-            self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
-        return listOfAdditions
+            self._updateChannelcastDB(query_permid, query, hits, dictOfAdditions.values())
+        return dictOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
         if DEBUG:

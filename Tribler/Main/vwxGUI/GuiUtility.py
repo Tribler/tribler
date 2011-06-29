@@ -22,6 +22,7 @@ from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchG
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.Utility.constants import *
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -45,6 +46,7 @@ class GUIUtility:
         self.utility.guiUtility = self
         self.params = params
         self.frame = None
+        self.guiserver = GUITaskQueue.getInstance()
 
        # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
@@ -379,13 +381,15 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
-        # 22/01/10 boudewijn: use the split_into_keywords function to
-        # split.  This will ensure that kws is unicode and splits on
-        # all 'splittable' characters
-        kwstr = query[len('SIMPLE '):]
-        kws = split_into_keywords(kwstr)
-
-        wx.CallAfter(self.torrentsearch_manager.gotRemoteHits, permid, kws, hits)
+        def db_callback():
+            # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
+            # that kws is unicode and splits on all 'splittable' characters
+            kwstr = query[len('SIMPLE '):]
+            kws = split_into_keywords(kwstr)
+            self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
+        # 29/06/11 boudewijn: we can NOT schedule gotRemoteHits on the GUI thread because it used
+        # the database
+        self.guiserver.add_task(db_callback)
         
     def sesscb_got_channel_hits(self, permid, query, hits):
         '''
@@ -401,8 +405,8 @@ class GUIUtility:
         
         # Let channelcast handle inserting items etc.
         channelcast = BuddyCastFactory.getInstance().channelcast_core
-        listOfAdditions = channelcast.updateChannel(permid, query, hits)
-        
+        dictOfAdditions = channelcast.updateChannel(permid, query, hits)
+
         # 22/01/10 boudewijn: use the split_into_keywords function to
         # split.  This will ensure that kws is unicode and splits on
         # all 'splittable' characters
@@ -412,7 +416,12 @@ class GUIUtility:
         #Code that calls GUI
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
-        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,listOfAdditions)
+
+        def db_callback():
+            self.torrentsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
+        # 29/06/11 boudewijn: we can NOT schedule gotRemoteHits on the GUI thread because it used
+        # the database
+        self.guiserver.add_task(db_callback)
     
     def ShouldGuiUpdate(self):
         if self.frame.ready:

@@ -37,6 +37,7 @@ class TorrentDetails(wx.Panel):
         self.parent = parent
         self.torrent = torrent
         self.type = None
+        self.vod_log = None
         
         self.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)

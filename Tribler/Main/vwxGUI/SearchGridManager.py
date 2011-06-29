@@ -583,7 +583,12 @@ class TorrentManager:
                     numResults+=1
         
     def gotRemoteHits(self, permid, kws, answers):
-        """ Called by GUIUtil when hits come in. """
+        """
+        Called by GUIUtil when hits come in.
+
+        29/06/11 boudewijn: from now on called on the GUITaskQueue instead on the wx MainThread to
+        avoid blocking the GUI because of the database queries.
+        """
         try:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
@@ -706,7 +711,7 @@ class TorrentManager:
                         # self.refreshGrid()
              
                 if numResults > 0:
-                    self.refreshGrid()
+                    wx.CallAfter(self.refreshGrid)
                     if DEBUG:
                         print >>sys.stderr,'TorrentSearchGridManager: gotRemoteHits: Refresh grid after new remote torrent hits came in'
                 return True

@@ -5,6 +5,7 @@ from wx.lib.scrolledpanel import ScrolledPanel
 
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 DEBUG = False
 
@@ -422,6 +423,10 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             therest['style']= wx.TE_PROCESS_ENTER 
     
         wx.TextCtrl.__init__(self , parent , **therest)
+
+        # we need the GUITaskQueue to offload database activity, otherwise we may lock the GUI
+        self.text = ""
+        self.guiserver = GUITaskQueue.getInstance()
         
         self.screenheight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
          
@@ -484,16 +489,31 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         event.Skip()
 
     def EnteredText (self, event) : 
-        text = event.GetString()
-        
+        self.text = text = event.GetString()
+
         if self.entrycallback:
-            choices = self.entrycallback(text)
-            self.SetChoices(choices)
-        
-        if len(self.choices) == 0:
-            self.ShowDropDown(False)
-        else:
-            self.ShowDropDown(True)
+            def wx_callback(choices):
+                """
+                Will update the gui IF the user did not yet change the input text
+                """
+                if text == self.text:
+                    self.SetChoices(choices)
+                    if len(self.choices) == 0:
+                        self.ShowDropDown(False)
+                    else:
+                        self.ShowDropDown(True)
+
+            def db_callback():
+                """
+                Will try to find completions in the database IF the user did not yet change the
+                input text
+                """
+                if text == self.text:
+                    choices = self.entrycallback(text)
+                    wx.CallAfter(wx_callback, choices)
+
+            self.guiserver.add_task(db_callback)
+
         event.Skip()
 
     def KeyDown (self, event) : 

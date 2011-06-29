@@ -1252,7 +1252,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         nb = NetworkBuzzDBHandler.getInstance()
-        nb.addTorrent(torrent_id, torrent_name, commit)
+        nb.addTorrent(torrent_id, torrent_name, commit=False)
         
         self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
         if commit:

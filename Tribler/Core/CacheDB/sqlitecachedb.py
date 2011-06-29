@@ -432,6 +432,22 @@ class SQLiteCacheDBBase:
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+
+        # we should not perform database actions on the GUI (MainThread) thread because that might
+        # block the GUI
+        if __debug__:
+            if threading.currentThread().getName() == "MainThread":
+                for sql_line in sql.split(";"):
+                    try:
+                        key, rest = sql_line.strip().split(" ", 1)
+                        print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
+                        # print_stack()
+                    except:
+                        key = sql.strip()
+                        if key:
+                            print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
+                            # print_stack()
+
         try:
             if args is None:
                 return cur.execute(sql)
