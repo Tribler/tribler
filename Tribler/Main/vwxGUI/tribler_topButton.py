@@ -515,6 +515,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
                         wx.CallAfter(wx_callback, choices)
     
                 self.guiserver.add_task(db_callback)
+        self.ShowDropDown(False)
         event.Skip()
 
     def KeyDown (self, event) : 
