@@ -34,26 +34,30 @@ LEVEL_LOG = 142
 LEVEL_NOTICE = 167
 LEVEL_WARNING = 192
 LEVEL_ERROR = 224
+LEVEL_FORCE = 1024
 level_map = {"debug":LEVEL_DEBUG,       # informative only to a developer
              "normal":LEVEL_NORMAL,     # informative to a user running from console
              "log":LEVEL_LOG,           # a message that is logged
              "notice":LEVEL_NOTICE,     # something is wrong but we can recover (external failure, we are not the cause nor can we fix this)
              "warning":LEVEL_WARNING,   # something is wrong but we can recover (internal failure, we are the cause and should fix this)
-             "error":LEVEL_ERROR}       # something is wtong and recovering is impossible
+             "error":LEVEL_ERROR,       # something is wrong and recovering is impossible
+             "force":LEVEL_FORCE}       # explicitly force this print to pass through the filter
 level_tag_map = {LEVEL_DEBUG:"D",
                  LEVEL_NORMAL:" ",
                  LEVEL_LOG:"L",
                  LEVEL_NOTICE:"N",
                  LEVEL_WARNING:"W",
-                 LEVEL_ERROR:"E"}
+                 LEVEL_ERROR:"E",
+                 LEVEL_FORCE:"F"}
 
 _dprint_settings = {
+    "binary":False,                     # print a binary representation of the arguments
     "box":False,                        # add a single line above and below the message
     "box_char":"-",                     # when a box is added to the message use this character to generate the line
     "box_width":80,                     # when a box is added to the message make the lines this long
-    "binary":False,                     # print a binary representation of the arguments
     "callback":None,                    # optional callback. the callback is only performed if the filters accept the message. the callback result is added to the displayed message
     "exception":False,                  # add the last occured exception, including its stacktrace, to the message
+    "force":False,                      # ignore all filters, equivalent to level="force"
     "glue":"",                          # use this string to join() *args together
     "level":LEVEL_NORMAL,               # either "debug", "normal", "warning", "error", or a number in the range [0, 255]
     "line":False,                       # add a single line above the message
@@ -61,6 +65,7 @@ _dprint_settings = {
     "line_width":80,                    # when a line is added to the message make the line this long
     "lines":False,                      # write each value on a seperate line
     "meta":False,                       # write each value on a seperate line including metadata
+    "pprint":False,                     # pretty print arg[0] if there is only one argument, otherwize pretty print arg
     "remote":False,                     # write message to remote logging application
     "remote_host":"localhost",          # when remote logging is enabled this hostname is used
     "remote_port":12345,                # when remote logging is enabled this port is used
@@ -68,13 +73,12 @@ _dprint_settings = {
     "source_function":None,             # force a source function. otherwise the function is retrieved from the callstack
     "source_line":None,                 # force a source line. otherwise the line number is retrieved from the callstack
     "stack":False,                      # add a stacktrace to the message. optionally this can be a list optained through extract_stack()
-    "stack_origin_modifier":-1,         # modify the length of the callstack that is displayed and used to retrieve the source-filename, -function, and -line
     "stack_ident":None,                 # when stack is printed use this ident to determine the thread name
+    "stack_origin_modifier":-1,         # modify the length of the callstack that is displayed and used to retrieve the source-filename, -function, and -line
     "stderr":False,                     # write message to sys.stderr
     "stdout":True,                      # write message to sys.stdout
     "style":"column",                   # output style. either "short" or "column"
     "table":False,
-    "pprint":False,
     "time":False,                       # include a timestamp at the start of each line
     "time_format":"%H:%M:%S"}           # the timestamp format (see strftime)
 
@@ -394,7 +398,7 @@ def _config_read():
 
     string = ["box_char", "glue", "line_char", "remote_host", "source_file", "source_function", "style", "time_format"]
     int_ = ["box_width", "line_width", "remote_port", "source_line", "stack_origin_modifier"]
-    boolean = ["box", "binary", "exception", "line", "lines", "meta", "pprint", "remote", "stack", "stderr", "stdout", "time"]
+    boolean = ["box", "binary", "exception", "force", "line", "lines", "meta", "pprint", "remote", "stack", "stderr", "stdout", "time"]
     for line_number, line, before, after in sections["default"]:
         try:
             if before in string:
@@ -891,6 +895,10 @@ def dprint(*args, **kargs):
         if kargs["source_file"] is None: kargs["source_file"] = "unknown"
         if kargs["source_line"] is None: kargs["source_line"] = 0
         if kargs["source_function"] is None: kargs["source_function"] = "unknown"
+
+    # exlicitly force the message
+    if kargs["force"]:
+        kargs["level"] = "force"
 
     # when level is below ERROR, apply filters on the message
     if kargs["level"] in level_map: kargs["level"] = level_map[kargs["level"]]
