@@ -959,12 +959,12 @@ class Dispersy(Singleton):
             addresses.update(address for address, _, _ in batch)
 
             # schedule batch processing (taking into account the message priority)
-            if meta.name in self._batch_cache:
-                self._batch_cache[meta.name].extend(batch)
+            if meta in self._batch_cache:
+                self._batch_cache[meta].extend(batch)
                 if __debug__:
                     self._debug_batch_cache_performance[meta.name].append(len(batch))
             else:
-                self._batch_cache[meta.name] = batch
+                self._batch_cache[meta] = batch
                 self._callback.register(self._on_batch_cache, (meta,), delay=meta.delay, priority=meta.priority)
                 if __debug__:
                     self._debug_batch_cache_performance[meta.name] = [len(batch)]
@@ -983,8 +983,8 @@ class Dispersy(Singleton):
         Start processing a batch of messages.
 
         This method is called meta.delay seconds after the first message in this batch arrived.  All
-        messages in this batch have been 'cached' together in self._batch_cache[meta.name].
-        Hopefully the delay caused the batch to collect as many messages as possible.
+        messages in this batch have been 'cached' together in self._batch_cache[meta].  Hopefully
+        the delay caused the batch to collect as many messages as possible.
 
         The batch is processed in the following steps:
 
@@ -995,7 +995,7 @@ class Dispersy(Singleton):
 
          3. All remaining messages are passed to on_message_batch.
         """
-        assert meta.name in self._batch_cache
+        assert meta in self._batch_cache
 
         def unique(batch):
             unique = set()
@@ -1016,11 +1016,12 @@ class Dispersy(Singleton):
 
         # remove duplicated
         # todo: make _convert_batch_into_messages accept iterator instead of list to avoid conversion
-        batch = list(unique(self._batch_cache.pop(meta.name)))
+        batch = list(unique(self._batch_cache.pop(meta)))
 
         # convert binary packets into Message.Implementation instances
         messages = list(self._convert_batch_into_messages(batch))
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages), "_convert_batch_into_messages must return only Message.Implementation instances"
+        assert not filter(lambda x: not x.meta == meta, messages), "All Message.Implementation instances must be in the same batch"
         if __debug__: dprint(len(messages), " ", meta.name, " messages after conversion")
 
         # handle the incoming messages
