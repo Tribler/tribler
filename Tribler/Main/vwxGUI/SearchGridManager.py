@@ -981,7 +981,7 @@ class ChannelSearchGridManager:
             if self.searchkeywords == kws:
                 numResults = 0
                 
-                for hit in answers:
+                for hit in answers.itervalues():
                     #Add to self.hits
                     if hit[0] not in self.hits:
                         self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(bin2str(hit[0])), {}]
