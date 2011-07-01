@@ -335,16 +335,18 @@ class GUIUtility:
                 
             else: #channel not found in local database (no torrents downloaded yet)
                 channel_name = data_channel[permid][0]
-                subscribers = data_channel[permid][1]
-                torrents = len(data_channel[permid][2])
+                nr_favorites = data_channel[permid][1] # nr_favorites
+                nr_torrents = len(data_channel[permid][2])
+                nr_spam = 0
+                vote = None
                 
-                if torrents > 0:
+                if nr_torrents > 0:
                     timestamps = [value[1] for torrent, value in data_channel[permid][2].iteritems()]
                     max_timestamp = max(timestamps)
                 else:
                     max_timestamp = -1
-                data.append([permid, channel_name, max_timestamp, subscribers, torrents])
-            
+                data.append((permid, channel_name, max_timestamp, nr_favorites, nr_torrents, nr_spam, vote))
+
         def subscribe_latestupdate_sort(b, a):
             val = cmp(a[4], b[4])
             if val == 0:
