@@ -39,24 +39,24 @@ from debugcommunity import DebugCommunity, DebugNode
 
 class Script(Singleton):
     def __init__(self, callback):
-        self._call_generators = []
         self._scripts = {}
         self._callback = callback
+        self._testcases = []
 
-    def add(self, name, script, args={}, include_with_all=True):
+    def add(self, name, script, kargs={}, include_with_all=True):
         assert isinstance(name, str)
         assert not name in self._scripts
         assert issubclass(script, ScriptBase)
-        self._scripts[name] = (include_with_all, script, args)
+        self._scripts[name] = (include_with_all, script, kargs)
 
     def load(self, name):
         dprint(name)
 
         if name == "all":
-            for name, (include_with_all, script, args) in self._scripts.iteritems():
+            for name, (include_with_all, script, kargs) in self._scripts.iteritems():
                 if include_with_all:
                     dprint(name)
-                    script(self, name, **args)
+                    script(self, name, **kargs)
 
         elif name in self._scripts:
             self._scripts[name][1](self, name, **self._scripts[name][2])
@@ -66,38 +66,26 @@ class Script(Singleton):
                 dprint("available: ", available, level="warning")
             raise ValueError("Unknown script '%s'" % name)
 
-    def add_generator(self, call, call_generator):
-        self._call_generators.append((call, call_generator))
-        if len(self._call_generators) == 1:
-            self._start(call)
-            self._callback.register(self._process_generators, delay=0.0)
+    def add_testcase(self, call):
+        if len(self._testcases) == 0:
+            self._callback.register(self._next_testcase)
+        self._testcases.append(call)
 
-    def _start(self, call):
-#         dprint("start ", call.__self__.__class__.__name__, ".", call.__name__, line=1)
-        dprint("start ", call, line=1)
-        if call.__doc__:
-            dprint(call.__doc__, box=1)
+    def _next_testcase(self, result=None):
+        if isinstance(result, Exception):
+            dprint("exception! shutdown", box=True, level="error")
+            self._callback.stop(wait=False)
 
-    def _process_generators(self):
-        if self._call_generators:
-            call, call_generator = self._call_generators[0]
-            try:
-                delay = call_generator.next()
-
-            except StopIteration:
-                self._call_generators.pop(0)
-                delay = 0.555
-#                 dprint("finished: ", call.__self__.__class__.__name__, ".", call.__name__)
-                dprint("finished ", call)
-                if self._call_generators:
-                    call, call_generator = self._call_generators[0]
-                    self._start(call)
-
-            self._callback.register(self._process_generators, delay=delay)
+        elif self._testcases:
+            call = self._testcases.pop(0)
+            dprint("start ", call, line=True, level="warning")
+            if call.__doc__:
+                dprint(call.__doc__, box=True)
+            self._callback.register(call, callback=self._next_testcase)
 
         else:
-            dprint("shutdown", box=1)
-            self._callback.stop()
+            dprint("shutdown", box=True, level="warning")
+            self._callback.stop(wait=False)
 
 class ScriptBase(object):
     def __init__(self, script, name, **kargs):
@@ -105,12 +93,10 @@ class ScriptBase(object):
         self._name = name
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
-        self.caller(self.run)
+        self._dispersy.callback.register(self.run)
 
     def caller(self, run):
-        run_generator = run()
-        if isinstance(run_generator, types.GeneratorType):
-            self._script.add_generator(run, run_generator)
+        self._script.add_testcase(run)
 
     def run():
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
@@ -1149,7 +1135,6 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         global_time = 10
         message = node.create_full_sync_text_message("duplicates", global_time)
@@ -1159,7 +1144,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [global_time]
+        assert times == [global_time], (times, [global_time])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1181,7 +1166,6 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         global_time = 10
         # first batch
@@ -1224,7 +1208,6 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         global_time = 10
         for index in range(10):
@@ -1259,7 +1242,6 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         global_time = 10
         # first batch
@@ -1299,7 +1281,6 @@ class DispersyBatchScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         dprint("START BIG BATCH")
         for global_time in range(10, 510):
@@ -1334,7 +1315,6 @@ class DispersyBatchScript(ScriptBase):
             node.init_my_member()
 
             exp.append((community, node))
-            yield 0.555
 
         dprint("START SMALL BATCHES")
         global_time = 10
@@ -1387,7 +1367,7 @@ class DispersySyncScript(ScriptBase):
         self.caller(self.last_1_multimember)
         self.caller(self.last_1_multimember_unique_user_global_time)
         self.caller(self.last_1_multimember_sync_bloom_crash_test)
-        # TODO add more checks for the multimemberauthentication case
+        # # TODO add more checks for the multimemberauthentication case
         # self.caller(self.last_9_multimember)
 
     def assert_sync_ranges(self, community, messages, minimal_remaining=0, verbose=False):
@@ -1407,7 +1387,7 @@ class DispersySyncScript(ScriptBase):
                 assert False, "should always find the sync_range"
         if verbose: dprint("Verified ", len(messages), " messages")
 
-    def enlarging_sync_bloom(self):
+    def batch_reversed_enlarging_sync_bloom(self):
         """
         The sync bloomfilter should grow when to many packets are received in that time range.  Also
         tests that the sync bloom filters are initialized correctly when the community is loaded.
@@ -1416,7 +1396,59 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 90
+                return 100
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
+        assert len(community._sync_ranges) == 1
+        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = -1
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(20, 10, -1):
+                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+            # unload community
+            community.unload_community()
+
+            # load community
+            dprint("loading...")
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def batch_enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range.  Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 100
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -1437,7 +1469,6 @@ class DispersySyncScript(ScriptBase):
             node.init_socket()
             node.set_community(community)
             node.init_my_member()
-            yield 0.555
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
 
             # create a few messages in each sync bloomfilter range
@@ -1447,17 +1478,172 @@ class DispersySyncScript(ScriptBase):
 
             # unload community
             community.unload_community()
-            yield 0.555
-
-            dprint("loading...")
 
             # load community
+            dprint("loading...")
             community = TestCommunity.load_community(community.cid, "")
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
 
         # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
         # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
         # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def reversed_enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 100
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
+        assert len(community._sync_ranges) == 1
+        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = -1
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(20, 10, -1):
+                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+            # unload community
+            community.unload_community()
+
+            # load community
+            dprint("loading...")
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def enlarging_sync_bloom(self):
+        """
+        The sync bloomfilter should grow when to many packets are received in that time range.  Also
+        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 10
+                return 100
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 10
+        assert len(community._sync_ranges) == 1
+        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+
+        messages = []
+        for counter in xrange(11):
+            if counter >= 9:
+                minimal_remaining = 10 - counter - 2
+            else:
+                minimal_remaining = -1
+            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
+
+            # create node and ensure that SELF knows the node address
+            node = DebugNode()
+            node.init_socket()
+            node.set_community(community)
+            node.init_my_member()
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
+
+            # create a few messages in each sync bloomfilter range
+            for global_time in xrange(10, 20):
+                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+            # unload community
+            community.unload_community()
+
+            # load community
+            dprint("loading...")
+            community = TestCommunity.load_community(community.cid, "")
+            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
+
+        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
+        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
+        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def large_sync(self):
+        """
+        The sync bloomfilter covers a certain global-time range.  Hence, as time goes on, multiple
+        bloomfilters should be generated and periodically synced.
+
+        We use a dispersy_sync_bloom_filter_capacity of 25.  Hence each bloom filter must hold no
+        more than 25 packets.
+        """
+        class TestCommunity(DebugCommunity):
+            @property
+            def dispersy_sync_bloom_filter_bits(self):
+                # this results in a capacity off 25
+                return 245
+
+        community = TestCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        assert community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity
+        assert len(community._sync_ranges) == 1
+        assert community._sync_ranges[0].space_remaining == 22 # 25 - 3 (disp-identity*2, disp-authorize)
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        assert len(community._sync_ranges) == 1
+        assert community._sync_ranges[0].space_remaining == 21 # 25 - 4 (disp-identity*3, disp-authorize)
+
+        # create a few messages in each sync bloomfilter range
+        messages = []
+        for global_time in xrange(10, 110):
+            messages.append(node.give_message(node.create_in_order_text_message("global-time: %d" % global_time, global_time)))
+
+        # we should have around (100+4) / 25 = 4.16 = 5 sync ranges
+        for sync_range in community._sync_ranges:
+            dprint("range [", sync_range.time_low, ":... space_remaining: ", sync_range.space_remaining)
+            assert sync_range.space_remaining >= 0
+        assert len(community._sync_ranges) == 5
+
+        for message in messages:
+            for sync_range in community._sync_ranges:
+                if sync_range.time_low <= message.distribution.global_time:
+                    for bloom_filter in sync_range.bloom_filters:
+                        assert message.packet in bloom_filter
+                    break
+            else:
+                assert False, "should always find the sync_range"
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1474,7 +1660,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 90
+                return 100
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -1487,7 +1673,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 1.555
         self.assert_sync_ranges(community, [])
         assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
                                                               # master ident, owner ident, node ident
@@ -1525,7 +1710,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 90
+                return 100
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -1538,7 +1723,6 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_socket()
         nodeA.set_community(community)
         nodeA.init_my_member()
-        yield 0.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
@@ -1548,7 +1732,6 @@ class DispersySyncScript(ScriptBase):
         nodeB.init_socket()
         nodeB.set_community(community)
         nodeB.init_my_member()
-        yield 0.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 5 # 10 - 5 (disp-identity*4, disp-authorize)
@@ -1642,7 +1825,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 90
+                return 100
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -1655,7 +1838,6 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_socket()
         nodeA.set_community(community)
         nodeA.init_my_member()
-        yield 1.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
@@ -1665,7 +1847,6 @@ class DispersySyncScript(ScriptBase):
         nodeB.init_socket()
         nodeB.set_community(community)
         nodeB.init_my_member()
-        yield 0.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 5 # 10 - 5 (disp-identity*4, disp-authorize)
@@ -1675,7 +1856,6 @@ class DispersySyncScript(ScriptBase):
         nodeC.init_socket()
         nodeC.set_community(community)
         nodeC.init_my_member()
-        yield 0.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 4 # 10 - 4 (disp-identity*5, disp-authorize)
@@ -1778,7 +1958,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 90
+                return 100
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -1791,7 +1971,6 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_socket()
         nodeA.set_community(community)
         nodeA.init_my_member()
-        yield 1.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
@@ -1801,7 +1980,6 @@ class DispersySyncScript(ScriptBase):
         nodeB.init_socket()
         nodeB.set_community(community)
         nodeB.init_my_member()
-        yield 0.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 5 # 10 - 5 (disp-identity*4, disp-authorize)
@@ -1811,7 +1989,6 @@ class DispersySyncScript(ScriptBase):
         nodeC.init_socket()
         nodeC.set_community(community)
         nodeC.init_my_member()
-        yield 0.555
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 4 # 10 - 6 (disp-identity*5, disp-authorize)
@@ -1890,226 +2067,6 @@ class DispersySyncScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-    def reversed_enlarging_sync_bloom(self):
-        """
-        The sync bloomfilter should grow when to many packets are received in that time range Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 90
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-            yield 0.555
-
-            # create a few messages in each sync bloomfilter range
-            for global_time in xrange(20, 10, -1):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-            # unload community
-            community.unload_community()
-            yield 0.555
-
-            dprint("loading...")
-
-            # load community
-            community = TestCommunity.load_community(community.cid, "")
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def batch_enlarging_sync_bloom(self):
-        """
-        The sync bloomfilter should grow when to many packets are received in that time range.  Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 90
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-            yield 0.555
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
-
-            # create a few messages in each sync bloomfilter range
-            for global_time in xrange(10, 20):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-            # unload community
-            community.unload_community()
-            yield 0.555
-
-            dprint("loading...")
-
-            # load community
-            community = TestCommunity.load_community(community.cid, "")
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def batch_reversed_enlarging_sync_bloom(self):
-        """
-        The sync bloomfilter should grow when to many packets are received in that time range.  Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 90
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-            yield 1.555
-
-            # create a few messages in each sync bloomfilter range
-            for global_time in xrange(20, 10, -1):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-
-            # unload community
-            community.unload_community()
-            yield 0.555
-
-            dprint("loading...")
-
-            # load community
-            community = TestCommunity.load_community(community.cid, "")
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def large_sync(self):
-        """
-        The sync bloomfilter covers a certain global-time range.  Hence, as time goes on, multiple
-        bloomfilters should be generated and periodically synced.
-
-        We use a dispersy_sync_bloom_filter_capacity of 25.  Hence each bloom filter must hold no
-        more than 25 packets.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 25
-                return 210
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 22 # 25 - 3 (disp-identity*2, disp-authorize)
-
-        # create node and ensure that SELF knows the node address
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-        yield 1.555
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 21 # 25 - 4 (disp-identity*3, disp-authorize)
-
-        # create a few messages in each sync bloomfilter range
-        messages = []
-        for global_time in xrange(10, 110):
-            messages.append(node.give_message(node.create_in_order_text_message("global-time: %d" % global_time, global_time)))
-
-        # we should have around (100+4) / 25 = 4.16 = 5 sync ranges
-        for sync_range in community._sync_ranges:
-            dprint("range [", sync_range.time_low, ":... space_remaining: ", sync_range.space_remaining)
-            assert sync_range.space_remaining >= 0
-        assert len(community._sync_ranges) == 5
-
-        for message in messages:
-            for sync_range in community._sync_ranges:
-                if sync_range.time_low <= message.distribution.global_time:
-                    for bloom_filter in sync_range.bloom_filters:
-                        assert message.packet in bloom_filter
-                    break
-            else:
-                assert False, "should always find the sync_range"
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
     def in_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -2120,7 +2077,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -2133,6 +2089,7 @@ class DispersySyncScript(ScriptBase):
 
         # send an empty sync message to obtain all messages in-order
         node.give_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)))
+        yield 0.1
 
         for global_time in global_times:
             _, message = node.receive_message(addresses=[address], message_names=[u"in-order-text"])
@@ -2152,7 +2109,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -2165,6 +2121,7 @@ class DispersySyncScript(ScriptBase):
 
         # send an empty sync message to obtain all messages out-order
         node.give_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)))
+        yield 0.1
 
         for global_time in reversed(global_times):
             _, message = node.receive_message(addresses=[address], message_names=[u"out-order-text"])
@@ -2184,7 +2141,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -2207,6 +2163,7 @@ class DispersySyncScript(ScriptBase):
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
             node.give_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)))
+            yield 0.1
 
             received_times = get_messages_back()
             if not received_times in lists:
@@ -2231,7 +2188,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND sync.name IN (?, ?, ?)", (community.database_id, node.my_member.database_id, in_order_message.database_id, out_order_message.database_id, random_order_message.database_id)))
@@ -2266,6 +2222,7 @@ class DispersySyncScript(ScriptBase):
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
             node.give_message(node.create_dispersy_sync_message(min(global_times), 0, [], max(global_times)))
+            yield 0.1
 
             received_times = get_messages_back()
 
@@ -2302,7 +2259,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -2329,6 +2285,7 @@ class DispersySyncScript(ScriptBase):
         assert global_time in times
 
         # as proof for the drop, the newest message should be sent back
+        yield 0.1
         _, message = node.receive_message(addresses=[address], message_names=[u"last-1-test"])
         assert message.distribution.global_time == 11
 
@@ -2359,7 +2316,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -2435,7 +2391,6 @@ class DispersySyncScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -2531,21 +2486,18 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_socket()
         nodeA.set_community(community)
         nodeA.init_my_member()
-        yield 0.555
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
         nodeB.init_socket()
         nodeB.set_community(community)
         nodeB.init_my_member()
-        yield 0.555
 
         # create node and ensure that SELF knows the node address
         nodeC = DebugNode()
         nodeC.init_socket()
         nodeC.set_community(community)
         nodeC.init_my_member()
-        yield 0.555
 
         # # dump some junk data, TODO: should not use this btw in actual test...
         # self._dispersy_database.execute(u"INSERT INTO sync (community, name, user, global_time) VALUES (?, ?, 42, 9)", (community.database_id, message.database_id))
@@ -2565,7 +2517,6 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1)", global_time))
         messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1)", other_global_time))
         nodeA.give_messages(messages)
-        yield 0.555
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
@@ -2577,10 +2528,9 @@ class DispersySyncScript(ScriptBase):
         global_time = 20
         other_global_time = global_time + 1
         messages = []
-        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2)", global_time))
-        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2)", other_global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2) @%d" % global_time, global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2) @%d" % other_global_time, other_global_time))
         nodeA.give_messages(messages)
-        yield 0.555
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
@@ -2594,7 +2544,6 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be dropped (1)", old_global_time))
         messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be dropped (1)", old_global_time))
         nodeA.give_messages(messages)
-        yield 0.555
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
@@ -2602,13 +2551,15 @@ class DispersySyncScript(ScriptBase):
         assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries, entries
         assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
 
+        yield 0.1
+        nodeA.drop_packets()
+
         # send a message (older: should be dropped)
         old_global_time = 8
         messages = []
         messages.append(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time))
         messages.append(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time))
         nodeA.give_messages(messages)
-        yield 0.555
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
@@ -2617,8 +2568,13 @@ class DispersySyncScript(ScriptBase):
         assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
 
         # as proof for the drop, the newest message should be sent back
+        yield 0.1
+        times = []
         _, message = nodeA.receive_message(addresses=[address], message_names=[u"last-1-multimember-text"])
-        assert message.distribution.global_time == global_time, message.distribution.global_time
+        times.append(message.distribution.global_time)
+        _, message = nodeA.receive_message(addresses=[address], message_names=[u"last-1-multimember-text"])
+        times.append(message.distribution.global_time)
+        assert sorted(times) == [global_time, other_global_time]
 
         # send a message (older + different member combination: should be dropped)
         old_global_time = 9
@@ -2626,13 +2582,55 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeB.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time))
         messages.append(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time))
         nodeA.give_messages(messages)
-        yield 0.555
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.user, reference_user_sync.user FROM sync JOIN reference_user_sync ON reference_user_sync.sync = sync.id WHERE sync.community = ? AND sync.user = ? AND sync.name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
         assert len(entries) == 4, entries
         assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
         assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
         assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def last_1_multimember_unique_user_global_time(self):
+        """
+        Even with multi member messages, the first member is the creator and may only have one
+        message for each global time.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+        message = community.get_meta_message(u"last-1-multimember-text")
+
+        # create node and ensure that SELF knows the node address
+        nodeA = DebugNode()
+        nodeA.init_socket()
+        nodeA.set_community(community)
+        nodeA.init_my_member()
+
+        # create node and ensure that SELF knows the node address
+        nodeB = DebugNode()
+        nodeB.init_socket()
+        nodeB.set_community(community)
+        nodeB.init_my_member()
+
+        # create node and ensure that SELF knows the node address
+        nodeC = DebugNode()
+        nodeC.init_socket()
+        nodeC.set_community(community)
+        nodeC.init_my_member()
+
+        # send two messages
+        global_time = 10
+        messages = []
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
+        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
+
+        # we NEED the messages to be handled in one batch.  using the socket may change this
+        nodeA.give_messages(messages)
+
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id))]
+        assert times == [global_time], times
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2656,7 +2654,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 90
+                return 100
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -2670,21 +2668,18 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_socket()
         nodeA.set_community(community)
         nodeA.init_my_member()
-        yield 0.555
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
         nodeB.init_socket()
         nodeB.set_community(community)
         nodeB.init_my_member()
-        yield 0.555
 
         # create node and ensure that SELF knows the node address
         nodeC = DebugNode()
         nodeC.init_socket()
         nodeC.set_community(community)
         nodeC.init_my_member()
-        yield 0.555
 
         for global_time in xrange(10, 150, 3):
             # send two messages
@@ -2722,52 +2717,6 @@ class DispersySyncScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-    def last_1_multimember_unique_user_global_time(self):
-        """
-        Even with multi member messages, the first member is the creator and may only have one
-        message for each global time.
-        """
-        community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        message = community.get_meta_message(u"last-1-multimember-text")
-
-        # create node and ensure that SELF knows the node address
-        nodeA = DebugNode()
-        nodeA.init_socket()
-        nodeA.set_community(community)
-        nodeA.init_my_member()
-        yield 0.555
-
-        # create node and ensure that SELF knows the node address
-        nodeB = DebugNode()
-        nodeB.init_socket()
-        nodeB.set_community(community)
-        nodeB.init_my_member()
-        yield 0.555
-
-        # create node and ensure that SELF knows the node address
-        nodeC = DebugNode()
-        nodeC.init_socket()
-        nodeC.set_community(community)
-        nodeC.init_my_member()
-        yield 0.555
-
-        # send two messages
-        global_time = 10
-        messages = []
-        messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
-        messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
-
-        # we NEED the messages to be handled in one batch.  using the socket may change this
-        nodeA.give_messages(messages)
-
-        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, nodeA.my_member.database_id, message.database_id))]
-        assert times == [global_time], times
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
 class DispersySignatureScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -2792,24 +2741,23 @@ class DispersySignatureScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         dprint("SELF requests NODE to double sign")
         def on_response(response):
             assert response is None
             container["timeout"] += 1
         request = community.create_double_signed_text("Accept=<does not reach this point>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
-        yield 0.555
+        yield 0.11
 
         dprint("NODE receives dispersy-signature-request message")
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         # do not send a response
 
-        # should time out
+        # should timeout
         for counter in range(4):
             dprint("waiting... ", 4 - counter)
             yield 1.0
-        yield 0.555
+        yield 0.11
 
         dprint("SELF must have timed out by now")
         assert container["timeout"] == 1, container["timeout"]
@@ -2819,6 +2767,10 @@ class DispersySignatureScript(ScriptBase):
         community.unload_community()
 
     def double_signed_response(self):
+        """
+        SELF will request a signature from NODE.  SELF will receive the signature and produce a
+        double signed message.
+        """
         ec = ec_generate_key(u"low")
         my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
         community = DebugCommunity.create_community(self._my_member)
@@ -2830,35 +2782,27 @@ class DispersySignatureScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
-        # SELF requests NODE to double sign
+        dprint("SELF requests NODE to double sign")
         def on_response(response):
             assert container["response"] == 0, container["response"]
             assert request.authentication.is_signed
             container["response"] += 1
-        request = community.create_double_signed_text("Accept=False", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
-        yield 0.555
+        request = community.create_double_signed_text("Accept=<does not matter>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
+        yield 0.11
 
-        # receive dispersy-signature-request message
+        dprint("NODE receives dispersy-signature-request message from SELF")
         address, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         second_signature_offset = len(submsg.packet) - community.my_member.signature_length
         first_signature_offset = second_signature_offset - node.my_member.signature_length
-        assert submsg.packet[second_signature_offset:] == "\x00" * node.my_member.signature_length
+        assert submsg.packet[second_signature_offset:] == "\x00" * node.my_member.signature_length, "The first signature MUST BE \x00's.  The creator must hold control over the community+member+global_time triplet"
         signature = node.my_member.sign(submsg.packet, length=first_signature_offset)
 
-        # send dispersy-signature-response message
+        dprint("NODE sends dispersy-signature-response message to SELF")
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
-        node.send_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address), address)
-
-        # should not time out
-        for counter in range(4):
-            dprint("waiting... ", 4 - counter)
-            yield 1.0
-        yield 0.555
-
+        node.give_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address))
         assert container["response"] == 1, container["response"]
 
         # cleanup
@@ -2866,6 +2810,10 @@ class DispersySignatureScript(ScriptBase):
         community.unload_community()
 
     def triple_signed_timeout(self):
+        """
+        SELF will request a signature from NODE1 and NODE2.  Both NODE1 and NODE2 will ignore this
+        request and SELF should get a timeout on the signature request after a few seconds.
+        """
         ec = ec_generate_key(u"low")
         my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
         community = DebugCommunity.create_community(self._my_member)
@@ -2877,7 +2825,6 @@ class DispersySignatureScript(ScriptBase):
         node1.init_socket()
         node1.set_community(community)
         node1.init_my_member()
-        yield 0.555
 
         # create node and ensure that SELF knows the node address
         node2 = Node()
@@ -2891,18 +2838,17 @@ class DispersySignatureScript(ScriptBase):
             assert response is None
             container["timeout"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
-        yield 0.555
+        yield 0.11
 
         # receive dispersy-signature-request message
         _, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         _, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         # do not send a response
 
-        # should time out
+        # should timeout
         for counter in range(4):
             dprint("waiting... ", 4 - counter)
             yield 1.0
-        yield 0.555
 
         assert container["timeout"] == 1, container["timeout"]
 
@@ -2911,6 +2857,10 @@ class DispersySignatureScript(ScriptBase):
         community.unload_community()
 
     def triple_signed_response(self):
+        """
+        SELF will request a signature from NODE1 and NODE2.  SELF will receive the two signatures
+        and produce a triple signed message.
+        """
         ec = ec_generate_key(u"low")
         my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
         community = DebugCommunity.create_community(self._my_member)
@@ -2922,20 +2872,19 @@ class DispersySignatureScript(ScriptBase):
         node1.init_socket()
         node1.set_community(community)
         node1.init_my_member()
-        yield 0.2
 
         # create node and ensure that SELF knows the node address
         node2 = Node()
         node2.init_socket()
         node2.set_community(community)
         node2.init_my_member()
-        yield 0.2
 
         # SELF requests NODE1 and NODE2 to add their signature
         def on_response(response):
             assert container["response"] == 0 or request.authentication.is_signed
             container["response"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
+        yield 0.11
 
         # receive dispersy-signature-request message
         address, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
@@ -2949,7 +2898,7 @@ class DispersySignatureScript(ScriptBase):
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
-        node1.send_message(node1.create_dispersy_signature_response_message(request_id, signature1, global_time, address), address)
+        node1.give_message(node1.create_dispersy_signature_response_message(request_id, signature1, global_time, address))
 
         # receive dispersy-signature-request message
         address, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
@@ -2963,15 +2912,12 @@ class DispersySignatureScript(ScriptBase):
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
-        node2.send_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address), address)
-
-        # should not time out
-        for counter in range(4):
-            dprint("waiting... ", 4 - counter)
-            yield 1.0
-        yield 0.555
-
+        node2.give_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address))
         assert container["response"] == 2, container["response"]
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
 class DispersySubjectiveSetScript(ScriptBase):
     def run(self):
@@ -2988,29 +2934,25 @@ class DispersySubjectiveSetScript(ScriptBase):
          - a message from a member NOT in the subjective set MUST NOT be stored
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"subjective-set-text")
 
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # node is NOT in self._my_member's subjective set.  the message MUST NOT be stored
         global_time = 10
-        node.send_message(node.create_subjective_set_text_message("Must not be stored", global_time), address)
-        yield 0.555
+        node.give_message(node.create_subjective_set_text_message("Must not be stored", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert times == [], times
 
         # node is in self._my_member's subjective set.  the message MUST be stored
         community.create_dispersy_subjective_set(message.destination.cluster, [node.my_member])
         global_time = 20
-        node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
-        yield 0.555
+        node.give_message(node.create_subjective_set_text_message("Must be stored", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [global_time]
+        assert times == [global_time], times
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3030,25 +2972,22 @@ class DispersySubjectiveSetScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # make available the subjective set
         subjective_set = BloomFilter(100, 0.1)
         subjective_set.add(node.my_member.public_key)
-        node.send_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10), address)
-        yield 0.555
+        node.give_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10))
 
         # SELF will store and forward for NODE
         community.create_dispersy_subjective_set(meta_message.destination.cluster, [node.my_member])
         global_time = 20
-        node.send_message(node.create_subjective_set_text_message("Must be synced", global_time), address)
-        yield 0.555
+        node.give_message(node.create_subjective_set_text_message("Must be synced", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
         # a dispersy-sync message MUST return the message that was just sent
-        node.send_message(node.create_dispersy_sync_message(10, 0, [], 20), address)
-        yield 0.555
+        node.give_message(node.create_dispersy_sync_message(10, 0, [], 20))
+        yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert message.distribution.global_time == global_time
 
@@ -3076,38 +3015,40 @@ class DispersySubjectiveSetScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # SELF will store and forward for NODE
         community.create_dispersy_subjective_set(meta_message.destination.cluster, [node.my_member])
         global_time = 20
-        node.send_message(node.create_subjective_set_text_message("Must be stored", global_time), address)
-        yield 0.555
+        node.give_message(node.create_subjective_set_text_message("Must be stored", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
-        node.send_message(node.create_dispersy_sync_message(10, 0, [], 20), address)
-        yield 0.555
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-subjective-set-request", u"subjective-set-text"])
-        assert message.name == u"dispersy-subjective-set-request", "should NOT sent back the subjective-set-text"
+        node.give_message(node.create_dispersy_sync_message(10, 0, [], 20))
+        yield 0.11
+        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
+        assert message.name == u"dispersy-missing-subjective-set", "should NOT sent back the subjective-set-text"
         assert message.payload.cluster == meta_message.destination.cluster
         try:
-            _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-subjective-set-request", u"subjective-set-text"])
-            assert False, "should be no more messages"
+            _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         except:
             pass
+        else:
+            assert False, "should be no more messages"
 
         # make available the subjective set
         subjective_set = BloomFilter(100, 0.1)
         subjective_set.add(node.my_member.public_key)
-        node.send_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10), address)
-        yield 0.555
+        node.give_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10))
 
         # the dispersy-sync message should now be processed (again) and result in the missing
         # subjective-set-text message
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert message.distribution.global_time == global_time
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
 # class DispersySimilarityScript(ScriptBase):
 #     def run(self):

@@ -48,7 +48,7 @@ class Distribution(MetaObject):
     def generate_footprint(self, global_time=0):
         assert isinstance(global_time, (int, long))
         assert global_time >= 0
-        return "Distribution:" + str(global_time) if global_time else "[0-9]+"
+        return "Distribution:" + (str(global_time) if global_time else "[0-9]+")
 
 class SyncDistribution(Distribution):
     """
@@ -199,7 +199,7 @@ class DirectDistribution(Distribution):
     def generate_footprint(self, global_time=0):
         assert isinstance(global_time, (int, long))
         assert global_time >= 0
-        return "DirectDistribution:" + str(global_time) if global_time else "[0-9]+"
+        return "DirectDistribution:" + (str(global_time) if global_time else "[0-9]+")
 
 class RelayDistribution(Distribution):
     class Implementation(Distribution.Implementation):
@@ -210,7 +210,7 @@ class RelayDistribution(Distribution):
     def generate_footprint(self, global_time=0):
         assert isinstance(global_time, (int, long))
         assert global_time >= 0
-        return "RelayDistribution:" + str(global_time) if global_time else "[0-9]+"
+        return "RelayDistribution:" + (str(global_time) if global_time else "[0-9]+")
 
 
 

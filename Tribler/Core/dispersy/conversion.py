@@ -134,9 +134,13 @@ class BinaryConversion(Conversion):
             try:
                 meta = community.get_meta_message(name)
             except KeyError:
-                if __debug__: dprint("unable to define non-available message ", name, level="warning")
+                if __debug__:
+                    debug_non_available.append(name)
             else:
                 self.define_meta_message(chr(value), meta, encode, decode)
+
+        if __debug__:
+            debug_non_available = []
 
         define(254, u"dispersy-missing-sequence", self._encode_missing_sequence, self._decode_missing_sequence)
         define(253, u"dispersy-sync", self._encode_sync, self._decode_sync)
@@ -154,6 +158,10 @@ class BinaryConversion(Conversion):
         define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
         define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
+
+        if __debug__:
+            if debug_non_available:
+                dprint("unable to define non-available messages ", ", ".join(debug_non_available), level="warning")
 
     def define_meta_message(self, byte, message, encode_payload_func, decode_payload_func):
         assert isinstance(byte, str)
@@ -890,9 +898,8 @@ class BinaryConversion(Conversion):
             subjective_set = meta_message.community.get_subjective_set(meta_message.community.my_member, meta_message.destination.cluster)
         except KeyError:
             # we do not yet have a subjective set of our own.  assume nothing is in the set
-            return meta_message.destination.implement(False)
-        else:
-            return meta_message.destination.implement(authentication_impl.member.public_key in subjective_set)
+            subjective_set = ()
+        return meta_message.destination.implement(authentication_impl.member.public_key in subjective_set)
 
     def _decode_similarity_destination(self, meta_message, authentication_impl):
         if __debug__:

@@ -203,7 +203,7 @@ class DelayMessageBySubjectiveSet(DelayMessage):
         footprint = meta.generate_footprint(authentication=([delayed.authentication.member.mid],))
 
         # the request message that asks for the message that will trigger the delayed packet
-        meta = delayed.community.get_meta_message(u"dispersy-subjective-set-request")
+        meta = delayed.community.get_meta_message(u"dispersy-missing-subjective-set")
         request = meta.implement(meta.authentication.implement(),
                                  meta.distribution.implement(delayed.community.global_time),
                                  meta.destination.implement(),
@@ -360,7 +360,12 @@ class Message(MetaObject):
             self._destination = destination
             self._payload = payload
             self._address = address
-            self._footprint = "".join((meta._name.encode("UTF-8"), " Community:", meta._community.cid.encode("HEX"), " ", authentication.footprint, " ", distribution.footprint, " ", destination.footprint, " ", payload.footprint))
+            self._footprint = " ".join((meta._name.encode("UTF-8"),
+                                        "Community:", meta._community.cid.encode("HEX"),
+                                        authentication.footprint,
+                                        distribution.footprint,
+                                        destination.footprint,
+                                        payload.footprint))
 
             # allow setup parts.  used to setup callback when something changes that requires the
             # self._packet to be generated again
@@ -519,12 +524,12 @@ class Message(MetaObject):
         assert isinstance(distribution, tuple)
         assert isinstance(destination, tuple)
         assert isinstance(payload, tuple)
-        return "".join((self._name.encode("UTF-8"),
-                        " Community:", self._community.cid.encode("HEX"),
-                        " ", self._authentication.generate_footprint(*authentication),
-                        " ", self._distribution.generate_footprint(*distribution),
-                        " ", self._destination.generate_footprint(*destination),
-                        " ", self._payload.generate_footprint(*payload)))
+        return " ".join((self._name.encode("UTF-8"),
+                        "Community:", self._community.cid.encode("HEX"),
+                        self._authentication.generate_footprint(*authentication),
+                        self._distribution.generate_footprint(*distribution),
+                        self._destination.generate_footprint(*destination),
+                        self._payload.generate_footprint(*payload)))
 
     def __str__(self):
         return "<%s %s>" % (self.__class__.__name__, self._name)

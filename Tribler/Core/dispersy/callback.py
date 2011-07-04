@@ -23,7 +23,7 @@ class Callback(object):
         self._id = 0
         self._timestamp = time()
         self._new_actions = []  # (type, action)
-                                # type=register, action=(deadline, priority, root_id, (call, args, kargs))
+                                # type=register, action=(deadline, priority, root_id, (call, args, kargs), callback)
                                 # type=unregister, action=root_id
 
         if __debug__:
@@ -47,21 +47,26 @@ class Callback(object):
         assert isinstance(delay, (int, float))
         return self.register(func, delay=float(delay))
 
-    def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=""):
-        assert hasattr(call, "__call__"), "CALL must be callable"
+    def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", callback=None, callback_args=(), callback_kargs=None):
+        assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
         assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
         assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
         assert isinstance(priority, int), "PRIORITY has invalid type: %s" % type(priority)
         assert isinstance(id_, str), "ID_ has invalid type: %s" % type(id_)
+        assert callback is None or callable(callback), "CALLBACK must be None or callable"
+        assert isinstance(callback_args, tuple), "CALLBACK_ARGS has invalid type: %s" % type(callback_args)
+        assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
         if __debug__: dprint("after ", delay, " seconds call ", call)
-        if kargs is None:
-            kargs = {}
         with self._lock:
             if not id_:
                 self._id += 1
                 id_ = self._id
-            self._new_actions.append(("register", (self._timestamp + delay, 512 - priority, id_, (call, args, kargs))))
+            self._new_actions.append(("register", (self._timestamp + delay,
+                                                   512 - priority,
+                                                   id_,
+                                                   (call, args, {} if kargs is None else kargs),
+                                                   None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
             # wakeup if sleeping
             self._event.set()
             return id_
@@ -105,9 +110,13 @@ class Callback(object):
                 if __debug__: dprint("STATE_PLEASE_STOP")
 
             if wait:
-                while self._state == "STATE_PLEASE_STOP" and timeout >= 0.0:
+                while self._state == "STATE_PLEASE_STOP" and timeout > 0.0:
                     sleep(0.01)
                     timeout -= 0.01
+
+                if __debug__:
+                    if timeout <= 0.0:
+                        dprint("timeout.  perhaps callback.stop() was called on the same thread?")
 
         return self._state == "STATE_FINISHED"
 
@@ -122,9 +131,9 @@ class Callback(object):
         # the timestamp that the callback is currently handling
         actual_time = 0
         # requests are ordered by deadline and moved to -expired- when they need to be handled
-        requests = [] # (deadline, priority, root_id, (call, args, kargs))
+        requests = [] # (deadline, priority, root_id, (call, args, kargs), callback)
         # expired requests are ordered and handled by priority
-        expired = [] # (priority, deadline, root_id, (call, args, kargs))
+        expired = [] # (priority, deadline, root_id, (call, args, kargs), callback)
 
         with lock:
             assert self._state == "STATE_INIT"
@@ -155,8 +164,8 @@ class Callback(object):
 
                 # move expired requests from REQUESTS to EXPIRED
                 while requests and requests[0][0] <= actual_time:
-                    deadline, priority, root_id, call = heappop(requests)
-                    expired.append((priority, deadline, root_id, call))
+                    deadline, priority, root_id, call, callback = heappop(requests)
+                    heappush(expired, (priority, deadline, root_id, call, callback))
 
                 # self._timestamp tells us where the thread -should- be.  it is either ACTUAL_TIME
                 # or the deadline-timestamp of the request we are handling.  this distinction is
@@ -168,7 +177,7 @@ class Callback(object):
 
             if expired:
                 # we need to handle the next call in line
-                priority, deadline, root_id, call = expired.pop(0)
+                priority, deadline, root_id, call, callback = heappop(expired)
 
                 while True:
                     # call can be either:
@@ -181,32 +190,40 @@ class Callback(object):
                             if __debug__: dprint("sync: %.4fs" % (get_timestamp() - deadline), " when calling ", call)
                             result = call.next()
                         except StopIteration:
-                            pass
-                        except:
+                            if callback:
+                                heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
+                        except Exception, exception:
+                            if callback:
+                                heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
                             dprint(exception=True, level="error")
                             if __debug__:
-                                self.stop()
+                                self.stop(wait=False)
                         else:
                             # schedule CALL again in RESULT seconds
                             assert isinstance(result, float)
                             assert result >= 0.0
-                            heappush(requests, (deadline + result, priority, root_id, call))
+                            heappush(requests, (deadline + result, priority, root_id, call, callback))
 
                     else:
                         try:
                             # callback
                             if __debug__: dprint("sync: %.4fs" % (get_timestamp() - deadline), " when calling ", call[0])
                             result = call[0](*call[1], **call[2])
-                        except:
+                        except Exception, exception:
+                            if callback:
+                                heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
                             dprint(exception=True, level="error")
                             if __debug__:
-                                self.stop()
+                                self.stop(wait=False)
                         else:
                             if isinstance(result, GeneratorType):
                                 # we only received the generator, no actual call has been made to the
                                 # function yet, therefore we call it again immediately
                                 call = result
                                 continue
+
+                            elif callback:
+                                heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
 
                     # break out of the while loop
                     break
@@ -225,7 +242,7 @@ class Callback(object):
                 continue
 
         # send GeneratorExit exceptions to remaining generators
-        for _, _, _, call in expired + requests:
+        for _, _, _, call, _ in expired + requests:
             if isinstance(call, GeneratorType):
                 if __debug__: dprint("raise Shutdown in ", call)
                 try:

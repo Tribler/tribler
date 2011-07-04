@@ -1302,7 +1302,7 @@ class Dispersy(Singleton):
         assert len(messages) == len(set((message.authentication.member.database_id, message.distribution.global_time) for message in messages)), messages[0].name
 
         meta = messages[0].meta
-        if __debug__: dprint("storing ", len(messages), " ", meta.name, " messages")
+        if __debug__: dprint("attempting to store ", len(messages), " ", meta.name, " messages")
         is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
         is_similarity_destination = isinstance(meta.destination, SimilarityDestination)
         is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
@@ -1319,14 +1319,14 @@ class Dispersy(Singleton):
             if is_subjective_destination and not message.destination.is_valid:
                 # however, ignore the SimilarityDestination when we are forced so store this message
                 if not message.authentication.member.must_store:
-                    if __debug__: dprint("Not storing message")
+                    if __debug__: dprint("not storing message")
                     continue
 
             # we do not store a message when it uses SimilarityDestination and it is not similar
             if is_similarity_destination and not message.destination.is_similar:
                 # however, ignore the SimilarityDestination when we are forced so store this message
                 if not message.authentication.member.must_store:
-                    if __debug__: dprint("Not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
+                    if __debug__: dprint("not storing message.  bic:", message.destination.bic_occurrence, "  threshold:", message.destination.threshold)
                     continue
 
             # add packet to database
@@ -2844,9 +2844,11 @@ class Dispersy(Singleton):
 
         # check for timeout
         if response is None:
+            if __debug__: dprint("timeout")
             response_func(response, *response_args)
 
         else:
+            if __debug__: dprint("response")
             # the multi signed message
             submsg = request.payload.message
 

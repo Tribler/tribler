@@ -82,9 +82,8 @@ class Node(object):
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
             source_address = self._socket.getsockname()
-            destination_address = self._community._dispersy.socket.get_address()
             message = self.create_dispersy_identity_message(source_address, 2)
-            self.send_message(message, destination_address)
+            self.give_message(message)
 
         if candidate:
             # update candidate information
@@ -93,7 +92,7 @@ class Node(object):
             source_address = self._socket.getsockname()
             destination_address = self._community._dispersy.socket.get_address()
             message = self.create_dispersy_candidate_request_message(source_address, destination_address, self._community.get_conversion().version, [], 1)
-            self.send_message(message, destination_address)
+            self.give_message(message)
 
     @property
     def community(self):
@@ -159,6 +158,15 @@ class Node(object):
         if verbose: dprint(message.name, " (", len(message.packet), " bytes) to ", address[0], ":", address[1])
         self.send_packet(message.packet, address)
         return message
+
+    def drop_packets(self):
+        while True:
+            try:
+                packet, address = self._socket.recvfrom(10240)
+            except:
+                break
+
+            dprint("droped ", len(packet), " bytes from ", address[0], ":", address[1])
 
     def receive_packet(self, timeout=None, addresses=None, packets=None):
         assert timeout is None, "The parameter TIMEOUT is depricated and must be None"
@@ -266,7 +274,7 @@ class Node(object):
         assert isinstance(bloom_packets, list)
         assert not filter(lambda x: not isinstance(x, str), bloom_packets)
         assert isinstance(global_time, (int, long))
-        bloom_filter = BloomFilter(1000, 0.001, prefix="x")
+        bloom_filter = BloomFilter(700, 0.001, prefix="x")
         map(bloom_filter.add, bloom_packets)
         meta = self._community.get_meta_message(u"dispersy-sync")
         return meta.implement(meta.authentication.implement(self._my_member),

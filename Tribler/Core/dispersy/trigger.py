@@ -68,6 +68,7 @@ class TriggerCallback(Trigger):
         if __debug__:
             self._debug_pattern = pattern
             dprint("create new trigger for one callback")
+            dprint(pattern)
         self._match = expression_compile(pattern).match
         self._response_func = response_func
         self._response_args = response_args
@@ -214,7 +215,9 @@ class TriggerMessage(Trigger):
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        if __debug__: dprint("create new trigger for ", len(messages), " messages")
+        if __debug__:
+            dprint("create new trigger for ", len(messages), " messages")
+            dprint("pattern: ", pattern)
         self._pattern = pattern
         self._match = expression_compile(pattern).match
         self._callback = callback

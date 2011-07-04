@@ -445,7 +445,7 @@ class MissingSubjectiveSetPayload(Payload):
             assert 0 < cluster < 2^8, "CLUSTER must fit in one byte"
             assert isinstance(members, (tuple, list))
             assert not filter(lambda x: not isinstance(x, Member), members)
-            super(SubjectiveSetRequestPayload.Implementation, self).__init__(meta)
+            super(MissingSubjectiveSetPayload.Implementation, self).__init__(meta)
             self._cluster = cluster
             self._members = members
 

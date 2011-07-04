@@ -1300,3 +1300,10 @@ class HardKilledCommunity(Community):
                 self._conversions[None] = self._conversions[prefix]
 
         return self._conversions[prefix]
+
+    if __debug__:
+        def get_meta_message(self, name):
+            # we do not want to dprint when name is not found (since many messages are disabled in
+            # this Community
+            assert isinstance(name, unicode)
+            return self._meta_messages[name]
