@@ -19,7 +19,7 @@ class PreviewChannelCommunity(ChannelCommunity):
         meta_messages = self._meta_messages
         self._meta_messages = {}
         for name in [u"dispersy-identity",
-                     u"dispersy-identity-request",
+                     u"dispersy-missing-identity",
                      u"dispersy-destroy-community",
 
                      u"channel",

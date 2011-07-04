@@ -145,14 +145,15 @@ class BinaryConversion(Conversion):
         define(250, u"dispersy-candidate-request", self._encode_candidate_request, self._decode_candidate_request)
         define(249, u"dispersy-candidate-response", self._encode_candidate_response, self._decode_candidate_response)
         define(248, u"dispersy-identity", self._encode_identity, self._decode_identity)
-        define(247, u"dispersy-identity-request", self._encode_identity_request, self._decode_identity_request)
+        define(247, u"dispersy-missing-identity", self._encode_missing_identity, self._decode_missing_identity)
 #         define(246, u"dispersy-similarity", self._encode_similarity, self._decode_similarity)
 #         define(245, u"dispersy-similarity-request", self._encode_similarity_request, self._decode_similarity_request)
         define(244, u"dispersy-destroy-community", self._encode_destroy_community, self._decode_destroy_community)
         define(243, u"dispersy-authorize", self._encode_authorize, self._decode_authorize)
         define(242, u"dispersy-revoke", self._encode_revoke, self._decode_revoke)
         define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
-        define(240, u"dispersy-subjective-set-request", self._encode_subjective_set_request, self._decode_subjective_set_request)
+        define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
+        define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
 
     def define_meta_message(self, byte, message, encode_payload_func, decode_payload_func):
         assert isinstance(byte, str)
@@ -200,6 +201,48 @@ class BinaryConversion(Conversion):
         offset += 8
 
         return offset, meta_message.payload.implement(member, missing_meta_message, missing_low, missing_high)
+
+    def _encode_missing_message(self, message):
+        """
+        Encode the payload for dispersy-missing-message.
+
+        The payload will contain one public key, this is a binary string of variable length.  It
+        also contains one or more global times, each global time is a 64 bit unsigned integer.
+
+        The payload contains:
+         - 2 bytes: the length of the public key
+         - n bytes: the public key
+         - 8 bytes: the global time
+         - 8 bytes: the global time
+         - ...
+         - 8 bytes: the global time
+        """
+        payload = message.payload
+        return pack("!H", len(payload.member.public_key)), payload.member.public_key, pack("!%dQ" % len(payload.global_times), *payload.global_times)
+
+    def _decode_missing_message(self, meta_message, offset, data):
+        if len(data) < offset + 2:
+            raise DropPacket("Insufficient packet size")
+
+        key_length, = unpack_from("!H", data, offset)
+        offset += 2
+
+        if len(data) < offset + key_length + 1:
+            raise DropPacket("Insufficient packet size")
+
+        member = self._community.get_member(data[offset:offset+key_length])
+        offset += key_length
+
+        # there must be at least one global time in the packet
+        global_time_length, mod = divmod(len(data) - offset, 8)
+        if global_time_length > 0:
+            raise DropPacket("Insufficient packet size")
+        if mod != 0:
+            raise DropPacket("Invalid packet size")
+
+        global_times = unpack_from("!%dQ" % global_time_length, data, offset)
+
+        return offset, meta_message.payload.implement(member, *global_times)
 
     def _encode_sync(self, message):
         payload = message.payload
@@ -313,10 +356,10 @@ class BinaryConversion(Conversion):
 
         return offset + 6, meta_message.payload.implement(address)
 
-    def _encode_identity_request(self, message):
+    def _encode_missing_identity(self, message):
         return message.payload.mid,
 
-    def _decode_identity_request(self, meta_message, offset, data):
+    def _decode_missing_identity(self, meta_message, offset, data):
         if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
 
@@ -597,10 +640,10 @@ class BinaryConversion(Conversion):
 
         return offset, meta_message.payload.implement(cluster, subjective_set)
 
-    def _encode_subjective_set_request(self, message):
+    def _encode_missing_subjective_set(self, message):
         return (pack("!B", message.payload.cluster),) + tuple([member.mid for member in message.payload.members])
 
-    def _decode_subjective_set_request(self, meta_message, offset, data):
+    def _decode_missing_subjective_set(self, meta_message, offset, data):
         if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 

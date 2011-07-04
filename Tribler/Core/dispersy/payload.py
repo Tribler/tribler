@@ -265,12 +265,12 @@ class IdentityPayload(Payload):
         def address(self):
             return self._address
 
-class IdentityRequestPayload(Payload):
+class MissingIdentityPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, mid):
             assert isinstance(mid, str)
             assert len(mid) == 20
-            super(IdentityRequestPayload.Implementation, self).__init__(meta)
+            super(MissingIdentityPayload.Implementation, self).__init__(meta)
             self._mid = mid
 
         @property
@@ -419,11 +419,11 @@ class SubjectiveSetPayload(Payload):
         def subjective_set(self):
             return self._subjective_set
 
-class SubjectiveSetRequestPayload(Payload):
+class MissingSubjectiveSetPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, cluster, members):
             """
-            The payload for a dispersy-subjective-set-request message.
+            The payload for a dispersy-missing-subjective-set message.
 
             This message is sent whenever we are missing the dispersy-subjective-set message for a
             specific cluster and member.
@@ -456,3 +456,46 @@ class SubjectiveSetRequestPayload(Payload):
         @property
         def members(self):
             return self._members
+
+class MissingMessagePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, member, *global_times):
+            if __debug__:
+                from member import Member
+            assert isinstance(member, Member)
+            assert isinstance(global_times, tuple)
+            assert not filter(lambda x: isinstance(x, (int, long)), global_times)
+            assert not filter(lambda x: x > 0, global_times)
+            assert len(global_times) > 0
+            assert len(set(global_times)) == len(global_times)
+            super(MessageRequestPayload.Implementation, self).__init__(meta)
+            self._member = member
+            self._global_times = global_times
+
+        @property
+        def member(self):
+            return self._member
+
+        @property
+        def global_times(self):
+            return self._global_times
+
+# class MissingLastPayload(Payload):
+#     class Implementation(Payload.Implementation):
+#         def __init__(self, meta, member, message):
+#             if __debug__:
+#                 from member import Member
+#             assert isinstance(member, Member)
+#             assert isinstance(message, Message)
+#             assert isinstance(message.distribution, LastSyncDistribution), "Currently we only support LastSyncDistribution"
+#             super(MissingLastPayload.Implementation, self).__init__(meta)
+#             self._member = member
+#             self._message = message
+
+#         @property
+#         def member(self):
+#             return self._member
+
+#         @property
+#         def message(self):
+#             return self._message

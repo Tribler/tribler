@@ -17,11 +17,23 @@ class MetaObject(object):
     def __str__(self):
         return "<%s>" % self.__class__.__name__
 
+    def implement_class(self, cls, *args, **kargs):
+        assert cls == self.Implementation or cls in self.Implementation.__subclasses__(), (cls, self.Implementation)
+        if __debug__:
+            try:
+                return cls(self, *args, **kargs)
+            except TypeError:
+                dprint("TypeError in ", self.__class__.__name__, ".", self.Implementation.__name__, level="error")
+                dprint("self.Implementation takes: ", inspect.getargspec(self.Implementation.__init__), level="error")
+                dprint("self.Implementation got: ", args, " ", kargs, level="error")
+                raise
+
+        else:
+            return cls(self, *args, **kargs)
+
     def implement(self, *args, **kargs):
-        try:
+        if __debug__:
+            return self.implement_class(self.Implementation, *args, **kargs)
+
+        else:
             return self.Implementation(self, *args, **kargs)
-        except TypeError:
-            dprint("TypeError in ", self.__class__.__name__, ".", self.Implementation.__name__, level="error")
-            dprint("self.Implementation takes: ", inspect.getargspec(self.Implementation.__init__), level="error")
-            dprint("self.Implementation got: ", args, " ", kargs, level="error")
-            raise

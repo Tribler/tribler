@@ -44,12 +44,12 @@ class DelayPacketByMissingMember(DelayPacket):
         assert isinstance(community, Community)
         assert isinstance(missing_member_id, str)
         assert len(missing_member_id) == 20
-        # the footprint that will trigger the delayed packet
+         # the footprint that will trigger the delayed packet
         footprint = community.get_meta_message(u"dispersy-identity").generate_footprint(authentication=([missing_member_id],))
 
         # the request message that asks for the message that will
         # trigger the delayed packet
-        meta = community.get_meta_message(u"dispersy-identity-request")
+        meta = community.get_meta_message(u"dispersy-missing-identity")
         message = meta.implement(meta.authentication.implement(),
                                  meta.distribution.implement(community.global_time),
                                  meta.destination.implement(),
@@ -57,35 +57,36 @@ class DelayPacketByMissingMember(DelayPacket):
 
         super(DelayPacketByMissingMember, self).__init__("Missing member", footprint, message.packet)
 
-class DelayPacketBySimilarity(DelayPacket):
-    """
-    Raised during Conversion.decode_message when no similarity is
-    known for the message owner.
+# BROKEN, seems to be a copy paste from DelayPacketByMissingMember
+# class DelayPacketBySimilarity(DelayPacket):
+#     """
+#     Raised during Conversion.decode_message when no similarity is
+#     known for the message owner.
 
-    Delaying until a dispersy-similarity-message is received that
-    contains the missing similarity bitstream
-    """
-    def __init__(self, community, member, destination):
-        if __debug__:
-            from community import Community
-            from member import Member
-            from destination import SimilarityDestination
-        assert isinstance(community, Community)
-        assert isinstance(member, Member)
-        assert isinstance(destination, SimilarityDestination)
-        # the footprint that will trigger the delayed packet
-        meta = community.get_meta_message(u"dispersy-identity")
-        footprint = meta.generate_footprint()
+#     Delaying until a dispersy-similarity-message is received that
+#     contains the missing similarity bitstream
+#     """
+#     def __init__(self, community, member, destination):
+#         if __debug__:
+#             from community import Community
+#             from member import Member
+#             from destination import SimilarityDestination
+#         assert isinstance(community, Community)
+#         assert isinstance(member, Member)
+#         assert isinstance(destination, SimilarityDestination)
+#         # the footprint that will trigger the delayed packet
+#         meta = community.get_meta_message(u"dispersy-identity")
+#         footprint = meta.generate_footprint()
 
-        # the request message that asks for the message that will
-        # trigger the delayed packet
-        meta = community.get_meta_message(u"dispersy-identity-request")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(member.mid))
+#         # the request message that asks for the message that will
+#         # trigger the delayed packet
+#         meta = community.get_meta_message(u"dispersy-identity-request")
+#         message = meta.implement(meta.authentication.implement(),
+#                                  meta.distribution.implement(community.global_time),
+#                                  meta.destination.implement(),
+#                                  meta.payload.implement(member.mid))
 
-        super(DelayPacketBySimilarity, self).__init__("Missing similarity", footprint, message.packet)
+#         super(DelayPacketBySimilarity, self).__init__("Missing similarity", footprint, message.packet)
 
 class DropPacket(Exception):
     """

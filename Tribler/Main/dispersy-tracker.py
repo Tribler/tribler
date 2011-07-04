@@ -73,7 +73,7 @@ class TrackerCommunity(Community):
         for name in [u"dispersy-candidate-request",
                      u"dispersy-candidate-response",
                      u"dispersy-identity",
-                     u"dispersy-identity-request"]:
+                     u"dispersy-missing-identity"]:
             self._meta_messages[name] = meta_messages[name]
 
     @property

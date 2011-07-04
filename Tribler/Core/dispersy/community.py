@@ -1243,7 +1243,7 @@ class HardKilledCommunity(Community):
                      u"dispersy-candidate-response",    # we still send this message
                      u"dispersy-identity",              # we still receive this message for new peers who send us
                                                         # candidate requests
-                     u"dispersy-identity-request",      # we still send this to obtain identity messages
+                     u"dispersy-missing-identity",      # we still send this to obtain identity messages
                      u"dispersy-sync"]:                 # we still need to spread the destroy-community message
             self._meta_messages[name] = meta_messages[name]
 

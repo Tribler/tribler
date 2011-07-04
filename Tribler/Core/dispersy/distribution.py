@@ -35,7 +35,7 @@ class Distribution(MetaObject):
 
         @property
         def footprint(self):
-            return "Distribution"
+            return "Distribution:" + str(self._global_time)
 
     def setup(self, message):
         """
@@ -45,8 +45,10 @@ class Distribution(MetaObject):
             from message import Message
         assert isinstance(message, Message)
 
-    def generate_footprint(self):
-        return "Distribution"
+    def generate_footprint(self, global_time=0):
+        assert isinstance(global_time, (int, long))
+        assert global_time >= 0
+        return "Distribution:" + str(global_time) if global_time else "[0-9]+"
 
 class SyncDistribution(Distribution):
     """
@@ -102,7 +104,7 @@ class SyncDistribution(Distribution):
 
         @property
         def footprint(self):
-            return "SyncDistribution:" + str(self._sequence_number)
+            return "".join(("SyncDistribution:", str(self._global_time), ",", str(self._sequence_number)))
 
     def __init__(self, enable_sequence_number, synchronization_direction):
         assert isinstance(enable_sequence_number, bool)
@@ -154,10 +156,15 @@ class SyncDistribution(Distribution):
         self._current_sequence_number += 1
         return self._current_sequence_number
 
-    def generate_footprint(self, sequence_number=0):
+    def generate_footprint(self, global_time=0, sequence_number=0):
+        assert isinstance(global_time, (int, long))
+        assert global_time >= 0
         assert isinstance(sequence_number, (int, long))
         assert (self._enable_sequence_number and sequence_number > 0) or (not self._enable_sequence_number and sequence_number == 0)
-        return "SyncDistribution:" + str(sequence_number)
+        return "".join(("SyncDistribution:",
+                        str(global_time) if global_time else "[0-9]+",
+                        ",",
+                        str(sequence_number) if sequence_number else "[0-9]+"))
 
 class FullSyncDistribution(SyncDistribution):
     class Implementation(SyncDistribution.Implementation):
@@ -187,19 +194,23 @@ class DirectDistribution(Distribution):
     class Implementation(Distribution.Implementation):
         @property
         def footprint(self):
-            return "DirectDistribution"
+            return "DirectDistribution:" + str(self._global_time)
 
-    def generate_footprint(self):
-        return "DirectDistribution"
+    def generate_footprint(self, global_time=0):
+        assert isinstance(global_time, (int, long))
+        assert global_time >= 0
+        return "DirectDistribution:" + str(global_time) if global_time else "[0-9]+"
 
 class RelayDistribution(Distribution):
     class Implementation(Distribution.Implementation):
         @property
         def footprint(self):
-            return "RelayDistribution"
+            return "RelayDistribution:" + str(self._global_time)
 
-    def generate_footprint(self):
-        return "RelayDistribution"
+    def generate_footprint(self, global_time=0):
+        assert isinstance(global_time, (int, long))
+        assert global_time >= 0
+        return "RelayDistribution:" + str(global_time) if global_time else "[0-9]+"
 
 
 

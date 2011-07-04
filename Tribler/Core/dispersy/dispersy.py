@@ -63,10 +63,11 @@ from payload import MissingSequencePayload
 from payload import SyncPayload
 from payload import SignatureRequestPayload, SignatureResponsePayload
 from payload import CandidateRequestPayload, CandidateResponsePayload
-from payload import IdentityPayload, IdentityRequestPayload
-from payload import SubjectiveSetPayload, SubjectiveSetRequestPayload
+from payload import IdentityPayload, MissingIdentityPayload
+from payload import SubjectiveSetPayload, MissingSubjectiveSetPayload
 from payload import SimilarityRequestPayload, SimilarityPayload
 from payload import DestroyCommunityPayload
+from payload import MissingMessagePayload
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
@@ -311,9 +312,7 @@ class Dispersy(Singleton):
         return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request),
                 Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity, priority=512),
-                Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self.check_identity_request, self.on_identity_request),
                 Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync),
-                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response),
 #                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity),
@@ -322,7 +321,31 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504),
                 Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community),
                 Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set),
-                Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self.check_subjective_set_request, self.on_subjective_set_request)]
+
+                #
+                # when something is missing, a dispersy-missing-... message can be used to request
+                # it from another peer
+                #
+
+                # when we have a member id (20 byte sha1 of the public key) but not the public key
+                Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingIdentityPayload(), self.check_missing_identity, self.on_missing_identity),
+
+                # when we are missing one or more SyncDistribution messages in a certain sequence
+                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence),
+
+                # when we have a reference to a message that we do not have.  a reference consists
+                # of the community identifier, the member identifier, and the global time
+                Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingMessagePayload(), self.check_missing_message, self.on_missing_message),
+
+                # when we are missing the subjective set, with a specific cluster, from a member
+                Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSubjectiveSetPayload(), self.check_missing_subjective_set, self.on_missing_subjective_set),
+
+                # when we are missing one or more LastSyncDistribution messages from a single member
+                # ... so far we do not need a generic missing-last message.  unfortunately all
+                # ... messages that it could replace contain payload specific things that make it
+                # ... difficult, if not impossible, to replace
+                # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last),
+                ]
 
     @staticmethod
     def _rawserver_task_id(community, prefix):
@@ -1743,6 +1766,131 @@ class Dispersy(Singleton):
         self._triggers.append(trigger)
         self._callback.register(trigger.on_timeout, delay=timeout)
 
+    def create_missing_message(self, community, address, member, global_time, response_func=None, response_args=(), timeout=10.0, forward=True):
+        """
+        Create a dispersy-missing-message message.
+
+        Each sync message in dispersy can be uniquely identified using the community identifier,
+        member identifier, and global time.  This message requests a unique dispersy message from
+        another peer.
+
+        If the peer at ADDRESS (1) receives the request, (2) has the requested message, and (3) is
+        willing to upload, the optional RESPONSE_FUNC will be called.  Note that if there is a
+        callback for the requested message, that will always be called regardless of RESPONSE_FUNC.
+
+        If RESPONSE_FUNC is given and there is no response withing TIMEOUT seconds, the
+        RESPONSE_FUNC will be called but the message parameter will be None.
+        """
+        assert isinstance(community, Community)
+        assert isinstance(address, tuple)
+        assert isinstance(address[0], str)
+        assert isinstance(address[1], int)
+        assert isinstance(footprint, str)
+        assert isinstance(member, Member)
+        assert isinstance(global_time, (int, long))
+        assert callable(response_func)
+        assert isinstance(response_args, tuple)
+        assert isinstance(timeout, float)
+        assert timeout > 0.0
+        assert isinstance(forward, bool)
+        meta = community.get_meta_message(u"dispersy-missing-message")
+        request = meta.implement(meta.authentication.implement(community.my_member),
+                                 meta.distribution.implement(meta.community.global_time),
+                                 meta.destination.implement(address),
+                                 meta.payload.implement(member, global_time))
+
+        if response_func:
+            # generate footprint
+            footprint = "".join(("Community:", community.cid.encode("HEX"),
+                                 "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
+                                 "\s", "(Relay|Direct|Sync|)Distribution:", str(global_time), ",[0-9]+"))
+            self.await_message(footprint, response_func, response_args, timeout, 1)
+
+        self.store_update_forward([request], False, False, forward)
+        return request
+
+    def check_missing_message(self, messages):
+        for message in messages:
+            if not message.community._timeline.check(message):
+                yield DropMessage(message, "TODO: implement delay of proof")
+                continue
+            yield message
+
+    def on_missing_message(self, messages):
+        responses = [] # (address, packet) tuples
+        for message in messages:
+            try:
+                packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                 (message.community.database_id, message.payload.member.database_id, message.payload.global_time)).next()
+            except StopIteration:
+                pass
+            else:
+                responses.append((message.address, packet))
+
+        for address, responses in groupby(responses):
+            self._send([address], [packet for _, packet in responses])
+
+    # def create_missing_last(self, community, address, member, message, response_func=None, response_args=(), timeout=10.0, forward=True):
+    #     """
+    #     Create a dispersy-missing-last message.
+
+    #     Multiple sync messages in dispersy can be identified using the community identifier, member
+    #     identifier, and meta message.  We only allow the LastSyncDistribution messages to be
+    #     requested.  Typically this should only be used when history_size is one.
+
+    #     If the peer at ADDRESS (1) receives the request, (2) has the requested message, and (3) is
+    #     willing to upload, the optional RESPONSE_FUNC will be called.  Note that if there is a
+    #     callback for the requested message, that will always be called regardless of RESPONSE_FUNC.
+
+    #     If RESPONSE_FUNC is given and there is no response withing TIMEOUT seconds, the
+    #     RESPONSE_FUNC will be called but the message parameter will be None.
+    #     """
+    #     assert isinstance(community, Community)
+    #     assert isinstance(address, tuple)
+    #     assert isinstance(address[0], str)
+    #     assert isinstance(address[1], int)
+    #     assert isinstance(footprint, str)
+    #     assert isinstance(member, Member)
+    #     assert isinstance(message, Message)
+    #     assert isinstance(message.distribution, LastSyncDistribution)
+    #     assert callable(response_func)
+    #     assert isinstance(response_args, tuple)
+    #     assert isinstance(timeout, float)
+    #     assert timeout > 0.0
+    #     assert isinstance(forward, bool)
+    #     meta = community.get_meta_message(u"dispersy-missing-last")
+    #     request = meta.implement(meta.authentication.implement(community.my_member),
+    #                              meta.distribution.implement(meta.community.global_time),
+    #                              meta.destination.implement(address),
+    #                              meta.payload.implement(member, meta_message))
+
+    #     if response_func:
+    #         # generate footprint
+    #         footprint = "".join((message.name.encode("UTF-8"),
+    #                              "\s", "Community:", community.cid.encode("HEX"),
+    #                              "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)"))
+    #         self.await_message(footprint, response_func, response_args, timeout, message.distribution.history_size)
+
+    #     self.store_update_forward([request], False, False, forward)
+    #     return request
+
+    # def check_missing_last(self, messages):
+    #     for message in messages:
+    #         if not message.community._timeline.check(message):
+    #             yield DropMessage(message, "TODO: implement delay of proof")
+    #             continue
+    #         yield message
+
+    # def on_missing_last(self, messages):
+    #     responses = [] # (address, packet) tuples
+    #     for message in messages:
+    #         packet_iterator = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND name = ? ORDER BY global_time",
+    #                                                  (message.community.database_id, message.payload.member.database_id, message.payload.meta_message.database_id))
+    #         responses.extend((message.address, packet) for packet in packet_iterator)
+
+    #     for address, responses in groupby(responses):
+    #         self._send([address], [packet for _, packet in responses])
+
     def create_candidate_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store=True, forward=True):
         """
         Create a dispersy-candidate-request message.
@@ -2033,53 +2181,53 @@ class Dispersy(Singleton):
         for message in messages:
             message.authentication.member.update()
 
-    def create_identity_request(self, community, mid, addresses, forward=True):
-        """
-        Create a dispersy-identity-request message.
+    # def create_identity_request(self, community, mid, addresses, forward=True):
+    #     """
+    #     Create a dispersy-identity-request message.
 
-        To verify a message signature we need the corresponding public key from the member who made
-        the signature.  When we are missing a public key, we can request a dispersy-identity message
-        which contains this public key.
+    #     To verify a message signature we need the corresponding public key from the member who made
+    #     the signature.  When we are missing a public key, we can request a dispersy-identity message
+    #     which contains this public key.
 
-        The missing member is identified by the sha1 digest over the member key.  This mid can
-        indicate multiple members, hence the dispersy-identity-response will contain one or more
-        public keys.
+    #     The missing member is identified by the sha1 digest over the member key.  This mid can
+    #     indicate multiple members, hence the dispersy-identity-response will contain one or more
+    #     public keys.
 
-        Most often we will need to request a dispersy-identity when we receive a message containing
-        an, to us, unknown mid.  Hence, sending the request to the address where we got that message
-        from is usually most effective.
+    #     Most often we will need to request a dispersy-identity when we receive a message containing
+    #     an, to us, unknown mid.  Hence, sending the request to the address where we got that message
+    #     from is usually most effective.
 
-        @see: create_identity
+    #     @see: create_identity
 
-        @param community: The community for wich the dispersy-identity message will be created.
-        @type community: Community
+    #     @param community: The community for wich the dispersy-identity message will be created.
+    #     @type community: Community
 
-        @param mid: The 20 byte identifier for the member.
-        @type mid: string
+    #     @param mid: The 20 byte identifier for the member.
+    #     @type mid: string
 
-        @param address: The address to send the request to.
-        @type address: (string, int)
+    #     @param address: The address to send the request to.
+    #     @type address: (string, int)
 
-        @param forward: When True the messages are forwarded (as defined by their message
-         destination policy) to other nodes in the community.  This parameter should (almost always)
-         be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type forward: bool
-        """
-        meta = community.get_meta_message(u"dispersy-identity-request")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community.global_time),
-                                 meta.destination.implement(*addresses),
-                                 meta.payload.implement(mid))
-        self.store_update_forward([message], False, False, forward)
-        return message
+    #     @param forward: When True the messages are forwarded (as defined by their message
+    #      destination policy) to other nodes in the community.  This parameter should (almost always)
+    #      be True, its inclusion is mostly to allow certain debugging scenarios.
+    #     @type forward: bool
+    #     """
+    #     meta = community.get_meta_message(u"dispersy-identity-request")
+    #     message = meta.implement(meta.authentication.implement(),
+    #                              meta.distribution.implement(community.global_time),
+    #                              meta.destination.implement(*addresses),
+    #                              meta.payload.implement(mid))
+    #     self.store_update_forward([message], False, False, forward)
+    #     return message
 
-    def check_identity_request(self, messages):
+    def check_missing_identity(self, messages):
         # we can not timeline.check this message because it uses the NoAuthentication policy
         return messages
 
-    def on_identity_request(self, messages):
+    def on_missing_identity(self, messages):
         """
-        We received dispersy-identity-request messages.
+        We received dispersy-missing-identity messages.
 
         The message contains the mid of a member.  The sender would like to obtain one or more
         associated dispersy-identity messages.
@@ -2147,18 +2295,18 @@ class Dispersy(Singleton):
         # that this data is immediately stored in the database when this method returns.
         pass
 
-    def check_subjective_set_request(self, messages):
+    def check_missing_subjective_set(self, messages):
         for message in messages:
             if not message.community._timeline.check(message):
                 yield DropMessage(message, "TODO: implement delay of proof")
                 continue
             yield message
 
-    def on_subjective_set_request(self, address, message):
+    def on_missing_subjective_set(self, address, message):
         """
-        We received a dispersy-subjective-set-request message.
+        We received a dispersy-missing-subjective-set message.
 
-        The dispersy-subjective-set-request message contains one member (20 byte sha1 digest) for
+        The dispersy-missing-subjective-set message contains one member (20 byte sha1 digest) for
         which the subjective set is requested.  We will search our database for any maching
         subjective sets (there may be more, as the 20 byte sha1 digest may match more than one
         member) and sent them back.
@@ -2168,13 +2316,13 @@ class Dispersy(Singleton):
         @param address: The sender address.
         @type address: (string, int)
 
-        @param message: The dispersy-subjective-set-request message.
+        @param message: The dispersy-missing-subjective-set message.
         @type message: Message.Implementation
         """
         if __debug__:
             from message import Message
         assert isinstance(message, Message.Implementation), type(message)
-        assert message.name == u"dispersy-subjective-set-request"
+        assert message.name == u"dispersy-missing-subjective-set"
 
         subjective_set_message_id = message.community.get_meta_message(u"dispersy-subjective-set")
         packets = []
@@ -2208,7 +2356,7 @@ class Dispersy(Singleton):
     #     assert isinstance(store_and_forward, bool)
 
     #     # implement the message
-    #     meta = community.get_meta_message(u"dispersy-subjective-set-request")
+    #     meta = community.get_meta_message(u"dispersy-missing-subjective-set")
     #     message = meta.implement(meta.authentication.implement(),
     #                              meta.distribution.implement(community.global_time),
     #                              meta.destination.implement(),
