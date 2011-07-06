@@ -344,3 +344,18 @@ class Node(object):
                               meta.distribution.implement(global_time),
                               meta.destination.implement(),
                               meta.payload.implement(cluster, subjective_set))
+
+    def create_dispersy_missing_message_message(self, missing_member, missing_global_times, global_time, destination_address):
+        assert isinstance(missing_member, Member)
+        assert isinstance(missing_global_times, list)
+        assert not filter(lambda x: not isinstance(x, (int, long)), missing_global_times)
+        assert isinstance(global_time, (int, long))
+        assert isinstance(destination_address, tuple)
+        assert len(destination_address) == 2
+        assert isinstance(destination_address[0], str)
+        assert isinstance(destination_address[1], int)
+        meta = self._community.get_meta_message(u"dispersy-missing-message")
+        return meta.implement(meta.authentication.implement(),
+                              meta.distribution.implement(global_time),
+                              meta.destination.implement(destination_address),
+                              meta.payload.implement(missing_member, missing_global_times))

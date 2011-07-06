@@ -83,7 +83,7 @@ def main():
             script = Script.get_instance(callback)
 
             if not opt.disable_dispersy_script:
-                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
+                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript
                 script.add("dispersy-classification", DispersyClassificationScript)
                 script.add("dispersy-timeline", DispersyTimelineScript)
                 script.add("dispersy-candidate", DispersyCandidateScript)
@@ -94,6 +94,7 @@ def main():
                 script.add("dispersy-signature", DispersySignatureScript)
                 script.add("dispersy-member-tag", DispersyMemberTagScript)
                 script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
+                script.add("dispersy-missing-message", DispersyMissingMessageScript)
 
             if not opt.disable_simple_dispersy_test_script:
                 from Tribler.community.simpledispersytest.script import GenerateMessageBatchScript, GenerateMessagesScript, KillCommunityScript

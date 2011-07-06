@@ -459,16 +459,16 @@ class MissingSubjectiveSetPayload(Payload):
 
 class MissingMessagePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, member, *global_times):
+        def __init__(self, meta, member, global_times):
             if __debug__:
                 from member import Member
             assert isinstance(member, Member)
-            assert isinstance(global_times, tuple)
-            assert not filter(lambda x: isinstance(x, (int, long)), global_times)
-            assert not filter(lambda x: x > 0, global_times)
+            assert isinstance(global_times, (tuple, list))
+            assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
+            assert not filter(lambda x: not x > 0, global_times), global_times
             assert len(global_times) > 0
             assert len(set(global_times)) == len(global_times)
-            super(MessageRequestPayload.Implementation, self).__init__(meta)
+            super(MissingMessagePayload.Implementation, self).__init__(meta)
             self._member = member
             self._global_times = global_times
 

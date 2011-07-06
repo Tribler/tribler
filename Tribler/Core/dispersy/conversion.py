@@ -230,27 +230,27 @@ class BinaryConversion(Conversion):
 
     def _decode_missing_message(self, meta_message, offset, data):
         if len(data) < offset + 2:
-            raise DropPacket("Insufficient packet size")
+            raise DropPacket("Insufficient packet size (_decode_missing_message.1)")
 
         key_length, = unpack_from("!H", data, offset)
         offset += 2
 
         if len(data) < offset + key_length + 1:
-            raise DropPacket("Insufficient packet size")
+            raise DropPacket("Insufficient packet size (_decode_missing_message.2)")
 
         member = self._community.get_member(data[offset:offset+key_length])
         offset += key_length
 
         # there must be at least one global time in the packet
         global_time_length, mod = divmod(len(data) - offset, 8)
-        if global_time_length > 0:
-            raise DropPacket("Insufficient packet size")
+        if global_time_length == 0:
+            raise DropPacket("Insufficient packet size (_decode_missing_message.3)")
         if mod != 0:
-            raise DropPacket("Invalid packet size")
+            raise DropPacket("Invalid packet size (_decode_missing_message)")
 
         global_times = unpack_from("!%dQ" % global_time_length, data, offset)
 
-        return offset, meta_message.payload.implement(member, *global_times)
+        return offset, meta_message.payload.implement(member, global_times)
 
     def _encode_sync(self, message):
         payload = message.payload

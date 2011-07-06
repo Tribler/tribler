@@ -11,7 +11,7 @@ Run some python code, usually to test one or more features.
 
 from itertools import count
 from hashlib import sha1
-from random import random
+from random import random, shuffle
 from struct import pack, unpack_from
 from time import clock, time
 import gc
@@ -63,7 +63,7 @@ class Script(Singleton):
 
         else:
             for available in sorted(self._scripts):
-                dprint("available: ", available, level="warning")
+                dprint("available: ", available, force=True)
             raise ValueError("Unknown script '%s'" % name)
 
     def add_testcase(self, call):
@@ -78,13 +78,13 @@ class Script(Singleton):
 
         elif self._testcases:
             call = self._testcases.pop(0)
-            dprint("start ", call, line=True, level="warning")
+            dprint("start ", call, line=True)
             if call.__doc__:
                 dprint(call.__doc__, box=True)
             self._callback.register(call, callback=self._next_testcase)
 
         else:
-            dprint("shutdown", box=True, level="warning")
+            dprint("shutdown", box=True, force=True)
             self._callback.stop(wait=False)
 
 class ScriptBase(object):
@@ -3389,3 +3389,125 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # receive the taste message
 #         _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])
 #         assert  message.payload.number == 5
+
+class DispersyMissingMessageScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.single_request)
+        self.caller(self.single_request_out_of_order)
+        self.caller(self.triple_request)
+
+    def single_request(self):
+        """
+        SELF generates a few messages and NODE requests one of them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create messages
+        messages = []
+        for i in xrange(10):
+            messages.append(community.create_full_sync_text("Message #%d" % i))
+
+        # ensure we don't obtain the messages from the socket cache
+        node.drop_packets()
+
+        for message in messages:
+            # request messages
+            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, address))
+            yield 0.11
+
+            # receive response
+            _, response = node.receive_message(addresses=[address], message_names=[message.name])
+            assert response.distribution.global_time == message.distribution.global_time
+            assert response.payload.text == message.payload.text
+            dprint("ok @", response.distribution.global_time)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def single_request_out_of_order(self):
+        """
+        SELF generates a few messages and NODE requests one of them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create messages
+        messages = []
+        for i in xrange(10):
+            messages.append(community.create_full_sync_text("Message #%d" % i))
+
+        # ensure we don't obtain the messages from the socket cache
+        node.drop_packets()
+
+        shuffle(messages)
+        for message in messages:
+            # request messages
+            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, address))
+            yield 0.11
+
+            # receive response
+            _, response = node.receive_message(addresses=[address], message_names=[message.name])
+            assert response.distribution.global_time == message.distribution.global_time
+            assert response.payload.text == message.payload.text
+            dprint("ok @", response.distribution.global_time)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def triple_request(self):
+        """
+        SELF generates a few messages and NODE requests three of them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create messages
+        messages = []
+        for i in xrange(10):
+            messages.append(community.create_full_sync_text("Message #%d" % i))
+        meta = messages[0].meta
+
+        # ensure we don't obtain the messages from the socket cache
+        node.drop_packets()
+
+        # request messages
+        global_times = [messages[index].distribution.global_time for index in [2, 4, 6]]
+        node.give_message(node.create_dispersy_missing_message_message(community.my_member, global_times, 25, address))
+        yield 0.11
+
+        # receive response
+        responses = []
+        _, response = node.receive_message(addresses=[address], message_names=[meta.name])
+        responses.append(response)
+        _, response = node.receive_message(addresses=[address], message_names=[meta.name])
+        responses.append(response)
+        _, response = node.receive_message(addresses=[address], message_names=[meta.name])
+        responses.append(response)
+
+        assert sorted(response.distribution.global_time for response in responses) == global_times
+        dprint("ok @", global_times)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()

@@ -1742,9 +1742,9 @@ class Dispersy(Singleton):
 
         # update candidate table and send packets
         for address in addresses:
-            assert isinstance(address, tuple)
-            assert isinstance(address[0], str)
-            assert isinstance(address[1], int)
+            assert isinstance(address, tuple), address
+            assert isinstance(address[0], str), address
+            assert isinstance(address[1], int), address
 
             if not self._is_valid_external_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
@@ -1859,25 +1859,27 @@ class Dispersy(Singleton):
         return request
 
     def check_missing_message(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
+        assert isinstance(messages[0].meta.authentication, NoAuthentication)
+        # we can not timeline.check this message because it uses the NoAuthentication policy
+        return messages
 
     def on_missing_message(self, messages):
         responses = [] # (address, packet) tuples
         for message in messages:
-            try:
-                packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
-                                                 (message.community.database_id, message.payload.member.database_id, message.payload.global_time)).next()
-            except StopIteration:
-                pass
-            else:
-                responses.append((message.address, packet))
+            address = message.address
+            community_database_id = message.community.database_id
+            member_database_id = message.payload.member.database_id
+            for global_time in message.payload.global_times:
+                try:
+                    packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                     (community_database_id, member_database_id, global_time)).next()
+                except StopIteration:
+                    pass
+                else:
+                    responses.append((address, packet))
 
-        for address, responses in groupby(responses):
-            self._send([address], [packet for _, packet in responses])
+        for address, responses in groupby(responses, key=lambda tup: tup[0]):
+            self._send([address], [str(packet) for _, packet in responses])
 
     # def create_missing_last(self, community, address, member, message, response_func=None, response_args=(), timeout=10.0, forward=True):
     #     """
@@ -2271,6 +2273,7 @@ class Dispersy(Singleton):
     #     return message
 
     def check_missing_identity(self, messages):
+        assert isinstance(messages[0].meta.authentication, NoAuthentication)
         # we can not timeline.check this message because it uses the NoAuthentication policy
         return messages
 
@@ -2747,6 +2750,7 @@ class Dispersy(Singleton):
     #         yield message
 
     def check_signature_request(self, messages):
+        assert isinstance(messages[0].meta.authentication, NoAuthentication)
         for message in messages:
             # we can not timeline.check this message because it uses the NoAuthentication policy
 
@@ -2846,6 +2850,7 @@ class Dispersy(Singleton):
         self.store_update_forward(responses, False, False, True)
 
     def check_signature_response(self, messages):
+        assert isinstance(messages[0].meta.authentication, NoAuthentication)
         # we can not timeline.check this message because it uses the NoAuthentication policy
         return messages
 

@@ -304,4 +304,4 @@ class DebugCommunity(Community):
         """
         for message in messages:
             if not "Dprint=False" in message.payload.text:
-                dprint(message, " \"", message.payload.text, "\"")
+                dprint(message, " \"", message.payload.text, "\"", " @", message.distribution.global_time)
