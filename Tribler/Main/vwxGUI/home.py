@@ -634,10 +634,14 @@ class BuzzPanel(HomePanel):
             #Deselect all terms + doresume
             self.ShowSelected()
             self.DoPauseResume()
-            
-            uelog = UserEventLogDBHandler.getInstance()
-            uelog.addEvent(message=repr((term, self.last_shown_buzz)))
-            
+
+            # 29/06/11 boudewijn: do not perform database inserts on the GUI thread
+            def db_callback():
+                uelog = UserEventLogDBHandler.getInstance()
+                uelog.addEvent(message=repr((term, last_shown_buzz)))
+            last_shown_buzz = self.last_shown_buzz
+            self.guiserver.add_task(db_callback)
+
 # ProxyService_
 #
 class NetworkTestPanel(HomePanel):

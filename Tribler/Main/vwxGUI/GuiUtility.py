@@ -3,6 +3,7 @@
 
 from Tribler.Category.Category import Category
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.Search.SearchManager import split_into_keywords
@@ -25,13 +26,7 @@ import webbrowser
 import wx
 import os
 
-
-
-
-
-
 DEBUG = False
-
 
 class GUIUtility:
     __single = None
@@ -342,24 +337,26 @@ class GUIUtility:
     def showChannelResults(self, data_channel):
         self.frame.top_bg.selectTab('channels')
         self.frame.channelcategories.DeselectAll()
-        
+
         data = []
         for channel_id, channel_data in data_channel.iteritems():
             channel = self.channelsearch_manager.getChannel(channel_id)
             if channel:
                 data.append(channel)
-                
+
             else: #channel not found in local database (no torrents downloaded yet)
                 channel_name = channel_data[0]
-                subscribers = channel_data[1]
-                nrtorrents = len(channel_data[2])
-                
-                if nrtorrents > 0:
-                    max_timestamp = max([value[1] for _, value in channel_data[2].iteritems()])
+                nr_favorites = channel_data[1]
+                nr_torrents = len(channel_data[2])
+                nr_spam = 0
+                vote = 0
+
+                if nr_torrents > 0:
+                    max_timestamp = max(value[1] for _, value in channel_data[2].iteritems())
                 else:
                     max_timestamp = -1
-                data.append([channel_id, channel_name, max_timestamp, subscribers, nrtorrents, 0, 0])
-            
+                data.append([channel_id, channel_name, max_timestamp, nr_favorites, nr_torrents, nr_spam, vote])
+
         def subscribe_latestupdate_sort(b, a):
             val = cmp(a[4], b[4])
             if val == 0:
@@ -408,18 +405,16 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
-        # 22/01/10 boudewijn: use the split_into_keywords function to
-        # split.  This will ensure that kws is unicode and splits on
-        # all 'splittable' characters
+        # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
+        # that kws is unicode and splits on all 'splittable' characters
         kwstr = query[len('SIMPLE '):]
         kws = split_into_keywords(kwstr)
-
-        wx.CallAfter(self.torrentsearch_manager.gotRemoteHits, permid, kws, hits)
+        self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
         
     def sesscb_got_channel_hits(self, permid, query, hits):
         '''
         Called by SessionCallback thread from RemoteQueryMsgHandler.process_query_reply.
-        
+
         @param permid: the peer who returnd the answer to the query
         @param query: the keywords of the query that originated the answer
         @param hits: the complete answer retruned by the peer
@@ -427,22 +422,19 @@ class GUIUtility:
         # Called by SessionCallback thread 
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
-        
+
         # Let channelcast handle inserting items etc.
         channelcast = BuddyCastFactory.getInstance().channelcast_core
-        listOfAdditions = channelcast.updateChannel(permid, query, hits)
-        
+        dictOfAdditions = channelcast.updateChannel(permid, query, hits)
+
         # 22/01/10 boudewijn: use the split_into_keywords function to
         # split.  This will ensure that kws is unicode and splits on
         # all 'splittable' characters
         kwstr = query[len("CHANNEL x "):]
         kws = split_into_keywords(kwstr)
 
-        #Code that calls GUI
-        # 1. Grid needs to be updated with incoming hits, from each remote peer
-        # 2. Sorting should also be done by that function
-        wx.CallAfter(self.channelsearch_manager.gotRemoteHits, permid, kws, listOfAdditions)
-    
+        self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
+
     def ShouldGuiUpdate(self):
         if self.frame.ready:
             return self.frame.GUIupdate

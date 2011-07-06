@@ -3,13 +3,14 @@
 # see LICENSE.txt for license information
 
 import sys
-import cPickle
+# import cPickle
 import base64
 from time import strftime
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_REPEX_QUERY
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.dispersy.encoding import encode
 
 from Tribler.Core.DecentralizedTracking.repex import RePEXLogDB
 
@@ -85,7 +86,8 @@ class RepexCrawler:
         except Exception, e:
             reply_callback(str(e), error=1)
         else:
-            reply_callback(cPickle.dumps(repexhistory, 2))
+            reply_callback(encode(repexhistory))
+            # reply_callback(cPickle.dumps(repexhistory, 2))
 
     def handle_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, request_callback):
         """
@@ -106,7 +108,7 @@ class RepexCrawler:
 
         else:
             if DEBUG:
-                print >> sys.stderr, "repexcrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
+                print >> sys.stderr, "repexcrawler: handle_crawler_reply", show_permid_short(permid), len(message), "bytes"
             
             # The message is pickled, which we will just write to file.
             # To make later parsing easier, we base64 encode it

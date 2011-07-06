@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
-import cPickle
+# import cPickle
 from time import strftime
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH
@@ -13,6 +13,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_DATABASE_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.dispersy.encoding import encode
 
 DEBUG = False
 
@@ -95,7 +96,8 @@ class DatabaseCrawler:
             reply_callback(str(e), error=1)
         else:
             if cursor:
-                reply_callback(cPickle.dumps(list(cursor), 2))
+                reply_callback(encode(list(cursor)))
+                # reply_callback(cPickle.dumps(list(cursor), 2))
             else:
                 reply_callback("error", error=2)
 
@@ -118,8 +120,14 @@ class DatabaseCrawler:
 
         else:
             if DEBUG:
-                print >> sys.stderr, "databasecrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
+                print >> sys.stderr, "databasecrawler: handle_crawler_reply", show_permid_short(permid), len(message), "bytes"
 
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  REPLY", show_permid(permid), str(error), str(cPickle.loads(message)), "\n")))
+            # 24/06/11 boudewijn: we are storing the received message in HEX format.  unfortunately
+            # this will make it unreadable in the text file, however, it will protect against pickle
+            # security issues while still being compatible with both the secure (encode) and the
+            # unsecure (pickle) crawlers on the client side.  when parsing the logs care needs to be
+            # taken when parsing the pickled data!
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  REPLY", show_permid(permid), str(error), message.encode("HEX"), "\n")))
+            # self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  REPLY", show_permid(permid), str(error), str(cPickle.loads(message)), "\n")))
             self._file.flush()
 

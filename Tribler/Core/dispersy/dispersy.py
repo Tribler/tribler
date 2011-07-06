@@ -159,10 +159,13 @@ class Dispersy(Singleton):
         @type working_directory: unicode
         """
         # the raw server
-        self._buffer_lock = Lock()
-        self._buffer = []
         self._callback = callback
         self._callback.register(self._watchdog)
+
+        # batch caching incoming packets
+        self._batch_cache = {}
+        if __debug__:
+            self._debug_batch_cache_performance = {}
 
         # where we store all data
         self._working_directory = abspath(working_directory)
@@ -309,18 +312,18 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request),
-                Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response),
-                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity, priority=512),
-                Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync),
-                Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
-                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response),
-#                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity),
-#                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request),
-                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize, priority=504),
-                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504),
-                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community),
-                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set),
+        return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request, delay=0.0),
+                Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response, delay=2.5),
+                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity, priority=512, delay=1.0),
+                Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync, delay=0.0),
+                Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
+                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response, delay=0.0),
+#                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity, delay=0.0),
+#                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request, delay=0.0),
+                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize, priority=504, delay=1.0),
+                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504, delay=1.0),
+                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community, delay=0.0),
+                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set, delay=1.0),
 
                 #
                 # when something is missing, a dispersy-missing-... message can be used to request
@@ -328,23 +331,23 @@ class Dispersy(Singleton):
                 #
 
                 # when we have a member id (20 byte sha1 of the public key) but not the public key
-                Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingIdentityPayload(), self.check_missing_identity, self.on_missing_identity),
+                Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingIdentityPayload(), self.check_missing_identity, self.on_missing_identity, delay=0.0),
 
                 # when we are missing one or more SyncDistribution messages in a certain sequence
-                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence),
+                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence, delay=0.0),
 
                 # when we have a reference to a message that we do not have.  a reference consists
                 # of the community identifier, the member identifier, and the global time
-                Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingMessagePayload(), self.check_missing_message, self.on_missing_message),
+                Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingMessagePayload(), self.check_missing_message, self.on_missing_message, delay=0.0),
 
                 # when we are missing the subjective set, with a specific cluster, from a member
-                Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSubjectiveSetPayload(), self.check_missing_subjective_set, self.on_missing_subjective_set),
+                Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSubjectiveSetPayload(), self.check_missing_subjective_set, self.on_missing_subjective_set, delay=0.0),
 
                 # when we are missing one or more LastSyncDistribution messages from a single member
                 # ... so far we do not need a generic missing-last message.  unfortunately all
                 # ... messages that it could replace contain payload specific things that make it
                 # ... difficult, if not impossible, to replace
-                # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last),
+                # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last, delay=0.0),
                 ]
 
     @staticmethod
@@ -955,23 +958,15 @@ class Dispersy(Singleton):
 
          1. The associated community is retrieved.  Failure results in packet drop.
 
-         2. The associated converion is retrieved.  Failure results in packet drop, this probably
+         2. The associated conversion is retrieved.  Failure results in packet drop, this probably
             indicates that we are running outdated software.
 
          3. The associated meta message is retrieved.  Failure results in a packet drop, this
             probably indicates that we are running outdated software.
 
-        All remaining packets are used to update the candidate table.  This may result in invalid
-        entries when a packet is dropped, for whatever reason, in a later stage.
-
-        Following, the packets are grouped by their meta message, and we will continue to process
-        one 'batch' at a time, in the order defined by the meta message priority.  Each batch is
-        processed with the following steps:
-
-         1. The packet is decoded into a Message.Implementation instance.  Failure results in either
-            a packet drop or a packet delay.
-
-         2. The on_message_batch(...) method is called.
+        All packets are grouped by their meta message.  All batches are scheduled based on the
+        meta.delay and meta.priority.  Finally, the candidate table is updated in regards to the
+        incoming source addresses.
 
         @param packets: The sequence of packets.
         @type packets: [(address, packet)]
@@ -980,54 +975,81 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
 
-        if __debug__:
-            debug_begin = clock()
-            dprint("[0.0 pct] ", len(packets), " packets (", sum(len(packet) for _, packet in packets), " bytes)")
+        addresses = set()
+        key = lambda tup: tup[0] # meta, address, packet, conversion
+        for meta, iterator in groupby(sorted(self._convert_packets_into_batch(packets), key=key), key=key):
+            batch = [(address, packet, conversion) for _, address, packet, conversion in iterator]
 
-        batches = dict()
-        for meta, triplet in self._convert_packets_into_batch(packets):
-            if not meta in batches:
-                batches[meta] = set()
-            batches[meta].add(triplet)
+            # build unique set containing source addresses
+            addresses.update(address for address, _, _ in batch)
 
-        if __debug__:
-            dprint("[", clock() - debug_begin, " pct] ", sum(len(batch) for batch in batches.itervalues()), " incoming packets after simple check")
-
-        if batches:
-            # update candidate table.  We know that some peer (not necessarily
-            # message.authentication.member) exists at this address.
-            for meta, batch in batches.iteritems():
-                for host, port in set(address for address, _, _ in batch):
-                    self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME('now') WHERE community = ? AND host = ? AND port = ?",
-                                           (meta.community.database_id, unicode(host), port))
-                    if self._database.changes == 0:
-                        self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME('now'), '2010-01-01 00:00:00')",
-                                               (meta.community.database_id, unicode(host), port))
-
-        if __debug__:
-            dprint("[", clock() - debug_begin, " pct] ", sum(len(batch) for batch in batches.itervalues()), " incoming packets after candidate table update")
-            debug_handled = {}
-
-        # process the packets in priority order, high values first
-        for meta, batch in sorted(batches.iteritems(), cmp=lambda x, y: x[0].priority - y[0].priority, reverse=True):
-            # convert binary packets into Message.Implementation instances
-            messages = list(self._convert_batch_into_messages(batch))
-            assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-            if __debug__: dprint("[", clock() - debug_begin, " pct] ", len(messages), " ", meta.name, " messages after conversion")
-
-            # handle the incoming messages
-            if __debug__:
-                if messages:
-                    if not messages[0].name in debug_handled:
-                        debug_handled[messages[0].name] = 0
-                    debug_handled[messages[0].name] += self.on_message_batch(messages)
-
+            # schedule batch processing (taking into account the message priority)
+            if meta in self._batch_cache:
+                self._batch_cache[meta].extend(batch)
+                if __debug__:
+                    self._debug_batch_cache_performance[meta].append(len(batch))
             else:
-                if messages:
-                    self.on_message_batch(messages)
+                self._batch_cache[meta] = batch
+                self._callback.register(self._on_batch_cache, (meta,), delay=meta.delay, priority=meta.priority)
+                if __debug__:
+                    self._debug_batch_cache_performance[meta] = [len(batch)]
+
+        # update candidate table.  We know that some peer (not necessarily
+        # message.authentication.member) exists at this address.
+        for host, port in addresses:
+            self._database.execute(u"UPDATE candidate SET incoming_time = DATETIME('now') WHERE community = ? AND host = ? AND port = ?",
+                                   (meta.community.database_id, unicode(host), port))
+            if self._database.changes == 0:
+                self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME('now'), '2010-01-01 00:00:00')",
+                                       (meta.community.database_id, unicode(host), port))
+
+    def _on_batch_cache(self, meta):
+        """
+        Start processing a batch of messages.
+
+        This method is called meta.delay seconds after the first message in this batch arrived.  All
+        messages in this batch have been 'cached' together in self._batch_cache[meta].  Hopefully
+        the delay caused the batch to collect as many messages as possible.
+
+        The batch is processed in the following steps:
+
+         1. All duplicate binary packets are removed.
+
+         2. All binary packets are converted into Message.Implementation instances.  Some packets
+            are dropped or delayed at this stage.
+
+         3. All remaining messages are passed to on_message_batch.
+        """
+        assert meta in self._batch_cache
+        def unique(batch):
+            unique = set()
+            for address, packet, conversion in batch:
+                assert isinstance(packet, str)
+                if packet in unique:
+                    if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1], level="warning")
+                    self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
+                else:
+                    unique.add(packet)
+                    yield address, packet, conversion
 
         if __debug__:
-            dprint("[", clock() - debug_begin, " pct] handled ", sum(debug_handled.itervalues()), "/", len(packets), " [", ", ".join("%s:%d" % (name, count) for name, count in debug_handled.iteritems()), "] successfully", level=("normal" if sum(debug_handled.itervalues()) == len(packets) else "warning"))
+            performance = self._debug_batch_cache_performance.pop(meta)
+            if meta.delay:
+                dprint("batch size: ", sum(performance), " [", ":".join(map(str, performance)), "] for ", meta.name, " after ", meta.delay, "s")
+
+        # remove duplicated
+        # todo: make _convert_batch_into_messages accept iterator instead of list to avoid conversion
+        batch = list(unique(self._batch_cache.pop(meta)))
+
+        # convert binary packets into Message.Implementation instances
+        messages = list(self._convert_batch_into_messages(batch))
+        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages), "_convert_batch_into_messages must return only Message.Implementation instances"
+        assert not filter(lambda x: not x.meta == meta, messages), "All Message.Implementation instances must be in the same batch"
+        if __debug__: dprint(len(messages), " ", meta.name, " messages after conversion")
+
+        # handle the incoming messages
+        if messages:
+            self.on_message_batch(messages)
 
     def on_messages(self, messages):
         batches = dict()
@@ -1164,11 +1186,14 @@ class Dispersy(Singleton):
     def _convert_packets_into_batch(self, packets):
         """
         Convert a list with one or more (address, data) tuples into a list with zero or more
-        (Message, (address, data)) tuples using a generator.
+        (Message, (address, packet, conversion)) tuples using a generator.
 
-        Duplicate packets are removed.  This will result in drops when two we receive the exact same
-        binary packet from multiple nodes.  While this is usually not a problem, packets are usually
-        signed and hence unique, in rare cases this may result in invalid drops.
+        # 22/06/11 boudewijn: no longer checks for duplicates.  duplicate checking is pointless
+        # because new duplicates may be introduces because of the caching mechanism.
+        #
+        # Duplicate packets are removed.  This will result in drops when two we receive the exact same
+        # binary packet from multiple nodes.  While this is usually not a problem, packets are usually
+        # signed and hence unique, in rare cases this may result in invalid drops.
 
         Packets from invalid sources are removed.  The _is_valid_external_address is used to
         determine valid addresses.
@@ -1183,7 +1208,7 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
 
-        unique = set()
+        # unique = set()
         for address, packet in packets:
             assert isinstance(address, tuple)
             assert len(address) == 2
@@ -1191,11 +1216,11 @@ class Dispersy(Singleton):
             assert isinstance(address[1], int)
             assert isinstance(packet, str)
 
-            # we may have receive this packet in this on_incoming_packets callback
-            if packet in unique:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1], level="warning")
-                self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
-                continue
+            # # we may have receive this packet in this on_incoming_packets callback
+            # if packet in unique:
+            #     if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", address[0], ":", address[1], level="warning")
+            #     self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
+            #     continue
 
             # is it from an external source
             if not self._is_valid_external_address(address):
@@ -1221,7 +1246,7 @@ class Dispersy(Singleton):
 
             try:
                 # convert binary data into the meta message
-                yield conversion.decode_meta_message(packet), (address, packet, conversion)
+                yield conversion.decode_meta_message(packet), address, packet, conversion
 
             except DropPacket, exception:
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
@@ -1367,6 +1392,9 @@ class Dispersy(Singleton):
                             ORDER BY sync.global_time, sync.packet""" % OR,
                                        (meta.community.database_id, meta.database_id) + member_database_ids)
                     all_items = []
+                    # TODO: weird.  group by using row[0], that is sync.id, and that is unique, so
+                    # groupby makes no sence.  Furthermore, groupby requires row[0] to be sorted,
+                    # and that is not the case either.
                     for id_, group in groupby(iterator, key=lambda row: row[0]):
                         group = list(group)
                         if len(group) == meta.authentication.count and member_database_ids == tuple(sorted(check_member_id for _, _, _, check_member_id in group)):
@@ -1552,8 +1580,14 @@ class Dispersy(Singleton):
         forward the message to other nodes in the community.  This method is a shorthand for doing
         those three tasks.
 
+        To reduce the disk activity, namely syncing the database to disk, we will perform the
+        database commit not after the (1) store operation but after the (2) update operation.  This
+        will ensure that any database changes from handling the message are also synced to disk.  It
+        is important to note that the sync will occur before the (3) forward operation to ensure
+        that no external nodes will obtain data that we have not safely synced ourselves.
+
         For performance reasons messages are processed in batches, where each batch contains only
-        messages from the same community and the same meta message instance.  This methods, or more
+        messages from the same community and the same meta message instance.  This method, or more
         specifically the methods that handle the actual storage, updating, and forwarding, assume
         this clustering.
 
@@ -1585,11 +1619,15 @@ class Dispersy(Singleton):
         assert isinstance(update, bool)
         assert isinstance(forward, bool)
 
-        if store and isinstance(messages[0].meta.distribution, SyncDistribution):
-                self._store(messages)
+        store = store and isinstance(messages[0].meta.distribution, SyncDistribution)
+        if store:
+            self._store(messages)
 
         if update:
             messages[0].handle_callback(messages)
+
+        if store:
+            self._database.commit()
 
         if forward:
             self._forward(messages)
@@ -3418,13 +3456,16 @@ class Dispersy(Singleton):
 
     def _watchdog(self):
         """
-        Periodically called, most importantly, it will catch the GeneratorExit exception when it is
-        thrown to properly shutdown the database.
+        Periodically called to flush changes to disk, most importantly, it will catch the
+        GeneratorExit exception when it is thrown to properly shutdown the database.
         """
         while True:
             try:
-                yield 333.3
+                yield 300.0
+                # flush changes to disk every 5 minutes
+                self._database.commit()
             except GeneratorExit:
+                if __debug__: dprint("shutdown")
                 self._database.commit()
                 break
 

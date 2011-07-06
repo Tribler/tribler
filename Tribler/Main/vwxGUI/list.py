@@ -137,7 +137,7 @@ class ChannelSearchManager:
         if DEBUG:
             print >> sys.stderr, "ChannelManager complete refresh"
         
-        if search_results == None:
+        if self.category != 'searchresults':
             title = ''
             if self.category == 'New':
                 title = 'New Channels'
@@ -169,9 +169,10 @@ class ChannelSearchManager:
             self.guiserver.add_task(db_callback, id = "ChannelSearchManager_refresh")
 
         else:
-            total_items = len(search_results)
-            keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
-            self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
+            if search_results:
+                total_items = len(search_results)
+                keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
+                self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
     
     def _on_data(self, data, title, total_items):
         data = [channel for channel in data if channel[CHANNEL_NR_TORRENTS] > 0]

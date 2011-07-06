@@ -172,7 +172,7 @@ class ChannelCastCore:
         return self._updateChannelInternal(query_permid, query, hits)
         
     def _updateChannelInternal(self, query_permid, query, hits):
-        listOfAdditions = list()
+        dictOfAdditions = dict()
 
         if len(hits) > 0:
             # a single read from the db is more efficient
@@ -194,11 +194,16 @@ class ChannelCastCore:
 
                 # make everything into "string" format, if "binary"
                 hit = (v['channel_id'],v['publisher_name'],v['infohash'],v['torrentname'],v['time_stamp'])
-                listOfAdditions.append(hit)
+                # 29/06/11 boudewijn: note that k contains the signature (whatever that is) and NOT
+                # the infohash.  this makes this result incompatible with
+                # SearchGridManager.getRemoteHits().  Hence these hits are NOT propagated there
+                # anymore.
+                dictOfAdditions[k] = hit
 
             # Arno, 2010-06-11: We're on the OverlayThread
-            self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
-        return listOfAdditions
+            self._updateChannelcastDB(query_permid, query, hits, dictOfAdditions.values())
+
+        return dictOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
         if DEBUG:

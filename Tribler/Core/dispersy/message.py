@@ -314,6 +314,10 @@ class Packet(MetaObject.Implementation):
         return self._meta._priority
 
     @property
+    def delay(self):
+        return self._meta._delay
+
+    @property
     def packet(self):
         return self._packet
 
@@ -427,7 +431,7 @@ class Message(MetaObject):
         def __str__(self):
             return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
-    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, priority=128):
+    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, priority=128, delay=0.0):
         if __debug__:
             from community import Community
             from authentication import Authentication
@@ -442,8 +446,11 @@ class Message(MetaObject):
         assert isinstance(distribution, Distribution), "DISTRIBUTION has invalid type '%s'" % type(distribution)
         assert isinstance(destination, Destination), "DESTINATION has invalid type '%s'" % type(destination)
         assert isinstance(payload, Payload), "PAYLOAD has invalid type '%s'" % type(payload)
-        assert hasattr(check_callback, "__call__")
-        assert hasattr(handle_callback, "__call__")
+        assert callable(check_callback)
+        assert callable(handle_callback)
+        assert isinstance(priority, int)
+        assert isinstance(delay, float)
+        assert delay >= 0.0
         assert self.check_policy_combination(authentication, resolution, distribution, destination)
         self._community = community
         self._name = name
@@ -455,6 +462,7 @@ class Message(MetaObject):
         self._check_callback = check_callback
         self._handle_callback = handle_callback
         self._priority = priority # high value has high priority, i.e. is handled earlier
+        self._delay = delay
 
         # setup
         database = community.dispersy.database
@@ -518,6 +526,10 @@ class Message(MetaObject):
     @property
     def priority(self):
         return self._priority
+
+    @property
+    def delay(self):
+        return self._delay
 
     def generate_footprint(self, authentication=(), distribution=(), destination=(), payload=()):
         assert isinstance(authentication, tuple)

@@ -101,6 +101,7 @@ class TorrentDetails(AbstractDetails):
         self.parent = parent
         self.torrent = torrent
         self.state = -1
+        self.vod_log = None
         
         self.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)

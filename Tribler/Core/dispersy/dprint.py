@@ -12,7 +12,7 @@ report bugs in other modules.
 from os.path import dirname, basename, expanduser, isfile, join
 from sys import stdout, stderr, exc_info
 # from threading import current_thread, Thread, Lock
-from time import time
+from time import time, strftime
 from traceback import extract_stack, print_exception, print_stack, format_list
 import inspect
 import re
@@ -32,26 +32,30 @@ LEVEL_LOG = 142
 LEVEL_NOTICE = 167
 LEVEL_WARNING = 192
 LEVEL_ERROR = 224
+LEVEL_FORCE = 1024
 level_map = {"debug":LEVEL_DEBUG,       # informative only to a developer
              "normal":LEVEL_NORMAL,     # informative to a user running from console
              "log":LEVEL_LOG,           # a message that is logged
              "notice":LEVEL_NOTICE,     # something is wrong but we can recover (external failure, we are not the cause nor can we fix this)
              "warning":LEVEL_WARNING,   # something is wrong but we can recover (internal failure, we are the cause and should fix this)
-             "error":LEVEL_ERROR}       # something is wtong and recovering is impossible
+             "error":LEVEL_ERROR,       # something is wrong and recovering is impossible
+             "force":LEVEL_FORCE}       # explicitly force this print to pass through the filter
 level_tag_map = {LEVEL_DEBUG:"D",
                  LEVEL_NORMAL:" ",
                  LEVEL_LOG:"L",
                  LEVEL_NOTICE:"N",
                  LEVEL_WARNING:"W",
-                 LEVEL_ERROR:"E"}
+                 LEVEL_ERROR:"E",
+                 LEVEL_FORCE:"F"}
 
 _dprint_settings = {
+    "binary":False,                     # print a binary representation of the arguments
     "box":False,                        # add a single line above and below the message
     "box_char":"-",                     # when a box is added to the message use this character to generate the line
     "box_width":80,                     # when a box is added to the message make the lines this long
-    "binary":False,
     "callback":None,                    # optional callback. the callback is only performed if the filters accept the message. the callback result is added to the displayed message
     "exception":False,                  # add the last occured exception, including its stacktrace, to the message
+    "force":False,                      # ignore all filters, equivalent to level="force"
     "glue":"",                          # use this string to join() *args together
     "level":LEVEL_NORMAL,               # either "debug", "normal", "warning", "error", or a number in the range [0, 255]
     "line":False,                       # add a single line above the message
@@ -59,6 +63,7 @@ _dprint_settings = {
     "line_width":80,                    # when a line is added to the message make the line this long
     "lines":False,                      # write each value on a seperate line
     "meta":False,                       # write each value on a seperate line including metadata
+    "pprint":False,                     # pretty print arg[0] if there is only one argument, otherwize pretty print arg
     "remote":False,                     # write message to remote logging application
     "remote_host":"localhost",          # when remote logging is enabled this hostname is used
     "remote_port":12345,                # when remote logging is enabled this port is used
@@ -66,13 +71,13 @@ _dprint_settings = {
     "source_function":None,             # force a source function. otherwise the function is retrieved from the callstack
     "source_line":None,                 # force a source line. otherwise the line number is retrieved from the callstack
     "stack":False,                      # add a stacktrace to the message. optionally this can be a list optained through extract_stack()
-    "stack_origin_modifier":-1,         # modify the length of the callstack that is displayed and used to retrieve the source-filename, -function, and -line
-    # "stack_trace":None,                 # when stack is printed use this value, obtained through extract_stack(), as stack values
     "stack_ident":None,                 # when stack is printed use this ident to determine the thread name
+    "stack_origin_modifier":-1,         # modify the length of the callstack that is displayed and used to retrieve the source-filename, -function, and -line
     "stderr":False,                     # write message to sys.stderr
     "stdout":True,                      # write message to sys.stdout
     "style":"column",                   # output style. either "short" or "column"
-    "pprint":False}
+    "time":False,                       # include a timestamp at the start of each line
+    "time_format":"%H:%M:%S"}           # the timestamp format (see strftime)
 
 # We allow message filtering in a 'iptables like' fashion. Each
 # messages is passed to the ENTRY chain in _dprint_filters, when a
@@ -203,7 +208,7 @@ def filter_add_by_source(chain, target, file=None, function=None, path=None, jum
     At least one of FILE, FUNCTION, or PATH must be given. When more
     then one are given the source message will match if all given
     filters match.
-    """    
+    """
     # assert for CHAIN is done in filter_add
     # assert for TARGET is done in filter_add
     # assert for POSITION is done in filter_add
@@ -256,6 +261,7 @@ def filter_add_by_level(chain, target, exact=None, min=None, max=None, jump=None
             return min <= settings["level"] <= max
     else:
         def match(args, settings):
+            print "match", exact, "==", settings["level"]
             return exact == settings["level"]
     match.__name__ = "by_level(%s, %s, %s)" % (exact, min, max)
     filter_add(chain, match, target, jump=jump, position=position)
@@ -347,7 +353,7 @@ def _config_read():
         """
         get_arguments("filename, function, 42", (strip, strip, int), ",")
         --> ["filename", "function", 42]
-        
+
         get_arguments("filename", (strip, strip, int), ",")
         --> ["filename", None, None]
         """
@@ -364,7 +370,7 @@ def _config_read():
     re_section = re.compile("^\s*\[\s*(.+?)\s*\]\s*$")
     re_option = re.compile("^\s*([^#].+?)\s*=\s*(.+?)\s*$")
     re_true = re.compile("^true|t|1$")
-    
+
     options = []
     sections = {"default":options}
     for file_ in ['dprint.conf', expanduser('~/dprint.conf')]:
@@ -387,9 +393,9 @@ def _config_read():
                         sections[section] = options
                     continue
 
-    string = ["box_char", "glue", "line_char", "remote_host", "source_file", "source_function", "style"]
+    string = ["box_char", "glue", "line_char", "remote_host", "source_file", "source_function", "style", "time_format"]
     int_ = ["box_width", "line_width", "remote_port", "source_line", "stack_origin_modifier"]
-    boolean = ["box", "binary", "exception", "exclude_policy", "line", "lines", "meta", "pprint", "remote", "stack", "stderr", "stdout"]
+    boolean = ["box", "binary", "exception", "force", "line", "lines", "meta", "pprint", "remote", "stack", "stderr", "stdout", "time"]
     for line_number, line, before, after in sections["default"]:
         try:
             if before in string:
@@ -414,7 +420,7 @@ def _config_read():
             chains.append((section, chain))
     if "filter" in sections:
         chains.append(("filter", "ENTRY"))
-    
+
     for section, chain in chains:
         for line_number, line, before, after in sections[section]:
             try:
@@ -427,7 +433,11 @@ def _config_read():
                         file_, function, path = get_arguments(before, (strip, strip, strip), ",")
                         filter_add_by_source(chain, after, file=file_, function=function, path=path, jump=jump)
                     elif type_ == "level":
-                        conv = lambda x: not x.isdigit() and strip(x) or int(x)
+                        def conv(x):
+                            if x.isdigit(): return int(x)
+                            x = x.strip()
+                            if x: return x
+                            return None
                         exact, min_, max_ = get_arguments(before, (conv, conv, conv), ",")
                         filter_add_by_level(chain, after, exact=exact, min=min_, max=max_, jump=jump)
                     elif type_ == "pattern":
@@ -695,6 +705,10 @@ def dprint(*args, **kargs):
         if kargs["source_line"] is None: kargs["source_line"] = 0
         if kargs["source_function"] is None: kargs["source_function"] = "unknown"
 
+    # exlicitly force the message
+    if kargs["force"]:
+        kargs["level"] = "force"
+
     # when level is below ERROR, apply filters on the message
     if kargs["level"] in level_map: kargs["level"] = level_map[kargs["level"]]
     if kargs["level"] < LEVEL_ERROR and not _filter_check(args, kargs, _filter_entry):
@@ -704,12 +718,16 @@ def dprint(*args, **kargs):
         short_source_file = join(basename(dirname(kargs["source_file"])), basename(kargs["source_file"][:-3]))
     else:
         short_source_file = join(basename(dirname(kargs["source_file"])), basename(kargs["source_file"]))
+    prefix = [level_tag_map.get(kargs["level"], "U")]
+    if kargs["time"]:
+        prefix.append(strftime(kargs["time_format"]))
     if kargs["style"] == "short":
-        prefix = "%s %s:%s %s " % (level_tag_map.get(kargs["level"], "U"), short_source_file, kargs["source_line"], kargs["source_function"])
+        prefix.append("%s:%s %s " % (short_source_file, kargs["source_line"], kargs["source_function"]))
     elif kargs["style"] == "column":
-        prefix = "%s %25s:%-4s %-25s | " % (level_tag_map.get(kargs["level"], "U"), short_source_file[-25:], kargs["source_line"], kargs["source_function"])
+        prefix.append("%25s:%-4s %-25s | " % (short_source_file[-25:], kargs["source_line"], kargs["source_function"]))
     else:
         raise ValueError("Invalid/unknown style: \"%s\"" % kargs["style"])
+    prefix = " ".join(prefix)
     messages = []
 
     if kargs["callback"]:

@@ -34,15 +34,17 @@ class TopSearchPanel(bgPanel):
         self.nbdb = NetworkBuzzDBHandler.getInstance()
     
     def OnAutoComplete(self):
-        self.OnSearchKeyDown()
         self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type = 2)  
     
     def OnSearchKeyDown(self, event = None):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
-        wx.CallAfter(self.guiUtility.dosearch)
+        self.guiUtility.dosearch()
     
     def StartSearch(self):
+        if getattr(self.searchField, 'ShowDropDown', False):
+            self.searchField.ShowDropDown(False)    
+        
         self.ag.Show()
         self.go.GetContainingSizer().Layout()
         self.ag.Play()

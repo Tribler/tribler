@@ -353,11 +353,13 @@ class Community(object):
         # obtain dispersy meta messages
         for meta_message in self._dispersy.initiate_meta_messages(self):
             assert meta_message.name not in self._meta_messages
+            assert self.dispersy_sync_interval <= 0.0 or meta_message.delay < self.dispersy_sync_interval, "when sync is enabled the interval should be greater than the message delay.  otherwise you are likely to receive duplicate packets"
             self._meta_messages[meta_message.name] = meta_message
 
         # obtain community meta messages
         for meta_message in self.initiate_meta_messages():
             assert meta_message.name not in self._meta_messages
+            assert self.dispersy_sync_interval <= 0.0 or meta_message.delay < self.dispersy_sync_interval, "when sync is enabled the interval should be greater than the message delay.  otherwise you are likely to receive duplicate packets"
             self._meta_messages[meta_message.name] = meta_message
 
     def _initialize_sync_ranges(self):

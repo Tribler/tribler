@@ -331,7 +331,8 @@ class ABCApp(wx.App):
 
     # ProxyService 90s Test_
     def start_90s_dl(self, subject, changeType, objectID, *args):
-        wx.CallAfter(self.gui_start_90s_dl)
+        self.guiserver.add_task(self.gui_start_90s_dl, 3)
+        # wx.CallAfter(self.gui_start_90s_dl)
         
     def gui_start_90s_dl(self):
         # Test if the 90s file exists in the Session.get_state_dir() folder
@@ -353,11 +354,12 @@ class ABCApp(wx.App):
                 return
     
             # Start the 90s test download
-            guiUtility = GUIUtility.getInstance()
-            guiUtility.frame.startDownload(tdef = torrent_def, doemode=DOE_MODE_PRIVATE)
+            # guiUtility = GUIUtility.getInstance()
+            self.guiUtility.frame.startDownload(tdef = torrent_def, doemode=DOE_MODE_PRIVATE)
     
             # 300000ms = 300s = 5 minutes
-            wx.CallLater(300000, self.del_dl, '5minutetimeout')
+            self.guiserver.add_task(self.del_dl, 300)
+            # wx.CallLater(300000, self.del_dl, '5minutetimeout')
     
     def del_dl(self, reasonwhy = ''):
         if self._remove_download_by_name("'Data.90s-test.8M.bin'"):

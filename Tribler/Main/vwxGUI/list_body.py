@@ -558,6 +558,9 @@ class AbstractListBody():
         self.vSizer.Layout()
         self.Layout()
         
+        #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
+        self.Refresh()
+        
         #Determine scrollrate
         if not self.rate:
             rate_y = 20
