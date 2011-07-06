@@ -841,9 +841,9 @@ class DispersyCandidateScript(ScriptBase):
                   (u"2.3.4.5", 6)]
 
         # put some routes in the database that we expect back
-        with self._dispersy_database as execute:
+        with self._dispersy_database as database:
             for host, port in routes:
-                execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))", (community.database_id, host, port))
+                database.execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))", (community.database_id, host, port))
 
         # send a dispersy-candidate-request message
         node.send_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, [], 10), address)

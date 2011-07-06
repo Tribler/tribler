@@ -945,7 +945,7 @@ class Dispersy(Singleton):
             # update statistics
             self._total_received += sum(len(packet) for _, packet in packets)
 
-    def on_incoming_packets(self, packets):
+    def on_incoming_packets(self, packets, cache=True):
         """
         Process incoming UDP packets.
 
@@ -976,23 +976,28 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not len(x) == 2, packets)
 
         addresses = set()
-        key = lambda tup: tup[0] # meta, address, packet, conversion
-        for meta, iterator in groupby(sorted(self._convert_packets_into_batch(packets), key=key), key=key):
+        sort_key = lambda tup: (tup[0].priority, tup[0]) # meta, address, packet, conversion
+        groupby_key = lambda tup: tup[0] # meta, address, packet, conversion
+        for meta, iterator in groupby(sorted(self._convert_packets_into_batch(packets), key=sort_key), key=groupby_key):
             batch = [(address, packet, conversion) for _, address, packet, conversion in iterator]
 
             # build unique set containing source addresses
             addresses.update(address for address, _, _ in batch)
 
             # schedule batch processing (taking into account the message priority)
-            if meta in self._batch_cache:
-                self._batch_cache[meta].extend(batch)
-                if __debug__:
-                    self._debug_batch_cache_performance[meta].append(len(batch))
+            if meta.delay and cache:
+                if meta in self._batch_cache:
+                    self._batch_cache[meta].extend(batch)
+                    if __debug__:
+                        self._debug_batch_cache_performance[meta].append(len(batch))
+                else:
+                    self._batch_cache[meta] = batch
+                    self._callback.register(self._on_batch_cache_timeout, (meta,), delay=meta.delay, priority=meta.priority)
+                    if __debug__:
+                        self._debug_batch_cache_performance[meta] = [len(batch)]
             else:
-                self._batch_cache[meta] = batch
-                self._callback.register(self._on_batch_cache, (meta,), delay=meta.delay, priority=meta.priority)
-                if __debug__:
-                    self._debug_batch_cache_performance[meta] = [len(batch)]
+                # ignore cache, process batch immediately
+                self._on_batch_cache(meta, batch)
 
         # update candidate table.  We know that some peer (not necessarily
         # message.authentication.member) exists at this address.
@@ -1003,13 +1008,25 @@ class Dispersy(Singleton):
                 self._database.execute(u"INSERT INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME('now'), '2010-01-01 00:00:00')",
                                        (meta.community.database_id, unicode(host), port))
 
-    def _on_batch_cache(self, meta):
+    def _on_batch_cache_timeout(self, meta):
         """
-        Start processing a batch of messages.
+        Start processing a batch of messages once the cache timeout occurs.
 
         This method is called meta.delay seconds after the first message in this batch arrived.  All
         messages in this batch have been 'cached' together in self._batch_cache[meta].  Hopefully
         the delay caused the batch to collect as many messages as possible.
+        """
+        assert meta in self._batch_cache
+        assert meta in self._debug_batch_cache_performance
+        if __debug__:
+            performance = self._debug_batch_cache_performance.pop(meta)
+            if meta.delay:
+                dprint("batch size: ", sum(performance), " [", ":".join(map(str, performance)), "] for ", meta.name, " after ", meta.delay, "s")
+        return self._on_batch_cache(meta, self._batch_cache.pop(meta))
+
+    def _on_batch_cache(self, meta, batch):
+        """
+        Start processing a batch of messages.
 
         The batch is processed in the following steps:
 
@@ -1020,7 +1037,6 @@ class Dispersy(Singleton):
 
          3. All remaining messages are passed to on_message_batch.
         """
-        assert meta in self._batch_cache
         def unique(batch):
             unique = set()
             for address, packet, conversion in batch:
@@ -1032,14 +1048,9 @@ class Dispersy(Singleton):
                     unique.add(packet)
                     yield address, packet, conversion
 
-        if __debug__:
-            performance = self._debug_batch_cache_performance.pop(meta)
-            if meta.delay:
-                dprint("batch size: ", sum(performance), " [", ":".join(map(str, performance)), "] for ", meta.name, " after ", meta.delay, "s")
-
         # remove duplicated
         # todo: make _convert_batch_into_messages accept iterator instead of list to avoid conversion
-        batch = list(unique(self._batch_cache.pop(meta)))
+        batch = list(unique(batch))
 
         # convert binary packets into Message.Implementation instances
         messages = list(self._convert_batch_into_messages(batch))

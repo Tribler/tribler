@@ -110,7 +110,7 @@ class Callback(object):
         """
         Unregister a callback using the ID_ obtained from the register(...) method
         """
-        assert isinstance(root_id, (str, int)), "ROOT_ID has invalid type: %s" % type(id_)
+        assert isinstance(id_, (str, int)), "ROOT_ID has invalid type: %s" % type(id_)
         if __debug__: dprint(id_)
         with self._lock:
             self._new_actions.append(("unregister", id_))
@@ -179,13 +179,10 @@ class Callback(object):
             self._state = "STATE_RUNNING"
             if __debug__: dprint("STATE_RUNNING")
 
-        while True:
+        while self._state == "STATE_RUNNING":
             actual_time = get_timestamp()
 
             with lock:
-                # todo: what is faster (1) extend list and sort or (2)
-                # heappuch every item
-
                 # schedule all new actions
                 for type_, action in new_actions:
                     if type_ == "register":
@@ -203,10 +200,6 @@ class Callback(object):
                         expired = [request for request in expired if not request[1] == action]
                 del new_actions[:]
                 self._event.clear()
-
-                # make sure that we should still be running
-                if self._state != "STATE_RUNNING":
-                    break
 
                 # move expired requests from REQUESTS to EXPIRED
                 while requests and requests[0][0] <= actual_time:
@@ -278,7 +271,7 @@ class Callback(object):
                 # we need to wait for new requests
                 if requests:
                     # there are no requests that have to be handled right now. Sleep for a while.
-                    if __debug__: dprint("wait: %.4fs" % (requests[0][0] - actual_time))
+                    if __debug__: dprint("wait: %.1fs" % min(300.0, requests[0][0] - actual_time))
                     self._event.wait(min(300.0, requests[0][0] - actual_time))
 
                 else:

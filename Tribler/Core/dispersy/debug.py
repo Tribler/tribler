@@ -111,35 +111,35 @@ class Node(object):
             self._community._my_member = tmp_member
         return packet
 
-    def give_packet(self, packet, verbose=False):
+    def give_packet(self, packet, verbose=False, cache=False):
         assert isinstance(packet, str)
         assert isinstance(verbose, bool)
         if verbose: dprint("giving ", len(packet), " bytes")
-        self._community.dispersy.on_incoming_packets([(self.socket.getsockname(), packet)])
+        self._community.dispersy.on_incoming_packets([(self.socket.getsockname(), packet)], cache=cache)
         return packet
 
-    def give_packets(self, packets, verbose=False):
+    def give_packets(self, packets, verbose=False, cache=False):
         assert isinstance(packets, list)
         assert isinstance(verbose, bool)
         if verbose: dprint("giving ", sum(len(packet) for packet in packets), " bytes")
         address = self.socket.getsockname()
-        self._community.dispersy.on_incoming_packets([(address, packet) for packet in packets])
+        self._community.dispersy.on_incoming_packets([(address, packet) for packet in packets], cache=cache)
         return packets
 
-    def give_message(self, message, verbose=False):
+    def give_message(self, message, verbose=False, cache=False):
         assert isinstance(message, Message.Implementation)
         assert isinstance(verbose, bool)
         self.encode_message(message)
         if verbose: dprint("giving ", message.name, " (", len(message.packet), " bytes)")
-        self.give_packet(message.packet, verbose=verbose)
+        self.give_packet(message.packet, verbose=verbose, cache=cache)
         return message
 
-    def give_messages(self, messages, verbose=False):
+    def give_messages(self, messages, verbose=False, cache=False):
         assert isinstance(messages, list)
         assert isinstance(verbose, bool)
         map(self.encode_message, messages)
         if verbose: dprint("giving ", len(messages), " messages (", sum(len(message.packet) for message in messages), " bytes)")
-        self.give_packets([message.packet for message in messages], verbose=verbose)
+        self.give_packets([message.packet for message in messages], verbose=verbose, cache=cache)
         return messages
 
     def send_packet(self, packet, address, verbose=False):

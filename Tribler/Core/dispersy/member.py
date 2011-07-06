@@ -174,13 +174,13 @@ class Member(Public, Parameterized1Singleton):
                 return False
             self._tags.remove(tag)
 
-        with DispersyDatabase.get_instance() as execute:
+        with DispersyDatabase.get_instance() as database:
             # todo: at some point we may want to optimize this.  for now this is a feature that will
             # probably not be used often hence we leave it like this.
-            tags = list(execute(u"SELECT key, value FROM tag"))
+            tags = list(database.execute(u"SELECT key, value FROM tag"))
             int_tags = [0, 0] + [key for key, value in tags if value in self._tags]
             reduced = reduce(lambda a, b: a | b, int_tags)
-            execute(u"UPDATE user SET tags = ? WHERE public_key = ?", (reduced, buffer(self._public_key),))
+            database.execute(u"UPDATE user SET tags = ? WHERE public_key = ?", (reduced, buffer(self._public_key),))
         return True
 
     # @property
