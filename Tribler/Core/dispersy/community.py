@@ -890,8 +890,7 @@ class Community(object):
 
             else:
                 # did not break, meaning, we can not split any more sync ranges
-                break
-            dprint("potential endless loop")
+                return
 
     def get_subjective_set(self, member, cluster):
         """

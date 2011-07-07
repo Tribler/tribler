@@ -213,8 +213,8 @@ class GenerateMessagesScript(SetupScript):
 
     def create_messages(self):
         """
-        We will create a new last-1-sync message every minute and a new full-sync message every 60
-        last-1-sync messages.
+        We will create a new last-1-sync message every 3 minutes and a new full-sync message every
+        20 last-1-sync messages.
         """
         while True:
             # create a new full-sync message every hour
@@ -225,10 +225,10 @@ class GenerateMessagesScript(SetupScript):
             self._community.create_full_sync(u"full-sync; why:periodic; start:%f; at:%f; nr:%d" % (self._start_time, time(), count + 1))
 
             # create a new last-1-sync message every 60 seconds
-            for i in xrange(60):
+            for i in xrange(20):
                 self._community.create_last_1_sync(u"last-1-sync; start:%f; at:%f" % (self._start_time, time()))
 
-                yield 60.0
+                yield 60.0 * 3
 
         yield 1.0
 

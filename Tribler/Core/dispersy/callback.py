@@ -98,7 +98,7 @@ class Callback(object):
         """
         Unregister a callback using the ID_ obtained from the register(...) method
         """
-        assert isinstance(root_id, (str, int)), "ROOT_ID has invalid type: %s" % type(id_)
+        assert isinstance(id_, (str, int)), "ROOT_ID has invalid type: %s" % type(id_)
         if __debug__: dprint(id_)
         with self._lock:
             self._new_actions.append(("unregister", id_))
