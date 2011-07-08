@@ -782,6 +782,9 @@ class ProxyDiscoveryPanel(NewTorrentPanel):
         @param args: A list of optional arguments.
         """
         proxy_permid_list=args[0]
+        wx.CallAfter(self._OnNotify, proxy_permid_list)
+        
+    def _OnNotify(self, proxy_permid_list):
         for proxy_permid in proxy_permid_list:
             if proxy_permid not in self.proxies:
                 self.proxies.append(proxy_permid)
@@ -791,5 +794,4 @@ class ProxyDiscoveryPanel(NewTorrentPanel):
                 size = self.list.GetItemCount()
                 if size > 50:
                     self.list.DeleteItem(size-1)
-#
 # _ProxyService
