@@ -179,9 +179,6 @@ class OverlayApps:
         #
         # _ProxyService
         
-        # 09-02-2011 Niels: disabling subtitles (no more channelcast
-        config['subtitles_collecting'] = False
-        
         # 13-04-2010 Andrea: subtitles collecting
         if not config['subtitles_collecting'] : 
             self.subtitles_handler = None

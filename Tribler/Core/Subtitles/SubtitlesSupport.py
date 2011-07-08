@@ -384,9 +384,8 @@ class SubtitlesSupport(object):
             for peer in peers_to_query:
                 self.subtitlesHandler.sendSubtitleRequest(peer, channel, infohash,
                                                                    languages, callback)
-        
-        self._ol_bridge.add_task(task)
-        
+        if self._registered:
+            self._ol_bridge.add_task(task)
             
     def runDBConsinstencyRoutine(self):
         '''
