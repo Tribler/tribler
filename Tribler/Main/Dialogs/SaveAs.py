@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import wx
+import os
 
 class SaveAs(wx.Dialog):
     def __init__(self, parent, torrentdef, defaultdir, configfile):
@@ -42,6 +43,8 @@ class SaveAs(wx.Dialog):
         hSizer.Add(wx.StaticText(self, -1, 'Save to:'), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
         self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, style = wx.CB_DROPDOWN)
+        self.dirTextCtrl.Bind(wx.EVT_COMBOBOX, self.OnComboChange)
+        self.dirTextCtrl.Bind(wx.EVT_TEXT, self.OnComboChange)
         for i in range(self.filehistory.GetCount()):
             self.dirTextCtrl.Append(self.filehistory.GetHistoryFile(i))
         
@@ -73,8 +76,14 @@ class SaveAs(wx.Dialog):
     def GetPath(self):
         return self.dirTextCtrl.GetValue().strip()
 
-    def OnDirChange(self, event = None):
-        self.dirTextCtrl.SetValue(self.dirCtrl.GetPath())
+    def OnDirChange(self, event):
+        if not os.path.isdir(self.dirTextCtrl.GetValue()) or not os.path.samefile(self.dirTextCtrl.GetValue(),self.dirCtrl.GetPath()):
+            self.dirTextCtrl.SetValue(self.dirCtrl.GetPath())
+        
+    def OnComboChange(self, event):
+        path = self.dirTextCtrl.GetValue()
+        if os.path.isdir(path):
+            self.dirCtrl.SetPath(path)
         
     def OnOk(self, event = None):
         self.filehistory.AddFileToHistory(self.GetPath())
