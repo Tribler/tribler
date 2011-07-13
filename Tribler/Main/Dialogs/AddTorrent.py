@@ -56,18 +56,24 @@ class AddTorrent(wx.Dialog):
         self.SetSizerAndFit(sizer)
         
     def OnAdd(self, event):
-        destdir = self.defaultDLConfig.get_dest_dir()
-        if self.choose.IsChecked():
-            destdir = self._GetDestPath()
-            if not destdir:
-                return
-        
         input = self.magnet.GetValue().strip()
         if input.startswith("http://"):
+            destdir = self.defaultDLConfig.get_dest_dir()
+            if self.choose.IsChecked():
+                destdir = self._GetDestPath()
+                if not destdir:
+                    return
+                
             if self.frame.startDownloadFromUrl(str(input), destdir):
                 self.EndModal(wx.ID_OK)
             
         elif input.startswith("magnet:"):
+            destdir = self.defaultDLConfig.get_dest_dir()
+            if self.choose.IsChecked():
+                destdir = self._GetDestPath()
+                if not destdir:
+                    return
+            
             if self.frame.startDownloadFromMagnet(str(input), destdir):
                 self.EndModal(wx.ID_OK)
         
