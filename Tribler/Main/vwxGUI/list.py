@@ -11,6 +11,7 @@ from datetime import date, datetime
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.API import *
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -824,10 +825,8 @@ class LibaryList(List):
         self.header.SetStates(False, False, False)
 
     def OnAdd(self, event):
-        dlg = wx.FileDialog(None, "Please select the a .torrent file.", wildcard = "torrent (*.torrent)|*.torrent", style = wx.FD_OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            filename = dlg.GetPath()
-            self.guiutility.frame.startDownload(filename, fixtorrent = True)
+        dlg = AddTorrent(self, self.guiutility.frame)
+        dlg.ShowModal()
         dlg.Destroy()
 
     def OnPlay(self, event):

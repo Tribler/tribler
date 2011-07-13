@@ -18,15 +18,20 @@ class SaveAs(wx.Dialog):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        firstLine = wx.StaticText(self, -1, 'Please select a directory where to save:')
+        if torrentdef:
+            line = 'Please select a directory where to save:'
+        else:
+            line = 'Please select a directory where to save the torrent(s)'
+        firstLine = wx.StaticText(self, -1, line)
         font = firstLine.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         firstLine.SetFont(font)
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        torrentName = wx.StaticText(self, -1, torrentdef.get_name())
-        torrentName.SetMinSize((1, -1))
-        vSizer.Add(torrentName, 0, wx.LEFT|wx.EXPAND, 10)
+        if torrentdef:
+            torrentName = wx.StaticText(self, -1, torrentdef.get_name())
+            torrentName.SetMinSize((1, -1))
+            vSizer.Add(torrentName, 0, wx.LEFT|wx.EXPAND, 10)
         
         self.dirCtrl = wx.GenericDirCtrl(self, -1, style = wx.DIRCTRL_DIR_ONLY|wx.SUNKEN_BORDER)
         self.dirCtrl.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnDirChange)
@@ -62,7 +67,7 @@ class SaveAs(wx.Dialog):
         vSizer.Add(bSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         sizer = wx.BoxSizer()
-        sizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 5)
+        sizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 10)
         self.SetSizer(sizer)
         
     def GetPath(self):

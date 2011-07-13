@@ -370,7 +370,7 @@ class SubTitleHeader(TitleHeader):
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
-        self.add = wx.Button(parent, -1, "+", style = wx.BU_EXACTFIT)
+        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
         self.add.SetToolTipString('Add a .torrent from an external source.')
         
         self.resume = wx.Button(parent, -1, "Resume")
