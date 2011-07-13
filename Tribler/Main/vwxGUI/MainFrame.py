@@ -46,7 +46,8 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
+from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
+from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -299,9 +300,7 @@ class MainFrame(wx.Frame):
             cancelDownload = False
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
-                dlg = wx.DirDialog(self, 'Please select a directory where to save %s.'%tdef.get_name())
-                dlg.SetPath(dscfg.get_dest_dir())
-                
+                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 if dlg.ShowModal() == wx.ID_OK:
                     destdir = dlg.GetPath()
                 else:

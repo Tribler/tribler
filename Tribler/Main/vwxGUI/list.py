@@ -858,33 +858,43 @@ class LibaryList(List):
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()
         
-        dlg = wx.Dialog(None, -1, 'Are you sure you want to remove this torrent?', style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
+        dlg = wx.Dialog(None, -1, 'Are you sure you want to remove this torrent?', style=wx.DEFAULT_DIALOG_STYLE, size = (600, 125))
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)), 0, wx.RIGHT, 5)
+        hSizer.Add(wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)), 0, wx.RIGHT, 10)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(wx.StaticText(dlg, -1, "Do you want to remove '%s'\nfrom your library or also from your computer?"%item.data[0]))
+        firstLine = wx.StaticText(dlg, -1, "Delete '%s' from disk, or just remove them from your library?"%item.data[0])
+        font = firstLine.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        firstLine.SetFont(font)
+        firstLine.SetMinSize((1, -1))
         
-        bSizer = wx.StdDialogButtonSizer()
+        vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 7)
+        vSizer.AddStretchSpacer()
+        vSizer.Add(wx.StaticText(dlg, -1, "Removing from disk will move the selected item to your trash."), 0, wx.EXPAND)
+        
+        bSizer = wx.BoxSizer(wx.HORIZONTAL)
         bSizer.AddStretchSpacer()
-        bSizer.Add(wx.Button(dlg, wx.ID_CANCEL))
-        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from library'))
-        bSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from computer'))
-        vSizer.Add(bSizer, 0, wx.TOP|wx.EXPAND, 5)
-        hSizer.Add(vSizer)
+        bSizer.Add(wx.Button(dlg, wx.ID_CANCEL), 0, wx.RIGHT, 3)
+        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from library'), 0, wx.RIGHT, 3)
+        bSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from disk'))
+        
+        vSizer.Add(bSizer, 0, wx.ALIGN_RIGHT|wx.TOP, 7)
+        hSizer.Add(vSizer, 1, wx.EXPAND)
         
         border = wx.BoxSizer()
         border.Add(hSizer, 1, wx.ALL|wx.EXPAND, 10)
-        dlg.Bind(wx.EVT_BUTTON, lambda event: dlg.EndModal(event.GetId()))
-        dlg.SetSizerAndFit(border)
-        dlg.Centre()
-        buttonId = dlg.ShowModal()
-        dlg.Destroy()
         
+        dlg.Bind(wx.EVT_BUTTON, lambda event: dlg.EndModal(event.GetId()))
+        dlg.SetSizer(border)
+        dlg.CenterOnParent()
+        
+        buttonId = dlg.ShowModal()
         if buttonId == wx.ID_DEFAULT:
             self.torrent_manager.deleteTorrent(item.original_data)
             self.header.SetStates(False, False, False) #nothing selected
             self.list.RemoveItem(item)
+            
         elif buttonId == wx.ID_DELETE:
             self.torrent_manager.deleteTorrent(item.original_data, True)
             self.header.SetStates(False, False, False) #nothing selected
@@ -892,6 +902,8 @@ class LibaryList(List):
         
         if self.list.IsEmpty():
             self.SetData([])
+        
+        dlg.Destroy()
     
     def RefreshItems(self, dslist):
         if self.ready and self.ShouldGuiUpdate():

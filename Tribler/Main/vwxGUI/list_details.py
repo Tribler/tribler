@@ -827,6 +827,8 @@ class TorrentDetails(wx.Panel):
         self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
 
 class LibraryDetails(TorrentDetails):
+    def _showRequestType(self, requesttype):
+        pass
     
     def _addTabs(self, ds):
         TorrentDetails._addTabs(self, ds)
