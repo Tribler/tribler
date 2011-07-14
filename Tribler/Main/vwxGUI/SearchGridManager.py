@@ -65,6 +65,7 @@ class TorrentManager:
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
         self.filteredResults = 0
+        self.bundle_mode = None
         self.category = Category.getInstance()
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
@@ -467,10 +468,9 @@ class TorrentManager:
         # vliegendhart: do grouping here first as a hack for demonstration purposes only
         # 
         # 1. get grouping function
-        top_bg = self.guiUtility.frame.top_bg
-        bundle_mode = top_bg.bundlestates[top_bg.bundlestate]
+        
         searchkeywords = self.searchkeywords[mode]
-        print >>sys.stderr, '~~~~~~~BUNDLE:', bundle_mode
+        print >>sys.stderr, '~~~~~~~BUNDLE:', self.bundle_mode
         PROFILING = False
         DUMP_ARGS_LIST = False
         if self.hits:
@@ -481,14 +481,14 @@ class TorrentManager:
                 now = int( round(time.time()) )
                 query = ' '.join(searchkeywords)
                 prof = cProfile.Profile()
-                returned_hits = prof.runcall(bundle_demo, self.hits, bundle_mode, searchkeywords)
-                prof.dump_stats('prof_bundle_%s_%sx[%s]_%s.txt' % (bundle_mode, len(self.hits), query, now))
+                returned_hits = prof.runcall(bundle_demo, self.hits, self.bundle_mode, searchkeywords)
+                prof.dump_stats('prof_bundle_%s_%sx[%s]_%s.txt' % (self.bundle_mode, len(self.hits), query, now))
             else:
-                returned_hits = bundle_demo(self.hits, bundle_mode, searchkeywords)
+                returned_hits = bundle_demo(self.hits, self.bundle_mode, searchkeywords)
             
             if DUMP_ARGS_LIST:
                 fh = open('bundle_test_data.txt', 'a')
-                argslist = (self.hits, bundle_mode, searchkeywords)
+                argslist = (self.hits, self.bundle_mode, searchkeywords)
                 print >>fh, repr(argslist)
                 fh.close()
             
@@ -496,7 +496,7 @@ class TorrentManager:
             returned_hits = self.hits
         
         #return [len(self.hits), self.filteredResults , self.hits]
-        return [len(self.hits), self.filteredResults , returned_hits]
+        return [len(returned_hits), self.filteredResults , returned_hits]
 
     def prefetch_hits(self):
         """
@@ -553,9 +553,16 @@ class TorrentManager:
         if mode == 'filesMode':
             if DEBUG:
                 print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
+                
             self.filteredResults = 0
             self.remoteHits = {}
             self.oldsearchkeywords[mode] = ''
+            self.bundle_mode = None
+            
+    def setBundleMode(self, bundle_mode):
+        if bundle_mode != self.bundle_mode:
+            self.bundle_mode = bundle_mode
+            self.refreshGrid()
 
     def searchLocalDatabase(self, mode):
         if mode != 'libraryMode':

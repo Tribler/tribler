@@ -71,11 +71,6 @@ class BundleListItem(ListItem):
             self.bundlepanel.SetHits(bundle[1:])
             self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
             self.Highlight(1)
-            
-            # Rewire parentOnMouse in case new controls were added
-            for text in self.bundlepanel.texts:
-                text.parentOnMouse = self.OnMouse
-        
         else:
             self._RefreshDataNonBundle(data)
             
@@ -135,7 +130,6 @@ class BundleListItem(ListItem):
         self.bundlepanel.ChangeState(BundlePanel.COLLAPSED)
         return panel_item
     
-    
     def OnClick(self, event):
         if not self.expanded or self.expanded_panel_shown:
             ListItem.OnClick(self, event)
@@ -170,10 +164,7 @@ class BundleListItem(ListItem):
             self.Layout()
     
     def AddEvents(self, control):
-        if isinstance(control, BundleStaticText):
-            # BundleStaticTexts will handle their own events
-            control.parentOnMouse = self.OnMouse
-        elif not isinstance(control, wx.Button):
+        if not isinstance(control, wx.Button):
             control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         else:
             control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
@@ -181,7 +172,7 @@ class BundleListItem(ListItem):
         control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         func = getattr(control, 'GetChildren', False)
-        if func and not isinstance(control, BundleStaticText):
+        if func:
             for child in func():
                 self.AddEvents(child)
                 
@@ -255,8 +246,7 @@ class BundlePanel(wx.Panel):
         self.SetDescription(description)
     
     def AddGrid(self):
-        VGAP, HGAP = 0, 0
-        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, BUNDLE_NUM_COLS, VGAP, HGAP)
+        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, BUNDLE_NUM_COLS, 0, 0)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
         self.grid.SetMinSize((1,-1))
@@ -267,69 +257,34 @@ class BundlePanel(wx.Panel):
         for j in xrange(BUNDLE_NUM_COLS):
             self.grid.AddGrowableCol(j)
         
-        self.texts = []
-        self.num_hits_displayed_in_grid = 0
         self.UpdateGrid()
-        
-        self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 30)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT, 30)
         self.grid_shown = True
     
     def UpdateGrid(self):
+        self.grid.ShowItems(False)
+        self.grid.Clear(deleteWindows = True)
+        
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
-        too_large = len(self.hits) > N
-        if too_large:
-            remaining = len(self.hits) - N + 1
-            to_display = self.hits[:N-1]
-            num_texts_needed = N
-        else:
-            to_display = self.hits
-            num_texts_needed = len(to_display)
+        items_to_add = min(N, len(self.hits))
+        if len(self.hits) > N:
+            items_to_add -= 1
         
-        num_texts_available = len(self.texts)
-        num_to_display = len(to_display)
-        self.num_hits_displayed_in_grid = num_to_display
-        
-        # corner case: we need to recreate the last text if
-        # it contains an icon but we don't need one, or vice versa
-        if num_texts_available == N:
-            has_icon = hasattr(self.texts[-1], 'icon')
-            icon_needed = not too_large
-            if has_icon != icon_needed:
-                self.grid.Remove(self.texts.pop())
-                num_texts_available -= 1
-        
-        # create more text controls if needed
-        if num_texts_available < num_to_display:
-            for _ in xrange(num_to_display - num_texts_available):
-                new_text = LinkStaticText(self, '', icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
-                new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
-                new_text.SetMinSize((1,-1))
-                self.grid.Add(new_text, 0, wx.ALL | wx.EXPAND, 5)
-                
-                self.texts.append(new_text)
-        # else get rid of the excess of controls
-        else:
-            for _ in xrange(num_texts_available - num_texts_needed):
-                self.grid.Remove(self.texts.pop())
-        
-        
-        for i, hit in enumerate(to_display):
-            self.texts[i].SetLabel(hit['name'])
-            self.texts[i].action = hit
-        
-        if too_large:
-            caption = '(%s more...)' % remaining
-            if hasattr(self.texts[-1], 'icon'):
-                more_label = LinkStaticText(self, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
-                more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+        for i in range(items_to_add):
+            hit = self.hits[i] 
 
-                self.grid.Add(more_label, 0, wx.ALL | wx.EXPAND, 5)
-                self.texts.append(more_label)
-            else:
-                more_label = self.texts[-1]
-                more_label.SetLabel(caption)
-                
-            more_label.action = None
+            new_text = LinkStaticText(self, hit['name'], icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+            new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
+            new_text.SetMinSize((1,-1))
+            new_text.action = hit
+            self.grid.Add(new_text, 0, wx.ALL | wx.EXPAND, 5)
+        
+        if len(self.hits) > N:
+            caption = '(%s more...)' % (len(self.hits) - N + 1)
+            
+            more_label = LinkStaticText(self, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+            more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+            self.grid.Add(more_label, 0, wx.ALL | wx.EXPAND, 5)
     
     def ShowGrid(self, show=True):
         if self.grid_shown != show:
@@ -405,9 +360,6 @@ class BundlePanel(wx.Panel):
                 self.ShowGrid()
             
             else:
-                if new_state == BundlePanel.PARTIAL and self.num_hits_displayed_in_grid == len(self.hits):
-                    new_state = BundlePanel.FULL
-                
                 if new_state == BundlePanel.PARTIAL or new_state == BundlePanel.FULL:
                     self.ShowGrid(False)
                     if self.state == BundlePanel.COLLAPSED:
@@ -415,7 +367,7 @@ class BundlePanel(wx.Panel):
                         
                     if new_state == BundlePanel.FULL:
                         self.bundlelist.OnLoadAll()
-            
+
             if DEBUG:
                 statestr = lambda st: ['COLLAPSED', 'PARTIAL', 'FULL'][st]
                 print >>sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(self.state), statestr(new_state))
@@ -426,7 +378,7 @@ class BundlePanel(wx.Panel):
         id = hit['infohash']
         
         self.bundlelist.ExpandItem(id)
-        self.ScrollToId(id)
+        #self.ScrollToId(id)
         self.parent_listitem.ShowSelected()
         
     def ScrollToId(self, id):
@@ -497,110 +449,11 @@ class BundlePanel(wx.Panel):
                     if isinstance(child, wx.Panel):
                         child.SetBackgroundColour(colour)
     
-class BundleStaticText(wx.Panel):
-    def __init__(self, bundlepanel, text, font_increment = 0, icon = True):
-        wx.Panel.__init__(self, bundlepanel, style = wx.NO_BORDER)
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        self.text = wx.StaticText(self, -1, text)
-        font = self.text.GetFont()
-        font.SetPointSize(font.GetPointSize() + font_increment)
-        self.text.SetFont(font)
-        #self.text.SetBackgroundColour(bundlepanel.GetBackgroundColour())
-        self.text.SetForegroundColour(BUNDLE_FONT_COLOR)
-        self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
-        if icon:
-            bitmap = self.__createBitmap()
-            self.icon = wx.StaticBitmap(self, bitmap = bitmap)
-            self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-        
-        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
-        
-        self.SetSizer(hSizer)
-        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
-        self.selected = False
-        self.bundlepanel = bundlepanel
-        
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        
-    def __createBitmap(self):
-        color = (255,0,0) # apparently it doesn't matter which color is used?
-        return NativeIcon.getInstance().getBitmap(self.GetParent(), 'tree', color, state=0)
-        
-    def SetToolTipString(self, tip):
-        wx.Panel.SetToolTipString(self, tip)
-        self.text.SetToolTipString(tip)
-        if getattr(self, 'icon', False):
-            self.icon.SetToolTipString(tip)
-        
-    def SetLabel(self, text):
-        self.text.SetLabel(text)
-    
-    def GetLabel(self):
-        return self.text.GetLabel()
-    
-    def Bind(self, event, handler, source=None, id=-1, id2=-1):
-        wx.Panel.Bind(self, event, handler, source, id, id2)
-        
-        def modified_handler(actual_event, handler=handler):
-            actual_event.SetEventObject(self)
-            handler(actual_event)
-        
-        self.text.Bind(event, modified_handler, source, id, id2)
-        if getattr(self, 'icon', False):
-            self.icon.Bind(event, modified_handler, source, id, id2)
-    
-    def ShowSelected(self, selected=True):
-        font = self.text.GetFont()
-        if selected:
-            #Niels: Underline not working on Linux, using italic instead
-            if sys.platform == 'linux2': 
-                font.SetStyle(wx.ITALIC)
-            else:
-                font.SetUnderlined(True)
-        else:
-            if sys.platform == 'linux2':
-                font.SetStyle(wx.NORMAL)
-            else:
-                font.SetUnderlined(False)
-        
-        self.text.SetFont(font)
-        self.selected = selected
-    
-    def OnMouse(self, event):
-        selected = getattr(self, 'selected', False)
-        
-        if event.Entering() or event.Moving():
-            if not selected:
-                self.bundlepanel.SetSelectedBundleLink(self)
-        
-        elif event.Leaving():
-            if selected:
-                self.ShowSelected(False)
-        
-        elif event.LeftUp():
-            self.OnClick(event)
-        
-        parentOnMouse = getattr(self, 'parentOnMouse', False)
-        if parentOnMouse and not event.LeftUp:
-            parentOnMouse(event)
-        else:
-            event.Skip() #Allow for windows button hovering
-    
-    def OnClick(self, event):
-        self.bundlepanel.OnBundleLinkClick(event, action=self.action)
-    
 class BundleListView(GenericSearchList):
     
     def __init__(self, parent = None):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
-                   #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
-                   #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
@@ -608,13 +461,6 @@ class BundleListView(GenericSearchList):
     
     def CreateHeader(self):
         # Normally, the column-widths are fixed during this phase
-        # Since we aren't creating a header, we have to do this manually...
-        # columns = self.columns
-        # for i in xrange(len(columns)):
-        #     if isinstance(columns[i]['width'], basestring) and columns[i]['width'].endswith('em'):
-        #         test_string = 'T' * int(columns[i]['width'][:-2])
-        #         columns[i]['width'] = self.GetTextExtent(test_string)[0] + 6
-        
         # Or perhaps easier... just create the simplest header, but don't return it:
         header = ListHeader(self, self.columns)
         header.Destroy()
@@ -626,7 +472,7 @@ class BundleListView(GenericSearchList):
         return ExpandableFixedListBody(self, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, list_item_max = BUNDLE_LIST_MAX_SIZE)
     
     def OnExpand(self, item):
-        # Keep only one panel open at all times:
+        # Keep only one panel open at all times, thus we make sure the parent is closed
         bundlepanel = self.parent
         bundlepanel.parent_listitem.ShowExpandedPanel(False)
         

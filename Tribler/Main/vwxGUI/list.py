@@ -11,6 +11,7 @@ from datetime import date, datetime
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.API import *
 from Tribler.__init__ import LIBRARYNAME
+
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
@@ -21,6 +22,7 @@ from list_footer import *
 from list_header import *
 from list_body import *
 from list_details import *
+from list_sidebar import *
 from __init__ import *
 
 DEBUG = False
@@ -777,7 +779,7 @@ class SearchList(GenericSearchList):
         
         list = wx.Panel(self)
         self.subheader = ListHeader(list, self.columns, radius = 0)
-        self.leftLine = wx.Panel(self, size=(125,-1))
+        self.leftLine = SearchSideBar(self, size=(125,-1))
         self.rightLine = wx.Panel(self, size=(1,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -844,7 +846,9 @@ class SearchList(GenericSearchList):
         GenericSearchList.toggleFamilyFilter(self)
         self.guiutility.dosearch()
     
-    
+    def Reset(self):
+        GenericSearchList.Reset(self)
+        self.leftLine.Reset()
     
     def SetBackgroundColour(self, colour):
         GenericSearchList.SetBackgroundColour(self, colour)

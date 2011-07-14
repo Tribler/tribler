@@ -391,7 +391,7 @@ class LinkStaticText(wx.Panel):
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
-        self.selected = False
+        self.mouse_over = False
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         
     def SetToolTipString(self, tip):
@@ -408,31 +408,24 @@ class LinkStaticText(wx.Panel):
         
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
-            self.ShowSelected(True)
+            self.ShowMouseOver(True)
         
         elif event.Leaving():
-            self.ShowSelected(False)
+            self.ShowMouseOver(False)
         
         event.Skip()
-            
-    def ShowSelected(self, selected=True):
-        if self.selected != selected:
+        
+    def ShowMouseOver(self, mouse_over = True):
+        if self.mouse_over != mouse_over:
             font = self.text.GetFont()
             
-            if selected:
-                #Niels: Underline not working on Linux, using italic instead
-                if sys.platform == 'linux2': 
-                    font.SetStyle(wx.ITALIC)
-                else:
-                    font.SetUnderlined(True)
+            if mouse_over:
+                font.SetStyle(wx.ITALIC)
             else:
-                if sys.platform == 'linux2':
-                    font.SetStyle(wx.NORMAL)
-                else:
-                    font.SetUnderlined(False)
+                font.SetStyle(wx.NORMAL)
             
             self.text.SetFont(font)
-            self.selected = selected
+            self.mouse_over = mouse_over
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         wx.Panel.Bind(self, event, handler, source, id, id2)
