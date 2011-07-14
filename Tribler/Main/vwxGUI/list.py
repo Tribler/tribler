@@ -601,6 +601,9 @@ class List(XRCPanel):
 class GenericSearchList(List):
     def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
         List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
+        
+        self.infohash2key = {} # bundled infohashes
+
     
     def CreateDownloadButton(self, parent, item):
         button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
@@ -635,6 +638,78 @@ class GenericSearchList(List):
         
     def SetFF(self, family_filter):
         self.header.SetFF(family_filter)
+        
+    def SetData(self, data):
+        List.SetData(self, data)
+        
+        if len(data) > 0:
+            list_data = []
+            for file in data:
+                # either we have a bundle of hits:
+                if 'bundle' in file:
+                    head = file['bundle'][0]
+                    create_method = BundleListItem
+                    key = file['key']
+                    
+                    for hit in file['bundle']:
+                        self.infohash2key[hit['infohash']] = key
+                    
+                    # if the bundle is changed, inform the ListBody
+                    if 'bundle_changed' in file:
+                        self.RefreshData(key, file)
+                    
+                # or a single hit:
+                else:
+                    head = file
+                    create_method = ListItem
+                    key = head['infohash']
+                    
+                    if key in self.infohash2key:
+                        del self.infohash2key[key]
+                
+                item_data = [head['name'], head['length'], 0, 0]
+                original_data = file
+                    
+                list_data.append((key, item_data, original_data, create_method))
+            
+            return self.list.SetData(list_data)
+        
+        message =  'No torrents matching your query are found. \n'
+        message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
+        if self.guiutility.getFamilyFilter():
+            message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
+        self.list.ShowMessage(message)
+        return 0
+
+    def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
+        original_data = data
+        # bundle update
+        if 'bundle' in original_data:
+            head = original_data['bundle'][0]
+        # individual hit update
+        else:
+            head = original_data
+            
+            # Check whether the individual hit is in a bundle:
+            if DEBUG and key in self.infohash2key:
+                print >>sys.stderr, '>> SearchList.RefreshData, mapping infohash key to bundle key'
+            key = self.infohash2key.get(key, key)
+        
+        data = (head['infohash'], [head['name'], head['length'], 0, 0], original_data)
+        
+        if DEBUG and key.startswith('Group'):
+            print >>sys.stderr, '>> SearchList.RefreshData, key =', key, ';\n\t', head['name']
+        self.list.RefreshData(key, data)
+        
+        if key in self.list.items:
+            item = self.list.GetItem(key)
+            
+            panel = item.GetExpandedPanel()
+            if panel:# and 'bundle' not in original_data:
+                # Only do this for normal ListItems:
+                panel.UpdateStatus()
     
     def SetFilteredResults(self, nr):
         if nr != self.total_results: 
@@ -689,7 +764,6 @@ class SearchList(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        self.infohash2key = {} # bundled infohashes
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
@@ -766,77 +840,7 @@ class SearchList(GenericSearchList):
         GenericSearchList.toggleFamilyFilter(self)
         self.guiutility.dosearch()
     
-    def SetData(self, data):
-        List.SetData(self, data)
-        
-        if len(data) > 0:
-            list_data = []
-            for file in data:
-                # either we have a bundle of hits:
-                if 'bundle' in file:
-                    head = file['bundle'][0]
-                    create_method = BundleListItem
-                    key = file['key']
-                    
-                    for hit in file['bundle']:
-                        self.infohash2key[hit['infohash']] = key
-                    
-                    # if the bundle is changed, inform the ListBody
-                    if 'bundle_changed' in file:
-                        self.RefreshData(key, file)
-                    
-                # or a single hit:
-                else:
-                    head = file
-                    create_method = ListItem
-                    key = head['infohash']
-                    
-                    if key in self.infohash2key:
-                        del self.infohash2key[key]
-                
-                item_data = [head['name'], head['length'], 0, 0]
-                original_data = file
-                    
-                list_data.append((key, item_data, original_data, create_method))
-            
-            return self.list.SetData(list_data)
-        
-        message =  'No torrents matching your query are found. \n'
-        message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
-        if self.guiutility.getFamilyFilter():
-            message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
-        self.list.ShowMessage(message)
-        return 0
     
-    def RefreshData(self, key, data):
-        List.RefreshData(self, key, data)
-        
-        original_data = data
-        # bundle update
-        if 'bundle' in original_data:
-            head = original_data['bundle'][0]
-        # individual hit update
-        else:
-            head = original_data
-            
-            # Check whether the individual hit is in a bundle:
-            if DEBUG and key in self.infohash2key:
-                print >>sys.stderr, '>> SearchList.RefreshData, mapping infohash key to bundle key'
-            key = self.infohash2key.get(key, key)
-        
-        data = (head['infohash'], [head['name'], head['length'], 0, 0], original_data)
-        
-        if DEBUG and key.startswith('Group'):
-            print >>sys.stderr, '>> SearchList.RefreshData, key =', key, ';\n\t', head['name']
-        self.list.RefreshData(key, data)
-        
-        if key in self.list.items:
-            item = self.list.GetItem(key)
-            
-            panel = item.GetExpandedPanel()
-            if panel:# and 'bundle' not in original_data:
-                # Only do this for normal ListItems:
-                panel.UpdateStatus()
     
     def SetBackgroundColour(self, colour):
         GenericSearchList.SetBackgroundColour(self, colour)

@@ -8,7 +8,8 @@ from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody, ListIcon
 from Tribler.Main.vwxGUI import LIST_SELECTED, LIST_DESELECTED
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.list import SearchList
+from __init__ import *
+from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
 
@@ -386,6 +387,7 @@ class BundlePanel(wx.Panel):
         if bundlelist is None and show:
             bundlelist = BundleListView(parent=self)
             
+            # TODO: change this to use built-in limiting stuff of List
             if limit:
                 to_load = self.hits[:limit]
                 remaining = len(self.hits) - limit
@@ -394,7 +396,7 @@ class BundlePanel(wx.Panel):
                 remaining = 0
                 
             bundlelist.SetData(to_load)
-            bundlelist.Layout()
+#            bundlelist.Layout()
             
             self.vsizer.Add(bundlelist, 0, wx.EXPAND | wx.LEFT, 20)
             
@@ -416,6 +418,11 @@ class BundlePanel(wx.Panel):
                 self._loadRemaining = None
         
         self.bundlelist = bundlelist
+        
+    def OnChange(self, scrollToTop = False):
+        self.Layout()
+        self.parent_listitem.Layout()
+        self.parent_list.OnChange(scrollToTop)
     
     def CollapseExpandedItem(self):
         if self.state != BundlePanel.COLLAPSED:
@@ -480,6 +487,7 @@ class BundlePanel(wx.Panel):
             self.state = new_state
     
     def ExpandAndScrollToHit(self, hit):
+        return
         id = hit['infohash']
         self.bundlelist.ExpandItem(id)
         self.ScrollToId(id)
@@ -647,7 +655,17 @@ class BundleStaticText(wx.Panel):
         self.bundlepanel.OnBundleLinkClick(event, action=self.action)
     
     
-class BundleListView(SearchList):
+class BundleListView(GenericSearchList):
+    
+    def __init__(self, parent = None):
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
+                   {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
+                   #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
+                   #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
+                   {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
+                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+        
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
     
     def CreateHeader(self):
         # Normally, the column-widths are fixed during this phase
@@ -683,23 +701,31 @@ class BundleListView(SearchList):
         best_vsize = self.GetBestSize()[1]
         self.SetMinSize((-1, best_vsize))
         return best_vsize - old_vsize
+    
+    def OnChange(self, scrollToTop = False):
+        #vsize_delta = self.DoResize()
+        #if vsize_delta:
+#            self.parent.Layout()
+        self.parent.OnChange(scrollToTop)
         
-    def Layout(self, *args, **kwargs):
-        vsize_delta = self.DoResize()
-        SearchList.Layout(self, *args, **kwargs)
-        
-        # In case of a size change, we need to inform the outer SearchList's ListBody
-        if vsize_delta:
-            bundlepanel = self.parent
-            try:
-                # The following line seems to fail a C++ assertion in wxPython on my tablet
-                # (both my tablet and my dev laptop run Win7, Py2.6 and wxPy 2.8.11.0)
-                bundlepanel.parent_list.OnChange()
-            except wx.PyAssertionError, exc:
-                # In case it fails, delay the layout update
-                wx.CallAfter(bundlepanel.parent_list.OnChange)
-                if 'm_pages.Count()' not in exc.args[0]: # exc.message is deprecated
-                    print_exc() # should it be guarded by the DEBUG flag?
+#    def Layout(self, *args, **kwargs):
+#        vsize_delta = self.DoResize()
+#        GenericSearchList.Layout(self, *args, **kwargs)
+#        
+#        # In case of a size change, we need to inform the outer SearchList's ListBody
+#        if vsize_delta:
+#            bundlepanel = self.parent
+#            try:
+#                # The following line seems to fail a C++ assertion in wxPython on my tablet
+#                # (both my tablet and my dev laptop run Win7, Py2.6 and wxPy 2.8.11.0)
+#                bundlepanel.parent_list.OnChange()
+#            except wx.PyAssertionError, exc:
+#                print_exc() # should it be guarded by the DEBUG flag?
+#
+#                # In case it fails, delay the layout update
+#                wx.CallAfter(bundlepanel.parent_list.OnChange)
+#                if 'm_pages.Count()' not in exc.args[0]: # exc.message is deprecated
+#                    print_exc() # should it be guarded by the DEBUG flag?
     
     
     def ExpandItem(self, id):
@@ -710,43 +736,14 @@ class BundleListView(SearchList):
         # id == infohash
         item = self.list.items[id]
         return item.GetPosition()[1]
-    
-
 
 class ExpandableFixedListBody(FixedListBody):
-    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
-        FixedListBody.__init__(self, parent, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
-        self._must_perform_layout_chain = 0
-        
-    
-    def OnExpand(self, item, raise_event = False):
-        if self.singleExpanded and not self.cur_expanded:
-            # Expanding causes 2 OnChange calls:
-            #   1. When showing the load message
-            #   2. When showing the actual TorrentDetails
-            self._must_perform_layout_chain = 2
-        return FixedListBody.OnExpand(self, item, raise_event)
-
-    def OnCollapse(self, item, onchange = True):
-        if onchange:
-            self._must_perform_layout_chain = 1
-        FixedListBody.OnCollapse(self, item, onchange)
-    
     
     def OnChange(self, scrollToTop = False):
-        if self._must_perform_layout_chain:
-            self._must_perform_layout_chain -= 1
-            LayoutChain(self.parent_list, num_ancestors=4, freeze=True)
-            #LayoutChain(self.vSizer, num_ancestors=5, freeze=True)
         FixedListBody.OnChange(self, scrollToTop)
+        
+        self.parent_list.OnChange(scrollToTop)
     
-    
-    def CreateItems(self, *args, **kwargs):
-        FixedListBody.CreateItems(self, *args, **kwargs)
-        # This is needed because AbstractBody sometimes stages the creation
-        # of list items. If new items are added, we need to make sure that
-        # the size of our list gets updated...
-        LayoutChain(self.parent_list, num_ancestors=4, freeze=True)
 
 class BundleTorrentDetails(TorrentDetails):
     def __init__(self, parent, torrent, compact=True):

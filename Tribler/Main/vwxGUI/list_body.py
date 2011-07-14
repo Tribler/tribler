@@ -9,7 +9,7 @@ import re
 
 from __init__ import *
 
-DEBUG = False
+DEBUG = True
 
 class ListIcon:
     __single = None
@@ -127,7 +127,8 @@ class ListItem(wx.Panel):
                     
                     if self.columns[i]['width'] == -1:
                         self.columns[i]['width'] = control.GetSize()[0]
-                        self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
+                        if self.parent_list.parent_list.header:
+                            self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
                 else:
                     if self.columns[i]['width'] != -1:
                         self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
@@ -410,7 +411,7 @@ class AbstractListBody():
         self.lastMouseLeftDownEvent = None
     
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, wx.WHITE)
+        wx.Panel.SetBackgroundColour(self, wx.BLUE)
         self.listpanel.SetBackgroundColour(colour)
     
     def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED):
@@ -553,6 +554,7 @@ class AbstractListBody():
         
     def OnChange(self, scrollToTop = False):
         self.vSizer.Layout()
+        self.listpanel.Layout()
         self.Layout()
         
         #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
