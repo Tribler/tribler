@@ -180,12 +180,34 @@ class TopSearchPanel(bgPanel):
                 self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
         self.tribler_logo2.Bind(wx.EVT_LEFT_UP, self.OnStats)
         
+        # vliegendhart: hacking in the Bundle Button (for demonstration purposes only!!)
+        self.bundlebutton = wx.Button(self, -1, 'Bundle: Int')
+        self.bundlestates = ['Int', 'Lev', 'Size', None]
+        self.bundlestate = 0
+        self.bundlebutton.Bind(wx.EVT_BUTTON, self.OnRebundle)
+        
         self.__do_layout()
         self.Layout()
         
         self.init_ready = True
         self.Bind(wx.EVT_SIZE, self.OnResize)
         
+    # vliegendhart: BundleButton handler hack:
+    def OnRebundle(self, event):
+        newstate = (self.bundlestate+1) % len(self.bundlestates)
+        self.bundlebutton.SetLabel('Bundle: %s' % self.bundlestates[newstate])
+        self.bundlestate = newstate
+        
+        if self.results.IsEnabled():
+            self.selectTab('search_results')
+            self.guiUtility.ShowPage('search_results')
+            # OLD HACK: always reset list to prevent caching issues
+            #self.guiUtility.torrentsearch_manager.gridmgr.list.Reset()
+            # NEW HACK: the list doesn't always refresh right away, so let's modify lastData:
+            # an alternative solution, however, would be to pass a flag to refreshGrid()
+            self.guiUtility.torrentsearch_manager.gridmgr.list.list.lastData = 0
+            self.guiUtility.torrentsearch_manager.refreshGrid()
+    
     def __do_layout(self):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -202,6 +224,9 @@ class TopSearchPanel(bgPanel):
         searchBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
         searchBoxSizer.Add(self.searchField, 1, wx.TOP, 1) #add searchbox
         searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) #add searchbutton
+        
+        # vliegendhart: hack to add Bundle Button
+        searchBoxSizer.Add(self.bundlebutton, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
 
         if sys.platform == 'darwin' or sys.platform == 'win32':
             ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new_windows.gif')

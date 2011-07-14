@@ -127,7 +127,8 @@ class ListItem(wx.Panel):
                     
                     if self.columns[i]['width'] == -1:
                         self.columns[i]['width'] = control.GetSize()[0]
-                        self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
+                        if self.parent_list.parent_list.header is not None:
+                            self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
                 else:
                     if self.columns[i]['width'] != -1:
                         self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
@@ -289,8 +290,13 @@ class ListItem(wx.Panel):
             self.selected = False
             self.ShowSelected()
             
+        elif event.LeftDown():
+            event.listitem = self
+            self.parent_list.lastMouseLeftDownEvent = event
+        
         elif event.LeftUp():
-            self.OnClick(event)
+            if getattr(self.parent_list.lastMouseLeftDownEvent, 'listitem', None) == self:
+                self.OnClick(event)
             
         event.Skip() #Allow windows to paint button hover
         
@@ -400,6 +406,9 @@ class AbstractListBody():
         self.data = None
         self.raw_data = None
         self.items = {}
+        
+        # Allow list-items to store the most recent mouse left-down events:
+        self.lastMouseLeftDownEvent = None
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, wx.WHITE)
@@ -696,8 +705,8 @@ class AbstractListBody():
                 self.ShowLoading()
             self.highlightSet = set()
         else:
-            cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
-            self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
+            cur_keys = set([curdata[0] for curdata in self.data[:LIST_ITEM_MAX_SIZE]])
+            self.highlightSet = set([curdata[0] for curdata in data[:LIST_ITEM_MAX_SIZE] if curdata[0] not in cur_keys])
 
         self.data = data
         self.DoSort()
@@ -752,10 +761,16 @@ class AbstractListBody():
         
         message = self.__GetFilterMessage()
         #Add created/cached items
-        for key, item_data, original_data in self.data:
+        for curdata in self.data:
+            if len(curdata) > 3:
+                key, item_data, original_data, create_method = curdata
+            else:
+                key, item_data, original_data = curdata
+                create_method = ListItem
+            
             if nr_items_to_add > 0 and nr_items_to_create > 0:
                 if key not in self.items:
-                    self.items[key] = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
+                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                     nr_items_to_create -= 1
                 
                 item = self.items[key]
@@ -769,7 +784,6 @@ class AbstractListBody():
                         self.highlightSet.remove(key)
                                             
                 nr_items_to_add -= 1
-            
             else:
                 done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
 

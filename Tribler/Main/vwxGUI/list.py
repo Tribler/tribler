@@ -334,8 +334,38 @@ class MyChannelManager():
         self.list.Reset()
         self.refresh()
 
-class List(wx.Panel):
-    def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False):
+class XRCPanel(wx.Panel):
+    def __init__(self, parent = None):
+        self.parent = parent
+        self.ready = False
+        
+        if parent:
+            wx.Panel.__init__(self, parent)
+            self._PostInit()
+            
+        else:
+            pre = wx.PrePanel()
+            # the Create step is done by XRC. 
+            self.PostCreate(pre)
+            if sys.platform == 'linux2': 
+                self.Bind(wx.EVT_SIZE, self.OnCreate)
+            else:
+                self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+    
+    def OnCreate(self, event):
+        if sys.platform == 'linux2': 
+            self.Unbind(wx.EVT_SIZE)
+        else:
+            self.Unbind(wx.EVT_WINDOW_CREATE)
+        
+        wx.CallAfter(self._PostInit)
+        event.Skip()
+    
+    def _PostInit(self):
+        pass
+
+class List(XRCPanel):
+    def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
         """
         Column alignment:
         
@@ -362,26 +392,14 @@ class List(wx.Panel):
         self.background = background
         self.spacers = spacers
         self.singleSelect = singleSelect
+        self.borders = borders
         self.showChange = showChange
-        self.ready = False
         self.dirty = False
         
-        pre = wx.PrePanel()
-        # the Create step is done by XRC. 
-        self.PostCreate(pre)
-        if sys.platform == 'linux2': 
-            self.Bind(wx.EVT_SIZE, self.OnCreate)
-        else:
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-    
-    def OnCreate(self, event):
-        if sys.platform == 'linux2': 
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
+        self.id = 0
         
-        wx.CallAfter(self._PostInit)
-        event.Skip()
+        self.leftLine = self.rightLine = None
+        XRCPanel.__init__(self, parent)
     
     def _PostInit(self):
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -390,7 +408,8 @@ class List(wx.Panel):
         self.uelog = UserEventLogDBHandler.getInstance()
         
         self.header = self.CreateHeader()
-        vSizer.Add(self.header, 0, wx.EXPAND)
+        if self.header:
+            vSizer.Add(self.header, 0, wx.EXPAND)
         
         self.list = self.CreateList()
         listSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -405,7 +424,8 @@ class List(wx.Panel):
         vSizer.Add(listSizer, 1, wx.EXPAND)
         
         self.footer = self.CreateFooter()
-        vSizer.Add(self.footer, 0, wx.EXPAND)
+        if self.footer:
+            vSizer.Add(self.footer, 0, wx.EXPAND)
         
         self.SetBackgroundColour(self.background)
         self.SetSizer(vSizer)
@@ -438,9 +458,10 @@ class List(wx.Panel):
     
     def OnSize(self, event):
         assert self.ready, "List not ready"
-        diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
-        self.header.SetSpacerRight(diff)
-        self.footer.SetSpacerRight(diff)
+        if self.header:
+            diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
+            self.header.SetSpacerRight(diff)
+            self.footer.SetSpacerRight(diff)
         event.Skip()
         
     def OnSort(self, column, reverse):
@@ -451,11 +472,15 @@ class List(wx.Panel):
     def Reset(self):
         assert self.ready, "List not ready"
         self.__check_thread()
-        
+
         if self.ready:
-            self.header.Reset()
+            if self.header:
+                self.header.Reset()
+                
             self.list.Reset()
-            self.footer.Reset()
+            
+            if self.footer:
+                self.footer.Reset()
             
             self.dirty = False
             self.Layout()
@@ -572,7 +597,7 @@ class List(wx.Panel):
         return wx.Panel.Layout(self)
         
 class SearchList(List):
-    def __init__(self):
+    def __init__(self, parent=None):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         
@@ -582,8 +607,10 @@ class SearchList(List):
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
-       
-        List.__init__(self, columns, LIST_GREY, [7,7], True)
+        
+        self.infohash2key = {} # bundled infohashes
+        
+        List.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -639,8 +666,36 @@ class SearchList(List):
         List.SetData(self, data)
         
         if len(data) > 0:
-            data = [(file['infohash'],[file['name'], file['length'], 0, 0], file) for file in data]
-            return self.list.SetData(data)
+            list_data = []
+            for file in data:
+                # either we have a bundle of hits:
+                if 'bundle' in file:
+                    head = file['bundle'][0]
+                    create_method = BundleListItem
+                    key = file['key']
+                    
+                    for hit in file['bundle']:
+                        self.infohash2key[hit['infohash']] = key
+                    
+                    # if the bundle is changed, inform the ListBody
+                    if 'bundle_changed' in file:
+                        self.RefreshData(key, file)
+                    
+                # or a single hit:
+                else:
+                    head = file
+                    create_method = ListItem
+                    key = head['infohash']
+                    
+                    if key in self.infohash2key:
+                        del self.infohash2key[key]
+                
+                item_data = [head['name'], head['length'], 0, 0]
+                original_data = file
+                    
+                list_data.append((key, item_data, original_data, create_method))
+            
+            return self.list.SetData(list_data)
         
         message =  'No torrents matching your query are found. \n'
         message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
@@ -652,13 +707,32 @@ class SearchList(List):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data['infohash'],[data['name'], data['length'], 0, 0], data)
+        original_data = data
+        # bundle update
+        if 'bundle' in original_data:
+            head = original_data['bundle'][0]
+        # individual hit update
+        else:
+            head = original_data
+            
+            # Check whether the individual hit is in a bundle:
+            if DEBUG and key in self.infohash2key:
+                print >>sys.stderr, '>> SearchList.RefreshData, mapping infohash key to bundle key'
+            key = self.infohash2key.get(key, key)
+        
+        data = (head['infohash'], [head['name'], head['length'], 0, 0], original_data)
+        
+        if DEBUG and key.startswith('Group'):
+            print >>sys.stderr, '>> SearchList.RefreshData, key =', key, ';\n\t', head['name']
         self.list.RefreshData(key, data)
         
-        item = self.list.GetItem(key)
-        panel = item.GetExpandedPanel()
-        if panel:
-            panel.UpdateStatus()
+        if key in self.list.items:
+            item = self.list.GetItem(key)
+            
+            panel = item.GetExpandedPanel()
+            if panel:# and 'bundle' not in original_data:
+                # Only do this for normal ListItems:
+                panel.UpdateStatus()
     
     def CreateDownloadButton(self, parent, item):
         button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
@@ -720,7 +794,9 @@ class SearchList(List):
         if val < 0:
             return "?"
         return str(val)
-    
+
+from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now 
+
 class LibaryList(List):
     def __init__(self):
         self.guiutility = GUIUtility.getInstance()

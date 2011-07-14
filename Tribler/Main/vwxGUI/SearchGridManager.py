@@ -25,6 +25,7 @@ from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoPlayer import VideoPlayer
 
 from math import sqrt
+from Tribler.Core.Search.Bundler import bundle_demo
 
 DEBUG = False
 
@@ -454,7 +455,7 @@ class TorrentManager:
         self.rerankingStrategy[mode] = getTorrentReranker()
         self.hits = self.rerankingStrategy[mode].rerank(self.hits, self.searchkeywords[mode], self.torrent_db, 
                                                         self.pref_db, self.mypref_db, self.search_db)
-
+        
         # boudewijn: now that we have sorted the search results we
         # want to prefetch the top N torrents.
         self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
@@ -462,8 +463,40 @@ class TorrentManager:
         if DEBUG:
             print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.addDownloadStates(self.hits)
-
-        return [len(self.hits), self.filteredResults , self.hits]
+        
+        # vliegendhart: do grouping here first as a hack for demonstration purposes only
+        # 
+        # 1. get grouping function
+        top_bg = self.guiUtility.frame.top_bg
+        bundle_mode = top_bg.bundlestates[top_bg.bundlestate]
+        searchkeywords = self.searchkeywords[mode]
+        print >>sys.stderr, '~~~~~~~BUNDLE:', bundle_mode
+        PROFILING = False
+        DUMP_ARGS_LIST = False
+        if self.hits:
+            # 2. group
+            if PROFILING:
+                import cProfile
+                import time
+                now = int( round(time.time()) )
+                query = ' '.join(searchkeywords)
+                prof = cProfile.Profile()
+                returned_hits = prof.runcall(bundle_demo, self.hits, bundle_mode, searchkeywords)
+                prof.dump_stats('prof_bundle_%s_%sx[%s]_%s.txt' % (bundle_mode, len(self.hits), query, now))
+            else:
+                returned_hits = bundle_demo(self.hits, bundle_mode, searchkeywords)
+            
+            if DUMP_ARGS_LIST:
+                fh = open('bundle_test_data.txt', 'a')
+                argslist = (self.hits, bundle_mode, searchkeywords)
+                print >>fh, repr(argslist)
+                fh.close()
+            
+        else:
+            returned_hits = self.hits
+        
+        #return [len(self.hits), self.filteredResults , self.hits]
+        return [len(self.hits), self.filteredResults , returned_hits]
 
     def prefetch_hits(self):
         """

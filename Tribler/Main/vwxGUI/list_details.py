@@ -30,12 +30,13 @@ from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 
 class TorrentDetails(wx.Panel):
-    def __init__(self, parent, torrent):
+    def __init__(self, parent, torrent, compact=False):
         wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
         self.parent = parent
         self.torrent = torrent
+        self.compact = compact
         self.type = None
         self.vod_log = None
         
@@ -100,7 +101,7 @@ class TorrentDetails(wx.Panel):
             self.ShowPanel()
             
             self.buttonPanel.SetSizer(self.buttonSizer)
-            self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+            self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
             
             page0 = self.notebook.GetPage(0)
             bestHeight = page0.GetBestVirtualSize()[1]
@@ -162,16 +163,16 @@ class TorrentDetails(wx.Panel):
         if isinstance(category,list):
             category = ', '.join(category)
         
-        vSizer = wx.FlexGridSizer(0, 2, 3, 3)
-        vSizer.AddGrowableCol(1)
-        self._add_row(overview, vSizer, "Name", self.torrent['name'])
-        self._add_row(overview, vSizer, "Type", category.capitalize())
-        self._add_row(overview, vSizer, "Uploaded", date.fromtimestamp(self.torrent['creation_date']).strftime('%Y-%m-%d'))
-        self._add_row(overview, vSizer, "Filesize", self.guiutility.utility.size_format(self.torrent['length']) + " in " + str(len(self.information[2])) + " files")
+        overviewColumns = {
+            "Name": self.torrent['name'],
+            "Type": category.capitalize(),
+            "Uploaded": date.fromtimestamp(self.torrent['creation_date']).strftime('%Y-%m-%d'),
+            "Filesize": self.guiutility.utility.size_format(self.torrent['length']) + " in " + str(len(self.information[2])) + " files",
+        }
         
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
-            
+        
         swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
         if swarmInfo:
             _, seeders, leechers, last_check, _, _ = swarmInfo
@@ -182,9 +183,26 @@ class TorrentDetails(wx.Panel):
         
         diff = time() - last_check
         if seeders <= 0 and leechers <= 0:
-            _, self.status = self._add_row(overview, vSizer, "Status", "Unknown")
+            overviewColumns["Status"] = "Unknown"
         else:
-            _, self.status = self._add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
+            overviewColumns["Status"] = "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2))
+        
+        if self.compact:
+            vSizer = wx.FlexGridSizer(0, 6, 3, 3)
+            vSizer.AddGrowableCol(1,4) #we give more space to name and status
+            vSizer.AddGrowableCol(3,2)
+            vSizer.AddGrowableCol(5,2)
+            overviewColumnsOrder = ["Name", "Type", "Uploaded", "Status", "Filesize"]
+        else:
+            vSizer = wx.FlexGridSizer(0, 2, 3, 3)
+            vSizer.AddGrowableCol(1)
+            overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
+        
+        for column in overviewColumnsOrder:
+            _, value = self._add_row(overview, vSizer, column, overviewColumns[column])
+            if column == "Status":
+                self.status = value
+            
         torrentSizer.Add(vSizer, 1, wx.EXPAND)
         
         if diff > 1800: #force update if last update more than 30 minutes ago
