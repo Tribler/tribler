@@ -310,30 +310,89 @@ class settingsButton(tribler_topButton):
     
     def GetBitmap(self):
         return self.bitmaps[self.selected]
+
+class NativeIcon:
+    __single = None
+    def __init__(self):
+        if NativeIcon.__single:
+            raise RuntimeError, "NativeIcon is singleton"
+        NativeIcon.__single = self
+        self.icons = {}
+        
+    def getInstance(*args, **kw):
+        if NativeIcon.__single is None:
+            NativeIcon(*args, **kw)
+        return NativeIcon.__single
+    getInstance = staticmethod(getInstance)
     
+    def getBitmap(self, parent, type, background, state):
+        icons = self.icons.setdefault(type, {}).setdefault(background, {})
+        if state not in icons:
+            icons[state] = self.__createBitmap(parent, background, type, state)
+        
+        return icons[state]
+    
+    def __createBitmap(self, parent, background, type, state):
+        if state == 1:
+            if type == 'tree':
+                state = wx.CONTROL_EXPANDED
+            else:
+                state = wx.CONTROL_CHECKED
+        
+        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
+        #Thus we create a larger bmp, allowing for borders
+        bmp = wx.EmptyBitmap(24,24) 
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(background))
+        dc.Clear()
+        
+        #max size is 16x16, using 4px as a border
+        if type == 'checkbox':
+            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
+        elif type == 'tree':
+            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
+        dc.SelectObject(wx.NullBitmap)
+        
+        #determine actual size of drawn icon, and return this subbitmap
+        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
+        return bmp.GetSubBitmap(bb)
+
 class LinkStaticText(wx.Panel):
-    def __init__(self, parent, text, icon = "bullet_go.png", font_increment = 0):
+    def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
+        self.icon_type = icon_type
+        
+        if icon:
+            self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        elif icon_type:
+            self.icon = wx.StaticBitmap(self, bitmap = NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, self.GetBackgroundColour(), state=0))
+        else:
+            self.icon = None
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        if self.icon and icon_align == wx.ALIGN_LEFT:
+            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
         self.text = wx.StaticText(self, -1, text)
         font = self.text.GetFont()
         font.SetUnderlined(True)
         font.SetPointSize(font.GetPointSize() + font_increment)
         self.text.SetFont(font)
-        self.text.SetForegroundColour('#0473BB')
+        self.text.SetForegroundColour(font_colour)
         self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-        
-        if icon:
-            self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
-            self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
+            
+        if self.icon and icon_align == wx.ALIGN_RIGHT:
+            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+            
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
+        self.selected = False
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         
     def SetToolTipString(self, tip):
         wx.Panel.SetToolTipString(self, tip)
@@ -343,13 +402,55 @@ class LinkStaticText(wx.Panel):
         
     def SetLabel(self, text):
         self.text.SetLabel(text)
+    
+    def GetLabel(self):
+        return self.text.GetLabel()
+        
+    def OnMouse(self, event):
+        if event.Entering() or event.Moving():
+            self.ShowSelected(True)
+        
+        elif event.Leaving():
+            self.ShowSelected(False)
+        
+        event.Skip()
+            
+    def ShowSelected(self, selected=True):
+        if self.selected != selected:
+            font = self.text.GetFont()
+            
+            if selected:
+                #Niels: Underline not working on Linux, using italic instead
+                if sys.platform == 'linux2': 
+                    font.SetStyle(wx.ITALIC)
+                else:
+                    font.SetUnderlined(True)
+            else:
+                if sys.platform == 'linux2':
+                    font.SetStyle(wx.NORMAL)
+                else:
+                    font.SetUnderlined(False)
+            
+            self.text.SetFont(font)
+            self.selected = selected
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         wx.Panel.Bind(self, event, handler, source, id, id2)
         
-        self.text.Bind(event, handler, source, id, id2)
+        def modified_handler(actual_event, handler=handler):
+            actual_event.SetEventObject(self)
+            handler(actual_event)
+        
+        self.text.Bind(event, modified_handler, source, id, id2)
         if getattr(self, 'icon', False):
-            self.icon.Bind(event, handler, source, id, id2)
+            self.icon.Bind(event, modified_handler, source, id, id2)
+            
+    def SetBackgroundColour(self, colour):
+        wx.Panel.SetBackgroundColour(self, colour)
+        
+        if getattr(self, 'icon', False) and getattr(self, 'icon_type', False):
+            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, colour, state=0))
+            self.icon.Refresh()
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

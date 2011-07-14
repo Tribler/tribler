@@ -576,6 +576,10 @@ class List(XRCPanel):
     def ShowLoading(self):
         if self.ready:
             self.list.ShowLoading()
+            
+    def OnLoadAll(self):
+        if self.ready:
+            self.list.OnLoadAll()
         
     def Show(self):
         wx.Panel.Show(self)

@@ -7,55 +7,11 @@ from traceback import print_stack
 from time import time
 import re
 
+from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon
+
 from __init__ import *
 
 DEBUG = True
-
-class ListIcon:
-    __single = None
-    def __init__(self):
-        if ListIcon.__single:
-            raise RuntimeError, "ListIcon is singleton"
-        ListIcon.__single = self
-        self.icons = {}
-        
-    def getInstance(*args, **kw):
-        if ListIcon.__single is None:
-            ListIcon(*args, **kw)
-        return ListIcon.__single
-    getInstance = staticmethod(getInstance)
-    
-    def getBitmap(self, parent, type, background, state):
-        icons = self.icons.setdefault(type, {}).setdefault(background, {})
-        if state not in icons:
-            icons[state] = self.__createBitmap(parent, background, type, state)
-        
-        return icons[state]
-    
-    def __createBitmap(self, parent, background, type, state):
-        if state == 1:
-            if type == 'tree':
-                state = wx.CONTROL_EXPANDED
-            else:
-                state = wx.CONTROL_CHECKED
-        
-        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
-        #Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24,24) 
-        dc = wx.MemoryDC(bmp)
-        dc.SetBackground(wx.Brush(background))
-        dc.Clear()
-        
-        #max size is 16x16, using 4px as a border
-        if type == 'checkbox':
-            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
-        elif type == 'tree':
-            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
-        dc.SelectObject(wx.NullBitmap)
-        
-        #determine actual size of drawn icon, and return this subbitmap
-        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
-        return bmp.GetSubBitmap(bb)
 
 class ListItem(wx.Panel):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
@@ -153,7 +109,7 @@ class ListItem(wx.Panel):
                 self.AddEvents(child)
           
     def GetIcon(self, background, state):
-        return ListIcon.getInstance().getBitmap(self, self.icontype, background, state)
+        return NativeIcon.getInstance().getBitmap(self, self.icontype, background, state)
         
     def RefreshData(self, data):
         if isinstance(data[2], dict): #update original_data
@@ -340,7 +296,7 @@ class ListItem(wx.Panel):
             return item
         
 class AbstractListBody():
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -348,6 +304,7 @@ class AbstractListBody():
         self.singleExpanded = singleExpanded
         self.showChange = showChange
         self.list_selected = LIST_SELECTED
+        self.list_item_max = list_item_max
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -358,7 +315,6 @@ class AbstractListBody():
         self.listpanel.SetSizer(self.vSizer)
         hSizer.Add(self.listpanel, 1)
         self.SetSizer(hSizer)
-        
     
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
@@ -411,7 +367,7 @@ class AbstractListBody():
         self.lastMouseLeftDownEvent = None
     
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, wx.BLUE)
+        wx.Panel.SetBackgroundColour(self, wx.WHITE)
         self.listpanel.SetBackgroundColour(colour)
     
     def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED):
@@ -706,8 +662,8 @@ class AbstractListBody():
                 self.ShowLoading()
             self.highlightSet = set()
         else:
-            cur_keys = set([curdata[0] for curdata in self.data[:LIST_ITEM_MAX_SIZE]])
-            self.highlightSet = set([curdata[0] for curdata in data[:LIST_ITEM_MAX_SIZE] if curdata[0] not in cur_keys])
+            cur_keys = set([curdata[0] for curdata in self.data[:self.list_item_max]])
+            self.highlightSet = set([curdata[0] for curdata in data[:self.list_item_max] if curdata[0] not in cur_keys])
 
         self.data = data
         self.DoSort()
@@ -744,8 +700,15 @@ class AbstractListBody():
     def OnLoadMore(self, event):
         self.loadNext.Disable()
         self.CreateItems(nr_items_to_create=LIST_ITEM_MAX_SIZE, nr_items_to_add=sys.maxint)
+        
+    def OnLoadAll(self):
+        self.loadNext.Disable()
+        self.CreateItems(nr_items_to_create=sys.maxint, nr_items_to_add=sys.maxint)
 
-    def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = LIST_ITEM_MAX_SIZE):
+    def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = None):
+        if not nr_items_to_add:
+            nr_items_to_add = self.list_item_max
+        
         if DEBUG:
             print >> sys.stderr, "ListBody: Creating items"
         
@@ -851,7 +814,7 @@ class AbstractListBody():
             item.Deselect()
  
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
-    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
         scrolled.ScrolledPanel.__init__(self, parent)
         AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         
@@ -870,9 +833,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         event.Skip()
     
 class FixedListBody(wx.Panel, AbstractListBody):
-    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max = list_item_max)
     
     def Scroll(self, x, y):
         pass
