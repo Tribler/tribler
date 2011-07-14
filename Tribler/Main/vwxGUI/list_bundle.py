@@ -666,7 +666,7 @@ class BundleListView(SearchList):
         pass 
     
     def CreateList(self):
-        return ExpandableFixedListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
+        return ExpandableFixedListBody(self, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
     def OnExpand(self, item):
         # Keep only one panel open at all times:
@@ -714,8 +714,8 @@ class BundleListView(SearchList):
 
 
 class ExpandableFixedListBody(FixedListBody):
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
-        FixedListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+        FixedListBody.__init__(self, parent, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         self._must_perform_layout_chain = 0
         
     

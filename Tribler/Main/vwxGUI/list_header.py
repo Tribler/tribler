@@ -534,9 +534,16 @@ class SearchHeader(FamilyFilterHeader):
         self.subtitle.SetLabel('')
         self.filter.Clear()
         
-class SearchHelpHeader(SearchHeader):
+class SearchHelpHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
-        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+        self.filter = wx.SearchCtrl(parent)
+        self.filter.SetDescriptiveText('Search within results')
+        self.filter.Bind(wx.EVT_TEXT, self.OnKey)
+        self.filter.SetMinSize((175,-1))
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.AddStretchSpacer()
+        hSizer.Add(self.filter, 0, wx.ALIGN_CENTER_VERTICAL)
 
         #filename = os.path.join(os.path.dirname(__file__), "images", "help.png")
         gui_utility = GUIUtility.getInstance()
@@ -546,6 +553,16 @@ class SearchHelpHeader(SearchHeader):
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
 
         return hSizer
+    
+    def FilterCorrect(self, regex_correct):
+        pass
+    
+    def OnKey(self, event):
+        self.parent.OnFilter(self.filter.GetValue().strip())
+    
+    def Reset(self):
+        TitleHeader.Reset(self)
+        self.filter.Clear()
 
     def helpClick(self,event=None):
         title = 'Search within results'

@@ -450,8 +450,10 @@ class List(XRCPanel):
     def CreateHeader(self):
         return ListHeader(self, self.columns)
     
-    def CreateList(self):
-        return ListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
+    def CreateList(self, parent = None):
+        if not parent:
+            parent = self
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
     def CreateFooter(self):
         return ListFooter(self)
@@ -595,8 +597,87 @@ class List(XRCPanel):
     def Layout(self):
         self.__check_thread()
         return wx.Panel.Layout(self)
+
+class GenericSearchList(List):
+    def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
+        List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
+    
+    def CreateDownloadButton(self, parent, item):
+        button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
+        button.item = item
+        item.button = button
         
-class SearchList(List):
+        if not item.original_data.get('ds',False):
+            button.Bind(wx.EVT_BUTTON, self.OnDownload)
+        else:
+            button.Enable(False)
+        return button
+
+    def CreateRatio(self, parent, item):
+        seeders = int(item.original_data['num_seeders'])
+        leechers = int(item.original_data['num_leechers'])
+        item.data[-2] = seeders + leechers
+        
+        control = SwarmHealth(parent)
+        control.SetMinSize((self.columns[-2]['width'],7))
+        control.SetBackgroundColour(wx.WHITE)
+        control.SetRatio(seeders, leechers)
+        return control
+        
+    def OnDownload(self, event):
+        item = event.GetEventObject().item
+        self.Select(item.original_data['infohash'])
+        self.StartDownload(item.original_data)
+    
+    def toggleFamilyFilter(self):
+        self.guiutility.toggleFamilyFilter()
+        self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
+        
+    def SetFF(self, family_filter):
+        self.header.SetFF(family_filter)
+    
+    def SetFilteredResults(self, nr):
+        if nr != self.total_results: 
+            self.header.SetNrResults(nr)
+        else:
+            self.header.SetNrResults()
+            
+    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
+        if keywords and isinstance(nr, int):
+            self.SetKeywords(keywords, nr)
+        
+        if isinstance(nr_filtered, int):
+            self.header.SetFiltered(nr_filtered)
+            
+        if isinstance(nr_channels, int):
+            self.footer.SetNrResults(nr_channels, keywords)
+    
+    def OnFilter(self, keyword):
+        def doFilter():
+            self.header.FilterCorrect(self.list.FilterItems(keyword))
+        #Niels: use callafter due to the filteritems method being slow and halting the events
+        wx.CallAfter(doFilter)
+        
+    def OnExpand(self, item):
+        item.button.Hide()
+        item.button.Refresh()
+        return TorrentDetails(item, item.original_data)
+    
+    def StartDownload(self, torrent):
+        if isinstance(self, SelectedChannelList):
+            self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
+        else:
+            self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
+        
+        self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
+        
+    def format(self, val):
+        val = int(val)
+        if val < 0:
+            return "?"
+        return str(val)
+        
+class SearchList(GenericSearchList):
     def __init__(self, parent=None):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
@@ -609,8 +690,47 @@ class SearchList(List):
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
         self.infohash2key = {} # bundled infohashes
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
-        List.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
+    def _PostInit(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.header = self.CreateHeader()
+        sizer.Add(self.header, 0, wx.EXPAND|wx.BOTTOM, 3)
+        
+        list = wx.Panel(self)
+        self.subheader = ListHeader(list, self.columns, radius = 0)
+        self.leftLine = wx.Panel(self, size=(125,-1))
+        self.rightLine = wx.Panel(self, size=(1,-1))
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.leftLine, 0, wx.EXPAND)
+        
+        self.list = self.CreateList(list)
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.subheader, 0, wx.EXPAND)
+        vSizer.Add(self.list, 1, wx.EXPAND)
+        list.SetSizer(vSizer)
+
+        hSizer.Add(list, 1, wx.EXPAND)
+        hSizer.Add(self.rightLine, 0, wx.EXPAND)
+
+        sizer.Add(hSizer, 1, wx.EXPAND)
+        
+        self.footer = self.CreateFooter()
+        sizer.Add(self.footer, 0, wx.EXPAND)
+        
+        self.header.SetSpacerRight = self.subheader.SetSpacerRight
+        self.header.ResizeColumn = self.subheader.ResizeColumn
+        self.header.SetFiltered = self.SetFiltered
+        self.header.SetFF = self.SetFF
+        
+        self.SetBackgroundColour(self.background)
+        self.SetSizer(sizer)
+        self.Layout()
+        
+        self.list.Bind(wx.EVT_SIZE, self.OnSize)
+        self.ready = True
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -618,7 +738,7 @@ class SearchList(List):
         return self.manager
     
     def CreateHeader(self):
-        return SearchHelpHeader(self, self.columns)
+        return SearchHelpHeader(self, [])
 
     def CreateFooter(self):
         footer = ChannelResultFooter(self)
@@ -636,31 +756,15 @@ class SearchList(List):
             self.total_results = nr
         else:
             self.header.SetTitle('Searching for "%s"'%keywords)
-    
-    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
-        if keywords and isinstance(nr, int):
-            self.SetKeywords(keywords, nr)
-        
-        if isinstance(nr_filtered, int):
-            self.header.SetFiltered(nr_filtered)
             
-        if isinstance(nr_channels, int):
-            self.footer.SetNrResults(nr_channels, keywords)
-        
-    def SetFilteredResults(self, nr):
-        if nr != self.total_results: 
-            self.header.SetNrResults(nr)
-        else:
-            self.header.SetNrResults()
-    
+    def SetFiltered(self, nr):
+        pass
     def SetFF(self, family_filter):
-        self.header.SetFF(family_filter)
+        pass
     
     def toggleFamilyFilter(self):
-        self.guiutility.toggleFamilyFilter()
+        GenericSearchList.toggleFamilyFilter(self)
         self.guiutility.dosearch()
-        
-        self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)  
     
     def SetData(self, data):
         List.SetData(self, data)
@@ -734,40 +838,9 @@ class SearchList(List):
                 # Only do this for normal ListItems:
                 panel.UpdateStatus()
     
-    def CreateDownloadButton(self, parent, item):
-        button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
-        button.item = item
-        item.button = button
-        
-        if not item.original_data.get('ds',False):
-            button.Bind(wx.EVT_BUTTON, self.OnDownload)
-        else:
-            button.Enable(False)
-        return button
-
-    def CreateRatio(self, parent, item):
-        seeders = int(item.original_data['num_seeders'])
-        leechers = int(item.original_data['num_leechers'])
-        item.data[-2] = seeders + leechers
-        
-        control = SwarmHealth(parent)
-        control.SetMinSize((self.columns[-2]['width'],7))
-        control.SetBackgroundColour(wx.WHITE)
-        control.SetRatio(seeders, leechers)
-        return control
-        
-    def OnDownload(self, event):
-        item = event.GetEventObject().item
-        self.Select(item.original_data['infohash'])
-        self.StartDownload(item.original_data)
-        
-    def StartDownload(self, torrent):
-        if isinstance(self, SelectedChannelList):
-            self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
-        else:
-            self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
-        
-        self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
+    def SetBackgroundColour(self, colour):
+        GenericSearchList.SetBackgroundColour(self, colour)
+        self.subheader.SetBackgroundColour(colour)
         
     def OnChannelResults(self, event):
         manager = self.GetManager()
@@ -775,25 +848,14 @@ class SearchList(List):
         
         self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)  
     
-    def OnExpand(self, item):
-        item.button.Hide()
-        item.button.Refresh()
-        return TorrentDetails(item, item.original_data)
-    
     def OnCollapseInternal(self, item):
         item.button.Show()
         
-    def OnFilter(self, keyword):
-        def doFilter():
-            self.header.FilterCorrect(self.list.FilterItems(keyword))
-        #Niels: use callafter due to the filteritems method being slow and halting the events
-        wx.CallAfter(doFilter)
-        
-    def format(self, val):
-        val = int(val)
-        if val < 0:
-            return "?"
-        return str(val)
+    def OnSize(self, event):
+        diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
+        self.subheader.SetSpacerRight(diff)
+        self.footer.SetSpacerRight(diff)
+        event.Skip()
 
 from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now 
 
@@ -1209,7 +1271,7 @@ class ChannelList(List):
         elif title.startswith('Search results'):
             self.header.ShowSortedBy(3)
         
-class SelectedChannelList(SearchList):
+class SelectedChannelList(GenericSearchList):
     def __init__(self):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
@@ -1224,7 +1286,7 @@ class SelectedChannelList(SearchList):
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        List.__init__(self, columns, LIST_GREY, [7,7], True)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True)
         
     def CreateHeader(self):
         header = ChannelHeader(self, self.columns)
@@ -1232,7 +1294,7 @@ class SelectedChannelList(SearchList):
         return header
     
     def CreateList(self):
-        list = SearchList.CreateList(self)
+        list = GenericSearchList.CreateList(self)
         return list
    
     def CreateFooter(self):
@@ -1248,7 +1310,7 @@ class SelectedChannelList(SearchList):
         self.header.SetDescription(description)
    
     def toggleFamilyFilter(self):
-        self.guiutility.toggleFamilyFilter()
+        GenericSearchList.toggleFamilyFilter(self)
         self.guiutility.showChannel(self.title, self.publisher_id)
    
     def GetManager(self):
@@ -1270,7 +1332,7 @@ class SelectedChannelList(SearchList):
             else:
                 self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
         
-        SearchList.SetNrResults(self, None, nr_filtered, None, None)
+        GenericSearchList.SetNrResults(self, None, nr_filtered, None, None)
     
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
@@ -1284,11 +1346,11 @@ class SelectedChannelList(SearchList):
             panel.UpdateStatus()
     
     def Reset(self):
-        SearchList.Reset(self)
+        GenericSearchList.Reset(self)
         self.publisher_id = 0
     
     def OnExpand(self, item):
-        panel = SearchList.OnExpand(self, item)
+        panel = GenericSearchList.OnExpand(self, item)
         panel.ShowChannelAd(False)
         return panel
         
@@ -1328,7 +1390,7 @@ class SelectedChannelList(SearchList):
                 else:
                     self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
                 dial.Destroy()
-        SearchList.StartDownload(self, torrent)
+        GenericSearchList.StartDownload(self, torrent)
         
 class MyChannelList(List):
     def __init__(self):
@@ -1406,7 +1468,7 @@ class ChannelCategoriesList(List):
         return title
     
     def CreateList(self):
-        return FixedListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
+        return FixedListBody(self, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
     
     def _PostInit(self):
         List._PostInit(self)

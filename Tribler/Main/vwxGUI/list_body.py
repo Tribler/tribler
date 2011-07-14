@@ -127,8 +127,7 @@ class ListItem(wx.Panel):
                     
                     if self.columns[i]['width'] == -1:
                         self.columns[i]['width'] = control.GetSize()[0]
-                        if self.parent_list.parent_list.header is not None:
-                            self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
+                        self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
                 else:
                     if self.columns[i]['width'] != -1:
                         self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
@@ -850,9 +849,9 @@ class AbstractListBody():
             item.Deselect()
  
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         
         homeId = wx.NewId()
         endId = wx.NewId()
@@ -869,9 +868,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         event.Skip()
     
 class FixedListBody(wx.Panel, AbstractListBody):
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
     
     def Scroll(self, x, y):
         pass

@@ -1116,7 +1116,7 @@ class MyChannelTabs(wx.Panel):
         filespage = wx.Panel(notebook)
         filespage.SetBackgroundColour(LIST_DESELECTED)
         self.header = ListHeader(filespage, columns, 0)
-        self.list = ListBody(filespage, columns, spacers[0], spacers[1], singleSelect)
+        self.list = ListBody(filespage, filespage, columns, spacers[0], spacers[1], singleSelect)
         self.list.SetBackgroundColour(background)
         
         #small onexpand hack
