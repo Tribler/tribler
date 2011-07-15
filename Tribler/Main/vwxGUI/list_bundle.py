@@ -22,7 +22,6 @@ BUNDLE_FONT_COLOR = (50,50,50)
 
 BUNDLE_NUM_COLS = 3
 BUNDLE_NUM_ROWS = 3
-BUNDLE_LIST_MAX_SIZE = 8
 
 class BundleListItem(ListItem):
     
@@ -203,7 +202,7 @@ class BundlePanel(wx.Panel):
         self.parent_list = parent_list
         
         wx.Panel.__init__(self, parent)
-        
+        self.grid_shown = False
         self.hits = hits
         self.state = BundlePanel.COLLAPSED
         
@@ -212,6 +211,8 @@ class BundlePanel(wx.Panel):
         
         self.font_increment = font_increment
         self.vsizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.SetBackgroundColour(wx.WHITE)
         
         self.AddHeader()
         self.AddGrid()
@@ -253,10 +254,10 @@ class BundlePanel(wx.Panel):
         self.grid.SetMinSize((1,-1))
         
         for i in xrange(BUNDLE_NUM_ROWS):
-            self.grid.AddGrowableRow(i)
+            self.grid.AddGrowableRow(i, 1)
         
         for j in xrange(BUNDLE_NUM_COLS):
-            self.grid.AddGrowableCol(j)
+            self.grid.AddGrowableCol(j, 1)
         
         self.UpdateGrid()
         self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT, 30)
@@ -279,6 +280,9 @@ class BundlePanel(wx.Panel):
             new_text.SetMinSize((1,-1))
             new_text.action = hit
             self.grid.Add(new_text, 0, wx.ALL | wx.EXPAND, 5)
+            
+        for i in range(BUNDLE_NUM_COLS - items_to_add):
+            self.grid.AddSpacer((1,-1))
         
         if len(self.hits) > N:
             caption = '(%s more...)' % (len(self.hits) - N + 1)
@@ -305,16 +309,20 @@ class BundlePanel(wx.Panel):
     def ShowList(self, show=True):
         bundlelist = getattr(self, 'bundlelist', None)
         if bundlelist is None and show:
-            bundlelist = BundleListView(parent = self)
-            bundlelist.SetData(self.hits)
+            max_list = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
+            if len(self.hits) != BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS:
+                max_list -= 1
             
+            bundlelist = BundleListView(parent = self, list_item_max = max_list)
             self.vsizer.Add(bundlelist, 0, wx.EXPAND | wx.LEFT, 20)
         
         elif bundlelist is not None and not show:
             self.vsizer.Detach(bundlelist)
             bundlelist.Destroy()
             bundlelist = None
-            
+        
+        if show:
+            bundlelist.SetData(self.hits)
         self.bundlelist = bundlelist
         
     def OnChange(self, scrollToTop = False):
@@ -452,7 +460,8 @@ class BundlePanel(wx.Panel):
     
 class BundleListView(GenericSearchList):
     
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, list_item_max = None):
+        self.list_item_max = list_item_max
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
@@ -470,7 +479,7 @@ class BundleListView(GenericSearchList):
         pass 
     
     def CreateList(self):
-        return ExpandableFixedListBody(self, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, list_item_max = BUNDLE_LIST_MAX_SIZE)
+        return ExpandableFixedListBody(self, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, list_item_max = self.list_item_max)
     
     def OnExpand(self, item):
         # Keep only one panel open at all times, thus we make sure the parent is closed

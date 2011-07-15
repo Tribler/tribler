@@ -296,7 +296,7 @@ class ListItem(wx.Panel):
             return item
         
 class AbstractListBody():
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
+    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -304,6 +304,8 @@ class AbstractListBody():
         self.singleExpanded = singleExpanded
         self.showChange = showChange
         self.list_selected = LIST_SELECTED
+        if not list_item_max:
+            list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)

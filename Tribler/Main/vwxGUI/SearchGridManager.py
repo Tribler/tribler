@@ -25,7 +25,7 @@ from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoPlayer import VideoPlayer
 
 from math import sqrt
-from Tribler.Core.Search.Bundler import bundle_demo
+from Tribler.Core.Search.Bundler import Bundler
 
 DEBUG = False
 
@@ -65,6 +65,7 @@ class TorrentManager:
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
         self.filteredResults = 0
+        self.bundler = Bundler()
         self.bundle_mode = None
         self.category = Category.getInstance()
         
@@ -471,27 +472,9 @@ class TorrentManager:
         
         searchkeywords = self.searchkeywords[mode]
         print >>sys.stderr, '~~~~~~~BUNDLE:', self.bundle_mode
-        PROFILING = False
-        DUMP_ARGS_LIST = False
         if self.hits:
             # 2. group
-            if PROFILING:
-                import cProfile
-                import time
-                now = int( round(time.time()) )
-                query = ' '.join(searchkeywords)
-                prof = cProfile.Profile()
-                returned_hits = prof.runcall(bundle_demo, self.hits, self.bundle_mode, searchkeywords)
-                prof.dump_stats('prof_bundle_%s_%sx[%s]_%s.txt' % (self.bundle_mode, len(self.hits), query, now))
-            else:
-                returned_hits = bundle_demo(self.hits, self.bundle_mode, searchkeywords)
-            
-            if DUMP_ARGS_LIST:
-                fh = open('bundle_test_data.txt', 'a')
-                argslist = (self.hits, self.bundle_mode, searchkeywords)
-                print >>fh, repr(argslist)
-                fh.close()
-            
+            returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
         else:
             returned_hits = self.hits
         
@@ -549,6 +532,9 @@ class TorrentManager:
         return self.searchkeywords[mode], len(self.hits), self.filteredResults
     
     def setSearchKeywords(self, wantkeywords, mode):
+        if wantkeywords != self.searchkeywords[mode]:
+            self.bundle_mode = None
+        
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
             if DEBUG:
@@ -557,7 +543,6 @@ class TorrentManager:
             self.filteredResults = 0
             self.remoteHits = {}
             self.oldsearchkeywords[mode] = ''
-            self.bundle_mode = None
             
     def setBundleMode(self, bundle_mode):
         if bundle_mode != self.bundle_mode:

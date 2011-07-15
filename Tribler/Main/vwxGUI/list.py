@@ -398,6 +398,9 @@ class List(XRCPanel):
         self.showChange = showChange
         self.dirty = False
         
+        self.guiutility = GUIUtility.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
+        
         self.id = 0
         
         self.leftLine = self.rightLine = None
@@ -405,9 +408,6 @@ class List(XRCPanel):
     
     def _PostInit(self):
         vSizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.guiutility = GUIUtility.getInstance()
-        self.uelog = UserEventLogDBHandler.getInstance()
         
         self.header = self.CreateHeader()
         if self.header:
@@ -609,7 +609,6 @@ class GenericSearchList(List):
         List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
         
         self.infohash2key = {} # bundled infohashes
-
     
     def CreateDownloadButton(self, parent, item):
         button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
@@ -779,7 +778,7 @@ class SearchList(GenericSearchList):
         
         list = wx.Panel(self)
         self.subheader = ListHeader(list, self.columns, radius = 0)
-        self.leftLine = SearchSideBar(self, size=(125,-1))
+        self.leftLine = SearchSideBar(self, size=(200,-1))
         self.rightLine = wx.Panel(self, size=(1,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -802,8 +801,8 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        self.header.SetFiltered = self.SetFiltered
-        self.header.SetFF = self.SetFF
+        self.header.SetFiltered = self.leftLine.SetFiltered
+        self.header.SetFF = self.leftLine.SetFF
         
         self.SetBackgroundColour(self.background)
         self.SetSizer(sizer)
@@ -836,11 +835,6 @@ class SearchList(GenericSearchList):
             self.total_results = nr
         else:
             self.header.SetTitle('Searching for "%s"'%keywords)
-            
-    def SetFiltered(self, nr):
-        pass
-    def SetFF(self, family_filter):
-        pass
     
     def toggleFamilyFilter(self):
         GenericSearchList.toggleFamilyFilter(self)

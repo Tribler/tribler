@@ -897,11 +897,6 @@ class Bundler:
                 group.prev_group = None
 
 
-bundler = Bundler()
-def bundle_demo(hits, bundle_mode = 'Int', searchkeywords = []):
-    return bundler.bundle(hits, bundle_mode, searchkeywords)
-
-
 if USE_PSYCO:
     # can we use psyco in Tribler? It's only available up to Py2.6!
     import psyco
