@@ -99,10 +99,10 @@ class ListItem(wx.Panel):
         if getattr(control, 'Bind', False):
             if not isinstance(control, wx.Button):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             else:
                 control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
                 control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
-                control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         func = getattr(control, 'GetChildren', False)
         if func:
