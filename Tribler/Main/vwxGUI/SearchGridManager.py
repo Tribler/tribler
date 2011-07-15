@@ -466,16 +466,13 @@ class TorrentManager:
             print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.addDownloadStates(self.hits)
         
-        # vliegendhart: do grouping here first as a hack for demonstration purposes only
-        # 
-        # 1. get grouping function
         
-        if mode == 'filesMode':
-            searchkeywords = self.searchkeywords[mode]
-            if self.hits:
-                returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
-            else:
-                returned_hits = self.hits
+        # vliegendhart: do grouping here, but only for retrieving files...
+        searchkeywords = self.searchkeywords[mode]
+        if self.hits and mode == 'filesMode':
+            returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
+        else:
+            returned_hits = self.hits
         
         #return [len(self.hits), self.filteredResults , self.hits]
         return [len(returned_hits), self.filteredResults , returned_hits]
