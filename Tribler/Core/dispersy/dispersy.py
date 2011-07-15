@@ -962,12 +962,12 @@ class Dispersy(Singleton):
             if meta in self._batch_cache:
                 self._batch_cache[meta].extend(batch)
                 if __debug__:
-                    self._debug_batch_cache_performance[meta.name].append(len(batch))
+                    self._debug_batch_cache_performance[meta].append(len(batch))
             else:
                 self._batch_cache[meta] = batch
                 self._callback.register(self._on_batch_cache, (meta,), delay=meta.delay, priority=meta.priority)
                 if __debug__:
-                    self._debug_batch_cache_performance[meta.name] = [len(batch)]
+                    self._debug_batch_cache_performance[meta] = [len(batch)]
 
         # update candidate table.  We know that some peer (not necessarily
         # message.authentication.member) exists at this address.
@@ -1010,9 +1010,9 @@ class Dispersy(Singleton):
 
         if __debug__:
             if meta.delay:
-                performance = "good" if len(self._debug_batch_cache_performance[meta.name]) > 1 else "bad"
-                dprint("performance: ", performance, " [", ":".join(map(str, self._debug_batch_cache_performance[meta.name])), "] for ", meta.name, " after ", meta.delay, "s")
-            del self._debug_batch_cache_performance[meta.name]
+                performance = "good" if len(self._debug_batch_cache_performance[meta]) > 1 else "bad"
+                dprint("performance: ", performance, " [", ":".join(map(str, self._debug_batch_cache_performance[meta])), "] for ", meta.name, " after ", meta.delay, "s")
+            del self._debug_batch_cache_performance[meta]
 
         # remove duplicated
         # todo: make _convert_batch_into_messages accept iterator instead of list to avoid conversion
