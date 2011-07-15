@@ -29,7 +29,7 @@ CREATE TABLE tag(
 
 INSERT INTO tag (key, value) VALUES (1, 'store');
 INSERT INTO tag (key, value) VALUES (2, 'ignore');
-INSERT INTO tag (key, value) VALUES (4, 'drop');
+INSERT INTO tag (key, value) VALUES (4, 'blacklist');
 INSERT INTO tag (key, value) VALUES (1, 'in-order');
 INSERT INTO tag (key, value) VALUES (2, 'out-order');
 INSERT INTO tag (key, value) VALUES (3, 'random-order');
@@ -83,8 +83,15 @@ CREATE TABLE sync(
  synchronization_direction INTEGER REFERENCES tag(key),
  distribution_sequence INTEGER DEFAULT 0,       -- used for the sync-distribution policy
  destination_cluster INTEGER DEFAULT 0,         -- used for the similarity-destination policy
+ undone BOOL DEFAULT 0,
  packet BLOB,
  UNIQUE(community, user, global_time));
+
+CREATE TABLE malicious_proof(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ community INTEGER REFERENCES community(id),
+ user INTEGER REFERENCES name(id),
+ packet BLOB);
 
 --CREATE TABLE similarity(
 -- id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,7 +114,7 @@ CREATE TABLE sync(
 -- UNIQUE(community, user));
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '1');
+INSERT INTO option(key, value) VALUES('database_version', '2');
 """
 
 class DispersyDatabase(Database):
@@ -126,15 +133,41 @@ class DispersyDatabase(Database):
 
     def check_database(self, database_version):
         assert isinstance(database_version, unicode)
-        if database_version == u"0":
+        assert database_version.isdigit()
+        assert int(database_version) >= 0
+        previous_version = database_version = int(database_version)
+
+        if database_version == 0:
+            # setup new database with current database_version
             self.executescript(schema)
 
             # Add bootstrap users
             self.bootstrap()
 
-        elif database_version == u"1":
-            # current version requires no action
-            pass
+        else:
+            # upgrade an older version
+            with self:
+                # upgrade from version 1 to version 2
+                if database_version < 2:
+                    self.executescript(u"""
+CREATE TABLE malicious_proof(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ community INTEGER REFERENCES community(id),
+ user INTEGER REFERENCES name(id),
+ packet BLOB)
+
+ALTER TABLE sync ADD COLUMN undone BOOL DEFAULT 0;
+
+UPDATE tag SET value = 'blacklist' WHERE key = 4;
+
+UPDATE option SET value = 2 WHERE key = 'database_version';
+""")
+
+                # upgrade from version 2 to version 3
+                if database_version < 3:
+                    # there is no version 3 yet...
+                    # self.executescript(u"""UPDATE option SET value = 3 WHERE key = 'database_version';""")
+                    pass
 
     def bootstrap(self):
         """

@@ -57,6 +57,40 @@ class DelayPacketByMissingMember(DelayPacket):
 
         super(DelayPacketByMissingMember, self).__init__("Missing member", footprint, message.packet)
 
+class DelayPacketByMissingMessage(DelayPacket):
+    """
+    Raised during Conversion.decode_message when an unknown message is required to process a packet.
+    The missing message is identified using the unique (community, member, global_time) triplet.
+    """
+    def __init__(self, community, member, global_times):
+        if __debug__:
+            from community import Community
+            from member import Member
+        assert isinstance(community, Community)
+        assert isinstance(member, Member)
+        assert isinstance(global_times, list)
+        assert len(global_times) > 0
+        assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
+        assert not filter(lambda x: not x > 0, global_times)
+        # the footprint that will trigger the delayed packet
+        footprint = "".join(("Community:", community.cid.encode("HEX"),
+                             "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
+                             "\s", "(Relay|Direct|Sync|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+"))
+
+        # the request message that asks for the message that will trigger the delayed packet
+        meta = community.get_meta_message(u"dispersy-missing-message")
+        message = meta.implement(meta.authentication.implement(),
+                                 meta.distribution.implement(community.global_time),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(member, global_times))
+
+        # TODO: currently we can ask for one or more missing messages len(global_times) > 1.
+        # However, the TriggerPacket does not allow a value for min/max responses until it triggers.
+        # Hence it may trigger the packet before all missing messages are received.
+        assert len(global_times) == 1, "See comment above"
+
+        super(DelayPacketByMissingMessage, self).__init__("Missing message", footprint, message.packet)
+
 # BROKEN, seems to be a copy paste from DelayPacketByMissingMember
 # class DelayPacketBySimilarity(DelayPacket):
 #     """
@@ -310,6 +344,10 @@ class Packet(MetaObject.Implementation):
         return self._meta._handle_callback
 
     @property
+    def undo_callback(self):
+        return self._meta._undo_callback
+
+    @property
     def priority(self):
         return self._meta._priority
 
@@ -335,7 +373,7 @@ class Packet(MetaObject.Implementation):
         return self._meta.community.get_conversion(self._packet[:22]).decode_message(("", -1), self._packet)
 
     def __str__(self):
-        return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
+        return "<%s.%s %s %dbytes>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
 #
 # message
@@ -365,7 +403,7 @@ class Message(MetaObject):
             self._payload = payload
             self._address = address
             self._footprint = " ".join((meta._name.encode("UTF-8"),
-                                        "Community:", meta._community.cid.encode("HEX"),
+                                        "Community:%s" % meta._community.cid.encode("HEX"),
                                         authentication.footprint,
                                         distribution.footprint,
                                         destination.footprint,
@@ -431,7 +469,7 @@ class Message(MetaObject):
         def __str__(self):
             return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
-    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, priority=128, delay=0.0):
+    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, undo_callback=None, priority=128, delay=0.0):
         if __debug__:
             from community import Community
             from authentication import Authentication
@@ -448,6 +486,7 @@ class Message(MetaObject):
         assert isinstance(payload, Payload), "PAYLOAD has invalid type '%s'" % type(payload)
         assert callable(check_callback)
         assert callable(handle_callback)
+        assert undo_callback is None or callable(undo_callback)
         assert isinstance(priority, int)
         assert isinstance(delay, float)
         assert delay >= 0.0
@@ -461,6 +500,7 @@ class Message(MetaObject):
         self._payload = payload
         self._check_callback = check_callback
         self._handle_callback = handle_callback
+        self._undo_callback = undo_callback
         self._priority = priority # high value has high priority, i.e. is handled earlier
         self._delay = delay
 
@@ -524,6 +564,10 @@ class Message(MetaObject):
         return self._handle_callback
 
     @property
+    def undo_callback(self):
+        return self._undo_callback
+
+    @property
     def priority(self):
         return self._priority
 
@@ -537,7 +581,7 @@ class Message(MetaObject):
         assert isinstance(destination, tuple)
         assert isinstance(payload, tuple)
         return " ".join((self._name.encode("UTF-8"),
-                        "Community:", self._community.cid.encode("HEX"),
+                        "Community:%s" % self._community.cid.encode("HEX"),
                         self._authentication.generate_footprint(*authentication),
                         self._distribution.generate_footprint(*distribution),
                         self._destination.generate_footprint(*destination),

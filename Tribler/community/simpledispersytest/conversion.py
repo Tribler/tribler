@@ -14,7 +14,7 @@ class Conversion(BinaryConversion):
         text = message.payload.text.encode("UTF-8")
         return pack("!B", len(text)), text
 
-    def _decode_text(self, meta_message, offset, data):
+    def _decode_text(self, placeholder, offset, data):
         if len(data) < offset + 1:
             raise DropPacket("Insufficient packet size")
 
@@ -27,5 +27,5 @@ class Conversion(BinaryConversion):
         except UnicodeError:
             raise DropPacket("Unable to decode UTF-8")
 
-        return offset, meta_message.payload.implement(text)
+        return offset, placeholder.meta.payload.implement(text)
 

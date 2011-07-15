@@ -22,7 +22,7 @@ class ChannelConversion(BinaryConversion):
     def _encode_channel(self, message):
         return encode((message.payload.name, message.payload.description)),
 
-    def _decode_channel(self, meta_message, offset, data):
+    def _decode_channel(self, placeholder, offset, data):
         try:
             offset, values = decode(data, offset)
             if len(values) != 2:
@@ -38,20 +38,20 @@ class ChannelConversion(BinaryConversion):
         if not (isinstance(description, unicode) and len(description) < 1024):
             raise DropPacket("Invalid 'description' type or value")
 
-        return offset, meta_message.payload.implement(name, description)
+        return offset, placeholder.meta.payload.implement(name, description)
 
     def _encode_playlist(self, message):
         return self._encode_channel(message)
 
-    def _decode_playlist(self, meta_message, offset, data):
-        return self._decode_channel(meta_message, offset, data)
+    def _decode_playlist(self, placeholder, offset, data):
+        return self._decode_channel(placeholder.meta, offset, data)
 
     def _encode_torrent(self, message):
         msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, message.payload.files, message.payload.trackers
         msg = encode(msg)
         return zlib.compress(msg, 9),
 
-    def _decode_torrent(self, meta_message, offset, data):
+    def _decode_torrent(self, placeholder, offset, data):
         uncompressed_data = zlib.decompress(data[offset:])
         offset = len(data)
         
@@ -73,7 +73,7 @@ class ChannelConversion(BinaryConversion):
         
         if not isinstance(trackers, tuple):
             raise DropPacket("Invalid 'trackers' type")
-        return offset, meta_message.payload.implement(infohash, timestamp, name, files, trackers)
+        return offset, placeholder.meta.payload.implement(infohash, timestamp, name, files, trackers)
 
     def _encode_comment(self, message):
         dict = {"text":message.payload.text,
@@ -101,7 +101,7 @@ class ChannelConversion(BinaryConversion):
             dict['infohash'] = infohash
         return encode(dict),
 
-    def _decode_comment(self, meta_message, offset, data):
+    def _decode_comment(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -164,7 +164,7 @@ class ChannelConversion(BinaryConversion):
         infohash = dic.get("infohash", None)
         if infohash and not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
-        return offset, meta_message.payload.implement(text, timestamp, reply_to, reply_to_mid, reply_to_global_time, reply_after, reply_after_mid, reply_after_global_time, playlist, infohash)
+        return offset, placeholder.meta.payload.implement(text, timestamp, reply_to, reply_to_mid, reply_to_global_time, reply_after, reply_after_mid, reply_after_global_time, playlist, infohash)
     
     def _encode_warning(self, message):
         dict = {"text":message.payload.text,
@@ -176,7 +176,7 @@ class ChannelConversion(BinaryConversion):
             dict["global-time"] = message.payload.global_time
         return encode(dict),
 
-    def _decode_warning(self, meta_message, offset, data):
+    def _decode_warning(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -207,7 +207,7 @@ class ChannelConversion(BinaryConversion):
         except:
             packet = None
 
-        return offset, meta_message.payload.implement(text, timestamp, packet, mid, global_time)
+        return offset, placeholder.meta.payload.implement(text, timestamp, packet, mid, global_time)
     
     def _encode_mark_torrent(self, message):
         dict = {"infohash":message.payload.infohash,
@@ -216,7 +216,7 @@ class ChannelConversion(BinaryConversion):
         
         return encode(dict),
 
-    def _decode_mark_torrent(self, meta_message, offset, data):
+    def _decode_mark_torrent(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -240,7 +240,7 @@ class ChannelConversion(BinaryConversion):
         if not (isinstance(type, unicode) and len(type) < 25):
             raise DropPacket("Invalid 'type' type or value")
 
-        return offset, meta_message.payload.implement(infohash, type, timestamp)
+        return offset, placeholder.meta.payload.implement(infohash, type, timestamp)
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
@@ -257,7 +257,7 @@ class ChannelConversion(BinaryConversion):
         
         return encode(dict),
 
-    def _decode_modification(self, meta_message, offset, data):
+    def _decode_modification(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -300,20 +300,20 @@ class ChannelConversion(BinaryConversion):
         except:
             prev_modification_packet = None
 
-        return offset, meta_message.payload.implement(modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time)
+        return offset, placeholder.meta.payload.implement(modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time)
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()
         return pack('!20s20sQ', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time),
 
-    def _decode_playlist_torrent(self, meta_message, offset, data):
+    def _decode_playlist_torrent(self, placeholder, offset, data):
         if len(data) < offset + 44:
             raise DropPacket("Unable to decode the payload")
 
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
         packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        return offset, meta_message.payload.implement(infohash, playlist)
+        return offset, placeholder.meta.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
         if global_time and mid:
@@ -333,5 +333,5 @@ class ChannelConversion(BinaryConversion):
     def _encode_missing_channel(self, message):
         return ()
 
-    def _decode_missing_channel(self, meta_message, offset, data):
-        return offset, meta_message.payload.implement()
+    def _decode_missing_channel(self, placeholder, offset, data):
+        return offset, placeholder.meta.payload.implement()

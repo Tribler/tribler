@@ -83,7 +83,7 @@ def main():
             script = Script.get_instance(callback)
 
             if not opt.disable_dispersy_script:
-                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript
+                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript, DispersyUndoScript
                 script.add("dispersy-classification", DispersyClassificationScript)
                 script.add("dispersy-timeline", DispersyTimelineScript)
                 script.add("dispersy-candidate", DispersyCandidateScript)
@@ -95,6 +95,7 @@ def main():
                 script.add("dispersy-member-tag", DispersyMemberTagScript)
                 script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
                 script.add("dispersy-missing-message", DispersyMissingMessageScript)
+                script.add("dispersy-undo", DispersyUndoScript)
 
             if not opt.disable_simple_dispersy_test_script:
                 from Tribler.community.simpledispersytest.script import GenerateMessageBatchScript, GenerateMessagesScript, KillCommunityScript
@@ -159,6 +160,14 @@ def main():
     callback.start(name="Dispersy")
     callback.register(start)
 
+    def rawserver_adrenaline():
+        """
+        The rawserver tends to wait for a long time between handling tasks.  Our tests will fail if
+        they are delayed by the rawserver for too long.
+        """
+        rawserver.add_task(rawserver_adrenaline, 0.1)
+    rawserver.add_task(rawserver_adrenaline, 0.1)
+
     def watchdog():
         while True:
             try:
@@ -170,6 +179,10 @@ def main():
     callback.register(watchdog)
     rawserver.listen_forever(None)
     callback.stop()
+
+    if callback.exception:
+        global exit_exception
+        exit_exception = callback.exception
 
 if __name__ == "__main__":
     exit_exception = None

@@ -159,7 +159,7 @@ class Member(Public, Parameterized1Singleton):
 
     def _set_tag(self, tag, value):
         assert isinstance(tag, unicode)
-        assert tag in [u"store", u"ignore", u"drop"]
+        assert tag in [u"store", u"ignore", u"blacklist"]
         assert isinstance(value, bool)
         if __debug__: dprint(tag, " -> ", value)
         if value:
@@ -202,13 +202,13 @@ class Member(Public, Parameterized1Singleton):
     must_ignore = property(__get_must_ignore, __set_must_ignore)
 
     # @property
-    def __get_must_drop(self):
-        return u"drop" in self._tags
-    # @must_drop.setter
-    def __set_must_drop(self, value):
-        return self._set_tag(u"drop", value)
+    def __get_must_blacklist(self):
+        return u"blacklist" in self._tags
+    # @must_blacklist.setter
+    def __set_must_blacklist(self, value):
+        return self._set_tag(u"blacklist", value)
     # .setter was introduced in Python 2.6
-    must_drop = property(__get_must_drop, __set_must_drop)
+    must_blacklist = property(__get_must_blacklist, __set_must_blacklist)
 
     def verify(self, data, signature, offset=0, length=0):
         assert isinstance(data, str)

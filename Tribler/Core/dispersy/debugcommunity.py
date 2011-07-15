@@ -119,7 +119,7 @@ class DebugCommunityConversion(BinaryConversion):
     def _encode_text(self, message):
         return pack("!B", len(message.payload.text)), message.payload.text
 
-    def _decode_text(self, meta_message, offset, data):
+    def _decode_text(self, placeholder, offset, data):
         if len(data) < offset + 1:
             raise DropPacket("Insufficient packet size")
 
@@ -132,19 +132,19 @@ class DebugCommunityConversion(BinaryConversion):
         text = data[offset:offset+text_length]
         offset += text_length
 
-        return offset, meta_message.payload.implement(text)
+        return offset, placeholder.meta.payload.implement(text)
 
     def _encode_taste_aware_record(self, message):
         return pack("!L", message.payload.number),
 
-    def _decode_taste_aware_record(self, meta_message, offset, data):
+    def _decode_taste_aware_record(self, placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
         number, = unpack_from("!L", data, offset)
         offset += 8
 
-        return offset, meta_message.payload.implement(number)
+        return offset, placeholder.meta.payload.implement(number)
 
 #
 # Payload
@@ -202,7 +202,7 @@ class DebugCommunity(Community):
                 Message(self, u"triple-signed-text", MultiMemberAuthentication(count=3, allow_signature_func=self.allow_triple_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"taste-aware-record", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), SimilarityDestination(cluster=1, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
                 Message(self, u"taste-aware-record-last", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), SimilarityDestination(cluster=2, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
-                Message(self, u"full-sync-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"full-sync-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text, self.undo_text),
                 Message(self, u"in-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"out-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"random-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order"), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
@@ -304,4 +304,12 @@ class DebugCommunity(Community):
         """
         for message in messages:
             if not "Dprint=False" in message.payload.text:
-                dprint(message, " \"", message.payload.text, "\"", " @", message.distribution.global_time)
+                dprint(message, " \"", message.payload.text, "\" @", message.distribution.global_time)
+
+    def undo_text(self, descriptors):
+        """
+        Received an undo for a text message.
+        """
+        for member, global_time, packet in descriptors:
+            message = packet.load_message()
+            dprint("undo \"", message.payload.text, "\" @", global_time)

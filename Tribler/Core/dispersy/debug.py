@@ -238,6 +238,13 @@ class Node(object):
                               meta.destination.implement(),
                               meta.payload.implement(address))
 
+    def create_dispersy_undo_message(self, message, global_time):
+        meta = self._community.get_meta_message(u"dispersy-undo")
+        return meta.implement(meta.authentication.implement(self._my_member),
+                              meta.distribution.implement(global_time),
+                              meta.destination.implement(),
+                              meta.payload.implement(message.authentication.member, message.distribution.global_time, message))
+
     def create_dispersy_candidate_request_message(self, source_address, destination_address, source_default_conversion, routes, global_time):
         assert isinstance(source_address, tuple)
         assert len(source_address) == 2

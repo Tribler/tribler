@@ -24,7 +24,7 @@ class AllChannelConversion(BinaryConversion):
         return pack("!H", len(message.payload.packets)), \
                "".join([pack("!H", len(packet)) + packet for packet in message.payload.packets])
 
-    def _decode_channelcast(self, meta_message, offset, data):
+    def _decode_channelcast(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size")
         num_packets, = unpack_from("!H", data, offset)
@@ -46,12 +46,12 @@ class AllChannelConversion(BinaryConversion):
             offset += length
             packets.append(packet)
 
-        return offset, meta_message.payload.implement(packets)
+        return offset, placeholder.meta.payload.implement(packets)
     
     def _encode_votecast(self, message):
         return pack('!20shl', message.payload.cid, message.payload.vote, message.payload.timestamp),
     
-    def _decode_votecast(self, meta_message, offset, data):
+    def _decode_votecast(self, placeholder, offset, data):
         if len(data) < offset + 26:
             raise DropPacket("Unable to decode the payload")
         
@@ -59,7 +59,7 @@ class AllChannelConversion(BinaryConversion):
         if not vote in [-1, 2]:
             raise DropPacket("Invalid 'vote' type or value")
         
-        return offset, meta_message.payload.implement(cid, vote, timestamp)
+        return offset, placeholder.meta.payload.implement(cid, vote, timestamp)
 
     def _encode_channel_search_request(self, message):
         skip = str(message.payload.skip)
@@ -67,7 +67,7 @@ class AllChannelConversion(BinaryConversion):
                        "search":message.payload.search,
                        "method":message.payload.method}),
 
-    def _decode_channel_search_request(self, meta_message, offset, data):
+    def _decode_channel_search_request(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -98,13 +98,13 @@ class AllChannelConversion(BinaryConversion):
             if not isinstance(item, unicode):
                 raise DropPacket("Item in 'search' has invalid type")
 
-        return offset, meta_message.payload.implement(skip, search, method)
+        return offset, placeholder.meta.payload.implement(skip, search, method)
 
     def _encode_channel_search_response(self, message):
         return encode({"request-identifier":message.payload.request_identifier,
                        "messages":[message.packet for message in message.payload.messages]}),
 
-    def _decode_channel_search_response(self, meta_message, offset, data):
+    def _decode_channel_search_response(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -129,19 +129,19 @@ class AllChannelConversion(BinaryConversion):
                 raise DropPacket("Item in 'messages' has invalid type")
         messages = map(self.decode_message, messages)
 
-        return offset, meta_message.payload.implement(request_identifier, messages)
+        return offset, placeholder.meta.payload.implement(request_identifier, messages)
 
     # def _encode_torrent_request(self, message):
     #     return message.payload.infohash,
 
-    # def _decode_torrent_request(self, meta_message, offset, data):
+    # def _decode_torrent_request(self, placeholder, offset, data):
     #     if len(data) < offset + 20:
     #         raise DropPacket("Insufficient packet size")
 
     #     infohash = data[offset:offset+20]
     #     offset += 20
 
-    #     return offset, meta_message.payload.implement(infohash)
+    #     return offset, placeholder.meta.payload.implement(infohash)
 
     def decode_message(self, address, data):
         self._address = address

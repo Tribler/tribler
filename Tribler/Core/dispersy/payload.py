@@ -93,6 +93,31 @@ class RevokePayload(Payload):
         def payload(self):
             return self._payload
 
+class UndoPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, member, global_time, packet):
+            if __debug__:
+                from member import Member
+            assert isinstance(member, Member)
+            assert isinstance(global_time, (int, long))
+            assert global_time > 0
+            super(UndoPayload.Implementation, self).__init__(meta)
+            self._member = member
+            self._global_time = global_time
+            self._packet = packet
+
+        @property
+        def member(self):
+            return self._member
+
+        @property
+        def global_time(self):
+            return self._global_time
+
+        @property
+        def packet(self):
+            return self._packet
+
 class MissingSequencePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, member, message, missing_low, missing_high):

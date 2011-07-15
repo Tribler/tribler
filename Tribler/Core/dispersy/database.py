@@ -217,10 +217,16 @@ class Database(Singleton):
         @raise sqlite.Error: unknown
         """
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
+        if __debug__:
+            # we allow GeneratorType but must convert it to a list in __debug__ mode since a
+            # generator can only iterate once
+            from types import GeneratorType
+            if isinstance(sequenceofbindings, GeneratorType):
+                sequenceofbindings = list(sequenceofbindings)
         assert isinstance(statement, unicode), "The SQL statement must be given in unicode"
         assert isinstance(sequenceofbindings, (tuple, list)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
-        assert not filter(lambda x: not isinstance(x, (tuple, list)), sequenceofbindings), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
-        assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), sequenceofbindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
+        assert not filter(lambda x: not isinstance(x, (tuple, list, dict)), list(sequenceofbindings)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
+        assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), list(sequenceofbindings)), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
 
         try:
             if __debug__: dprint(statement)

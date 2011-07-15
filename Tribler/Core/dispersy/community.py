@@ -890,8 +890,7 @@ class Community(object):
 
             else:
                 # did not break, meaning, we can not split any more sync ranges
-                break
-            dprint("potential endless loop")
+                return
 
     def get_subjective_set(self, member, cluster):
         """
@@ -1111,6 +1110,10 @@ class Community(object):
             self._conversions[None] = conversion
         self._conversions[conversion.prefix] = conversion
 
+    @documentation(Dispersy.get_message)
+    def get_dispersy_message(self, member, global_time):
+        return self._dispersy.get_message(self, member, global_time)
+
     @documentation(Dispersy.create_authorize)
     def create_dispersy_authorize(self, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         return self._dispersy.create_authorize(self, permission_triplets, sign_with_master, store, update, forward)
@@ -1118,6 +1121,10 @@ class Community(object):
     @documentation(Dispersy.create_revoke)
     def create_dispersy_revoke(self, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         return self._dispersy.create_revoke(self, permission_triplets, sign_with_master, store, update, forward)
+
+    @documentation(Dispersy.create_undo)
+    def create_dispersy_undo(self, message, sign_with_master=False, store=True, update=True, forward=True):
+        return self._dispersy.create_undo(self, message, sign_with_master, store, update, forward)
 
     @documentation(Dispersy.create_identity)
     def create_dispersy_identity(self, store=True, forward=True):
@@ -1177,6 +1184,19 @@ class Community(object):
 
         elif message.payload.is_hard_kill:
             return HardKilledCommunity
+
+    def dispersy_malicious_member_detected(self, member, packets):
+        """
+        Proof has been found that MEMBER is malicious
+
+        @param member: The malicious member.
+        @type member: Member
+
+        @param packets: One or more packets proving that the member is malicious.  All packets must
+         be associated to the same community.
+        @type packets: [Packet]
+        """
+        pass
 
     def get_meta_message(self, name):
         """

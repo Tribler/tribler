@@ -16,28 +16,69 @@ if __debug__:
 
 class Callback(object):
     def __init__(self):
+        # _event is used to wakeup the thread when new actions arrive
         self._event = Event()
+
+        # _lock is used to protect variables that are written to on multiple threads
         self._lock = Lock()
+
+        # _state contains the current state of the thread.  it is protected by _lock and follows the
+        # following states:
+        #
+        #                                 -> fatal-exception -> STATE_EXCEPTION
+        #                                /
+        # STATE_INIT -> start() -> STATE_RUNNING
+        #                                \
+        #                                 -> stop() -> PLEASE_STOP -> STATE_FINISHED
         self._state = "STATE_INIT"
         if __debug__: dprint("STATE_INIT")
+
+        # _exception is set to SystemExit, KeyboardInterrupt, GeneratorExit, or AssertionError when
+        # any of the registered callbacks raises any of these exceptions.  in this case _state will
+        # be set to STATE_EXCEPTION.  it is protected by _lock
+        self._exception = None
+
+        # _id contains a running counter to ensure that every scheduled callback has its own unique
+        # identifier.  it is protected by _lock
         self._id = 0
+
+        # _timestamp contains the time that the callback 'thinks' it currently is.  it may only be
+        # written to from the running thread
         self._timestamp = time()
+
+        # _new_actions contains a list of actions that must be handled on the running thread.  it is
+        # protected by _lock
         self._new_actions = []  # (type, action)
                                 # type=register, action=(deadline, priority, root_id, (call, args, kargs), callback)
                                 # type=unregister, action=root_id
 
         if __debug__:
             def must_close(callback):
-                assert callback._state == "STATE_FINISHED"
+                assert callback.is_finished
             atexit.register(must_close, self)
 
     @property
     def is_running(self):
+        """
+        Returns True when the state is STATE_RUNNING.
+        """
         return self._state == "STATE_RUNNING"
 
     @property
     def is_finished(self):
-        return self._state == "STATE_FINISHED"
+        """
+        Returns True when the state is either STATE_FINISHED or STATE_EXCEPTION.  In either case the
+        thread is no longer running.
+        """
+        return self._state == "STATE_FINISHED" or self._state == "STATE_EXCEPTION"
+
+    @property
+    def exception(self):
+        """
+        Returns the exception that caused the thread to exit when when any of the registered callbacks
+        raises either SystemExit, KeyboardInterrupt, GeneratorExit, or AssertionError.
+        """
+        return self._exception
 
     def add_task(self, func, delay=0.0):
         import sys
@@ -134,7 +175,7 @@ class Callback(object):
             while self._state == "STATE_INIT":
                 sleep(0.01)
 
-    def stop(self, timeout=10.0, wait=True):
+    def stop(self, timeout=10.0, wait=True, exception=None):
         """
         Stop the asynchronous thread.
 
@@ -145,6 +186,8 @@ class Callback(object):
         if __debug__: dprint()
         if self._state == "STATE_RUNNING":
             with self._lock:
+                if exception:
+                    self._exception = exception
                 self._state = "STATE_PLEASE_STOP"
                 if __debug__: dprint("STATE_PLEASE_STOP")
 
@@ -157,7 +200,7 @@ class Callback(object):
                     if timeout <= 0.0:
                         dprint("timeout.  perhaps callback.stop() was called on the same thread?")
 
-        return self._state == "STATE_FINISHED"
+        return self._state == "STATE_FINISHED" or self._state == "STATE_EXCEPTION"
 
     def _loop(self):
         if __debug__: dprint()
@@ -180,8 +223,6 @@ class Callback(object):
             if __debug__: dprint("STATE_RUNNING")
 
         while self._state == "STATE_RUNNING":
-            actual_time = get_timestamp()
-
             with lock:
                 # schedule all new actions
                 for type_, action in new_actions:
@@ -201,18 +242,20 @@ class Callback(object):
                 del new_actions[:]
                 self._event.clear()
 
-                # move expired requests from REQUESTS to EXPIRED
-                while requests and requests[0][0] <= actual_time:
-                    deadline, priority, root_id, call, callback = heappop(requests)
-                    heappush(expired, (priority, deadline, root_id, call, callback))
+            actual_time = get_timestamp()
 
-                # self._timestamp tells us where the thread -should- be.  it is either ACTUAL_TIME
-                # or the deadline-timestamp of the request we are handling.  this distinction is
-                # essential to schedule events consistently.
-                if expired:
-                    self._timestamp = expired[0][1]
-                else:
-                    self._timestamp = actual_time
+            # move expired requests from REQUESTS to EXPIRED
+            while requests and requests[0][0] <= actual_time:
+                deadline, priority, root_id, call, callback = heappop(requests)
+                heappush(expired, (priority, deadline, root_id, call, callback))
+
+            # self._timestamp tells us where the thread -should- be.  it is either ACTUAL_TIME or
+            # the deadline-timestamp of the request we are handling.  this distinction is essential
+            # to schedule events consistently.
+            if expired:
+                self._timestamp = expired[0][1]
+            else:
+                self._timestamp = actual_time
 
             if expired:
                 # we need to handle the next call in line
@@ -231,12 +274,21 @@ class Callback(object):
                         except StopIteration:
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
+                        except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
+                            dprint(exception=True, level="error")
+                            with lock:
+                                self._state = "STATE_EXCEPTION"
+                                self._exception = exception
                         except Exception, exception:
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
                             dprint(exception=True, level="error")
-                            if __debug__:
-                                self.stop(wait=False)
+                            # boudewijn: it makes no sense to propagate the exception to the
+                            # callback if we will immediately stop afterwards.  to avoid confusion
+                            # between __debug__ and optimized behavior we will not stop the thread
+                            # when an exception occurs
+                            # if __debug__:
+                            #     self.stop(wait=False)
                         else:
                             # schedule CALL again in RESULT seconds
                             assert isinstance(result, float)
@@ -248,12 +300,21 @@ class Callback(object):
                             # callback
                             if __debug__: dprint("sync: %.4fs" % (get_timestamp() - deadline), " when calling ", call[0])
                             result = call[0](*call[1], **call[2])
+                        except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
+                            dprint(exception=True, level="error")
+                            with lock:
+                                self._state = "STATE_EXCEPTION"
+                                self._exception = exception
                         except Exception, exception:
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
                             dprint(exception=True, level="error")
-                            if __debug__:
-                                self.stop(wait=False)
+                            # boudewijn: it makes no sense to propagate the exception to the
+                            # callback if we will immediately stop afterwards.  to avoid confusion
+                            # between __debug__ and optimized behavior we will not stop the thread
+                            # when an exception occurs
+                            # if __debug__:
+                            #     self.stop(wait=False)
                         else:
                             if isinstance(result, GeneratorType):
                                 # we only received the generator, no actual call has been made to the

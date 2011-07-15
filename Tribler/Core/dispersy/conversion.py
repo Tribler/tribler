@@ -10,12 +10,23 @@ from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution, RelayDistribution
 from encoding import encode, decode
 from member import PrivateMember, MasterMember
-from message import DelayPacket, DelayPacketByMissingMember, DropPacket, Message
+from message import DelayPacket, DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
 from resolution import LinearResolution
 
 if __debug__:
     from dprint import dprint
     from time import clock
+
+class Placeholder(object):
+    def __init__(self, offset, data):
+        self.offset = offset
+        self.data = data
+        self.meta = None
+        self.authentication = None
+        self.first_signature_offset = 0
+        self.destination = None
+        self.distribution = None
+        self.payload = None
 
 class Conversion(object):
     """
@@ -158,6 +169,7 @@ class BinaryConversion(Conversion):
         define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
         define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
+        define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
 
         if __debug__:
             if debug_non_available:
@@ -185,7 +197,7 @@ class BinaryConversion(Conversion):
         message_id, _ = self._encode_message_map[payload.message.name]
         return payload.member.mid, message_id, pack("!LL", payload.missing_low, payload.missing_high)
 
-    def _decode_missing_sequence(self, meta_message, offset, data):
+    def _decode_missing_sequence(self, placeholder, offset, data):
         if len(data) < offset + 29:
             raise DropPacket("Insufficient packet size")
 
@@ -208,7 +220,7 @@ class BinaryConversion(Conversion):
         missing_low, missing_high = unpack_from("!LL", data, offset)
         offset += 8
 
-        return offset, meta_message.payload.implement(member, missing_meta_message, missing_low, missing_high)
+        return offset, placeholder.meta.payload.implement(member, missing_meta_message, missing_low, missing_high)
 
     def _encode_missing_message(self, message):
         """
@@ -228,7 +240,7 @@ class BinaryConversion(Conversion):
         payload = message.payload
         return pack("!H", len(payload.member.public_key)), payload.member.public_key, pack("!%dQ" % len(payload.global_times), *payload.global_times)
 
-    def _decode_missing_message(self, meta_message, offset, data):
+    def _decode_missing_message(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size (_decode_missing_message.1)")
 
@@ -250,7 +262,7 @@ class BinaryConversion(Conversion):
 
         global_times = unpack_from("!%dQ" % global_time_length, data, offset)
 
-        return offset, meta_message.payload.implement(member, global_times)
+        return offset, placeholder.meta.payload.implement(member, global_times)
 
     def _encode_sync(self, message):
         payload = message.payload
@@ -259,7 +271,7 @@ class BinaryConversion(Conversion):
         assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
         return pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), payload.bloom_filter.prefix, payload.bloom_filter.bytes
 
-    def _decode_sync(self, meta_message, offset, data):
+    def _decode_sync(self, placeholder, offset, data):
         if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
 
@@ -282,19 +294,19 @@ class BinaryConversion(Conversion):
         bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
         offset += num_slices * bits_per_slice
 
-        return offset, meta_message.payload.implement(time_low, time_high, bloom_filter)
+        return offset, placeholder.meta.payload.implement(time_low, time_high, bloom_filter)
 
     def _encode_signature_request(self, message):
         return self.encode_message(message.payload.message),
 
-    def _decode_signature_request(self, meta_message, offset, data):
-        return len(data), meta_message.payload.implement(self._decode_message(("", -1), data[offset:], False))
+    def _decode_signature_request(self, placeholder, offset, data):
+        return len(data), placeholder.meta.payload.implement(self._decode_message(("", -1), data[offset:], False))
 
     def _encode_signature_response(self, message):
         return message.payload.identifier, message.payload.signature
 
-    def _decode_signature_response(self, meta_message, offset, data):
-        return len(data), meta_message.payload.implement(data[offset:offset+20], data[offset+20:])
+    def _decode_signature_response(self, placeholder, offset, data):
+        return len(data), placeholder.meta.payload.implement(data[offset:offset+20], data[offset+20:])
 
     def _encode_candidate_request(self, message):
         bytes = [inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
@@ -304,7 +316,7 @@ class BinaryConversion(Conversion):
             bytes.extend((inet_aton(address[0]), pack("!HH", address[1], int(min(2**16-1, age)))))
         return bytes
 
-    def _decode_candidate_request(self, meta_message, offset, data):
+    def _decode_candidate_request(self, placeholder, offset, data):
         if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
@@ -321,7 +333,7 @@ class BinaryConversion(Conversion):
             offset += 8
             routes.append(((host, port), float(age)))
 
-        return offset, meta_message.payload.implement(source_address, destination_address, source_default_conversion, routes)
+        return offset, placeholder.meta.payload.implement(source_address, destination_address, source_default_conversion, routes)
 
     def _encode_candidate_response(self, message):
         bytes = [message.payload.request_identifier,
@@ -332,7 +344,7 @@ class BinaryConversion(Conversion):
             bytes.extend((inet_aton(address[0]), pack("!HH", address[1], int(min(2**16-1, age)))))
         return bytes
 
-    def _decode_candidate_response(self, meta_message, offset, data):
+    def _decode_candidate_response(self, placeholder, offset, data):
         if len(data) < offset + 32:
             raise DropPacket("Insufficient packet size")
 
@@ -351,27 +363,27 @@ class BinaryConversion(Conversion):
             offset += 8
             routes.append(((host, port), float(age)))
 
-        return offset, meta_message.payload.implement(request_identifier, source_address, destination_address, source_default_conversion, routes)
+        return offset, placeholder.meta.payload.implement(request_identifier, source_address, destination_address, source_default_conversion, routes)
 
     def _encode_identity(self, message):
         return inet_aton(message.payload.address[0]), pack("!H", message.payload.address[1])
 
-    def _decode_identity(self, meta_message, offset, data):
+    def _decode_identity(self, placeholder, offset, data):
         if len(data) < offset + 6:
             raise DropPacket("Insufficient packet size")
 
         address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
 
-        return offset + 6, meta_message.payload.implement(address)
+        return offset + 6, placeholder.meta.payload.implement(address)
 
     def _encode_missing_identity(self, message):
         return message.payload.mid,
 
-    def _decode_missing_identity(self, meta_message, offset, data):
+    def _decode_missing_identity(self, placeholder, offset, data):
         if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
 
-        return offset + 20, meta_message.payload.implement(data[offset:offset+20])
+        return offset + 20, placeholder.meta.payload.implement(data[offset:offset+20])
 
     def _encode_similarity(self, message):
         payload = message.payload
@@ -380,7 +392,7 @@ class BinaryConversion(Conversion):
         assert len(payload.bloom_filter.prefix) == 0, "Should not have a prefix"
         return pack("!BBH", payload.cluster, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), payload.bloom_filter.prefix, payload.bloom_filter.bytes
 
-    def _decode_similarity(self, meta_message, offset, data):
+    def _decode_similarity(self, placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
@@ -396,12 +408,12 @@ class BinaryConversion(Conversion):
         similarity = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
         offset += num_slices * bits_per_slice
 
-        return offset, meta_message.payload.implement(cluster, similarity)
+        return offset, placeholder.meta.payload.implement(cluster, similarity)
 
     def _encode_similarity_request(self, message):
         return (pack("!B", message.payload.cluster),) + tuple([member.mid for member in message.payload.members])
 
-    def _decode_similarity_request(self, meta_message, offset, data):
+    def _decode_similarity_request(self, placeholder, offset, data):
         if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 
@@ -413,7 +425,7 @@ class BinaryConversion(Conversion):
             members.extend(self._community.get_members_from_id(data[offset:offset+20]))
             offset += 20
 
-        return offset, meta_message.payload.implement(cluster, members)
+        return offset, placeholder.meta.payload.implement(cluster, members)
 
     def _encode_destroy_community(self, message):
         if message.payload.is_soft_kill:
@@ -421,7 +433,7 @@ class BinaryConversion(Conversion):
         else:
             return "h",
 
-    def _decode_destroy_community(self, meta_message, offset, data):
+    def _decode_destroy_community(self, placeholder, offset, data):
         if len(data) < offset + 1:
             raise DropPacket("Insufficient packet size")
 
@@ -431,7 +443,7 @@ class BinaryConversion(Conversion):
             degree = u"hard-kill"
         offset += 1
 
-        return offset, meta_message.payload.implement(degree)
+        return offset, placeholder.meta.payload.implement(degree)
 
     def _encode_authorize(self, message):
         """
@@ -476,7 +488,7 @@ class BinaryConversion(Conversion):
 
         return tuple(bytes)
 
-    def _decode_authorize(self, meta_message, offset, data):
+    def _decode_authorize(self, placeholder, offset, data):
         permission_map = {u"permit":1, u"authorize":2, u"revoke":4}
         permission_triplets = []
 
@@ -526,7 +538,7 @@ class BinaryConversion(Conversion):
                     if permission_bit & permission_bits:
                         permission_triplets.append((member, message, permission))
 
-        return offset, meta_message.payload.implement(permission_triplets)
+        return offset, placeholder.meta.payload.implement(permission_triplets)
 
     def _encode_revoke(self, message):
         """
@@ -571,7 +583,7 @@ class BinaryConversion(Conversion):
 
         return tuple(bytes)
 
-    def _decode_revoke(self, meta_message, offset, data):
+    def _decode_revoke(self, placeholder, offset, data):
         permission_map = {u"permit":1, u"authorize":2, u"revoke":4}
         permission_triplets = []
 
@@ -621,7 +633,7 @@ class BinaryConversion(Conversion):
                     if permission_bit & permission_bits:
                         permission_triplets.append((member, message, permission))
 
-        return offset, meta_message.payload.implement(permission_triplets)
+        return offset, placeholder.meta.payload.implement(permission_triplets)
 
     def _encode_subjective_set(self, message):
         payload = message.payload
@@ -630,7 +642,7 @@ class BinaryConversion(Conversion):
         assert len(payload.subjective_set.prefix) == 0, "Should not have a prefix"
         return pack("!BBH", payload.cluster, payload.subjective_set.num_slices, payload.subjective_set.bits_per_slice), payload.subjective_set.prefix, payload.subjective_set.bytes
 
-    def _decode_subjective_set(self, meta_message, offset, data):
+    def _decode_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
@@ -646,12 +658,12 @@ class BinaryConversion(Conversion):
         subjective_set = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
         offset += num_slices * bits_per_slice
 
-        return offset, meta_message.payload.implement(cluster, subjective_set)
+        return offset, placeholder.meta.payload.implement(cluster, subjective_set)
 
     def _encode_missing_subjective_set(self, message):
         return (pack("!B", message.payload.cluster),) + tuple([member.mid for member in message.payload.members])
 
-    def _decode_missing_subjective_set(self, meta_message, offset, data):
+    def _decode_missing_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 
@@ -663,7 +675,31 @@ class BinaryConversion(Conversion):
             members.extend(self._community.get_members_from_id(data[offset:offset+20]))
             offset += 20
 
-        return offset, meta_message.payload.implement(cluster, members)
+        return offset, placeholder.meta.payload.implement(cluster, members)
+
+    def _encode_undo(self, message):
+        return pack("!Q", message.payload.global_time),
+
+    def _decode_undo(self, placeholder, offset, data):
+        if len(data) < offset + 8:
+            raise DropPacket("Insufficient packet size")
+
+        global_time, = unpack_from("!Q", data, offset)
+        offset += 8
+
+        if not global_time < placeholder.distribution.global_time:
+            raise DropPacket("Invalid global time (trying to apply undo to the future)")
+
+        try:
+            packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, name.value, sync.packet FROM sync JOIN name ON name.id = sync.name WHERE community = ? AND user = ? AND global_time = ?",
+                                                                                   (self._community.database_id, placeholder.authentication.member.database_id, global_time)).next()
+        except StopIteration:
+            raise DelayPacketByMissingMessage(self._community, placeholder.authentication.member, [global_time])
+
+        packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
+
+        return offset, placeholder.meta.payload.implement(placeholder.authentication.member, global_time, packet)
+
     #
     # Encoding
     #
@@ -781,27 +817,27 @@ class BinaryConversion(Conversion):
     #
 
     @staticmethod
-    def _decode_full_sync_distribution(offset, data, meta_message):
-        if meta_message.distribution.enable_sequence_number:
+    def _decode_full_sync_distribution(placeholder, offset, data):
+        if placeholder.meta.distribution.enable_sequence_number:
             global_time, sequence_number = unpack_from("!QL", data, offset)
-            return offset + 12, meta_message.distribution.implement(global_time, sequence_number)
+            return offset + 12, placeholder.meta.distribution.implement(global_time, sequence_number)
         else:
             global_time, = unpack_from("!Q", data, offset)
-            return offset + 8, meta_message.distribution.implement(global_time)
+            return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     @staticmethod
-    def _decode_last_sync_distribution(offset, data, meta_message):
-        if meta_message.distribution.enable_sequence_number:
+    def _decode_last_sync_distribution(placeholder, offset, data):
+        if placeholder.meta.distribution.enable_sequence_number:
             global_time, sequence_number = unpack_from("!QL", data, offset)
-            return offset + 12, meta_message.distribution.implement(global_time, sequence_number)
+            return offset + 12, placeholder.meta.distribution.implement(global_time, sequence_number)
         else:
             global_time, = unpack_from("!Q", data, offset)
-            return offset + 8, meta_message.distribution.implement(global_time)
+            return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     @staticmethod
-    def _decode_direct_distribution(offset, data, meta_message):
+    def _decode_direct_distribution(placeholder, offset, data):
         global_time, = unpack_from("!Q", data, offset)
-        return offset + 8, meta_message.distribution.implement(global_time)
+        return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     def _decode_authentication(self, authentication, offset, data):
         if isinstance(authentication, NoAuthentication):
@@ -892,26 +928,23 @@ class BinaryConversion(Conversion):
 
         raise NotImplementedError()
 
-    def _decode_subjective_destination(self, meta_message, authentication_impl):
+    def _decode_subjective_destination(self, placeholder):
+        meta = placeholder.meta
         # we want to know if the sender occurs in our subjective bloom filter
         try:
-            subjective_set = meta_message.community.get_subjective_set(meta_message.community.my_member, meta_message.destination.cluster)
+            subjective_set = meta.community.get_subjective_set(meta.community.my_member, meta.destination.cluster)
         except KeyError:
             # we do not yet have a subjective set of our own.  assume nothing is in the set
             subjective_set = ()
-        return meta_message.destination.implement(authentication_impl.member.public_key in subjective_set)
+        return meta.destination.implement(placeholder.authentication.member.public_key in subjective_set)
 
-    def _decode_similarity_destination(self, meta_message, authentication_impl):
-        if __debug__:
-            from authentication import Authentication
-        assert isinstance(meta_message, Message)
-        assert isinstance(authentication_impl, Authentication.Implementation)
-
+    def _decode_similarity_destination(self, placeholder):
+        meta = placeholder.meta
         try:
             my_similarity, = self._dispersy_database.execute(u"SELECT similarity FROM similarity WHERE community = ? AND user = ? AND cluster = ?",
                                                              (self._community.database_id,
                                                               self._community._my_member.database_id,
-                                                              meta_message.destination.cluster)).next()
+                                                              meta.destination.cluster)).next()
         except StopIteration:
             raise DropPacket("We don't know our own similarity... should not happen")
         my_similarity = BloomFilter(str(my_similarity), 0)
@@ -919,13 +952,13 @@ class BinaryConversion(Conversion):
         try:
             sender_similarity, = self._dispersy_database.execute(u"SELECT similarity FROM similarity WHERE community = ? AND user = ? AND cluster = ?",
                                                                  (self._community.database_id,
-                                                                  authentication_impl.member.database_id,
-                                                                  meta_message.destination.cluster)).next()
+                                                                  placeholder.authentication.member.database_id,
+                                                                  meta.destination.cluster)).next()
         except StopIteration:
-            raise DelayPacketBySimilarity(self._community, authentication_impl.member, meta_message.destination)
+            raise DelayPacketBySimilarity(self._community, placeholder.authentication.member, meta.destination)
         sender_similarity = BloomFilter(str(sender_similarity), 0)
 
-        return meta_message.destination.implement(my_similarity.bic_occurrence(sender_similarity))
+        return meta.destination.implement(my_similarity.bic_occurrence(sender_similarity))
 
     def _decode_message(self, address, data, verify_all_signatures):
         """
@@ -946,50 +979,57 @@ class BinaryConversion(Conversion):
         if len(data) < 100:
             DropPacket("Packet is to small to decode")
 
-        offset = 22
+        placeholder = Placeholder(22, data)
 
         if __debug__:
             debug_begin = clock()
 
         # meta_message
-        meta_message, decode_payload_func = self._decode_message_map.get(data[offset], (None, None))
-        if meta_message is None:
-            raise DropPacket("Unknown message code %d" % ord(data[offset]))
-        offset += 1
+        placeholder.meta, decode_payload_func = self._decode_message_map.get(placeholder.data[placeholder.offset], (None, None))
+        if placeholder.meta is None:
+            raise DropPacket("Unknown message code %d" % ord(placeholder.data[placeholder.offset]))
+        placeholder.offset += 1
 
         if __debug__:
             self.debug_stats["decode-meta"] += clock() - debug_begin
             debug_begin = clock()
 
         # authentication
-        offset, authentication_impl, first_signature_offset = self._decode_authentication(meta_message.authentication, offset, data)
-        if verify_all_signatures and not authentication_impl.is_signed:
+        placeholder.offset, placeholder.authentication, placeholder.first_signature_offset = self._decode_authentication(placeholder.meta.authentication, placeholder.offset, placeholder.data)
+        if verify_all_signatures and not placeholder.authentication.is_signed:
             raise DropPacket("Invalid signature")
+        # drop packet if the creator is blacklisted.  we would prefer to do this in dispersy.py,
+        # however, decoding the payload can cause DelayPacketByMissingMessage to be raised for
+        # dispersy-undo messages, and the last thing that we want is to request messages from a
+        # blacklisted member
+        if isinstance(placeholder.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and placeholder.authentication.member.must_blacklist:
+            self._community.dispersy.send_malicious_proof(self._community, placeholder.authentication.member, address)
+            raise DropPacket("Creator is blacklisted")
 
         if __debug__:
             self.debug_stats["decode-authentication"] += clock() - debug_begin
             debug_begin = clock()
 
         # destination
-        assert isinstance(meta_message.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination, SimilarityDestination))
-        if isinstance(meta_message.destination, AddressDestination):
-            destination_impl = meta_message.destination.implement(("", 0))
-        elif isinstance(meta_message.destination, MemberDestination):
-            destination_impl = meta_message.destination.implement(self._community.my_member)
-        elif isinstance(meta_message.destination, SubjectiveDestination):
-            destination_impl = self._decode_subjective_destination(meta_message, authentication_impl)
-        elif isinstance(meta_message.destination, SimilarityDestination):
-            destination_impl = self._decode_similarity_destination(meta_message, authentication_impl)
+        assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination, SimilarityDestination))
+        if isinstance(placeholder.meta.destination, AddressDestination):
+            placeholder.destination = placeholder.meta.destination.implement(("", 0))
+        elif isinstance(placeholder.meta.destination, MemberDestination):
+            placeholder.destination = placeholder.meta.destination.implement(self._community.my_member)
+        elif isinstance(placeholder.meta.destination, SubjectiveDestination):
+            placeholder.destination = self._decode_subjective_destination(placeholder)
+        elif isinstance(placeholder.meta.destination, SimilarityDestination):
+            placeholder.destination = self._decode_similarity_destination(placeholder)
         else:
-            destination_impl = meta_message.destination.implement()
+            placeholder.destination = placeholder.meta.destination.implement()
 
         if __debug__:
             self.debug_stats["decode-destination"] += clock() - debug_begin
             debug_begin = clock()
 
         # distribution
-        assert type(meta_message.distribution) in self._decode_distribution_map, type(meta_message.distribution)
-        offset, distribution_impl = self._decode_distribution_map[type(meta_message.distribution)](offset, data, meta_message)
+        assert type(placeholder.meta.distribution) in self._decode_distribution_map, type(placeholder.meta.distribution)
+        placeholder.offset, placeholder.distribution = self._decode_distribution_map[type(placeholder.meta.distribution)](placeholder, placeholder.offset, placeholder.data)
 
         if __debug__:
             self.debug_stats["decode-distribution"] += clock() - debug_begin
@@ -997,7 +1037,7 @@ class BinaryConversion(Conversion):
 
         # payload
         try:
-            offset, payload = decode_payload_func(meta_message, offset, data[:first_signature_offset])
+            placeholder.offset, placeholder.payload = decode_payload_func(placeholder, placeholder.offset, placeholder.data[:placeholder.first_signature_offset])
         except:
             if __debug__: dprint(decode_payload_func)
             raise
@@ -1007,10 +1047,10 @@ class BinaryConversion(Conversion):
 
         if __debug__:
             from payload import Payload
-        assert isinstance(payload, Payload.Implementation), type(payload)
-        assert isinstance(offset, (int, long))
+        assert isinstance(placeholder.payload, Payload.Implementation), type(placeholder.payload)
+        assert isinstance(placeholder.offset, (int, long))
 
-        return meta_message.implement(authentication_impl, distribution_impl, destination_impl, payload, conversion=self, address=address, packet=data)
+        return placeholder.meta.implement(placeholder.authentication, placeholder.distribution, placeholder.destination, placeholder.payload, conversion=self, address=address, packet=placeholder.data)
 
     def decode_meta_message(self, data):
         """

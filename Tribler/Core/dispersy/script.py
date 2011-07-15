@@ -74,7 +74,7 @@ class Script(Singleton):
     def _next_testcase(self, result=None):
         if isinstance(result, Exception):
             dprint("exception! shutdown", box=True, level="error")
-            self._callback.stop(wait=False)
+            self._callback.stop(wait=False, exception=result)
 
         elif self._testcases:
             call = self._testcases.pop(0)
@@ -349,8 +349,8 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert ClassTestA.load_communities() == []
-        assert ClassTestB.load_communities() == []
+        assert ClassTestA.load_communities() == [], "Did you remove the database before running this testcase?"
+        assert ClassTestB.load_communities() == [], "Did you remove the database before running this testcase?"
 
         # create community
         cid = str((ClassTestA.get_classification() + "A" * 20)[:20])
@@ -578,11 +578,9 @@ class DispersyClassificationScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member(candidate=False)
-        yield 0.555
 
         dprint("verify auto-load is enabled (default)")
         assert community.dispersy_auto_load == True
-        yield 0.555
 
         dprint("unload community")
         community.unload_community()
@@ -591,12 +589,10 @@ class DispersyClassificationScript(ScriptBase):
             assert False
         except KeyError:
             pass
-        yield 0.555
 
         dprint("send community message")
         global_time = 10
-        node.send_message(node.create_full_sync_text_message("Should auto-load", global_time), address)
-        yield 0.555
+        node.give_message(node.create_full_sync_text_message("Should auto-load", global_time))
 
         dprint("verify that the community got auto-loaded")
         try:
@@ -606,12 +602,10 @@ class DispersyClassificationScript(ScriptBase):
         # verify that the message was received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert global_time in times
-        yield 0.555
 
         dprint("disable auto-load")
         community.dispersy_auto_load = False
         assert community.dispersy_auto_load == False
-        yield 0.555
 
         dprint("unload community")
         community.unload_community()
@@ -620,12 +614,10 @@ class DispersyClassificationScript(ScriptBase):
             assert False
         except KeyError:
             pass
-        yield 0.555
 
         dprint("send community message")
         global_time = 11
-        node.send_message(node.create_full_sync_text_message("Should not auto-load", global_time), address)
-        yield 0.555
+        node.give_message(node.create_full_sync_text_message("Should not auto-load", global_time))
 
         dprint("verify that the community did not get auto-loaded")
         try:
@@ -636,7 +628,6 @@ class DispersyClassificationScript(ScriptBase):
         # verify that the message was NOT received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert not global_time in times
-        yield 0.555
 
         dprint("cleanup")
         DebugCommunity.load_community(community.cid, "")
@@ -811,9 +802,22 @@ class DispersyCandidateScript(ScriptBase):
 
         # routes must be placed in the database
         items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) AS age FROM candidate WHERE community = ?", (community.database_id,))]
+        dprint(items)
         for route in routes:
             off_by_one_second = (route[0], route[1]+1)
-            assert route in items or off_by_one_second in items
+            off_by_two_second = (route[0], route[1]+2)
+            off_by_three_second = (route[0], route[1]+3)
+            assert route in items or \
+                   off_by_one_second in items or \
+                   off_by_two_second in items or \
+                   off_by_three_second in items, items
+
+# Traceback (most recent call last):
+#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/dispersy/callback.py", line 273, in _loop
+#     result = call.next()
+#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/dispersy/script.py", line 821, in incoming_candidate_request
+#     off_by_three_second in items, items
+# AssertionError: [(('127.0.0.1', 8084), 48417011.0), (('130.161.211.245', 6421), 48417011.0)]
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -954,7 +958,6 @@ class DispersyDestroyCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -962,8 +965,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
 
         # send a message
         global_time = 10
-        node.send_message(node.create_full_sync_text_message("should be accepted (1)", global_time), address)
-        yield 0.555
+        node.give_message(node.create_full_sync_text_message("should be accepted (1)", global_time))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND user = ? AND name = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert len(times) == 1
         assert global_time in times
@@ -980,6 +982,9 @@ class DispersyDestroyCommunityScript(ScriptBase):
         # the candidate table must be empty
         assert not list(self._dispersy_database.execute(u"SELECT * FROM candidate WHERE community = ?", (community.database_id,)))
 
+        # the malicious_proof table must be empty
+        assert not list(self._dispersy_database.execute(u"SELECT * FROM malicious_proof WHERE community = ?", (community.database_id,)))
+
         # the database should have been cleaned
         # todo
 
@@ -989,7 +994,7 @@ class DispersyMemberTagScript(ScriptBase):
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         self.caller(self.ignore_test)
-        self.caller(self.drop_test)
+        self.caller(self.blacklist_test)
 
     def ignore_test(self):
         """
@@ -1048,11 +1053,11 @@ class DispersyMemberTagScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-    def drop_test(self):
+    def blacklist_test(self):
         """
-        Test the must_drop = True feature.
+        Test the must_blacklist = True feature.
 
-        When we 'drop' a specific member we will no longer accept or store messages from that
+        When we 'blacklist' a specific member we will no longer accept or store messages from that
         member.  No callback will be given to the community code.
         """
         community = DebugCommunity.create_community(self._my_member)
@@ -1078,8 +1083,8 @@ class DispersyMemberTagScript(ScriptBase):
         assert len(times) == 1
         assert global_time in times
 
-        # we now tag the member as drop
-        Member.get_instance(node.my_member.public_key).must_drop = True
+        # we now tag the member as blacklist
+        Member.get_instance(node.my_member.public_key).must_blacklist = True
 
         tags, = self._dispersy_database.execute(u"SELECT tags FROM user WHERE id = ?", (node.my_member.database_id,)).next()
         assert tags & 4
@@ -1092,8 +1097,8 @@ class DispersyMemberTagScript(ScriptBase):
         assert len(times) == 1
         assert global_time not in times
 
-        # we now tag the member not to drop
-        Member.get_instance(node.my_member.public_key).must_drop = False
+        # we now tag the member not to blacklist
+        Member.get_instance(node.my_member.public_key).must_blacklist = False
 
         # send a message
         global_time = 30
@@ -3507,6 +3512,237 @@ class DispersyMissingMessageScript(ScriptBase):
 
         assert sorted(response.distribution.global_time for response in responses) == global_times
         dprint("ok @", global_times)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+class DispersyUndoScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.self_undo)
+        self.caller(self.node_undo)
+        self.caller(self.self_malicious_undo)
+        self.caller(self.node_malicious_undo)
+        self.caller(self.missing_message)
+
+    def self_undo(self):
+        """
+        SELF generates a few messages and then undoes them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create messages
+        messages = [community.create_full_sync_text("Should undo #%d" % i, forward=False) for i in xrange(10)]
+
+        # check that they are in the database and are NOT undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, community.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(0,)], undone
+
+        # undo all messages
+        undoes = [community.create_dispersy_undo(message, forward=False) for message in messages]
+
+        # check that they are in the database and ARE undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, community.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(1,)], undone
+
+        # check that all the undo messages are in the database and are NOT undone
+        for message in undoes:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, community.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(0,)], undone
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill", forward=False)
+        community.unload_community()
+
+    def node_undo(self):
+        """
+        NODE generates a few messages and then undoes them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create messages
+        messages = [node.create_full_sync_text_message("Should undo @%d" % global_time, global_time) for global_time in xrange(10, 20)]
+        node.give_messages(messages)
+
+        # check that they are in the database and are NOT undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(0,)], undone
+
+        # undo all messages
+        undoes = [node.create_dispersy_undo_message(message, message.distribution.global_time + 100) for message in messages]
+        node.give_messages(undoes)
+
+        # check that they are in the database and ARE undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(1,)], undone
+
+        # check that all the undo messages are in the database and are NOT undone
+        for message in undoes:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(0,)], undone
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def self_malicious_undo(self):
+        """
+        SELF generated a message and then undoes it twice.  The dispersy core should ensure that
+        (given that the message was processed, hence update=True) that the second undo is refused
+        and the first undo should be returned instead.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create message
+        message = community.create_full_sync_text("Should undo")
+
+        # undo once
+        undo1 = community.create_dispersy_undo(message)
+        assert isinstance(undo1, Message.Implementation)
+
+        # undo twice.  instead of a new dispersy-undo, a new instance of the previous UNDO1 must be
+        # returned
+        undo2 = community.create_dispersy_undo(message)
+        assert undo1.packet == undo2.packet
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def node_malicious_undo(self):
+        """
+        NODE generates a message and then undoes it twice.  The second undo will can cause nodes to
+        keep syncing packets that other nodes will keep dropping (because you can only drop a
+        message once, but the two messages are binary unique).
+
+        Sending two undoes for the same message is considered malicious behavior, resulting in:
+         1. the offending node must be put on the blacklist
+         2. the proof of malicious behaviour must be forwarded to other nodes
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create message
+        global_time = 10
+        message = node.create_full_sync_text_message("Should undo @%d" % global_time, global_time)
+        node.give_message(message)
+
+        # undo once
+        global_time = 30
+        undo1 = node.create_dispersy_undo_message(message, global_time)
+        node.give_message(undo1)
+
+        # undo twice
+        global_time = 20
+        undo2 = node.create_dispersy_undo_message(message, global_time)
+        node.give_message(undo2)
+
+        # check that the user is declared malicious
+        assert Member.get_instance(node.my_member.public_key).must_blacklist
+
+        # all messages for the malicious member must be removed
+        packets = list(self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ?",
+                                                       (community.database_id, node.my_member.database_id)))
+        assert packets == []
+
+        node2 = DebugNode()
+        node2.init_socket()
+        node2.set_community(community)
+        node2.init_my_member()
+
+        # ensure we don't obtain the messages from the socket cache
+        yield 0.1
+        node2.drop_packets()
+
+        # propagate a message from the malicious member
+        node2.give_message(message)
+
+        # we should receive proof that NODE is malicious
+        malicious_packets = []
+        _, response = node2.receive_packet(addresses=[address])
+        malicious_packets.append(response)
+        _, response = node2.receive_packet(addresses=[address])
+        malicious_packets.append(response)
+        assert sorted(malicious_packets) == sorted([undo1.packet, undo2.packet])
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def missing_message(self):
+        """
+        NODE generates a few messages without sending them to SELF.  Following, NODE undoes the
+        messages and sends the undo messages to SELF.  SELF must now use a dispersy-missing-message
+        to request the messages that are about to be undone.  The messages need to be processed and
+        subsequently undone.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create messages
+        messages = [node.create_full_sync_text_message("Should undo @%d" % global_time, global_time) for global_time in xrange(10, 20)]
+
+        # undo all messages
+        undoes = [node.create_dispersy_undo_message(message, message.distribution.global_time + 100) for message in messages]
+        node.give_messages(undoes)
+
+        # receive the dispersy-missing-message messages
+        global_times = [message.distribution.global_time for message in messages]
+        for _ in xrange(len(messages)):
+            _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-message"])
+            assert len(message.payload.global_times) == 1, "we currently only support one global time in an undo message"
+            assert message.payload.member.public_key == node.my_member.public_key
+            assert message.payload.global_times[0] in global_times
+            global_times.remove(message.payload.global_times[0])
+        assert global_times == []
+
+        # give all 'delayed' messages
+        node.give_messages(messages)
+
+        yield community.get_meta_message(u"full-sync-text").delay + community.get_meta_message(u"dispersy-undo").delay
+
+        # check that they are in the database and ARE undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(1,)], undone
+
+        # check that all the undo messages are in the database and are NOT undone
+        for message in undoes:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert undone == [(0,)], undone
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

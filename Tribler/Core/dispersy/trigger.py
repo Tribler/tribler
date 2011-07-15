@@ -69,7 +69,7 @@ class TriggerCallback(Trigger):
             self._debug_pattern = pattern
             dprint("create new trigger for one callback")
             dprint(pattern)
-        self._match = expression_compile(pattern).match
+        self._search = expression_compile(pattern).search
         self._response_func = response_func
         self._response_args = response_args
         self._responses_remaining = max_responses
@@ -86,10 +86,10 @@ class TriggerCallback(Trigger):
         for message in messages:
             # if __debug__:
             #     if self._responses_remaining > 0:
-            #         dprint("Does it match? ", bool(self._responses_remaining > 0 and self._match(message.footprint)))
+            #         dprint("Does it match? ", bool(self._responses_remaining > 0 and self._search(message.footprint)))
             #         dprint("Expression: ", self._debug_pattern)
             #         dprint(" Footprint: ", message.footprint)
-            if self._responses_remaining > 0 and self._match(message.footprint):
+            if self._responses_remaining > 0 and self._search(message.footprint):
                 if __debug__: dprint("match footprint for one callback")
                 self._responses_remaining -= 1
                 # note: this callback may raise DelayMessage, etc
@@ -136,7 +136,7 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[1], str)
         if __debug__: dprint("create new trigger for ", len(packets), " packets")
         self._pattern = pattern
-        self._match = expression_compile(pattern).match
+        self._search = expression_compile(pattern).search
         self._callback = callback
         self._packets = packets
 
@@ -166,31 +166,31 @@ class TriggerPacket(Trigger):
     def on_messages(self, messages):
         assert isinstance(messages, list)
         assert len(messages) > 0
-        if self._match:
+        if self._search:
             for message in messages:
                 # if __debug__:
-                #     dprint("Does it match? ", bool(self._match and self._match(message.footprint)), " for ", len(self._packets), " waiting packets")
+                #     dprint("Does it match? ", bool(self._search and self._search(message.footprint)), " for ", len(self._packets), " waiting packets")
                 #     dprint("Expression: ", self._pattern)
                 #     dprint(" Footprint: ", message.footprint)
-                if self._match(message.footprint):
-                    # set self._match to None to avoid this regular expression again
-                    self._match = None
+                if self._search(message.footprint):
+                    # set self._search to None to avoid this regular expression again
+                    self._search = None
 
                     if __debug__: dprint("match footprint for ", len(self._packets), " waiting packets")
                     self._callback(self._packets)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
-                else:
-                    # True to keep the Trigger, because we did not handle the Trigger yet
-                    return True
+            else:
+                # True to keep the Trigger, because we did not handle the Trigger yet
+                return True
         else:
             # False to remove the Trigger, because the Trigger timed-out
             return False
 
     def on_timeout(self):
-        if self._match:
+        if self._search:
             if __debug__: dprint("timeout on trigger with ", len(self._packets), " packets", level="warning")
-            self._match = None
+            self._search = None
 
 class TriggerMessage(Trigger):
     def __init__(self, pattern, callback, messages):
@@ -219,7 +219,7 @@ class TriggerMessage(Trigger):
             dprint("create new trigger for ", len(messages), " messages")
             dprint("pattern: ", pattern)
         self._pattern = pattern
-        self._match = expression_compile(pattern).match
+        self._search = expression_compile(pattern).search
         self._callback = callback
         self._messages = messages
 
@@ -243,28 +243,28 @@ class TriggerMessage(Trigger):
     def on_messages(self, messages):
         assert isinstance(messages, list)
         assert len(messages) > 0
-        if self._match:
+        if self._search:
             for message in messages:
                 # if __debug__:
-                #     dprint("Does it match? ", bool(self._match and self._match(message.footprint)), " for ", len(self._messages), " waiting messages")
+                #     dprint("Does it match? ", bool(self._search and self._search(message.footprint)), " for ", len(self._messages), " waiting messages")
                 #     dprint("Expression: ", self._pattern)
                 #     dprint(" Footprint: ", message.footprint)
-                if self._match(message.footprint):
-                    # set self._match to None to avoid this regular expression again
-                    self._match = None
+                if self._search(message.footprint):
+                    # set self._search to None to avoid this regular expression again
+                    self._search = None
 
                     if __debug__: dprint("match footprint for ", len(self._messages), " waiting messages")
                     self._callback(self._messages)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
-                else:
-                    # True to keep the Trigger, because we did not handle the Trigger yet
-                    return True
+            else:
+                # True to keep the Trigger, because we did not handle the Trigger yet
+                return True
         else:
             # False to remove the Trigger, because the Trigger timed-out
             return False
 
     def on_timeout(self):
-        if self._match:
+        if self._search:
             if __debug__: dprint("timeout on trigger with ", len(self._messages), " messages", level="warning")
-            self._match = None
+            self._search = None

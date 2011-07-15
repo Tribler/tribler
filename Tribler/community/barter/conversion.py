@@ -11,11 +11,11 @@ class BarterCommunityConversion(BinaryConversion):
     def _encode_barter_record(self, message):
         return pack("!LL", message.payload.first_upload, message.payload.second_upload),
 
-    def _decode_barter_record(self, meta_message, offset, data):
+    def _decode_barter_record(self, placeholder, offset, data):
         if len(data) < offset + 8:
             raise DropPacket("Insufficient packet size")
 
         first_upload, second_upload = unpack_from("!LL", data, offset)
         offset += 8
 
-        return offset, meta_message.payload.implement(first_upload, second_upload)
+        return offset, placeholder.meta.payload.implement(first_upload, second_upload)
