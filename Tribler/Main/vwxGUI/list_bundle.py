@@ -308,7 +308,10 @@ class BundlePanel(wx.Panel):
             
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method
-            wx.CallAfter(self.bundlelist.SetData, self.hits)
+            #wx.CallAfter(self.bundlelist.SetData, self.hits)
+            # vliegendhart: Reverted this for now, since this breaks other things like
+            # OnLoadAll and auto-Expand... We have to take a look at this next Monday.
+            self.bundlelist.SetData(self.hits)
         
         elif bundlelist is not None and not show:
             self.vsizer.Detach(bundlelist)
@@ -368,6 +371,8 @@ class BundlePanel(wx.Panel):
                         self.ShowList(True)
                         
                     if new_state == BundlePanel.FULL:
+                        # this also needs to be scheduled later 
+                        # since SetData might have not been called yet
                         self.bundlelist.OnLoadAll()
 
             if DEBUG:
