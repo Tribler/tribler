@@ -91,6 +91,22 @@ def ec_to_public_bin(ec):
     "Get the public key in binary format."
     return ec_public_pem_to_public_bin(ec_to_public_pem(ec))
 
+def ec_check_private_bin(string):
+    "Returns True if the input is a valid private key"
+    try:
+        ec_from_private_bin(string)
+    except:
+        return False
+    return True
+
+def ec_check_public_bin(string):
+    "Returns True if the input is a valid public key"
+    try:
+        ec_from_public_bin(string)
+    except:
+        return False
+    return True
+
 def ec_from_private_bin(string):
     "Get the EC from a private key in binary format."
     return ec_from_private_pem("".join(("-----BEGIN EC PRIVATE KEY-----\n", string.encode("BASE64"), "-----END EC PRIVATE KEY-----\n")))

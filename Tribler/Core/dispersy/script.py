@@ -3747,3 +3747,45 @@ class DispersyUndoScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
+
+class DispersyCryptoScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.invalid_public_key)
+
+    def invalid_public_key(self):
+        """
+        SELF receives a dispersy-identity message containing an invalid public-key.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member(candidate=False, identity=False)
+
+        # create dispersy-identity message
+        global_time = 10
+        message = node.create_dispersy_identity_message(node.socket.getsockname(), global_time)
+
+        # replace the valid public-key with an invalid one
+        public_key = node.my_member.public_key
+        assert public_key in message.packet
+        invalid_packet = message.packet.replace(public_key, "I" * len(public_key))
+        assert message.packet != invalid_packet
+
+        # give invalid message to SELF
+        node.give_packet(invalid_packet)
+
+        # ensure that the message was not stored in the database
+        ids = list(self._dispersy_database.execute(u"SELECT id FROM sync WHERE community = ? AND packet = ?",
+                                                   (community.database_id, buffer(invalid_packet))))
+        assert ids == [], ids
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+

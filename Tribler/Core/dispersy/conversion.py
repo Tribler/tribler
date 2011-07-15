@@ -5,6 +5,7 @@ from struct import pack, unpack_from
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
+from crypto import ec_check_public_bin
 from destination import MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination, SimilarityDestination
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution, RelayDistribution
@@ -250,7 +251,10 @@ class BinaryConversion(Conversion):
         if len(data) < offset + key_length + 1:
             raise DropPacket("Insufficient packet size (_decode_missing_message.2)")
 
-        member = self._community.get_member(data[offset:offset+key_length])
+        key = data[offset:offset+key_length]
+        if not ec_check_public_bin(key):
+            raise DropPacket("Invalid cryptographic key")
+        member = self._community.get_member(key)
         offset += key_length
 
         # there must be at least one global time in the packet
@@ -502,7 +506,10 @@ class BinaryConversion(Conversion):
             if len(data) < offset + key_length + 1:
                 raise DropPacket("Insufficient packet size")
 
-            member = self._community.get_member(data[offset:offset+key_length])
+            key = data[offset:offset+key_length]
+            if not ec_check_public_bin(key):
+                raise DropPacket("Invalid cryptographic key")
+            member = self._community.get_member(key)
             offset += key_length
 
             messages_length, = unpack_from("!B", data, offset)
@@ -597,7 +604,10 @@ class BinaryConversion(Conversion):
             if len(data) < offset + key_length + 1:
                 raise DropPacket("Insufficient packet size")
 
-            member = self._community.get_member(data[offset:offset+key_length])
+            key = data[offset:offset+key_length]
+            if not ec_check_public_bin(key):
+                raise DropPacket("Invalid cryptographic key")
+            member = self._community.get_member(key)
             offset += key_length
 
             messages_length, = unpack_from("!B", data, offset)
@@ -867,7 +877,10 @@ class BinaryConversion(Conversion):
             elif authentication.encoding == "bin":
                 key_length, = unpack_from("!H", data, offset)
                 offset += 2
-                member = self._community.get_member(data[offset:offset+key_length])
+                key = data[offset:offset+key_length]
+                if not ec_check_public_bin(key):
+                    raise DropPacket("Invalid cryptographic key")
+                member = self._community.get_member(key)
                 offset += key_length
                 first_signature_offset = len(data) - member.signature_length
                 if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
