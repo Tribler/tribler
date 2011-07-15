@@ -10,8 +10,8 @@ class SearchSideBar(wx.Panel):
         
         self.nrfiltered = 0
         self.family_filter = True
-        self.bundlestates = ['Name', 'Size', 'Numbers', 'Off']
-        self.bundlestates_translation = ['Lev', 'Size', 'Int', None]
+        self.bundlestates = ['Name', 'Numbers', 'Size', 'Off']
+        self.bundlestates_translation = ['Lev', 'Int', 'Size', None]
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
