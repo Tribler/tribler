@@ -11,7 +11,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon
 
 from __init__ import *
 
-DEBUG = True
+DEBUG = False
 
 class ListItem(wx.Panel):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
@@ -96,12 +96,13 @@ class ListItem(wx.Panel):
         self.AddEvents(self)
     
     def AddEvents(self, control):
-        if not isinstance(control, wx.Button):
-            control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        else:
-            control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
-            control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
-        control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        if getattr(control, 'Bind', False):
+            if not isinstance(control, wx.Button):
+                control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+            else:
+                control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
+                control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
+                control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         func = getattr(control, 'GetChildren', False)
         if func:
@@ -499,12 +500,16 @@ class AbstractListBody():
         self.Thaw()
         return panel
     
-    def OnCollapse(self, item, onchange = True):
+    def OnCollapse(self, item = None, onchange = True):
         self.Freeze()
         
-        panel = item.Collapse()
-        self.parent_list.OnCollapse(item, panel)
-        self.cur_expanded = None
+        if not item:
+            item = self.cur_expanded
+        
+        if item:
+            panel = item.Collapse()
+            self.parent_list.OnCollapse(item, panel)
+            self.cur_expanded = None
         
         if onchange:
             self.OnChange()

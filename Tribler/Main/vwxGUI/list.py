@@ -583,17 +583,18 @@ class List(XRCPanel):
         if self.ready:
             self.list.OnLoadAll()
         
-    def Show(self):
-        wx.Panel.Show(self)
+    def Show(self, show = True):
+        wx.Panel.Show(self, show)
         
-        if self.dirty:
-            self.dirty = False
-
-            manager = self.GetManager()
-            if manager:
-                manager.refreshDirty()
-                
-        self.list.Layout()
+        if show:
+            if self.dirty:
+                self.dirty = False
+    
+                manager = self.GetManager()
+                if manager:
+                    manager.refreshDirty()
+                    
+            self.list.Layout()
         
     def __check_thread(self):
         if __debug__ and currentThread().getName() != "MainThread":

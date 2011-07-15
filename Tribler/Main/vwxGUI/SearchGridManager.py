@@ -470,13 +470,12 @@ class TorrentManager:
         # 
         # 1. get grouping function
         
-        searchkeywords = self.searchkeywords[mode]
-        print >>sys.stderr, '~~~~~~~BUNDLE:', self.bundle_mode
-        if self.hits:
-            # 2. group
-            returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
-        else:
-            returned_hits = self.hits
+        if mode == 'filesMode':
+            searchkeywords = self.searchkeywords[mode]
+            if self.hits:
+                returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
+            else:
+                returned_hits = self.hits
         
         #return [len(self.hits), self.filteredResults , self.hits]
         return [len(returned_hits), self.filteredResults , returned_hits]

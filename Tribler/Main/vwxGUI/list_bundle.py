@@ -163,19 +163,6 @@ class BundleListItem(ListItem):
             self.expanded_panel_shown = show
             self.Layout()
     
-    def AddEvents(self, control):
-        if not isinstance(control, wx.Button):
-            control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        else:
-            control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
-            control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
-        control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
-        func = getattr(control, 'GetChildren', False)
-        if func:
-            for child in func():
-                self.AddEvents(child)
-                
     def BackgroundColor(self, color):
         ListItem.BackgroundColor(self, color)
         self.bundlepanel.SetBackgroundColour(color)
@@ -202,7 +189,6 @@ class BundlePanel(wx.Panel):
         self.parent_list = parent_list
         
         wx.Panel.__init__(self, parent)
-        self.grid_shown = False
         self.hits = hits
         self.state = BundlePanel.COLLAPSED
         
@@ -261,9 +247,9 @@ class BundlePanel(wx.Panel):
         
         self.UpdateGrid()
         self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT, 30)
-        self.grid_shown = True
     
     def UpdateGrid(self):
+        self.Freeze()
         self.grid.ShowItems(False)
         self.grid.Clear(deleteWindows = True)
         
@@ -290,40 +276,45 @@ class BundlePanel(wx.Panel):
             more_label = LinkStaticText(self, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
             more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
             self.grid.Add(more_label, 0, wx.ALL | wx.EXPAND, 5)
-    
-    def ShowGrid(self, show=True):
-        if self.grid_shown != show:
-            if show:
-                self.grid.ShowItems(True)
-                self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 30)
-            else:
-                self.grid.ShowItems(False)
-                self.vsizer.Detach(self.grid)
             
-            self.grid_shown = show
+        self.parent_listitem.AddEvents(self.grid)
+        
+        if self.state != self.COLLAPSED:
+            self.ShowGrid(False)
+        self.Thaw()
+    
+    def ShowGrid(self, show):
+        if show:
+            self.grid.ShowItems(True)
+            #self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 30)
+        else:
+            self.grid.ShowItems(False)
+            #self.vsizer.Detach(self.grid)
     
     def UpdateList(self):
-        if self.state != BundlePanel.COLLAPSED:
-            self.ShowList()
+        bundlelist = getattr(self, 'bundlelist', None)
+        if bundlelist:
+            bundlelist.SetData(self.hits)
     
-    def ShowList(self, show=True):
+    def ShowList(self, show):
         bundlelist = getattr(self, 'bundlelist', None)
         if bundlelist is None and show:
             max_list = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
             if len(self.hits) != BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS:
                 max_list -= 1
             
-            bundlelist = BundleListView(parent = self, list_item_max = max_list)
-            self.vsizer.Add(bundlelist, 0, wx.EXPAND | wx.LEFT, 20)
+            self.bundlelist = BundleListView(parent = self, list_item_max = max_list)
+            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND | wx.LEFT, 20)
+            
+            # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
+            # method
+            wx.CallAfter(self.bundlelist.SetData, self.hits)
         
         elif bundlelist is not None and not show:
             self.vsizer.Detach(bundlelist)
-            bundlelist.Destroy()
-            bundlelist = None
-        
-        if show:
-            bundlelist.SetData(self.hits)
-        self.bundlelist = bundlelist
+            self.bundlelist.Show(False)
+            self.bundlelist.Destroy()
+            self.bundlelist = None
         
     def OnChange(self, scrollToTop = False):
         self.Layout()
@@ -332,9 +323,7 @@ class BundlePanel(wx.Panel):
     
     def CollapseExpandedItem(self):
         if self.state != BundlePanel.COLLAPSED:
-            cur_expanded = self.bundlelist.list.cur_expanded
-            if cur_expanded is not None:
-                cur_expanded.OnClick(None)
+            self.bundlelist.list.OnCollapse()
     
     def RefreshDataBundleList(self, key, data):
         bundlelist = getattr(self, 'bundlelist', None)
@@ -358,30 +347,34 @@ class BundlePanel(wx.Panel):
     def SetHits(self, hits):
         if self.hits != hits:
             self.hits = hits
+            
             self.UpdateGrid()
             self.UpdateList()
+            
             self.Layout()
     
     def ChangeState(self, new_state, doLayout=True):
         if self.state != new_state:
+            old_state = self.state
+            self.state = new_state
+            
             if new_state == BundlePanel.COLLAPSED:
                 self.ShowList(False)
-                self.ShowGrid()
-            
+                self.ShowGrid(True)
             else:
                 if new_state == BundlePanel.PARTIAL or new_state == BundlePanel.FULL:
                     self.ShowGrid(False)
-                    if self.state == BundlePanel.COLLAPSED:
-                        self.ShowList()
+                    if old_state == BundlePanel.COLLAPSED:
+                        self.ShowList(True)
                         
                     if new_state == BundlePanel.FULL:
                         self.bundlelist.OnLoadAll()
 
             if DEBUG:
                 statestr = lambda st: ['COLLAPSED', 'PARTIAL', 'FULL'][st]
-                print >>sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(self.state), statestr(new_state))
+                print >>sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(old_state), statestr(new_state))
+                print >>sys.stderr, '\tName:', self.parent_listitem.bundle[0]['name']
             
-            self.state = new_state
     
     def ExpandAndScrollToHit(self, hit):
         id = hit['infohash']
@@ -437,7 +430,6 @@ class BundlePanel(wx.Panel):
             self.ChangeState(BundlePanel.PARTIAL)
             self.ExpandAndScrollToHit(action)
         
-        event.Skip()
             
     def OnMoreClick(self, event):
         self.ChangeState(BundlePanel.FULL)
@@ -451,7 +443,7 @@ class BundlePanel(wx.Panel):
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
         
-        if self.grid_shown:
+        if getattr(self, 'grid', False):
             for sizeritem in self.grid.GetChildren():
                 if sizeritem.IsWindow():
                     child = sizeritem.GetWindow()
