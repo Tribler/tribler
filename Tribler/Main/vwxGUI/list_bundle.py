@@ -160,6 +160,7 @@ class BundleListItem(ListItem):
                 
                 self.button.Show()
                 
+            self.parent_list.OnChange()
             self.expanded_panel_shown = show
             self.Layout()
     
