@@ -467,7 +467,7 @@ class TorrentManager:
         self.hits = self.addDownloadStates(self.hits)
         
         
-        # vliegendhart: do grouping here, but only for retrieving files...
+        # vliegendhart: do grouping here, but only in filesMode...
         searchkeywords = self.searchkeywords[mode]
         if self.hits and mode == 'filesMode':
             returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
