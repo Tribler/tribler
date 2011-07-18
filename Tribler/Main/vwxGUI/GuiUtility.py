@@ -378,7 +378,7 @@ class GUIUtility:
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
 
-        if True or DEBUG:
+        if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
         # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
