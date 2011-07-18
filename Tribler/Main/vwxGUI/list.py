@@ -838,6 +838,25 @@ class SearchList(GenericSearchList):
         else:
             self.header.SetTitle('Searching for "%s"'%keywords)
             
+    def SetData(self, data):
+        GenericSearchList.SetData(self, data)
+        
+        #indentify popular associated channels
+        channel_hits = {}
+        for hit in data:
+            if 'channel_permid' in hit:
+                if hit['subscriptions'] > 0:
+                    if hit['channel_permid'] not in channel_hits:
+                        channel_hits[hit['channel_permid']] = [0, hit['channel_name'], hit['channel_permid']]
+                    channel_hits[hit['channel_permid']][0] += 1
+        
+        def channel_occur(a, b):
+            return cmp(a[0], b[0])            
+        
+        channels = channel_hits.values()
+        channels.sort(channel_occur, reverse = True)
+        self.leftLine.SetAssociatedChannels(channels)
+            
     def SetMaxResults(self, max):
         self.leftLine.SetMaxResults(max)
     def NewResult(self):

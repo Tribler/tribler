@@ -743,17 +743,12 @@ class TorrentDetails(wx.Panel):
             self.guiutility.frame.top_bg.selectTab('my_files')
             self.guiutility.ShowPage('my_files', self.torrent['infohash'])
         else:
-            self.guiutility.frame.top_bg.selectTab('channels')
-            
             channel = label.channel
-            if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
-                self.guiutility.ShowPage('mychannel')
-            else:
-                if self.torrent.get('channel_permid', '') == channel[0] and 'query_permids' in self.torrent:
-                    channelcast = BuddyCastFactory.getInstance().channelcast_core
-                    channelcast.updateAChannel(channel[0], self.torrent['query_permids'])
-                    
-                self.guiutility.showChannel(channel[1], channel[0])    
+            self.guiutility.showChannel(channel[1], channel[0])
+            
+            if self.torrent.get('channel_permid', '') == channel[0] and 'query_permids' in self.torrent:
+                channelcast = BuddyCastFactory.getInstance().channelcast_core
+                channelcast.updateAChannel(channel[0], self.torrent['query_permids'])
     
     def OnMyChannel(self, event):
         torrent_dir = self.guiutility.utility.session.get_torrent_collecting_dir()

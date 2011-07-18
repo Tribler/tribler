@@ -312,15 +312,20 @@ class GUIUtility:
             self.frame.channellist.Thaw()
     
     def showChannel(self, channelname, channel_permid):
-        self.frame.selectedchannellist.SetTitle(channelname)
+        self.frame.top_bg.selectTab('channels')
         
-        description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]
-        self.frame.channelcategories.Quicktip(random.choice(description_list))
+        if channel_permid == bin2str(self.utility.session.get_permid()):
+            self.ShowPage('mychannel')
+        else:
+            self.frame.selectedchannellist.SetTitle(channelname)
         
-        self.ShowPage('selectedchannel')
+            description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]
+            self.frame.channelcategories.Quicktip(random.choice(description_list))
         
-        manager = self.frame.selectedchannellist.GetManager()
-        manager.refresh(channel_permid)
+            self.ShowPage('selectedchannel')
+        
+            manager = self.frame.selectedchannellist.GetManager()
+            manager.refresh(channel_permid)
     
     def showChannelResults(self, data_channel):
         self.frame.top_bg.selectTab('channels')

@@ -7,10 +7,12 @@ from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
 from Tribler import LIBRARYNAME
 
 class SearchSideBar(wx.Panel):
+    
+    INDENT = 7
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, size = size)
-        guiutility =  GUIUtility.getInstance()
-        self.torrentsearch_manager = guiutility.torrentsearch_manager
+        self.guiutility =  GUIUtility.getInstance()
+        self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.parent = parent
         
         self.nrfiltered = 0
@@ -27,12 +29,13 @@ class SearchSideBar(wx.Panel):
         header.SetFont(font)
         hSizer.Add(header, 1)
         
-        ag_fname = os.path.join(guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
+        ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
         self.ag.UseBackgroundColour(True)
         self.ag.Hide()
         hSizer.Add(self.ag, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
+        self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)        
         self.searchGauge = wx.Gauge(self, size = (-1, 7))
@@ -41,7 +44,6 @@ class SearchSideBar(wx.Panel):
         self.searchFinished = wx.StaticText(self, -1, '')
         hSizer.Add(self.searchFinished)
         self.vSizer.Add(hSizer, 0, wx.EXPAND)
-        self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.TOP, 3)
         
         self.vSizer.AddSpacer((-1,15))
         
@@ -58,11 +60,11 @@ class SearchSideBar(wx.Panel):
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
         
         self.ffblocked = wx.StaticText(self)
-        self.vSizer.Add(self.ffblocked, 0, wx.EXPAND|wx.LEFT, 7)
+        self.vSizer.Add(self.ffblocked, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
         
         self.ffbutton = LinkStaticText(self, '', None)
         self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
-        self.vSizer.Add(self.ffbutton, 0, wx.EXPAND|wx.LEFT, 7)
+        self.vSizer.Add(self.ffbutton, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
         
         self.vSizer.AddSpacer((-1,15))
         
@@ -80,7 +82,24 @@ class SearchSideBar(wx.Panel):
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
             
         self.bundleSizer = wx.FlexGridSizer(0, 2, 0, 0)
-        self.vSizer.Add(self.bundleSizer, 0, wx.EXPAND|wx.LEFT, 7)
+        self.vSizer.Add(self.bundleSizer, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
+        
+        self.vSizer.AddSpacer((-1,15))
+        
+        header = wx.StaticText(self, -1, 'Associated Channels')
+        font = header.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        header.SetFont(font)
+        self.vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
+        self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
+        
+        self.nochannels = wx.StaticText(self, -1, 'None')
+        self.vSizer.Add(self.nochannels, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
+        
+        self.channels = [LinkStaticText(self, '', icon = None) for _ in range(3)]
+        for channel in self.channels:
+            self.vSizer.Add(channel, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
+            channel.Bind(wx.EVT_LEFT_UP, self.OnChannel)
         
         borderSizer = wx.BoxSizer()
         borderSizer.Add(self.vSizer, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
@@ -99,6 +118,8 @@ class SearchSideBar(wx.Panel):
         self._SetLabels()
         
     def SetMaxResults(self, max):
+        wx.CallAfter(self._SetMaxResults, max)
+    def _SetMaxResults(self, max):
         self.Freeze()
         
         self.searchGauge.SetRange(max)
@@ -114,6 +135,8 @@ class SearchSideBar(wx.Panel):
         self.Thaw()
         
     def NewResult(self):
+        wx.CallAfter(self._NewResult)
+    def _NewResult(self):
         maxValue = self.searchGauge.GetRange()
         newValue = min(self.searchGauge.GetValue() + 1, maxValue)
         if newValue == maxValue:
@@ -130,6 +153,23 @@ class SearchSideBar(wx.Panel):
         self.searchFinished.SetLabel('Completed')
         self.Layout()
         
+        self.Thaw()
+        
+    def SetAssociatedChannels(self, channels):
+        wx.CallAfter(self._SetAssociatedChannels, channels)
+    def _SetAssociatedChannels(self, channels):
+        #channels should be a list, of occurrences, name, permid
+        self.Freeze()
+        
+        nr = min(len(channels), 3)
+        self.nochannels.Show(nr == 0)
+        for i in range(nr):
+            tooltip = "Click to go to %s's Channel."%channels[i][1]
+            
+            self.channels[i].SetLabel(channels[i][1])
+            self.channels[i].SetToolTipString(tooltip)
+            self.channels[i].channel_permid = channels[i][2]
+        self.Layout()
         self.Thaw()
     
     def toggleFamilyFilter(self, event):
@@ -162,6 +202,11 @@ class SearchSideBar(wx.Panel):
     def Reset(self):
         self.SetBundleState(0)
         self.SetFF(True)
+        self.nochannels.Show()
+        
+        for channel in self.channels:
+            channel.SetLabel('')
+            channel.SetToolTipString('')
     
     def OnRebundle(self, event):
         #newstate = (self.bundlestate+1) % len(self.bundlestates)
@@ -191,12 +236,23 @@ class SearchSideBar(wx.Panel):
         
         self.Layout()
         self.Thaw()
+        
+    def OnChannel(self, event):
+        label = event.GetEventObject()
+        channel_name = label.GetLabel()
+        channel_permid = label.channel_permid
+        
+        if channel_name != '':
+            self.guiutility.showChannel(channel_name, channel_permid)
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
         
         self.ffbutton.SetBackgroundColour(colour)
         self.ag.SetBackgroundColour(colour)
+        
+        for channel in self.channels:
+            channel.SetBackgroundColour(colour)
         
         for sizeritem in self.bundleSizer.GetChildren():
             if sizeritem.IsWindow():

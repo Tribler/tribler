@@ -387,7 +387,10 @@ class LinkStaticText(wx.Panel):
             
         if self.icon and icon_align == wx.ALIGN_RIGHT:
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-            
+        
+        if self.icon and text == '':
+            self.icon.Hide()
+        
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
@@ -401,7 +404,11 @@ class LinkStaticText(wx.Panel):
             self.icon.SetToolTipString(tip)
         
     def SetLabel(self, text):
+        if self.icon:
+            self.icon.Show(text != '')
+            
         self.text.SetLabel(text)
+        self.Layout()
     
     def GetLabel(self):
         return self.text.GetLabel()
