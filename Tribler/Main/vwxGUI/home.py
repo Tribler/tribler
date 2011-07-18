@@ -769,7 +769,6 @@ class NetworkTestPanel(HomePanel):
             # nrPeers
             nrPeers = 0
             guiUtility = GUIUtility.getInstance()
-            torrentManager = guiUtility.torrentsearch_manager
             dlist = guiUtility.utility.session.get_downloads()
             for d in dlist:
                 safename = `d.get_def().get_name()`

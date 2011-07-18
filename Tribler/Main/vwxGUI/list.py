@@ -65,7 +65,7 @@ class RemoteSearchManager:
         self.guiserver.add_task(db_callback, id = "RemoteSearchManager_refresh_channel")
         
     def _on_refresh_channel(self, total_channels):
-        keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
+        keywords = ' '.join(self.torrentsearch_manager.searchkeywords)
         self.list.SetNrResults(None, None, total_channels, keywords)
     
     def downloadStarted(self, infohash):
