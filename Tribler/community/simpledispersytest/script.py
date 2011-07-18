@@ -128,7 +128,8 @@ class SetupScript(ScriptBase):
         sync_meta = self._community.get_meta_message(u"dispersy-sync")
         wait = 30
         for i in xrange(1, wait + 1):
-            if self._community._timeline._check(self._community.my_member, self._community.global_time, [(meta, u"permit") for meta in metas]):
+            allowed, proofs = self._community._timeline._check(self._community.my_member, self._community.global_time, [(meta, u"permit") for meta in metas])
+            if allowed:
                 dprint("my member is allowed to create messages")
                 break
 
@@ -181,7 +182,7 @@ class SetupScript(ScriptBase):
 
         else:
             dprint("creating first (or new) dispersy-identity for my member")
-            self._community.create_identity()
+            self._community.create_dispersy_identity()
 
         yield 1.0
 

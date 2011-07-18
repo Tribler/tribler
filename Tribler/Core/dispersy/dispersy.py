@@ -1400,7 +1400,7 @@ class Dispersy(Singleton):
                      # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
                      message.destination.cluster if isinstance(message.destination, SimilarityDestination.Implementation) else 0,
                      buffer(message.packet),
-                     message.priority))
+                     message.distribution.priority))
             assert self._database.changes == 1
             update_sync_range.append(message)
 
