@@ -29,6 +29,7 @@ class SearchSideBar(wx.Panel):
         
         ag_fname = os.path.join(guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        self.ag.UseBackgroundColour(True)
         self.ag.Hide()
         hSizer.Add(self.ag, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
