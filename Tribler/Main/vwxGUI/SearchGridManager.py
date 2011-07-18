@@ -765,6 +765,51 @@ class LibraryManager:
                 pass
         return liblist
     
+    def playTorrent(self, torrent, selectedinfilename = None):
+        ds = torrent.get('ds')
+        
+        videoplayer = self._get_videoplayer(ds)
+        videoplayer.stop_playback()
+        videoplayer.show_loading()
+        
+        if ds is None:
+            #Making sure we actually have this .torrent
+            callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
+            filename = self.getTorrent(torrent, callback)
+            
+            if isinstance(filename, basestring):
+                #got actual filename, load torrentdef and create downloadconfig
+                
+                tdef = TorrentDef.load(filename)
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                dscfg = defaultDLConfig.copy()
+                videoplayer.start_and_play(tdef, dscfg, selectedinfilename)
+        else:
+            videoplayer.play(ds, selectedinfilename)
+    
+    def deleteTorrent(self, torrent, removecontent = False):
+        self.deleteTorrentDS(torrent.get('ds'), torrent['infohash'], removecontent)
+    
+    def deleteTorrentDS(self, ds, infohash, removecontent = False):
+        if not ds is None:
+            videoplayer = VideoPlayer.getInstance()
+            playd = videoplayer.get_vod_download()
+            
+            if playd == ds.download:
+                self._get_videoplayer(ds).stop_playback()
+            
+        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+        
+    def deleteTorrentDownload(self, download, infohash, removecontent = False):
+        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent)
+            
+        # Johan, 2009-03-05: we need long download histories for good 
+        # semantic clustering.
+        # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
+        # up in the Library, even after removal :-( H4x0r this.
+        self.mypref_db.updateDestDir(infohash,"")
+        self.user_download_choice.remove_download_state(infohash)
+    
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
     
