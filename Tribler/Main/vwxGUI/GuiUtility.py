@@ -18,7 +18,7 @@ from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Category.Category import Category
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.Utility.constants import *
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
@@ -82,9 +82,11 @@ class GUIUtility:
     def register(self):
         self.torrentsearch_manager = TorrentManager.getInstance(self)
         self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
+        self.library_manager = LibraryManager.getInstance(self)
         
         self.torrentsearch_manager.connect()
         self.channelsearch_manager.connect()
+        self.library_manager.connect()
     
     def ShowPlayer(self, show):
         if self.frame.videoparentpanel:
@@ -114,19 +116,11 @@ class GUIUtility:
                 self.frame.channelselector.Hide()
             
             if page == 'search_results':
-                #Show animation
-                if self.frame.top_bg.ag.IsPlaying():
-                    self.frame.top_bg.ag.Show()
-                
                 #Show list
                 self.frame.searchlist.Show()
                 
                 wx.CallAfter(self.frame.searchlist.ScrollToEnd, False)
             else:
-                #Stop animation
-                self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
-                self.frame.top_bg.ag.Hide()
-                
                 if sys.platform == 'win32':
                     self.frame.top_bg.Layout()
                 
@@ -272,13 +266,14 @@ class GUIUtility:
                     print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
                 
                 self.frame.searchlist.Freeze()
+                
                 self.ShowPage('search_results')
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
                 self.frame.searchlist.Thaw()
                 
                 #Peform local search
-                self.torrentsearch_manager.setSearchKeywords(wantkeywords, 'filesMode')
+                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 
                 self.channelsearch_manager.setSearchKeywords(wantkeywords)
@@ -292,7 +287,11 @@ class GUIUtility:
                     q += kw+u' '
                 q = q.strip()
                 
-                self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
+                nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
+                
+                #Indicate expected nr replies in gui, use local result as first
+                self.frame.searchlist.SetMaxResults(nr_peers_connected+1)
+                self.frame.searchlist.NewResult()
                 
                 if len(input) > 1: #do not perform remote channel search for single character inputs
                     q = 'CHANNEL k '
@@ -368,7 +367,7 @@ class GUIUtility:
             event.Skip()
     
     def CheckSearch(self, wantkeywords):
-        curkeywords, hits, filtered = self.torrentsearch_manager.getSearchKeywords('filesMode')
+        curkeywords, hits, filtered = self.torrentsearch_manager.getSearchKeywords()
         if curkeywords == wantkeywords and (hits + filtered) == 0:
             uelog = UserEventLogDBHandler.getInstance()
             uelog.addEvent(message="Search: nothing found for query: "+" ".join(wantkeywords), type = 2)
@@ -379,14 +378,16 @@ class GUIUtility:
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
 
-        if DEBUG:
+        if True or DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
         # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
         # that kws is unicode and splits on all 'splittable' characters
-        kwstr = query[len('SIMPLE '):]
-        kws = split_into_keywords(kwstr)
-        self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
+        if len(hits) > 0:
+            kwstr = query[len('SIMPLE '):]
+            kws = split_into_keywords(kwstr)
+            self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
+        self.frame.searchlist.NewResult()
         
     def sesscb_got_channel_hits(self, permid, query, hits):
         '''
@@ -404,13 +405,14 @@ class GUIUtility:
         channelcast = BuddyCastFactory.getInstance().channelcast_core
         dictOfAdditions = channelcast.updateChannel(permid, query, hits)
 
-        # 22/01/10 boudewijn: use the split_into_keywords function to
-        # split.  This will ensure that kws is unicode and splits on
-        # all 'splittable' characters
-        kwstr = query[len("CHANNEL x "):]
-        kws = split_into_keywords(kwstr)
+        if len(dictOfAdditions) > 0:
+            # 22/01/10 boudewijn: use the split_into_keywords function to
+            # split.  This will ensure that kws is unicode and splits on
+            # all 'splittable' characters
+            kwstr = query[len("CHANNEL x "):]
+            kws = split_into_keywords(kwstr)
 
-        self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
+            self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
     
     def ShouldGuiUpdate(self):
         if self.frame.ready:

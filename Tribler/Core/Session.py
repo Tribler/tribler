@@ -24,6 +24,7 @@ from Tribler.Core.osutils import get_appstate_dir
 
 # ProxyService 90s Test_
 import time
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
 # _ProxyService 90s Test
 
 GOTM2CRYPTO=False
@@ -727,6 +728,7 @@ class Session(SessionRuntimeConfig):
         
         @param query A Unicode query string adhering to the above spec.
         @param usercallback A function adhering to the above spec.
+        @return currently connected peers with olversion 6 or higher
         """
         self.sesslock.acquire()
         try:
@@ -738,10 +740,14 @@ class Session(SessionRuntimeConfig):
                 
                 rqmh = RemoteQueryMsgHandler.getInstance()
                 rqmh.send_query(query,usercallback,max_peers_to_query=max_peers_to_query)
+                
+                return len(rqmh.get_connected_peers(OLPROTO_VER_SIXTH))
             else:
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
+        
+        return 0
     
     def query_peers(self,query,peers,usercallback):
         """ Equal to query_connected_peers only now for a limited subset of peers.

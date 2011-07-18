@@ -1,11 +1,16 @@
 import wx
+import wx.animate
+import os
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler import LIBRARYNAME
 
 class SearchSideBar(wx.Panel):
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, size = size)
-        self.torrentsearch_manager = GUIUtility.getInstance().torrentsearch_manager
+        guiutility =  GUIUtility.getInstance()
+        self.torrentsearch_manager = guiutility.torrentsearch_manager
         self.parent = parent
         
         self.nrfiltered = 0
@@ -14,6 +19,31 @@ class SearchSideBar(wx.Panel):
         self.bundlestates_translation = ['Lev', 'Int', 'Size', None]
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        header = wx.StaticText(self, -1, 'Search progress')
+        font = header.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        header.SetFont(font)
+        hSizer.Add(header, 1)
+        
+        ag_fname = os.path.join(guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
+        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        self.ag.Hide()
+        hSizer.Add(self.ag, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)        
+        self.searchGauge = wx.Gauge(self, size = (-1, 7))
+        hSizer.Add(self.searchGauge, 1)
+        
+        self.searchFinished = wx.StaticText(self, -1, '')
+        hSizer.Add(self.searchFinished)
+        self.vSizer.Add(hSizer, 0, wx.EXPAND)
+        self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.TOP, 3)
+        
+        self.vSizer.AddSpacer((-1,15))
+        
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         header = wx.StaticText(self, -1, 'Family Filter')
         font = header.GetFont()
@@ -33,7 +63,7 @@ class SearchSideBar(wx.Panel):
         self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
         self.vSizer.Add(self.ffbutton, 0, wx.EXPAND|wx.LEFT, 7)
         
-        self.vSizer.AddSpacer((-1,20))
+        self.vSizer.AddSpacer((-1,15))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         header = wx.StaticText(self, -1, 'Bundling')
@@ -52,7 +82,7 @@ class SearchSideBar(wx.Panel):
         self.vSizer.Add(self.bundleSizer, 0, wx.EXPAND|wx.LEFT, 7)
         
         borderSizer = wx.BoxSizer()
-        borderSizer.Add(self.vSizer, 1, wx.EXPAND|wx.ALL, 7)
+        borderSizer.Add(self.vSizer, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
 
         self.SetSizer(borderSizer)
         self.SetMinSize((self.GetBestSize()[0], -1))
@@ -66,6 +96,40 @@ class SearchSideBar(wx.Panel):
     def SetFiltered(self, nr):
         self.nrfiltered = nr
         self._SetLabels()
+        
+    def SetMaxResults(self, max):
+        self.Freeze()
+        
+        self.searchGauge.SetRange(max)
+        self.searchGauge.SetValue(0)
+        self.searchGauge.Show()
+        self.searchFinished.SetLabel('')
+        
+        wx.CallLater(10000, self.SetFinished)
+        
+        self.ag.Play()
+        self.ag.Show()
+        
+        self.Thaw()
+        
+    def NewResult(self):
+        maxValue = self.searchGauge.GetRange()
+        newValue = min(self.searchGauge.GetValue() + 1, maxValue)
+        if newValue == maxValue:
+            self.SetFinished()
+        else:
+            self.searchGauge.SetValue(newValue)
+        
+    def SetFinished(self):
+        self.Freeze()
+        
+        self.ag.Stop()
+        self.ag.Hide()
+        self.searchGauge.Hide()
+        self.searchFinished.SetLabel('Completed')
+        self.Layout()
+        
+        self.Thaw()
     
     def toggleFamilyFilter(self, event):
         self.parent.toggleFamilyFilter()
@@ -80,11 +144,11 @@ class SearchSideBar(wx.Panel):
                     self.ffblocked.SetLabel('1 result blocked')
                 
                 self.vSizer.Detach(self.ffblocked)
-                self.vSizer.Insert(2, self.ffblocked, 0, wx.EXPAND|wx.LEFT, 7)
+                self.vSizer.Insert(6, self.ffblocked, 0, wx.EXPAND|wx.LEFT, 7)
             else:
                 self.ffblocked.SetLabel('')
                 self.vSizer.Detach(self.ffblocked)
-                self.vSizer.Insert(3, self.ffblocked)
+                self.vSizer.Insert(7, self.ffblocked)
                 
             self.ffstate.SetLabel(' is On')
             self.ffbutton.SetLabel('turn off')

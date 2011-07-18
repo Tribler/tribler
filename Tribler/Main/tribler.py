@@ -700,7 +700,7 @@ class ABCApp(wx.App):
             
             # Pass DownloadStates to libaryView
             try:
-                self.guiUtility.torrentsearch_manager.download_state_gui_callback(dslist)
+                self.guiUtility.library_manager.download_state_gui_callback(dslist)
             except KeyError:
                 # Apparently libraryMode only has has a 'grid' key when visible
                 print_exc()

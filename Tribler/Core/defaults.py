@@ -117,6 +117,9 @@ sessdefaults['proxyservice_status'] = PROXYSERVICE_OFF
 #
 # _ProxyService
 
+# 18-07-2011 Niels: call callback even if remote search response is empty
+sessdefaults['remote_search_empty_call'] = True
+
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None
 trackerdefaults['tracker_dfile'] = None

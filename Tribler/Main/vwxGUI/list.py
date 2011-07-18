@@ -39,7 +39,7 @@ class RemoteSearchManager:
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         
     def refresh(self):
-        keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
+        keywords = ' '.join(self.torrentsearch_manager.searchkeywords)
         if self.oldkeywords != keywords:
             self.list.Reset()
             self.oldkeywords = keywords
@@ -91,14 +91,14 @@ class LocalSearchManager:
         
         guiutility = GUIUtility.getInstance()
         self.guiserver = guiutility.frame.guiserver
-        self.torrentsearch_manager = guiutility.torrentsearch_manager 
+        self.library_manager = guiutility.library_manager 
     
     def expand(self, infohash):
         self.list.Select(infohash)
     
     def refresh(self):
         def db_callback():
-            total_items, nrfiltered, data = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
+            total_items, nrfiltered, data = self.library_manager.getHitsInCategory(sort="name")
             wx.CallAfter(self._on_data, data, total_items, nrfiltered)
 
         self.guiserver.add_task(db_callback, id = "LocalSearchManager_refresh")
@@ -226,7 +226,7 @@ class ChannelManager():
         self.guiserver = self.guiutility.frame.guiserver
         
         self.channelsearch_manager = self.guiutility.channelsearch_manager
-        self.torrentsearch_manager = self.guiutility.torrentsearch_manager
+        self.library_manager = self.guiutility.library_manager
         
         self.dirtyset = set()
     
@@ -262,7 +262,7 @@ class ChannelManager():
         self.guiserver.add_task(db_callback, id = "ChannelManager_refresh_list")
         
     def _on_data(self, total_items, nrfiltered, torrentList):
-        torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
+        torrentList = self.library_manager.addDownloadStates(torrentList)
         
         if self.list.SetData(torrentList) < total_items: #some items are filtered by quickfilter (do not update total_items)
             self.list.SetNrResults(None, nrfiltered)
@@ -786,6 +786,7 @@ class SearchList(GenericSearchList):
         hSizer.Add(self.leftLine, 0, wx.EXPAND)
         
         self.list = self.CreateList(list)
+        list.OnSort = self.list.OnSort
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(self.subheader, 0, wx.EXPAND)
@@ -836,6 +837,11 @@ class SearchList(GenericSearchList):
             self.total_results = nr
         else:
             self.header.SetTitle('Searching for "%s"'%keywords)
+            
+    def SetMaxResults(self, max):
+        self.leftLine.SetMaxResults(max)
+    def NewResult(self):
+        self.leftLine.NewResult()
     
     def toggleFamilyFilter(self):
         GenericSearchList.toggleFamilyFilter(self)
@@ -872,7 +878,7 @@ class LibaryList(List):
         self.user_download_choice = UserDownloadChoice.get_singleton()
          
         self.utility = self.guiutility.utility
-        self.torrent_manager = self.guiutility.torrentsearch_manager
+        self.library_manager = self.guiutility.library_manager
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'type':'method', 'name':'Completion', 'width': 250, 'method': self.CreateProgress}, \
@@ -976,7 +982,7 @@ class LibaryList(List):
 
     def OnPlay(self, event):
         item = self.list.GetExpandedItem()
-        self.torrent_manager.playTorrent(item.original_data)
+        self.library_manager.playTorrent(item.original_data)
     
     def OnResume(self, event):
         item = self.list.GetExpandedItem()
@@ -1035,12 +1041,12 @@ class LibaryList(List):
         
         buttonId = dlg.ShowModal()
         if buttonId == wx.ID_DEFAULT:
-            self.torrent_manager.deleteTorrent(item.original_data)
+            self.library_manager.deleteTorrent(item.original_data)
             self.header.SetStates(False, False, False) #nothing selected
             self.list.RemoveItem(item)
             
         elif buttonId == wx.ID_DELETE:
-            self.torrent_manager.deleteTorrent(item.original_data, True)
+            self.library_manager.deleteTorrent(item.original_data, True)
             self.header.SetStates(False, False, False) #nothing selected
             self.list.RemoveItem(item)
         
@@ -1159,11 +1165,11 @@ class LibaryList(List):
 
     def Show(self):
         List.Show(self)
-        self.torrent_manager.add_download_state_callback(self.RefreshItems)
+        self.library_manager.add_download_state_callback(self.RefreshItems)
         
     def Hide(self):
         wx.Panel.Hide(self)
-        self.torrent_manager.remove_download_state_callback(self.RefreshItems)
+        self.library_manager.remove_download_state_callback(self.RefreshItems)
     
     def ScrollToEnd(self, scroll_to_end):
         self.list.ScrollToEnd(scroll_to_end)

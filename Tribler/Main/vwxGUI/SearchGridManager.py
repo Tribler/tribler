@@ -50,21 +50,16 @@ class TorrentManager:
         # Remote results for current keywords
         self.remoteHits = {}
         
-        #current progress of download states
-        self.cache_progress = {}
-        
         # For asking for a refresh when remote results came in
         self.gridmgr = None
         self.guiserver = GUITaskQueue.getInstance()
         
-        # Gui callbacks
-        self.gui_callback = []
-
-        self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
-        self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker()}
-        self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
+        self.searchkeywords = []
+        self.rerankingStrategy = DefaultTorrentReranker()
+        self.oldsearchkeywords = []
         
         self.filteredResults = 0
+        
         self.bundler = Bundler()
         self.bundle_mode = None
         self.category = Category.getInstance()
@@ -236,134 +231,6 @@ class TorrentManager:
     def getSwarmInfo(self, torrent_id):
         return self.torrent_db.getSwarmInfo(torrent_id)
     
-    def playTorrent(self, torrent, selectedinfilename = None):
-        ds = torrent.get('ds')
-        
-        videoplayer = self._get_videoplayer(ds)
-        videoplayer.stop_playback()
-        videoplayer.show_loading()
-        
-        if ds is None:
-            #Making sure we actually have this .torrent
-            callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
-            filename = self.getTorrent(torrent, callback)
-            
-            if isinstance(filename, basestring):
-                #got actual filename, load torrentdef and create downloadconfig
-                
-                tdef = TorrentDef.load(filename)
-                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                dscfg = defaultDLConfig.copy()
-                videoplayer.start_and_play(tdef, dscfg, selectedinfilename)
-        else:
-            videoplayer.play(ds, selectedinfilename)
-    
-    def deleteTorrent(self, torrent, removecontent = False):
-        self.deleteTorrentDS(torrent.get('ds'), torrent['infohash'], removecontent)
-    
-    def deleteTorrentDS(self, ds, infohash, removecontent = False):
-        if not ds is None:
-            videoplayer = VideoPlayer.getInstance()
-            playd = videoplayer.get_vod_download()
-            
-            if playd == ds.download:
-                self._get_videoplayer(ds).stop_playback()
-            
-        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
-        
-    def deleteTorrentDownload(self, download, infohash, removecontent = False):
-        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent)
-            
-        # Johan, 2009-03-05: we need long download histories for good 
-        # semantic clustering.
-        # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
-        # up in the Library, even after removal :-( H4x0r this.
-        self.mypref_db.updateDestDir(infohash,"")
-        self.user_download_choice.remove_download_state(infohash)
-    
-    def _get_videoplayer(self, exclude=None):
-        """
-        Returns the VideoPlayer instance and ensures that it knows if
-        there are other downloads running.
-        """
-        other_downloads = False
-        for ds in self.dslist:
-            if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
-                other_downloads = True
-                break
-        
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.set_other_downloads(other_downloads)
-        
-        self.guiUtility.ShowPlayer(True)
-        return videoplayer
-        
-    def download_state_gui_callback(self, dslist):
-        """
-        Called by GUIThread
-        """
-        self.dslist = dslist
-        for callback in self.gui_callback:
-            try:
-                callback(dslist)
-            except:
-                print_exc()
-                self.remove_download_state_callback(callback)
-            
-        #TODO: This seems like the wrong place to do this?
-        self.guiserver.add_task(lambda:self.updateProgressInDB(dslist),0)
-     
-    def updateProgressInDB(self, dslist):
-        updates = False
-        for ds in dslist:
-            infohash = ds.get_download().get_def().get_infohash()
-            
-            progress = (ds.get_progress() or 0.0) * 100.0
-            #update progress if difference is larger than 5%
-            if progress - self.cache_progress.get(infohash, 0) > 5:
-                self.cache_progress[infohash] = progress
-                try:
-                    self.mypref_db.updateProgress(infohash, progress, commit = False)
-                    updates = True
-                except:
-                    print_exc()
-        
-        if updates:
-            self.mypref_db.commit()
-        
-    def add_download_state_callback(self, callback):
-        if callback not in self.gui_callback:
-            self.gui_callback.append(callback)
-            
-    def remove_download_state_callback(self, callback):
-        if callback in self.gui_callback:
-            self.gui_callback.remove(callback)
-    
-    def addDownloadState(self, torrent):
-        # Add downloadstate data to list of torrent dicts
-        for ds in self.dslist:
-            try:
-                infohash = ds.get_download().get_def().get_infohash()
-                if torrent['infohash'] == infohash:
-                    torrent['ds'] = ds
-                    break
-            except:
-                pass
-        return torrent
-    
-    def addDownloadStates(self, liblist):
-        # Add downloadstate data to list of torrent dicts
-        for ds in self.dslist:
-            try:
-                infohash = ds.get_download().get_def().get_infohash()
-                for torrent in liblist:
-                    if torrent['infohash'] == infohash:
-                        torrent['ds'] = ds
-                        break
-            except:
-                pass
-        return liblist
-    
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
     
@@ -375,27 +242,23 @@ class TorrentManager:
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.searchmgr = SearchManager(self.torrent_db)
+        self.library_manager = self.guiUtility.library_manager
     
-    def getHitsInCategory(self, mode = 'filesMode', categorykey = 'all', sort = 'rameezmetric'):
+    def getHitsInCategory(self, categorykey = 'all', sort = 'rameezmetric'):
         if DEBUG: begintime = time()
-        # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
         
         if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: getHitsInCategory:",mode,categorykey,range
+            print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:",categorykey,range
         
         categorykey = categorykey.lower()
         enabledcattuples = self.category.getCategoryNames()
         enabledcatslow = ["other"]
-        for catname,displayname in enabledcattuples:
+        for catname,_ in enabledcattuples:
             enabledcatslow.append(catname.lower())
         
         # TODO: do all filtering in DB query
         def torrentFilter(torrent):
-            #allow all files in library mode
-            if mode == 'libraryMode':
-                return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
-            
             #show dead torrents in library
             okCategory = False
             if not okCategory:
@@ -421,7 +284,7 @@ class TorrentManager:
         # 1. Local search puts hits in self.hits
         if DEBUG:
             beginlocalsearch = time()
-        new_local_hits = self.searchLocalDatabase(mode)
+        new_local_hits = self.searchLocalDatabase()
         
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
@@ -431,18 +294,17 @@ class TorrentManager:
             beginfilterhits = time()
             
         if new_local_hits:
-            self.hits = filter(torrentFilter,self.hits)
+            self.hits = filter(torrentFilter, self.hits)
 
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
-        if mode != 'libraryMode':
-            self.addStoredRemoteResults()
+        self.addStoredRemoteResults()
 
-            if DEBUG:
-                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
+        if DEBUG:
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
 
         if DEBUG:
             beginsort = time()
@@ -454,8 +316,7 @@ class TorrentManager:
         # eventually, these should probably be combined
         # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
         # this should be fine...
-        self.rerankingStrategy[mode] = getTorrentReranker()
-        self.hits = self.rerankingStrategy[mode].rerank(self.hits, self.searchkeywords[mode], self.torrent_db, 
+        self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
                                                         self.pref_db, self.mypref_db, self.search_db)
         
         # boudewijn: now that we have sorted the search results we
@@ -464,16 +325,11 @@ class TorrentManager:
 
         if DEBUG:
             print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
-        self.hits = self.addDownloadStates(self.hits)
-        
+        self.hits = self.library_manager.addDownloadStates(self.hits)
         
         # vliegendhart: do grouping here, but only in filesMode...
-        searchkeywords = self.searchkeywords[mode]
-        if self.hits and mode == 'filesMode':
-            returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, searchkeywords)
-        else:
-            returned_hits = self.hits
-        
+        returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, self.searchkeywords)
+
         #return [len(self.hits), self.filteredResults , self.hits]
         return [len(returned_hits), self.filteredResults , returned_hits]
 
@@ -524,45 +380,41 @@ class TorrentManager:
                 # (.) wichever is lowest or (1) or (2)
                 break
     
-    def getSearchKeywords(self, mode):
-        return self.searchkeywords[mode], len(self.hits), self.filteredResults
+    def getSearchKeywords(self ):
+        return self.searchkeywords, len(self.hits), self.filteredResults
     
-    def setSearchKeywords(self, wantkeywords, mode):
-        if wantkeywords != self.searchkeywords[mode]:
+    def setSearchKeywords(self, wantkeywords):
+        if wantkeywords != self.searchkeywords:
             self.bundle_mode = None
         
-        self.searchkeywords[mode] = wantkeywords
-        if mode == 'filesMode':
-            if DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
-                
-            self.filteredResults = 0
-            self.remoteHits = {}
-            self.oldsearchkeywords[mode] = ''
+        self.searchkeywords = wantkeywords
+        if DEBUG:
+            print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,";time:%", time()
+            
+        self.filteredResults = 0
+        self.remoteHits = {}
+        self.oldsearchkeywords = ''
             
     def setBundleMode(self, bundle_mode):
         if bundle_mode != self.bundle_mode:
             self.bundle_mode = bundle_mode
             self.refreshGrid()
 
-    def searchLocalDatabase(self, mode):
-        if mode != 'libraryMode':
-            """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
-            if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
-                if DEBUG:
-                    print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
-                return False
-
-            self.oldsearchkeywords[mode] = self.searchkeywords[mode]
+    def searchLocalDatabase(self):
+        """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
+        if self.searchkeywords == self.oldsearchkeywords and len(self.hits) > 0:
             if DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
-            
-            if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
-                return False
-            
-            self.hits = self.searchmgr.search(self.searchkeywords[mode])
-        else:
-            self.hits = self.searchmgr.searchLibrary()
+                print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
+            return False
+
+        self.oldsearchkeywords = self.searchkeywords
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords
+                    
+        if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
+            return False
+        
+        self.hits = self.searchmgr.search(self.searchkeywords)
         return True
 
     def addStoredRemoteResults(self):
@@ -619,7 +471,7 @@ class TorrentManager:
             
             # Always store the results, only display when in filesMode
             # We got some replies. First check if they are for the current query
-            if self.searchkeywords['filesMode'] == kws:
+            if self.searchkeywords == kws:
                 numResults = 0
                 catobj = Category.getInstance()
                 for key,value in answers.iteritems():
@@ -799,6 +651,161 @@ class TorrentManager:
             else:
                 hit[newKey] = 0
                 
+class LibraryManager:
+    # Code to make this a singleton
+    __single = None
+   
+    def __init__(self,guiUtility):
+        if LibraryManager.__single:
+            raise RuntimeError, "LibraryManager is singleton"
+        LibraryManager.__single = self
+        self.guiUtility = guiUtility
+        
+        # Contains all matches for keywords in DB, not filtered by category
+        self.hits = []
+        
+        #current progress of download states
+        self.cache_progress = {}
+        
+        self.rerankingStrategy = DefaultTorrentReranker()
+        
+        # For asking for a refresh when remote results came in
+        self.gridmgr = None
+        self.guiserver = GUITaskQueue.getInstance()
+        
+        # Gui callbacks
+        self.gui_callback = []
+
+    def getInstance(*args, **kw):
+        if LibraryManager.__single is None:
+            LibraryManager(*args, **kw)       
+        return LibraryManager.__single
+    getInstance = staticmethod(getInstance)
+
+    def _get_videoplayer(self, exclude=None):
+        """
+        Returns the VideoPlayer instance and ensures that it knows if
+        there are other downloads running.
+        """
+        other_downloads = False
+        for ds in self.dslist:
+            if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
+                other_downloads = True
+                break
+        
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.set_other_downloads(other_downloads)
+        
+        self.guiUtility.ShowPlayer(True)
+        return videoplayer
+        
+    def download_state_gui_callback(self, dslist):
+        """
+        Called by GUIThread
+        """
+        self.dslist = dslist
+        for callback in self.gui_callback:
+            try:
+                callback(dslist)
+            except:
+                print_exc()
+                self.remove_download_state_callback(callback)
+            
+        #TODO: This seems like the wrong place to do this?
+        self.guiserver.add_task(lambda:self.updateProgressInDB(dslist),0)
+     
+    def updateProgressInDB(self, dslist):
+        updates = False
+        for ds in dslist:
+            infohash = ds.get_download().get_def().get_infohash()
+            
+            progress = (ds.get_progress() or 0.0) * 100.0
+            #update progress if difference is larger than 5%
+            if progress - self.cache_progress.get(infohash, 0) > 5:
+                self.cache_progress[infohash] = progress
+                try:
+                    self.mypref_db.updateProgress(infohash, progress, commit = False)
+                    updates = True
+                except:
+                    print_exc()
+        
+        if updates:
+            self.mypref_db.commit()
+        
+    def add_download_state_callback(self, callback):
+        if callback not in self.gui_callback:
+            self.gui_callback.append(callback)
+            
+    def remove_download_state_callback(self, callback):
+        if callback in self.gui_callback:
+            self.gui_callback.remove(callback)
+    
+    def addDownloadState(self, torrent):
+        # Add downloadstate data to list of torrent dicts
+        for ds in self.dslist:
+            try:
+                infohash = ds.get_download().get_def().get_infohash()
+                if torrent['infohash'] == infohash:
+                    torrent['ds'] = ds
+                    break
+            except:
+                pass
+        return torrent
+    
+    def addDownloadStates(self, liblist):
+        # Add downloadstate data to list of torrent dicts
+        for ds in self.dslist:
+            try:
+                infohash = ds.get_download().get_def().get_infohash()
+                for torrent in liblist:
+                    if torrent['infohash'] == infohash:
+                        torrent['ds'] = ds
+                        break
+            except:
+                pass
+        return liblist
+    
+    def set_gridmgr(self,gridmgr):
+        self.gridmgr = gridmgr
+    
+    def connect(self):
+        session = self.guiUtility.utility.session
+        self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
+        self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
+        self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
+        self.search_db = session.open_dbhandler(NTFY_SEARCH)
+        self.searchmgr = SearchManager(self.torrent_db)
+    
+    def getHitsInCategory(self, sort = 'rameezmetric'):
+        if DEBUG: begintime = time()
+        
+        def torrentFilter(torrent):
+            return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
+        
+        self.hits = self.searchmgr.searchLibrary()
+        self.hits = filter(torrentFilter,self.hits)
+
+        if DEBUG:
+            beginsort = time()
+        
+        if sort == 'rameezmetric':
+            self.sort()
+
+        # Nic: Ok this is somewhat diagonal to the previous sorting algorithms
+        # eventually, these should probably be combined
+        # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
+        # this should be fine...
+        self.hits = self.rerankingStrategy.rerank(self.hits, '', self.torrent_db, self.pref_db, self.mypref_db, self.search_db)
+
+        if DEBUG:
+            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
+        self.hits = self.addDownloadStates(self.hits)
+        return [len(self.hits), 0 , self.hits]
+
+    def refreshGrid(self):
+        if self.gridmgr is not None:
+            self.gridmgr.refresh()
+
 class ChannelSearchGridManager:
     # Code to make this a singleton
     __single = None

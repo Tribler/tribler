@@ -514,7 +514,7 @@ class TorrentDetails(wx.Panel):
         else:
             self.vod_log = None
         
-        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+        self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
     
     def _ShowDone(self):
         header = wx.StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
@@ -634,7 +634,7 @@ class TorrentDetails(wx.Panel):
             if dialog.ShowModal() == wx.ID_OK:
                 response = dialog.GetStringSelection()
                 
-                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, response)
+                self.guiutility.library_manager.playTorrent(self.torrent, response)
                 
                 if self.noChannel:
                     self.uelog.addEvent(message="Torrent: torrent play from channel", type = 2)
@@ -642,7 +642,7 @@ class TorrentDetails(wx.Panel):
                     self.uelog.addEvent(message="Torrent: torrent play from other", type = 2)       
             dialog.Destroy()
         elif len(playable_files) == 1:
-            self.guiutility.torrentsearch_manager.playTorrent(self.torrent)
+            self.guiutility.library_manager.playTorrent(self.torrent)
             
             if self.noChannel:
                 self.uelog.addEvent(message="Torrent: torrent play from channel", type = 2)
@@ -659,7 +659,7 @@ class TorrentDetails(wx.Panel):
         if selected != -1:
             selected_file = self.listCtrl.GetItemText(selected)
             if selected_file in playable_files:
-                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)
+                self.guiutility.library_manager.playTorrent(self.torrent, selected_file)
             elif self.torrent.get('progress',0) == 100: #not playable
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
@@ -793,7 +793,7 @@ class TorrentDetails(wx.Panel):
                 break
         
         if not found:
-            self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
+            self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
             self.ShowPanel()
             
     def _Refresh(self, ds):
@@ -838,11 +838,11 @@ class TorrentDetails(wx.Panel):
             self.buttonPanel.Show()
             
         else:
-            self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
+            self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
             self.ShowPanel(2)
             
     def __del__(self):
-        self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
+        self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
 
 class LibraryDetails(TorrentDetails):
     def _showRequestType(self, requesttype):
@@ -878,7 +878,7 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails._Refresh(self, ds)
         
         #register callback for peerlist update
-        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+        self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
         
         self.peerList.Freeze()
         def downsort(a, b):
