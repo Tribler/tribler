@@ -38,7 +38,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 
-DEBUG = True
+DEBUG = False
 
 class TorrentChecking(Thread):
     
