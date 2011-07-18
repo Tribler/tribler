@@ -126,6 +126,33 @@ class DelayMessage(Exception):
     def delayed(self):
         return self._delayed
 
+class DelayMessageByProof(DelayMessage):
+    """
+    Raised when a message can not be processed because of missing permissions.
+
+    Delays a message until a dispersy-authorize message is received.  With luck this
+    dispersy-authorize message will contain the missing permission.
+
+    TODO: we could extend the footprint of the dispersy-authorize to include clues as to what
+    permissions are in the message.  This would allow us to match incoming messages more accurately.
+    """
+    def __init__(self, delayed):
+        if __debug__:
+            from message import Message
+        assert isinstance(delayed, Message.Implementation)
+        # the footprint that will trigger the delayed packet
+        footprint = "".join(("dispersy-authorize",
+                             " Community:", delayed.community.cid.encode("HEX")))
+
+        # the request message that asks for the message that will trigger the delayed packet
+        meta = delayed.community.get_meta_message(u"dispersy-missing-proof")
+        request = meta.implement(meta.authentication.implement(),
+                                 meta.distribution.implement(delayed.community.global_time),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(delayed.authentication.member, delayed.distribution.global_time))
+
+        super(DelayMessageByProof, self).__init__("Missing proof", footprint, request, delayed)
+
 # class DelayMessageByMissingMember(DelayPacket):
 #     """
 #     A member id is the sha1 hash over the member's public key, hence
@@ -255,22 +282,6 @@ class DropMessage(Exception):
     @property
     def dropped(self):
         return self._dropped
-
-class DropMessageByProof(DropMessage):
-    """
-    Raised during Community.on_message.
-
-    Drops a message because it violates a previously received message.
-    This message should be provided to the origionator of this message
-    to allow them to correct their mistake.
-    """
-    def __init__(self, message):
-        super(DropMessageByProof, self).__init__(message, "Provide proof")
-        self._proof = message
-
-    @property
-    def proof(self):
-        return self._proof
 
 #
 # packet

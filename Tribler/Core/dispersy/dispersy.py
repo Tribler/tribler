@@ -57,9 +57,9 @@ from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistrib
 from member import PrivateMember, MasterMember
 from message import Message
 from message import DropPacket, DelayPacket
-from message import DropMessage, DelayMessage, DelayMessageBySequence, DelayMessageBySubjectiveSet
+from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
 from payload import AuthorizePayload, RevokePayload
-from payload import MissingSequencePayload
+from payload import MissingSequencePayload, MissingProofPayload
 from payload import SyncPayload
 from payload import SignatureRequestPayload, SignatureResponsePayload
 from payload import CandidateRequestPayload, CandidateResponsePayload
@@ -309,21 +309,22 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request, delay=0.0),
-                Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response, delay=2.5),
-                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self.check_identity, self.on_identity, priority=512, delay=1.0),
-                Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self.check_identity_request, self.on_identity_request, delay=0.0),
+        return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self._generic_timeline_check, self.on_candidate_request, delay=0.0),
+                Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self._generic_timeline_check, self.on_candidate_response, delay=2.5),
+                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
+                Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self._generic_timeline_check, self.on_identity_request, delay=0.0),
                 Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync, delay=0.0),
-                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence, delay=0.0),
+                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence, delay=0.0),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
-                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response, delay=0.0),
-#                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity, delay=0.0),
-#                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request, delay=0.0),
-                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize, priority=504, delay=1.0),
-                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504, delay=1.0),
-                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community, delay=0.0),
-                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set, delay=1.0),
-                Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self.check_subjective_set_request, self.on_subjective_set_request, delay=0.0)]
+                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
+#                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self._generic_timeline_check, self.on_similarity, delay=0.0),
+#                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self._generic_timeline_check, self.on_similarity_request, delay=0.0),
+                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, priority=504, delay=1.0),
+                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, priority=504, delay=1.0),
+                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
+                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
+                Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self._generic_timeline_check, self.on_subjective_set_request, delay=0.0),
+                Message(community, u"dispersy-missing-proof", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingProofPayload(), self._generic_timeline_check, self.on_missing_proof, delay=0.0)]
 
     @staticmethod
     def _rawserver_task_id(community, prefix):
@@ -1915,13 +1916,6 @@ class Dispersy(Singleton):
         self.store_update_forward([request], store, False, forward)
         return request
 
-    def check_candidate_request(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
-
     def _is_valid_external_address(self, address):
         if address[0] == "":
             return False
@@ -2019,13 +2013,6 @@ class Dispersy(Singleton):
         # send response
         self.store_update_forward(responses, False, False, True)
 
-    def check_candidate_response(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
-
     def on_candidate_response(self, messages):
         """
         We received dispersy-candidate-response messages.
@@ -2093,13 +2080,6 @@ class Dispersy(Singleton):
                                  meta.payload.implement(self._my_external_address))
         self.store_update_forward([message], store, False, forward)
         return message
-
-    def check_identity(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
 
     def on_identity(self, messages):
         """
@@ -2169,10 +2149,6 @@ class Dispersy(Singleton):
         self.store_update_forward([message], False, False, forward)
         return message
 
-    def check_identity_request(self, messages):
-        # we can not timeline.check this message because it uses the NoAuthentication policy
-        return messages
-
     def on_identity_request(self, messages):
         """
         We received dispersy-identity-request messages.
@@ -2230,25 +2206,11 @@ class Dispersy(Singleton):
         self.store_update_forward([message], store, update, forward)
         return message
 
-    def check_subjective_set(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
-
     def on_subjective_set(self, messages):
         # we do not need to do anything here for now because we retrieve all information directly
         # from the database each time we need it.  Hence no in-memory actions needs to occur.  Note
         # that this data is immediately stored in the database when this method returns.
         pass
-
-    def check_subjective_set_request(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
 
     def on_subjective_set_request(self, address, message):
         """
@@ -2285,7 +2247,7 @@ class Dispersy(Singleton):
 
             # check that this is the packet we are looking for, i.e. has the right cluster
             conversion = self.get_conversion(packet[:22])
-            subjective_set_message = conversion.decode_message(packet)
+            subjective_set_message = conversion.decode_message(address, packet)
             if subjective_set_message.destination.cluster == message.payload.clusters:
                 packets.append(packet)
 
@@ -2404,10 +2366,6 @@ class Dispersy(Singleton):
 
 #         return message
 
-#     def check_similarity(self, address, message):
-#         if not message.community._timeline.check(message):
-#             raise DropMessage("TODO: implement delay of proof")
-
 #     def on_similarity(self, address, message):
 #         """
 #         We received a dispersy-similarity message.
@@ -2491,10 +2449,6 @@ class Dispersy(Singleton):
 
 #     # todo: implement a create_similarity_request method
 #     # def create_similarity_request(self,
-
-#     def check_similarity_request(self, address, message):
-#         if not message.community._timeline.check(message):
-#             raise DropMessage("TODO: implement delay of proof")
 
 #     def on_similarity_request(self, address, message):
 #         """
@@ -2744,10 +2698,6 @@ class Dispersy(Singleton):
 
         self.store_update_forward(responses, False, False, True)
 
-    def check_signature_response(self, messages):
-        # we can not timeline.check this message because it uses the NoAuthentication policy
-        return messages
-
     def on_signature_response(self, messages):
         pass
 
@@ -2809,13 +2759,6 @@ class Dispersy(Singleton):
                     # assuming this signature only matches one member, we can break
                     break
 
-    def check_missing_sequence(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
-
     def on_missing_sequence(self, address, message):
         """
         We received a dispersy-missing-sequence message.
@@ -2856,6 +2799,21 @@ class Dispersy(Singleton):
             if byte_limit > 0:
                 if __debug__: dprint("Bandwidth throttle")
                 break
+
+    def on_missing_proof(self, messages):
+        community = messages[0].community
+        for message in messages:
+            try:
+                packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ? LIMIT 1",
+                                                 (community.database_id, message.payload.member.database_id, message.payload.global_time)).next()
+            except StopIteration:
+                pass
+            else:
+                packet = str(packet)
+                msg = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
+                allowed, proofs = community._timeline.check(msg)
+                if allowed:
+                    self._send([message.address], [proof.packet for proof in proofs])
 
     def check_sync(self, messages):
         """
@@ -2945,7 +2903,8 @@ class Dispersy(Singleton):
             assert message.name == u"dispersy-sync", "this method is called in batches, i.e. community and meta message grouped together"
             assert message.community == community, "this method is called in batches, i.e. community and meta message grouped together"
 
-            if not community._timeline.check(message):
+            allowed, _ = community._timeline.check(message)
+            if not allowed:
                 yield DropMessage(message, "TODO: implement delay of proof")
                 continue
 
@@ -3079,13 +3038,6 @@ class Dispersy(Singleton):
         self.store_update_forward([message], store, update, forward)
         return message
 
-    def check_authorize(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
-
     def on_authorize(self, messages):
         """
         Process a dispersy-authorize message.
@@ -3105,7 +3057,7 @@ class Dispersy(Singleton):
          message immediately.
         """
         for message in messages:
-            message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
+            message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         """
@@ -3173,13 +3125,6 @@ class Dispersy(Singleton):
         self.store_update_forward([message], store, update, forward)
         return message
 
-    def check_revoke(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
-
     def on_revoke(self, messages):
         """
         Process a dispersy-revoke message.
@@ -3199,7 +3144,7 @@ class Dispersy(Singleton):
          message immediately.
         """
         for message in messages:
-            message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets)
+            message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_destroy_community(self, community, degree, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
@@ -3223,13 +3168,6 @@ class Dispersy(Singleton):
         # candidate table that we just cleane.
         self.store_update_forward([message], store, update, False)
         return message
-
-    def check_destroy_community(self, messages):
-        for message in messages:
-            if not message.community._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay of proof")
-                continue
-            yield message
 
     def on_destroy_community(self, messages):
         if __debug__:
@@ -3287,6 +3225,20 @@ class Dispersy(Singleton):
 
             self.reclassify_community(community, new_classification)
 
+    def _generic_timeline_check(self, messages):
+        meta = messages[0].meta
+        if isinstance(meta.authentication, NoAuthentication):
+            # we can not timeline.check this message because it uses the NoAuthentication policy
+            for message in messages:
+                yield message
+
+        else:
+            for message in messages:
+                allowed, proofs = meta.community._timeline.check(message)
+                if allowed:
+                    yield message
+                else:
+                    yield DelayMessageByProof(message)
 
     def _periodically_create_sync(self, community):
         """

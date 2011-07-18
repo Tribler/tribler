@@ -6,10 +6,10 @@ from conversion import BinaryConversion
 from debug import Node
 from destination import MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination
 from distribution import DirectDistribution, FullSyncDistribution, LastSyncDistribution
-from message import Message, DropPacket
+from message import Message, DropPacket, DelayMessageByProof
 from member import Member, MyMember
 from payload import Payload
-from resolution import PublicResolution
+from resolution import PublicResolution, LinearResolution
 
 from dprint import dprint
 
@@ -95,6 +95,9 @@ class DebugNode(Node):
     def create_subjective_set_text_message(self, text, global_time):
         return self._create_text_message(u"subjective-set-text", text, global_time)
 
+    def create_protected_full_sync_text_message(self, text, global_time):
+        return self._create_text_message(u"protected-full-sync-text", text, global_time)
+
 #
 # Conversion
 #
@@ -115,6 +118,7 @@ class DebugCommunityConversion(BinaryConversion):
         self.define_meta_message(chr(11), community.get_meta_message(u"random-order-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(12), community.get_meta_message(u"subjective-set-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(13), community.get_meta_message(u"last-1-multimember-text"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(14), community.get_meta_message(u"protected-full-sync-text"), self._encode_text, self._decode_text)
 
     def _encode_text(self, message):
         return pack("!B", len(message.payload.text)), message.payload.text
@@ -207,6 +211,7 @@ class DebugCommunity(Community):
                 Message(self, u"out-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"random-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"protected-full-sync-text", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 ]
 
     def create_full_sync_text(self, text, store=True, update=True, forward=True):
@@ -281,7 +286,6 @@ class DebugCommunity(Community):
     #
     # taste-aware-record
     #
-
     def on_taste_aware_record(self, address, message):
         """
         Received a taste aware record.
@@ -289,14 +293,28 @@ class DebugCommunity(Community):
         dprint(message.payload.number)
 
     #
+    # protected-full-sync-text
+    #
+    def create_protected_full_sync_text(self, text, store=True, update=True, forward=True):
+        meta = self.get_meta_message(u"protected-full-sync-text")
+        message = meta.implement(meta.authentication.implement(self._my_member),
+                                 meta.distribution.implement(self.claim_global_time()),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(text))
+        self._dispersy.store_update_forward([message], store, update, forward)
+        return message
+
+    #
     # any text-payload
     #
 
     def check_text(self, messages):
         for message in messages:
-            if not self._timeline.check(message):
-                raise RuntimeError()
-            yield message
+            allowed, proof = self._timeline.check(message)
+            if allowed:
+                yield message
+            else:
+                yield DelayMessageByProof(message)
 
     def on_text(self, messages):
         """

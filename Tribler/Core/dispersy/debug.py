@@ -159,6 +159,15 @@ class Node(object):
         self.send_packet(message.packet, address)
         return message
 
+    def drop_packets(self):
+        while True:
+            try:
+                packet, address = self._socket.recvfrom(10240)
+            except:
+                break
+
+            dprint("droped ", len(packet), " bytes from ", address[0], ":", address[1])
+
     def receive_packet(self, timeout=None, addresses=None, packets=None):
         assert timeout is None, "The parameter TIMEOUT is depricated and must be None"
         assert isinstance(addresses, (type(None), list))
@@ -216,6 +225,13 @@ class Node(object):
 
             dprint(message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
             return address, message
+
+    def create_dispersy_authorize(self, permission_triplets, sequence_number, global_time):
+        meta = self._community.get_meta_message(u"dispersy-authorize")
+        return meta.implement(meta.authentication.implement(self._my_member),
+                              meta.distribution.implement(global_time, sequence_number),
+                              meta.destination.implement(),
+                              meta.payload.implement(permission_triplets))
 
     def create_dispersy_identity_message(self, address, global_time):
         assert isinstance(address, tuple)
@@ -335,3 +351,13 @@ class Node(object):
                               meta.distribution.implement(global_time),
                               meta.destination.implement(),
                               meta.payload.implement(cluster, subjective_set))
+
+    def create_dispersy_missing_proof_message(self, member, global_time):
+        assert isinstance(member, Member)
+        assert isinstance(global_time, (int, long))
+        assert global_time > 0
+        meta = self._community.get_meta_message(u"dispersy-missing-proof")
+        return meta.implement(meta.authentication.implement(),
+                              meta.distribution.implement(global_time),
+                              meta.destination.implement(),
+                              meta.payload.implement(member, global_time))

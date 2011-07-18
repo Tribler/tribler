@@ -31,7 +31,7 @@ from dispersydatabase import DispersyDatabase
 from dprint import dprint
 # from lencoder import log
 from member import Member, MyMember
-from message import Message, DropMessage
+from message import Message, DropMessage, DelayMessageByProof
 from resolution import PublicResolution
 from singleton import Singleton
 
@@ -662,9 +662,11 @@ class DispersyTimelineScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        self.caller(self.succeed_check)
-        self.caller(self.fail_check)
-        self.caller(self.loading_community)
+        # self.caller(self.succeed_check)
+        # self.caller(self.fail_check)
+        # self.caller(self.loading_community)
+        # self.caller(self.delay_by_proof)
+        self.caller(self.missing_proof)
 
     def succeed_check(self):
         """
@@ -716,7 +718,7 @@ class DispersyTimelineScript(ScriptBase):
         assert message.authentication.member == self._my_member
         result = list(message.check_callback([message]))
         assert len(result) == 1, "check_... methods should return a generator with the accepted messages"
-        assert isinstance(result[0], DropMessage), "check_... methods should return a generator with the accepted messages"
+        assert isinstance(result[0], DelayMessageByProof), "check_... methods should return a generator with the accepted messages"
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
@@ -749,6 +751,103 @@ class DispersyTimelineScript(ScriptBase):
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
         assert community._timeline.check(message)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def delay_by_proof(self):
+        """
+        When SELF receives a message that it has no permission for, it will send a
+        dispersy-missing-proof message to try to obtain the dispersy-authorize.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node1 = DebugNode()
+        node1.init_socket()
+        node1.set_community(community)
+        node1.init_my_member()
+        yield 0.555
+
+        # create node and ensure that SELF knows the node address
+        node2 = DebugNode()
+        node2.init_socket()
+        node2.set_community(community)
+        node2.init_my_member()
+        yield 0.555
+
+        # permit NODE1
+        community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit"),
+                                             (node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"authorize")])
+
+        # NODE2 created message @20
+        global_time = 20
+        message = node2.create_protected_full_sync_text_message("Protected message", global_time)
+        node2.give_message(message)
+        yield 0.555
+
+        # may NOT have been stored in the database
+        try:
+            packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                       (community.database_id, node2.my_member.database_id, global_time)).next()
+        except StopIteration:
+            pass
+
+        else:
+            assert False, "should not have stored, did not have permission"
+
+        # SELF sends dispersy-missing-proof to NODE2
+        _, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-missing-proof"])
+        assert message.payload.member.public_key == node2.my_member.public_key
+        assert message.payload.global_time == global_time
+
+        # NODE1 provides proof
+        sequence_number = 1
+        proof_global_time = 10
+        node2.give_message(node1.create_dispersy_authorize([(node2.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit")], sequence_number, proof_global_time))
+        yield 0.555
+
+        # must have been stored in the database
+        try:
+            packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                       (community.database_id, node2.my_member.database_id, global_time)).next()
+        except StopIteration:
+            assert False, "should have been stored"
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def missing_proof(self):
+        """
+        When SELF receives a dispersy-missing-proof message she needs to find and send the proof.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.555
+
+        # SELF creates a protected message
+        message = community.create_protected_full_sync_text("Protected message")
+
+        # flush incoming socket buffer
+        node.drop_packets()
+
+        # NODE pretends to receive the protected message and requests the proof
+        node.give_message(node.create_dispersy_missing_proof_message(message.authentication.member, message.distribution.global_time))
+        yield 0.555
+
+        # SELF sends dispersy-authorize to NODE
+        _, authorize = node.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
+
+        # TODO: check that the received authorize message contains the required proof
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

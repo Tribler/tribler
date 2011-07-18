@@ -153,6 +153,9 @@ class BinaryConversion(Conversion):
         define(242, u"dispersy-revoke", self._encode_revoke, self._decode_revoke)
         define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
         define(240, u"dispersy-subjective-set-request", self._encode_subjective_set_request, self._decode_subjective_set_request)
+        # placeholder 239 for dispersy-missing-message
+        # placeholder 238 for dispersy-undo
+        define(237, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
 
     def define_meta_message(self, byte, message, encode_payload_func, decode_payload_func):
         assert isinstance(byte, str)
@@ -613,6 +616,27 @@ class BinaryConversion(Conversion):
             offset += 20
 
         return offset, meta_message.payload.implement(cluster, members)
+
+    def _encode_missing_proof(self, message):
+        payload = message.payload
+        return pack("!QH", payload.global_time, len(payload.member.public_key)), payload.member.public_key
+
+    def _decode_missing_proof(self, meta_message, offset, data):
+        if len(data) < offset + 10:
+            raise DropPacket("Insufficient packet size (_decode_missing_proof)")
+
+        global_time, key_length = unpack_from("!QH", data, offset)
+        offset += 10
+
+        key = data[offset:offset+key_length]
+# TODO: re-enable this check when the code is merged into the mainbranch where ec_check_public_bin exists
+#        if not ec_check_public_bin(key):
+#            raise DropPacket("Invalid cryptographic key")
+        member = self._community.get_member(key)
+        offset += key_length
+
+        return offset, meta_message.payload.implement(member, global_time)
+
     #
     # Encoding
     #
