@@ -82,9 +82,8 @@ class Node(object):
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
             source_address = self._socket.getsockname()
-            destination_address = self._community._dispersy.socket.get_address()
             message = self.create_dispersy_identity_message(source_address, 2)
-            self.send_message(message, destination_address)
+            self.give_message(message)
 
         if candidate:
             # update candidate information
@@ -93,7 +92,7 @@ class Node(object):
             source_address = self._socket.getsockname()
             destination_address = self._community._dispersy.socket.get_address()
             message = self.create_dispersy_candidate_request_message(source_address, destination_address, self._community.get_conversion().version, [], 1)
-            self.send_message(message, destination_address)
+            self.give_message(message)
 
     @property
     def community(self):

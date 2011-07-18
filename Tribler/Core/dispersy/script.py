@@ -2768,6 +2768,120 @@ class DispersySyncScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
+class DispersyIdenticalPayloadScript(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.incoming__drop_first)
+        self.caller(self.incoming__drop_second)
+
+    def incoming__drop_first(self):
+        """
+        NODE creates two messages with the same community/member/global-time triplets.
+
+        - One of the two should be droped
+        - Both binary signatures should end up in the bloom filter (temporarily)
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.555
+
+        # create messages
+        global_time = 10
+        messages = []
+        messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
+        messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
+        assert messages[0].packet != messages[1].packet, "the signature must make the messages unique"
+
+        # sort.  we now know that the first message must be dropped
+        messages.sort(key=lambda x: x.packet)
+
+        # give messages in different batches
+        node.give_message(messages[0])
+        yield 0.555
+        node.give_message(messages[1])
+        yield 0.555
+
+        # only one message may be in the database
+        try:
+            packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                       (community.database_id, node.my_member.database_id, global_time)).next()
+        except StopIteration:
+            assert False, "neither messages is stored"
+
+        packet = str(packet)
+        assert packet == messages[1].packet
+
+        # both packets must be in the bloom filter
+        assert len(community._sync_ranges) == 1
+        for message in messages:
+            for bloom_filter in community._sync_ranges[0].bloom_filters:
+                assert message.packet in bloom_filter
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def incoming__drop_second(self):
+        """
+        NODE creates two messages with the same community/member/global-time triplets.
+
+        - One of the two should be droped
+        - Both binary signatures should end up in the bloom filter (temporarily)
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+        yield 0.555
+
+        # create messages
+        global_time = 10
+        messages = []
+        messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
+        messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
+        assert messages[0].packet != messages[1].packet, "the signature must make the messages unique"
+
+        # sort.  we now know that the first message must be dropped
+        messages.sort(key=lambda x: x.packet)
+
+        # give messages in different batches
+        node.give_message(messages[1])
+        yield 0.555
+        node.give_message(messages[0])
+        yield 0.555
+
+        # only one message may be in the database
+        try:
+            packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                                       (community.database_id, node.my_member.database_id, global_time)).next()
+        except StopIteration:
+            assert False, "neither messages is stored"
+
+        packet = str(packet)
+        assert packet == messages[1].packet
+
+        # both packets must be in the bloom filter
+        assert len(community._sync_ranges) == 1
+        for message in messages:
+            for bloom_filter in community._sync_ranges[0].bloom_filters:
+                assert message.packet in bloom_filter
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
 class DispersySignatureScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")

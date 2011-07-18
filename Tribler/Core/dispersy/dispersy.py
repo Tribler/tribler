@@ -544,6 +544,76 @@ class Dispersy(Singleton):
                 for community in self._communities.itervalues():
                     community.create_dispersy_identity()
 
+    def _check_identical_payload_with_different_signature(self, message):
+        """
+        There is a possibility that a message is created that contains exactly the same payload
+        but has a different signature.
+
+        This can occur when a message is created, forwarded, and for some reason the database is
+        reset.  The next time that the client starts the exact same message may be generated.
+        However, because EC sigantures contain a random element the signature will be different.
+
+        This results in continues transfers because the bloom filters identify the two messages
+        as different while the community/member/global_time triplet is the same.
+
+        To solve this, we will silently replace one message with the other.  We choose to keep
+        the message with the highest binary value while destroying the one with the lower binary
+        value.
+
+        To further optimize, we will add both messages to our bloom filter whenever we detect
+        this problem.  This will ensure that we do not needlessly receive the 'invalid' message
+        until the bloom filter is synced with the database again.
+
+        Returns False when the message is not a duplicate with anything in the database.
+        Otherwise returns True when the message is a duplicate and must be dropped.
+        """
+        # fetch the duplicate binary packet from the database
+        try:
+            packet_id, name_id, packet = self._database.execute(u"SELECT id, name, packet FROM sync WHERE community = ? AND user = ? AND global_time = ?",
+                                             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+        except StopIteration:
+            # we are checking two messages just received in the same batch
+            # process the message
+            return False
+
+        else:
+            packet = str(packet)
+            if packet == message.packet:
+                # exact duplicates, do NOT process the message
+                pass
+
+            else:
+                signature_length = message.authentication.member.signature_length
+                if packet[:signature_length] == message.packet[:signature_length]:
+                    # the message payload is binary unique (only the signature is different)
+                    if __debug__: dprint("received identical message with different signature [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="error")
+
+                    if packet < message.packet:
+                        # replace our current message with the other one
+                        self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND user = ? AND global_time = ?",
+                                               (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
+
+                    # add the newly received message.packet to the bloom filter
+                    message.community.update_sync_range([message])
+
+                else:
+                    if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="error")
+
+                # TODO: if we decide that this is malicious behavior, handle it (note that this code
+                # is checked into release-5.3.x while the declare_malicious_member code is currently
+                # only in the mainbranch.
+                #
+                # else:
+                #     # the message payload is different while having the same
+                #     # community/member/global-time triplet.  this is considered malicious behavior
+                #     for packet_meta in message.community.get_meta_messages():
+                #         if packet_meta.database_id == name_id:
+                #             self.declare_malicious_member(message.authentication.member, [message, Packet(packet_meta, packet, packet_id)])
+                #             break
+
+        # do NOT process the message
+        return True
+
     def _check_full_sync_distribution_batch(self, messages):
         """
         Ensure that we do not yet have the messages and that, if sequence numbers are enabled, we
@@ -598,6 +668,7 @@ class Dispersy(Singleton):
 
                     if seq >= message.distribution.sequence_number:
                         # we already have this message (drop)
+                        # TODO: something similar to _check_identical_payload_with_different_signature can occur...
                         yield DropMessage(message, "duplicate message by sequence_number")
 
                     elif seq + 1 == message.distribution.sequence_number:
@@ -614,7 +685,8 @@ class Dispersy(Singleton):
 
                         else:
                             # we have the previous message (drop)
-                            yield DropMessage(message, "duplicate message by global_time (1)")
+                            if self._check_identical_payload_with_different_signature(message):
+                                yield DropMessage(message, "duplicate message by global_time (1)")
 
                     else:
                         # we do not have the previous message (delay and request)
@@ -640,7 +712,8 @@ class Dispersy(Singleton):
 
                     else:
                         # we have the previous message (drop)
-                        yield DropMessage(message, "duplicate message by global_time (2)")
+                        if self._check_identical_payload_with_different_signature(message):
+                            yield DropMessage(message, "duplicate message by global_time (2)")
 
     def _check_last_sync_distribution_batch(self, messages):
         """
@@ -705,14 +778,13 @@ class Dispersy(Singleton):
                     assert len(tim) <= message.distribution.history_size
                     times[message.authentication.member] = tim
 
-                if message.distribution.global_time in tim:
-                    # we have the previous message (drop)
+                if message.distribution.global_time in tim and self._check_identical_payload_with_different_signature(message):
                     return DropMessage(message, "duplicate message by member^global_time (3)")
 
                 elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
                     # we have newer messages (drop)
 
-                    # if the history_size is one, we can sent that on message back because
+                    # if the history_size is one, we can send that on message back because
                     # apparently the sender does not have this message yet
                     if message.distribution.history_size == 1:
                         try:
@@ -766,7 +838,8 @@ class Dispersy(Singleton):
                         pass
                     else:
                         # we have the previous message (drop)
-                        return DropMessage(message, "duplicate message by member^global_time (4)")
+                        if self._check_identical_payload_with_different_signature(message):
+                            return DropMessage(message, "duplicate message by member^global_time (4)")
 
                     if members in times:
                         tim = times[members]
@@ -789,7 +862,7 @@ class Dispersy(Singleton):
                                if count == message.authentication.count]
                         times[members] = tim
 
-                    if message.distribution.global_time in tim:
+                    if message.distribution.global_time in tim and self._check_identical_payload_with_different_signature(message):
                         # we have the previous message (drop)
                         return DropMessage(message, "duplicate message by members^global_time")
 
@@ -1098,8 +1171,8 @@ class Dispersy(Singleton):
         meta = messages[0].meta
 
         if __debug__:
+            debug_count = len(messages)
             debug_begin = clock()
-            dprint("[0.0 msg] ", len(messages), " ", meta.name, " messages")
 
         # drop if this is a blacklisted member
         messages = [message for message in messages if not (isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop)]
@@ -1115,18 +1188,8 @@ class Dispersy(Singleton):
         assert len(messages) > 0 # should return at least one item for each message
         assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
 
-        if __debug__:
-            i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
-            i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
-            i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            for message in messages:
-                if isinstance(message, DropMessage):
-                    dprint("drop message because: ", message)
-            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after distribution check")
-
         # handle/remove DropMessage and DelayMessage instances
         messages = [message for message in messages if _filter_fail(message)]
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
             return 0
 
@@ -1136,26 +1199,20 @@ class Dispersy(Singleton):
         assert len(messages) >= 0 # may return zero messages
         assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
 
-        if __debug__:
-            i_messages = len(list(message for message in messages if isinstance(message, Message.Implementation)))
-            i_delay = len(list(message for message in messages if isinstance(message, DelayMessage)))
-            i_drop = len(list(message for message in messages if isinstance(message, DropMessage)))
-            dprint("[", clock() - debug_begin, " msg] ", i_messages, ":", i_delay, ":", i_drop, " ", meta.name, " messages after community check")
-
         # handle/remove DropMessage and DelayMessage instances
         messages = [message for message in messages if _filter_fail(message)]
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after delay and drop")
         if not messages:
             return 0
 
         # store to disk and update locally
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name , " messages after store and update")
 
         # try to 'trigger' zero or more previously delayed 'things'
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after triggers")
+
+        # tell what happened
+        if __debug__: dprint("handled ", len(messages), "/", debug_count, " %.2fs" %(clock() - debug_begin), " ", meta.name, " messages (after ", meta.delay, "s cache delay, for community ", meta.community.cid.encode("HEX"))
 
         # return the number of messages that were correctly handled (non delay, duplictes, etc)
         return len(messages)
@@ -3335,8 +3392,12 @@ class Dispersy(Singleton):
         # 1.1: added info["statistics"]
         # 1.2: bugfix in Community.free_sync_range, should free more ranges; changed
         #      dispersy_candidate_request_member_count to 3 down from 10
+        # 1.3: bugfix in dispersy.py where messages with identicat payload (fully binary unique)
+        #      could be generated with a different signature (a signature contains random elements)
+        #      making the two unique messages different from a bloom filter perspective.  we now
+        #      replace one message with the other thoughout the system.
 
-        info = {"version":1.2, "class":"Dispersy"}
+        info = {"version":1.3, "class":"Dispersy"}
 
         if statistics:
             info["statistics"] = self._statistics.reset()
