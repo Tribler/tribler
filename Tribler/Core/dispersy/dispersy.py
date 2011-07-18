@@ -311,7 +311,7 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self.check_candidate_request, self.on_candidate_request, delay=0.0),
                 Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self.check_candidate_response, self.on_candidate_response, delay=2.5),
-                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), IdentityPayload(), self.check_identity, self.on_identity, priority=512, delay=1.0),
+                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self.check_identity, self.on_identity, priority=512, delay=1.0),
                 Message(community, u"dispersy-identity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IdentityRequestPayload(), self.check_identity_request, self.on_identity_request, delay=0.0),
                 Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync, delay=0.0),
                 Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingSequencePayload(), self.check_missing_sequence, self.on_missing_sequence, delay=0.0),
@@ -319,10 +319,10 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response, delay=0.0),
 #                 Message(community, u"dispersy-similarity", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SimilarityPayload(), self.check_similarity, self.on_similarity, delay=0.0),
 #                 Message(community, u"dispersy-similarity-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SimilarityRequestPayload(), self.check_similarity_request, self.on_similarity_request, delay=0.0),
-                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize, priority=504, delay=1.0),
-                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order"), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504, delay=1.0),
-                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order"), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community, delay=0.0),
-                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", history_size=1), CommunityDestination(node_count=10), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set, delay=1.0),
+                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self.check_authorize, self.on_authorize, priority=504, delay=1.0),
+                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), RevokePayload(), self.check_revoke, self.on_revoke, priority=504, delay=1.0),
+                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self.check_destroy_community, self.on_destroy_community, delay=0.0),
+                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self.check_subjective_set, self.on_subjective_set, delay=1.0),
                 Message(community, u"dispersy-subjective-set-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SubjectiveSetRequestPayload(), self.check_subjective_set_request, self.on_subjective_set_request, delay=0.0)]
 
     @staticmethod
@@ -1389,7 +1389,7 @@ class Dispersy(Singleton):
                     continue
 
             # add packet to database
-            self._database.execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            self._database.execute(u"INSERT INTO sync (community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (message.community.database_id,
                      message.database_id,
                      message.authentication.member.database_id,
@@ -1398,7 +1398,8 @@ class Dispersy(Singleton):
                      message.distribution.sequence_number if isinstance(message.distribution, SyncDistribution.Implementation) else 0,
                      # isinstance(message.distribution, LastSyncDistribution.Implementation) and message.distribution.cluster or 0,
                      message.destination.cluster if isinstance(message.destination, SimilarityDestination.Implementation) else 0,
-                     buffer(message.packet)))
+                     buffer(message.packet),
+                     message.priority))
             assert self._database.changes == 1
             update_sync_range.append(message)
 
@@ -1708,18 +1709,18 @@ class Dispersy(Singleton):
 
         for message in messages:
             if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
-                assert message.destination.node_count, "CommunityDestination.node_count is allowed to be zero, however, make sure that _forward isn't called when it is"
-                addresses = [candidate.address
-                             for candidate
-                             in self.yield_online_candidates(message.community, message.destination.node_count)]
-                if addresses:
-                    self._send(addresses, [message.packet])
-
-                if __debug__:
+                if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
+                    addresses = [candidate.address
+                                 for candidate
+                                 in self.yield_online_candidates(message.community, message.destination.node_count)]
                     if addresses:
-                        dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
-                    else:
-                        dprint("failed to send ", message.name, " (", len(message.packet), " bytes) because there are no destination addresses", level="warning")
+                        self._send(addresses, [message.packet])
+
+                    if __debug__:
+                        if addresses:
+                            dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
+                        else:
+                            dprint("failed to send ", message.name, " (", len(message.packet), " bytes) because there are no destination addresses", level="warning")
 
             elif isinstance(message.destination, AddressDestination.Implementation):
                 if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in message.destination.addresses))
@@ -2898,32 +2899,40 @@ class Dispersy(Singleton):
         #     return BloomFilter(str(similarity), 0), threshold
 
         def get_packets(community_id, time_low, time_high):
-            # first priority is to return the 'in-order' packets
-            sql = u"""SELECT sync.packet, sync.name, user.public_key
-                      FROM sync
-                      JOIN user ON user.id = sync.user
-                      WHERE sync.community = ? AND synchronization_direction = 1 AND sync.global_time BETWEEN ? AND ?
-                      ORDER BY sync.global_time ASC"""
-            for tup in self._database.execute(sql, (community_id, time_low, time_high)):
-                yield tup
+            # obtain the different priorities that are available in this range
+            priorities = [priority for priority, in self._database.execute(u"SELECT DISTINCT priority FROM sync WHERE community = ? AND global_time BETWEEN ? AND ? AND priority > 32 ORDER BY priority DESC",
+                                                                           (community_id, time_low, time_high))]
 
-            # second priority is to return the 'out-order' packets
-            sql = u"""SELECT sync.packet, sync.name, user.public_key
-                      FROM sync
-                      JOIN user ON user.id = sync.user
-                      WHERE sync.community = ? AND synchronization_direction = 2 AND sync.global_time BETWEEN ? AND ?
-                      ORDER BY sync.global_time DESC"""
-            for tup in self._database.execute(sql, (community_id, time_low, time_high)):
-                yield tup
+            # TODO: try to convince people to do away with the in-order / out-order / random-order
+            # all together since it it makes the sync much more expensive to perform.
 
-            # third priority is to return the 'random-order' packets
-            sql = u"""SELECT sync.packet, sync.name, user.public_key
-                      FROM sync
-                      JOIN user ON user.id = sync.user
-                      WHERE sync.community = ? AND synchronization_direction = 3 AND sync.global_time BETWEEN ? AND ?
-                      ORDER BY RANDOM()"""
-            for tup in self._database.execute(sql, (community_id, time_low, time_high)):
-                yield tup
+            for priority in priorities:
+                # first priority is to return the 'in-order' packets
+                sql = u"""SELECT sync.packet, sync.name, user.public_key
+                    FROM sync
+                    JOIN user ON user.id = sync.user
+                    WHERE sync.community = ? AND synchronization_direction = 1 AND sync.priority = ? AND sync.global_time BETWEEN ? AND ?
+                    ORDER BY sync.priority DESC, sync.global_time ASC"""
+                for tup in self._database.execute(sql, (community_id, priority, time_low, time_high)):
+                    yield tup
+
+                # second priority is to return the 'out-order' packets
+                sql = u"""SELECT sync.packet, sync.name, user.public_key
+                    FROM sync
+                    JOIN user ON user.id = sync.user
+                    WHERE sync.community = ? AND synchronization_direction = 2 AND sync.priority = ? AND sync.global_time BETWEEN ? AND ?
+                    ORDER BY sync.priority DESC, sync.global_time DESC"""
+                for tup in self._database.execute(sql, (community_id, priority, time_low, time_high)):
+                    yield tup
+
+                # third priority is to return the 'random-order' packets
+                sql = u"""SELECT sync.packet, sync.name, user.public_key
+                    FROM sync
+                    JOIN user ON user.id = sync.user
+                    WHERE sync.community = ? AND synchronization_direction = 3 AND sync.priority = ? AND sync.global_time BETWEEN ? AND ?
+                    ORDER BY sync.priority DESC, RANDOM()"""
+                for tup in self._database.execute(sql, (community_id, priority, time_low, time_high)):
+                    yield tup
 
         community = messages[0].community
 
