@@ -55,12 +55,12 @@ class SetupScript(ScriptBase):
             master_private_key = ec_to_private_bin(ec)
 
             # insert entries in the dispersy database to join the community
-            with self._dispersy_database as execute:
-                execute(u"INSERT INTO community (user, classification, cid, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, SimpleDispersyTestCommunity.get_classification(), buffer(SimpleDispersyTestCommunity.hardcoded_cid), buffer(SimpleDispersyTestCommunity.hardcoded_master_public_key)))
+            with self._dispersy_database as database:
+                database.execute(u"INSERT INTO community (user, classification, cid, public_key) VALUES(?, ?, ?, ?)", (my_member.database_id, SimpleDispersyTestCommunity.get_classification(), buffer(SimpleDispersyTestCommunity.hardcoded_cid), buffer(SimpleDispersyTestCommunity.hardcoded_master_public_key)))
                 database_id = self._dispersy_database.last_insert_rowid
-                execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(SimpleDispersyTestCommunity.hardcoded_cid), buffer(SimpleDispersyTestCommunity.hardcoded_master_public_key)))
-                execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(SimpleDispersyTestCommunity.hardcoded_master_public_key), buffer(master_private_key)))
-                execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
+                database.execute(u"INSERT INTO user (mid, public_key) VALUES(?, ?)", (buffer(SimpleDispersyTestCommunity.hardcoded_cid), buffer(SimpleDispersyTestCommunity.hardcoded_master_public_key)))
+                database.execute(u"INSERT INTO key (public_key, private_key) VALUES(?, ?)", (buffer(SimpleDispersyTestCommunity.hardcoded_master_public_key), buffer(master_private_key)))
+                database.execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) SELECT ?, host, port, incoming_time, outgoing_time FROM candidate WHERE community = 0", (database_id,))
 
             self._community = SimpleDispersyTestCommunity.load_community(SimpleDispersyTestCommunity.hardcoded_cid, SimpleDispersyTestCommunity.hardcoded_master_public_key)
 

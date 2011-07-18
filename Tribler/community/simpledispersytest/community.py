@@ -64,7 +64,7 @@ class SimpleDispersyTestCommunity(Community):
 
     def dispersy_cleanup_community(self, message):
         if __debug__: dprint(self._cid.encode("HEX"))
-        self._status.create_and_add_event("dispersy_cleanup_community^" + self._cid.encode("HEX") , [{"is_soft_kill":message.payload.is_soft_kill, "is_hard_kill":message.payload.is_hard_kill}])
+        self._status.create_and_add_event("dispersy_cleanup_community^" + self._cid.encode("HEX") , [("is_soft_kill", message.payload.is_soft_kill), ("is_hard_kill", message.payload.is_hard_kill)])
         self._status.report_now()
         self._status.get_reporter(REPORTER_NAME).stop()
         self._status.remove_reporter(REPORTER_NAME)

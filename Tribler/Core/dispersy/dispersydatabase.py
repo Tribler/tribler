@@ -145,13 +145,13 @@ class DispersyDatabase(Database):
                 if database_version < 2:
                     self.executescript(u"""
 ALTER TABLE sync ADD COLUMN priority INTEGER DEFAULT 128;
-UPDATE option SET value = 2 WHERE key = 'database_version';
+UPDATE option SET value = '2' WHERE key = 'database_version';
 """)
 
                 # upgrade from version 2 to version 3
                 if database_version < 3:
                     # there is no version 3 yet...
-                    # self.executescript(u"""UPDATE option SET value = 3 WHERE key = 'database_version';""")
+                    # self.executescript(u"""UPDATE option SET value = '3' WHERE key = 'database_version';""")
                     pass
 
     def bootstrap(self):
