@@ -196,6 +196,8 @@ class SearchSideBar(wx.Panel):
         wx.Panel.SetBackgroundColour(self, colour)
         
         self.ffbutton.SetBackgroundColour(colour)
+        self.ag.SetBackgroundColour(colour)
+        
         for sizeritem in self.bundleSizer.GetChildren():
             if sizeritem.IsWindow():
                 child = sizeritem.GetWindow()
