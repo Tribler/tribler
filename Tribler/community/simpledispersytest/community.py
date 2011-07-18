@@ -7,7 +7,7 @@ from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.destination import CommunityDestination
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, LastSyncDistribution
-from Tribler.Core.dispersy.message import Message, DropMessage
+from Tribler.Core.dispersy.message import Message, DelayMessageByProof
 from Tribler.Core.dispersy.resolution import LinearResolution
 
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
@@ -87,10 +87,11 @@ class SimpleDispersyTestCommunity(Community):
     def check_full_sync(self, messages):
         if __debug__: dprint(self._cid.encode("HEX"))
         for message in messages:
-            if not self._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay by proof")
-                continue
-            yield message
+            allowed, proofs = self._timeline.check(message)
+            if allowed:
+                yield message
+            else:
+                yield DelayMessageByProof(message)
 
     def on_full_sync(self, messages):
         if __debug__: dprint(self._cid.encode("HEX"))
@@ -110,10 +111,11 @@ class SimpleDispersyTestCommunity(Community):
     def check_last_1_sync(self, messages):
         if __debug__: dprint(self._cid.encode("HEX"))
         for message in messages:
-            if not self._timeline.check(message):
-                yield DropMessage(message, "TODO: implement delay by proof")
-                continue
-            yield message
+            allowed, proofs = self._timeline.check(message)
+            if allowed:
+                yield message
+            else:
+                yield DelayMessageByProof(message)
 
     def on_last_1_sync(self, messages):
         if __debug__: dprint(self._cid.encode("HEX"))
