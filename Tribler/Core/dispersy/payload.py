@@ -456,3 +456,23 @@ class SubjectiveSetRequestPayload(Payload):
         @property
         def members(self):
             return self._members
+
+class MissingProofPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, member, global_time):
+            if __debug__:
+                from member import Member
+            assert isinstance(member, Member)
+            assert isinstance(global_time, (int, long))
+            assert global_time > 0
+            super(MissingProofPayload.Implementation, self).__init__(meta)
+            self._member = member
+            self._global_time = global_time
+
+        @property
+        def member(self):
+            return self._member
+
+        @property
+        def global_time(self):
+            return self._global_time

@@ -147,6 +147,7 @@ class DispersySocket(object):
         self.rawserver = rawserver
         self.rawserver.start_listening_udp(self.socket, self)
         self.dispersy = dispersy
+        self.sendqueue = []
 
     def get_address(self):
         return self.socket.getsockname()
@@ -156,7 +157,7 @@ class DispersySocket(object):
         # sometimes called without any packets...
         if packets:
             try:
-                self.dispersy.on_incoming_packets(packets)
+                self.dispersy.data_came_in(packets)
             except:
                 traceback.print_exc()
                 raise
@@ -169,6 +170,20 @@ class DispersySocket(object):
                 self.sendqueue.append((data, address))
                 self.rawserver.add_task(self.process_sendqueue, 0.1)
 
+    def process_sendqueue(self):
+        sendqueue = self.sendqueue
+        self.sendqueue = []
+
+        while sendqueue:
+            data, address = sendqueue.pop(0)
+            try:
+                self.socket.sendto(data, address)
+            except socket.error, error:
+                if error[0] == SOCKET_BLOCK_ERRORCODE:
+                    self.sendqueue.append((data, address))
+                    self.sendqueue.extend(sendqueue)
+                    self.rawserver.add_task(self.process_sendqueue, 0.1)
+
 def main():
     def on_fatal_error(error):
         print >> sys.stderr, error
@@ -180,7 +195,7 @@ def main():
 
     def start():
         # start Dispersy
-        dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
+        dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir))
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         # load all HardKilledCommunity communities

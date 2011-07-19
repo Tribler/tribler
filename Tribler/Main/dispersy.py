@@ -36,9 +36,11 @@ def main():
                     port += 1
                     continue
                 break
+
             self.rawserver = rawserver
             self.rawserver.start_listening_udp(self.socket, self)
             self.dispersy = dispersy
+            self.sendqueue = []
 
         def get_address(self):
             return self.socket.getsockname()
@@ -63,6 +65,20 @@ def main():
                     self.sendqueue.append((data, address))
                     self.rawserver.add_task(self.process_sendqueue, 0.1)
 
+        def process_sendqueue(self):
+            sendqueue = self.sendqueue
+            self.sendqueue = []
+
+            while sendqueue:
+                data, address = sendqueue.pop(0)
+                try:
+                    self.socket.sendto(data, address)
+                except socket.error, error:
+                    if error[0] == SOCKET_BLOCK_ERRORCODE:
+                        self.sendqueue.append((data, address))
+                        self.sendqueue.extend(sendqueue)
+                        self.rawserver.add_task(self.process_sendqueue, 0.1)
+
     def on_fatal_error(error):
         print >> sys.stderr, "Rawserver fatal error:", error
         global exit_exception
@@ -83,13 +99,14 @@ def main():
             script = Script.get_instance(callback)
 
             if not opt.disable_dispersy_script:
-                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
+                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
                 script.add("dispersy-classification", DispersyClassificationScript)
                 script.add("dispersy-timeline", DispersyTimelineScript)
                 script.add("dispersy-candidate", DispersyCandidateScript)
                 script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)
                 script.add("dispersy-batch", DispersyBatchScript)
                 script.add("dispersy-sync", DispersySyncScript)
+                script.add("dispersy-identical-payload", DispersyIdenticalPayloadScript)
                 # script.add("dispersy-similarity", DispersySimilarityScript)
                 script.add("dispersy-signature", DispersySignatureScript)
                 script.add("dispersy-member-tag", DispersyMemberTagScript)
