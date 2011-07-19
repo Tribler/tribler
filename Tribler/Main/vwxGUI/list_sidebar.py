@@ -23,27 +23,26 @@ class SearchSideBar(wx.Panel):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        header = wx.StaticText(self, -1, 'Search progress')
+        header = wx.StaticText(self, -1, 'Search')
         font = header.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
-        hSizer.Add(header, 1)
+        hSizer.Add(header)
+        
+        self.searchState = wx.StaticText(self)
+        hSizer.Add(self.searchState, 1)
         
         ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
         self.ag.UseBackgroundColour(True)
         self.ag.Hide()
         hSizer.Add(self.ag, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        
         self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
 
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)        
         self.searchGauge = wx.Gauge(self, size = (-1, 7))
-        hSizer.Add(self.searchGauge, 1)
-        
-        self.searchFinished = wx.StaticText(self, -1, '')
-        hSizer.Add(self.searchFinished)
-        self.vSizer.Add(hSizer, 0, wx.EXPAND)
+        self.vSizer.Add(self.searchGauge, 0, wx.EXPAND|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         
         self.vSizer.AddSpacer((-1,15))
         
@@ -125,7 +124,7 @@ class SearchSideBar(wx.Panel):
         self.searchGauge.SetRange(max)
         self.searchGauge.SetValue(0)
         self.searchGauge.Show()
-        self.searchFinished.SetLabel('')
+        self.searchState.SetLabel(' in progress')
         
         wx.CallLater(10000, self.SetFinished)
         
@@ -150,7 +149,7 @@ class SearchSideBar(wx.Panel):
         self.ag.Stop()
         self.ag.Hide()
         self.searchGauge.Hide()
-        self.searchFinished.SetLabel('Completed')
+        self.searchState.SetLabel(' completed')
         self.Layout()
         
         self.Thaw()

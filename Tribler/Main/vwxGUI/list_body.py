@@ -96,6 +96,12 @@ class ListItem(wx.Panel):
         self.AddEvents(self)
     
     def AddEvents(self, control):
+        if isinstance(control, wx.SizerItem):
+            if control.IsWindow():
+                control = control.GetWindow()
+            else:
+                return
+        
         if getattr(control, 'Bind', False):
             if not isinstance(control, wx.Button):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
@@ -220,8 +226,12 @@ class ListItem(wx.Panel):
                         child.SetBackgroundColour(color)
             
             #If this item has a icon and it is not checked
-            if getattr(self, 'expandedState', False) and not self.expanded:
-                self.expandedState.SetBitmap(self.GetIcon(color, 0))
+            if getattr(self, 'expandedState', False):
+                if self.expanded:
+                    state = 1
+                else:
+                    state = 0
+                self.expandedState.SetBitmap(self.GetIcon(color, state))
                 self.expandedState.Refresh()
             
             self.Refresh()
@@ -257,7 +267,7 @@ class ListItem(wx.Panel):
             
         event.Skip() #Allow windows to paint button hover
         
-    def OnClick(self, event):
+    def OnClick(self, event = None):
         if not self.expanded:
             if self.parent_list.OnExpand(self):
                 self.expanded = True
@@ -297,7 +307,7 @@ class ListItem(wx.Panel):
             return item
         
 class AbstractListBody():
-    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None):
+    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None, hasFilter = True):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -308,6 +318,7 @@ class AbstractListBody():
         if not list_item_max:
             list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
+        self.hasFilter = hasFilter
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -383,17 +394,21 @@ class AbstractListBody():
         
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
-        self.Freeze()
+        
         
         self.sortcolumn = column
         self.sortreverse = reverse
-        self.DoSort()
         
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
-        self.CreateItems()
+        if self.data:
+            self.Freeze()
+            
+            self.DoSort()
+            
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
+            self.CreateItems()
         
-        self.Thaw()
+            self.Thaw()
         
     def DoSort(self):
         def sortby(b, a):
@@ -602,6 +617,11 @@ class AbstractListBody():
             if DEBUG:
                 print >> sys.stderr, "ListBody: refresh item"
             self.items[key].RefreshData(data)
+            
+            #forward update to expandedPanel
+            panel = self.items[key].GetExpandedPanel()
+            if panel and getattr(panel, 'RefreshData', False):
+                panel.RefreshData(data)
     
     def SetData(self, data = None):
         if DEBUG:
@@ -706,11 +726,11 @@ class AbstractListBody():
 
     def OnLoadMore(self, event):
         self.loadNext.Disable()
-        self.CreateItems(nr_items_to_create=LIST_ITEM_MAX_SIZE, nr_items_to_add=sys.maxint)
+        wx.CallAfter(self.CreateItems, LIST_ITEM_MAX_SIZE, sys.maxint)
         
     def OnLoadAll(self):
         self.loadNext.Disable()
-        self.CreateItems(nr_items_to_create=sys.maxint, nr_items_to_add=sys.maxint)
+        wx.CallAfter(self.CreateItems, sys.maxint, sys.maxint)
 
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = None):
         if not nr_items_to_add:
@@ -762,7 +782,9 @@ class AbstractListBody():
                     if message != '':
                         message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
                     else:
-                        message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
+                        message = 'Only showing the first %d of %d items in this list.'%(len(self.vSizer.GetChildren()), len(self.data))
+                        if self.hasFilter:
+                            message +='\nSearch within results to reduce the number of items, or click the button below.'
                         
                     remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
                     self.loadNext.SetLabel("Show next %d items"%remainingItems)
@@ -842,7 +864,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
 class FixedListBody(wx.Panel, AbstractListBody):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max = list_item_max)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max = list_item_max, hasFilter = False)
     
     def Scroll(self, x, y):
         pass

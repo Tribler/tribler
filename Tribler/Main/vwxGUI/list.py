@@ -80,7 +80,7 @@ class RemoteSearchManager:
             wx.CallAfter(self._on_torrent_updated, infohash, data)
         
         if self.list.InList(infohash):
-            self.guiserver.add_task(db_callback, id = "RemoteSearchManager_torrentUpdated")
+            self.guiserver.add_task(db_callback)
             
     def _on_torrent_updated(self, infohash, data):
         self.list.RefreshData(infohash, data)
@@ -691,31 +691,18 @@ class GenericSearchList(List):
         List.RefreshData(self, key, data)
         
         original_data = data
-        # bundle update
-        if 'bundle' in original_data:
-            head = original_data['bundle'][0]
-        # individual hit update
-        else:
+        if 'bundle' in data: # bundle update
+            head = data['bundle'][0]
+        
+        else: # individual hit update
             head = original_data
             
-            # Check whether the individual hit is in a bundle:
-            if DEBUG and key in self.infohash2key:
-                print >>sys.stderr, '>> SearchList.RefreshData, mapping infohash key to bundle key'
+            # check whether the individual hit is in a bundle
             key = self.infohash2key.get(key, key)
         
+        # Update primary columns with new data
         data = (head['infohash'], [head['name'], head['length'], 0, 0], original_data)
-        
-        if DEBUG and key.startswith('Group'):
-            print >>sys.stderr, '>> SearchList.RefreshData, key =', key, ';\n\t', head['name']
         self.list.RefreshData(key, data)
-        
-        if key in self.list.items:
-            item = self.list.GetItem(key)
-            
-            panel = item.GetExpandedPanel()
-            if panel:# and 'bundle' not in original_data:
-                # Only do this for normal ListItems:
-                panel.UpdateStatus()
     
     def SetFilteredResults(self, nr):
         if nr != self.total_results: 
@@ -751,6 +738,10 @@ class GenericSearchList(List):
             self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
+        
+    def InList(self, key):
+        key = self.infohash2key.get(key, key)
+        return List.InList(self, key)
         
     def format(self, val):
         val = int(val)

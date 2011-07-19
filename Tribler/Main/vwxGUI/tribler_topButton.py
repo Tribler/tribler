@@ -412,6 +412,12 @@ class LinkStaticText(wx.Panel):
     
     def GetLabel(self):
         return self.text.GetLabel()
+    
+    def SetFont(self, font):
+        self.text.SetFont(font)
+        
+    def GetFont(self):
+        return self.text.GetFont()
         
     def OnMouse(self, event):
         if event.Entering() or event.Moving():

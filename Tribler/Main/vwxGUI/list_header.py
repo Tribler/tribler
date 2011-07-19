@@ -550,6 +550,8 @@ class SearchHelpHeader(SearchHeader):
         filename = os.path.join(gui_utility.vwxGUI_path, "images", "help.png")
         help = wx.StaticBitmap(parent, -1, wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         help.Bind(wx.EVT_LEFT_UP, self.helpClick)
+        help.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
 
         return hSizer

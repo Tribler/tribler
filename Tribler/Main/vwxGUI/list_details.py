@@ -28,6 +28,7 @@ from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
+DEBUG = True
 
 class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent, compact=False):
@@ -56,12 +57,19 @@ class TorrentDetails(wx.Panel):
         self.isReady = False
         self.noChannel = False
         
+        if DEBUG:
+            print >> sys.stderr, "TorrentDetails: loading", torrent['name']
+        
         #Load torrent using guitaskqueue
         self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
         
     def loadTorrent(self):
         try:
             requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+            
+            if DEBUG:
+                print >> sys.stderr, "TorrentDetails: loading (ON GUISERVER)", self.torrent['name']
+            
             if requesttype:
                 #switch back to gui thread
                 wx.CallAfter(self._showRequestType, requesttype)
@@ -78,10 +86,16 @@ class TorrentDetails(wx.Panel):
             pass
     
     def showTorrent(self, torrent, information):
+        if DEBUG:
+            print >> sys.stderr, "TorrentDetails: finished loading (ON GUISERVER)", self.torrent['name']
+        
         #switch back to gui thread
         wx.CallAfter(self._showTorrent, torrent, information)
         
     def _showTorrent(self, torrent, information):
+        if DEBUG:
+            print >> sys.stderr, "TorrentDetails: finished loading", self.torrent['name']
+        
         try:
             self.torrent = torrent
             self.information = information
@@ -758,6 +772,9 @@ class TorrentDetails(wx.Panel):
         torrentfeed.addFile(torrent_filename)
         self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
         self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
+
+    def RefreshData(self, data):
+        self.UpdateStatus() 
     
     def UpdateStatus(self):
         if 'torrent_id' not in self.torrent:
@@ -837,6 +854,8 @@ class TorrentDetails(wx.Panel):
             self.ShowPanel(2)
             
     def __del__(self):
+        if DEBUG:
+            print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']
         self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
 
 class LibraryDetails(TorrentDetails):
