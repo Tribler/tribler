@@ -1163,6 +1163,7 @@ class Dispersy(Singleton):
                 return False
 
             elif isinstance(message, DropMessage):
+                if __debug__: dprint("drop: ", message)
                 self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
                 return False
 

@@ -115,7 +115,7 @@ class Timeline(object):
 
                             time, permissions = iterator.next()
 
-                    except StopIteration():
+                    except StopIteration:
                         if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (not authorized)", level="warning")
                         return (False, [])
                 else:
