@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 This module provides an interface to the Dispersy database.
 
