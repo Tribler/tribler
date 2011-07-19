@@ -10,7 +10,6 @@ This module provides an interface to the Dispersy database.
 """
 
 from socket import gethostbyname
-from hashlib import sha1
 from os import path
 
 from database import Database

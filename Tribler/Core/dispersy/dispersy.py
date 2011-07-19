@@ -3310,7 +3310,8 @@ class Dispersy(Singleton):
                 requests = [meta.implement(authentication_impl, distribution_impl, meta.destination.implement(candidate.address), meta.payload.implement(self._my_external_address, candidate.address, conversion_version, candidates))
                             for candidate
                             in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count, community.dispersy_candidate_request_destination_diff_range, community.dispersy_candidate_request_destination_age_range)]
-                self.store_update_forward(requests, False, False, True)
+                if requests:
+                    self.store_update_forward(requests, False, False, True)
                 yield community.dispersy_candidate_request_interval
 
     def _periodically_cleanup_database(self):
