@@ -3263,40 +3263,52 @@ class Dispersy(Singleton):
          4. How many bytes -at most- are sent back in response to a received dispersy-sync message.
             This is determined by the self.dispersy_sync_response_limit.  This defaults to 5KB.
         """
-        meta = community.get_meta_message(u"dispersy-sync")
-        while community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
-            messages = [meta.implement(meta.authentication.implement(community.my_member),
-                                       meta.distribution.implement(community.global_time),
-                                       meta.destination.implement(),
-                                       meta.payload.implement(time_low, time_high, bloom_filter))
-                        for time_low, time_high, bloom_filter
-                        in community.dispersy_sync_bloom_filters]
-            if __debug__:
-                for message in messages:
-                    dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high if message.payload.time_high else "inf", "] (", community.get_classification(), ")")
-            self.store_update_forward(messages, False, False, True)
-            yield community.dispersy_sync_interval
+        try:
+            meta = community.get_meta_message(u"dispersy-sync")
+
+        except:
+            pass
+
+        else:
+            while community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
+                messages = [meta.implement(meta.authentication.implement(community.my_member),
+                                           meta.distribution.implement(community.global_time),
+                                           meta.destination.implement(),
+                                           meta.payload.implement(time_low, time_high, bloom_filter))
+                            for time_low, time_high, bloom_filter
+                            in community.dispersy_sync_bloom_filters]
+                if __debug__:
+                    for message in messages:
+                        dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high if message.payload.time_high else "inf", "] (", community.get_classification(), ")")
+                self.store_update_forward(messages, False, False, True)
+                yield community.dispersy_sync_interval
 
     def _periodically_create_candidate_request(self, community):
-        while community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
-            minimal_age, maximal_age = community.dispersy_candidate_age_range
-            limit = community.dispersy_candidate_limit
-            sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
-                FROM candidate
-                WHERE community = ? AND age BETWEEN ? AND ?
-                ORDER BY age
-                LIMIT ?"""
-            candidates = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age, limit))]
-
+        try:
             meta = community.get_meta_message(u"dispersy-candidate-request")
-            authentication_impl = meta.authentication.implement(community.my_member)
-            distribution_impl = meta.distribution.implement(community.global_time)
-            conversion_version = community.get_conversion().version
-            requests = [meta.implement(authentication_impl, distribution_impl, meta.destination.implement(candidate.address), meta.payload.implement(self._my_external_address, candidate.address, conversion_version, candidates))
-                        for candidate
-                        in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count, community.dispersy_candidate_request_destination_diff_range, community.dispersy_candidate_request_destination_age_range)]
-            self.store_update_forward(requests, False, False, True)
-            yield community.dispersy_candidate_request_interval
+
+        except:
+            pass
+
+        else:
+            while community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
+                minimal_age, maximal_age = community.dispersy_candidate_age_range
+                limit = community.dispersy_candidate_limit
+                sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
+                    FROM candidate
+                    WHERE community = ? AND age BETWEEN ? AND ?
+                    ORDER BY age
+                    LIMIT ?"""
+                candidates = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age, limit))]
+
+                authentication_impl = meta.authentication.implement(community.my_member)
+                distribution_impl = meta.distribution.implement(community.global_time)
+                conversion_version = community.get_conversion().version
+                requests = [meta.implement(authentication_impl, distribution_impl, meta.destination.implement(candidate.address), meta.payload.implement(self._my_external_address, candidate.address, conversion_version, candidates))
+                            for candidate
+                            in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count, community.dispersy_candidate_request_destination_diff_range, community.dispersy_candidate_request_destination_age_range)]
+                self.store_update_forward(requests, False, False, True)
+                yield community.dispersy_candidate_request_interval
 
     def _periodically_cleanup_database(self):
         # cleannup candidate tables
