@@ -157,6 +157,9 @@ class Dispersy(Singleton):
         @param working_directory: The directory where all files should be stored.
         @type working_directory: unicode
         """
+        assert isinstance(callback, Callback)
+        assert isinstance(working_directory, unicode)
+
         # the raw server
         self._callback = callback
         self._callback.register(self._watchdog)

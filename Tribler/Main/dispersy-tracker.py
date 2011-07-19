@@ -157,7 +157,7 @@ class DispersySocket(object):
         # sometimes called without any packets...
         if packets:
             try:
-                self.dispersy.on_incoming_packets(packets)
+                self.dispersy.data_came_in(packets)
             except:
                 traceback.print_exc()
                 raise
@@ -195,7 +195,7 @@ def main():
 
     def start():
         # start Dispersy
-        dispersy = TrackerDispersy.get_instance(rawserver, unicode(opt.statedir))
+        dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir))
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         # load all HardKilledCommunity communities
