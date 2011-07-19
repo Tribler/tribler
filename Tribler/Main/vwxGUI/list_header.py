@@ -534,7 +534,7 @@ class SearchHeader(FamilyFilterHeader):
         self.subtitle.SetLabel('')
         self.filter.Clear()
         
-class SearchHelpHeader(TitleHeader):
+class SearchHelpHeader(SearchHeader):
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
         self.filter.SetDescriptiveText('Search within results')
@@ -553,17 +553,10 @@ class SearchHelpHeader(TitleHeader):
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
 
         return hSizer
-    
-    def FilterCorrect(self, regex_correct):
-        pass
-    
-    def OnKey(self, event):
-        self.parent.OnFilter(self.filter.GetValue().strip())
-    
-    def Reset(self):
-        TitleHeader.Reset(self)
-        self.filter.Clear()
 
+    def GetSubTitlePanel(self, parent):
+        pass
+   
     def helpClick(self,event=None):
         title = 'Search within results'
         html = """<p>
