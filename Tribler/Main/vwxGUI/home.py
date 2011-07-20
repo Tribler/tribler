@@ -70,8 +70,8 @@ class Home(wx.Panel):
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
+        self.searchBox.SetFocus()
         self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown) 
-
         
         textSizer.Add(self.searchBox, 1)
         
@@ -101,6 +101,10 @@ class Home(wx.Panel):
             self.OnClick(event)
         else:
             event.Skip()
+            
+    def SearchFocus(self):
+        self.searchBox.SetFocus()
+        self.searchBox.SelectAll()
         
 class Stats(wx.Panel):
     def __init__(self):
@@ -447,7 +451,7 @@ class BuzzPanel(HomePanel):
         self.nbdb = NetworkBuzzDBHandler.getInstance()
         self.xxx_filter = Category.getInstance().xxx_filter
         
-        HomePanel.__init__(self, parent, 'Network Buzz', LIST_GREY)
+        HomePanel.__init__(self, parent, 'Search suggestions', LIST_GREY)
          
         self.tags = []
         self.buzz_cache = [[],[],[]]
