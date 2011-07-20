@@ -52,11 +52,11 @@ class BundleListItem(ListItem):
         self.vSizer.Add(self.bundlepanel, 1, wx.EXPAND)
         
     def RefreshData(self, data):
-        infohash, _, original_data = data
+        infohash, item_data, original_data = data
         
         if isinstance(original_data, dict) and 'bundle' in original_data:
             #update top row
-            ListItem.RefreshData(self, data)
+            ListItem.RefreshData(self, (infohash, item_data, original_data['bundle'][0]))
             bundle = original_data['bundle']
             
             if DEBUG:
