@@ -80,7 +80,9 @@ class BundleListItem(ListItem):
         
         self.vSizer.Detach(panel)
         self.vSizer.Insert(1, panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
+        
         self.expanded_panel = panel
+        self.expanded_panel_shown = True
     
     def Collapse(self):
         ListItem.Collapse(self)
@@ -105,6 +107,9 @@ class BundleListItem(ListItem):
         panel = self.expanded_panel
         
         if panel:
+            if DEBUG:
+                print >> sys.stderr, "BundleListItem: ShowExpandedPanel", show, self.expanded_panel_shown
+            
             panel.Show(show)
             
             self.expanded_panel_shown = show
@@ -320,7 +325,7 @@ class BundlePanel(wx.Panel):
     
     def OnBundleLinkClick(self, event):
         #do expand
-        self.ExpandParent()
+        self.ExpandAndHideParent()
         
         staticText = event.GetEventObject()
         action = getattr(staticText, 'action', None)
@@ -336,20 +341,22 @@ class BundlePanel(wx.Panel):
             
     def OnMoreClick(self, event):
         #do expand
-        self.ExpandParent()
+        self.ExpandAndHideParent()
         self.ChangeState(BundlePanel.FULL)
         
-    def ExpandParent(self):
+    def ExpandAndHideParent(self):
         listitem = self.GetParent()
+        
+        listitem.Freeze()
         
         if not listitem.expanded:
             # Make sure the listitem is marked as expanded
-            listitem.Freeze()
             listitem.OnClick()
-            
-            # but hide the panel
-            listitem.ShowExpandedPanel(False)
-            listitem.Thaw()
+        
+        # but hide the panel
+        listitem.ShowExpandedPanel(False)
+        
+        listitem.Thaw()
             
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)

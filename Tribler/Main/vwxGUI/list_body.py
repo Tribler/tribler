@@ -306,6 +306,9 @@ class ListItem(wx.Panel):
             self.vSizer.Layout()
             return item
         
+    def __str__( self ):
+        return "ListItem" + " ".join(map(str, self.data))
+        
 class AbstractListBody():
     def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None, hasFilter = True):
         self.columns = columns
@@ -615,12 +618,15 @@ class AbstractListBody():
     def RefreshData(self, key, data):
         if key in self.items:
             if DEBUG:
-                print >> sys.stderr, "ListBody: refresh item"
+                print >> sys.stderr, "ListBody: refresh item", self.items[key]
             self.items[key].RefreshData(data)
             
             #forward update to expandedPanel
             panel = self.items[key].GetExpandedPanel()
             if panel and getattr(panel, 'RefreshData', False):
+                if DEBUG:
+                    print >> sys.stderr, "ListBody: refresh item (Calling expandedPanel refreshdata)", self.items[key]
+                
                 panel.RefreshData(data)
     
     def SetData(self, data = None):

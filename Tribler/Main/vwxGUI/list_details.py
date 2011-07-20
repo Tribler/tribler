@@ -182,25 +182,12 @@ class TorrentDetails(wx.Panel):
             "Type": category.capitalize(),
             "Uploaded": date.fromtimestamp(self.torrent['creation_date']).strftime('%Y-%m-%d'),
             "Filesize": self.guiutility.utility.size_format(self.torrent['length']) + " in " + str(len(self.information[2])) + " files",
+            "Status": "Unknown"
         }
         
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
-        
-        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
-        if swarmInfo:
-            _, seeders, leechers, last_check, _, _ = swarmInfo
-        else:
-            seeders = self.torrent.get('num_seeders', -1)
-            leechers = self.torrent.get('num_leechers', -1)
-            last_check = -1
-        
-        diff = time() - last_check
-        if seeders <= 0 and leechers <= 0:
-            overviewColumns["Status"] = "Unknown"
-        else:
-            overviewColumns["Status"] = "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2))
-        
+
         if self.compact:
             vSizer = wx.FlexGridSizer(0, 6, 3, 3)
             vSizer.AddGrowableCol(1,4) #we give more space to name and status
@@ -216,8 +203,16 @@ class TorrentDetails(wx.Panel):
             _, value = self._add_row(overview, vSizer, column, overviewColumns[column])
             if column == "Status":
                 self.status = value
-            
+    
         torrentSizer.Add(vSizer, 1, wx.EXPAND)
+        
+        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
+        if swarmInfo:
+            _, _, _, self.torrent['last_check'], _, _ = swarmInfo
+        else:
+            self.torrent['last_check'] = -1
+        diff = time() - self.torrent['last_check']
+        self.ShowStatus()
         
         if diff > 1800: #force update if last update more than 30 minutes ago
             TorrentChecking(self.torrent['infohash']).start()
@@ -792,7 +787,14 @@ class TorrentDetails(wx.Panel):
         if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
             self.status.SetLabel("Unknown")
         else:
-            self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+            if diff < 5:
+                self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+            else:
+                updated = self.guiutility.utility.eta_value(diff, 2)
+                if updated == '<unknown>':
+                    self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+                else:
+                    self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent['num_seeders'], self.torrent['num_leechers'] ,updated))
            
     def OnRefresh(self, dslist):
         found = False
