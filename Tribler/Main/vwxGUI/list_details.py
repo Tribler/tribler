@@ -40,6 +40,9 @@ class TorrentDetails(wx.Panel):
         self.type = None
         self.vod_log = None
         
+        self.isReady = False
+        self.noChannel = False
+        
         self.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -52,9 +55,6 @@ class TorrentDetails(wx.Panel):
         vSizer.Add(self.details, 0, wx.EXPAND, 0)
         self.SetSizer(vSizer)
         self.Layout()
-        
-        self.isReady = False
-        self.noChannel = False
         
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: loading", torrent['name']
@@ -156,6 +156,7 @@ class TorrentDetails(wx.Panel):
         
         if value:
             if isinstance(value, basestring):
+                value = value.strip()
                 try:
                     value = wx.StaticText(parent, -1, unicode(value))
                 except:
@@ -203,7 +204,7 @@ class TorrentDetails(wx.Panel):
             if column == "Status":
                 self.status = value
     
-        torrentSizer.Add(vSizer, 1, wx.EXPAND)
+        torrentSizer.Add(vSizer, 0, wx.EXPAND)
         
         swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
         if swarmInfo:
@@ -854,6 +855,18 @@ class TorrentDetails(wx.Panel):
             self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
             self.ShowPanel(2)
             
+    def Layout(self):
+        wx.Panel.Layout(self)
+        
+        if self.isReady:
+            #force setupscrolling for scrollpages, if constructed while not shown this is required.
+            for i in range(self.notebook.GetPageCount()):
+                page = self.notebook.GetPage(i)
+                page.Layout()
+                
+                if getattr(page, 'SetupScrolling', False):
+                    page.SetupScrolling()
+                
     def __del__(self):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']

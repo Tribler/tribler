@@ -85,11 +85,13 @@ class BundleListItem(ListItem):
         self.expanded_panel_shown = True
     
     def Collapse(self):
-        ListItem.Collapse(self)
+        panel = ListItem.Collapse(self)
         
         self.expanded_panel = None
         self.expanded_panel_shown = False
         self.bundlepanel.ChangeState(BundlePanel.COLLAPSED)
+        
+        return panel
     
     def OnClick(self, event = None):
         if event:
@@ -107,6 +109,8 @@ class BundleListItem(ListItem):
         panel = self.expanded_panel
         
         if panel:
+            self.Freeze()
+            
             if DEBUG:
                 print >> sys.stderr, "BundleListItem: ShowExpandedPanel", show, self.expanded_panel_shown
             
@@ -118,6 +122,11 @@ class BundleListItem(ListItem):
             
             self.parent_list.OnChange()
             self.Layout()
+
+            self.Thaw()
+            
+            if show:
+                panel.Layout()
     
     def BackgroundColor(self, color):
         ListItem.BackgroundColor(self, color)
