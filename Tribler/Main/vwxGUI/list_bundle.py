@@ -166,7 +166,9 @@ class BundlePanel(wx.Panel):
         self.SetHits(hits)
         self.UpdateHeader(general_description, description)
         
-        self.SetSizer(self.vsizer)
+        sizer = wx.BoxSizer()
+        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 3)
+        self.SetSizer(sizer)
     
     def AddHeader(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -251,7 +253,7 @@ class BundlePanel(wx.Panel):
                 max_list -= 1
             
             self.bundlelist = BundleListView(parent = self, list_item_max = max_list)
-            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.LEFT|wx.BOTTOM, 20)
+            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.LEFT|wx.BOTTOM, 17) #20 - 3 = 17
             
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method. Thus we have to do this after the add to the sizer
