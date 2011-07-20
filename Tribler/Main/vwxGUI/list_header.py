@@ -328,7 +328,7 @@ class TitleHeader(ListHeader):
         else:
             belowPanel = righttitlePanel
         
-        vSizer.Add(belowPanel, 0, wx.EXPAND|wx.ALL, 3)
+        vSizer.Add(belowPanel, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             ListHeader.AddColumns(self, hSizer, self, columns)

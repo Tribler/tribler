@@ -27,10 +27,10 @@ class SearchSideBar(wx.Panel):
         font = header.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
-        hSizer.Add(header)
+        hSizer.Add(header, 0, wx.ALIGN_CENTER_VERTICAL)
         
         self.searchState = wx.StaticText(self)
-        hSizer.Add(self.searchState, 1)
+        hSizer.Add(self.searchState, 1, wx.ALIGN_CENTER_VERTICAL)
         
         ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
@@ -100,7 +100,8 @@ class SearchSideBar(wx.Panel):
             self.vSizer.Add(channel, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
             channel.Bind(wx.EVT_LEFT_UP, self.OnChannel)
         
-        borderSizer = wx.BoxSizer()
+        borderSizer = wx.BoxSizer(wx.VERTICAL)
+        borderSizer.AddSpacer((-1, 3))
         borderSizer.Add(self.vSizer, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
 
         self.SetSizer(borderSizer)

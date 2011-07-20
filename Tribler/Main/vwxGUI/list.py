@@ -766,7 +766,7 @@ class SearchList(GenericSearchList):
     def _PostInit(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.header = self.CreateHeader()
-        sizer.Add(self.header, 0, wx.EXPAND|wx.BOTTOM, 3)
+        sizer.Add(self.header, 0, wx.EXPAND)
         
         list = wx.Panel(self)
         self.subheader = ListHeader(list, self.columns, radius = 0)
@@ -860,6 +860,7 @@ class SearchList(GenericSearchList):
     def Reset(self):
         GenericSearchList.Reset(self)
         self.leftLine.Reset()
+        self.subheader.Reset()
     
     def SetBackgroundColour(self, colour):
         GenericSearchList.SetBackgroundColour(self, colour)
