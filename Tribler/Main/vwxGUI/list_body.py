@@ -96,11 +96,8 @@ class ListItem(wx.Panel):
         self.AddEvents(self)
     
     def AddEvents(self, control):
-        if isinstance(control, wx.SizerItem):
-            if control.IsWindow():
-                control = control.GetWindow()
-            else:
-                return
+        if getattr(control, 'GetWindow', False): #convert sizeritems
+            control = control.GetWindow()
         
         if getattr(control, 'Bind', False):
             if not isinstance(control, wx.Button):
@@ -249,12 +246,10 @@ class ListItem(wx.Panel):
     def OnMouse(self, event):
         if event.Entering():
             event.GetEventObject().selected = True
-            self.selected = True
             self.ShowSelected()
             
         elif event.Leaving():
             event.GetEventObject().selected = False
-            self.selected = False
             self.ShowSelected()
             
         elif event.LeftDown():
