@@ -393,21 +393,23 @@ class AbstractListBody():
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
         
-        
         self.sortcolumn = column
         self.sortreverse = reverse
         
         if self.data:
-            self.Freeze()
+            if self.sortcolumn >= 0:
+                self.Freeze()
+                
+                self.DoSort()
+                
+                self.vSizer.ShowItems(False)
+                self.vSizer.Clear()
+                self.CreateItems()
             
-            self.DoSort()
-            
-            self.vSizer.ShowItems(False)
-            self.vSizer.Clear()
-            self.CreateItems()
-        
-            self.Thaw()
-        
+                self.Thaw()
+            else:
+                self.SetData()
+                        
     def DoSort(self):
         def sortby(b, a):
             if a[0] in self.items:

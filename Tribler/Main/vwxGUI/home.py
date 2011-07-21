@@ -70,7 +70,6 @@ class Home(wx.Panel):
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
-        self.searchBox.SetFocus()
         self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown) 
         
         textSizer.Add(self.searchBox, 1)

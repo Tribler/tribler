@@ -205,6 +205,9 @@ class ListHeader(wx.Panel):
         
         if event.Id == self.sortedColumn:
             newDirection = not self.sortedDirection
+            
+            if newDirection == self.columns[newColumn].get('sortAsc', False): #back to default, treat as off
+                newColumn = -1
         else:
             newDirection = self.columns[newColumn].get('sortAsc', False)
         

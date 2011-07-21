@@ -86,6 +86,7 @@ class TopSearchPanel(bgPanel):
         else:
             self.loaded_bitmap = self.bitmap
             self.setBitmap(None)
+            self.SearchFocus()
         
         self.Layout()
         self.Thaw()
