@@ -4,6 +4,7 @@ import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
 
 class SearchSideBar(wx.Panel):
@@ -17,8 +18,11 @@ class SearchSideBar(wx.Panel):
         
         self.nrfiltered = 0
         self.family_filter = True
-        self.bundlestates = ['Name', 'Numbers', 'Size', 'Off']
-        self.bundlestates_translation = ['Lev', 'Int', 'Size', None]
+        self.bundlestates = [Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
+        self.bundlestates_str = {Bundler.ALG_NAME: 'Name',
+                                 Bundler.ALG_NUMBERS: 'Numbers',
+                                 Bundler.ALG_SIZE: 'Size',
+                                 Bundler.ALG_OFF: 'Off'}
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -200,7 +204,7 @@ class SearchSideBar(wx.Panel):
         self.Thaw()
     
     def Reset(self):
-        self.SetBundleState(0)
+        self.SetBundleState(None)
         self.SetFF(True)
         self.nochannels.Show()
         
@@ -209,26 +213,40 @@ class SearchSideBar(wx.Panel):
             channel.SetToolTipString('')
     
     def OnRebundle(self, event):
-        #newstate = (self.bundlestate+1) % len(self.bundlestates)
-        newstate = self.bundlestates.index(event.GetEventObject().GetLabel())
+        newstate = event.GetEventObject().action
         self.SetBundleState(newstate)
         
     def SetBundleState(self, newstate):
+        if newstate is None:
+            local_override = False
+            auto_guess = False
+            
+            if local_override:
+                pass # TODO
+            elif auto_guess:
+                pass # TODO
+            else:
+                newstate = Bundler.ALG_NAME # default
+        
         self.Freeze()
         
-        self.bundlestatetext.SetLabel(' by %s' % self.bundlestates[newstate])
-        self.torrentsearch_manager.setBundleMode(self.bundlestates_translation[newstate])
+        if newstate != Bundler.ALG_OFF:
+            self.bundlestatetext.SetLabel(' by %s' % self.bundlestates_str[newstate])
+        else:
+            self.bundlestatetext.SetLabel(' is %s' % self.bundlestates_str[newstate])
+        self.torrentsearch_manager.setBundleMode(newstate)
         
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)
         
         self.bundleSizer.Add(wx.StaticText(self, -1, 'Bundle by '))
-        for i in range(len(self.bundlestates)):
-            if newstate == i:
-                self.bundleSizer.Add(wx.StaticText(self, -1, self.bundlestates[i]))
+        for i, state in enumerate(self.bundlestates):
+            if newstate == state:
+                self.bundleSizer.Add(wx.StaticText(self, -1, self.bundlestates_str[state]))
             else:
-                link = LinkStaticText(self, self.bundlestates[i], None)
+                link = LinkStaticText(self, self.bundlestates_str[state], None)
                 link.Bind(wx.EVT_LEFT_UP, self.OnRebundle)
+                link.action = state
                 self.bundleSizer.Add(link)
                 
             if i+1 < len(self.bundlestates):

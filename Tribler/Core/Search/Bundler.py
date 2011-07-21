@@ -807,11 +807,8 @@ class Bundler:
     GROUP_TOP_N = 2000 # None = all
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
     
-    algorithms = dict(
-        Int = IntGrouping(),
-        Lev = LevGrouping(),
-        Size = SizeGrouping(),
-    )
+    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF = range(4)
+    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping(), None]
     
     def __init__(self):
         self.clear()
@@ -836,13 +833,13 @@ class Bundler:
         and the bundle (bundle) itself.
         
         @param hits A ranked list of hits.
-        @param bundle_mode The name of an algorithm picked from 
-        Bundler.algorithms.keys(), or None.
+        @param bundle_mode The algorithm, selected by one of the 
+        Bundle.ALG_* constants. 
         @param searchkeywords The search keywords used to retrieve 
         the list of hits.
         @return A list containing hits and bundles.
         """
-        algorithm = Bundler.algorithms.get(bundle_mode, None)
+        algorithm = Bundler.algorithms[bundle_mode]
         if algorithm is None:
             return hits
         
