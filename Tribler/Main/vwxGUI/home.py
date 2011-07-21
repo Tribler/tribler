@@ -7,6 +7,7 @@ from time import time, strftime
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
+from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -26,24 +27,11 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 # _ProxyService 90s Test
 
-class Home(wx.Panel):
+class Home(XRCPanel):
     def __init__(self):
-        pre = wx.PrePanel()
-        # the Create step is done by XRC. 
-        self.PostCreate(pre)
-        if sys.platform == 'linux2': 
-            self.Bind(wx.EVT_SIZE, self.OnCreate)
-        else:
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-
-    def OnCreate(self, event):
-        if sys.platform == 'linux2': 
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
+        self.isReady = False
         
-        wx.CallAfter(self._PostInit)
-        event.Skip()
+        XRCPanel.__init__(self)
     
     def _PostInit(self):
         self.guiutility = GUIUtility.getInstance()
@@ -90,6 +78,9 @@ class Home(wx.Panel):
         
         self.SetSizer(vSizer)
         self.Layout()
+        self.isReady = True
+        
+        self.SearchFocus()
         
     def OnClick(self, event):
         term = self.searchBox.GetValue()
@@ -102,8 +93,9 @@ class Home(wx.Panel):
             event.Skip()
             
     def SearchFocus(self):
-        self.searchBox.SetFocus()
-        self.searchBox.SelectAll()
+        if self.isReady:
+            self.searchBox.SetFocus()
+            self.searchBox.SelectAll()
         
 class Stats(wx.Panel):
     def __init__(self):
