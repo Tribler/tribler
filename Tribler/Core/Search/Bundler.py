@@ -4,7 +4,9 @@ import re
 import sys
 from itertools import islice
 import time
+
 from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Main.vwxGUI import LIST_ITEM_MAX_SIZE
 
 # Flags
 USE_PSYCO = False    # Enables Psyco optimization for the Levenshtein algorithm
@@ -124,7 +126,7 @@ class GroupsList(object):
     # Certain algorithms use a datatstructure that's hard to modify. For example,
     # the size grouping algorithm uses an IntervalTree. Adding new intervals is easy,
     # but removing is not.
-    def __init__(self, query, algorithm, hits, prev_grouplist = None):
+    def __init__(self, query, algorithm, hits, prev_grouplist = None, max_bundles = None):
         """
         Constructs a GroupsList.
         
@@ -132,6 +134,7 @@ class GroupsList(object):
         @param algorithm The algorithm to apply to group the hits.
         @param hits The hits retrieved by the query.
         @param prev_grouplist Optionally, a previous version of this GroupsList.
+        @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         """
         self.query = query
         self.algorithm = algorithm
@@ -146,9 +149,10 @@ class GroupsList(object):
         self.infohashes = set()
         self.representative_hashes = set()
         
-        self._add_all(hits)
+        self._add_all(hits, max_bundles=max_bundles)
+        
     
-    def _add_all(self, hits):
+    def _add_all(self, hits, max_bundles=None):
         """
         Private auxiliary method to perform the actual grouping.
         The core, unoptimized and simplified algorithm works as follow:
@@ -170,10 +174,17 @@ class GroupsList(object):
                 group.append(hit)
         
         @param hits The hits to be grouped.
+        @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         """
         algorithm = self.algorithm
         context_state = self.context_state
         grouped_hits = self.groups
+        
+        def compute_simkey(hit_infohash, key, context_state):
+            return algorithm.simkey(key, context_state)
+        
+        def disabled_bundling(hit_infohash, key, context_state):
+            return hit_infohash
         
         infohashes = self.infohashes
         if self.prev_grouplist is not None:
@@ -204,7 +215,10 @@ class GroupsList(object):
             # self.representative_hashes = self.prev_grouplist.representative_hashes
         else:
             index = self.index
+            processed_hits = 0
             for hit in hits:
+                processed_hits += 1
+                
                 key = algorithm.key(hit, context_state)
                 hit_infohash = hit['infohash']
                             
@@ -225,7 +239,7 @@ class GroupsList(object):
                         group.prev_group = old_group
                 else:
                     # compute simkey for new group 
-                    simkey = self.algorithm.simkey(key, context_state)
+                    simkey = compute_simkey(hit_infohash, key, context_state)
                     
                     # try to reuse old group_id
                     group_id = -1
@@ -240,6 +254,14 @@ class GroupsList(object):
                     grouped_hits.append(new_group)
                     
                     group = new_group
+                    
+                    # When we reach max_bundles, disable bundling by adjusting 
+                    # the computation of simkeys
+                    if len(grouped_hits) == max_bundles:
+                        compute_simkey = disabled_bundling
+                        if DEBUG:
+                            print >>sys.stderr, '>> Bundler.py, reached limit of %s bundles,' % max_bundles
+                            print >>sys.stderr, '     disabling the computation of simkeys after processing %s hits' % processed_hits
                 
                 group.add(hit)
                 infohashes.add(hit_infohash)
@@ -805,6 +827,8 @@ class Bundler:
     """
     
     GROUP_TOP_N = 2000 # None = all
+    MAX_BUNDLES = LIST_ITEM_MAX_SIZE # None = all
+    
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
     
     ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF = range(4)
@@ -855,9 +879,10 @@ class Bundler:
         
         self._benchmark_start()
         grouped_hits = GroupsList(query, algorithm, hits1,
-                                  self.previous_groups.get(bundle_mode, None))
+                                  self.previous_groups.get(bundle_mode, None),
+                                  Bundler.MAX_BUNDLES)
         self._benchmark_end()
-        
+    
         hits1_withbundles = []
         for group in grouped_hits.groups:
             if len(group) > 1:
