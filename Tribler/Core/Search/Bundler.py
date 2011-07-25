@@ -180,11 +180,19 @@ class GroupsList(object):
         context_state = self.context_state
         grouped_hits = self.groups
         
-        def compute_simkey(hit_infohash, key, context_state):
-            return algorithm.simkey(key, context_state)
+        def create_new_group(hit_infohash, group_id, index, key, context_state):
+            # compute simkey for new group
+            simkey = algorithm.simkey(key, context_state)
+            
+            # create new group and store it in the index
+            new_group = HitsGroup(group_id, key, simkey, prev_group=old_group)
+            index[simkey] = new_group
+            return new_group
         
-        def disabled_bundling(hit_infohash, key, context_state):
-            return hit_infohash
+        def disabled_bundling(hit_infohash, group_id, index, key, context_state):
+            # only create a new group
+            new_group = HitsGroup(group_id, key, hit_infohash)
+            return new_group
         
         infohashes = self.infohashes
         if self.prev_grouplist is not None:
@@ -238,9 +246,6 @@ class GroupsList(object):
                         group.reassign_id(old_group.id)
                         group.prev_group = old_group
                 else:
-                    # compute simkey for new group 
-                    simkey = compute_simkey(hit_infohash, key, context_state)
-                    
                     # try to reuse old group_id
                     group_id = -1
                     old_group = None
@@ -248,24 +253,20 @@ class GroupsList(object):
                         old_group = old_index[key]
                         group_id = old_group.id
                     
-                    # create new group
-                    new_group = HitsGroup(group_id, key, simkey, prev_group=old_group)
-                    index[simkey] = new_group
-                    grouped_hits.append(new_group)
-                    
-                    group = new_group
+                    # create a new group (and store it in the index) 
+                    group = create_new_group(hit_infohash, group_id, index, key, context_state)
+                    grouped_hits.append(group)
                     
                     # When we reach max_bundles, disable bundling by adjusting 
                     # the computation of simkeys
                     if len(grouped_hits) == max_bundles:
-                        compute_simkey = disabled_bundling
+                        create_new_group = disabled_bundling
                         if DEBUG:
                             print >>sys.stderr, '>> Bundler.py, reached limit of %s bundles,' % max_bundles
                             print >>sys.stderr, '     disabling the computation of simkeys after processing %s hits' % processed_hits
                 
                 group.add(hit)
                 infohashes.add(hit_infohash)
-            
 
 class GroupingAlgorithm(object):
     """
@@ -826,7 +827,7 @@ class Bundler:
     creation of newer GroupsLists.
     """
     
-    GROUP_TOP_N = 2000 # None = all
+    GROUP_TOP_N = 500 # None = all
     MAX_BUNDLES = LIST_ITEM_MAX_SIZE # None = all
     
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
