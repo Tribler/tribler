@@ -60,7 +60,7 @@ class ListItem(wx.Panel):
             type = self.columns[i].get('type','label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-            
+                
                 if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                     option = 1
                     size = wx.DefaultSize
@@ -68,7 +68,10 @@ class ListItem(wx.Panel):
                     option = 0
                     size = (self.columns[i]['width'],-1)
                 
-                label = wx.StaticText(self, -1, str_data, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                label = wx.StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                
+                #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
+                label.SetLabel(str_data.replace('&', "&&"))
                 self.controls.append(label)
                 
                 self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
@@ -131,6 +134,9 @@ class ListItem(wx.Panel):
             type = self.columns[i].get('type','label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(data[1][i])
+                
+                #niels: we need to escape ampersand to allow them to be visible
+                str_data = str_data.replace('&', "&&")
                 
                 if str_data != self.controls[control_index].GetLabel():
                     self.controls[control_index].SetLabel(str_data)

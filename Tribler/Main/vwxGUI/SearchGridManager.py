@@ -74,17 +74,7 @@ class TorrentManager:
         return TorrentManager.__single
     getInstance = staticmethod(getInstance)
     
-    def getTorrent(self, torrent, callback):
-        """
-        TORRENT is a dictionary containing torrent information used to
-        display the entry on the UI. it is NOT the torrent file!
-        
-        CALLBACK is called when the torrent is downloaded. When no
-        torrent can be downloaded the callback is ignored
-        
-        Returns a filename, if filename is known or a boolean + request_type
-        describing if the torrent is requested
-        """
+    def getCollectedFilename(self, torrent):
         torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
         
         if 'torrent_file_name' not in torrent or not torrent['torrent_file_name']:
@@ -99,6 +89,21 @@ class TorrentManager:
         torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash'])
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
         if os.path.isfile(torrent_filename):
+            return torrent_filename
+        
+    def getTorrent(self, torrent, callback):
+        """
+        TORRENT is a dictionary containing torrent information used to
+        display the entry on the UI. it is NOT the torrent file!
+        
+        CALLBACK is called when the torrent is downloaded. When no
+        torrent can be downloaded the callback is ignored
+        
+        Returns a filename, if filename is known or a boolean + request_type
+        describing if the torrent is requested
+        """
+        torrent_filename = self.getCollectedFilename(torrent)
+        if torrent_filename:
             return torrent_filename
         
         #.torrent not found, try to download from peers
@@ -247,6 +252,7 @@ class TorrentManager:
     def getHitsInCategory(self, categorykey = 'all', sort = 'rameezmetric'):
         if DEBUG: begintime = time()
         # categorykey can be 'all', 'Video', 'Document', ...
+        bundle_mode = self.bundle_mode
         
         if DEBUG:
             print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:",categorykey,range
@@ -327,8 +333,9 @@ class TorrentManager:
             print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.library_manager.addDownloadStates(self.hits)
         
-        # vliegendhart: do grouping here, but only in filesMode...
-        returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, self.searchkeywords)
+        # vliegendhart: do grouping here
+        # Niels: important, we should not change self.hits otherwise prefetching will not work 
+        returned_hits = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
         #return [len(self.hits), self.filteredResults , self.hits]
         return [len(returned_hits), self.filteredResults , returned_hits]
@@ -363,15 +370,13 @@ class TorrentManager:
                             print >> sys.stderr, "Prefetch: in", "%.1fs" % (time() - begin_time), `hit["name"]`
                             return
                     print >> sys.stderr, "Prefetch BUG. We got a hit from something we didn't ask for"
-
-            if 'torrent_file_name' not in hit or not hit['torrent_file_name']:
-                hit['torrent_file_name'] = get_collected_torrent_filename(hit['infohash']) 
-            torrent_filename = os.path.join(torrent_dir, hit['torrent_file_name'])
-
-            if not os.path.isfile(torrent_filename):
+            
+            
+            torrent_filename = self.getCollectedFilename(hit)
+            if not torrent_filename:
                 if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio = 1):
-                    prefetch_counter += 1
                     if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", `hit["name"]`
+                    prefetch_counter += 1
 
             hit_counter += 1
             if prefetch_counter >= 10 or hit_counter >= 25:
@@ -895,8 +900,6 @@ class ChannelSearchGridManager:
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.searchmgr = SearchManager(self.channelcast_db)
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-
-        
         
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr

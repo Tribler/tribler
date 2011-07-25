@@ -827,7 +827,7 @@ class Bundler:
     creation of newer GroupsLists.
     """
     
-    GROUP_TOP_N = 500 # None = all
+    GROUP_TOP_N = 2000 # None = all
     MAX_BUNDLES = LIST_ITEM_MAX_SIZE # None = all
     
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
