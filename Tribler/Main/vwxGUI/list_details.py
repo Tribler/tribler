@@ -747,7 +747,7 @@ class TorrentDetails(wx.Panel):
                 os.remove(filename)
     
     def OnClick(self, event):
-        label = event.GetEventObject().GetParent()
+        label = event.GetEventObject()
         if label.target == 'my_files':
             self.guiutility.frame.top_bg.selectTab('my_files')
             self.guiutility.ShowPage('my_files', self.torrent['infohash'])

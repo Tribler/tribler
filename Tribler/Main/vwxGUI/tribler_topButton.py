@@ -177,6 +177,7 @@ class tribler_topButton(wx.Panel):
                 subbitmap = bitmap.GetSubBitmap(rect)
                 dc.DrawBitmapPoint(subbitmap, location)
             dc.SelectObject(wx.NullBitmap)
+            del dc
             
             return bmp
         except:
@@ -352,6 +353,7 @@ class NativeIcon:
         elif type == 'tree':
             wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
         dc.SelectObject(wx.NullBitmap)
+        del dc
         
         #determine actual size of drawn icon, and return this subbitmap
         bb = wx.RegionFromBitmapColour(bmp, background).GetBox()

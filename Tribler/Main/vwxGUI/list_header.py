@@ -38,6 +38,7 @@ class ListHeaderIcon:
         if type == 'arrow':
             wx.RendererNative.Get().DrawDropArrow(parent, dc, (4, 4, 16, 16), flag) #max size is 16x16, using 4px as a border
         dc.SelectObject(wx.NullBitmap)
+        del dc
         
         #determine actual size of drawn icon, and return this subbitmap
         bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
@@ -51,6 +52,7 @@ class ListHeaderIcon:
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
         dc.SelectObject(wx.NullBitmap)
+        del dc
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
