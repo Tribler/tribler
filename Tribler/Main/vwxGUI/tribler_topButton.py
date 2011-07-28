@@ -327,18 +327,24 @@ class NativeIcon:
     getInstance = staticmethod(getInstance)
     
     def getBitmap(self, parent, type, background, state):
+        if isinstance(background, wx.Colour):
+            background = background.Get()
+        else:
+            background = wx.Brush(background).GetColour().Get()
+        
         icons = self.icons.setdefault(type, {}).setdefault(background, {})
         if state not in icons:
             icons[state] = self.__createBitmap(parent, background, type, state)
-        
         return icons[state]
     
     def __createBitmap(self, parent, background, type, state):
         if state == 1:
             if type == 'tree':
                 state = wx.CONTROL_EXPANDED
-            else:
+            elif type == 'checkbox':
                 state = wx.CONTROL_CHECKED
+            else:
+                state = wx.CONTROL_PRESSED
         
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
         #Thus we create a larger bmp, allowing for borders
@@ -350,8 +356,13 @@ class NativeIcon:
         #max size is 16x16, using 4px as a border
         if type == 'checkbox':
             wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
+            
         elif type == 'tree':
             wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
+            
+        elif type == 'arrow':
+            wx.RendererNative.Get().DrawDropArrow(parent, dc, (4, 4, 16, 16), state)
+            
         dc.SelectObject(wx.NullBitmap)
         del dc
         

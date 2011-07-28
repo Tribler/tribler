@@ -63,10 +63,6 @@ class TorrentManager:
         self.bundler = Bundler()
         self.bundle_mode = None
         self.category = Category.getInstance()
-        
-        # 09/10/09 boudewijn: CallLater does not accept zero as a
-        # delay. the value needs to be a positive integer.
-        self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -680,6 +676,8 @@ class LibraryManager:
         
         # Gui callbacks
         self.gui_callback = []
+        
+        self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:

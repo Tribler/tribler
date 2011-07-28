@@ -2,7 +2,8 @@ import wx
 import sys
 import os
 
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
+    NativeIcon
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -23,26 +24,18 @@ class ListHeaderIcon:
     getInstance = staticmethod(getInstance)
     
     def getBitmaps(self, parent, background):
+        if isinstance(background, wx.Colour):
+            background = background.Get()
+        else:
+            background = wx.Brush(background).GetColour().Get()
+        
         if background not in self.icons:
             self.icons[background] = self.__createBitmap(parent, background, 'arrow')
         return self.icons[background]
     
     def __createBitmap(self, parent, background, type, flag=0):
-        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
-        #Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24,24) 
-        dc = wx.MemoryDC(bmp)
-        dc.SetBackground(wx.Brush(background))
-        dc.Clear()
-        
-        if type == 'arrow':
-            wx.RendererNative.Get().DrawDropArrow(parent, dc, (4, 4, 16, 16), flag) #max size is 16x16, using 4px as a border
-        dc.SelectObject(wx.NullBitmap)
-        del dc
-        
-        #determine actual size of drawn icon, and return this subbitmap
-        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
-        down = bmp.GetSubBitmap(bb)
+        nativeIcon = NativeIcon.getInstance()
+        down = nativeIcon.getBitmap(parent, type, background, flag)
         
         img = down.ConvertToImage()
         up = img.Rotate90().Rotate90().ConvertToBitmap()
@@ -53,6 +46,7 @@ class ListHeaderIcon:
         dc.Clear()
         dc.SelectObject(wx.NullBitmap)
         del dc
+        
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
@@ -103,7 +97,7 @@ class ListHeader(wx.Panel):
                     self.defaultSort = i
                 else:
                     label.sortIcon = wx.StaticBitmap(self, -1, empty)
-                sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP|wx.BOTTOM, 3)
+                sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
                 
                 if columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
                     columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth()
