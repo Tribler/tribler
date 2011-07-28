@@ -373,7 +373,6 @@ class NativeIcon:
 class LinkStaticText(wx.Panel):
     def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
-        self.SetBackgroundColour(parent.GetBackgroundColour())
         self.icon_type = icon_type
         
         if icon:
@@ -383,19 +382,19 @@ class LinkStaticText(wx.Panel):
             self.icon = wx.StaticBitmap(self, bitmap = NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, self.GetBackgroundColour(), state=0))
         else:
             self.icon = None
-        
+
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         if self.icon and icon_align == wx.ALIGN_LEFT:
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        self.text = wx.StaticText(self, -1, text)
+        self.text = wx.HyperlinkCtrl(self, -1, text, text)
+        self.text.SetNormalColour(font_colour)
+        self.text.SetVisitedColour(font_colour)
         font = self.text.GetFont()
-        font.SetUnderlined(True)
         font.SetPointSize(font.GetPointSize() + font_increment)
         self.text.SetFont(font)
-        self.text.SetForegroundColour(font_colour)
-        self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        
         hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
             
         if self.icon and icon_align == wx.ALIGN_RIGHT:
@@ -406,9 +405,9 @@ class LinkStaticText(wx.Panel):
         
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
-        self.mouse_over = False
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+       
+        if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
+            self.SetBackgroundColour(parent.GetBackgroundColour())
         
     def SetToolTipString(self, tip):
         wx.Panel.SetToolTipString(self, tip)
@@ -432,40 +431,26 @@ class LinkStaticText(wx.Panel):
     def GetFont(self):
         return self.text.GetFont()
         
-    def OnMouse(self, event):
-        if event.Entering() or event.Moving():
-            self.ShowMouseOver(True)
-        
-        elif event.Leaving():
-            self.ShowMouseOver(False)
-        
-        event.Skip()
-        
-    def ShowMouseOver(self, mouse_over = True):
-        if self.mouse_over != mouse_over:
-            font = self.text.GetFont()
-            
-            if mouse_over:
-                font.SetStyle(wx.ITALIC)
-            else:
-                font.SetStyle(wx.NORMAL)
-            
-            self.text.SetFont(font)
-            self.mouse_over = mouse_over
-        
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         wx.Panel.Bind(self, event, handler, source, id, id2)
         
         def modified_handler(actual_event, handler=handler):
             actual_event.SetEventObject(self)
             handler(actual_event)
-        
-        self.text.Bind(event, modified_handler, source, id, id2)
+            
+        def text_handler(actual_event, handler=handler):
+            mouse_event = wx.MouseEvent(wx.wxEVT_LEFT_UP)
+            mouse_event.SetEventObject(self)
+            handler(mouse_event)
+            
+        if event == wx.EVT_LEFT_UP:
+            self.text.Bind(wx.EVT_HYPERLINK, text_handler, source, id, id2)
         if getattr(self, 'icon', False):
             self.icon.Bind(event, modified_handler, source, id, id2)
             
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
+        self.text.SetBackgroundColour(colour)
         
         if getattr(self, 'icon', False) and getattr(self, 'icon_type', False):
             self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, colour, state=0))
