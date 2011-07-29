@@ -216,6 +216,33 @@ class BundlePanel(wx.Panel):
         
         children = self.grid.GetChildren()
         didChange = len(children) < min(N, self.nrhits)
+        if not didChange:
+            if DEBUG:
+                print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
+            
+            #total nr items did not change
+            for i in range(min(len(children), items_to_add)):
+                link_static_text = children[i].GetWindow()
+                if link_static_text and getattr(link_static_text, 'GetLabel', False):
+                    if hits[i]['name'] != link_static_text.GetLabel():
+                        link_static_text.SetLabel(hits[i]['name'])
+                        link_static_text.action = hits[i]
+                else:
+                    didChange = True
+                    break
+            
+            if self.nrhits > N:
+                more_caption = '(%s more...)' % (self.nrhits - N + 1)
+                link_static_text = children[i+1].GetWindow()
+                if link_static_text and getattr(link_static_text, 'GetLabel', False):
+                    if link_static_text.GetLabel() != more_caption:
+                        link_static_text.SetLabel(more_caption)
+                        link_static_text.Unbind(wx.EVT_LEFT_UP)
+                        link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+                else:
+                    didChange = True
+                    break
+                    
         if didChange:
             self.grid.ShowItems(False)
             self.grid.Clear(deleteWindows = True)
@@ -243,23 +270,7 @@ class BundlePanel(wx.Panel):
             if self.state != self.COLLAPSED:
                 self.ShowGrid(False)
         else:
-            if DEBUG:
-                print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
             
-            #total nr items did not change
-            for i in range(min(len(children), items_to_add)):
-                link_static_text = children[i].GetWindow()
-                if hits[i]['name'] != link_static_text.GetLabel():
-                    link_static_text.SetLabel(hits[i]['name'])
-                    link_static_text.action = hits[i]
-            
-            if self.nrhits > N:
-                more_caption = '(%s more...)' % (self.nrhits - N + 1)
-                link_static_text = children[i+1].GetWindow()
-                if link_static_text.GetLabel() != more_caption:
-                    link_static_text.SetLabel(more_caption)
-                    link_static_text.Unbind(wx.EVT_LEFT_UP)
-                    link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
                     
         self.Thaw()
     
