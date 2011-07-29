@@ -388,7 +388,8 @@ class LinkStaticText(wx.Panel):
         if self.icon and icon_align == wx.ALIGN_LEFT:
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        self.text = wx.HyperlinkCtrl(self, -1, text, text)
+        #Niels: text or url needs to be non-empty, we don't use url thus fixing it to 'url' 
+        self.text = wx.HyperlinkCtrl(self, -1, text, 'url') 
         self.text.SetNormalColour(font_colour)
         self.text.SetVisitedColour(font_colour)
         font = self.text.GetFont()
