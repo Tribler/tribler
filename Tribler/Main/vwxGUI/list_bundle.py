@@ -269,8 +269,6 @@ class BundlePanel(wx.Panel):
             
             if self.state != self.COLLAPSED:
                 self.ShowGrid(False)
-        else:
-            
                     
         self.Thaw()
     
