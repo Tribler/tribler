@@ -731,6 +731,9 @@ class GenericSearchList(List):
         item.button.Refresh()
         return TorrentDetails(item, item.original_data)
     
+    def OnCollapseInternal(self, item):
+        item.button.Show()
+    
     def StartDownload(self, torrent):
         if isinstance(self, SelectedChannelList):
             self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
@@ -871,9 +874,6 @@ class SearchList(GenericSearchList):
         self.guiutility.showChannelResults(manager.data_channels)
         
         self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)  
-    
-    def OnCollapseInternal(self, item):
-        item.button.Show()
         
     def OnSize(self, event):
         diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
