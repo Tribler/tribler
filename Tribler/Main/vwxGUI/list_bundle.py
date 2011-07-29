@@ -207,38 +207,60 @@ class BundlePanel(wx.Panel):
         self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT, 30)
     
     def UpdateGrid(self, hits):
-        self.Freeze()
-        self.grid.ShowItems(False)
-        self.grid.Clear(deleteWindows = True)
-        
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
         items_to_add = min(N, self.nrhits)
         if self.nrhits > N:
             items_to_add -= 1
-        
-        for i in range(items_to_add):
-            hit = hits[i] 
 
-            new_text = LinkStaticText(self, hit['name'], icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
-            new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
-            new_text.SetMinSize((1,-1))
-            new_text.action = hit
-            self.grid.Add(new_text, 0, wx.EXPAND)
-            
-        for i in range(BUNDLE_NUM_COLS - items_to_add):
-            self.grid.AddSpacer((1,-1))
+        self.Freeze()
         
-        if self.nrhits > N:
-            caption = '(%s more...)' % (self.nrhits - N + 1)
+        children = self.grid.GetChildren()
+        didChange = len(children) < min(N, self.nrhits)
+        if didChange:
+            self.grid.ShowItems(False)
+            self.grid.Clear(deleteWindows = True)
+            for i in range(items_to_add):
+                hit = hits[i] 
+    
+                new_text = LinkStaticText(self, hit['name'], icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
+                new_text.SetMinSize((1,-1))
+                new_text.action = hit
+                self.grid.Add(new_text, 0, wx.EXPAND)
+                
+            for i in range(BUNDLE_NUM_COLS - items_to_add):
+                self.grid.AddSpacer((1,-1))
             
-            more_label = LinkStaticText(self, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
-            more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
-            self.grid.Add(more_label, 0, wx.EXPAND)
+            if self.nrhits > N:
+                caption = '(%s more...)' % (self.nrhits - N + 1)
+                
+                more_label = LinkStaticText(self, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+                self.grid.Add(more_label, 0, wx.EXPAND)
+                
+            self.parent_listitem.AddEvents(self.grid)
             
-        self.parent_listitem.AddEvents(self.grid)
-        
-        if self.state != self.COLLAPSED:
-            self.ShowGrid(False)
+            if self.state != self.COLLAPSED:
+                self.ShowGrid(False)
+        else:
+            if DEBUG:
+                print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
+            
+            #total nr items did not change
+            for i in range(min(len(children), items_to_add)):
+                link_static_text = children[i].GetWindow()
+                if hits[i]['name'] != link_static_text.GetLabel():
+                    link_static_text.SetLabel(hits[i]['name'])
+                    link_static_text.action = hits[i]
+            
+            if self.nrhits > N:
+                more_caption = '(%s more...)' % (self.nrhits - N + 1)
+                link_static_text = children[i+1].GetWindow()
+                if link_static_text.GetLabel() != more_caption:
+                    link_static_text.SetLabel(more_caption)
+                    link_static_text.Unbind(wx.EVT_LEFT_UP)
+                    link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+                    
         self.Thaw()
     
     def ShowGrid(self, show):
