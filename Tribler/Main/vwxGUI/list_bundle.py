@@ -241,8 +241,7 @@ class BundlePanel(wx.Panel):
                         link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
                 else:
                     didChange = True
-                    break
-                    
+
         if didChange:
             self.grid.ShowItems(False)
             self.grid.Clear(deleteWindows = True)
