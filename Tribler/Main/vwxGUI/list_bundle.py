@@ -175,7 +175,8 @@ class BundlePanel(wx.Panel):
         self.SetHits(hits)
         self.UpdateHeader(general_description, description)
         
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.AddSpacer((22, -1))
         sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 3)
         self.SetSizer(sizer)
     
@@ -187,7 +188,7 @@ class BundlePanel(wx.Panel):
 
         sizer.Add(self.header, 0, wx.RIGHT, 7)
         sizer.Add(self.info_icon, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.vsizer.Add(sizer, 0, wx.LEFT, 22)
+        self.vsizer.Add(sizer, 0, wx.BOTTOM, 3)
     
     def UpdateHeader(self, general_description, description):
         self.SetGeneralDescription(general_description)
@@ -204,7 +205,7 @@ class BundlePanel(wx.Panel):
         
         for j in xrange(BUNDLE_NUM_COLS):
             self.grid.AddGrowableCol(j, 1)
-        self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT, 30)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND)
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS

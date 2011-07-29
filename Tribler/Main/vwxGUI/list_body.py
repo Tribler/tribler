@@ -130,6 +130,7 @@ class ListItem(wx.Panel):
         new_controls = False
         has_changed = False
         
+        self.Freeze()
         for i in xrange(len(self.columns)):
             type = self.columns[i].get('type','label')
             if type == 'label':
@@ -178,7 +179,8 @@ class ListItem(wx.Panel):
             
         elif new_controls:
             self.ShowSelected()
-            
+        
+        self.Thaw()
         self.data = data[1]
         
     def Highlight(self, timeout = 3.0):
@@ -537,6 +539,8 @@ class AbstractListBody():
         self.Thaw()
         
     def OnChange(self, scrollToTop = False):
+        self.Freeze()
+        
         self.vSizer.Layout()
         self.listpanel.Layout()
         self.Layout()
@@ -555,6 +559,8 @@ class AbstractListBody():
             self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
         else:
             self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
+            
+        self.Thaw()
     
     def Reset(self):
         if DEBUG:

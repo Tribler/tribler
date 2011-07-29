@@ -463,7 +463,7 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         ListCtrlAutoWidthMixin.__init__(self)
 
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         
         ColumnSorterMixin.__init__(self, numColumns)

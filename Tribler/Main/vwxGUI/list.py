@@ -640,7 +640,10 @@ class GenericSearchList(List):
     
     def toggleFamilyFilter(self):
         self.guiutility.toggleFamilyFilter()
-        self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
+
+        def db_callback():
+            self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
+        self.guiutility.frame.guiserver.add_task(db_callback)
         
     def SetFF(self, family_filter):
         self.header.SetFF(family_filter)
@@ -735,11 +738,13 @@ class GenericSearchList(List):
         item.button.Show()
     
     def StartDownload(self, torrent):
-        if isinstance(self, SelectedChannelList):
-            self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
-        else:
-            self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
+        def db_callback():
+            if isinstance(self, SelectedChannelList):
+                self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
+            else:
+                self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
+        self.guiutility.frame.guiserver.add_task(db_callback)
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
         
     def InList(self, key):
@@ -873,7 +878,9 @@ class SearchList(GenericSearchList):
         manager = self.GetManager()
         self.guiutility.showChannelResults(manager.data_channels)
         
-        self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)  
+        def db_callback():
+            self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)
+        self.guiutility.frame.guiserver.add_task(db_callback)  
         
     def OnSize(self, event):
         diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
@@ -885,9 +892,8 @@ from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular de
 
 class LibaryList(List):
     def __init__(self):
-        self.guiutility = GUIUtility.getInstance()
         self.user_download_choice = UserDownloadChoice.get_singleton()
-         
+        self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.library_manager = self.guiutility.library_manager
 
@@ -1389,14 +1395,20 @@ class SelectedChannelList(GenericSearchList):
         #Request all items from connected peers
         channelcast = BuddyCastFactory.getInstance().channelcast_core
         channelcast.updateAChannel(self.publisher_id)
-        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
+        
+        def db_callback():
+            self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
+        self.guiutility.frame.guiserver.add_task(db_callback)
         
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
             self.channelsearch_manager.spam(self.publisher_id)
             self.footer.SetStates(True, False)
-            self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
+            
+            def db_callback():
+                self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
+            self.guiutility.frame.guiserver.add_task(db_callback)
         dialog.Destroy()
     
     def OnBack(self, event):
@@ -1410,10 +1422,19 @@ class SelectedChannelList(GenericSearchList):
                 dial = wx.MessageDialog(self, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dial.ShowModal() == wx.ID_YES:
                     self.OnFavorite()
-                    self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
+                    clickedYes = True
                 else:
-                    self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
+                    clickedYes = False
+                    
                 dial.Destroy()
+                
+                def db_callback():
+                    if clickedYes:
+                        self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
+                    else:
+                        self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)
+                self.guiutility.frame.guiserver.add_task(db_callback)
+                
         GenericSearchList.StartDownload(self, torrent)
         
 class MyChannelList(List):
