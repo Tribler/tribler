@@ -63,6 +63,7 @@ class TrackerCommunity(Community):
 
     def __init__(self, cid, master_key):
         super(TrackerCommunity, self).__init__(cid, master_key)
+        self._poke = time.time()
 
     def _initialize_meta_messages(self):
         super(TrackerCommunity, self)._initialize_meta_messages()
@@ -113,25 +114,51 @@ class TrackerCommunity(Community):
 
         return self._conversions[prefix]
 
+    @property
+    def poke(self):
+        return self._poke
+
+    def poke_now(self):
+        self._poke = time.time()
+
 class TrackerDispersy(Dispersy):
     @classmethod
     def get_instance(cls, *args, **kargs):
         kargs["singleton_placeholder"] = Dispersy
         return super(TrackerDispersy, cls).get_instance(*args, **kargs)
 
-    def __init__(self, rawserver, statedir):
-        super(TrackerDispersy, self).__init__(rawserver, statedir)
+    def __init__(self, callback, working_directory):
+        super(TrackerDispersy, self).__init__(callback, working_directory)
 
         # get my_member, the key pair that we will use when we join a new community
-        keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
+        keypair = read_keypair(os.path.join(working_directory, u"ec.pem"))
         self._my_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+
+        # cleanup communities from memory periodically
+        callback.register(self._periodically_cleanup_communities)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
-            return super(TrackerDispersy, self).get_community(cid, load, auto_load)
+            community = super(TrackerDispersy, self).get_community(cid, load, auto_load)
         except KeyError:
-            self._communities[cid] = TrackerCommunity.join_community(cid, "", self._my_member)
-            return self._communities[cid]
+            community = TrackerCommunity.join_community(cid, "", self._my_member)
+            self._communities[cid] = community
+
+        community.poke_now()
+        return community
+
+    def _periodically_cleanup_communities(self):
+        while True:
+            yield 300.0
+            # unload all communities that have not been poked in the last hour
+            threshold = time.time() - 3600.0
+
+            # we can not unload in the same loop since the self._communities dictionary will be
+            # modified when unloading the community
+            communties = [community for community in self._communities.itervalues() if community.poke < threshold]
+
+            for community in communties:
+                community.unload_community()
 
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):

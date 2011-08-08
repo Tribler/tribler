@@ -54,7 +54,7 @@ from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from destination import CommunityDestination, AddressDestination, MemberDestination, SubjectiveDestination, SimilarityDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
-from member import PrivateMember, MasterMember
+from member import Member, PrivateMember, MasterMember
 from message import Message
 from message import DropPacket, DelayPacket
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
@@ -219,7 +219,10 @@ class Dispersy(Singleton):
 
 
         # cleanup the database periodically
-        self._callback.register(self._periodically_cleanup_database, delay=120.0)
+        self._callback.register(self._periodically_cleanup_database)
+
+        # cleanup singletons from memory periodically
+        self._callback.register(self._periodically_cleanup_singletons)
 
         # statistics...
         self._statistics = Statistics()
@@ -2182,7 +2185,6 @@ class Dispersy(Singleton):
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
             from community import Community
-            from member import Member
         assert isinstance(community, Community)
         assert isinstance(cluster, int)
         assert isinstance(members, (tuple, list))
@@ -2261,7 +2263,6 @@ class Dispersy(Singleton):
     # def create_subjective_set_request(community, community, cluster, members, update_locally=True, store_and_forward=True):
     #     if __debug__:
     #         from community import Community
-    #         from member import Member
     #     assert isinstance(community, Community)
     #     assert isinstance(cluster, int)
     #     assert isinstance(members, (tuple, list))
@@ -3021,7 +3022,6 @@ class Dispersy(Singleton):
         """
         if __debug__:
             from community import Community
-            from member import Member
             from message import Message
             assert isinstance(community, Community)
             assert isinstance(permission_triplets, (tuple, list))
@@ -3108,7 +3108,6 @@ class Dispersy(Singleton):
         """
         if __debug__:
             from community import Community
-            from member import Member
             from message import Message
             assert isinstance(community, Community)
             assert isinstance(permission_triplets, (tuple, list))
@@ -3317,10 +3316,10 @@ class Dispersy(Singleton):
     def _periodically_cleanup_database(self):
         # cleannup candidate tables
         while True:
+            yield 120.0
             for community in self._communities.itervalues():
                 self._database.execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) > ?",
                                        (community.database_id, community.dispersy_candidate_cleanup_age_threshold))
-            yield 120.0
 
     def _periodically_stats(self):
         """
@@ -3338,6 +3337,17 @@ class Dispersy(Singleton):
                 dprint("in: ", self._total_received, "; out: ", self._total_send, "; ", communities)
 
                 yield 5.0
+
+    def _periodically_cleanup_singletons(self):
+        """
+        Periodically remove unused singleton objects otherwise we will eventually run out of memory.
+        """
+        while True:
+            yield 1800.0
+            # we will cleanup all unreferenced instances.  however this will include many instances
+            # that we have recently used, to reduce the overhead of re-creating them we will only
+            # cleanup the singletons very rarely
+            Member.del_unreferenced_instances()
 
     def _watchdog(self):
         """

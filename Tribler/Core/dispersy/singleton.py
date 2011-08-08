@@ -167,6 +167,20 @@ class Parameterized1Singleton(object):
                 return [instance for instance in getattr(cls, "_singleton_instances").itervalues() if len(get_referrers(instance)) <= 2]
         return []
 
+    @classmethod
+    def del_unreferenced_instances(cls):
+        """
+        Deletes singleton instances that are not referenced.
+
+        Returns the number of removed instances.
+        """
+        with cls._singleton_lock:
+            if hasattr(cls, "_singleton_instances"):
+                args = [arg for arg, instance in getattr(cls, "_singleton_instances").iteritems() if len(get_referrers(instance)) <= 3]
+                map(getattr(cls, "_singleton_instances").pop, args)
+                return len(args)
+        return 0
+
 if __debug__:
     if __name__ == "__main__":
 
