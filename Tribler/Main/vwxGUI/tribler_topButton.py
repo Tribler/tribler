@@ -482,10 +482,10 @@ class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
         if row >= 0:
             try:
                 for col in xrange(self.GetColumnCount()):
-                    tooltip += self.GetItem(row, col).GetText() + "\t"
+                    tooltip += self.GetItem(row, col).GetText() + "    "
                 
                 if len(tooltip) > 0:
-                    tooltip = tooltip[:-1]
+                    tooltip = tooltip[:-4]
             except:
                 pass
         self.SetToolTipString(tooltip)

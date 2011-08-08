@@ -285,7 +285,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
@@ -338,6 +338,9 @@ class MainFrame(wx.Frame):
                         dlg.ShowModal()
                         dlg.Destroy()
                 else:
+                    if selectedFiles:
+                        dscfg.set_selected_files(selectedFiles)
+                    
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(tdef,dscfg)
                 
@@ -373,6 +376,14 @@ class MainFrame(wx.Frame):
             print_exc()
             self.onWarning(e)
         return None
+    
+    def modifySelection(self, download, selectedFiles):
+        tdef = download.get_def()
+        dscfg = DownloadStartupConfig(download.dlconfig)
+        dscfg.set_selected_files(selectedFiles)
+        
+        self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+        self.utility.session.start_download(tdef, dscfg)
     
     def fixTorrent(self, filename):
         f = open(filename,"rb")

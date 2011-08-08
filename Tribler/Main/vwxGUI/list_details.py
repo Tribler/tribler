@@ -223,7 +223,11 @@ class TorrentDetails(wx.Panel):
             self.listCtrl = SortedListCtrl(self.notebook, 2)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
+            if isinstance(self, LibraryDetails):
+                self.listCtrl.InsertColumn(2, 'Status', wx.LIST_FORMAT_RIGHT)
             self.listCtrl.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
+            self.listCtrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFilesSelected)
+            self.listCtrl.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFilesSelected)
             
             self.il = wx.ImageList(16,16)
             play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
@@ -231,17 +235,35 @@ class TorrentDetails(wx.Panel):
             self.listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
             
             #Add files
-            keywords = ' | '.join(self.guiutility.current_search_query)
-            def sort_by_keywords(a, b):
-                a_match = re.search(keywords, a[0].lower())
-                b_match = re.search(keywords, b[0].lower())
-                if a_match and not b_match:
-                    return -1
-                if b_match and not a_match:
-                    return 1
-                return cmp(a[0],b[0])
-            
-            self.information[2].sort(sort_by_keywords)
+            if isinstance(self, LibraryDetails):
+                if ds and ds.gef_selected_files():
+                    selected_files = ds.gef_selected_files()
+                     
+                    def sort_by_selected_name(a, b):
+                        aSelected = a[0] in selected_files
+                        bSelected = b[0] in selected_files
+                        
+                        if aSelected != bSelected:
+                            if aSelected:
+                                return -1
+                            return 1
+                        
+                        return cmp(a[0],b[0])
+                        
+                    self.information[2].sort(sort_by_selected_name)
+            else:
+                keywords = ' | '.join(self.guiutility.current_search_query)
+                def sort_by_keywords(a, b):
+                    a_match = re.search(keywords, a[0].lower())
+                    b_match = re.search(keywords, b[0].lower())
+                    if a_match and not b_match:
+                        return -1
+                    if b_match and not a_match:
+                        return 1
+                    return cmp(a[0],b[0])
+                
+                self.information[2].sort(sort_by_keywords)
+                
             for filename, size in self.information[2]:
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
@@ -260,6 +282,9 @@ class TorrentDetails(wx.Panel):
                     self.listCtrl.SetItemColumnImage(pos, 0, play_img)
                 else:
                     self.listCtrl.SetItemColumnImage(pos, 0, file_img)
+                    
+                if isinstance(self, LibraryDetails):
+                    self.listCtrl.SetStringItem(pos, 2, '')
             
             self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetMinSize((1,-1))
@@ -420,9 +445,11 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.AddStretchSpacer()
         
         download_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        download = wx.Button(self.buttonPanel, -1, "Download")
-        download.SetToolTipString('Start downloading this torrent.')
-        download.Bind(wx.EVT_BUTTON, self.OnDownload)
+        #Niels: multiline wx.button bug, if we ever want multiple init with multiline
+        self.downloadButton = wx.Button(self.buttonPanel, -1, "Download\n")
+        self.downloadButton.SetLabel("Download")
+        self.downloadButton.SetToolTipString('Start downloading this torrent.')
+        self.downloadButton.Bind(wx.EVT_BUTTON, self.OnDownload)
         
         play = wx.Button(self.buttonPanel, -1, "Play")
         play.SetToolTipString('Start playing this torrent.')
@@ -431,9 +458,9 @@ class TorrentDetails(wx.Panel):
         if not self.information[0]:
             play.Disable()
         
-        download_play_sizer.Add(download)
+        download_play_sizer.Add(self.downloadButton)
         download_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
-        download_play_sizer.Add(play)
+        download_play_sizer.Add(play, 0, wx.ALIGN_CENTER_VERTICAL)
         self.buttonSizer.Add(download_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
         self.buttonSizer.AddStretchSpacer()
@@ -617,7 +644,16 @@ class TorrentDetails(wx.Panel):
             startfile(path)
                 
     def OnDownload(self, event):
-        self.parent.parent_list.parent_list.StartDownload(self.torrent)
+        nrSelected = self.listCtrl.GetSelectedItemCount()
+        if nrSelected > 0 and nrSelected < self.listCtrl.GetItemCount():
+            files = []
+            selected = self.listCtrl.GetFirstSelected()
+            while selected != -1:
+                files.append(self.listCtrl.GetItem(selected, 0).GetText())
+                selected = self.listCtrl.GetNextSelected(selected)
+        else:
+            files = None
+        self.parent.parent_list.parent_list.StartDownload(self.torrent, files)
         
         button = event.GetEventObject()
         button.Enable(False)
@@ -669,10 +705,24 @@ class TorrentDetails(wx.Panel):
             selected_file = self.listCtrl.GetItemText(selected)
             if selected_file in playable_files:
                 self.guiutility.library_manager.playTorrent(self.torrent, selected_file)
+                
             elif self.torrent.get('progress',0) == 100: #not playable
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
                     startfile(file)
+                    
+    def OnFilesSelected(self, event):
+        if getattr(self, 'downloadButton', False):
+            nrSelected = self.listCtrl.GetSelectedItemCount()
+            if nrSelected > 0 and nrSelected < self.listCtrl.GetItemCount():
+                #not all files selected
+                label = "Download \nselected only"
+            else:
+                label = 'Download'
+                
+            if label != self.downloadButton.GetLabel():     
+                self.downloadButton.SetLabel(label)
+                self.buttonPanel.Layout()
     
     def _ToggleSubtitleChoice(self, showChoice = None):
         if not showChoice:
@@ -783,18 +833,19 @@ class TorrentDetails(wx.Panel):
             wx.CallAfter(self.ShowStatus)
     
     def ShowStatus(self):
-        diff = time() - self.torrent['last_check']
-        if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
-            self.status.SetLabel("Unknown")
-        else:
-            if diff < 5:
-                self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+        if self.isReady:
+            diff = time() - self.torrent['last_check']
+            if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
+                self.status.SetLabel("Unknown")
             else:
-                updated = self.guiutility.utility.eta_value(diff, 2)
-                if updated == '<unknown>':
-                    self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+                if diff < 5:
+                    self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
                 else:
-                    self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent['num_seeders'], self.torrent['num_leechers'] ,updated))
+                    updated = self.guiutility.utility.eta_value(diff, 2)
+                    if updated == '<unknown>':
+                        self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+                    else:
+                        self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent['num_seeders'], self.torrent['num_leechers'] ,updated))
            
     def OnRefresh(self, dslist):
         found = False
@@ -901,6 +952,37 @@ class LibraryDetails(TorrentDetails):
 
         peersPanel.SetSizer(vSizer)
         self.notebook.AddPage(peersPanel, "Peers")
+        
+    def OnDoubleClick(self, event):
+        selected = self.listCtrl.GetFirstSelected()
+        
+        if selected != -1:
+            selected_file = self.listCtrl.GetItem(selected, 0).GetText()
+            selected_state = self.listCtrl.GetItem(selected, 2).GetText()
+            
+            if selected_state == 'Excluded':
+                files = []
+                for i in range(self.listCtrl.GetItemCount()):
+                    files.append(self.listCtrl.GetItem(i, 0).GetText())
+                
+                dlg = wx.MultiChoiceDialog(self, "Select which files you would like to download", "File selection", files)
+                
+                selected = []
+                for i in range(self.listCtrl.GetItemCount()):
+                    if self.listCtrl.GetItem(i, 2).GetText() != "Excluded":
+                        selected.append(i)
+                dlg.SetSelections(selected)
+                
+                if (dlg.ShowModal() == wx.ID_OK):
+                    newselections = dlg.GetSelections()
+                    selectedFiles = []
+                    for index in newselections:
+                        selectedFiles.append(files[index])
+                        
+                    self.guiutility.frame.modifySelection(self.torrent['ds'].download, selectedFiles)
+                dlg.Destroy()
+            else:
+                TorrentDetails.OnDoubleClick(self, event)
     
     def _Refresh(self, ds):
         TorrentDetails._Refresh(self, ds)
@@ -961,6 +1043,20 @@ class LibraryDetails(TorrentDetails):
                 
             if self.availability:
                 self.availability.SetLabel("%.2f"%ds.get_availability())
+            
+            completion = ds.get_files_completion()
+            for i in range(self.listCtrl.GetItemCount()):
+                listfile = self.listCtrl.GetItem(i, 0).GetText()
+                
+                found = False
+                for file, progress in completion:
+                    if file == listfile:
+                        self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
+                        found = True
+                        break
+                    
+                if not found:
+                    self.listCtrl.SetStringItem(i, 2, 'Excluded')
             
         if index == 0:
             self.peerList.DeleteAllItems()

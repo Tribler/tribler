@@ -141,8 +141,8 @@ class TorrentManager:
         
         return True
     
-    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False):
-        callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode)
+    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
+        callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode, selectedFiles)
         torrent_filename = self.getTorrent(torrent, callback)
         
         if isinstance(torrent_filename, basestring):
@@ -153,14 +153,14 @@ class TorrentManager:
             else:
                 name = torrent['infohash']
             
-            clicklog={'keywords': self.searchkeywords['filesMode'],
-                      'reranking_strategy': self.rerankingStrategy['filesMode'].getID()}
+            clicklog={'keywords': self.searchkeywords,
+                      'reranking_strategy': self.rerankingStrategy.getID()}
             
             if "click_position" in torrent:
                 clicklog["click_position"] = torrent["click_position"]
             
             # Api download
-            d = self.guiUtility.frame.startDownload(torrent_filename,destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode) ## remove name=name
+            d = self.guiUtility.frame.startDownload(torrent_filename,destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)
@@ -803,15 +803,16 @@ class LibraryManager:
             
         self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
         
-    def deleteTorrentDownload(self, download, infohash, removecontent = False):
-        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent)
-            
-        # Johan, 2009-03-05: we need long download histories for good 
-        # semantic clustering.
-        # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
-        # up in the Library, even after removal :-( H4x0r this.
-        self.mypref_db.updateDestDir(infohash,"")
-        self.user_download_choice.remove_download_state(infohash)
+    def deleteTorrentDownload(self, download, infohash, removecontent = False, removestate = True):
+        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        
+        if infohash:
+            # Johan, 2009-03-05: we need long download histories for good 
+            # semantic clustering.
+            # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
+            # up in the Library, even after removal :-( H4x0r this.
+            self.mypref_db.updateDestDir(infohash,"")
+            self.user_download_choice.remove_download_state(infohash)
     
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr

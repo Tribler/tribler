@@ -308,7 +308,7 @@ class Session(SessionRuntimeConfig):
         return self.lm.get_downloads()
     
     
-    def remove_download(self,d,removecontent=False):  
+    def remove_download(self,d,removecontent=False, removestate=True):  
         """
         Stops the download and removes it from the session.
         @param d The Download to remove
@@ -316,7 +316,7 @@ class Session(SessionRuntimeConfig):
         from disk.
         """
         # locking by lm
-        self.lm.remove(d,removecontent=removecontent)
+        self.lm.remove(d,removecontent=removecontent,removestate=removestate)
 
 
     def set_download_states_callback(self,usercallback,getpeerlist=False):

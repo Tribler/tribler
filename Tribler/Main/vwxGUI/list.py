@@ -737,7 +737,7 @@ class GenericSearchList(List):
     def OnCollapseInternal(self, item):
         item.button.Show()
     
-    def StartDownload(self, torrent):
+    def StartDownload(self, torrent, files = None):
         def db_callback():
             if isinstance(self, SelectedChannelList):
                 self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
@@ -745,7 +745,7 @@ class GenericSearchList(List):
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
         self.guiutility.frame.guiserver.add_task(db_callback)
-        self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
+        self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):
         key = self.infohash2key.get(key, key)
