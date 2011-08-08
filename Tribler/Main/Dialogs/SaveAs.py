@@ -77,7 +77,8 @@ class SaveAs(wx.Dialog):
         return self.dirTextCtrl.GetValue().strip()
 
     def OnDirChange(self, event):
-        if not os.path.isdir(self.dirTextCtrl.GetValue()) or not os.path.samefile(self.dirTextCtrl.GetValue(),self.dirCtrl.GetPath()):
+        samefile = os.path.abspath(self.dirTextCtrl.GetValue()) == os.path.abspath(self.dirCtrl.GetPath())
+        if not os.path.isdir(self.dirTextCtrl.GetValue()) or not samefile:
             self.dirTextCtrl.SetValue(self.dirCtrl.GetPath())
         
     def OnComboChange(self, event):
