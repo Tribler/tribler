@@ -139,7 +139,7 @@ class TrackerDispersy(Dispersy):
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
-            community = super(TrackerDispersy, self).get_community(cid, load, auto_load)
+            community = super(TrackerDispersy, self).get_community(cid, True, auto_load)
         except KeyError:
             community = TrackerCommunity.join_community(cid, "", self._my_member)
             self._communities[cid] = community
@@ -224,12 +224,6 @@ def main():
         # start Dispersy
         dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir))
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
-
-        # load all HardKilledCommunity communities
-        print "Restored", len(HardKilledCommunity.load_communities()), "hard-killed communities"
-
-        # load the existing Tracker communities
-        print "Restored", len(TrackerCommunity.load_communities()), "tracker communities"
 
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")
