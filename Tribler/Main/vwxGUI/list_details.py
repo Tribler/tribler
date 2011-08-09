@@ -184,13 +184,12 @@ class TorrentDetails(AbstractDetails):
             self._addButtonPanel(self, self.details)
             self.ShowPanel()
             
-            self.details.Layout()
-            self.Thaw()
-            
+            page0 = self.notebook.GetPage(0)
+            bestHeight = page0.GetBestVirtualSize()[1]
+            page0.SetMinSize((-1, bestHeight))
+                    
             self.parent.parent_list.OnChange()
-
-            newHeight = self.notebook.GetBestSize()[1]
-            self.notebook.SetMinSize((-1, newHeight))
+            self.Thaw()
 
             self.isReady = True
             self._Refresh(ds)
@@ -786,6 +785,10 @@ class TorrentDetails(AbstractDetails):
         path = self._GetPath()
         if path:
             startfile(path)
+            
+        button = event.GetEventObject()
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
                 
     def OnDownload(self, event):
         nrSelected = self.listCtrl.GetSelectedItemCount()
@@ -1216,24 +1219,41 @@ class LibraryDetails(TorrentDetails):
             return
         
         if state == TorrentDetails.FINISHED or state == TorrentDetails.FINISHED_INACTIVE:
-            state = "Seeding"
+            statestr = "Seeding"
             
         elif state == TorrentDetails.VOD:
-            state = "Streaming"
+            statestr = "Streaming"
             
         elif state == TorrentDetails.INCOMPLETE or state == TorrentDetails.INCOMPLETE_INACTIVE:
-            state = "Downloading"
+            statestr = "Downloading"
         
         if state == TorrentDetails.FINISHED_INACTIVE or state == TorrentDetails.INCOMPLETE_INACTIVE:
-            button = "Start "+state
-            self.startstop.Bind(wx.EVT_BUTTON, self.onresume)
+            button = "Start "+statestr
         else:
-            button = "Stop "+state
-            self.startstop.Bind(wx.EVT_BUTTON, self.onstop)
+            button = "Stop "+statestr
                     
         if self.startstop.GetLabel() != button:
             self.startstop.SetLabel(button)
+            self.startstop.Enable()
             self.buttonPanel.Layout()
+            
+    def OnStartStop(self, event):
+        button = event.GetEventObject()
+        
+        if button.GetLabel().startswith('Start'):
+            self.onresume(event)
+        elif button.GetLabel().startswith('Stop'):
+            self.onstop(event)
+        
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
+    
+    def OnDelete(self, event):
+        self.ondelete(event)
+        
+        button = event.GetEventObject()
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
     
     def ShowPanel(self, newState = None):
         if newState and newState != self.state:
@@ -1276,10 +1296,11 @@ class LibraryDetails(TorrentDetails):
             #create torrent start/stop/delete buttons
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.startstop = wx.Button(self.buttonPanel)
+            self.startstop.Bind(wx.EVT_BUTTON, self.OnStartStop)
             hSizer.Add(self.startstop)
             hSizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
             button = wx.Button(self.buttonPanel, -1, 'Delete...')
-            button.Bind(wx.EVT_BUTTON, self.ondelete)
+            button.Bind(wx.EVT_BUTTON, self.OnDelete)
             hSizer.Add(button)
             self.buttonSizer.Add(hSizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
             
