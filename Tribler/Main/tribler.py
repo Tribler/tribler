@@ -386,7 +386,7 @@ class ABCApp(wx.App):
             
     def _remove_download_by_name(self, name):
         guiUtility = GUIUtility.getInstance()
-        torrentManager = guiUtility.torrentsearch_manager
+        library_manager = guiUtility.library_manager
         
         dlist = guiUtility.utility.session.get_downloads()
         for d in dlist:
@@ -394,8 +394,8 @@ class ABCApp(wx.App):
             if safename == name:
                 infohash = d.get_def().get_infohash()
                 
-                torrentManager.deleteTorrentDownload(d, infohash, removecontent = True)
-                torrentManager.mypref_db.deletePreference(infohash)
+                library_manager.deleteTorrentDownload(d, infohash, removecontent = True)
+                library_manager.mypref_db.deletePreference(infohash)
                 
                 listManager = guiUtility.frame.librarylist.GetManager()
                 wx.CallAfter(listManager.refresh)
@@ -711,7 +711,7 @@ class ABCApp(wx.App):
             
             # Pass DownloadStates to libaryView
             try:
-                self.guiUtility.torrentsearch_manager.download_state_gui_callback(dslist)
+                self.guiUtility.library_manager.download_state_gui_callback(dslist)
             except KeyError:
                 # Apparently libraryMode only has has a 'grid' key when visible
                 print_exc()

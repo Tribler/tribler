@@ -67,6 +67,14 @@ class SyncDistribution(Distribution):
     This causes a missing sequence message.  This in turn could be
     solved by creating a placeholder message, however, this is not
     currently, and my never be, implemented.
+
+    The PRIORITY value ranges [0:255] where the 0 is the lowest priority and 255 the highest.  Any
+    messages that have a priority below 32 will not be synced.  These messages require a mechanism
+    to request missing messages whenever they are needed.
+
+    The PRIORITY was introduced when we found that the dispersy-identity messages are the majority
+    of gossiped messages while very few are actually required.  The dispersy-missing-identity
+    message is used to retrieve an identity whenever it is needed.
     """
     class Implementation(Distribution.Implementation):
         def __init__(self, meta, global_time, sequence_number=0):
@@ -95,6 +103,10 @@ class SyncDistribution(Distribution):
             return self._meta._synchronization_direction_id
 
         @property
+        def priority(self):
+            return self._meta._priority
+
+        @property
         def database_id(self):
             return self._meta._database_id
 
@@ -106,12 +118,19 @@ class SyncDistribution(Distribution):
         def footprint(self):
             return "".join(("SyncDistribution:", str(self._global_time), ",", str(self._sequence_number)))
 
-    def __init__(self, enable_sequence_number, synchronization_direction):
+    def __init__(self, enable_sequence_number, synchronization_direction, priority):
+        # note: messages with a high priority value are synced before those with a low priority
+        # value.
+        # note: the priority has precedence over the global_time based ordering.
+        # note: the default priority should be 127, use higher or lowe values when needed.
         assert isinstance(enable_sequence_number, bool)
         assert isinstance(synchronization_direction, unicode)
         assert synchronization_direction in (u"in-order", u"out-order", u"random-order")
+        assert isinstance(priority, int)
+        assert 0 <= priority <= 255
         self._enable_sequence_number = enable_sequence_number
         self._synchronization_direction = synchronization_direction
+        self._priority = priority
         self._current_sequence_number = 0
         self._database_id = 0
         self._synchronization_direction_id = 0
@@ -127,6 +146,10 @@ class SyncDistribution(Distribution):
     @property
     def synchronization_direction_id(self):
         return self._synchronization_direction_id
+
+    @property
+    def priority(self):
+        return self._priority
 
     @property
     def database_id(self):
@@ -180,10 +203,10 @@ class LastSyncDistribution(SyncDistribution):
         def history_size(self):
             return self._meta._history_size
 
-    def __init__(self, enable_sequence_number, synchronization_direction, history_size):
+    def __init__(self, enable_sequence_number, synchronization_direction, priority, history_size):
         assert isinstance(history_size, int)
         assert history_size > 0
-        super(LastSyncDistribution, self).__init__(enable_sequence_number, synchronization_direction)
+        super(LastSyncDistribution, self).__init__(enable_sequence_number, synchronization_direction, priority)
         self._history_size = history_size
 
     @property

@@ -171,6 +171,9 @@ class BinaryConversion(Conversion):
         define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
         define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
+        # placeholder 239 for dispersy-missing-message
+        # placeholder 238 for dispersy-undo
+        define(237, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
 
         if __debug__:
             if debug_non_available:
@@ -709,6 +712,26 @@ class BinaryConversion(Conversion):
         packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
 
         return offset, placeholder.meta.payload.implement(placeholder.authentication.member, global_time, packet)
+
+
+    def _encode_missing_proof(self, message):
+        payload = message.payload
+        return pack("!QH", payload.global_time, len(payload.member.public_key)), payload.member.public_key
+
+    def _decode_missing_proof(self, meta_message, offset, data):
+        if len(data) < offset + 10:
+            raise DropPacket("Insufficient packet size (_decode_missing_proof)")
+
+        global_time, key_length = unpack_from("!QH", data, offset)
+        offset += 10
+
+        key = data[offset:offset+key_length]
+        if not ec_check_public_bin(key):
+            raise DropPacket("Invalid cryptographic key")
+        member = self._community.get_member(key)
+        offset += key_length
+
+        return offset, meta_message.payload.implement(member, global_time)
 
     #
     # Encoding

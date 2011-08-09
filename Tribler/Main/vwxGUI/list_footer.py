@@ -155,8 +155,6 @@ class ChannelResultFooter(ListFooter):
         self.channelResults = wx.Button(self, -1, "Channel Results")
         hSizer.Add(self.channelResults, 0, wx.TOP|wx.BOTTOM, 3)
         
-        self.blinkTimer = None
-        
     def SetNrResults(self, nr_channels, keywords):
         if nr_channels == 0:
             label = 'No matching channels for "%s"'%keywords
@@ -170,18 +168,9 @@ class ChannelResultFooter(ListFooter):
             if nr_channels >= 1:
                 self.HighLight()
                 
-            if self.blinkTimer:
-                self.blinkTimer.Stop()
             self.Layout()
             
         self.EnableResults(nr_channels > 0)
-    
-    def Revert(self):
-        ListFooter.Revert(self)
-        if self.blinkTimer:
-            self.blinkTimer.Restart(10000)
-        else:
-            self.blinkTimer = wx.CallLater(10000, self.Blink)
     
     def SetEvents(self, channel):
         #removing old, binding new eventhandler
@@ -194,8 +183,6 @@ class ChannelResultFooter(ListFooter):
     def Reset(self):
         self.EnableResults(False)
         self.message.SetLabel('')
-        if self.blinkTimer:
-            self.blinkTimer.Stop()
         
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):

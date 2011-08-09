@@ -179,6 +179,7 @@ class tribler_topButton(wx.Panel):
                 subbitmap = bitmap.GetSubBitmap(rect)
                 dc.DrawBitmapPoint(subbitmap, location)
             dc.SelectObject(wx.NullBitmap)
+            del dc
             
             return bmp
         except:
@@ -312,29 +313,106 @@ class settingsButton(tribler_topButton):
     
     def GetBitmap(self):
         return self.bitmaps[self.selected]
+
+class NativeIcon:
+    __single = None
+    def __init__(self):
+        if NativeIcon.__single:
+            raise RuntimeError, "NativeIcon is singleton"
+        NativeIcon.__single = self
+        self.icons = {}
+        
+    def getInstance(*args, **kw):
+        if NativeIcon.__single is None:
+            NativeIcon(*args, **kw)
+        return NativeIcon.__single
+    getInstance = staticmethod(getInstance)
     
+    def getBitmap(self, parent, type, background, state):
+        assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s"%type(background)
+        if isinstance(background, wx.Colour):
+            background = background.Get()
+        else:
+            background = wx.Brush(background).GetColour().Get()
+        
+        icons = self.icons.setdefault(type, {}).setdefault(background, {})
+        if state not in icons:
+            icons[state] = self.__createBitmap(parent, background, type, state)
+        return icons[state]
+    
+    def __createBitmap(self, parent, background, type, state):
+        if state == 1:
+            if type == 'tree':
+                state = wx.CONTROL_EXPANDED
+            elif type == 'checkbox':
+                state = wx.CONTROL_CHECKED
+            else:
+                state = wx.CONTROL_PRESSED
+        
+        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
+        #Thus we create a larger bmp, allowing for borders
+        bmp = wx.EmptyBitmap(24,24) 
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(background))
+        dc.Clear()
+        
+        #max size is 16x16, using 4px as a border
+        if type == 'checkbox':
+            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
+            
+        elif type == 'tree':
+            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
+            
+        elif type == 'arrow':
+            wx.RendererNative.Get().DrawDropArrow(parent, dc, (4, 4, 16, 16), state)
+            
+        dc.SelectObject(wx.NullBitmap)
+        del dc
+        
+        #determine actual size of drawn icon, and return this subbitmap
+        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
+        return bmp.GetSubBitmap(bb)
+
 class LinkStaticText(wx.Panel):
-    def __init__(self, parent, text, icon = "bullet_go.png", font_increment = 0):
+    def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
-            self.SetBackgroundColour(parent.GetBackgroundColour())
-        self.text = wx.StaticText(self, -1, text)
-        font = self.text.GetFont()
-        font.SetUnderlined(True)
-        font.SetPointSize(font.GetPointSize() + font_increment)
-        self.text.SetFont(font)
-        self.text.SetForegroundColour('#0473BB')
-        self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        self.icon_type = icon_type
         
         if icon:
             self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
+        elif icon_type:
+            self.icon = wx.StaticBitmap(self, bitmap = NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, self.GetBackgroundColour(), state=0))
+        else:
+            self.icon = None
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        if self.icon and icon_align == wx.ALIGN_LEFT:
+            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        
+        #Niels: text or url needs to be non-empty, we don't use url thus fixing it to 'url' 
+        self.text = wx.HyperlinkCtrl(self, -1, text, 'url') 
+        self.text.SetNormalColour(font_colour)
+        self.text.SetVisitedColour(font_colour)
+
+        font = self.text.GetFont()
+        font.SetPointSize(font.GetPointSize() + font_increment)
+        self.text.SetFont(font)
+        
+        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
+            
+        if self.icon and icon_align == wx.ALIGN_RIGHT:
+            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+        
+        if self.icon and text == '':
+            self.icon.Hide()
+        
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
+       
+        if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
+            self.SetBackgroundColour(parent.GetBackgroundColour())
         
     def SetToolTipString(self, tip):
         wx.Panel.SetToolTipString(self, tip)
@@ -343,14 +421,45 @@ class LinkStaticText(wx.Panel):
             self.icon.SetToolTipString(tip)
         
     def SetLabel(self, text):
+        if self.icon:
+            self.icon.Show(text != '')
+            
         self.text.SetLabel(text)
+        self.Layout()
+    
+    def GetLabel(self):
+        return self.text.GetLabel()
+    
+    def SetFont(self, font):
+        self.text.SetFont(font)
+        
+    def GetFont(self):
+        return self.text.GetFont()
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         wx.Panel.Bind(self, event, handler, source, id, id2)
         
-        self.text.Bind(event, handler, source, id, id2)
+        def modified_handler(actual_event, handler=handler):
+            actual_event.SetEventObject(self)
+            handler(actual_event)
+            
+        def text_handler(actual_event, handler=handler):
+            mouse_event = wx.MouseEvent(wx.wxEVT_LEFT_UP)
+            mouse_event.SetEventObject(self)
+            handler(mouse_event)
+            
+        if event == wx.EVT_LEFT_UP:
+            self.text.Bind(wx.EVT_HYPERLINK, text_handler, source, id, id2)
         if getattr(self, 'icon', False):
-            self.icon.Bind(event, handler, source, id, id2)
+            self.icon.Bind(event, modified_handler, source, id, id2)
+            
+    def SetBackgroundColour(self, colour):
+        wx.Panel.SetBackgroundColour(self, colour)
+        self.text.SetBackgroundColour(colour)
+        
+        if getattr(self, 'icon', False) and getattr(self, 'icon_type', False):
+            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, colour, state=0))
+            self.icon.Refresh()
 
 class ProgressStaticText(wx.Panel):
     def __init__(self, parent, text, progress):
@@ -468,7 +577,7 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         ListCtrlAutoWidthMixin.__init__(self)
 
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         
         ColumnSorterMixin.__init__(self, numColumns)
@@ -487,10 +596,10 @@ class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
         if row >= 0:
             try:
                 for col in xrange(self.GetColumnCount()):
-                    tooltip += self.GetItem(row, col).GetText() + "\t"
+                    tooltip += self.GetItem(row, col).GetText() + "    "
                 
                 if len(tooltip) > 0:
-                    tooltip = tooltip[:-1]
+                    tooltip = tooltip[:-4]
             except:
                 pass
         self.SetToolTipString(tooltip)

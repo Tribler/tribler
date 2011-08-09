@@ -11,7 +11,8 @@ from time import time
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL,\
+    safenamedtuple
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
@@ -32,6 +33,12 @@ from Tribler.Core.DecentralizedTracking.MagnetLink import MagnetLink
 from math import sqrt
 from __init__ import *
 from Tribler.community.allchannel.community import AllChannelCommunity
+from Tribler.Core.Search.Bundler import Bundler
+from Tribler.Main.Utility.GuiDBHandler import startWorker
+from collections import namedtuple
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
+    Comment, Modification, Channel
+import threading
 
 DEBUG = False
 
@@ -54,29 +61,29 @@ class TorrentManager:
         self.hits = []
         
         # Remote results for current keywords
-        self.remoteHits = {}
+        self.remoteHits = []
+        self.remoteLock = threading.Lock()
         
-        #current progress of download states
-        self.cache_progress = {}
+        # Requests for torrents
+        self.requestedTorrents = set()
         
         # For asking for a refresh when remote results came in
         self.gridmgr = None
         self.guiserver = GUITaskQueue.getInstance()
         
-        # Gui callbacks
-        self.gui_callback = []
-
-        self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
-        self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker()}
-        self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
+        self.searchkeywords = []
+        self.rerankingStrategy = DefaultTorrentReranker()
+        self.oldsearchkeywords = []
         
         self.filteredResults = 0
+        
+        self.bundler = Bundler()
+        self.bundle_mode = None
         self.category = Category.getInstance()
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
         # delay. the value needs to be a positive integer.
         self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
-        self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -84,7 +91,7 @@ class TorrentManager:
         return TorrentManager.__single
     getInstance = staticmethod(getInstance)
     
-    def haveTorrent(self, torrent):
+    def getCollectedFilename(self, torrent):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
@@ -93,17 +100,18 @@ class TorrentManager:
         """
         torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
         
-        if 'torrent_file_name' not in torrent or not torrent['torrent_file_name']:
-            torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash'])
-        torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+        torrent_filename = torrent.get('torrent_file_name')
+        if not torrent_filename:
+            torrent_filename = get_collected_torrent_filename(torrent.infohash)
+        torrent_filename = os.path.join(torrent_dir, torrent_filename)
         
         #.torrent found, return complete filename
         if os.path.isfile(torrent_filename):
             return torrent_filename
         
         #.torrent not found, possibly a new torrent_collecting_dir
-        torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash'])
-        torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+        torrent_filename = get_collected_torrent_filename(torrent.infohash)
+        torrent_filename = os.path.join(torrent_dir, torrent_filename)
         if os.path.isfile(torrent_filename):
             return torrent_filename
     
@@ -115,11 +123,11 @@ class TorrentManager:
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
         
-        Returns a filename, if filename is known or a boolean + request_type
+        Returns a boolean + request_type
         describing if the torrent is requested
         """
         
-        torrent_filename = self.haveTorrent(torrent)
+        torrent_filename = self.getCollectedFilename(torrent)
         if torrent_filename:
             return torrent_filename
         
@@ -166,177 +174,549 @@ class TorrentManager:
         """
 
         # return False when duplicate
-        if not duplicate and torrent.get('query_torrent_was_requested', False):
+        if not duplicate and torrent.infohash in self.requestedTorrents:
             return False
         
-        torrent['query_torrent_was_requested'] = True
-        if not 'query_permids' in torrent or len(torrent['query_permids']) == 0:
-            self.guiUtility.utility.session.download_torrentfile(torrent['infohash'], callback, prio)
-        else:
-            for permid in torrent['query_permids']:
-                self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
+        self.requestedTorrents.add(torrent.infohash)
         
+        peers = torrent.get('query_permids', [])
+        if len(peers) == 0:
+            self.guiUtility.utility.session.download_torrentfile(torrent.infohash, callback, prio)
+        else:
+            for permid in peers:
+                self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent.infohash, callback, prio)
         return True
     
-    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False):
-        callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode)
-        torrent_filename = self.getTorrent(torrent, callback)
-        
+    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
+        torrent_filename = self.getCollectedFilename(torrent)
+  
         if isinstance(torrent_filename, basestring):
             #got actual filename
+            name = torrent.get('name', torrent.infohash)
+            clicklog={'keywords': self.searchkeywords,
+                      'reranking_strategy': self.rerankingStrategy.getID()}
             
             if torrent.get('name'):
                 name = torrent['name']
             else:
                 name = torrent['infohash']
             
-            clicklog={'keywords': self.searchkeywords['filesMode'],
-                      'reranking_strategy': self.rerankingStrategy['filesMode'].getID()}
+            clicklog={'keywords': self.searchkeywords,
+                      'reranking_strategy': self.rerankingStrategy.getID()}
             
             if "click_position" in torrent:
                 clicklog["click_position"] = torrent["click_position"]
             
             # Api download
-            d = self.guiUtility.frame.startDownload(torrent_filename,destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode) ## remove name=name
+            d = self.guiUtility.frame.startDownload(torrent_filename,destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
             if d:
                 if secret:
-                    self.torrent_db.setSecret(torrent['infohash'], secret)
+                    self.torrent_db.setSecret(torrent.infohash, secret)
 
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download: download started'
-               
-                torrent['myDownloadHistory'] = True
-        elif torrent_filename[0]:
-            #torrent is being requested from peers, using callback this function will be called again
-            return torrent_filename[1]
+        
         else:
-            #torrent not found
-            str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
-            dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
-                                wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
+            callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode)
+            response = self.getTorrent(torrent, callback)
+
+            if response[0]:
+                #torrent is being requested from peers, using callback this function will be called again
+                return response[1]
             
-            if result == wx.ID_YES:
-                infohash = torrent['infohash']
-                self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
+            else:
+                #torrent cannot be requested
+                str = self.guiUtility.utility.lang.get('delete_torrent') % torrent.name
+                dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
+                                    wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                
+                if result == wx.ID_YES:
+                    self.torrent_db.deleteTorrent(torrent.infohash, delete_file=True, commit = True)
     
-    def isTorrentPlayable(self, torrent, default=(False, [], []), callback=None):
-        """
-        TORRENT is a dictionary containing torrent information used to
-        display the entry on the UI. it is NOT the torrent file!
-
-        DEFAULT indicates the default value when we don't know if the
-        torrent is playable. 
-
-        CALLBACK can be given to result the actual 'playable' value
-        for the torrent after some downloading/processing. The DEFAULT
-        value is returned in this case. Will only be called if
-        self.item == torrent
-
-        The return value is a tuple consisting of a boolean indicating if the torrent is playable and a list.
-        If the torrent is not playable or if the default value is returned the boolean is False and the list is empty.
-        If it is playable the boolean is true and the list returned consists of the playable files within the actual torrent. 
-        """
-        
-        playable, videofiles, allfiles = default
-        
-        torrent_filename = self.haveTorrent(torrent)
-        if not torrent_filename:
-            #see if we have all info in our tables
-            if 'torrent_id' in torrent:
-                allfiles = self.torrent_db.getTorrentFiles(torrent['torrent_id'])
-                if len(allfiles) > 0:
-                    videofiles = []
-                    for file, _ in allfiles:
-                        prefix, ext = os.path.splitext(file)
-    
-                        if ext != "" and ext[0] == ".":
-                            ext = ext[1:]
-                        if ext.lower() in videoextdefaults:
-                            videofiles.append(file)
+    def loadTorrent(self, torrent, callback=None):
+        if not isinstance(torrent, CollectedTorrent):
+            
+            torrent_filename = self.getCollectedFilename(torrent)
+            if not torrent_filename:
+                #see if we have most info in our tables
+                if torrent.get('torrent_id') is not None:
+                    files = self.torrent_db.getTorrentFiles(torrent.torrent_id)
                     
-                    playable = len(videofiles) > 0
-                    
-                    collectingSources = self.torrent_db.getTorrentCollecting(torrent['torrent_id'])
+                    trackers = []
+                    collectingSources = self.torrent_db.getTorrentCollecting(torrent.torrent_id)
                     for source, in collectingSources:
                         if source.startswith('magnet'):
-                            dn, xt, trs = MagnetLink.MagnetLink.parse_url(source)
-                            torrent['trackers'] = [trs]
-                            break
+                            _, _, trs = MagnetLink.MagnetLink.parse_url(source)
+                            trackers.append(trs)
+                    
+                    torrent = NotCollectedTorrent(torrent, files, trackers)
+                    
                 else:
-                    torrent_callback = lambda infohash, metadata, filename: self.isTorrentPlayable(torrent, default, callback)
+                    torrent_callback = lambda infohash, metadata, filename: self.loadTorrent(torrent, callback)
                     torrent_filename = self.getTorrent(torrent, torrent_callback)
                     
                     if torrent_filename[0]:
                         return torrent_filename[1]
-        else:
-            #got actual filename
-            tdef = TorrentDef.load(torrent_filename)
-            
-            videofiles = tdef.get_files_as_unicode(exts=videoextdefaults)
-            allfiles = tdef.get_files_as_unicode_with_length()
-            playable = len(videofiles) > 0
-            
-            torrent['comment'] = tdef.get_comment_as_unicode()
-            if tdef.get_tracker_hierarchy():
-                torrent['trackers'] = tdef.get_tracker_hierarchy()
             else:
-                torrent['trackers'] = [[tdef.get_tracker()]]
-        
+                tdef = TorrentDef.load(torrent_filename)
+                torrent = CollectedTorrent(torrent, tdef)
+            
         if not callback is None:
-            callback(torrent, (playable, videofiles, allfiles))
+            callback(torrent)
         else:
-            return (playable, videofiles, allfiles)
+            return torrent
     
     def getSwarmInfo(self, torrent_id):
         return self.torrent_db.getSwarmInfo(torrent_id)
     
-    def playTorrent(self, torrent, selectedinfilename = None):
-        ds = torrent.get('ds')
-        
-        videoplayer = self._get_videoplayer(ds)
-        videoplayer.stop_playback()
-        videoplayer.show_loading()
-        
-        if ds is None:
-            #Making sure we actually have this .torrent
-            callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
-            filename = self.getTorrent(torrent, callback)
+    def getTorrentByInfohash(self, infohash):
+        dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        if dict:
+            channel = self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
+            if not channel:
+                channel = 0, '', '', 0, 0
             
-            if isinstance(filename, basestring):
-                #got actual filename, load torrentdef and create downloadconfig
+            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], channel[0], channel[1], channel[2], channel[3], channel[4])
+            t.torrent_db = self.torrent_db
+            return t 
+    
+    def set_gridmgr(self,gridmgr):
+        self.gridmgr = gridmgr
+    
+    def connect(self):
+        session = self.guiUtility.utility.session
+        self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
+        self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
+        self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
+        self.search_db = session.open_dbhandler(NTFY_SEARCH)
+        self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
+        self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
+        self.library_manager = self.guiUtility.library_manager
+    
+    def getHitsInCategory(self, categorykey = 'all', sort = 'rameezmetric'):
+        if DEBUG: begintime = time()
+        # categorykey can be 'all', 'Video', 'Document', ...
+        bundle_mode = self.bundle_mode
+        
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:", categorykey, range
+        
+        enabled_category_keys = [key.lower() for key in self.category.getCategoryKeys()]
+        enabled_category_ids = set()
+        for key, id in self.torrent_db.category_table.iteritems():
+            if key.lower() in enabled_category_keys:
+                enabled_category_ids.add(id)
+            
+            if key.lower() == categorykey.lower():
+                categorykey = id
                 
-                tdef = TorrentDef.load(filename)
-                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                dscfg = defaultDLConfig.copy()
-                videoplayer.start_and_play(tdef, dscfg, selectedinfilename)
-        else:
-            videoplayer.play(ds, selectedinfilename)
-    
-    def deleteTorrent(self, torrent, removecontent = False):
-        self.deleteTorrentDS(torrent.get('ds'), torrent['infohash'], removecontent)
-    
-    def deleteTorrentDS(self, ds, infohash, removecontent = False):
-        if not ds is None:
-            videoplayer = VideoPlayer.getInstance()
-            playd = videoplayer.get_vod_download()
+        deadstatus_id = self.torrent_db.status_table['dead']
+
+        def torrentFilter(torrent):
+            okCategory = False
+            category = torrent.get("category_id", None)
+            if not category:
+                category = 0
+                
+            if categorykey == 'all' and category in enabled_category_ids:
+                okCategory = True
             
-            if playd == ds.download:
-                self._get_videoplayer(ds).stop_playback()
+            elif category == categorykey:
+                okCategory = True
             
-        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+            if not okCategory:
+                self.filteredResults += 1
+            
+            okGood = torrent.status_id != deadstatus_id
+            return okCategory and okGood
         
-    def deleteTorrentDownload(self, download, infohash, removecontent = False):
-        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent)
+        # 1. Local search puts hits in self.hits
+        if DEBUG:
+            beginlocalsearch = time()
+        new_local_hits = self.searchLocalDatabase()
+        
+        if DEBUG:
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
+
+        # 2. Filter self.hits on category and status
+        if DEBUG:
+            beginfilterhits = time()
             
-        # Johan, 2009-03-05: we need long download histories for good 
-        # semantic clustering.
-        # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
-        # up in the Library, even after removal :-( H4x0r this.
-        self.mypref_db.updateDestDir(infohash,"")
-        self.user_download_choice.remove_download_state(infohash)
+        if new_local_hits:
+            self.hits = filter(torrentFilter, self.hits)
+
+        if DEBUG:
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
+        
+        # 3. Add remote hits that may apply.
+        self.addStoredRemoteResults()
+
+        if DEBUG:
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
+
+        if DEBUG:
+            beginsort = time()
+        
+        if sort == 'rameezmetric':
+            self.sort()
+
+        self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
+                                                        self.pref_db, self.mypref_db, self.search_db)
+        
+        # boudewijn: now that we have sorted the search results we
+        # want to prefetch the top N torrents.
+        self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
+
+        if DEBUG:
+            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
+        self.hits = self.library_manager.addDownloadStates(self.hits)
+        
+        # vliegendhart: do grouping here
+        returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, self.searchkeywords)
+
+        #return [len(self.hits), self.filteredResults , self.hits]
+        return [len(returned_hits), self.filteredResults , returned_hits]
+
+    def prefetch_hits(self):
+        """
+        Prefetching attempts to reduce the time required to get the
+        user the data it wants.
+
+        We assume the torrent at the beginning of self.hits are more
+        likely to be selected by the user than the ones at the
+        end. This allows us to perform prefetching operations on a
+        subselection of these items.
+
+        The prefetch_hits function can be called multiple times. It
+        will only attempt to prefetch every PREFETCH_DELAY
+        seconds. This gives search results from multiple sources the
+        chance to be received and sorted before prefetching a subset.
+        """
+        if DEBUG: begin_time = time()
+        torrent_dir = Session.get_instance().get_torrent_collecting_dir()
+        hit_counter = 0
+        prefetch_counter = 0
+
+        # prefetch .torrent files if they are from buddycast sources
+        for hit in self.hits:
+            def sesscb_prefetch_done(infohash, metadata, filename):
+                if DEBUG:
+                    # find the origional hit
+                    for hit in self.hits:
+                        if hit.infohash == infohash:
+                            print >> sys.stderr, "Prefetch: in", "%.1fs" % (time() - begin_time), hit.name
+                            return
+                    print >> sys.stderr, "Prefetch BUG. We got a hit from something we didn't ask for"
+
+            torrent_filename = self.getCollectedFilename(hit)
+            if not torrent_filename:
+                if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio = 1):
+                    if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", hit.name
+                    prefetch_counter += 1
+
+            hit_counter += 1
+            if prefetch_counter >= 10 or hit_counter >= 25:
+                # (1) prefetch a maximum of N hits
+                # (2) prefetch only from the first M hits
+                # (.) wichever is lowest or (1) or (2)
+                break
     
+    def getSearchKeywords(self ):
+        return self.searchkeywords, len(self.hits), self.filteredResults
+    
+    def setSearchKeywords(self, wantkeywords):
+        if wantkeywords != self.searchkeywords:
+            self.bundle_mode = None
+        
+        self.searchkeywords = wantkeywords
+        if DEBUG:
+            print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,";time:%", time()
+            
+        self.filteredResults = 0
+        self.remoteHits = []
+        self.oldsearchkeywords = ''
+            
+    def setBundleMode(self, bundle_mode):
+        if bundle_mode != self.bundle_mode:
+            self.bundle_mode = bundle_mode
+            self.refreshGrid()
+
+    def searchLocalDatabase(self):
+        """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
+        if self.searchkeywords == self.oldsearchkeywords and len(self.hits) > 0:
+            if DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
+            return False
+
+        self.oldsearchkeywords = self.searchkeywords
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords
+                    
+        if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
+            return False
+        
+        results = self.torrent_db.searchNames(self.searchkeywords)
+        if len(results) > 0:
+            def create_torrent(a):
+                t = Torrent(**getValidArgs(Torrent.__init__, a))
+                t.torrent_db = self.torrent_db
+                return t
+            
+            results = map(create_torrent, results)
+            
+        self.hits = results
+        return True
+
+    def addStoredRemoteResults(self):
+        """ Called by GetHitsInCategory() to add remote results to self.hits """
+        try:
+            self.remoteLock.acquire()
+            
+            if len(self.remoteHits) > 0:
+                for remoteItem in self.remoteHits:
+                    known = remoteItem['torrent_id'] != -1
+                    
+                    if not known:
+                        for item in self.hits:
+                            
+                            if item.infohash == remoteItem['infohash']:
+                                #If this item is a remote, then update query_permids
+                                if isinstance(item, RemoteTorrent):
+                                    item.query_permids.update(remoteItem['query_permids'])
+                                    
+                                    #Maybe update channel?
+                                    if remoteItem['channel_permid'] != "" and remoteItem['channel_name'] != "":
+                                        this_rating = remoteItem['subscriptions'] - remoteItem['neg_votes']
+                                        current_rating = item.channel_posvotes - item.channel_negvotes
+                                        
+                                        if this_rating > current_rating:
+                                            item.channel_permid = remoteItem['channel_permid']
+                                            item.channel_name = remoteItem['channel_name']
+                                            item.channel_posvotes = remoteItem['subscriptions']
+                                            item.channel_negvotes = remoteItem['neg_votes']
+                                known = True
+                                break
+                    
+                    if not known:
+                        remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
+                        remoteHit.torrent_db = self.torrent_db
+                        self.hits.append(remoteHit)
+                        
+                self.remoteHits = []
+        except:
+            raise
+        
+        finally:
+            self.remoteLock.release()
+        
+    def gotRemoteHits(self, permid, kws, answers):
+        """
+        Called by GUIUtil when hits come in.
+
+        29/06/11 boudewijn: from now on called on the GUITaskQueue instead on the wx MainThread to
+        avoid blocking the GUI because of the database queries.
+        """
+        if self.searchkeywords == kws:
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
+        
+    def _gotRemoteHits(self, permid, kws, answers):
+        try:
+            if DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
+                
+            self.remoteLock.acquire()
+            
+            permid_channelid = self.channelcast_db.getPermChannelIdDict()
+            my_votes = self.votecastdb.getMyVotes()
+            
+            # Always store the results, only display when in filesMode
+            # We got some replies. First check if they are for the current query
+            if self.searchkeywords == kws:
+                numResults = 0
+                catobj = Category.getInstance()
+                
+                for key,value in answers.iteritems():
+                    # Convert answer fields as per 
+                    # Session.query_connected_peers() spec. to NEWDB format
+                    newval = {}
+                    newval['torrent_id'] = -1
+                    newval['name'] = value['content_name']                    
+                    newval['infohash'] = key
+                    newval['torrent_file_name'] = ''
+                    newval['length'] = value['length']
+                    newval['creation_date'] = time()  # None  gives '?' in GUI
+                    newval['relevance'] = 0
+                    newval['source'] = 'RQ'
+                    newval['category'] = value['category'][0]
+                    newval['category_id'] = self.torrent_db.category_table.get(newval['category'], 0)
+                    
+                    # We trust the peer
+                    newval['status'] = 'good'
+                    newval['status_id'] = self.torrent_db.status_table['good']
+                    newval['num_seeders'] = value['seeder']
+                    newval['num_leechers'] = value['leecher']
+
+                    # OLPROTO_VER_NINETH includes a torrent_size. Set to
+                    # -1 when not available.
+                    newval['torrent_size'] = value.get('torrent_size', -1)
+                        
+                    # OLPROTO_VER_ELEVENTH includes channel_permid, channel_name fields.
+                    if 'channel_permid' not in value:
+                        # just to check if it is not OLPROTO_VER_ELEVENTH version
+                        # if so, check word boundaries in the swarm name
+                        ls = split_into_keywords(value['content_name'])
+
+                        if DEBUG:
+                            print >>sys.stderr,"TorrentSearchGridManager: ls is",`ls`
+                            print >>sys.stderr,"TorrentSearchGridManager: kws is",`kws`
+                        
+                        flag = False
+                        for kw in kws:
+                            if kw not in ls:
+                                flag=True
+                                break
+                        if flag:
+                            continue
+                    
+                    newval['channel_permid'] = value.get('channel_permid', '')
+                    newval['channel_id'] = 0
+                    newval['channel_name'] = value.get('channel_name', '')
+                    newval['subscriptions'] = 0
+                    newval['neg_votes'] = 0
+                    
+                    if 'channel_permid' in value:
+                        channel_id = permid_channelid.get(newval['channel_permid'], None)
+                        
+                        if channel_id is not None:
+                            my_vote = my_votes.get(channel_id, 0)
+                            if my_vote < 0:
+                                # I marked this channel as SPAM
+                                continue
+                            
+                            newval['subscriptions'], newval['neg_votes'] = self.votecastdb.getPosNegVotes(channel_id)
+                            if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
+                                # We consider this as SPAM
+                                continue
+                            
+                            newval['channel_id'] = channel_id
+                    else:
+                        newval['channel_permid'] = ""
+                        newval['subscriptions'] = 0
+                        newval['neg_votes'] = 0
+               
+                    # Extra field: Set from which peer this info originates
+                    newval['query_permids'] = set([permid])
+                        
+                    # Store or update self.remoteHits
+                    self.remoteHits.append(newval)
+             
+            
+                self.refreshGrid()
+                return True
+            
+            elif DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: got hits for", kws, "but current search is for", self.searchkeywords
+            return False
+        
+        except:
+            print_exc()
+            return False
+        
+        finally:
+            self.remoteLock.release()
+        
+    def refreshGrid(self):
+        if self.gridmgr is not None:
+            self.gridmgr.refresh()
+
+    #Rameez: The following code will call normalization functions and then 
+    #sort and merge the torrent results
+    def sort(self):
+        norm_num_seeders = self.doStatNormalization(self.hits, 'num_seeders')
+        norm_neg_votes = self.doStatNormalization(self.hits, 'neg_votes')
+        norm_subscriptions = self.doStatNormalization(self.hits, 'subscriptions')
+
+        def score_cmp(a,b):
+            info_a = a.infohash
+            info_b = b.infohash
+            
+            # normScores can be small, so multiply
+            score_a = 0.8*norm_num_seeders[info_a] - 0.1 * norm_neg_votes[info_a] + 0.1 * norm_subscriptions[info_a]
+            score_b = 0.8*norm_num_seeders[info_b] - 0.1 * norm_neg_votes[info_b] + 0.1 * norm_subscriptions[info_b]
+
+            return cmp(score_a, score_b)
+           
+        self.hits.sort(cmp, reverse = True)
+
+    def doStatNormalization(self, hits, normKey):
+        '''Center the variance on zero (this means mean == 0) and divide
+        all values by the standard deviation. This is sometimes called scaling.
+        This is done on the field normKey of hits.'''
+        
+        tot = 0
+        for hit in hits:
+            tot += hit.get(normKey, 0)
+        
+        if len(hits) > 0:
+            mean = tot/len(hits)
+        else:
+            mean = 0
+        
+        sum = 0
+        for hit in hits:
+            temp = hit.get(normKey,0) - mean
+            temp = temp * temp
+            sum += temp
+        
+        if len(hits) > 1:
+            dev = sum /(len(hits)-1)
+        else:
+            dev = 0
+        
+        stdDev = sqrt(dev)
+        
+        return_dict = {}
+        for hit in hits:
+            if stdDev > 0:
+                return_dict[hit.infohash] = (hit.get(normKey,0) - mean)/ stdDev
+            else:
+                return_dict[hit.infohash] = 0
+        return return_dict
+                
+class LibraryManager:
+    # Code to make this a singleton
+    __single = None
+   
+    def __init__(self,guiUtility):
+        if LibraryManager.__single:
+            raise RuntimeError, "LibraryManager is singleton"
+        LibraryManager.__single = self
+        self.guiUtility = guiUtility
+        
+        # Contains all matches for keywords in DB, not filtered by category
+        self.hits = []
+        
+        #current progress of download states
+        self.cache_progress = {}
+        
+        self.rerankingStrategy = DefaultTorrentReranker()
+        
+        # For asking for a refresh when remote results came in
+        self.gridmgr = None
+        self.guiserver = GUITaskQueue.getInstance()
+        
+        # Gui callbacks
+        self.gui_callback = []
+        self.user_download_choice = UserDownloadChoice.get_singleton()
+
+    def getInstance(*args, **kw):
+        if LibraryManager.__single is None:
+            LibraryManager(*args, **kw)       
+        return LibraryManager.__single
+    getInstance = staticmethod(getInstance)
+
     def _get_videoplayer(self, exclude=None):
         """
         Returns the VideoPlayer instance and ensures that it knows if
@@ -374,16 +754,9 @@ class TorrentManager:
         for ds in dslist:
             infohash = ds.get_download().get_def().get_infohash()
             
-            status = ds.get_status()
-            if status == DLSTATUS_SEEDING:
-                progress = 100
-            elif status == DLSTATUS_DOWNLOADING:
-                progress = (ds.get_progress() or 0.0) * 100.0
-            else:
-                progress = False
-            
+            progress = (ds.get_progress() or 0.0) * 100.0
             #update progress if difference is larger than 5%
-            if progress and progress - self.cache_progress.get(infohash, 0) > 5:
+            if progress - self.cache_progress.get(infohash, 0) > 5:
                 self.cache_progress[infohash] = progress
                 try:
                     self.mypref_db.updateProgress(infohash, progress, commit = False)
@@ -407,25 +780,72 @@ class TorrentManager:
         for ds in self.dslist:
             try:
                 infohash = ds.get_download().get_def().get_infohash()
-                if torrent['infohash'] == infohash:
-                    torrent['ds'] = ds
+                if torrent.infohash == infohash:
+                    torrent.ds = ds
                     break
             except:
                 pass
         return torrent
     
-    def addDownloadStates(self, liblist):
-        # Add downloadstate data to list of torrent dicts
-        for ds in self.dslist:
-            try:
-                infohash = ds.get_download().get_def().get_infohash()
-                for torrent in liblist:
-                    if torrent['infohash'] == infohash:
-                        torrent['ds'] = ds
-                        break
-            except:
-                pass
-        return liblist
+    def addDownloadStates(self, torrentlist):
+        if len(torrentlist) > 0:
+            infohash_ds = {}
+            for ds in self.dslist:
+                try:
+                    infohash = ds.get_download().get_def().get_infohash()
+                    infohash_ds[infohash] = ds
+                except:
+                    pass
+                
+            for torrent in torrentlist:
+                if torrent.infohash in infohash_ds:
+                    torrent.ds = ds
+        return torrentlist
+    
+    def playTorrent(self, torrent, selectedinfilename = None):
+        ds = torrent.get('ds')
+        
+        videoplayer = self._get_videoplayer(ds)
+        videoplayer.stop_playback()
+        videoplayer.show_loading()
+        
+        if ds is None:
+            filename = self.torrentsearch_manager.getCollectedFilename(torrent)
+            if filename:
+                tdef = TorrentDef.load(filename)
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                dscfg = defaultDLConfig.copy()
+                videoplayer.start_and_play(tdef, dscfg, selectedinfilename)
+                
+            else:
+                callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
+                self.torrentsearch_manager.getTorrent(torrent, callback)
+        else:
+            videoplayer.play(ds, selectedinfilename)
+    
+    def deleteTorrent(self, torrent, removecontent = False):
+        self.deleteTorrentDS(torrent.get('ds'), torrent['infohash'], removecontent)
+    
+    def deleteTorrentDS(self, ds, infohash, removecontent = False):
+        if not ds is None:
+            videoplayer = VideoPlayer.getInstance()
+            playd = videoplayer.get_vod_download()
+            
+            if playd == ds.download:
+                self._get_videoplayer(ds).stop_playback()
+            
+        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+        
+    def deleteTorrentDownload(self, download, infohash, removecontent = False, removestate = True):
+        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        
+        if infohash:
+            # Johan, 2009-03-05: we need long download histories for good 
+            # semantic clustering.
+            # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
+            # up in the Library, even after removal :-( H4x0r this.
+            self.mypref_db.updateDestDir(infohash,"")
+            self.user_download_choice.remove_download_state(infohash)
     
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
@@ -433,414 +853,38 @@ class TorrentManager:
     def connect(self):
         session = self.guiUtility.utility.session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
-        self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
-        self.searchmgr = SearchManager(self.torrent_db)
+        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
     
-    def getHitsInCategory(self, mode = 'filesMode', categorykey = 'all', sort = 'rameezmetric'):
+    def getHitsInCategory(self):
         if DEBUG: begintime = time()
-        # mode is 'filesMode', 'libraryMode'
-        # categorykey can be 'all', 'Video', 'Document', ...
         
-        if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: getHitsInCategory:",mode,categorykey,range
-        
-        categorykey = categorykey.lower()
-        enabledcattuples = self.category.getCategoryNames()
-        enabledcatslow = ["other"]
-        for catname,displayname in enabledcattuples:
-            enabledcatslow.append(catname.lower())
-        
-        # TODO: do all filtering in DB query
-        def torrentFilter(torrent):
-            #allow all files in library mode
-            if mode == 'libraryMode':
-                return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
+        results = self.torrent_db.getTorrents(sort = "name", library = True)
+        if len(results) > 0:
+            def create_torrent(a):
+                t = LibraryTorrent(**getValidArgs(LibraryTorrent.__init__, a))
+                t.torrent_db = self.torrent_db
+                t.channelcast_db = self.channelcast_db
+                return t
             
-            okCategory = False
-            if not okCategory:
-                categories = torrent.get("category", [])
-                if not categories:
-                    categories = ["other"]
-                if categorykey == 'all':
-                    for torcat in categories:
-                        if torcat.lower() in enabledcatslow:
-                            okCategory = True
-                            break
-                elif categorykey in [cat.lower() for cat in categories]:
-                    okCategory = True
-            
-            if not okCategory:
-                self.filteredResults += 1
-            
-            okGood = torrent['status'] != 'dead'
-            return okCategory and okGood
+            results = map(create_torrent, results)
         
-        # 1. Local search puts hits in self.hits
-        if DEBUG:
-            beginlocalsearch = time()
-        new_local_hits = self.searchLocalDatabase(mode)
-        
-        if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
-
-        # 2. Filter self.hits on category and status
-        if DEBUG:
-            beginfilterhits = time()
-            
-        if new_local_hits:
-            self.hits = filter(torrentFilter,self.hits)
+        #Niels: maybe create a clever reranking for library results, for now disable
+        #results = self.rerankingStrategy.rerank(results, '', self.torrent_db, self.pref_db, self.mypref_db, self.search_db)
 
         if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
-        
-        # 3. Add remote hits that may apply. TODO: double filtering, could
-        # add remote hits to self.hits before filter(torrentFilter,...)
-        if mode != 'libraryMode':
-            self.addStoredRemoteResults()
-
-            if DEBUG:
-                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
-
-        if DEBUG:
-            beginsort = time()
-        
-        if sort == 'rameezmetric':
-            self.sort()
-
-        # Nic: Ok this is somewhat diagonal to the previous sorting algorithms
-        # eventually, these should probably be combined
-        # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
-        # this should be fine...
-        self.rerankingStrategy[mode] = getTorrentReranker()
-        self.hits = self.rerankingStrategy[mode].rerank(self.hits, self.searchkeywords[mode], self.torrent_db, 
-                                                        self.pref_db, self.mypref_db, self.search_db)
-
-        # boudewijn: now that we have sorted the search results we
-        # want to prefetch the top N torrents.
-        self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
-
-        if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
-        self.hits = self.addDownloadStates(self.hits)
-
-        return [len(self.hits), self.filteredResults , self.hits]
-
-    def prefetch_hits(self):
-        """
-        Prefetching attempts to reduce the time required to get the
-        user the data it wants.
-
-        We assume the torrent at the beginning of self.hits are more
-        likely to be selected by the user than the ones at the
-        end. This allows us to perform prefetching operations on a
-        subselection of these items.
-
-        The prefetch_hits function can be called multiple times. It
-        will only attempt to prefetch every PREFETCH_DELAY
-        seconds. This gives search results from multiple sources the
-        chance to be received and sorted before prefetching a subset.
-        """
-        if DEBUG: begin_time = time()
-        torrent_dir = Session.get_instance().get_torrent_collecting_dir()
-        hit_counter = 0
-        prefetch_counter = 0
-
-        # prefetch .torrent files if they are from buddycast sources
-        for hit in self.hits:
-            def sesscb_prefetch_done(infohash, metadata, filename):
-                if DEBUG:
-                    # find the origional hit
-                    for hit in self.hits:
-                        if hit["infohash"] == infohash:
-                            print >> sys.stderr, "Prefetch: in", "%.1fs" % (time() - begin_time), `hit["name"]`
-                            return
-                    print >> sys.stderr, "Prefetch BUG. We got a hit from something we didn't ask for"
-
-            if 'torrent_file_name' not in hit or not hit['torrent_file_name']:
-                hit['torrent_file_name'] = get_collected_torrent_filename(hit['infohash']) 
-            torrent_filename = os.path.join(torrent_dir, hit['torrent_file_name'])
-
-            if not os.path.isfile(torrent_filename):
-                if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio = 1):
-                    prefetch_counter += 1
-                    if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", `hit["name"]`
-
-            hit_counter += 1
-            if prefetch_counter >= 10 or hit_counter >= 25:
-                # (1) prefetch a maximum of N hits
-                # (2) prefetch only from the first M hits
-                # (.) wichever is lowest or (1) or (2)
-                break
-    
-    def getSearchKeywords(self, mode):
-        return self.searchkeywords[mode], len(self.hits), self.filteredResults
-    
-    def setSearchKeywords(self, wantkeywords, mode):
-        self.searchkeywords[mode] = wantkeywords
-        if mode == 'filesMode':
-            if DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
-            self.filteredResults = 0
-            self.remoteHits = {}
-            self.oldsearchkeywords[mode] = ''
-
-    def searchLocalDatabase(self, mode):
-        if mode != 'libraryMode':
-            """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
-            if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
-                if DEBUG:
-                    print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
-                return False
-
-            self.oldsearchkeywords[mode] = self.searchkeywords[mode]
-            if DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
+            print >> sys.stderr, 'getHitsInCat took:', time() - begintime
             
-            if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
-                return False
-            
-            self.hits = self.searchmgr.search(self.searchkeywords[mode])
-        else:
-            self.hits = self.searchmgr.searchLibrary()
-        return True
+        self.hits = self.addDownloadStates(results)
+        return [len(self.hits), 0 , self.hits]
 
-    def addStoredRemoteResults(self):
-        """ Called by GetHitsInCategory() to add remote results to self.hits """
-        if len(self.remoteHits) > 0:
-            numResults = 0
-            def catFilter(item):
-                icat = item.get('category')
-                if type(icat) == list:
-                    icat = icat[0].lower()
-                elif type(icat) == str:
-                    icat = icat.lower()
-                else:
-                    return False
-            
-            #catResults = filter(catFilter, self.remoteHits.values())
-            catResults = self.remoteHits.values()
-            if DEBUG:
-                print >> sys.stderr,"TorrentSearchGridManager: remote: Adding %d remote results (%d in category)" % (len(self.remoteHits), len(catResults))
-            
-            for remoteItem in catResults:
-                known = False
-                for item in self.hits:
-                    #print >> sys.stderr,"TorrentSearchGridManager: remote: Should we add",`remoteItem['name']`
-                    if item['infohash'] == remoteItem['infohash']:
-                        known = True
-                        # if a hit belongs to a more popular channel, then replace the previous
-                        """
-                        if remoteItem['channel_permid'] !="" and remoteItem['channel_name'] != "" and remoteItem['subscriptions']-remoteItem['neg_votes'] > item['subscriptions']-item['neg_votes']:
-                            item['subscriptions'] = remoteItem['subscriptions']
-                            item['neg_votes'] = remoteItem['neg_votes']
-                            item['channel_permid'] = remoteItem['channel_permid']
-                            item['channel_name'] = remoteItem['channel_name']
-                        """
-                        break
-                if not known:
-                    #print >> sys.stderr,"TorrentSearchGridManager: remote: Adding",`remoteItem['name']`
-                    self.hits.append(remoteItem)
-                    numResults+=1
-        
-    def gotRemoteHits(self, permid, kws, answers):
-        """
-        Called by GUIUtil when hits come in.
-
-        29/06/11 boudewijn: from now on called on the GUITaskQueue instead on the wx MainThread to
-        avoid blocking the GUI because of the database queries.
-        """
-        self.guiserver.add_task(lambda: self._gotRemoteHits(permid, kws, answers), id = "TorrentSearchManager_gotRemoteHits")
-        
-    def _gotRemoteHits(self, permid, kws, answers):
-        try:
-            if DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
-            
-            # Always store the results, only display when in filesMode
-            # We got some replies. First check if they are for the current query
-            if self.searchkeywords['filesMode'] == kws:
-                numResults = 0
-                catobj = Category.getInstance()
-                for key,value in answers.iteritems():
-                    
-                    if self.torrent_db.hasTorrent(key):
-                        if DEBUG:
-                            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
-                        continue # do not show results we have ourselves
-                    
-                    # First, check if it matches the word boundaries, that belongs to previous version
-                    
-                    # Convert answer fields as per 
-                    # Session.query_connected_peers() spec. to NEWDB format
-                    newval = {}
-                    newval['name'] = value['content_name']                    
-                    newval['infohash'] = key
-                    newval['torrent_file_name'] = ''
-                    newval['length'] = value['length']
-                    newval['creation_date'] = time()  # None  gives '?' in GUI
-                    newval['relevance'] = 0
-                    newval['source'] = 'RQ'
-                    newval['category'] = value['category'][0] 
-                    # We trust the peer
-                    newval['status'] = 'good'
-                    newval['num_seeders'] = value['seeder']
-                    newval['num_leechers'] = value['leecher']
-
-                    # OLPROTO_VER_NINETH includes a torrent_size. Set to
-                    # -1 when not available.
-                    if 'torrent_size' in value:
-                        newval['torrent_size'] = value['torrent_size']
-                    else:
-                        newval['torrent_size'] = -1
-                        
-                    # OLPROTO_VER_ELEVENTH includes channel_permid, channel_name fields.
-                    if 'channel_permid' not in value:
-                        # just to check if it is not OLPROTO_VER_ELEVENTH version
-                        # if so, check word boundaries in the swarm name
-                        ls = split_into_keywords(value['content_name'])
-
-                        if DEBUG:
-                            print >>sys.stderr,"TorrentSearchGridManager: ls is",`ls`
-                            print >>sys.stderr,"TorrentSearchGridManager: kws is",`kws`
-                        
-                        flag = False
-                        for kw in kws:
-                            if kw not in ls:
-                                flag=True
-                                break
-                        if flag:
-                            continue
-                        
-                    if 'channel_permid' in value:
-                        newval['channel_permid']=value['channel_permid']
-                    else:
-                        newval['channel_permid']=""
-                        
-                    if 'channel_name' in value:
-                        newval['channel_name'] = value['channel_name']
-                    else:
-                        newval['channel_name']=""
-                        
-                    if 'channel_permid' in value:
-                        newval['subscriptions'], newval['neg_votes'] = self.votecastdb.getPosNegVotes(value['channel_permid'])
-                        if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
-                            # now, this is SPAM
-                            continue
-                    else:
-                        newval['subscriptions']=0
-                        newval['neg_votes'] = 0
-                            
-
-                    # Extra field: Set from which peer this info originates
-                    newval['query_permids'] = [permid]
-                        
-                    # Filter out results from unwanted categories
-                    flag = False
-                    for cat in value['category']:
-                        rank = catobj.getCategoryRank(cat)
-                        if rank == -1:
-                            if DEBUG:
-                                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: Got",`newval['name']`,"from banned category",cat,", discarded it."
-                            flag = True
-                            self.filteredResults += 1
-                            break
-                    if flag:
-                        continue
-
-                    if newval['infohash'] in self.remoteHits:
-                        if DEBUG:
-                            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: merging hit",`newval['name']`
-
-                        # merge this result with previous results
-                        oldval = self.remoteHits[newval['infohash']]
-                        for query_permid in newval['query_permids']:
-                            if not query_permid in oldval['query_permids']:
-                                oldval['query_permids'].append(query_permid)
-                        
-                        # if a hit belongs to a more popular channel, then replace the previous
-                        if newval['channel_permid'] !="" and newval['channel_name'] != "" and newval['subscriptions']-newval['neg_votes'] > oldval['subscriptions']-oldval['neg_votes']:
-                            oldval['subscriptions'] = newval['subscriptions']
-                            oldval['neg_votes'] = newval['neg_votes']
-                            oldval['channel_permid'] = newval['channel_permid']
-                            oldval['channel_name'] = newval['channel_name']
-                    else:
-                        if DEBUG:
-                            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: appending hit",`newval['name']`
-
-                        self.remoteHits[newval['infohash']] = newval
-                        numResults +=1
-                        # if numResults % 5 == 0:
-                        # self.refreshGrid()
-             
-                if numResults > 0:
-                    self.refreshGrid()
-                    if DEBUG:
-                        print >>sys.stderr,'TorrentSearchGridManager: gotRemoteHits: Refresh grid after new remote torrent hits came in'
-                return True
-            elif DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
-            return False
-        except:
-            print_exc()
-            return False
-        
     def refreshGrid(self):
         if self.gridmgr is not None:
             self.gridmgr.refresh()
 
-    #Rameez: The following code will call normalization functions and then 
-    #sort and merge the torrent results
-    def sort(self):
-        self.doStatNormalization(self.hits,'num_seeders', 'norm_num_seeders')
-        self.doStatNormalization(self.hits,'neg_votes', 'norm_neg_votes')
-        self.doStatNormalization(self.hits,'subscriptions', 'norm_subscriptions')
-
-        def score_cmp(a,b):
-            score_a = 0.8*a.get('norm_num_seeders',0) - 0.1*a.get('norm_neg_votes',0) + 0.1*a.get('norm_subscriptions',0)
-            score_b = 0.8*b.get('norm_num_seeders',0) - 0.1*b.get('norm_neg_votes',0) + 0.1*b.get('norm_subscriptions',0)
-            # normScores can be small, so multiply
-            return cmp(score_a, score_b)
-           
-        self.hits.sort(cmp, reverse = True)
-
-    def doStatNormalization(self, hits, normKey, newKey):
-        '''Center the variance on zero (this means mean == 0) and divide
-        all values by the standard deviation. This is sometimes called scaling.
-        This is done on the field normKey of hits and the output is added to a new 
-        field called newKey.'''
-        
-        tot = 0
-
-        for hit in hits:
-            tot += hit.get(normKey, 0)
-        
-        if len(hits) > 0:
-            mean = tot/len(hits)
-        else:
-            mean = 0
-        
-        sum = 0
-        for hit in hits:
-            temp = hit.get(normKey,0) - mean
-            temp = temp * temp
-            sum += temp
-        
-        if len(hits) > 1:
-            dev = sum /(len(hits)-1)
-        else:
-            dev = 0
-        
-        stdDev = sqrt(dev)
-        
-        for hit in hits:
-            if stdDev > 0:
-                hit[newKey] = (hit.get(normKey,0)-mean)/ stdDev
-            else:
-                hit[newKey] = 0
-                
 class ChannelSearchGridManager:
     # Code to make this a singleton
     __single = None
@@ -856,7 +900,6 @@ class ChannelSearchGridManager:
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = {}
         
-        self.searchmgr = None
         self.channelcast_db = None
         self.votecastdb = None
         
@@ -876,9 +919,10 @@ class ChannelSearchGridManager:
 
     def connect(self):
         self.session = self.utility.session
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
-        
+
         if Dispersy.has_instance():
             self.dispersy = Dispersy.get_instance()
         else:
@@ -888,14 +932,12 @@ class ChannelSearchGridManager:
                 self.session.remove_observer(dispersy_started)
             
             self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
-        self.searchmgr = SearchManager(self.channelcast_db)
         
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
 
     def getChannelHits(self):
-        new_local_hits = self.searchLocalDatabase()
-
+        self.searchLocalDatabase()
         if DEBUG:
             print >>sys.stderr,'ChannelSearchGridManager: getChannelHits: search found: %d items' % len(self.hits)
 
@@ -903,130 +945,176 @@ class ChannelSearchGridManager:
             return [0, None]
         else:        
             return [len(self.hits),self.hits]
+    
+    def getChannel(self, channel_id):
+        channel = self.channelcast_db.getChannel(channel_id)
+        channel = self._createChannel(channel)
+        
+        #check if we need to convert our vote
+        if channel.isDispersy() and channel.my_vote != 0:
+            timestamp = self.votecastdb.getTimestamp(channel_id, None)
+            self.do_vote(channel_id, channel.my_vote, timestamp)
+        
+        return channel
+    
+    def getChannelFromPermid(self, channel_permid):
+        channel = self.channelcast_db.getChannelFromPermid(channel_permid)
+        if channel:
+            return self._createChannel(channel)
 
     def getNewChannels(self):
-        #all channels with no votes + updated since
         two_months = time() - 5259487
         
         newchannels = self.channelcast_db.getNewChannels(two_months)
-        return [len(newchannels), newchannels]
+        return len(newchannels), self._createChannels(newchannels)
 
     def getAllChannels(self):
         allchannels = self.channelcast_db.getAllChannels()
-        return [len(allchannels), allchannels]
+        return len(allchannels), self._createChannels(allchannels)
  
     def getMySubscriptions(self):
         subscriptions = self.channelcast_db.getMySubscribedChannels()
-        return [len(subscriptions), subscriptions]
-
-    def getSubscribersCount(self, channel_id):
-        return self.channelcast_db.getSubscribersCount(channel_id)
+        return len(subscriptions), self._createChannels(subscriptions)
 
     def getPopularChannels(self):
         pchannels = self.channelcast_db.getMostPopularChannels()
-        return [len(pchannels), pchannels]
+        return len(pchannels), self._createChannels(pchannels)
     
     def getUpdatedChannels(self):
         lchannels = self.channelcast_db.getLatestUpdated()
-        return [len(lchannels), lchannels]
+        return len(lchannels), self._createChannels(lchannels)
     
-    def getMyVote(self, channel_id):
-        return self.votecastdb.getVote(channel_id, None)
+    def _createChannel(self, hit):
+        return Channel(*hit)
+    
+    def _createChannels(self, hits):
+        return [Channel(*hit) for hit in hits]
     
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
     
-    def getTorrentModifications(self, channeltorrent_id):
-        return self.channelcast_db.getTorrentModifications(channeltorrent_id)
-    
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        assert 'ChannelTorrents.name' in keys and 'CollectedTorrent.name' in keys, "Require ChannelTorrents.name and CollectedTorrent.name in keys"
         data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, keys)
-        
-        #Prefer channeltorrents name, but use collectedtorrent as backup
-        data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']
-        return data
+        return self._createTorrent(data)
 
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
-        assert 'ChannelTorrents.name' in keys and 'CollectedTorrent.name' in keys, "Require ChannelTorrents.name and CollectedTorrent.name in keys" 
-        data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, keys)
-        
-        #Prefer channeltorrents name, but use collectedtorrent as backup
-        data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']
-        return data
+        data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, keys) 
+        return self._createTorrent(data)
     
     def getTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys, limit)
-        return self._fix_torrents(hits, filterTorrents)
+        return self._createTorrents(hits, filterTorrents)
     
     def getRecentTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getRecentTorrentsFromChannelId(channel_id, keys, limit)
-        return self._fix_torrents(hits, filterTorrents)
+        return self._createTorrents(hits, filterTorrents)
 
     def getTorrentsNotInPlaylist(self, channel_id, keys, filterTorrents = True):
         hits = self.channelcast_db.getTorrentsNotInPlaylist(channel_id, keys)
-        return self._fix_torrents(hits, filterTorrents)
+        return self._createTorrents(hits, filterTorrents)
     
     def getTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromPlaylist(playlist_id, keys, limit)
-        return self._fix_torrents(hits, filterTorrents)
+        return self._createTorrents(hits, filterTorrents)
     
     def getRecentTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist_id, keys, limit)
-        return self._fix_torrents(hits, filterTorrents)
+        return self._createTorrents(hits, filterTorrents)
+    
+    def _createTorrent(self, tuple):
+        if tuple:
+            ct = ChannelTorrent(*tuple)
+            ct.torrent_db = self.torrent_db
+            return ct
         
-    def _fix_torrents(self, hits, filterTorrents):
+    def _createTorrents(self, hits, filterTorrents):
+        hits = map(self._createTorrent, hits)
+        
+        self.filteredResults = 0
         if filterTorrents:
-            nrFiltered, hits = self._applyFF(hits)
-        else:
-            nrFiltered = 0
+            hits = self._applyFF(hits)
         
-        for data in hits:
-            data['torrent_id'] = data['CollectedTorrent.torrent_id']
-            del data['CollectedTorrent.torrent_id']
+        return len(hits), self.filteredResults, hits
 
-            #Prefer channeltorrents name, but use collectedtorrent as backup
-            data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']  
-        return len(hits), nrFiltered, hits
-
+    def getTorrentModifications(self, channeltorrent_id):
+        data = self.channelcast_db.getTorrentModifications(channeltorrent_id)
+        return self._createModifications(data)
+    
     def getRecentModificationsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
-        return self.channelcast_db.getRecentModificationsFromChannelId(channel_id, keys, limit)
+        data = self.channelcast_db.getRecentModificationsFromChannelId(channel_id, keys, limit)
+        return self._createModifications(data)
 
     def getRecentModificationsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
-        return self.channelcast_db.getRecentModificationsFromPlaylist(playlist_id, keys, limit)
+        data = self.channelcast_db.getRecentModificationsFromPlaylist(playlist_id, keys, limit)
+        return self._createModifications(data)
+
+    def _createModifications(self, hits):
+        returnList = []
+        for hit in hits:
+            mod = Modification(*hit)
+            mod.channelcast_db = self.channelcast_db
+            returnList.append(mod)
+            
+        return returnList
+    
+    def getCommentsFromChannelId(self, channel_id, keys, limit = None, resolve_names = True):
+        hits = self.channelcast_db.getCommentsFromChannelId(channel_id, keys, limit)
+        return self._createComments(hits)
+
+    def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
+        hits = self.channelcast_db.getCommentsFromPlayListId(playlist_id, keys, limit)
+        return self._createComments(hits)
+            
+    def getCommentsFromChannelTorrentId(self, channel_torrent_id, keys, limit = None):
+        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent_id, keys, limit)
+        return self._createComments(hits)
+        
+    def _createComments(self, hits):
+        returnList = []
+        for hit in hits:
+            comment = Comment(*hit)
+            comment.get_nickname = self.utility.session.get_nickname
+            returnList.append(comment)
+            
+        return returnList
+    
+    def getMyVote(self, channel_id):
+        return self.votecastdb.getVote(channel_id, None)
+    
+    def getSubscribersCount(self, channel_id):
+        return self.channelcast_db.getSubscribersCount(channel_id)
     
     def _applyFF(self, hits):
-        enabledcattuples = self.category.getCategoryNames()
-        enabledcatslow = ["other"]
-        for catname, displayname in enabledcattuples:
-            enabledcatslow.append(catname.lower())
-        
-        def catFilter(torrent):
+        enabled_category_keys = [key.lower() for key in self.category.getCategoryKeys()]
+        enabled_category_ids = set()
+        for key, id in self.torrent_db.category_table.iteritems():
+            if key.lower() in enabled_category_keys:
+                enabled_category_ids.add(id)
+        deadstatus_id = self.torrent_db.status_table['dead']
+
+        def torrentFilter(torrent):
             okCategory = False
-            categories = torrent.get("category", ["other"])
-            for torcat in categories:
-                if torcat.lower() in enabledcatslow:
-                    okCategory = True
-                    break
             
-            return okCategory
+            category = torrent.get("category_id", None)
+            if not category:
+                category = 0
+                
+            if category in enabled_category_ids:
+                okCategory = True
+                
+            if not okCategory:
+                self.filteredResults += 1
             
-        def deadFilter(torrent):
-            okGood = torrent['status'] != 'dead'
-            return okGood
-        
-        nrFiltered = len(hits)
-        hits = filter(catFilter, hits)
-        nrFiltered -= len(hits)
-        
-        hits = filter(deadFilter, hits)
-        return nrFiltered, hits
+            okGood = torrent.status_id != deadstatus_id
+            return okCategory and okGood
+        return filter(torrentFilter, hits)
     
     def _disp_get_community_from_channel_id(self, channel_id):
         assert isinstance(channel_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+        delayedResult = startWorker(None, self.channelcast_db.getDispersyCIDFromChannelId, wargs = (channel_id,))
+        dispersy_cid = delayedResult.get()
         dispersy_cid = str(dispersy_cid)
         
         # 2. get the community instance from the 20 byte identifier
@@ -1071,7 +1159,6 @@ class ChannelSearchGridManager:
                 community.create_playlist_torrents(playlist_id, to_be_created)
             
             self.dispersy.callback.register(dispersy_thread)
-        
     
     def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
         infohash = None
@@ -1110,52 +1197,6 @@ class ChannelSearchGridManager:
     def getPlaylistsFromChannelId(self, channel_id, keys):
         hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
         return len(hits), hits
-    
-    def getCommentsFromChannelId(self, channel_id, keys, limit = None, resolve_names = True):
-        keys = keys + ['playlist_id', 'channeltorrent_id']
-        
-        hits = self.channelcast_db.getCommentsFromChannelId(channel_id, keys, limit)
-        nrhits, hits = self._fix_my_name(hits)
-        
-        if resolve_names:
-            for hit in hits:
-                if hit.get('channeltorrent_id', None):
-                    torrent = self.getTorrentFromChannelTorrentId(hit['channeltorrent_id'], ['ChannelTorrents.name', 'CollectedTorrent.name'])
-                    if torrent:
-                        hit['torrent_name'] = torrent['name']
-                         
-                
-                if hit.get('playlist_id', None):
-                    playlist = self.getPlaylist(hit['playlist_id'], ['name'])
-                    hit['playlist_name'] = playlist['name']
-                    
-        return nrhits, hits
-    
-    def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
-        hits = self.channelcast_db.getCommentsFromPlayListId(playlist_id, keys, limit)
-        return self._fix_my_name(hits)
-    
-    def getCommentsFromChannelTorrentId(self, channel_torrent_id, keys, limit = None):
-        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent_id, keys, limit)
-        return self._fix_my_name(hits)
-        
-    def _fix_my_name(self, hits):
-        for hit in hits:
-            if hit['Peer.peer_id'] == None:
-                hit['name'] = self.utility.session.get_nickname()
-            elif not hit['name']:
-                hit['name'] = 'Peer %d'%hit['Peer.peer_id']
-        
-        return len(hits), hits
-    
-    def getChannel(self, channel_id):
-        data = self.channelcast_db.getChannel(channel_id) 
-        
-        #check if we need to convert our vote
-        if data[CHANNEL_IS_DISPERSY] and (data[CHANNEL_MY_VOTE] == -1 or data[CHANNEL_MY_VOTE] == 2):
-            timestamp = self.votecastdb.getTimestamp(channel_id, None)
-            self.do_vote(channel_id, data[CHANNEL_MY_VOTE], timestamp)
-        return data
     
     def spam(self, channel_id):
         self.do_vote(channel_id, -1)
@@ -1227,7 +1268,7 @@ class ChannelSearchGridManager:
         for i in self.searchkeywords:
             query = query + i + ' '
         
-        hits = self.searchmgr.searchChannels(query)
+        hits = self.channelcast_db.searchChannels(query) 
         
         self.hits = {}
         for hit in hits:
@@ -1242,7 +1283,7 @@ class ChannelSearchGridManager:
         
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
-        self.guiserver.add_task(lambda:self._gotRemoteHits(permid, kws, answers), id = "TorrentSearchManager_gotRemoteHits")
+        self.guiserver.add_task(lambda:self._gotRemoteHits(permid, kws, answers))
         
     def _gotRemoteHits(self, permid, kws, answers):
         #

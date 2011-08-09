@@ -46,12 +46,44 @@ class Home(wx.Panel):
         event.Skip()
     
     def _PostInit(self):
+        self.guiutility = GUIUtility.getInstance()
+        
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        #infopanel = InfoPanel(self)
-        #vSizer.Add(infopanel, 0, wx.EXPAND)
+        vSizer.AddStretchSpacer()
         
+        searchSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        text = wx.StaticText(self, -1, "Welcome to Tribler")
+        font = text.GetFont()
+        font.SetPointSize(font.GetPointSize() * 2.5)
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        text.SetForegroundColour((255, 51, 0))
+        text.SetFont(font)
+        
+        subtext = wx.StaticText(self, -1, "Let us show you just how easy file-sharing can be. Enter any search query in the box below,\nor use channels to discover content selected by others.")
+        
+        textSizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.searchBox = wx.TextCtrl(self, style = wx.TE_PROCESS_ENTER)
+        font = self.searchBox.GetFont()
+        font.SetPointSize(font.GetPointSize() * 2)
+        self.searchBox.SetFont(font)
+        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown) 
+
+        
+        textSizer.Add(self.searchBox, 1)
+        
+        searchButton = wx.Button(self, -1, 'Search')
+        searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
+        textSizer.Add(searchButton, 0, wx.EXPAND)
+        
+        searchSizer.Add(text, 0, wx.ALIGN_CENTER|wx.BOTTOM, 3)
+        searchSizer.Add(subtext, 0, wx.BOTTOM, 3)
+        searchSizer.Add(textSizer, 0, wx.EXPAND)
+        
+        vSizer.Add(searchSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
         
         buzzpanel = BuzzPanel(self)
@@ -59,6 +91,16 @@ class Home(wx.Panel):
         
         self.SetSizer(vSizer)
         self.Layout()
+        
+    def OnClick(self, event):
+        term = self.searchBox.GetValue()
+        self.guiutility.dosearch(term)
+    
+    def KeyDown(self, event):
+        if event.GetKeyCode() == wx.WXK_RETURN:
+            self.OnClick(event)
+        else:
+            event.Skip()
         
 class Stats(wx.Panel):
     def __init__(self):
@@ -728,7 +770,6 @@ class NetworkTestPanel(HomePanel):
             # nrPeers
             nrPeers = 0
             guiUtility = GUIUtility.getInstance()
-            torrentManager = guiUtility.torrentsearch_manager
             dlist = guiUtility.utility.session.get_downloads()
             for d in dlist:
                 safename = `d.get_def().get_name()`

@@ -44,17 +44,6 @@ class TopSearchPanel(bgPanel):
     def StartSearch(self):
         if getattr(self.searchField, 'ShowDropDown', False):
             self.searchField.ShowDropDown(False)    
-        
-        self.ag.Show()
-        self.go.GetContainingSizer().Layout()
-        self.ag.Play()
-            
-        # Timer to stop animation after 10 seconds. No results will come 
-        # in after that
-        if self.animationTimer:
-            self.animationTimer.Restart(10000)
-        else:
-            self.animationTimer = wx.CallLater(10000, self.HideAnimation)
             
         if not self.results.IsEnabled():
             self.results.Enable()
@@ -213,15 +202,6 @@ class TopSearchPanel(bgPanel):
         searchBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
         searchBoxSizer.Add(self.searchField, 1, wx.TOP, 1) #add searchbox
         searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) #add searchbutton
-
-        if sys.platform == 'darwin' or sys.platform == 'win32':
-            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new_windows.gif')
-        else:
-            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
-        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
-        self.ag.Hide()
-        
-        searchBoxSizer.Add(self.ag, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
         
         #finished searchSizer, add to mainSizer
@@ -289,7 +269,3 @@ class TopSearchPanel(bgPanel):
 
     def HideNotify(self):
         self.notifyPanel.Hide()
-        
-    def HideAnimation(self):
-        self.ag.Stop()
-        self.ag.Hide()

@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 This module provides an interface to the Dispersy database.
 
@@ -7,7 +10,6 @@ This module provides an interface to the Dispersy database.
 """
 
 from socket import gethostbyname
-from hashlib import sha1
 from os import path
 
 from database import Database
@@ -83,8 +85,9 @@ CREATE TABLE sync(
  synchronization_direction INTEGER REFERENCES tag(key),
  distribution_sequence INTEGER DEFAULT 0,       -- used for the sync-distribution policy
  destination_cluster INTEGER DEFAULT 0,         -- used for the similarity-destination policy
- undone BOOL DEFAULT 0,
  packet BLOB,
+ priority INTEGER DEFAULT 128,                  -- added in version 2
+ undone BOOL DEFAULT 0,                         -- added in version 3?
  UNIQUE(community, user, global_time));
 
 CREATE TABLE malicious_proof(
@@ -146,28 +149,34 @@ class DispersyDatabase(Database):
 
         else:
             # upgrade an older version
-            with self:
-                # upgrade from version 1 to version 2
-                if database_version < 2:
+
+            # upgrade from version 1 to version 2
+            if database_version < 2:
+                with self:
+                    self.executescript(u"""
+ALTER TABLE sync ADD COLUMN priority INTEGER DEFAULT 128;
+UPDATE option SET value = '2' WHERE key = 'database_version';
+""")
+
+            # upgrade from version 2 to version 3
+            if database_version < 3:
+                with self:
                     self.executescript(u"""
 CREATE TABLE malicious_proof(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  community INTEGER REFERENCES community(id),
  user INTEGER REFERENCES name(id),
  packet BLOB)
-
 ALTER TABLE sync ADD COLUMN undone BOOL DEFAULT 0;
-
 UPDATE tag SET value = 'blacklist' WHERE key = 4;
-
-UPDATE option SET value = 2 WHERE key = 'database_version';
+UPDATE option SET value = '3' WHERE key = 'database_version';
 """)
 
-                # upgrade from version 2 to version 3
-                if database_version < 3:
-                    # there is no version 3 yet...
-                    # self.executescript(u"""UPDATE option SET value = 3 WHERE key = 'database_version';""")
-                    pass
+            # upgrade from version 3 to version 4
+            if database_version < 4:
+                # there is no version 4 yet...
+                # self.executescript(u"""UPDATE option SET value = '4' WHERE key = 'database_version';""")
+                pass
 
     def bootstrap(self):
         """
