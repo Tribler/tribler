@@ -169,7 +169,7 @@ class SearchSideBar(wx.Panel):
             
             self.channels[i].SetLabel(channels[i][1])
             self.channels[i].SetToolTipString(tooltip)
-            self.channels[i].channel_permid = channels[i][2]
+            self.channels[i].channel = channels[i]
         self.Layout()
         self.Thaw()
     
@@ -255,10 +255,15 @@ class SearchSideBar(wx.Panel):
     def OnChannel(self, event):
         label = event.GetEventObject()
         channel_name = label.GetLabel()
-        channel_permid = label.channel_permid
         
         if channel_name != '':
-            self.guiutility.showChannelFromId(channel_permid)
+            channel_occur, channel_name, channel_id, channel_permid = label.channel
+            
+            if not channel_id:
+                #When torrent was loaded this channel was not know, is it now?
+                self.guiutility.showChannelFromPermid(channel_permid)
+            else:
+                self.guiutility.showChannelFromId(channel_id)
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)

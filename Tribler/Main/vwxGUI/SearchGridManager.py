@@ -79,6 +79,7 @@ class TorrentManager:
         
         self.bundler = Bundler()
         self.bundle_mode = None
+        self.bundle_mode_changed = True
         self.category = Category.getInstance()
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
@@ -351,7 +352,7 @@ class TorrentManager:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
         
         # 3. Add remote hits that may apply.
-        self.addStoredRemoteResults()
+        new_remote_hits = self.addStoredRemoteResults()
 
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
@@ -375,9 +376,12 @@ class TorrentManager:
         
         # vliegendhart: do grouping here
         returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, self.searchkeywords)
-
+        
+        bundle_mode_changed = self.bundle_mode_changed
+        self.bundle_mode_changed = False 
+        
         #return [len(self.hits), self.filteredResults , self.hits]
-        return [len(returned_hits), self.filteredResults , returned_hits]
+        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, returned_hits]
 
     def prefetch_hits(self):
         """
@@ -441,6 +445,7 @@ class TorrentManager:
     def setBundleMode(self, bundle_mode):
         if bundle_mode != self.bundle_mode:
             self.bundle_mode = bundle_mode
+            self.bundle_mode_changed = True
             self.refreshGrid()
 
     def searchLocalDatabase(self):
@@ -471,6 +476,7 @@ class TorrentManager:
 
     def addStoredRemoteResults(self):
         """ Called by GetHitsInCategory() to add remote results to self.hits """
+        hitsUpdated = False
         try:
             self.remoteLock.acquire()
             
@@ -496,6 +502,8 @@ class TorrentManager:
                                             item.channel_name = remoteItem['channel_name']
                                             item.channel_posvotes = remoteItem['subscriptions']
                                             item.channel_negvotes = remoteItem['neg_votes']
+                                    
+                                    hitsUpdated = True
                                 known = True
                                 break
                     
@@ -504,12 +512,15 @@ class TorrentManager:
                         remoteHit.torrent_db = self.torrent_db
                         self.hits.append(remoteHit)
                         
+                        hitsUpdated = True
+                        
                 self.remoteHits = []
         except:
             raise
         
         finally:
             self.remoteLock.release()
+        return hitsUpdated
         
     def gotRemoteHits(self, permid, kws, answers):
         """
@@ -611,8 +622,7 @@ class TorrentManager:
                         
                     # Store or update self.remoteHits
                     self.remoteHits.append(newval)
-             
-            
+                    
                 self.refreshGrid()
                 return True
             

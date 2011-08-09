@@ -955,8 +955,7 @@ class TorrentDetails(AbstractDetails):
             if not self.torrent.channel_id:
                 #When torrent was loaded this channel was not know, is it now?
                 self.guiutility.showChannelFromPermid(self.torrent.channel_permid)
-                
-            if self.torrent.channel_id:
+            else:
                 self.guiutility.showChannelFromId(self.torrent.channel_id)
                 
     def OnMark(self, event):
@@ -1000,7 +999,7 @@ class TorrentDetails(AbstractDetails):
     
     def OnMyChannel(self, event):
         torrent_dir = self.guiutility.utility.session.get_torrent_collecting_dir()
-        torrent_filename = os.path.join(torrent_dir, self.torrent['torrent_file_name'])
+        torrent_filename = os.path.join(torrent_dir, self.torrent.torrent_file_name)
         
         torrentfeed = TorrentFeedThread.getInstance()
         torrentfeed.addFile(torrent_filename)

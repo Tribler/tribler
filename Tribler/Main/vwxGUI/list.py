@@ -51,17 +51,22 @@ class RemoteSearchManager:
             self.list.SetKeywords(keywords, None)
         
         def db_callback():
-            [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
+            [total_items, nrfiltered, new_items, data_files] = self.torrentsearch_manager.getHitsInCategory()
             [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
-            return data_files, total_items, nrfiltered, total_channels
+            return data_files, total_items, nrfiltered, new_items, total_channels
+        
         startWorker(self._on_refresh, db_callback)
         
     def _on_refresh(self, delayedResult):
-        data_files, total_items, nrfiltered, total_channels = delayedResult.get()
+        data_files, total_items, nrfiltered, new_items, total_channels = delayedResult.get()
         
         self.list.SetNrResults(total_items, nrfiltered, total_channels, self.oldkeywords)
         self.list.SetFF(self.guiutility.getFamilyFilter())
-        self.list.SetData(data_files)
+        if new_items:
+            self.list.SetData(data_files)
+        else:
+            if DEBUG or True:
+                print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
         
     def refresh_channel(self):
         def db_callback():
@@ -774,10 +779,10 @@ class SearchList(GenericSearchList):
         channel_hits = {}
         for hit in data:
             if 'channel_permid' in hit:
-                if hit.channel_posvotes > 0:
-                    if hit.channel_permid not in channel_hits:
-                        channel_hits[hit.channel_permid] = [0, hit.channel_name, hit.channel_permid]
-                    channel_hits[hit.channel_permid][0] += 1
+                if hit.get('channel_posvotes', 0) > 0:
+                    if hit.get('channel_permid') not in channel_hits:
+                        channel_hits[hit.get('channel_permid')] = [0, hit.get('channel_name'), hit.get('channel_id'), hit.get('channel_permid')]
+                    channel_hits[hit.get('channel_permid')][0] += 1
         
         def channel_occur(a, b):
             return cmp(a[0], b[0])            
@@ -842,8 +847,9 @@ class LibaryList(List):
         return self.manager
     
     def CreateHeader(self, parent):
-        header = SearchHelpHeader(parent, self, self.columns)
+        header = LibraryHeader(parent, self, self.columns)
         header.SetTitle('Library')
+        header.SetEvents(self.OnAdd)
         return header
     
     def CreateFooter(self, parent):

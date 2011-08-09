@@ -609,6 +609,18 @@ class SearchHelpHeader(SearchHeader):
         dlg.SetSizerAndFit(border)
         dlg.ShowModal()
         dlg.Destroy()
+        
+class LibraryHeader(SearchHelpHeader):
+    def GetRightTitlePanel(self, parent):
+        sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
+        
+        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
+        self.add.SetToolTipString('Add a .torrent from an external source.')
+        sizer.Insert(1, self.add, 0, wx.RIGHT, 3)
+        return sizer
+        
+    def SetEvents(self, add):
+        self.add.Bind(wx.EVT_BUTTON, add)
 
 class ChannelHeader(SearchHeader):
     DESCRIPTION_MAX_HEIGTH = 100
