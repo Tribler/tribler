@@ -166,6 +166,7 @@ class BundlePanel(wx.Panel):
         
         self.state = BundlePanel.COLLAPSED
         self.nrhits = -1
+        self.bundlelist = None
         
         self.font_increment = font_increment
         self.vsizer = wx.BoxSizer(wx.VERTICAL)
@@ -284,13 +285,11 @@ class BundlePanel(wx.Panel):
     def UpdateList(self, hits):
         self.hits = hits
         
-        bundlelist = getattr(self, 'bundlelist', None)
-        if bundlelist:
-            bundlelist.SetData(hits)
+        if self.bundlelist:
+            self.bundlelist.SetData(hits)
     
     def ShowList(self, show):
-        bundlelist = getattr(self, 'bundlelist', None)
-        if bundlelist is None and show:
+        if self.bundlelist is None and show:
             max_list = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
             if len(self.hits) != BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS:
                 max_list -= 1
@@ -302,8 +301,8 @@ class BundlePanel(wx.Panel):
             # method. Thus we have to do this after the add to the sizer
             self.bundlelist.SetData(self.hits)
         
-        elif bundlelist is not None and not show:
-            self.vsizer.Detach(bundlelist)
+        elif self.bundlelist is not None and not show:
+            self.vsizer.Detach(self.bundlelist)
             self.bundlelist.Show(False)
             self.bundlelist.Destroy()
             self.bundlelist = None
@@ -318,9 +317,8 @@ class BundlePanel(wx.Panel):
             self.bundlelist.list.OnCollapse()
     
     def RefreshDataBundleList(self, key, data):
-        bundlelist = getattr(self, 'bundlelist', None)
-        if bundlelist is not None:
-            bundlelist.RefreshData(key, data)
+        if self.bundlelist is not None:
+            self.bundlelist.RefreshData(key, data)
     
     def SetDescription(self, description):
         self.header.SetToolTipString(description)

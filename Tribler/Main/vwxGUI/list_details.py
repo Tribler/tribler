@@ -30,7 +30,7 @@ VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa
 DEBUG = True
 
 class TorrentDetails(wx.Panel):
-    def __init__(self, parent, torrent, compact=False):
+    def __init__(self, parent, torrent, compact=False, noChannel=False):
         wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
@@ -41,7 +41,7 @@ class TorrentDetails(wx.Panel):
         self.vod_log = None
         
         self.isReady = False
-        self.noChannel = False
+        self.noChannel = noChannel
         
         self.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -59,8 +59,14 @@ class TorrentDetails(wx.Panel):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: loading", torrent['name']
         
-        #Load torrent using guitaskqueue
-        self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
+        #is this torrent collected?
+        filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
+        if filename:
+            torrent, information = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent)
+            self._showTorrent(torrent, information)
+        else:
+            #Load/collect torrent using guitaskqueue
+            self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
         
     def loadTorrent(self):
         try:
@@ -199,8 +205,7 @@ class TorrentDetails(wx.Panel):
                 self.status = value
     
         torrentSizer.Add(vSizer, 0, wx.EXPAND)
-        
-        self.guiutility.frame.guiserver.add_task(self.UpdateStatus, id = "TorrentDetails_updateStatus")
+        self.UpdateStatus()
         overview.SetupScrolling(rate_y = 5)
         
         #Create filelist
@@ -441,12 +446,6 @@ class TorrentDetails(wx.Panel):
         else:
             #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
             wx.CallAfter(self.ShowPanel, type)
-        
-    def ShowChannelAd(self, show):
-        if self.isReady:
-            self.channeltext.Show(show)
-        else:
-            self.noChannel = True
 
     def _ShowTorrentDetails(self):
         header = wx.StaticText(self.buttonPanel, -1, "Liking what you see?")
@@ -488,27 +487,39 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.AddStretchSpacer()
         
         if not self.compact and not self.noChannel:
-            #prefer local channel result
-            channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
-            if channel is None:
-                if 'channel_permid' in self.torrent and self.torrent['channel_permid'] != '':
-                    channel = (self.torrent['channel_permid'], self.torrent['channel_name'], self.torrent['subscriptions'], {})
-            
-            if channel is not None:
-                if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
-                    label = "This torrent is part of your Channel."
-                    tooltip = "Open your Channel."
-                else:
-                    label = "Click to see more from %s's Channel."%channel[1]
-                    tooltip = "Click to go to %s's Channel."%channel[1]
+            def loadChannel():
+                #prefer local channel result
+                channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
+                if channel is None:
+                    if 'channel_permid' in self.torrent and self.torrent['channel_permid'] != '':
+                        channel = (self.torrent['channel_permid'], self.torrent['channel_name'], self.torrent['subscriptions'], {})
                 
-                self.channeltext = LinkStaticText(self.buttonPanel, label)
+                if channel is not None:
+                    if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
+                        label = "This torrent is part of your Channel."
+                        tooltip = "Open your Channel."
+                    else:
+                        label = "Click to see more from %s's Channel."%channel[1]
+                        tooltip = "Click to go to %s's Channel."%channel[1]
+                        
+                    wx.CallAfter(showChannel, channel, label, tooltip)
+                            
+            def showChannel(channel, label, tooltip):
+                self.channeltext.SetLabel(label)
                 self.channeltext.SetToolTipString(tooltip)
-                self.channeltext.SetMinSize((1, -1))
-                self.channeltext.channel = channel
                 self.channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
+                
                 self.channeltext.target = 'channel'
-                self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
+                self.channeltext.channel = channel
+                
+                self.channeltext.Show(True)
+            
+            self.channeltext = LinkStaticText(self.buttonPanel, '')
+            self.channeltext.SetMinSize((1, -1))
+            self.channeltext.Show(False)
+            self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+            
+            self.guiutility.frame.guiserver.add_task(loadChannel, id = "TorrentDetails_loadChannel")
     
     def _ShowDownloadProgress(self):
         #Header
@@ -848,6 +859,9 @@ class TorrentDetails(wx.Panel):
         self.UpdateStatus()
     
     def UpdateStatus(self):
+        self.guiutility.frame.guiserver.add_task(self._UpdateStatus, id = "TorrentDetails_updateStatus")
+        
+    def _UpdateStatus(self):
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
         

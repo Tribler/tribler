@@ -219,13 +219,13 @@ class TorrentManager:
                 torrent['trackers'] = [[tdef.get_tracker()]]
             
             if not callback is None:
-                wx.CallAfter(callback, torrent, (playable, files, allfiles))
+                callback(torrent, (playable, files, allfiles))
             else:
-                return (playable, files, allfiles)
+                return torrent, (playable, files, allfiles)
         elif not torrent_filename[0]:
             if DEBUG:
                 print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
-            wx.CallAfter(callback, torrent, default)
+            callback(torrent, default)
         else:
             return torrent_filename[1]
     

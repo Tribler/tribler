@@ -1391,9 +1391,9 @@ class SelectedChannelList(GenericSearchList):
         self.publisher_id = 0
     
     def OnExpand(self, item):
-        panel = GenericSearchList.OnExpand(self, item)
-        panel.ShowChannelAd(False)
-        return panel
+        item.button.Hide()
+        item.button.Refresh()
+        return TorrentDetails(item, item.original_data, noChannel = True)
         
     def OnRemoveVote(self, event):
         self.channelsearch_manager.remove_vote(self.publisher_id)
