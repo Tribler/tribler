@@ -73,7 +73,10 @@ class BundleListItem(ListItem):
                 self.bundlepanel.RefreshDataBundleList(infohash, original_data)
    
     def GetExpandedPanel(self):
-        return self.expanded_panel
+        if self.expanded_panel_shown:
+            return self.expanded_panel
+        
+        return self.bundlepanel.GetExpandedPanel()
 
     def Expand(self, panel):
         ListItem.Expand(self, panel)
@@ -399,6 +402,13 @@ class BundlePanel(wx.Panel):
         listitem.ShowExpandedPanel(False)
         
         listitem.Thaw()
+    
+    #Called from GUI to get expanded torrentdetails panel
+    def GetExpandedPanel(self):
+        if self.bundlelist:
+            item = self.bundlelist.GetExpandedItem()
+            if item:
+                return item.GetExpandedPanel()
             
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
@@ -438,7 +448,7 @@ class BundleListView(GenericSearchList):
         bundlepanel = self.parent
         bundlepanel.parent_listitem.ShowExpandedPanel(False)
         
-        return BundleTorrentDetails(item, item.original_data)
+        return TorrentDetails(item, item.original_data, compact = True)
     
     def OnCollapseInternal(self, item):
         pass
@@ -461,15 +471,3 @@ class ExpandableFixedListBody(FixedListBody):
         FixedListBody.OnChange(self, scrollToTop)
         
         self.parent_list.OnChange(scrollToTop)
-    
-class BundleTorrentDetails(TorrentDetails):
-    def __init__(self, parent, torrent, compact=True):
-        TorrentDetails.__init__(self, parent, torrent, compact=True)
-    
-    def _showTorrent(self, torrent, information):
-        TorrentDetails._showTorrent(self, torrent, information)
-        self.buttonPanel.Hide()
-        self.details.Layout()
-    
-    def ShowPanel(self, *args, **kwargs):
-        pass

@@ -107,14 +107,8 @@ class TorrentDetails(wx.Panel):
             self._addTabs(ds)
             self.details.Add(self.notebook, 6, wx.EXPAND)
             
-            self.buttonPanel = wx.Panel(self)
-            self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
-            self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-            
+            self._addButtonPanel(self, self.details)
             self.ShowPanel()
-            
-            self.buttonPanel.SetSizer(self.buttonSizer)
-            self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
             
             page0 = self.notebook.GetPage(0)
             bestHeight = page0.GetBestVirtualSize()[1]
@@ -220,7 +214,17 @@ class TorrentDetails(wx.Panel):
         
         #Create filelist
         if len(self.information[2]) > 0:
-            self.listCtrl = SortedListCtrl(self.notebook, 2)
+            if self.compact:
+                parent = wx.Panel(self.notebook)
+                parent.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
+            else:
+                parent = self.notebook    
+            
+            nrColumns = 2
+            if isinstance(self, LibraryDetails):
+                nrColumns = 3 
+            
+            self.listCtrl = SortedListCtrl(parent, nrColumns)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             if isinstance(self, LibraryDetails):
@@ -289,7 +293,21 @@ class TorrentDetails(wx.Panel):
             self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetMinSize((1,-1))
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
-            self.notebook.AddPage(self.listCtrl, "Files")
+            
+            if self.compact:
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.Add(self.listCtrl, 6, wx.EXPAND)
+                
+                self.buttonPanel = wx.Panel(parent)
+                self.buttonPanel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
+                self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+                self.buttonPanel.SetSizer(self.buttonSizer)
+                
+                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+                parent.SetSizer(hSizer)
+                self.notebook.AddPage(parent, "Files")
+            else:
+                self.notebook.AddPage(self.listCtrl, "Files")
         
         #Create subtitlelist
         if self.information[0]:
@@ -377,6 +395,15 @@ class TorrentDetails(wx.Panel):
                     self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
     
+    def _addButtonPanel(self, parent, sizer):
+        if not self.compact:
+            self.buttonPanel = wx.Panel(parent)
+            self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
+            self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+            self.buttonPanel.SetSizer(self.buttonSizer)
+            
+            sizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+    
     def ShowPanel(self, type = None):
         if getattr(self, 'buttonSizer', False):
             if type is None:
@@ -434,13 +461,17 @@ class TorrentDetails(wx.Panel):
         header = wx.StaticText(self.buttonPanel, -1, "Liking what you see?")
         header.SetMinSize((1,-1))
         font = header.GetFont()
-        font.SetPointSize(font.GetPointSize()+1)
+        if not self.compact:
+            font.SetPointSize(font.GetPointSize()+1)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
+        
         self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
-        subtitle = wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
-        subtitle.SetMinSize((1, -1))
-        self.buttonSizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
+        
+        if not self.compact:
+            subtitle = wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
+            subtitle.SetMinSize((1, -1))
+            self.buttonSizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
         
         self.buttonSizer.AddStretchSpacer()
         
@@ -465,7 +496,7 @@ class TorrentDetails(wx.Panel):
         
         self.buttonSizer.AddStretchSpacer()
         
-        if not self.noChannel:
+        if not self.compact and not self.noChannel:
             #prefer local channel result
             channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
             if channel is None:
@@ -484,7 +515,7 @@ class TorrentDetails(wx.Panel):
                 self.channeltext.SetToolTipString(tooltip)
                 self.channeltext.SetMinSize((1, -1))
                 self.channeltext.channel = channel
-                self.channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+                self.channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                 self.channeltext.target = 'channel'
                 self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
     
@@ -492,27 +523,30 @@ class TorrentDetails(wx.Panel):
         #Header
         self.downloadText = wx.StaticText(self.buttonPanel, -1, "You are downloading this torrent")
         font = self.downloadText.GetFont()
-        font.SetPointSize(font.GetPointSize()+1)
+        if not self.compact:
+            font.SetPointSize(font.GetPointSize()+1)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.downloadText.SetFont(font)
         self.buttonSizer.Add(self.downloadText, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)
         
-        if not isinstance(self, LibraryDetails):
+        if not self.compact and not isinstance(self, LibraryDetails):
             library = LinkStaticText(self.buttonPanel, "Open library")
             library.SetToolTipString("Open library")
             library.target = 'my_files'
-            library.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+            library.Bind(wx.EVT_LEFT_UP, self.OnClick)
             self.buttonSizer.Add(library, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
         self.buttonSizer.AddStretchSpacer()
         
         if not isinstance(self, LibraryDetails):
-            #Progress
-            header = wx.StaticText(self.buttonPanel, -1, "Current progress")
-            font = header.GetFont()
-            font.SetWeight(wx.FONTWEIGHT_BOLD)
-            header.SetFont(font)
-            self.buttonSizer.Add(header, 0, wx.ALL, 3)
+            if not self.compact:
+                #Progress
+                header = wx.StaticText(self.buttonPanel, -1, "Current progress")
+                font = header.GetFont()
+                font.SetWeight(wx.FONTWEIGHT_BOLD)
+                header.SetFont(font)
+                self.buttonSizer.Add(header, 0, wx.ALL, 3)
+            
             class tmp_object():
                 def __init__(self, data, original_data):
                     self.data = data
@@ -524,19 +558,22 @@ class TorrentDetails(wx.Panel):
         #Optional stream button
         if self.information[0]:
             self.playSpacer = self.buttonSizer.AddStretchSpacer()
+            self.playSpacer.Show(not self.compact)
+            
             self.play = wx.Panel(self.buttonPanel)
             self.play.SetBackgroundColour(LIST_DESELECTED)
             vSizer = wx.BoxSizer(wx.VERTICAL)
             
-            header = wx.StaticText(self.play, -1, "Impatient?")
-            font = header.GetFont()
-            font.SetWeight(wx.FONTWEIGHT_BOLD)
-            header.SetFont(font)
-            vSizer.Add(header, 0, wx.ALL, 3)
+            if not self.compact:
+                header = wx.StaticText(self.play, -1, "Impatient?")
+                font = header.GetFont()
+                font.SetWeight(wx.FONTWEIGHT_BOLD)
+                header.SetFont(font)
+                vSizer.Add(header, 0, wx.ALL, 3)
             
             play = LinkStaticText(self.play, "Start playing this torrent now")
             play.SetToolTipString('Start playing this torrent.')
-            play.Bind(wx.EVT_LEFT_DOWN, self.OnPlay)
+            play.Bind(wx.EVT_LEFT_UP, self.OnPlay)
             vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
             self.play.SetSizer(vSizer)
             self.buttonSizer.Add(self.play, 0,wx.EXPAND, 3)
@@ -556,7 +593,8 @@ class TorrentDetails(wx.Panel):
         header = wx.StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
         header.SetMinSize((1,-1))
         font = header.GetFont()
-        font.SetPointSize(font.GetPointSize()+1)
+        if not self.compact:
+            font.SetPointSize(font.GetPointSize()+1)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
         self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
@@ -581,7 +619,7 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         self.buttonSizer.AddStretchSpacer()
         
-        if not self.noChannel:
+        if not self.compact and not self.noChannel:
             channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
             if channel is None or channel[0] != bin2str(self.guiutility.utility.session.get_permid()):
                 header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?")
@@ -596,14 +634,14 @@ class TorrentDetails(wx.Panel):
                     channeltext.SetToolTipString("Click to go to %s's Channel."%channel[1])
                     channeltext.target = 'channel'
                     channeltext.channel = channel
-                    channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+                    channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                     self.buttonSizer.Add(channeltext, 0, wx.ALL|wx.EXPAND, 3)
                 
                     mychannel = LinkStaticText(self.buttonPanel, "Or spread it using your channel")
                 else:
                     mychannel = LinkStaticText(self.buttonPanel, "Spread it using your channel")
                     
-                mychannel.Bind(wx.EVT_LEFT_DOWN, self.OnMyChannel)
+                mychannel.Bind(wx.EVT_LEFT_UP, self.OnMyChannel)
                 mychannel.SetToolTipString('Add this torrent to your channel.')
                 self.buttonSizer.Add(mychannel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
             else:
@@ -618,14 +656,11 @@ class TorrentDetails(wx.Panel):
                 channeltext.SetToolTipString("Click to go to your Channel.")
                 channeltext.target = 'channel'
                 channeltext.channel = channel
-                channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+                channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                 self.buttonSizer.Add(channeltext, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
              
         if getattr(self, 'subtitleChoice', None):
             self.subtitleChoice.Enable(True)
-        if getattr(self, 'subtitleBrowse', None):
-            self.subtitleBrowse.Enable(True)
-            self.removeSubtitle.Enable(True)
     
     def _GetPath(self, file = None):
         ds = self.torrent.get('ds', False)

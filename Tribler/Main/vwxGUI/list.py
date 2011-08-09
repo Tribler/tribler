@@ -71,8 +71,10 @@ class RemoteSearchManager:
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
             item = self.list.GetItem(infohash)
+            
             torrent_details = item.GetExpandedPanel()
-            torrent_details.ShowPanel(1)
+            if torrent_details:
+                torrent_details.ShowPanel(1)
             
     def torrentUpdated(self, infohash):
         def db_callback():
@@ -529,6 +531,11 @@ class List(XRCPanel):
         assert self.ready, "List not ready"
         if self.ready:
             return self.list.items
+        
+    def GetExpandedItem(self):
+        assert self.ready, "List not ready"
+        if self.ready:
+            return self.list.GetExpandedItem()
     
     def Focus(self):
         assert self.ready, "List not ready"
@@ -750,6 +757,10 @@ class GenericSearchList(List):
     def InList(self, key):
         key = self.infohash2key.get(key, key)
         return List.InList(self, key)
+    
+    def GetItem(self, key):
+        key = self.infohash2key.get(key, key)
+        return List.GetItem(self, key)
         
     def format(self, val):
         val = int(val)
