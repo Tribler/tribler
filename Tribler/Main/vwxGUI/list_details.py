@@ -200,16 +200,7 @@ class TorrentDetails(wx.Panel):
     
         torrentSizer.Add(vSizer, 0, wx.EXPAND)
         
-        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
-        if swarmInfo:
-            _, _, _, self.torrent['last_check'], _, _ = swarmInfo
-        else:
-            self.torrent['last_check'] = -1
-        diff = time() - self.torrent['last_check']
-        self.ShowStatus()
-        
-        if diff > 1800: #force update if last update more than 30 minutes ago
-            TorrentChecking(self.torrent['infohash']).start()
+        self.guiutility.frame.guiserver.add_task(self.UpdateStatus, id = "TorrentDetails_updateStatus")
         overview.SetupScrolling(rate_y = 5)
         
         #Create filelist
@@ -854,7 +845,7 @@ class TorrentDetails(wx.Panel):
         self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
 
     def RefreshData(self, data):
-        self.UpdateStatus() 
+        self.UpdateStatus()
     
     def UpdateStatus(self):
         if 'torrent_id' not in self.torrent:
@@ -865,6 +856,11 @@ class TorrentDetails(wx.Panel):
             self.torrent['num_seeders'] = swarmInfo[1]
             self.torrent['num_leechers'] = swarmInfo[2]
             self.torrent['last_check'] = swarmInfo[3]
+            
+            diff = time() - self.torrent['last_check']
+            if diff > 1800: #force update if last update more than 30 minutes ago
+                TorrentChecking(self.torrent['infohash']).start()
+            
             wx.CallAfter(self.ShowStatus)
     
     def ShowStatus(self):
@@ -959,6 +955,10 @@ class TorrentDetails(wx.Panel):
         self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
 
 class LibraryDetails(TorrentDetails):
+    def __init__(self, *args, **kwargs):
+        TorrentDetails.__init__(self, *args, **kwargs)
+        self.old_progress = -1
+    
     def _showRequestType(self, requesttype):
         pass
     
@@ -1024,16 +1024,16 @@ class LibraryDetails(TorrentDetails):
         
         #register callback for peerlist update
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
-        
         self.peerList.Freeze()
-        def downsort(a, b):
-            if a['downrate'] != b['downrate']:
-                return a['downrate'] - b['downrate']
-            return a['uprate'] - b['uprate']
         
         index = 0
         if ds:
             peers = ds.get_peerlist()
+            
+            def downsort(a, b):
+                if a['downrate'] != b['downrate']:
+                    return a['downrate'] - b['downrate']
+                return a['uprate'] - b['uprate']
             peers.sort(downsort, reverse = True)
             
             for peer_dict in peers:
@@ -1079,19 +1079,22 @@ class LibraryDetails(TorrentDetails):
             if self.availability:
                 self.availability.SetLabel("%.2f"%ds.get_availability())
             
-            completion = ds.get_files_completion()
-            for i in range(self.listCtrl.GetItemCount()):
-                listfile = self.listCtrl.GetItem(i, 0).GetText()
-                
-                found = False
-                for file, progress in completion:
-                    if file == listfile:
-                        self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
-                        found = True
-                        break
+            progress = self.torrent['progress']
+            if self.old_progress != progress:
+                completion = ds.get_files_completion()
+                for i in range(self.listCtrl.GetItemCount()):
+                    listfile = self.listCtrl.GetItem(i, 0).GetText()
                     
-                if not found:
-                    self.listCtrl.SetStringItem(i, 2, 'Excluded')
+                    found = False
+                    for file, progress in completion:
+                        if file == listfile:
+                            self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
+                            found = True
+                            break
+                        
+                    if not found:
+                        self.listCtrl.SetStringItem(i, 2, 'Excluded')
+                self.old_progress = progress
             
         if index == 0:
             self.peerList.DeleteAllItems()

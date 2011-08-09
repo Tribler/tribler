@@ -291,9 +291,13 @@ class DownloadState(Serializable):
         """
         completion = []
         if self.progress == 1.0:
-            for file_in_torrent, _ in self.download.get_dest_files():
-                for t,tl,f in self.filepieceranges:
-                    completion.append((f, 1.0))
+            if len(self.download.get_selected_files()) > 0:
+                files = self.download.get_selected_files() 
+            else:
+                files = self.download.get_def().get_files()
+                
+            for file_in_torrent in files:
+                completion.append((file_in_torrent, 1.0))
         else:
             if self.filepieceranges:
                 index = 0
