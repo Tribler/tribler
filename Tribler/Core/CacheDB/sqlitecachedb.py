@@ -15,6 +15,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
+from collections import namedtuple
 #support_version = (3,5,9)
 #support_version = (3,3,13)
 #apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
@@ -87,6 +88,22 @@ def bin2str(bin):
     
 def str2bin(str):
     return decodestring(str)
+
+def safenamedtuple(typename, field_names, verbose=False, rename=False):
+    safe_fields = []
+    
+    for field in field_names:
+        as_index = field.lower().find(' as ')
+        if as_index != -1:
+            field = field[as_index + 4:]
+        
+        safe_fields.append(field)
+    
+    class SafeNameTuple(namedtuple(typename, safe_fields, verbose, rename)):
+        __slots__ = ()
+        def get(self, key, default = None):
+            return getattr(self, key, default)
+    return SafeNameTuple
 
 def print_exc_plus():
     """
@@ -439,11 +456,13 @@ class SQLiteCacheDBBase:
             if threading.currentThread().getName() == "MainThread":
                 for sql_line in sql.split(";"):
                     try:
-                        key, rest = sql_line.strip().split(" ", 1)
+                        #key, rest = sql_line.strip().split(" ", 1)
+                        key = sql_line[:25]
                         print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
                         # print_stack()
                     except:
-                        key = sql.strip()
+                        #key = sql.strip()
+                        key = sql_line
                         if key:
                             print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
                             # print_stack()
@@ -469,29 +488,7 @@ class SQLiteCacheDBBase:
 
     def execute_read(self, sql, args=None):
         # this is only called for reading. If you want to write the db, always use execute_write or executemany
-        try:
-            return self._execute(sql, args)
-        
-        except Exception, msg:
-            return self.retry_if_busy_or_fail(msg, 0, sql, args)
-    
-    def retry_if_busy_or_fail(self, e, tries, sql=None, args = None):
-        if str(e).startswith("BusyError"):
-            print >>sys.stderr,"sqlcachedb: retry: after", str(e), repr(sql)
-            
-            try:
-                return self._execute(sql, args)
-            
-            except Exception,e2:
-                if tries < 5:   #self.max_commit_retries
-                    # Spec is unclear whether next commit will also has 
-                    # 'busytimeout' seconds to try to get a write lock.
-                    sleep(pow(2.0,tries+2)/100.0)
-                    return self.retry_if_busy_or_fail(e2, tries+1, sql, args)
-                else:
-                    raise Exception, e2
-        else:
-            raise Exception, e
+        return self._execute(sql, args)
     
     def execute_write(self, sql, args=None, commit=True):
         self.cache_transaction(sql, args)
@@ -1613,56 +1610,50 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             update_channel = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
             
+            select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
+            select_votes_for_me = "SELECT voter_id, vote, time_stamp FROM VoteCast WHERE mod_id = ? Order By time_stamp ASC"
+            insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+            
             #placeholders for dispersy channel conversion
             my_channel_name = None
             
-            #create channels
             to_be_inserted = []
-            accepted_channels = set()
-            channel_permid_cid = {}
-            
             t1 = time()
             
+            #create channels
+            permid_peerid = {}
+            channel_permid_cid = {}
             channels = self.fetchall(select_channels)
             for publisher_id, mintimestamp, maxtimestamp in channels:
                 channel_name = self.fetchone(select_channel_name, (publisher_id, maxtimestamp))
                 
                 if publisher_id == my_permid:
-                    accepted_channels.add(publisher_id)
                     my_channel_name = channel_name
                     continue
                 
                 peer_id = self.getPeerID(str2bin(publisher_id))
                 if peer_id:
-                    accepted_channels.add(publisher_id)
+                    permid_peerid[publisher_id] = peer_id
                     to_be_inserted.append((-1, peer_id, channel_name, '', mintimestamp, maxtimestamp))
             
             self.executemany(insert_channel, to_be_inserted)
             
-            #insert torrents
             to_be_inserted = []
-            for publisher_id in accepted_channels:
-                if publisher_id != my_permid:
-                    torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
+            
+            #insert torrents
+            for publisher_id, peer_id in permid_peerid.iteritems():
+                torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
 
-                    peer_id = self.getPeerID(str2bin(publisher_id))
-                    channel_id = self.fetchone(select_channel_id, (peer_id,))
+                channel_id = self.fetchone(select_channel_id, (peer_id,))
+                channel_permid_cid[publisher_id] = channel_id
+                
+                for torrent_id, time_stamp in torrents:
+                    to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
                     
-                    channel_permid_cid[publisher_id] = channel_id
-                    
-                    for torrent_id, time_stamp in torrents:
-                        to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
-                        
-                    self.execute_write(update_channel, (len(torrents), channel_id), commit = False)
-            self.executemany(insert_channel_contents, to_be_inserted, commit = False)
+                self.execute_write(update_channel, (len(torrents), channel_id), commit = False)
+            self.executemany(insert_channel_contents, to_be_inserted)
             
             #convert votes
-            select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
-            select_votes_for_me = "SELECT voter_id, vote, time_stamp FROM VoteCast WHERE mod_id = ? Order By time_stamp ASC"
-            select_channel_id = "SELECT id FROM Channels, Peer Where Channels.peer_id = Peer.peer_id AND permid = ?"
-                
-            insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
-            
             to_be_inserted = []
             votes = self.fetchall(select_votes)
             for mod_id, voter_id, vote, time_stamp in votes:
@@ -1680,8 +1671,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             self.executemany(insert_vote, to_be_inserted)
             
+            #set cached nr_spam and nr_favorites
             votes = {}
-            
             select_pos_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == 2 GROUP BY channel_id"
             select_neg_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == -1 GROUP BY channel_id"
             records = self.fetchall(select_pos_vote)
@@ -1700,7 +1691,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.executemany(update_votes, channel_tuples)
             
             print >> sys.stderr, "Converting took", time() - t1
-                        
             if my_channel_name:
                 def dispersy_started(subject,changeType,objectID):
                     community = None
@@ -1716,7 +1706,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             insert_votes_for_me()
                             
                             #schedule insert torrents
-                            dispersy.rawserver.add_task(insert_my_torrents, 10)
+                            dispersy.callback.register(insert_my_torrents, delay = 10)
                             
                     def insert_votes_for_me():
                         my_channel_id = self.fetchone(select_mychannel_id)
@@ -1764,7 +1754,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             
                             if len(to_be_inserted) > 0:
                                 community._disp_create_torrents(to_be_inserted, forward = False)
-                                dispersy.rawserver.add_task(insert_my_torrents, 10)
+                                dispersy.callback.register(insert_my_torrents, delay = 10)
                             
                             else: #done
                                 drop_channelcast = "DROP TABLE ChannelCast"
@@ -1775,12 +1765,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         else:
                             dispersy.rawserver.add_task(insert_my_torrents, 10)
                     
-                    from Tribler.Community.channel.community import ChannelCommunity
+                    from Tribler.community.channel.community import ChannelCommunity
                     from Tribler.Core.dispersy.dispersy import Dispersy
                     from Tribler.Core.TorrentDef import TorrentDef
                     
                     dispersy = Dispersy.get_instance()
-                    dispersy.rawserver.add_task(create_my_channel, 10)
+                    dispersy.callback.register(create_my_channel, delay = 10)
                     session.remove_observer(dispersy_started)
                 
                 session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])

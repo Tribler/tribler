@@ -453,6 +453,11 @@ class AbstractListBody():
         
         new_filter = keyword.lower().strip()
         if new_filter != self.filter or column != self.filtercolumn:
+            
+            highlight = column == self.filtercolumn
+            if new_filter == self.filter[:-1]:
+                highlight = False
+            
             self.sizefiler = None
             if self.filtersizecolumn > -1 and new_filter.find("size=") > -1:
                 try:
@@ -478,7 +483,7 @@ class AbstractListBody():
                     new_filter = new_filter[:start - 5] + new_filter[end:]
                 except:
                     pass
-                
+            
             self.filter = new_filter.strip()
             self.filtercolumn = column
             try:
@@ -489,7 +494,7 @@ class AbstractListBody():
             
             finally:
                 self.Scroll(-1, 0)
-                self.SetData()
+                self.SetData(highlight = highlight)
         return True
         
     def MatchFilter(self, item):
@@ -654,7 +659,7 @@ class AbstractListBody():
                 
                 panel.RefreshData(data)
     
-    def SetData(self, data = None):
+    def SetData(self, data = None, highlight = True):
         if DEBUG:
             print >> sys.stderr, "ListBody: new data", time()
         
@@ -667,7 +672,7 @@ class AbstractListBody():
             self.lastData = time()
             self.dataTimer = None
             
-            self.__SetData()
+            self.__SetData(highlight)
         
         diff = time() - (LIST_RATE_LIMIT + self.lastData)
         if diff >= 0:
@@ -679,15 +684,7 @@ class AbstractListBody():
             else:
                 self.dataTimer.Restart(call_in)
         
-        if data:
-            #apply quickfilter
-            if self.filter != '' or self.sizefiler:
-                data = filter(self.MatchFilter, data)
-            
-            #return filtered nr_items after quickfilter is applied
-            return len(data)
-        
-    def __SetData(self):
+    def __SetData(self, highlight = True):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
         
@@ -702,11 +699,15 @@ class AbstractListBody():
         #apply quickfilter
         if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
-            self.parent_list.SetFilteredResults(len(data))
+            if len(data) != len(self.raw_data):
+                self.parent_list.SetFilteredResults(len(data))
+            else:
+                self.parent_list.SetFilteredResults(None)
 
             if len(data) == 0:
                 message = "0" + self.__GetFilterMessage()[12:]
         else:
+            self.parent_list.SetFilteredResults(None)
             data = self.raw_data
             
         if not data:
@@ -714,12 +715,14 @@ class AbstractListBody():
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
+        
+        self.highlightSet = set()
         if len(self.items) == 0:
             #new data
             if len(data) > LIST_ITEM_BATCH_SIZE:
                 self.ShowLoading()
-            self.highlightSet = set()
-        else:
+                
+        elif highlight:
             cur_keys = set([curdata[0] for curdata in self.data[:self.list_item_max]])
             self.highlightSet = set([curdata[0] for curdata in data[:self.list_item_max] if curdata[0] not in cur_keys])
 

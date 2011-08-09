@@ -67,11 +67,13 @@ class ImagePanelBasic(wx.Panel):
 
     def setBitmap(self, bitmap):
         self.bitmap = bitmap
+        if self.bitmap:
         
-        w, h = self.GetSize()
-        iw, ih = self.bitmap.GetSize()
-                
-        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+            w, h = self.GetSize()
+            iw, ih = self.bitmap.GetSize()
+                    
+            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+            
         self.Refresh()
         
     def OnPaint(self, evt):

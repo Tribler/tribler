@@ -437,6 +437,7 @@ class LinkStaticText(wx.Panel):
         return self.text.GetFont()
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
+        assert event != wx.EVT_LEFT_DOWN, "Please use wx.EVT_LEFT_UP only"
         wx.Panel.Bind(self, event, handler, source, id, id2)
         
         def modified_handler(actual_event, handler=handler):

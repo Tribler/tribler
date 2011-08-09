@@ -19,16 +19,12 @@ class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
+            
         bgPanel.__init__(self, *args, **kwds)
         self.init_ready = False
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
-        self.animationTimer = None
-        
-        self.buttonsBackgroundColourSelected = wx.Colour(235, 233, 228)
-        self.buttonsBackgroundColour = wx.Colour(193, 188, 177)
-        self.buttonsForegroundColour = wx.BLACK
         
         self.uelog = UserEventLogDBHandler.getInstance()
         self.nbdb = NetworkBuzzDBHandler.getInstance()
@@ -100,11 +96,25 @@ class TopSearchPanel(bgPanel):
         self.selectTab(page)
         
     def selectTab(self, tab):
+        self.Freeze()
+        
         self.home.SetValue(tab == 'home')
+        self.searchSizer.ShowItems(tab != 'home')
         self.results.SetValue(tab == 'search_results')
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
+        
+        if tab != 'home':
+            if not self.bitmap:
+                self.setBitmap(self.loaded_bitmap)
+        else:
+            self.loaded_bitmap = self.bitmap
+            self.setBitmap(None)
+            self.SearchFocus()
+        
+        self.Layout()
+        self.Thaw()
                 
     def complete(self, term):
         """autocompletes term."""
@@ -113,8 +123,11 @@ class TopSearchPanel(bgPanel):
         return []
 
     def SearchFocus(self):
-        self.searchField.SetFocus()
-        self.searchField.SelectAll()
+        if self.home.GetValue():
+            self.guiUtility.frame.home.SearchFocus()
+        else:
+            self.searchField.SetFocus()
+            self.searchField.SelectAll()
 
     def Bitmap(self, path, type):
         namelist = path.split("/")
@@ -128,26 +141,13 @@ class TopSearchPanel(bgPanel):
         bgPanel._PostInit(self)
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         
-        
-        """
-        if sys.platform == 'linux2':
-            #bug in linux for searchctrl, focus does not hide search text + text stays grey
-            self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        else:
-            self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.searchField.SetMinSize((400, -1))
-        self.searchField.SetFocus()
-        
-        self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
-        """
-        
         if sys.platform == 'darwin':
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
             self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         else:
             self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
         self.searchField.SetMinSize((400, -1))
-        self.searchField.SetFocus()
+        #self.searchField.SetFocus()
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')
@@ -166,7 +166,6 @@ class TopSearchPanel(bgPanel):
         self.results.Disable()
         
         self.home = createToggle('Home', self.OnHome)
-        self.selectTab('home')
         
         if sys.platform == 'win32':
             self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
@@ -184,28 +183,30 @@ class TopSearchPanel(bgPanel):
         self.__do_layout()
         self.Layout()
         
+        self.selectTab('home')
+        
         self.init_ready = True
         self.Bind(wx.EVT_SIZE, self.OnResize)
     def __do_layout(self):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         #Add searchbox etc.
-        searchSizer = wx.BoxSizer(wx.VERTICAL)
+        self.searchSizer = wx.BoxSizer(wx.VERTICAL)
 
         #Search for files or channels label
-        searchSizer.Add(self.files_friends, 0, wx.TOP, 20) 
+        self.searchSizer.Add(self.files_friends, 0, wx.TOP, 20) 
         if sys.platform == 'win32': #platform specific spacer
-            searchSizer.AddSpacer((0, 6))
+            self.searchSizer.AddSpacer((0, 6))
         else:
-            searchSizer.AddSpacer((0, 3))
+            self.searchSizer.AddSpacer((0, 3))
         
         searchBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        searchBoxSizer.Add(self.searchField, 1, wx.TOP, 1) #add searchbox
-        searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) #add searchbutton
-        searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
+        searchBoxSizer.Add(self.searchField, 1, wx.TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 1) #add searchbox
+        searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5) #add searchbutton
+        self.searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
         
         #finished searchSizer, add to mainSizer
-        mainSizer.Add(searchSizer, 0, wx.LEFT, 10)
+        mainSizer.Add(self.searchSizer, 0, wx.LEFT, 10)
         
         #niels: add strechingspacer, all controls added before 
         #this spacer will be aligned to the left of the screen

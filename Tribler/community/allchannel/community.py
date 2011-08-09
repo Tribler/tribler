@@ -23,6 +23,7 @@ from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
 
 from distutils.util import execute
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -104,7 +105,7 @@ class AllChannelCommunity(Community):
         # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
         # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
         return [Message(self, u"channelcast", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
-                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order"), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast),
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast),
                 Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
                 Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
                 ]
@@ -125,7 +126,9 @@ class AllChannelCommunity(Community):
                     self._blocklist.pop(peer)
                     
             #do we have something to send?
-            packets_to_sync = list(self._channelcast_db.getRecentAndRandomTorrents())
+            packets_to_sync = startWorker(None, self._channelcast_db.getRecentAndRandomTorrents)
+            packets_to_sync = list(packets_to_sync.get())
+            
             if len(packets_to_sync) > 0:
                 log("dispersy.log", "trying-to-send-channelcast", nr_packets = len(packets_to_sync))
                 
@@ -155,10 +158,6 @@ class AllChannelCommunity(Community):
                             if vote != 2:
                                 favorites = False
                                 break
-                        
-                        #if this peer has marked my channel as his favorite, then only send last torrent to let him start torrent collecting
-                        if favorites:
-                            packets_to_sync = list(self._channelcast_db.getRecentAndRandomTorrents(1, 0))
                         
                         if len(packets_to_sync) > 0:
                             # select channel messages (associated with the sync_ids)

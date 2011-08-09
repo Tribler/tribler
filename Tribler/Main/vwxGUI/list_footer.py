@@ -299,10 +299,14 @@ class ManageChannelPlaylistFooter(ListFooter):
         hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)
         
 class CommentFooter(ListFooter, AbstractDetails):
-    def __init__(self, parent, createnew):
-        ListFooter.__init__(self, parent, 0)
+    def __init__(self, parent, createnew, quickPost):
+        self.quickPost = quickPost
         
+        ListFooter.__init__(self, parent, 0)
         self.addnew.Bind(wx.EVT_BUTTON, createnew)
+        
+        if quickPost:
+            self.quickAdd.Bind(wx.EVT_BUTTON, quickPost)
     
     def GetMidPanel(self, sizer):
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -314,7 +318,18 @@ class CommentFooter(ListFooter, AbstractDetails):
         hSizer.Add(self.commentbox, 1, wx.EXPAND)
         
         self.addnew = wx.Button(self, -1, 'Post')
-        hSizer.Add(self.addnew, 0, wx.ALIGN_BOTTOM|wx.LEFT, 3)
+        self.quickAdd = None
+        if self.quickPost:
+            self.quickAdd = wx.Button(self, -1, "Post\n'Thanks'")
+            
+            postSizer = wx.BoxSizer(wx.VERTICAL)
+            postSizer.Add(self.quickAdd)
+            postSizer.AddStretchSpacer()
+            postSizer.Add(self.addnew)
+            hSizer.Add(postSizer, 0, wx.LEFT|wx.EXPAND, 3)
+        else:
+            hSizer.Add(self.addnew, 0, wx.ALIGN_BOTTOM|wx.LEFT, 3)
+            
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.ALL, 3)
         sizer.Add(vSizer, 1, wx.EXPAND)
     

@@ -2,8 +2,9 @@ import wx
 import wx.animate
 import os
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
 
 class SearchSideBar(wx.Panel):
@@ -17,33 +18,35 @@ class SearchSideBar(wx.Panel):
         
         self.nrfiltered = 0
         self.family_filter = True
-        self.bundlestates = ['Name', 'Numbers', 'Size', 'Off']
-        self.bundlestates_translation = ['Lev', 'Int', 'Size', None]
+        self.bundlestates = [Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
+        self.bundlestates_str = {Bundler.ALG_NAME: 'Name',
+                                 Bundler.ALG_NUMBERS: 'Numbers',
+                                 Bundler.ALG_SIZE: 'Size',
+                                 Bundler.ALG_OFF: 'Off'}
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        header = wx.StaticText(self, -1, 'Search progress')
+        header = wx.StaticText(self, -1, 'Search')
         font = header.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
-        hSizer.Add(header, 1)
+        hSizer.Add(header, 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        self.searchState = wx.StaticText(self)
+        hSizer.Add(self.searchState, 1, wx.ALIGN_CENTER_VERTICAL)
         
         ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
         self.ag.UseBackgroundColour(True)
         self.ag.Hide()
         hSizer.Add(self.ag, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        
         self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
 
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)        
         self.searchGauge = wx.Gauge(self, size = (-1, 7))
-        hSizer.Add(self.searchGauge, 1)
-        
-        self.searchFinished = wx.StaticText(self, -1, '')
-        hSizer.Add(self.searchFinished)
-        self.vSizer.Add(hSizer, 0, wx.EXPAND)
+        self.vSizer.Add(self.searchGauge, 0, wx.EXPAND|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         
         self.vSizer.AddSpacer((-1,15))
         
@@ -101,7 +104,8 @@ class SearchSideBar(wx.Panel):
             self.vSizer.Add(channel, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
             channel.Bind(wx.EVT_LEFT_UP, self.OnChannel)
         
-        borderSizer = wx.BoxSizer()
+        borderSizer = wx.BoxSizer(wx.VERTICAL)
+        borderSizer.AddSpacer((-1, 3))
         borderSizer.Add(self.vSizer, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
 
         self.SetSizer(borderSizer)
@@ -116,16 +120,15 @@ class SearchSideBar(wx.Panel):
     def SetFiltered(self, nr):
         self.nrfiltered = nr
         self._SetLabels()
-        
+    
+    @forceWxThread
     def SetMaxResults(self, max):
-        wx.CallAfter(self._SetMaxResults, max)
-    def _SetMaxResults(self, max):
         self.Freeze()
         
         self.searchGauge.SetRange(max)
         self.searchGauge.SetValue(0)
         self.searchGauge.Show()
-        self.searchFinished.SetLabel('')
+        self.searchState.SetLabel(' in progress')
         
         wx.CallLater(10000, self.SetFinished)
         
@@ -133,10 +136,9 @@ class SearchSideBar(wx.Panel):
         self.ag.Show()
         
         self.Thaw()
-        
+    
+    @forceWxThread
     def NewResult(self):
-        wx.CallAfter(self._NewResult)
-    def _NewResult(self):
         maxValue = self.searchGauge.GetRange()
         newValue = min(self.searchGauge.GetValue() + 1, maxValue)
         if newValue == maxValue:
@@ -150,14 +152,13 @@ class SearchSideBar(wx.Panel):
         self.ag.Stop()
         self.ag.Hide()
         self.searchGauge.Hide()
-        self.searchFinished.SetLabel('Completed')
+        self.searchState.SetLabel(' completed')
         self.Layout()
         
         self.Thaw()
-        
+    
+    @forceWxThread
     def SetAssociatedChannels(self, channels):
-        wx.CallAfter(self._SetAssociatedChannels, channels)
-    def _SetAssociatedChannels(self, channels):
         #channels should be a list, of occurrences, name, permid
         self.Freeze()
         
@@ -200,7 +201,7 @@ class SearchSideBar(wx.Panel):
         self.Thaw()
     
     def Reset(self):
-        self.SetBundleState(0)
+        self.SetBundleState(None)
         self.SetFF(True)
         self.nochannels.Show()
         
@@ -209,26 +210,40 @@ class SearchSideBar(wx.Panel):
             channel.SetToolTipString('')
     
     def OnRebundle(self, event):
-        #newstate = (self.bundlestate+1) % len(self.bundlestates)
-        newstate = self.bundlestates.index(event.GetEventObject().GetLabel())
+        newstate = event.GetEventObject().action
         self.SetBundleState(newstate)
         
     def SetBundleState(self, newstate):
+        if newstate is None:
+            local_override = False
+            auto_guess = False
+            
+            if local_override:
+                pass # TODO
+            elif auto_guess:
+                pass # TODO
+            else:
+                newstate = Bundler.ALG_NAME # default
+        
         self.Freeze()
         
-        self.bundlestatetext.SetLabel(' by %s' % self.bundlestates[newstate])
-        self.torrentsearch_manager.setBundleMode(self.bundlestates_translation[newstate])
+        if newstate != Bundler.ALG_OFF:
+            self.bundlestatetext.SetLabel(' by %s' % self.bundlestates_str[newstate])
+        else:
+            self.bundlestatetext.SetLabel(' is %s' % self.bundlestates_str[newstate])
+        self.torrentsearch_manager.setBundleMode(newstate)
         
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)
         
         self.bundleSizer.Add(wx.StaticText(self, -1, 'Bundle by '))
-        for i in range(len(self.bundlestates)):
-            if newstate == i:
-                self.bundleSizer.Add(wx.StaticText(self, -1, self.bundlestates[i]))
+        for i, state in enumerate(self.bundlestates):
+            if newstate == state:
+                self.bundleSizer.Add(wx.StaticText(self, -1, self.bundlestates_str[state]))
             else:
-                link = LinkStaticText(self, self.bundlestates[i], None)
+                link = LinkStaticText(self, self.bundlestates_str[state], None)
                 link.Bind(wx.EVT_LEFT_UP, self.OnRebundle)
+                link.action = state
                 self.bundleSizer.Add(link)
                 
             if i+1 < len(self.bundlestates):
@@ -243,7 +258,7 @@ class SearchSideBar(wx.Panel):
         channel_permid = label.channel_permid
         
         if channel_name != '':
-            self.guiutility.showChannel(channel_name, channel_permid)
+            self.guiutility.showChannelFromId(channel_permid)
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)

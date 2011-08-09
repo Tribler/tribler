@@ -327,7 +327,14 @@ class SettingsDialog(wx.Dialog):
         
         self.guiUtility.frame.librarylist.GetManager().refresh()
         items = self.guiUtility.frame.librarylist.GetItems()
-        for item in items.values():
+        
+        def sort_by_name(a, b):
+            return cmp(a.original_data['name'], b.original_data['name'])
+        
+        downloads = items.values()
+        downloads.sort(cmp = sort_by_name)
+        
+        for item in downloads:
             started = False
             ds = item.original_data.get('ds', None)
             if ds and ds.get_status() in [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]:

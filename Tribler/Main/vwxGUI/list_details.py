@@ -585,7 +585,7 @@ class TorrentDetails(AbstractDetails):
                 self.channeltext = LinkStaticText(self.buttonPanel, label)
                 self.channeltext.SetToolTipString(tooltip)
                 self.channeltext.SetMinSize((1, -1))
-                self.channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+                self.channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                 self.channeltext.target = 'channel'
                 self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
                 
@@ -1543,10 +1543,10 @@ class MyChannelDetails(wx.Panel):
         self.SetSizer(self.borderSizer)
         
         self.SetBackgroundColour(LIST_DESELECTED)
-        self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+        self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
     
     @forceWxThread
-    def showTorrent(self, torrent, information):
+    def showTorrent(self, torrent):
         notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
         listCtrl = SortedListCtrl(notebook, 2)
         listCtrl.InsertColumn(0, 'Name')
@@ -1557,21 +1557,21 @@ class MyChannelDetails(wx.Panel):
         file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size = (16,16)))
         listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
             
-        for filename, size in information[2]:
+        for filename, size in torrent.files:
             try:
                 pos = listCtrl.InsertStringItem(sys.maxint, filename)
             except:
                 try:
                     pos = listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
                 except:
-                    print >> sys.stderr, "Could not format filename", torrent['name']
+                    print >> sys.stderr, "Could not format filename", torrent.name
             listCtrl.SetItemData(pos, pos)
             listCtrl.itemDataMap.setdefault(pos, [filename, size])
             
             size = self.guiutility.utility.size_format(size)
             listCtrl.SetStringItem(pos, 1, size)
             
-            if filename in information[1]:
+            if filename in torrent.videofiles:
                 listCtrl.SetItemColumnImage(pos, 0, play_img)
             else:
                 listCtrl.SetItemColumnImage(pos, 0, file_img)
@@ -1581,7 +1581,7 @@ class MyChannelDetails(wx.Panel):
         listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
         notebook.AddPage(listCtrl, "Files")
         
-        if self.subsupport._registered and information[0]:
+        if self.subsupport._registered and torrent.isPlayable():
             self.subtitles = wx.Panel(notebook)
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
             self.subtitles.SetSizer(self.vSizer)

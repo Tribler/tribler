@@ -190,8 +190,9 @@ class ChannelSearchManager:
         if DEBUG:
             print >> sys.stderr, "ChannelManager complete refresh done"
             
-    def refresh_partial(self, id):
-        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getChannel, wargs = (id,), cargs = (id, ))
+    def refresh_partial(self, ids):
+        for id in ids:
+            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,))
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:
@@ -526,6 +527,15 @@ class List(XRCPanel):
         if __debug__ and currentThread().getName() != "MainThread":
             print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
+            
+    def OnFilter(self, keyword):
+        def doFilter():
+            self.header.FilterCorrect(self.list.FilterItems(keyword))
+        #Niels: use callafter due to the filteritems method being slow and halting the events
+        wx.CallAfter(doFilter)
+        
+    def SetFilteredResults(self, nr):
+        pass
     
     def Layout(self):
         self.__check_thread()
@@ -633,12 +643,6 @@ class GenericSearchList(List):
             # Update primary columns with new data
             data = (head.infohash, [head.name, head.length, 0, 0], original_data)
             self.list.RefreshData(key, data)
-    
-    def SetFilteredResults(self, nr):
-        if nr != self.total_results: 
-            self.header.SetNrResults(nr)
-        else:
-            self.header.SetNrResults()
             
     def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
         if keywords and isinstance(nr, int):
@@ -649,12 +653,6 @@ class GenericSearchList(List):
             
         if isinstance(nr_channels, int):
             self.footer.SetNrResults(nr_channels, keywords)
-    
-    def OnFilter(self, keyword):
-        def doFilter():
-            self.header.FilterCorrect(self.list.FilterItems(keyword))
-        #Niels: use callafter due to the filteritems method being slow and halting the events
-        wx.CallAfter(doFilter)
         
     def OnExpand(self, item):
         item.button.Hide()
@@ -664,7 +662,7 @@ class GenericSearchList(List):
     def OnCollapseInternal(self, item):
         item.button.Show()
     
-    def StartDownload(self, torrent):
+    def StartDownload(self, torrent, files = None):
         from Tribler.Main.vwxGUI.channel import SelectedChannelList
         def db_callback():
             if isinstance(self, SelectedChannelList):
@@ -1125,7 +1123,7 @@ class ChannelList(List):
         return str(val)
     
     def CreateHeader(self, parent):
-        return SubTitleHeader(parent, self, self.columns)
+        return SubTitleSeachHeader(parent, self, self.columns)
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -1216,6 +1214,9 @@ class ChannelList(List):
         #to reset icons we have to reset the complete list :(
         self.list.Reset()        
         self.GetManager().refresh()
+        
+    def SetFilteredResults(self, nr):
+        self.header.SetNrResults(nr)
 
 class ChannelCategoriesList(List):
     def __init__(self):

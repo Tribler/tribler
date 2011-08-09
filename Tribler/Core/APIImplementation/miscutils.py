@@ -27,10 +27,11 @@ def parse_playtime_to_secs(hhmmss):
     return int(t)
     
 
-def offset2piece(offset,piecesize):
+def offset2piece(offset,piecesize,endpoint=True):
     
-    p = offset / piecesize 
-    if offset % piecesize > 0:
+    p = offset / piecesize
+    # Niels: 08-08-2011: included endpoint boolean to specify if we should return an inclusive piece  
+    if endpoint and offset % piecesize > 0:
         p += 1
     return p
 

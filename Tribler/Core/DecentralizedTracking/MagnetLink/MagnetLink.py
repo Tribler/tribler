@@ -213,7 +213,8 @@ class MagnetLink:
                     xt = unhexlify(value[9:49])
 
                 elif key == "tr":
-                    trs.append(value)
+                    if not value.startswith('udp:'): #Niels: ignoring udp trackers                    
+                        trs.append(value)
 
             if DEBUG: print >> sys.stderr, "Magnet.parse_url() NAME:", dn
             if DEBUG: print >> sys.stderr, "Magnet.parse_url() HASH:", xt

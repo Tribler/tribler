@@ -1,10 +1,13 @@
 from struct import pack, unpack_from
+from random import sample
 import zlib
 
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket, Packet
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from traceback import print_exc
+
+DEBUG = False
 
 class ChannelConversion(BinaryConversion):
     def __init__(self, community):
@@ -44,12 +47,39 @@ class ChannelConversion(BinaryConversion):
         return self._encode_channel(message)
 
     def _decode_playlist(self, placeholder, offset, data):
-        return self._decode_channel(placeholder.meta, offset, data)
+        return self._decode_channel(placeholder, offset, data)
 
     def _encode_torrent(self, message):
-        msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, message.payload.files, message.payload.trackers
-        msg = encode(msg)
-        return zlib.compress(msg, 9),
+        import sys
+        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        
+        files = message.payload.files
+        trackers = message.payload.trackers
+        
+        def create_msg():
+            normal_msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, files, trackers
+            normal_msg = encode(normal_msg)
+            return zlib.compress(normal_msg, 9)
+        
+        compressed_msg = create_msg()
+        while len(compressed_msg) > max_len:
+            if len(trackers) > 10:
+                if DEBUG:
+                    print >> sys.stderr, "TOO BIG, removing", len(trackers) - 10, "trackers", len(compressed_msg), max_len, message.payload.name
+                
+                #only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
+                trackers = trackers[:10]
+            else:
+                #reduce files by the amount we are currently to big
+                reduce_by = max_len / (len(compressed_msg)*1.0)
+                nr_files_to_include = int(len(files) * reduce_by)
+                
+                if DEBUG:
+                    print >> sys.stderr, "TOO BIG, removing", len(files) - nr_files_to_include, "files", len(compressed_msg), max_len, message.payload.name
+                files = sample(files, nr_files_to_include)
+                
+            compressed_msg = create_msg()
+        return compressed_msg,
 
     def _decode_torrent(self, placeholder, offset, data):
         uncompressed_data = zlib.decompress(data[offset:])

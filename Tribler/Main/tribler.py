@@ -54,7 +54,7 @@ import urllib2
 import tempfile
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
 ## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -564,23 +564,13 @@ class ABCApp(wx.App):
         #RePEXLogger.getInstance().start() #no more need for logging
         RePEXScheduler.getInstance().start()
 
-    def sesscb_states_callback(self,dslist):
-        """ Called by SessionThread """
-        def guiCall():
-            wx.CallAfter(self.gui_states_callback, dslist)
-        
-        self.guiserver.add_task(guiCall, id="DownloadStateCallback")
-        return(1.0, True)
-    
+    @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_myprefupdates, objectID)
-    
-    def gui_ntfy_myprefupdates(self, infohash):
-        manager = self.frame.searchlist.GetManager()
-        manager.downloadStarted(infohash)
-        manager = self.frame.selectedchannellist.GetManager()
-        manager.downloadStarted(infohash)
+            manager = self.frame.searchlist.GetManager()
+            manager.downloadStarted(objectID)
+            manager = self.frame.selectedchannellist.GetManager()
+            manager.downloadStarted(objectID)
 
     def get_reputation(self):
         """ get the current reputation score"""
@@ -603,8 +593,12 @@ class ABCApp(wx.App):
             self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
             
         wx.CallLater(10000, self.set_reputation)
-        
-    def gui_states_callback(self,dslist):
+    
+    def sesscb_states_callback(self, dslist):
+        wx.CallAfter(self._gui_sesscb_states_callback, dslist)
+        return(1.0, True)
+    
+    def _gui_sesscb_states_callback(self, dslist):
         """ Called by GUITHREAD  """
         if DEBUG: 
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -771,75 +765,61 @@ class ABCApp(wx.App):
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
-        
+    
+    @forceWxThread
     def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
-        # Called by SessionCallback thread
         #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,"ct",changeType,"oid",objectID,"a",args
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.frame.setActivity,objectID,*args)
+            self.frame.setActivity(objectID, *args)
     
+    @forceWxThread
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.frame.SRstatusbar.onReachable)
+            self.frame.SRstatusbar.onReachable()
 
+    @forceWxThread
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
-            def guiCall():
-                wx.CallAfter(self.gui_ntfy_channelupdates, objectID, changeType, subject == NTFY_VOTECAST)
+            manager = self.frame.channellist.GetManager()
+            manager.channelUpdated(objectID, subject == NTFY_VOTECAST)
             
-            #wrap in guiserver to prevent multiple refreshes
-            self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
+            manager = self.frame.selectedchannellist.GetManager()
+            manager.channelUpdated(objectID)
+            
+            if changeType == NTFY_CREATE:
+                self.frame.selectedchannellist.SetMyChannelId(objectID)
+                self.frame.channellist.SetMyChannelId(objectID)
+                self.frame.managechannel.SetMyChannelId(objectID)
+                
+            self.frame.managechannel.channelUpdated(objectID)
     
-    def gui_ntfy_channelupdates(self, channel_id, changeType, votecast):
-        manager = self.frame.channellist.GetManager()
-        manager.channelUpdated(channel_id, votecast)
-        
-        manager = self.frame.selectedchannellist.GetManager()
-        manager.channelUpdated(channel_id)
-        
-        if changeType == NTFY_CREATE:
-            self.frame.selectedchannellist.SetMyChannelId(channel_id)
-            self.frame.channellist.SetMyChannelId(channel_id)
-            self.frame.managechannel.SetMyChannelId(channel_id)
-            
-        self.frame.managechannel.channelUpdated(channel_id)
-        
+    @forceWxThread
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_torrentupdates,subject,changeType,objectID)
-    
-    def gui_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
-        manager = self.frame.searchlist.GetManager()
-        manager.torrentUpdated(objectID)
+            manager = self.frame.searchlist.GetManager()
+            manager.torrentUpdated(objectID)
+            
+            manager = self.frame.selectedchannellist.GetManager()
+            manager.torrentUpdated(objectID)
         
-        manager = self.frame.selectedchannellist.GetManager()
-        manager.torrentUpdated(objectID)
-        
+    @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_playlistupdates,subject,changeType,objectID, *args)
-            
-    def gui_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
-        if changeType == NTFY_INSERT:
-            self.frame.managechannel.playlistCreated(objectID)
-        else:
-            self.frame.managechannel.playlistUpdated(objectID)
-            
+            if changeType == NTFY_INSERT:
+                self.frame.managechannel.playlistCreated(objectID)
+            else:
+                self.frame.managechannel.playlistUpdated(objectID)
+    @forceWxThread     
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_commentupdates,subject,changeType,objectID, *args)
-            
-    def gui_ntfy_commentupdates(self, subject, changeType, objectID, *args):
-        self.frame.selectedchannellist.OnCommentCreated(objectID)
-        self.frame.playlist.OnCommentCreated(objectID)
-        
+            self.frame.selectedchannellist.OnCommentCreated(objectID)
+            self.frame.playlist.OnCommentCreated(objectID)
+    
+    @forceWxThread
     def sesscb_ntfy_modificationupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
-            wx.CallAfter(self.gui_ntfy_modificationupdates,subject,changeType,objectID, *args)
-        
-    def gui_ntfy_modificationupdates(self, subject, changeType, objectID, *args):
-        self.frame.selectedchannellist.OnModificationCreated(objectID)
-        self.frame.playlist.OnModificationCreated(objectID)
+            self.frame.selectedchannellist.OnModificationCreated(objectID)
+            self.frame.playlist.OnModificationCreated(objectID)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

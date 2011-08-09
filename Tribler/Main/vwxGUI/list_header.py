@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
+    NativeIcon
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -7,7 +8,6 @@ from __init__ import LIST_RADIUS
 import sys
 import wx
 import os
-
 
 class ListHeaderIcon:
     __single = None
@@ -24,25 +24,19 @@ class ListHeaderIcon:
     getInstance = staticmethod(getInstance)
     
     def getBitmaps(self, parent, background):
-        if background not in self.icons:
-            self.icons[background] = self.__createBitmap(parent, background, 'arrow')
-        return self.icons[background]
+        assert isinstance(background, wx.Colour), "we require a wx.colour object here"
+        if not isinstance(background, wx.Colour):
+            background = wx.Brush(background).GetColour()
+        
+        key = background.Get()
+        if key not in self.icons:
+            self.icons[key] = self.__createBitmap(parent, background, 'arrow')
+        return self.icons[key]
     
     def __createBitmap(self, parent, background, type, flag=0):
-        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
-        #Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24,24) 
-        dc = wx.MemoryDC(bmp)
-        dc.SetBackground(wx.Brush(background))
-        dc.Clear()
-        
-        if type == 'arrow':
-            wx.RendererNative.Get().DrawDropArrow(parent, dc, (4, 4, 16, 16), flag) #max size is 16x16, using 4px as a border
-        dc.SelectObject(wx.NullBitmap)
-        
-        #determine actual size of drawn icon, and return this subbitmap
-        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
-        down = bmp.GetSubBitmap(bb)
+        print >> sys.stderr, "Creating new sorting bitmaps", parent, background, type
+        nativeIcon = NativeIcon.getInstance()
+        down = nativeIcon.getBitmap(parent, type, background, flag)
         
         img = down.ConvertToImage()
         up = img.Rotate90().Rotate90().ConvertToBitmap()
@@ -52,6 +46,8 @@ class ListHeaderIcon:
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
         dc.SelectObject(wx.NullBitmap)
+        del dc
+        
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
@@ -89,47 +85,40 @@ class ListHeader(wx.Panel):
     def AddColumns(self, sizer, parent, columns):
         self.columnHeaders = []
         
-        down, _, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
-        for i in xrange(len(columns)):
-            if columns[i].get('name', '') != '':
-                label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
-                label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
-                label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+        if len(columns) > 0:
+            down, _, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
+            for i in xrange(len(columns)):
+                if columns[i].get('name', '') != '':
+                    label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
+                    label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                    label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
+                    label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                    sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
                 
-                if columns[i].get('defaultSorted', False):
-                    label.sortIcon = wx.StaticBitmap(self, -1, down)
-                    self.sortedColumn = i
-                    self.defaultSort = i
-                else:
-                    label.sortIcon = wx.StaticBitmap(self, -1, empty)
-                sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP|wx.BOTTOM, 3)
-                
-                if columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
-                    columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth()
-                    
-                elif columns[i]['width'] == wx.LIST_AUTOSIZE:
-                    sizer.AddStretchSpacer()
-
-                else:
-                    if isinstance(columns[i]['width'], basestring) and columns[i]['width'].endswith('em'):
-                        test_string = 'T' * int(columns[i]['width'][:-2])
-                        columns[i]['width'] = self.GetTextExtent(test_string)[0] + 6
-                    
-                    remainingWidth = columns[i]['width'] - (label.GetBestSize()[0] + down.GetWidth())
-                    if remainingWidth > 0:
-                        sizer.AddSpacer((remainingWidth, 1))
+                    if columns[i].get('defaultSorted', False):
+                        label.sortIcon = wx.StaticBitmap(self, -1, down)
+                        self.sortedColumn = i
+                        self.defaultSort = i
                     else:
-                        print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width']
-                        label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
-                    
-                self.columnHeaders.append(label)
-            else:
-                spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
-                self.columnHeaders.append(spacer)
-        
+                        label.sortIcon = wx.StaticBitmap(self, -1, empty)
+                    sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
                 
+                    if columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
+                        columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth()
+                    
+                    elif columns[i]['width'] == wx.LIST_AUTOSIZE:
+                        sizer.AddStretchSpacer()
+
+                    else:
+                        if isinstance(columns[i]['width'], basestring) and columns[i]['width'].endswith('em'):
+                            test_string = 'T' * int(columns[i]['width'][:-2])
+                            columns[i]['width'] = self.GetTextExtent(test_string)[0] + 6
+                        
+                    self.columnHeaders.append(label)
+                else:
+                    spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
+                    self.columnHeaders.append(spacer)
+        
         self.scrollBar = sizer.AddSpacer((0,0))
         self.scrollBar.Show(False)
         self.scrollBar.sizer = sizer
@@ -211,6 +200,9 @@ class ListHeader(wx.Panel):
         
         if event.Id == self.sortedColumn:
             newDirection = not self.sortedDirection
+            
+            if newDirection == self.columns[newColumn].get('sortAsc', False): #back to default, treat as off
+                newColumn = -1
         else:
             newDirection = self.columns[newColumn].get('sortAsc', False)
         
@@ -249,7 +241,8 @@ class ListHeader(wx.Panel):
     
     def SetBackgroundColour(self, colour):
         self.backgroundBrush = wx.Brush(colour)
-
+        colour = self.backgroundBrush.GetColour()
+        
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, colour)
         for i in range(len(self.columnHeaders)):
             if getattr(self.columnHeaders[i], 'sortIcon', False):
@@ -330,7 +323,7 @@ class TitleHeader(ListHeader):
         vSizer.Add(righttitlePanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius + 3)
         if belowPanel:
             vSizer.Add(belowPanel, 1, wx.EXPAND|wx.TOP, 3)
-        
+
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.AddColumns(hSizer, self, columns)
@@ -356,6 +349,27 @@ class TitleHeader(ListHeader):
             self.Layout()
             self.Thaw()
 
+class SearchHeaderHelper():
+    def GetRightTitlePanel(self, parent):
+        self.filter = wx.SearchCtrl(parent)
+        self.filter.SetDescriptiveText('Search within results')
+        self.filter.Bind(wx.EVT_TEXT, self.OnKey)
+        self.filter.SetMinSize((175,-1))
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.AddStretchSpacer()
+        hSizer.Add(self.filter, 0, wx.ALIGN_CENTER_VERTICAL)
+        return hSizer
+    
+    def FilterCorrect(self, regex_correct):
+        pass
+
+    def OnKey(self, event):
+        self.parent_list.OnFilter(self.filter.GetValue().strip())
+    
+    def Reset(self):
+        self.filter.Clear()
+
 class SubTitleHeader(TitleHeader):
     def GetSubTitlePanel(self, parent):
         self.subtitle = wx.StaticText(parent)
@@ -369,10 +383,22 @@ class SubTitleHeader(TitleHeader):
             self.subtitle.Refresh()
             
             self.Thaw()
+            
+class SubTitleSeachHeader(SearchHeaderHelper, SubTitleHeader):
+    
+    def SetSubTitle(self, subtitle):
+        SubTitleHeader.SetSubTitle(self, subtitle)
+        self.curSubtitle = subtitle
+    
+    def SetNrResults(self, nr = None):
+        if nr is not None:
+            SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
+        else:
+            SubTitleHeader.SetSubTitle(self, self.curSubtitle)
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
-        self.add = wx.Button(parent, -1, "+", style = wx.BU_EXACTFIT)
+        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
         self.add.SetToolTipString('Add a .torrent from an external source.')
         
         self.resume = wx.Button(parent, -1, "Resume")
@@ -497,18 +523,7 @@ class FamilyFilterHeader(TitleHeader):
         self.Layout()
         self.Thaw()
 
-class SearchHeader(FamilyFilterHeader):
-    
-    def GetRightTitlePanel(self, parent):
-        self.filter = wx.SearchCtrl(parent)
-        self.filter.SetDescriptiveText('Search within results')
-        self.filter.Bind(wx.EVT_TEXT, self.OnKey)
-        self.filter.SetMinSize((175,-1))
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddStretchSpacer()
-        hSizer.Add(self.filter, 0, wx.ALIGN_CENTER_VERTICAL)
-        return hSizer
+class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
     
     def GetTitlePanel(self, parent):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -522,37 +537,26 @@ class SearchHeader(FamilyFilterHeader):
     def SetSubTitle(self, subtitle):
         self.subtitle.SetLabel('( %s )'%subtitle)
     
-    def FilterCorrect(self, regex_correct):
-        pass
-    
     def SetNrResults(self, nr = None):
         if nr is not None:
             self.SetSubTitle('Discovered %d after filter'%nr)
     
-    def OnKey(self, event):
-        self.parent_list.OnFilter(self.filter.GetValue().strip())
-    
     def Reset(self):
         FamilyFilterHeader.Reset(self)
+        SearchHeaderHelper.Reset(self)
         self.subtitle.SetLabel('')
-        self.filter.Clear()
         
 class SearchHelpHeader(SearchHeader):
     def GetRightTitlePanel(self, parent):
-        self.filter = wx.SearchCtrl(parent)
-        self.filter.SetDescriptiveText('Search within results')
-        self.filter.Bind(wx.EVT_TEXT, self.OnKey)
-        self.filter.SetMinSize((175,-1))
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddStretchSpacer()
-        hSizer.Add(self.filter, 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
 
         #filename = os.path.join(os.path.dirname(__file__), "images", "help.png")
         gui_utility = GUIUtility.getInstance()
         filename = os.path.join(gui_utility.vwxGUI_path, "images", "help.png")
         help = wx.StaticBitmap(parent, -1, wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         help.Bind(wx.EVT_LEFT_UP, self.helpClick)
+        help.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
 
         return hSizer

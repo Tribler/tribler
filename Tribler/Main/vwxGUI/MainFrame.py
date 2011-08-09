@@ -43,9 +43,10 @@ import urllib
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
+from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
+from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -264,30 +265,32 @@ class MainFrame(wx.Frame):
                 self.startDownload(torrentfilename,cmdline=True)
             self.guiUtility.standardLibraryOverview(refresh=True)
 
-    def startDownloadFromMagnet(self, url):
+    def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "_" * 80
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            self.startDownload(tdef=tdef, cmdline=True)
-
+            def _gui_torrentdef_retrieved():
+                self.startDownload(tdef=tdef, destdir = destdir)
+                
+            wx.CallAfter(_gui_torrentdef_retrieved)
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
             self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
             return False
         return True
     
-    def startDownloadFromUrl(self, url):
+    def startDownloadFromUrl(self, url, destdir = None):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                self.startDownload(tdef=tdef)
+                self.startDownload(tdef=tdef, destdir = destdir)
                 return True
         except:
             print_exc()
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
@@ -304,9 +307,7 @@ class MainFrame(wx.Frame):
             cancelDownload = False
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
-                dlg = wx.DirDialog(self, 'Please select a directory where to save %s.'%tdef.get_name())
-                dlg.SetPath(dscfg.get_dest_dir())
-                
+                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 if dlg.ShowModal() == wx.ID_OK:
                     destdir = dlg.GetPath()
                 else:
@@ -342,6 +343,9 @@ class MainFrame(wx.Frame):
                         dlg.ShowModal()
                         dlg.Destroy()
                 else:
+                    if selectedFiles:
+                        dscfg.set_selected_files(selectedFiles)
+                    
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(tdef,dscfg)
                 
@@ -378,6 +382,14 @@ class MainFrame(wx.Frame):
             self.onWarning(e)
         return None
     
+    def modifySelection(self, download, selectedFiles):
+        tdef = download.get_def()
+        dscfg = DownloadStartupConfig(download.dlconfig)
+        dscfg.set_selected_files(selectedFiles)
+        
+        self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+        self.utility.session.start_download(tdef, dscfg)
+    
     def fixTorrent(self, filename):
         f = open(filename,"rb")
         bdata = f.read()
@@ -398,14 +410,12 @@ class MainFrame(wx.Frame):
                 pass
 
 
+    @forceWxThread
     def show_saved(self):
         if self.ready and self.librarylist.ready:
-            wx.CallAfter(self._wx_show_saved)
+            self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
+            self.librarylist.GetManager().refresh()
 
-    def _wx_show_saved(self):
-        self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
-        self.librarylist.GetManager().refresh()
-       
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
 
@@ -590,13 +600,10 @@ class MainFrame(wx.Frame):
                 return False
         return False
 
+    @forceWxThread
     def upgradeCallback(self):
-        wx.CallAfter(self.OnUpgrade)    
-        # TODO: warn multiple times?
-    
-    def OnUpgrade(self, event=None):
         self.setActivity(NTFY_ACT_NEW_VERSION)
-        self.guiserver.add_task(self.upgradeCallback,10.0)
+        wx.CallLater(6000, self.upgradeCallback)
 
     #Force restart of Tribler
     def Restart(self):

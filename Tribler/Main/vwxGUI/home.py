@@ -3,12 +3,14 @@ import wx
 import sys
 import os
 import random
+from time import strftime
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
+from Tribler.Main.vwxGUI.list import XRCPanel
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl, SelectableListCtrl
 from Tribler.Category.Category import Category
@@ -26,24 +28,11 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 # _ProxyService 90s Test
 
-class Home(wx.Panel):
+class Home(XRCPanel):
     def __init__(self):
-        pre = wx.PrePanel()
-        # the Create step is done by XRC. 
-        self.PostCreate(pre)
-        if sys.platform == 'linux2': 
-            self.Bind(wx.EVT_SIZE, self.OnCreate)
-        else:
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-
-    def OnCreate(self, event):
-        if sys.platform == 'linux2': 
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
+        self.isReady = False
         
-        wx.CallAfter(self._PostInit)
-        event.Skip()
+        XRCPanel.__init__(self)
     
     def _PostInit(self):
         self.guiutility = GUIUtility.getInstance()
@@ -71,7 +60,6 @@ class Home(wx.Panel):
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
         self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown) 
-
         
         textSizer.Add(self.searchBox, 1)
         
@@ -91,6 +79,9 @@ class Home(wx.Panel):
         
         self.SetSizer(vSizer)
         self.Layout()
+        self.isReady = True
+        
+        self.SearchFocus()
         
     def OnClick(self, event):
         term = self.searchBox.GetValue()
@@ -101,6 +92,11 @@ class Home(wx.Panel):
             self.OnClick(event)
         else:
             event.Skip()
+            
+    def SearchFocus(self):
+        if self.isReady:
+            self.searchBox.SetFocus()
+            self.searchBox.SelectAll()
         
 class Stats(wx.Panel):
     def __init__(self):
@@ -275,10 +271,11 @@ class NetworkPanel(HomePanel):
     def UpdateStats(self):
         def db_callback():
             stats = self.torrentdb.getTorrentsStats()
-            wx.CallAfter(self._UpdateStats, stats)
+            self._UpdateStats(stats)
         
         self.guiserver.add_task(db_callback, id = "NetworkPanel_UpdateStats")
-        
+    
+    @forceWxThread
     def _UpdateStats(self, stats):
         self.nrTorrents.SetLabel(str(stats[0]))
         if stats[1] is None:
@@ -325,10 +322,11 @@ class NewTorrentPanel(HomePanel):
         def db_callback():
             torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
             if torrent:
-                wx.CallAfter(self._UpdateStats, torrent)
+                self._UpdateStats(torrent)
         
         self.guiserver.add_task(db_callback, id = "NewTorrentPanel_UpdateStats")
-        
+    
+    @forceWxThread
     def _UpdateStats(self, torrent):
         self.list.InsertStringItem(0, torrent['name'])
         size = self.list.GetItemCount()
@@ -364,10 +362,11 @@ class PopularTorrentPanel(NewTorrentPanel):
                 familyfilter_sql = familyfilter_sql[4:]
             
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
-            wx.CallAfter(self._RefreshList, topTen)
+            self._RefreshList(topTen)
         
         self.guiserver.add_task(db_callback, id = "PopularTorrentPanel_RefreshList")
     
+    @forceWxThread
     def _RefreshList(self, topTen):
         self.list.Freeze()
         self.list.DeleteAllItems()
@@ -404,9 +403,10 @@ class TopContributorsPanel(HomePanel):
     def RefreshList(self):
         def db_callback():
             topTen = self.barterdb.getTopNPeers(10)
-            wx.CallAfter(self._RefreshList, topTen)
+            self._RefreshList(topTen)
         self.guiserver.add_task(db_callback, id = "TopContributorsPanel_RefreshList")
     
+    @forceWxThread
     def _RefreshList(self, topTen):
         self.list.Freeze()
         self.list.DeleteAllItems()
@@ -428,6 +428,7 @@ class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Recent Activity' , LIST_BLUE)
 
+    @forceWxThread
     def onActivity(self, msg):
         msg = strftime("%H:%M:%S ") + msg
         self.list.InsertStringItem(0, msg)
@@ -447,7 +448,7 @@ class BuzzPanel(HomePanel):
         self.nbdb = NetworkBuzzDBHandler.getInstance()
         self.xxx_filter = Category.getInstance().xxx_filter
         
-        HomePanel.__init__(self, parent, 'Network Buzz', LIST_GREY)
+        HomePanel.__init__(self, parent, 'Search suggestions', LIST_GREY)
          
         self.tags = []
         self.buzz_cache = [[],[],[]]
@@ -783,10 +784,11 @@ class NetworkTestPanel(HomePanel):
             stats.append(duration)
             stats.append(nrPeers)
             
-            wx.CallAfter(self._UpdateStats, stats)
+            self._UpdateStats(stats)
         
         self.guiserver.add_task(stats_callback, id = "NetworkTest_UpdateStats")
-        
+    
+    @forceWxThread
     def _UpdateStats(self, stats):
         self.eligibleCandidate.SetLabel(str(stats[0]))
         self.activeCandidate.SetLabel(str(stats[1]))
@@ -815,6 +817,7 @@ class ProxyDiscoveryPanel(NewTorrentPanel):
         self.proxies=[]
         self.OnNotify(None, None, None, session.lm.overlay_apps.proxy_peer_manager.available_proxies.keys())
 
+    @forceWxThread
     def OnNotify(self, subject, changeType, objectID, *args):
         """  Handler registered with the session observer
         
@@ -823,8 +826,7 @@ class ProxyDiscoveryPanel(NewTorrentPanel):
         @param objectID The specific object in the subject to monitor (e.g. a specific primary key in a database to monitor for updates.)
         @param args: A list of optional arguments.
         """
-        proxy_permid_list=args[0]
-        for proxy_permid in proxy_permid_list:
+        for proxy_permid in args[0]:
             if proxy_permid not in self.proxies:
                 self.proxies.append(proxy_permid)
                 
@@ -833,5 +835,4 @@ class ProxyDiscoveryPanel(NewTorrentPanel):
                 size = self.list.GetItemCount()
                 if size > 50:
                     self.list.DeleteItem(size-1)
-#
 # _ProxyService

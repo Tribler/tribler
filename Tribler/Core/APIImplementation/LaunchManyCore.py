@@ -481,11 +481,11 @@ class TriblerLaunchMany(Thread):
                 d.set_error(e)
                 
         
-    def remove(self,d,removecontent=False):
+    def remove(self,d,removecontent=False,removestate=True):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            d.stop_remove(removestate=True,removecontent=removecontent)
+            d.stop_remove(removestate=removestate,removecontent=removecontent)
             infohash = d.get_def().get_infohash()
             del self.downloads[infohash]
         finally:

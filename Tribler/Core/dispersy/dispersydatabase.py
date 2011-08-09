@@ -117,7 +117,7 @@ CREATE TABLE malicious_proof(
 -- UNIQUE(community, user));
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '2');
+INSERT INTO option(key, value) VALUES('database_version', '3');
 """
 
 class DispersyDatabase(Database):

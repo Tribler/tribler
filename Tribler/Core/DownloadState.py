@@ -284,6 +284,46 @@ class DownloadState(Serializable):
         else:
             return self.haveslice
         
+    def get_files_completion(self):
+        """ Returns a list of filename, progress tuples indicating the progress 
+        for every file selected using set_selected_files. Progress is a float
+        between 0 and 1
+        """
+        completion = []
+        if self.progress == 1.0:
+            if len(self.download.get_selected_files()) > 0:
+                files = self.download.get_selected_files() 
+            else:
+                files = self.download.get_def().get_files()
+                
+            for file_in_torrent in files:
+                completion.append((file_in_torrent, 1.0))
+        else:
+            if self.filepieceranges:
+                index = 0
+                for t,tl,f in self.filepieceranges:
+                    #niels: ranges are from-to (inclusive ie if a file consists one piece t and tl will be the same)
+                    total_pieces = tl - t
+                    if total_pieces and getattr(self, 'haveslice', False):
+                        completed = 0
+                        for i in range(total_pieces):
+                            if self.haveslice[index]:
+                                completed += 1
+                            index += 1
+                        
+                        completion.append((f, completed/(total_pieces*1.0)))
+                    else:
+                        completion.append((f, 0.0))
+        return completion
+    
+    def gef_selected_files(self):
+        if self.filepieceranges:
+            files = []
+            for _, _, f in self.filepieceranges:
+                files.append(f)
+            return files
+        
+        
     def get_availability(self):
         """ Return overall the availability of all pieces, using connected peers
         Availability is defined as the number of complete copies of a piece, thus seeders

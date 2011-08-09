@@ -92,7 +92,7 @@ class Callback(object):
         assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
         assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
-        assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
+        assert isinstance(delay, (int, float)), "DELAY has invalid type: %s" % type(delay)
         assert isinstance(priority, int), "PRIORITY has invalid type: %s" % type(priority)
         assert isinstance(id_, str), "ID_ has invalid type: %s" % type(id_)
         assert callback is None or callable(callback), "CALLBACK must be None or callable"

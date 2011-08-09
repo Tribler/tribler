@@ -31,6 +31,7 @@ from Tribler.Core.Subtitles.RichMetadataInterceptor import RichMetadataIntercept
 from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
 from Tribler.Core.Subtitles.PeerHaveManager import PeersHaveManager
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 DEBUG = False
 
@@ -97,6 +98,7 @@ class ChannelCastCore:
             ChannelCastCore(*args, **kw)
         return ChannelCastCore.__single
     getInstance = staticmethod(getInstance)
+    
     def gotChannelCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receive and handle a ChannelCast message """
         # ChannelCast feature starts from eleventh version; hence, do not receive from lower version peers
@@ -141,7 +143,7 @@ class ChannelCastCore:
             if isinstance(ch["torrentname"], str):
                 ch["torrentname"] = str2unicode(ch["torrentname"])
 
-        self.handleChannelCastMsg(sender_permid, channelcast_data)
+        self.updateChannel(sender_permid, None, channelcast_data)
         
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -157,19 +159,15 @@ class ChannelCastCore:
             self.createAndSendChannelCastMessage(sender_permid, selversion)
         return True       
 
-    def handleChannelCastMsg(self, sender_permid, data):
-        self._updateChannelInternal(sender_permid, None, data)
-
-    def updateChannel(self,query_permid, query, hits):
+    def updateChannel(self, query_permid, query, hits, callback = None):
         """
         This function is called when there is a reply from remote peer regarding updating of a channel
         @param query_permid: the peer who returned the results
         @param query: the query string (None if this is not the results of a query) 
         @param hits: details of all matching results related to the query
+        @param callback: callback function which will receive delayedResult, query_permid and query
         """
-        if DEBUG:
-            print >> sys.stderr, "channelcast: sending message to", bin2str(query_permid), query, len(hits)
-        return self._updateChannelInternal(query_permid, query, hits)
+        startWorker(callback, self._updateChannelInternal, wargs = (query_permid, query, hits), cargs = (query_permid, query))
         
     def _updateChannelInternal(self, query_permid, query, hits):
         dictOfAdditions = dict()
@@ -200,7 +198,6 @@ class ChannelCastCore:
                 # anymore.
                 dictOfAdditions[k] = hit
 
-            # Arno, 2010-06-11: We're on the OverlayThread
             self._updateChannelcastDB(query_permid, query, hits, dictOfAdditions.values())
 
         return dictOfAdditions
@@ -265,42 +262,53 @@ class ChannelCastCore:
                 self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(channel_id) ,3)
     
     def updateMySubscribedChannels(self):
-        def update(channel_ids):
+        def update(channel_ids, perm_ids):
             channel_id = channel_ids.pop()
-            self.updateAChannel(channel_id)
+            perm_id = perm_ids.pop()
+            self.updateAChannel(channel_id, perm_id)
             
-            if len(subscribed_channels) > 0:
-                self.overlay_bridge.add_task(lambda: update(subscribed_channels), 20)
-                
-        subscribed_channels = self.channelcastdb.getMySubscribedChannels()
-        channel_ids = [values[0] for values in subscribed_channels if values[2] == -1]
-        if len(channel_ids) > 0:
-            update(channel_ids)
+            if len(channel_ids) > 0:
+                self.overlay_bridge.add_task(lambda: update(channel_ids, perm_ids), 20)
         
-        self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
+        self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)
+        
+        def db_call():
+            subscribed_channels = self.channelcastdb.getMySubscribedChannels()
+            channel_ids = [values[0] for values in subscribed_channels if values[2] == -1]
+            if len(channel_ids) > 0:
+                perm_ids = self.channelcastdb.getPermidForChannels(channel_ids)
+                update(channel_ids, perm_ids)
+        startWorker(None, db_call)
     
-    def updateAChannel(self, channel_id, peers = None, timeframe = None):
+    def updateAChannel(self, channel_id, publisher_id, peers = None, timeframe = None):
         if peers == None:
             peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
             
         shuffle(peers)
+        
         # Create separate task which does all the requesting
-        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(channel_id, peers, timeframe))
+        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(channel_id, publisher_id, peers, timeframe))
     
-    def _sequentialQueryPeers(self, channel_id, peers, timeframe = None):
+    def _sequentialQueryPeers(self, channel_id, publisher_id, peers, timeframe = None):
+        def nextPeer(result, query_permid, query):
+            if peers:
+                dorequest(peers)
+        
         def seqtimeout(permid):
+            #actual timeout, or did response arrive
             if peers and permid == peers[0][0]:
                 peers.pop(0)
-                dorequest()
+                dorequest(peers)
                 
         def seqcallback(query_permid, query, hits):
-            self.updateChannel(query_permid, query, hits)
-            
+            #did timeout already occur?
             if peers and query_permid == peers[0][0]:
                 peers.pop(0)
-                dorequest()
+                self.updateChannel(query_permid, query, hits, nextPeer)
+            else:
+                self.updateChannel(query_permid, query, hits)      
             
-        def dorequest():
+        def dorequest(peers):
             if peers:
                 permid, selversion = peers[0]
                 
@@ -309,14 +317,14 @@ class ChannelCastCore:
                 if timeframe:
                     record = timeframe
                 else:
-                    record = self.channelcastdb.getTimeframeForChannel(channel_id)
+                    record = startWorker(None, self.channelcastdb.getTimeframeForChannel, wargs = (channel_id, ))
+                    record = record.get()
                 
                 if record:
                     q+= " "+" ".join(map(str,record))
-                self.session.query_peers(q,[permid],usercallback = seqcallback)
 
+                self.session.query_peers(q,[permid],usercallback = seqcallback)
                 self.overlay_bridge.add_task(lambda: seqtimeout(permid), 30)
         
         peers = peers[:]
-        publisher_id = self.channelcastdb.getPermidForChannel(channel_id)
         dorequest()

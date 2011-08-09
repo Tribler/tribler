@@ -4,7 +4,9 @@ import re
 import sys
 from itertools import islice
 import time
+
 from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Main.vwxGUI import LIST_ITEM_MAX_SIZE
 
 # Flags
 USE_PSYCO = False    # Enables Psyco optimization for the Levenshtein algorithm
@@ -124,7 +126,7 @@ class GroupsList(object):
     # Certain algorithms use a datatstructure that's hard to modify. For example,
     # the size grouping algorithm uses an IntervalTree. Adding new intervals is easy,
     # but removing is not.
-    def __init__(self, query, algorithm, hits, prev_grouplist = None):
+    def __init__(self, query, algorithm, hits, prev_grouplist = None, max_bundles = None):
         """
         Constructs a GroupsList.
         
@@ -132,6 +134,7 @@ class GroupsList(object):
         @param algorithm The algorithm to apply to group the hits.
         @param hits The hits retrieved by the query.
         @param prev_grouplist Optionally, a previous version of this GroupsList.
+        @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         """
         self.query = query
         self.algorithm = algorithm
@@ -146,9 +149,10 @@ class GroupsList(object):
         self.infohashes = set()
         self.representative_hashes = set()
         
-        self._add_all(hits)
+        self._add_all(hits, max_bundles=max_bundles)
+        
     
-    def _add_all(self, hits):
+    def _add_all(self, hits, max_bundles=None):
         """
         Private auxiliary method to perform the actual grouping.
         The core, unoptimized and simplified algorithm works as follow:
@@ -170,17 +174,32 @@ class GroupsList(object):
                 group.append(hit)
         
         @param hits The hits to be grouped.
+        @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         """
         algorithm = self.algorithm
         context_state = self.context_state
         grouped_hits = self.groups
+        
+        def create_new_group(hit_infohash, group_id, index, key, context_state):
+            # compute simkey for new group
+            simkey = algorithm.simkey(key, context_state)
+            
+            # create new group and store it in the index
+            new_group = HitsGroup(group_id, key, simkey, prev_group=old_group)
+            index[simkey] = new_group
+            return new_group
+        
+        def disabled_bundling(hit_infohash, group_id, index, key, context_state):
+            # only create a new group
+            new_group = HitsGroup(group_id, key, hit_infohash)
+            return new_group
         
         infohashes = self.infohashes
         if self.prev_grouplist is not None:
             old_hashes = self.prev_grouplist.infohashes
             old_representatives = self.prev_grouplist.representative_hashes
             old_index = self.prev_grouplist.index
-            new_hits = [hit for hit in hits if hit['infohash'] not in old_hashes]
+            new_hits = [hit for hit in hits if hit.infohash not in old_hashes]
             missing_hits = len(new_hits)+len(old_hashes) > len(hits) 
         else:
             old_representatives = old_hashes = set()
@@ -204,9 +223,12 @@ class GroupsList(object):
             # self.representative_hashes = self.prev_grouplist.representative_hashes
         else:
             index = self.index
+            processed_hits = 0
             for hit in hits:
+                processed_hits += 1
+                
                 key = algorithm.key(hit, context_state)
-                hit_infohash = hit['infohash']
+                hit_infohash = hit.infohash
                             
                 # Find or create new group
                 group = None
@@ -224,9 +246,6 @@ class GroupsList(object):
                         group.reassign_id(old_group.id)
                         group.prev_group = old_group
                 else:
-                    # compute simkey for new group 
-                    simkey = self.algorithm.simkey(key, context_state)
-                    
                     # try to reuse old group_id
                     group_id = -1
                     old_group = None
@@ -234,16 +253,20 @@ class GroupsList(object):
                         old_group = old_index[key]
                         group_id = old_group.id
                     
-                    # create new group
-                    new_group = HitsGroup(group_id, key, simkey, prev_group=old_group)
-                    index[simkey] = new_group
-                    grouped_hits.append(new_group)
+                    # create a new group (and store it in the index) 
+                    group = create_new_group(hit_infohash, group_id, index, key, context_state)
+                    grouped_hits.append(group)
                     
-                    group = new_group
+                    # When we reach max_bundles, disable bundling by adjusting 
+                    # the computation of simkeys
+                    if len(grouped_hits) == max_bundles:
+                        create_new_group = disabled_bundling
+                        if DEBUG:
+                            print >>sys.stderr, '>> Bundler.py, reached limit of %s bundles,' % max_bundles
+                            print >>sys.stderr, '     disabling the computation of simkeys after processing %s hits' % processed_hits
                 
                 group.add(hit)
                 infohashes.add(hit_infohash)
-            
 
 class GroupingAlgorithm(object):
     """
@@ -388,9 +411,9 @@ class IntGrouping(GroupingAlgorithm):
         return u'Names of these items contain the following numbers: %s' % ', '.join(str(num) for num in hitsgroup.simkey)
     
     def key(self, hit, context_state):
-        key = tuple(int(n) for n in self.re_extract_ints.findall(hit['name']))
+        key = tuple(int(n) for n in self.re_extract_ints.findall(hit.name))
         if key == ():
-            key = hit['infohash']
+            key = hit.infohash
         return key
     
     def simkey(self, key, context_state):
@@ -442,7 +465,7 @@ class LevGrouping(GroupingAlgorithm):
         # assert: len(hitsgroup) > 0
         N = LevGrouping.MAX_LEN
         hit = hitsgroup.hits[0]
-        key = ' '.join(split_into_keywords(hit['name']))
+        key = ' '.join(split_into_keywords(hit.name))
         
         if len(key) > N:
             # check if we're truncating within a word
@@ -468,7 +491,7 @@ class LevGrouping(GroupingAlgorithm):
         trie.update_cache(new_words)
     
     def key(self, hit, context_state):
-        return ' '.join(split_into_keywords(hit['name']))[:LevGrouping.MAX_LEN]
+        return ' '.join(split_into_keywords(hit.name))[:LevGrouping.MAX_LEN]
     
     def simkey(self, key, context_state):
         # NB: simkey is a list of similar keys in this case, but should also contain key,
@@ -519,7 +542,7 @@ class SizeGrouping(GroupingAlgorithm):
         return u'The size of these items ranges from %.0f MB to %.0f MB' % (lo/to_MB, hi/to_MB)
     
     def key(self, hit, context_state):
-        return hit['length']
+        return hit.length
     
     def simkey(self, key, context_state):
         SIZE_FRAC = 0.10
@@ -805,13 +828,12 @@ class Bundler:
     """
     
     GROUP_TOP_N = 2000 # None = all
+    MAX_BUNDLES = LIST_ITEM_MAX_SIZE # None = all
+    
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
     
-    algorithms = dict(
-        Int = IntGrouping(),
-        Lev = LevGrouping(),
-        Size = SizeGrouping(),
-    )
+    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF = range(4)
+    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping(), None]
     
     def __init__(self):
         self.clear()
@@ -836,13 +858,13 @@ class Bundler:
         and the bundle (bundle) itself.
         
         @param hits A ranked list of hits.
-        @param bundle_mode The name of an algorithm picked from 
-        Bundler.algorithms.keys(), or None.
+        @param bundle_mode The algorithm, selected by one of the 
+        Bundle.ALG_* constants. 
         @param searchkeywords The search keywords used to retrieve 
         the list of hits.
         @return A list containing hits and bundles.
         """
-        algorithm = Bundler.algorithms.get(bundle_mode, None)
+        algorithm = Bundler.algorithms[bundle_mode]
         if algorithm is None:
             return hits
         
@@ -858,9 +880,10 @@ class Bundler:
         
         self._benchmark_start()
         grouped_hits = GroupsList(query, algorithm, hits1,
-                                  self.previous_groups.get(bundle_mode, None))
+                                  self.previous_groups.get(bundle_mode, None),
+                                  Bundler.MAX_BUNDLES)
         self._benchmark_end()
-        
+    
         hits1_withbundles = []
         for group in grouped_hits.groups:
             if len(group) > 1:
@@ -871,7 +894,14 @@ class Bundler:
                 
                 if group.has_changed():
                     d['bundle_changed'] = True
-                    
+                
+                # Copy channel_permid, channel_name, and subscriptions from head to bundle-dict
+                copy_keys = ['channel_permid', 'channel_name', 'subscriptions']
+                head = group[0]
+                for key in copy_keys:
+                    if key in head:
+                        d[key] = head[key]
+                
                 hits1_withbundles.append(d)
             else:
                 hits1_withbundles.append(group[0])
