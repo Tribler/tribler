@@ -778,7 +778,7 @@ class LibraryManager:
         if ds is None:
             #Making sure we actually have this .torrent
             callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
-            filename = self.getTorrent(torrent, callback)
+            filename = self.torrentsearch_manager.getTorrent(torrent, callback)
             
             if isinstance(filename, basestring):
                 #got actual filename, load torrentdef and create downloadconfig
@@ -824,6 +824,7 @@ class LibraryManager:
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
         self.searchmgr = SearchManager(self.torrent_db)
+        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
     
     def getHitsInCategory(self, sort = 'rameezmetric'):
         if DEBUG: begintime = time()

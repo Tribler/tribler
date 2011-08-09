@@ -7,6 +7,7 @@
 # 
 
 import wx
+import wx.media
 import sys
 
 import os, shutil
@@ -86,10 +87,20 @@ class EmbeddedPlayerPanel(wx.Panel):
         else:
             mainbox = vSizer
         
-        self.vlcwrap = vlcwrap
-        if vlcwrap is not None:
-            self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
-            self.vlcwin.SetMinSize((320,240))
+#        self.vlcwrap = vlcwrap
+#        if vlcwrap is not None:
+#            self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
+#            self.vlcwin.SetMinSize((320,240))
+
+        if True:
+            self.vlcwin = wx.media.MediaCtrl(self)
+            self.vlcwrap = FakeVlc(self.vlcwin)
+            
+            def fake():
+                pass
+            self.vlcwin.show_loading = fake
+            self.vlcwin.tell_vclwrap_window_for_playback = fake
+            self.vlcwin.stop_animation = fake
             
             if border:
                 player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
@@ -496,7 +507,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             status = self.vlcwrap.get_our_state()
-            if DEBUG:
+            if True or DEBUG:
                 print >>sys.stderr,"embedplay: GetState",status
                 
             return status
@@ -607,7 +618,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         
     def OnMaximize(self):
         if self.vlcwrap and self.border:
-            self.SetMinSize((320,-1))
+            self.SetMinSize((320,300))
             
             self.vlcwin.Show(True)
             self.ctrlsizer.ShowItems(True)
@@ -745,3 +756,68 @@ class VLCLogoWindow(wx.Panel):
         dc.EndDrawing()
         if evt is not None:
             evt.Skip(True)
+
+class FakeVlc():
+    def __init__(self, mediactrl):
+        self.mediactrl = mediactrl
+        self.mediactrl.Bind(wx.media.EVT_MEDIA_LOADED, self.OnLoaded)
+        
+    def stop(self):
+        print >> sys.stderr, "Stop"
+        self.mediactrl.Stop()
+        
+    def playlist_clear(self):
+        pass
+    
+    def load(self, url, streaminfo):
+        print >> sys.stderr, "Load", url
+        self.mediactrl.LoadFromURI(url)
+        wx.CallLater(1000, self.OnLoaded, None)
+    
+    def OnLoaded(self, event):
+        print >> sys.stderr, "Loaded", event
+        self.start()
+    
+    def start(self, startposition = 0):
+        print >> sys.stderr, "Play"
+        
+        if self.mediactrl.Play():
+            if startposition != 0:
+                self.mediactrl.Seek(startposition)
+        else:
+            print >> sys.stderr, "Play returned False"
+        
+    def pause(self):
+        print >> sys.stderr, "Pause"
+        self.mediactrl.Pause()
+        
+    def resume(self):
+        if self.get_our_state() == MEDIASTATE_PLAYING:
+            self.pause()
+        else:
+            self.start()
+        
+    def set_media_position(self, pos):
+        print >> sys.stderr, "Seek"
+        self.mediactrl.Seek(pos)
+    
+    def get_media_position(self):
+        return self.mediactrl.Tell()
+    
+    def get_our_state(self):
+        state = self.mediactrl.GetState()
+        if state == wx.media.MEDIASTATE_STOPPED:
+            return MEDIASTATE_STOPPED
+        
+        if state == wx.media.MEDIASTATE_PAUSED:
+            return MEDIASTATE_PAUSED
+        
+        if state == wx.media.MEDIASTATE_PLAYING:
+            return MEDIASTATE_PLAYING
+    
+    def get_stream_information_length(self):
+        return self.mediactrl.Length()
+    
+    def sound_set_volume(self, vol):
+        self.mediactrl.SetVolume(vol)
+    

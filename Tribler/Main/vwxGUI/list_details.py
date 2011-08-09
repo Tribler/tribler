@@ -970,8 +970,8 @@ class TorrentDetails(wx.Panel):
 
 class LibraryDetails(TorrentDetails):
     def __init__(self, *args, **kwargs):
-        TorrentDetails.__init__(self, *args, **kwargs)
         self.old_progress = -1
+        TorrentDetails.__init__(self, *args, **kwargs)
     
     def _showRequestType(self, requesttype):
         pass
