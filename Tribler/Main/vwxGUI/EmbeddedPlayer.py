@@ -58,7 +58,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         if border:
-            self.SetMinSize((34,-1))
+            #self.SetMinSize((34,-1))
             
             images = ("minimize.png", "maximize.png")
             images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
@@ -176,7 +176,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
 
             mainbox.Add(self.ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
-            if border:
+            if False:# and border:
                 self.vlcwin.Show(False)
                 self.ctrlsizer.ShowItems(False)
         
@@ -616,6 +616,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.OnMaximize()
 
     def OnMinimize(self):
+        return
         if self.vlcwrap and self.border:
             self.SetMinSize((34,-1))
             
@@ -628,6 +629,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.utility.guiUtility.frame.Layout()
         
     def OnMaximize(self):
+        return
         if self.vlcwrap and self.border:
             self.SetMinSize((320,-1))
             
