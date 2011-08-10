@@ -1476,8 +1476,8 @@ class Dispersy(Singleton):
 
     def yield_online_candidates(self, community, limit, batch=100):
         """
-        Returns a generator that yields LIMIT unique Candicate objects ordered by most likely to
-        least likely to be online.
+        Returns a generator that yields at most LIMIT unique Candicate objects ordered by most
+        likely to least likely to be online.
         """
         if __debug__:
             from community import Community
@@ -1486,7 +1486,7 @@ class Dispersy(Singleton):
         assert isinstance(batch, int)
         return islice(self._yield_online_candidates(community, min(limit, batch)), limit)
 
-    def _yield_online_candidates(self, community, batch=100):
+    def _yield_online_candidates(self, community, batch):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
@@ -1507,6 +1507,35 @@ class Dispersy(Singleton):
             else:
                 if not candidates:
                     break
+
+    def yield_subjective_candidates(self, community, limit, cluster, batch=100):
+        """
+        Returns a generator that yields at most LIMIT unique Candidate objects ordered by most
+        likely to least likely to be online and who we believe have our public key in their
+        subjective set.
+        """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(limit, int)
+        assert isinstance(batch, int)
+        assert isinstance(cluster, int)
+        assert cluster in community.subjective_set_clusters
+        return islice(self._yield_subjective_candidates(community, min(limit, batch), cluster), limit)
+
+    def _yield_subjective_candidates(self, community, batch, cluster):
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(batch, int)
+
+        for candidate in self._yield_online_candidates(community, batch):
+            # we need to check the members associated to these candidates and see if they are
+            # interested in this cluster
+            for member in candidate.members:
+                subjective_set = community.get_subjective_set(member, cluster)
+                if subjective_set and community.my_member.public_key in subjective_set:
+                    yield candidate
 
     def yield_mixed_candidates(self, community, limit, diff_range=(0.0, 30.0), age_range=(120.0, 300.0), batch=100):
         """
@@ -1716,11 +1745,25 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
         for message in messages:
-            if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
+            if isinstance(message.destination, (CommunityDestination.Implementation, SimilarityDestination.Implementation)):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
                     addresses = [candidate.address
                                  for candidate
                                  in self.yield_online_candidates(message.community, message.destination.node_count)]
+                    if addresses:
+                        self._send(addresses, [message.packet])
+
+                    if __debug__:
+                        if addresses:
+                            dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
+                        else:
+                            dprint("failed to send ", message.name, " (", len(message.packet), " bytes) because there are no destination addresses", level="warning")
+
+            elif isinstance(message.destination, SubjectiveDestination.Implementation):
+                if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
+                    addresses = [candidate.address
+                                 for candidate
+                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
                     if addresses:
                         self._send(addresses, [message.packet])
 
