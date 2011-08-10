@@ -53,6 +53,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.fullscreen_enabled = False
         self.fullscreenwindow = None
         self.play_enabled = False
+        self.stop_enabled = False
         self.scroll_enabled = False
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -108,6 +109,10 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'pause', 'play')
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
             self.ppbtn.setSelected(2)
+            
+            self.sbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'stop')
+            self.sbtn.Bind(wx.EVT_LEFT_UP, self.OnStop)
+            self.sbtn.setSelected(2)
     
             volumebox = wx.BoxSizer(wx.HORIZONTAL)
             self.vol1 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol1')
@@ -140,12 +145,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
             self.fsbtn.setSelected(2)
 
-            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
-            self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
-            self.save_callback = lambda:None
-            self.save_button.Hide()
-
             self.ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             self.ctrlsizer.AddSpacer((5,0))
             
             self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -252,8 +253,10 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.timer = wx.Timer(self)
                 self.Bind(wx.EVT_TIMER, self.UpdateSlider)
             self.timer.Start(500)
+            
         self.enableFullScreen()
         self.enablePlay()
+        self.enableStop()
         self.enableScroll()
 
     def StartPlay(self):
@@ -366,6 +369,14 @@ class EmbeddedPlayerPanel(wx.Panel):
     def disablePlay(self):
         self.play_enabled = False
         self.ppbtn.setSelected(2)
+        
+    def enableStop(self):
+        self.stop_enabled = True
+        self.sbtn.setSelected(False)
+        
+    def disableStop(self):
+        self.stop_enabled = False
+        self.sbtn.setSelected(2)
 
     def enableFullScreen(self):
         self.fullscreen_enabled = True
@@ -468,6 +479,11 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.vlcwrap.sound_set_volume(volume)  ## float(self.volume.GetValue()) / 100
+
+    def OnStop(self, event):
+        if self.vlcwrap and self.stop_enabled:
+            self.Stop()
+            self.disableStop()
 
     def Stop(self):
         self.__check_thread()
