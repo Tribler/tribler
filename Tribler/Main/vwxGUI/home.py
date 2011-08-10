@@ -54,14 +54,14 @@ class Home(XRCPanel):
         
         textSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.searchBox = wx.TextCtrl(self, -1, 'T', style = wx.TE_PROCESS_ENTER)
+        self.searchBox = wx.TextCtrl(self, style = wx.TE_PROCESS_ENTER)
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
+        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown)
+        self.searchBox.SetMinSize(((-1, self.searchBox.GetBestSize()[1])))
         
         textSizer.Add(self.searchBox, 1, wx.EXPAND)
-        self.searchBox.SetLabel('')
-        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown)
         
         searchButton = wx.Button(self, -1, 'Search')
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
