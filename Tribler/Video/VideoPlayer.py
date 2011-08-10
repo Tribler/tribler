@@ -788,6 +788,9 @@ class VideoPlayer:
             return MEDIASTATE_PLAYING
 
     def determine_playbackmode(self):
+        self.playbackmode = PLAYBACKMODE_INTERNAL
+        return 
+        
         feasible = return_feasible_playback_modes(self.utility.getPath())
         if self.preferredplaybackmode in feasible:
             self.playbackmode = self.preferredplaybackmode
