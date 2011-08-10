@@ -108,7 +108,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 print_exc()
                 pass
             
-        if vlcwrap is not None:
+        if self.vlcwrap is not None:
             if self.vlcwin is None:
                 self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
                 self.vlcwin.SetMinSize((320,240))
