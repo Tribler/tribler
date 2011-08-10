@@ -1534,6 +1534,8 @@ class Dispersy(Singleton):
             # interested in this cluster
             for member in candidate.members:
                 subjective_set = community.get_subjective_set(member, cluster)
+                # TODO when we do not have a subjective_set from member, we should request it to
+                # ensure that we make a valid decision next time
                 if subjective_set and community.my_member.public_key in subjective_set:
                     yield candidate
 
