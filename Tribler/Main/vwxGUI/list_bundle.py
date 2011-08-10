@@ -295,7 +295,7 @@ class BundlePanel(wx.Panel):
                 max_list -= 1
             
             self.bundlelist = BundleListView(parent = self, list_item_max = max_list)
-            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.LEFT|wx.BOTTOM, 17) #20 - 3 = 17
+            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.BOTTOM, 17) #20 - 3 = 17
             
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method. Thus we have to do this after the add to the sizer
@@ -427,7 +427,7 @@ class BundleListView(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, showChange = True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [3,3], True, showChange = True, parent=parent)
     
     def CreateHeader(self):
         # Normally, the column-widths are fixed during this phase

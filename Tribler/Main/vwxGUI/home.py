@@ -63,13 +63,15 @@ class Home(XRCPanel):
             print >> sys.stderr, "Setting size to ", self.searchBox.GetTextExtent('T')[1] + 5
             self.searchBox.SetMinSize((-1, self.searchBox.GetTextExtent('T')[1] + 5))
         
-        
-        
         textSizer.Add(self.searchBox, 1, wx.EXPAND)
         
-        searchButton = wx.Button(self, -1, 'Search')
+        if sys.platform == 'darwin': # mac
+            searchButton = wx.Button(self, -1, '\n')
+            searchButton.SetLabel('Search')
+        else:
+            searchButton = wx.Button(self, -1, 'Search')
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
-        textSizer.Add(searchButton, 0, wx.EXPAND)
+        textSizer.Add(searchButton, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
         searchSizer.Add(text, 0, wx.ALIGN_CENTER|wx.BOTTOM, 3)
         searchSizer.Add(subtext, 0, wx.BOTTOM, 3)
