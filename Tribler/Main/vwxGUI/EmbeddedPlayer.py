@@ -104,6 +104,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwin.stop_animation = fake
                 
             except:
+                print >> sys.stderr, "Did not work"
+                print_exc()
                 pass
             
         if vlcwrap is not None:
