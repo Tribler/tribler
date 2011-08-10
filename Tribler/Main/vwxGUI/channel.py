@@ -73,10 +73,8 @@ class ChannelManager():
             
             total_items = len(playlists) + len(torrents)
         
-        if self.list.SetData(playlists, torrents) < total_items: #some items are filtered by quickfilter (do not update total_items)
-            self.list.SetNrResults(None, nrfiltered, None, None)
-        else:
-            self.list.SetNrResults(total_items, nrfiltered, None, None)
+        self.list.SetData(playlists, torrents)
+        self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
         
         if DEBUG:    
             print >> sys.stderr, "SelChannelManager complete refresh done"
@@ -118,7 +116,7 @@ class SelectedChannelList(GenericSearchList):
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}, \
-                   {'name':'Size', 'width':  '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
+                   {'name':'Size', 'width':  '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
@@ -140,7 +138,9 @@ class SelectedChannelList(GenericSearchList):
         
         self.subheader = self.CreateHeader(list)
         self.subheader.SetBackgroundColour(self.background)
+        self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
+        
         vSizer.Add(self.subheader, 0, wx.EXPAND)
                 
         self.list = self.CreateList(list)
@@ -191,7 +191,6 @@ class SelectedChannelList(GenericSearchList):
             nr_torrents = min(nr_torrents, 50)
             
         self.SetNrResults(nr_torrents)
-        self.SetFF(self.guiutility.getFamilyFilter())
         self.SetDispersy(channel.isDispersy())
         
         self.Thaw()
@@ -243,44 +242,39 @@ class SelectedChannelList(GenericSearchList):
     def SetData(self, playlists, torrents):
         List.SetData(self, torrents)
         
-        t1 = time()
-        
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist['id'],[playlist['name'], playlist['description'], playlist['nr_torrents']], playlist, PlaylistItem) for playlist in playlists]
             data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent) for torrent in torrents]
+            self.list.SetData(data)
             
-            print >> sys.stderr, "SetData took", time() - t1
-            return self.list.SetData(data)
-        
-        message =  'No torrents or playlists found.\n'
-        message += 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
-        self.list.ShowMessage(message)
-        return 0
+            self.SetNrResults(len(data))
+        else:
+            message =  'No torrents or playlists found.\n'
+            message += 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
+            self.list.ShowMessage(message)
+            
+            self.list.SetNrResults(0)
     
-    def SetNrResults(self, nr, nr_filtered = None, nr_channels = None, keywords = None):
-        if isinstance(nr, int):
-            self.total_results = nr
+    def SetNrResults(self, nr):
+        if self.channel.isFavorite() or self.my_channel:
+            header = 'Discovered'
+        else:
+            header = 'Previewing'
             
-            if self.channel.isFavorite() or self.my_channel:
-                header = 'Discovered'
+        if nr == 1:
+            self.header.SetSubTitle(header+ ' %d torrent'%nr)
+        else:
+            if self.channel.isFavorite():
+                self.header.SetSubTitle(header+' %d torrents'%nr)
             else:
-                header = 'Previewing'
-            
-            if self.total_results == 1:
-                self.header.SetSubTitle(header+ ' %d torrent'%self.total_results)
-            else:
-                if self.channel.isFavorite():
-                    self.header.SetSubTitle(header+' %d torrents'%self.total_results)
-                else:
-                    self.header.SetSubTitle(header+' %d torrents'%self.total_results)
-        
-        GenericSearchList.SetNrResults(self, None, nr_filtered, nr_channels, keywords)
+                self.header.SetSubTitle(header+' %d torrents'%nr)
     
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
-        self.list.RefreshData(key, data)
+        if data:
+            data = (data.infohash,[data.name, data.time_stamp, data.length, 0, 0], data)
+            self.list.RefreshData(key, data)
         
         item = self.list.GetItem(key)
         panel = item.GetExpandedPanel()
@@ -436,7 +430,6 @@ class PlaylistManager():
         if playlist_id != self.list.id:
             self.list.Reset()
             self.list.id = playlist_id
-            self.list.SetFF(self.guiutility.getFamilyFilter())
             
             self._refresh_list()
     
@@ -454,10 +447,8 @@ class PlaylistManager():
         total_items, nrfiltered, torrents = delayedResult.get()
         torrents = self.library_manager.addDownloadStates(torrents)
         
-        if self.list.SetData([], torrents) < total_items: #some items are filtered by quickfilter (do not update total_items)
-            self.list.SetNrResults(None, nrfiltered, None, None)
-        else:
-            self.list.SetNrResults(total_items, nrfiltered, None, None)        
+        self.list.SetData([], torrents)
+        self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)        
 
 class Playlist(SelectedChannelList):
     def __init__(self):
@@ -983,12 +974,11 @@ class ManageChannelFilesList(List):
         List.SetData(self, data)
         
         data = [(torrent.infohash,[torrent.name,torrent.time_stamp], torrent) for torrent in data]
-        nr_results = 0
         if len(data) > 0:
-            nr_results = self.list.SetData(data)
+            self.list.SetData(data)
         else:
             self.list.ShowMessage('You are currently not sharing any torrents in your channel.')
-        self.SetNrResults(nr_results)
+        self.SetNrResults(len(data))
         
     def OnExpand(self, item):
         return MyChannelDetails(item, item.original_data, self.id)
@@ -1028,13 +1018,11 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         List.SetData(self, data)
         
         data = [(playlist['id'],[playlist['name']], playlist) for playlist in data]
-        
-        nr_results = 0
         if len(data) > 0:
-            nr_results = self.list.SetData(data)
+            self.list.SetData(data)
         else:
             self.list.ShowMessage('You currently do not have any playlists in your channel.')
-        self.SetNrResults(nr_results)
+        self.SetNrResults(len(data))
     
     def OnExpand(self, item):
         return MyChannelPlaylist(item, self.OnEdit, item.original_data)
@@ -1304,12 +1292,11 @@ class CommentList(List):
         List.SetData(self, data)
         
         data = [(comment.id,[comment.name, comment.comment, self.format_time(comment.time_stamp)], comment, CommentItem) for comment in data]
-        nr_results = 0
         if len(data) > 0:
-            nr_results = self.list.SetData(data)
+            self.list.SetData(data)
         else:
             self.list.ShowMessage('No comments are found.')
-        self.SetNrResults(nr_results)
+        self.SetNrResults(len(data))
     
     def OnExpand(self, item):
         if self.canReply:
@@ -1445,9 +1432,9 @@ class ActivityList(List):
         #removing timestamp
         data = [item for _, item in data]
         if len(data) > 0:
-            return self.list.SetData(data)
-        self.list.ShowMessage('No recent activity is found.')
-        return 0
+            self.list.SetData(data)
+        else:
+            self.list.ShowMessage('No recent activity is found.')
     
     def OnExpand(self, item):
         if 'infohash' in item.original_data: #is this a torrent?
@@ -1518,12 +1505,11 @@ class ModificationList(List):
         List.SetData(self, data)
         data = [(modification.id, [modification.name, modification.value, self.format_time(modification.inserted)], modification, ModificationItem) for modification in data]
         
-        nr_results = 0
         if len(data) > 0:
-            nr_results = self.list.SetData(data)
+            self.list.SetData(data)
         else:
             self.list.ShowMessage('No modifications are found.')
-        self.SetNrResults(nr_results)
+        self.SetNrResults(len(data))
     
 class ModificationItem(ListItem):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):

@@ -8,6 +8,7 @@ from __init__ import LIST_RADIUS
 import sys
 import wx
 import os
+from traceback import print_stack
 
 class ListHeaderIcon:
     __single = None
@@ -101,10 +102,10 @@ class ListHeader(wx.Panel):
                         self.defaultSort = i
                     else:
                         label.sortIcon = wx.StaticBitmap(self, -1, empty)
-                    sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                    sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                 
                     if columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
-                        columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth()
+                        columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth() + 3
                     
                     elif columns[i]['width'] == wx.LIST_AUTOSIZE:
                         sizer.AddStretchSpacer()
@@ -112,22 +113,28 @@ class ListHeader(wx.Panel):
                     else:
                         if isinstance(columns[i]['width'], basestring) and columns[i]['width'].endswith('em'):
                             test_string = 'T' * int(columns[i]['width'][:-2])
-                            columns[i]['width'] = self.GetTextExtent(test_string)[0] + 6
+                            labelWidth = self.GetTextExtent(test_string)[0]
+                            columns[i]['width'] = labelWidth + 3 + down.GetWidth()
+                        
+                        spacerWidth = columns[i]['width'] - 3 - down.GetWidth() - label.GetBestSize()[0]
+                        sizer.AddSpacer((spacerWidth, -1))
                         
                     self.columnHeaders.append(label)
                 else:
-                    spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
+                    spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                     self.columnHeaders.append(spacer)
         
-        self.scrollBar = sizer.AddSpacer((0,0))
+        self.scrollBar = sizer.AddSpacer((3,0))
         self.scrollBar.Show(False)
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
         item = self.columnHeaders[column]
         if item.GetSize()[0] != width:
-            if getattr(item, 'SetSize', None):
-                item.SetSize((width, -1))
+            if getattr(item, 'SetMinSize', None):
+                if getattr(item, 'sortIcon', False):
+                    width -= (item.sortIcon.GetWidth() + 3)
+                item.SetMinSize((width, -1))
             else:
                 item.SetSpacer((width, -1))
             
@@ -136,21 +143,11 @@ class ListHeader(wx.Panel):
 
     def SetSpacerRight(self, right):
         if self.scrollBar:
-            if right > 0:
-                dirty = False
-                if self.scrollBar.GetSize()[0] != right:
-                    self.scrollBar.SetSpacer((right, 0))
-                    dirty = True
-                if not self.scrollBar.IsShown():
-                    self.scrollBar.Show(True)
-                    dirty = True
-                
-                if dirty:
-                    self.scrollBar.sizer.Layout()
-            else:
-                if self.scrollBar.IsShown():
-                    self.scrollBar.Show(False)
-                    self.scrollBar.sizer.Layout()
+            right = max(3, right + 3)
+            
+            if self.scrollBar.GetSize()[0] != right:
+                self.scrollBar.SetSpacer((right, 0))
+                self.scrollBar.sizer.Layout()
     
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
@@ -350,6 +347,22 @@ class TitleHeader(ListHeader):
             self.Thaw()
 
 class SearchHeaderHelper():
+    
+    def GetTitlePanel(self, parent):
+        self.afterFilter = wx.StaticText(parent)
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.afterFilter)
+        return hSizer
+    
+    def SetSubTitle(self, label):
+        if label != '':
+            label = '( %s )'%label
+        
+        if getattr(self, 'subtitle','') != label:
+            self.afterFilter.SetLabel(label)
+            self.subtitle = label
+    
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
         self.filter.SetDescriptiveText('Search within results')
@@ -367,7 +380,14 @@ class SearchHeaderHelper():
     def OnKey(self, event):
         self.parent_list.OnFilter(self.filter.GetValue().strip())
     
+    def SetFiltered(self, nr):
+        if nr:
+            self.afterFilter.SetLabel('( Discovered %d after filter )'%nr)
+        else:
+            self.afterFilter.SetLabel(getattr(self, 'subtitle',''))
+    
     def Reset(self):
+        self.SetSubTitle('')
         self.filter.Clear()
 
 class SubTitleHeader(TitleHeader):
@@ -395,51 +415,7 @@ class SubTitleSeachHeader(SearchHeaderHelper, SubTitleHeader):
             SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
         else:
             SubTitleHeader.SetSubTitle(self, self.curSubtitle)
-        
-class ButtonHeader(TitleHeader):
-    def GetRightTitlePanel(self, parent):
-        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
-        self.add.SetToolTipString('Add a .torrent from an external source.')
-        
-        self.resume = wx.Button(parent, -1, "Resume")
-        self.stop = wx.Button(parent, -1, "Stop")
-        self.delete = wx.Button(parent, -1, "Delete")
-
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddStretchSpacer()
-        hSizer.Add(self.add)
-        hSizer.Add(self.resume)
-        hSizer.Add(self.stop)
-        hSizer.Add(self.delete)
-        self.SetStates(False, False, False)
-        return hSizer
-
-    def SetEvents(self, add, resume, stop, delete):
-        self.add.Bind(wx.EVT_BUTTON, add)
-        self.resume.Bind(wx.EVT_BUTTON, resume)
-        self.stop.Bind(wx.EVT_BUTTON, stop)
-        self.delete.Bind(wx.EVT_BUTTON, delete)
-        
-    def SetStates(self, resume, stop, delete):
-        self.resume.Enable(resume)
-        self.stop.Enable(stop)
-        self.delete.Enable(delete)
-
-        if resume:
-            self.resume.SetToolTipString('Click to start downloading/seeding this torrent.')
-        else:
-            self.resume.SetToolTip(None)
-
-        if stop:
-            self.stop.SetToolTipString('Click to stop downloading/seeding this torrent.')
-        else:
-            self.stop.SetToolTip(None)
-        
-        if delete:
-            self.delete.SetToolTipString('Click to remove this torrent from your library.')
-        else:
-            self.delete.SetToolTip(None)
-        
+       
 class ManageChannelHeader(SubTitleHeader):
     def __init__(self, parent, parent_list):
         TitleHeader.__init__(self, parent, parent_list, [])
@@ -477,11 +453,13 @@ class ManageChannelHeader(SubTitleHeader):
         SubTitleHeader.AddColumns(self, sizer, parent, [])
 
 class FamilyFilterHeader(TitleHeader):
-    
-    def GetSubTitlePanel(self, parent):
+    def __init__(self, *args, **kwargs):
         self.family_filter = None
         self.nrfiltered = 0
         
+        TitleHeader.__init__(self, *args, **kwargs)
+    
+    def GetSubTitlePanel(self, parent):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.ff = wx.StaticText(parent)
@@ -490,11 +468,12 @@ class FamilyFilterHeader(TitleHeader):
         
         hSizer.Add(self.ff)
         hSizer.Add(self.ffbutton)
-        wx.CallAfter(self.SetFF, True)
         return hSizer
     
-    def SetFF(self, family_filter):
+    def SetFF(self, family_filter, nrfiltered = 0):
         self.family_filter = family_filter
+        self.nrfiltered = nrfiltered
+        
         self._SetLabels()
         
     def SetFiltered(self, nr):
@@ -517,6 +496,7 @@ class FamilyFilterHeader(TitleHeader):
             else:
                 self.ff.SetLabel('Family Filter is On, ')
             self.ffbutton.SetLabel('turn off')
+            
         else:
             self.ff.SetLabel('Family Filter is Off, ')
             self.ffbutton.SetLabel('turn on')
@@ -525,30 +505,13 @@ class FamilyFilterHeader(TitleHeader):
 
 class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
     
-    def GetTitlePanel(self, parent):
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.subtitle = wx.StaticText(parent)
-        hSizer.Add(self.subtitle)
-        panel = FamilyFilterHeader.GetTitlePanel(self, parent)
-        if panel:
-            hSizer.Add(panel)
-        return hSizer
-    
-    def SetSubTitle(self, subtitle):
-        self.subtitle.SetLabel('( %s )'%subtitle)
-    
-    def SetNrResults(self, nr = None):
-        if nr is not None:
-            self.SetSubTitle('Discovered %d after filter'%nr)
-    
     def Reset(self):
         FamilyFilterHeader.Reset(self)
         SearchHeaderHelper.Reset(self)
-        self.subtitle.SetLabel('')
         
-class SearchHelpHeader(SearchHeader):
+class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
     def GetRightTitlePanel(self, parent):
-        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+        hSizer = SearchHeaderHelper.GetRightTitlePanel(self, parent)
 
         #filename = os.path.join(os.path.dirname(__file__), "images", "help.png")
         gui_utility = GUIUtility.getInstance()
@@ -609,18 +572,6 @@ class SearchHelpHeader(SearchHeader):
         dlg.SetSizerAndFit(border)
         dlg.ShowModal()
         dlg.Destroy()
-        
-class LibraryHeader(SearchHelpHeader):
-    def GetRightTitlePanel(self, parent):
-        sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
-        
-        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
-        self.add.SetToolTipString('Add a .torrent from an external source.')
-        sizer.Insert(1, self.add, 0, wx.RIGHT, 3)
-        return sizer
-        
-    def SetEvents(self, add):
-        self.add.Bind(wx.EVT_BUTTON, add)
 
 class ChannelHeader(SearchHeader):
     DESCRIPTION_MAX_HEIGTH = 100
@@ -701,6 +652,18 @@ class ChannelHeader(SearchHeader):
             self.descriptionPanel.Show()
         else:
             self.descriptionPanel.Hide()
+            
+class LibraryHeader(SearchHelpHeader):
+    def GetRightTitlePanel(self, parent):
+        sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
+        
+        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
+        self.add.SetToolTipString('Add a .torrent from an external source.')
+        sizer.Insert(1, self.add, 0, wx.RIGHT, 3)
+        return sizer
+        
+    def SetEvents(self, add):
+        self.add.Bind(wx.EVT_BUTTON, add)
             
 class PlayerHeader(TitleHeader):
     def __init__(self, parent, parent_list, background, columns, minimize, maximize):

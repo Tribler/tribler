@@ -128,6 +128,10 @@ class GUIUtility:
                 self.frame.searchlist.Show()
                 
                 wx.CallAfter(self.frame.searchlist.ScrollToEnd, False)
+                if args:
+                    self.frame.searchlist.total_results = None
+                    self.frame.searchlist.SetKeywords(args[0])
+                
             elif self.guiPage == 'search_results':
                 #Hide list
                 self.frame.searchlist.Show(False)
@@ -280,20 +284,17 @@ class GUIUtility:
                 
         else:
             wantkeywords = split_into_keywords(input)
-            if len(' '.join(wantkeywords))  == 0:
+            safekeywords = ' '.join(wantkeywords)
+            if len(safekeywords)  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
             else:
                 self.frame.top_bg.StartSearch()
-                
                 self.current_search_query = wantkeywords
                 if DEBUG:
                     print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
                 
                 self.frame.searchlist.Freeze()
-                
-                self.ShowPage('search_results')
-                
-                #We now have to call thaw, otherwise loading message will not be shown.
+                self.ShowPage('search_results', safekeywords)
                 self.frame.searchlist.Thaw()
                 
                 #Peform local search
@@ -302,6 +303,7 @@ class GUIUtility:
                 
                 self.channelsearch_manager.setSearchKeywords(wantkeywords)
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
+                
                 self.torrentsearch_manager.refreshGrid()
                 
                 #Start remote search

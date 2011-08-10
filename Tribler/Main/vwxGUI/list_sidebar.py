@@ -113,12 +113,9 @@ class SearchSideBar(wx.Panel):
         
         self.Reset()
         
-    def SetFF(self, family_filter):
+    def SetFF(self, family_filter, nrfiltered):
         self.family_filter = family_filter
-        self._SetLabels()
-    
-    def SetFiltered(self, nr):
-        self.nrfiltered = nr
+        self.nrfiltered = nrfiltered
         self._SetLabels()
     
     @forceWxThread
@@ -202,7 +199,6 @@ class SearchSideBar(wx.Panel):
     
     def Reset(self):
         self.SetBundleState(None)
-        self.SetFF(True)
         self.nochannels.Show()
         
         for channel in self.channels:

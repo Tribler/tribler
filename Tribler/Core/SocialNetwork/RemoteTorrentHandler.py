@@ -252,12 +252,12 @@ class MagnetRequester():
                         continue
                 
                     torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'], include_mypref = False)
+                    
+                    torrent_alt_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
                     if torrent and torrent.get('torrent_file_name', False):
                         torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
                     else:
-                        torrent_filename = None
-                    torrent_alt_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
-                    
+                        torrent_filename = torrent_alt_filename
                     if os.path.isfile(torrent_filename) or os.path.isfile(torrent_alt_filename):
                         if DEBUG:
                             print >> sys.stderr, 'magnetrequester: magnet already on disk', bin2str(infohash)

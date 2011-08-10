@@ -155,22 +155,17 @@ class ChannelResultFooter(ListFooter):
         self.channelResults = wx.Button(self, -1, "Channel Results")
         hSizer.Add(self.channelResults, 0, wx.TOP|wx.BOTTOM, 3)
         
-    def SetNrResults(self, nr_channels, keywords):
-        if nr_channels == 0:
-            label = 'No matching channels for "%s"'%keywords
-        elif nr_channels == 1:
-            label = 'Additionally, got 1 channel for "%s"'%keywords
-        else:
-            label = 'Additionally, got %d channels for "%s"'%(nr_channels, keywords)
+    def SetLabel(self, label, nr_channels):
+        haveResults = True if nr_channels and nr_channels >= 1 else False
         
         if label != self.message.GetLabel():
             self.message.SetLabel(label)
-            if nr_channels >= 1:
-                self.HighLight()
-                
-            self.Layout()
             
-        self.EnableResults(nr_channels > 0)
+            if haveResults:
+                self.HighLight()
+            self.Layout()
+        
+        self.EnableResults(haveResults)
     
     def SetEvents(self, channel):
         #removing old, binding new eventhandler

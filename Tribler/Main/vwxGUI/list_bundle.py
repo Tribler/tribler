@@ -461,6 +461,9 @@ class BundleListView(GenericSearchList):
         # id == infohash
         item = self.list.items[id]
         return item.GetPosition()[1]
+    
+    def SetFilteredResults(self, nr):
+        pass
 
 class ExpandableFixedListBody(FixedListBody):
     

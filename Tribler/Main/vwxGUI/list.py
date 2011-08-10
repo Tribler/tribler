@@ -48,7 +48,7 @@ class RemoteSearchManager:
         if self.oldkeywords != keywords:
             self.list.Reset()
             self.oldkeywords = keywords
-            self.list.SetKeywords(keywords, None)
+            self.list.SetKeywords(keywords)
         
         def db_callback():
             [total_items, nrfiltered, new_items, data_files] = self.torrentsearch_manager.getHitsInCategory()
@@ -60,12 +60,13 @@ class RemoteSearchManager:
     def _on_refresh(self, delayedResult):
         data_files, total_items, nrfiltered, new_items, total_channels = delayedResult.get()
         
-        self.list.SetNrResults(total_items, nrfiltered, total_channels, self.oldkeywords)
-        self.list.SetFF(self.guiutility.getFamilyFilter())
+        self.list.SetNrResults(total_items, total_channels)
+        self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
+        
         if new_items:
             self.list.SetData(data_files)
         else:
-            if DEBUG or True:
+            if DEBUG:
                 print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
         
     def refresh_channel(self):
@@ -76,9 +77,7 @@ class RemoteSearchManager:
         startWorker(self._on_refresh_channel, db_callback)
         
     def _on_refresh_channel(self, delayedResult):
-        total_channels = delayedResult.get()
-        keywords = ' '.join(self.torrentsearch_manager.searchkeywords)
-        self.list.SetNrResults(None, None, total_channels, keywords)
+        self.list.SetNrChannels(delayedResult.get())
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -158,7 +157,7 @@ class ChannelSearchManager:
                 title  = 'All Channels'
             elif self.category == 'Favorites':
                 title = 'Your Favorites'
-            self.list.SetTitle(title, None)
+            self.list.SetTitle(title)
             
             def db_callback():
                 self.list.dirty = False
@@ -176,7 +175,7 @@ class ChannelSearchManager:
                     total_items, data = self.channelsearch_manager.getAllChannels()
                 elif self.category == 'Favorites':
                     total_items, data = self.channelsearch_manager.getMySubscriptions()
-                return data, title, total_items
+                return data, total_items
             
             startWorker(self._on_data, db_callback, jobID = "ChannelSearchManager_refresh")
 
@@ -187,11 +186,10 @@ class ChannelSearchManager:
                 self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
                 
     def _on_data(self, delayedResult):
-        data, title, total_items = delayedResult.get()
+        data, total_items = delayedResult.get()
         
         data = [channel for channel in data if not channel.isEmpty()]
         self.list.SetData(data)
-        self.list.SetTitle(title, len(data))
         if DEBUG:
             print >> sys.stderr, "ChannelManager complete refresh done"
             
@@ -349,7 +347,6 @@ class List(XRCPanel):
     
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns)
-    
 
     def CreateList(self, parent = None):
         if not parent:
@@ -586,8 +583,8 @@ class GenericSearchList(List):
             self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
         self.guiutility.frame.guiserver.add_task(db_callback)
         
-    def SetFF(self, family_filter):
-        self.header.SetFF(family_filter)
+    def SetFF(self, family_filter, nr_filtered):
+        self.header.SetFF(family_filter, nr_filtered)
         
     def SetData(self, data):
         List.SetData(self, data)
@@ -622,14 +619,13 @@ class GenericSearchList(List):
                     
                 list_data.append((key, item_data, original_data, create_method))
             
-            return self.list.SetData(list_data)
-        
-        message =  'No torrents matching your query are found. \n'
-        message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
-        if self.guiutility.getFamilyFilter():
-            message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
-        self.list.ShowMessage(message)
-        return 0
+            self.list.SetData(list_data)
+        else:
+            message =  'No torrents matching your query are found. \n'
+            message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
+            if self.guiutility.getFamilyFilter():
+                message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
+            self.list.ShowMessage(message)
 
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
@@ -649,15 +645,8 @@ class GenericSearchList(List):
             data = (head.infohash, [head.name, head.length, 0, 0], original_data)
             self.list.RefreshData(key, data)
             
-    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
-        if keywords and isinstance(nr, int):
-            self.SetKeywords(keywords, nr)
-        
-        if isinstance(nr_filtered, int):
-            self.header.SetFiltered(nr_filtered)
-            
-        if isinstance(nr_channels, int):
-            self.footer.SetNrResults(nr_channels, keywords)
+    def SetFilteredResults(self, nr):
+        self.header.SetFiltered(nr)
         
     def OnExpand(self, item):
         item.button.Hide()
@@ -697,14 +686,18 @@ class SearchList(GenericSearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         
+        self.total_results = None
+        self.total_channels = None
+        self.keywords = None
+        
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
+                   {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, parent=parent)
         
     def _PostInit(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -737,7 +730,6 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        self.header.SetFiltered = self.leftLine.SetFiltered
         self.header.SetFF = self.leftLine.SetFF
         
         self.SetBackgroundColour(self.background)
@@ -759,18 +751,6 @@ class SearchList(GenericSearchList):
         footer = ChannelResultFooter(parent)
         footer.SetEvents(self.OnChannelResults)
         return footer 
-    
-    def SetKeywords(self, keywords, nr = None):
-        if isinstance(nr, int):
-            if nr == 0:
-                self.header.SetTitle('No results for "%s"'%keywords)
-            elif nr == 1:
-                self.header.SetTitle('Got 1 result for "%s"'%keywords)
-            else:
-                self.header.SetTitle('Got %d results for "%s"'%(nr, keywords))
-            self.total_results = nr
-        else:
-            self.header.SetTitle('Searching for "%s"'%keywords)
             
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
@@ -790,9 +770,53 @@ class SearchList(GenericSearchList):
         channels = channel_hits.values()
         channels.sort(channel_occur, reverse = True)
         self.leftLine.SetAssociatedChannels(channels)
+        
+    def SetNrResults(self, nr, nr_channels):
+        self.total_results = nr
+        self.total_channels = nr_channels
+        self._SetTitles()
+        
+    def SetNrChannels(self, nr_channels):
+        self.total_channels = nr_channels
+        self._SetTitles()
+        
+    def SetKeywords(self, keywords):
+        self.keywords = keywords
+        
+        self._SetTitles()
+        
+    def _SetTitles(self):
+        title = ''
+        if self.total_results != None:
+            if self.total_results == 0:
+                title = 'No results'
+            elif self.total_results == 1:
+                title = 'Got 1 result'
+            else:
+                title = 'Got %d results'%self.total_results
+        else:
+            title = 'Searching'
+
+        if self.keywords != None:
+            title += ' for "%s"'%self.keywords
+        print >> sys.stderr, title
+        self.header.SetTitle(title)
+        
+        title = ''
+        if self.total_channels != None:
+            if self.total_channels == 0:
+                title = 'No matching channels'
+            elif self.total_channels == 1:
+                title = 'Additionally, got 1 channel'
+            else:
+                title = 'Additionally, got %d channels'%self.total_channels
+        if self.keywords != None:
+            title += ' for "%s"'%self.keywords
+        self.footer.SetLabel(title, self.total_channels)
             
     def SetMaxResults(self, max):
         self.leftLine.SetMaxResults(max)
+        
     def NewResult(self):
         self.leftLine.NewResult()
     
@@ -804,6 +828,10 @@ class SearchList(GenericSearchList):
         GenericSearchList.Reset(self)
         self.leftLine.Reset()
         self.subheader.Reset()
+        
+        self.total_results = None
+        self.total_channels = None
+        self.keywords = None
     
     def SetBackgroundColour(self, colour):
         GenericSearchList.SetBackgroundColour(self, colour)
@@ -1076,12 +1104,12 @@ class LibaryList(List):
         
         if len(data) > 0:
             data = [(file.infohash, [file.name, [0,0], None, None, None], file) for file in data]
-            return self.list.SetData(data)
-        message = "Currently not downloading any torrents.\n"
-        message += "Torrents can be found using our integrated search, inside a channel.\n\n"
-        message += "Additionally you could drag and drop any torrent file downloaded from an external source."
-        self.list.ShowMessage(message)
-        return 0
+            self.list.SetData(data)
+        else:
+            message = "Currently not downloading any torrents.\n"
+            message += "Torrents can be found using our integrated search, inside a channel.\n\n"
+            message += "Additionally you could drag and drop any torrent file downloaded from an external source."
+            self.list.ShowMessage(message)
 
     def Show(self, show = True):
         List.Show(self, show)
@@ -1107,6 +1135,9 @@ class ChannelList(List):
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mychannel.png"), wx.BITMAP_TYPE_ANY)
         self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
+        
+        self.total_results = None
+        self.title = None
         
         self.select_popular = True
         self.max_votes = 5
@@ -1176,42 +1207,50 @@ class ChannelList(List):
                 self.max_votes = max_votes
             
             data = [(channel.id,[channel.name, channel.modified, channel.nr_favorites, channel.nr_torrents], channel) for channel in data]
-            return self.list.SetData(data)
-        
-        self.list.ShowMessage('No channels are discovered for this category.')
-        return 0
+            self.list.SetData(data)
+        else:
+            self.list.ShowMessage('No channels are discovered for this category.')
+        self.SetNrResults(len(data))
         
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
         data = (data.id,[data.name, data.modified, data.nr_favorites, data.nr_torrents], data)
         self.list.RefreshData(key, data)
+    
+    def SetNrResults(self, nr):
+        self.total_results = nr
+        self._SetTitles()
+
+    def SetTitle(self, title):
+        self.title = title
+        self._SetTitles()
+    
+    def _SetTitles(self):
+        self.header.SetTitle(self.title)
         
-    def SetTitle(self, title, nr):
-        self.header.SetTitle(title)
-        
-        if nr:
-            if title == 'Popular Channels':
-                self.header.SetSubTitle("Showing the %d most popular channels" % nr)
-            elif title == 'Your Favorites':
-                self.header.SetSubTitle("You marked %d channels as a favorite" % nr)
-            elif title == 'Updated Channels':
-                self.header.SetSubTitle("Showing the %d latest updated channels" % nr)
-            elif title == 'New Channels':
-                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)"% nr)
+        if self.total_results:
+            if self.title == 'Popular Channels':
+                self.header.SetSubTitle("Showing the %d most popular channels" % self.total_results)
+            elif self.title == 'Your Favorites':
+                self.header.SetSubTitle("You marked %d channels as a favorite" % self.total_results)
+            elif self.title == 'Updated Channels':
+                self.header.SetSubTitle("Showing the %d latest updated channels" % self.total_results)
+            elif self.title == 'New Channels':
+                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)"% self.total_results)
             else:
-                if nr == 1:
-                    self.header.SetSubTitle("Discovered %d channel" % nr)
+                if self.total_results == 1:
+                    self.header.SetSubTitle("Discovered %d channel" % self.total_results)
                 else:
-                    self.header.SetSubTitle("Discovered %d channels" % nr)
+                    self.header.SetSubTitle("Discovered %d channels" % self.total_results)
         else:
             self.header.SetSubTitle('')
         
-        if title == 'Updated Channels':
+        if self.title == 'Updated Channels':
             self.header.ShowSortedBy(1)
-        elif title == 'New Channels':
+        elif self.title == 'New Channels':
             self.header.ShowSortedBy(1)
-        elif title.startswith('Search results'):
+        elif self.title.startswith('Search results'):
             self.header.ShowSortedBy(3)
 
     def SetMyChannelId(self, channel_id):
@@ -1223,6 +1262,12 @@ class ChannelList(List):
         
     def SetFilteredResults(self, nr):
         self.header.SetNrResults(nr)
+        
+    def Reset(self):
+        List.Reset(self)
+        
+        self.total_results = None
+        self.title = None
 
 class ChannelCategoriesList(List):
     def __init__(self):
