@@ -35,7 +35,8 @@ class SetupScript(ScriptBase):
         assert "hardcoded_member" in self._kargs, "give --script-args hardcoded_member=A|B|C"
         assert self._kargs["hardcoded_member"] in SimpleDispersyTestCommunity.hardcoded_member_public_keys, "give --script-args hardcoded_member=A|B|C"
 
-        hardcoded_public_key = SimpleDispersyTestCommunity.hardcoded_member_public_keys[self._kargs["hardcoded_member"]]
+        member_name = self._kargs["hardcoded_member"]
+        hardcoded_public_key = SimpleDispersyTestCommunity.hardcoded_member_public_keys[member_name]
         hardcoded_mid = sha1(hardcoded_public_key).digest()
 
         try:
@@ -48,7 +49,7 @@ class SetupScript(ScriptBase):
             # NEEDS TO BE REFLECTED HERE ASWELL
 
             # obtain the hardcoded_private_key for my_member from disk
-            pem = open(expanduser("~/simpledispersytest_ec_private_key"), "r").read()
+            pem = open(expanduser("~/simpledispersytest_ec_private_key_%s" % member_name), "r").read()
             ec = ec_from_private_pem(pem)
             private_key = ec_to_private_bin(ec)
             my_member = MyMember(hardcoded_public_key, private_key)
