@@ -86,21 +86,30 @@ class EmbeddedPlayerPanel(wx.Panel):
             vSizer.Add(footer, 0, wx.EXPAND)
         else:
             mainbox = vSizer
-        
-#        self.vlcwrap = vlcwrap
-#        if vlcwrap is not None:
-#            self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
-#            self.vlcwin.SetMinSize((320,240))
 
+        
+        self.vlcwrap = vlcwrap
+        self.vlcwin = None
+        
+        print >> sys.stderr, "VLCwrap is",vlcwrap
         if True:
-            self.vlcwin = wx.media.MediaCtrl(self)
-            self.vlcwrap = FakeVlc(self.vlcwin)
-            
-            def fake():
+            try:
+                self.vlcwin = wx.media.MediaCtrl(self)
+                self.vlcwrap = FakeVlc(self.vlcwin)
+                
+                def fake():
+                    pass
+                self.vlcwin.show_loading = fake
+                self.vlcwin.tell_vclwrap_window_for_playback = fake
+                self.vlcwin.stop_animation = fake
+                
+            except:
                 pass
-            self.vlcwin.show_loading = fake
-            self.vlcwin.tell_vclwrap_window_for_playback = fake
-            self.vlcwin.stop_animation = fake
+            
+        if vlcwrap is not None:
+            if self.vlcwin is None:
+                self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
+                self.vlcwin.SetMinSize((320,240))
             
             if border:
                 player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
@@ -507,7 +516,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             status = self.vlcwrap.get_our_state()
-            if True or DEBUG:
+            if DEBUG:
                 print >>sys.stderr,"embedplay: GetState",status
                 
             return status
@@ -618,7 +627,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         
     def OnMaximize(self):
         if self.vlcwrap and self.border:
-            self.SetMinSize((320,300))
+            self.SetMinSize((320,-1))
             
             self.vlcwin.Show(True)
             self.ctrlsizer.ShowItems(True)
