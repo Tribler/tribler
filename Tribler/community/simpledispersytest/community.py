@@ -80,7 +80,7 @@ class SimpleDispersyTestCommunity(Community):
             assert len(self.hardcoded_member_public_keys) == 3
             keys = self.hardcoded_member_public_keys.values()
             shuffle(keys)
-            self.create_dispersy_subjective_set(cluster, [self.get_member(keys[0]), self.get_member(keys[1])])
+            self.create_dispersy_subjective_set(cluster, [self._my_member, self.get_member(keys[0]), self.get_member(keys[1])])
             subjective_set = self.get_subjective_set(self._my_member, cluster)
             assert count() == 2
 
