@@ -59,7 +59,11 @@ class Home(XRCPanel):
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
         self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown)
-        self.searchBox.SetMinSize(((-1, self.searchBox.GetBestSize()[1])))
+        if sys.platform == 'darwin': # mac
+            print >> sys.stderr, "Setting size to ", self.searchBox.GetTextExtent('T') + 5
+            self.searchBox.SetMinSize((-1, self.searchBox.GetTextExtent('T') + 5))
+        
+        
         
         textSizer.Add(self.searchBox, 1, wx.EXPAND)
         
