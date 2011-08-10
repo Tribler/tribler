@@ -91,7 +91,7 @@ class VideoDummyFrame(VideoBaseFrame):
         self.videopanel = EmbeddedPlayerPanel(parent, utility, vlcwrap, '#E6E6E6')
         self.parent = parent
         
-        if True: #vlcwrap:
+        if vlcwrap:
             sizer = wx.BoxSizer()
             sizer.Add(self.videopanel)
             parent.SetSizer(sizer)
