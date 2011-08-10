@@ -5,6 +5,7 @@
 # ~/simpledispersytest_ec_master_private_key are available
 #
 
+from hashlib import sha1
 from time import time
 from os.path import expanduser
 
@@ -31,8 +32,11 @@ class SetupScript(ScriptBase):
         """
         # we will use the below member identifier to create messages for our test.  the private key
         # can be found on disk, but will not be submitted to SVN for obvious reasons
-        hardcoded_mid = "6bc9e18b346d9f879a90bbf51a495f3cb8b32957".decode("HEX")
-        hardcoded_public_key = "3052301006072a8648ce3d020106052b8104001a033e000400d1f668eb495c76f6a899a46017e8c6ad57c90e85d84fa1524fe7a0e76f0183a3d290a63e80ae14060acc1d1e606f451811bab3f77c8dd318689695".decode("HEX")
+        assert "hardcoded_member" in self._kargs, "give --script-args hardcoded_member=A|B|C"
+        assert self._kargs["hardcoded_member"] in SimpleDispersyTestCommunity.hardcoded_member_public_keys, "give --script-args hardcoded_member=A|B|C"
+
+        hardcoded_public_key = SimpleDispersyTestCommunity.hardcoded_member_public_keys[self._kargs["hardcoded_member"]]
+        hardcoded_mid = sha1(hardcoded_public_key).digest()
 
         try:
             dprint("load_hardcoded_community")
@@ -124,7 +128,7 @@ class SetupScript(ScriptBase):
         One or more dispersy-authorize messages are required to allow my member to create the
         messages for the test.  If we can not obtain the authorize messages we will create them.
         """
-        metas = [self._community.get_meta_message(u"full-sync"), self._community.get_meta_message(u"last-1-sync"), self._community.get_meta_message(u"dispersy-destroy-community")]
+        metas = [self._community.get_meta_message(u"last-1-subjective-sync"), self._community.get_meta_message(u"dispersy-destroy-community")]
         sync_meta = self._community.get_meta_message(u"dispersy-sync")
         wait = 30
         for i in xrange(1, wait + 1):
@@ -175,7 +179,7 @@ class SetupScript(ScriptBase):
                 dprint("dispersy-identity for my member is available")
                 break
 
-            dprint("requesting dispersy-identity for the master member.  ", i, "/", wait, "...")
+            dprint("requesting dispersy-identity for my member.  ", i, "/", wait, "...")
             addresses = [candidate.address for candidate in self._dispersy.yield_mixed_candidates(self._community, 10)]
             self._dispersy.create_identity_request(self._community, self._community.my_member.mid, addresses)
             yield 1.0
@@ -186,26 +190,56 @@ class SetupScript(ScriptBase):
 
         yield 1.0
 
-class GenerateMessageBatchScript(SetupScript):
-    def run(self):
-        super(GenerateMessageBatchScript, self).run()
-        self.caller(self.create_message_batch)
+# Used in the 3.5.8 and 3.5.9 test
+#
+# class GenerateMessageBatchScript(SetupScript):
+#     def run(self):
+#         super(GenerateMessageBatchScript, self).run()
+#         self.caller(self.create_message_batch)
 
-    def create_message_batch(self):
-        """
-        We will create 1000 last-1-sync messages.
-        """
-        meta = self._community.get_meta_message(u"full-sync")
-        total = 1000
-        for i in xrange(1, total + 1):
-            # create a new full-sync message every hour
-            count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE community = ? AND user = ? AND name = ?",
-                                                     (self._community.database_id, self._community.my_member.database_id, meta.database_id)).next()
-            dprint("there are ", count, " ", meta.name, " messages in our database")
-            self._community.create_full_sync(u"full-sync; why:batch; start:%f; at:%f; nr:%d" % (self._start_time, time(), count + 1))
-            yield 0.1
+#     def create_message_batch(self):
+#         """
+#         We will create 1000 last-1-sync messages.
+#         """
+#         meta = self._community.get_meta_message(u"full-sync")
+#         total = 1000
+#         for i in xrange(1, total + 1):
+#             # create a new full-sync message every hour
+#             count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE community = ? AND user = ? AND name = ?",
+#                                                      (self._community.database_id, self._community.my_member.database_id, meta.database_id)).next()
+#             dprint("there are ", count, " ", meta.name, " messages in our database")
+#             self._community.create_full_sync(u"full-sync; why:batch; start:%f; at:%f; nr:%d" % (self._start_time, time(), count + 1))
+#             yield 0.1
 
-        yield 1.0
+#         yield 1.0
+
+# Used in the 3.5.8 and 3.5.9 test
+#
+# class GenerateMessagesScript(SetupScript):
+#     def run(self):
+#         super(GenerateMessagesScript, self).run()
+#         self.caller(self.create_messages)
+
+#     def create_messages(self):
+#         """
+#         We will create a new last-1-sync message every 3 minutes and a new full-sync message every
+#         20 last-1-sync messages.
+#         """
+#         while True:
+#             # create a new full-sync message every hour
+#             meta = self._community.get_meta_message(u"full-sync")
+#             count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE community = ? AND user = ? AND name = ?",
+#                                                      (self._community.database_id, self._community.my_member.database_id, meta.database_id)).next()
+#             dprint("there are ", count, " ", meta.name, " messages in our database")
+#             self._community.create_full_sync(u"full-sync; why:periodic; start:%f; at:%f; nr:%d" % (self._start_time, time(), count + 1))
+
+#             # create a new last-1-sync message every 60 seconds
+#             for i in xrange(20):
+#                 self._community.create_last_1_sync(u"last-1-sync; start:%f; at:%f" % (self._start_time, time()))
+
+#                 yield 60.0 * 3
+
+#         yield 1.0
 
 class GenerateMessagesScript(SetupScript):
     def run(self):
@@ -214,22 +248,13 @@ class GenerateMessagesScript(SetupScript):
 
     def create_messages(self):
         """
-        We will create a new last-1-sync message every 3 minutes and a new full-sync message every
-        20 last-1-sync messages.
+        We will create a new last-1-subjective-sync message every 3 minutes.
         """
         while True:
-            # create a new full-sync message every hour
-            meta = self._community.get_meta_message(u"full-sync")
-            count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE community = ? AND user = ? AND name = ?",
-                                                     (self._community.database_id, self._community.my_member.database_id, meta.database_id)).next()
-            dprint("there are ", count, " ", meta.name, " messages in our database")
-            self._community.create_full_sync(u"full-sync; why:periodic; start:%f; at:%f; nr:%d" % (self._start_time, time(), count + 1))
-
-            # create a new last-1-sync message every 60 seconds
-            for i in xrange(20):
-                self._community.create_last_1_sync(u"last-1-sync; start:%f; at:%f" % (self._start_time, time()))
-
-                yield 60.0 * 3
+            # create a new last-1-sync message every 6 minutes
+            self._community.create_last_1_subjective_sync(u"last-1-subjective-sync; start:%f; at:%f; creator:%s" % (self._start_time, time(), self._community.my_member.mid.encode("HEX")))
+            yield 10.0
+            # yield 60.0 * 3
 
         yield 1.0
 

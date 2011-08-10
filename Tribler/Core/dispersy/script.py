@@ -43,20 +43,20 @@ class Script(Singleton):
         self._scripts = {}
         self._callback = callback
 
-    def add(self, name, script, args={}, include_with_all=True):
+    def add(self, name, script, kargs={}, include_with_all=True):
         assert isinstance(name, str)
         assert not name in self._scripts
         assert issubclass(script, ScriptBase)
-        self._scripts[name] = (include_with_all, script, args)
+        self._scripts[name] = (include_with_all, script, kargs)
 
     def load(self, name):
         dprint(name)
 
         if name == "all":
-            for name, (include_with_all, script, args) in self._scripts.iteritems():
+            for name, (include_with_all, script, kargs) in self._scripts.iteritems():
                 if include_with_all:
                     dprint(name)
-                    script(self, name, **args)
+                    script(self, name, **kargs)
 
         elif name in self._scripts:
             self._scripts[name][1](self, name, **self._scripts[name][2])
@@ -73,7 +73,6 @@ class Script(Singleton):
             self._callback.register(self._process_generators, delay=0.0)
 
     def _start(self, call):
-#         dprint("start ", call.__self__.__class__.__name__, ".", call.__name__, line=1)
         dprint("start ", call, line=1)
         if call.__doc__:
             dprint(call.__doc__, box=1)
@@ -87,7 +86,6 @@ class Script(Singleton):
             except StopIteration:
                 self._call_generators.pop(0)
                 delay = 0.555
-#                 dprint("finished: ", call.__self__.__class__.__name__, ".", call.__name__)
                 dprint("finished ", call)
                 if self._call_generators:
                     call, call_generator = self._call_generators[0]
@@ -103,6 +101,7 @@ class ScriptBase(object):
     def __init__(self, script, name, **kargs):
         self._script = script
         self._name = name
+        self._kargs = kargs
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
         self.caller(self.run)

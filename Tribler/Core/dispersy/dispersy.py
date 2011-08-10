@@ -1186,7 +1186,7 @@ class Dispersy(Singleton):
         messages = [message for message in messages if not (isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and message.authentication.member.must_drop)]
         # todo: we currently do not add this message in the bloomfilter, hence we will
         # continually receive this packet.
-        if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after blacklisted members")
+        # if __debug__: dprint("[", clock() - debug_begin, " msg] ", len(messages), " ", meta.name, " messages after blacklisted members")
         if not messages:
             return 0
 
@@ -2195,10 +2195,10 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
 
         # modify the subjective set (bloom filter)
-        try:
-            subjective_set = community.get_subjective_set(community.my_member, cluster)
-        except KeyError:
-            subjective_set = BloomFilter(len(members), 0.1)
+        subjective_set = community.get_subjective_set(community.my_member, cluster)
+        if not subjective_set:
+            # TODO set the correct bloom filter params
+            subjective_set = BloomFilter(community.dispersy_subjective_set_error_rate, community.dispersy_subjective_set_bits)
         if reset:
             subjective_set.clear()
         map(subjective_set.add, (member.public_key for member in members))
@@ -2213,52 +2213,37 @@ class Dispersy(Singleton):
         return message
 
     def on_subjective_set(self, messages):
-        # we do not need to do anything here for now because we retrieve all information directly
-        # from the database each time we need it.  Hence no in-memory actions needs to occur.  Note
-        # that this data is immediately stored in the database when this method returns.
-        pass
+        for message in messages:
+            message.community.clear_subjective_set_cache(message.authentication.member, message.payload.cluster, message.packet, message.payload.subjective_set)
 
-    def on_subjective_set_request(self, address, message):
+    def on_subjective_set_request(self, messages):
         """
         We received a dispersy-subjective-set-request message.
 
-        The dispersy-subjective-set-request message contains one member (20 byte sha1 digest) for
-        which the subjective set is requested.  We will search our database for any maching
-        subjective sets (there may be more, as the 20 byte sha1 digest may match more than one
-        member) and sent them back.
+        The dispersy-subjective-set-request message contains a list of Member instance for which the
+        subjective set is requested.  We will search our database any subjective sets that we have.
+
+        If the subjective set for self.my_member is requested and this is not found in the database,
+        a default subjective set will be created.
 
         @see: create_subjective_set_request
 
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-subjective-set-request message.
-        @type message: Message.Implementation
+        @param messages: The dispersy-identity message.
+        @type messages: [Message.Implementation]
         """
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message.Implementation), type(message)
-        assert message.name == u"dispersy-subjective-set-request"
 
-        subjective_set_message_id = message.community.get_meta_message(u"dispersy-subjective-set")
-        packets = []
-        for member in message.payload.members:
-            # retrieve the packet from the database
-            try:
-                packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND name = ? LIMIT",
-                                                 (message.community.database.id, member.database_id, subjective_set_message_id)).next()
-            except StopIteration:
-                continue
-            packet = str(packet)
+        community = messages[0].community
+        subjective_set_message_id = community.get_meta_message(u"dispersy-subjective-set").database_id
 
-            # check that this is the packet we are looking for, i.e. has the right cluster
-            conversion = self.get_conversion(packet[:22])
-            subjective_set_message = conversion.decode_message(address, packet)
-            if subjective_set_message.destination.cluster == message.payload.clusters:
-                packets.append(packet)
+        for message in messages:
+            packets = []
+            for member in message.payload.members:
+                cache = community.get_subjective_set_cache(member, message.payload.cluster)
+                if cache:
+                    packets.append(cache.packet)
 
-        if packets:
-            self._send([address], [packet])
+            if packets:
+                self._send([message.address], packets)
 
     # def create_subjective_set_request(community, community, cluster, members, update_locally=True, store_and_forward=True):
     #     if __debug__:
@@ -2935,13 +2920,15 @@ class Dispersy(Singleton):
                         packet_cluster = packet_meta.destination.cluster
 
                         # we need the subjective set for this particular cluster
-                        if not packet_cluster in subjective_sets:
+                        assert packet_cluster in subjective_sets, "subjective_sets must contain all existing clusters, however, some may be None"
+                        subjective_set = subjective_sets[packet_cluster]
+                        if not subjective_set:
                             if __debug__: dprint("Subjective set not available (not ", packet_cluster, " in ", subjective_sets.keys(), ")")
                             yield DelayMessageBySubjectiveSet(message, packet_cluster)
                             break
 
                         # is packet_public_key in the subjective set
-                        if not packet_public_key in subjective_sets[packet_cluster]:
+                        if not packet_public_key in subjective_set:
                             # do not send this packet: not in the requester's subjective set
                             continue
 

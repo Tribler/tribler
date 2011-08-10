@@ -6,8 +6,9 @@ from Tribler.Core.dispersy.conversion import BinaryConversion
 class Conversion(BinaryConversion):
     def __init__(self, community):
         super(Conversion, self).__init__(community, "\x01")
-        self.define_meta_message(chr(1), community.get_meta_message(u"full-sync"), self._encode_text, self._decode_text)
-        self.define_meta_message(chr(2), community.get_meta_message(u"last-1-sync"), self._encode_text, self._decode_text)
+        # self.define_meta_message(chr(1), community.get_meta_message(u"full-sync"), self._encode_text, self._decode_text)
+        # self.define_meta_message(chr(2), community.get_meta_message(u"last-1-sync"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(3), community.get_meta_message(u"last-1-subjective-sync"), self._encode_text, self._decode_text)
 
     def _encode_text(self, message):
         assert len(message.payload.text.encode("UTF-8")) < 256

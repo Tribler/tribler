@@ -98,6 +98,12 @@ def main():
             from Tribler.Core.dispersy.script import Script
             script = Script.get_instance(callback)
 
+            script_kargs = {}
+            if opt.script_args:
+                for arg in opt.script_args.split(','):
+                    key, value = arg.split('=')
+                    script_kargs[key] = value
+
             if not opt.disable_dispersy_script:
                 from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript
                 script.add("dispersy-classification", DispersyClassificationScript)
@@ -113,36 +119,20 @@ def main():
                 script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
 
             if not opt.disable_simple_dispersy_test_script:
-                from Tribler.community.simpledispersytest.script import GenerateMessageBatchScript, GenerateMessagesScript, KillCommunityScript
-                script.add("simpledispersytest-generate-batch", GenerateMessageBatchScript, include_with_all=False)
-                script.add("simpledispersytest-generate-messages", GenerateMessagesScript, include_with_all=False)
+                from Tribler.community.simpledispersytest.script import GenerateMessagesScript, KillCommunityScript
+                script.add("simpledispersytest-generate-messages", GenerateMessagesScript, script_kargs, include_with_all=False)
                 script.add("simpledispersytest-destroy-community", KillCommunityScript, include_with_all=False)
 
             # if not opt.disable_allchannel_script:
             #     from Tribler.Community.allchannel.script import AllChannelScript
-            #     script = Script.get_instance(dispersy_rawserver)
-            #     script.add("allchannel", AllChannelScript, include_with_all=False)
-
             #     from Tribler.Community.allchannel.script import AllChannelScenarioScript
-            #     args = {}
-            #     if opt.script_args:
-            #         for arg in opt.script_args.split(','):
-            #             key, value = arg.split('=')
-            #             args[key] = value
-
-            #     script.add("allchannel-scenario", AllChannelScenarioScript, args, include_with_all=False)
+            #     script.add("allchannel", AllChannelScript, include_with_all=False)
+            #     script.add("allchannel-scenario", AllChannelScenarioScript, script_kargs, include_with_all=False)
 
             # if not opt.disable_barter_script:
             #     from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
-
-            #     args = {}
-            #     if opt.script_args:
-            #         for arg in opt.script_args.split(','):
-            #             key, value = arg.split('=')
-            #             args[key] = value
-
             #     script.add("barter", BarterScript)
-            #     script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
+            #     script.add("barter-scenario", BarterScenarioScript, script_kargs, include_with_all=False)
 
             # # bump the rawserver, or it will delay everything... since it sucks.
             # def bump():

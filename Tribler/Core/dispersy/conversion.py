@@ -610,6 +610,11 @@ class BinaryConversion(Conversion):
         cluster, = unpack_from("!B", data, offset)
         offset += 1
 
+        # check that the cluster is valid, i.e. that there is a message with a SubjectiveDestination
+        # policy and this cluster value
+        if not cluster in meta_message.community.subjective_set_clusters:
+            raise DropPacket("Invalid subjective-set cluster value")
+
         members = []
         while len(data) < offset + 20:
             members.extend(self._community.get_members_from_id(data[offset:offset+20]))
@@ -867,13 +872,9 @@ class BinaryConversion(Conversion):
 
     def _decode_subjective_destination(self, meta_message, authentication_impl):
         # we want to know if the sender occurs in our subjective bloom filter
-        try:
-            subjective_set = meta_message.community.get_subjective_set(meta_message.community.my_member, meta_message.destination.cluster)
-        except KeyError:
-            # we do not yet have a subjective set of our own.  assume nothing is in the set
-            return meta_message.destination.implement(False)
-        else:
-            return meta_message.destination.implement(authentication_impl.member.public_key in subjective_set)
+        subjective_set = meta_message.community.get_subjective_set(meta_message.community.my_member, meta_message.destination.cluster)
+        assert subjective_set, "We must always have subjective sets for ourself"
+        return meta_message.destination.implement(authentication_impl.member.public_key in subjective_set)
 
     def _decode_similarity_destination(self, meta_message, authentication_impl):
         if __debug__:
