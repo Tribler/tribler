@@ -3466,6 +3466,10 @@ class ChannelCastDBHandler(object):
         sql = "select count(torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
         return self._db.fetchone(sql, (channel_id,))
     
+    def getNrChannels(self):
+        sql = "select count(DISTINCT id) from Channels LIMIT 1"
+        return self._db.fetchone(sql)
+    
     def getPermidForChannel(self, channel_id):
         sql = "SELECT permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id AND Channels.id = ?"
         return self._db.fetchone(sql, (channel_id,))

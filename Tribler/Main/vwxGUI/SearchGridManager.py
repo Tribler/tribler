@@ -198,9 +198,9 @@ class TorrentManager:
                       'reranking_strategy': self.rerankingStrategy.getID()}
             
             if torrent.get('name'):
-                name = torrent['name']
+                name = torrent.name
             else:
-                name = torrent['infohash']
+                name = torrent.infohash
             
             clicklog={'keywords': self.searchkeywords,
                       'reranking_strategy': self.rerankingStrategy.getID()}

@@ -38,10 +38,19 @@ class RemoteSearchManager:
         self.oldkeywords = ''
         self.data_channels = []
         
+        self.dirtyset = set()
+        
         self.guiutility = GUIUtility.getInstance()
         self.guiserver = self.guiutility.frame.guiserver
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.channelsearch_manager = self.guiutility.channelsearch_manager
+   
+    def Reset(self):
+        self.dirtyset.clear()
+   
+    def refreshDirty(self):
+        self.refresh_partial(self.dirtyset)
+        self.dirtyset.clear()   
    
     def refresh(self):
         keywords = ' '.join(self.torrentsearch_manager.searchkeywords)
@@ -75,9 +84,13 @@ class RemoteSearchManager:
             return total_channels
         
         startWorker(self._on_refresh_channel, db_callback)
-        
+    
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
+        
+    def refresh_partial(self, ids):
+        for id in ids:
+            startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -89,7 +102,11 @@ class RemoteSearchManager:
             
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
-            startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
+            if self.list.IsShownOnScreen():
+                self.refresh_partial((infohash, ))
+            else:
+                self.dirtyset.add(infohash)
+                self.list.dirty = True
 
 class LocalSearchManager:
     def __init__(self, list):
@@ -799,7 +816,6 @@ class SearchList(GenericSearchList):
 
         if self.keywords != None:
             title += ' for "%s"'%self.keywords
-        print >> sys.stderr, title
         self.header.SetTitle(title)
         
         title = ''
@@ -868,6 +884,10 @@ class LibaryList(List):
         
      
         List.__init__(self, columns, LIST_GREY, [7,7], True)
+        
+    def _PostInit(self):
+        List._PostInit(self)
+        wx.CallAfter(self.guiutility.showLibrary, False)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:

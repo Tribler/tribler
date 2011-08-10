@@ -24,7 +24,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl
 from list_header import ListHeader
 from list_body import ListBody
 from __init__ import *
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 class AbstractDetails(wx.Panel):
@@ -83,10 +83,10 @@ class AbstractDetails(wx.Panel):
 
 DEBUG = False
 class TorrentDetails(AbstractDetails):
-    FINISHED = 3
+    FINISHED = 5
     FINISHED_INACTIVE = 4
     
-    INCOMPLETE = 2
+    INCOMPLETE = 3
     INCOMPLETE_INACTIVE = 2
     
     VOD = 1
@@ -1075,7 +1075,7 @@ class TorrentDetails(AbstractDetails):
                 active = ds.get_status() == DLSTATUS_SEEDING
 
             else: #active download
-                active = True
+                active = ds.get_status() not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 if ds.is_vod():
                     vod = True
         else:
@@ -1262,6 +1262,8 @@ class LibraryDetails(TorrentDetails):
             self.overviewSizer.ShowItems(False)
             self.overviewSizer.DeleteWindows()
             self.overviewSizer.Clear()
+            
+            self.overviewSizer.AddSpacer((-1, 10))
             self.overviewSizer.AddStretchSpacer()
             
             if self.state == TorrentDetails.FINISHED or self.state == TorrentDetails.FINISHED_INACTIVE:
@@ -1284,10 +1286,8 @@ class LibraryDetails(TorrentDetails):
         if len(self.buttonSizer.GetChildren()) == 0:
             #Header
             self.title = wx.StaticText(self.buttonPanel)
-            font = self.title.GetFont()
-            font.SetPointSize(font.GetPointSize()+1)
-            font.SetWeight(wx.FONTWEIGHT_BOLD)
-            self.title.SetFont(font)
+            _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD, size_increment=1)
+            
             self.buttonSizer.Add(self.title, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)
             
             self.buttonSizer.AddStretchSpacer()
@@ -1297,7 +1297,9 @@ class LibraryDetails(TorrentDetails):
             self.startstop = wx.Button(self.buttonPanel)
             self.startstop.Bind(wx.EVT_BUTTON, self.OnStartStop)
             hSizer.Add(self.startstop)
+            
             hSizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+            
             button = wx.Button(self.buttonPanel, -1, 'Delete...')
             button.Bind(wx.EVT_BUTTON, self.OnDelete)
             hSizer.Add(button)
@@ -1317,7 +1319,6 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails._Refresh(self, ds)
         
         #register callback for peerlist update
-        self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
         self.peerList.Freeze()
         
         index = 0
@@ -1505,6 +1506,10 @@ class ProgressPanel(wx.Panel):
                 eta = self.utility.eta_value(eta, truncate=2)
                 if eta == '' or eta.find('unknown') != -1:
                     eta = sizestr
+                    
+                    if seeds == 0 and peers == 0 and ds:
+                        if ds.get_num_con_initiated() > 0:
+                            eta += ' - connecting...'
                 else:
                     eta = sizestr + ' - ' + eta
                 

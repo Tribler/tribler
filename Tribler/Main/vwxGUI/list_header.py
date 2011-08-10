@@ -465,6 +465,7 @@ class FamilyFilterHeader(TitleHeader):
         self.ff = wx.StaticText(parent)
         self.ffbutton = LinkStaticText(parent, '', None)
         self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
+        self._SetLabels()
         
         hSizer.Add(self.ff)
         hSizer.Add(self.ffbutton)

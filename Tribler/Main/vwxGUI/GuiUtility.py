@@ -183,9 +183,6 @@ class GUIUtility:
                 self.frame.playlist.Show(False)
                 
             if page == 'my_files':
-                #Reload content
-                self.frame.librarylist.GetManager().refresh()
-                
                 #Open infohash
                 if args:
                     self.frame.librarylist.GetManager().expand(args[0])
@@ -333,6 +330,18 @@ class GUIUtility:
         
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category, True)
+        
+        if show:
+            self.ShowPage('channels')
+            self.frame.channellist.Thaw()
+            
+    @forceWxThread
+    def showLibrary(self, show = True):
+        if show:
+            self.frame.channellist.Freeze()
+        
+        manager = self.frame.librarylist.GetManager()
+        manager.refresh()
         
         if show:
             self.ShowPage('channels')

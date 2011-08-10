@@ -175,6 +175,12 @@ class TorrentChecking(Thread):
                 
                 torrent = self.torrentdb.selectTorrentToCheck(infohash=infohash)
                 
+                diff = time() - (torrent['last_check'] or 0)
+                if diff < 1800:
+                    if DEBUG:
+                        print >> sys.stderr, "Torrent Checking: checking too soon:", torrent
+                    continue    
+                
                 if DEBUG:
                     print >> sys.stderr, "Torrent Checking: get value from QUEUE:", torrent
             
@@ -187,7 +193,6 @@ class TorrentChecking(Thread):
                 
             if torrent:
                 if fromQueue and torrent['ignored_times'] > 0:
-                    
                     #ignoring this torrent
                     if DEBUG:
                         print >> sys.stderr, 'Torrent Checking: ignoring torrent:', torrent
