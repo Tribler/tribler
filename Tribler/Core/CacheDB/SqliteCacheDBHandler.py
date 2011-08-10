@@ -1431,7 +1431,11 @@ class TorrentDBHandler(BasicDBHandler):
             if tier > 0:
                 sql += " AND announce_tier<=%d"%tier
             return self._db.fetchall(sql)
-        
+    
+    def getSwarmInfoByInfohash(self, infohash):
+        sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id = tr.torrent_id AND t.infohash  = ?"
+        return self._db.fetchone(sql, (bin2str(infohash),))
+    
     def getSwarmInfo(self, torrent_id):
         """
         returns info about swarm size from Torrent and TorrentTracker tables.

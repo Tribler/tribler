@@ -462,14 +462,11 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         wx.ListCtrl.__init__(self, parent, style=style)
         ListCtrlAutoWidthMixin.__init__(self)
 
-class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
+class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
+    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
-        
-        ColumnSorterMixin.__init__(self, numColumns)
         ListCtrlAutoWidthMixin.__init__(self)
 
-        self.itemDataMap = {}
         if tooltip:
             self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
     
@@ -490,9 +487,9 @@ class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
                 pass
         self.SetToolTipString(tooltip)
         
-class SelectableListCtrl(SortedListCtrl):
-    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
-        SortedListCtrl.__init__(self, parent, numColumns, style, tooltip)
+class SelectableListCtrl(BetterListCtrl):
+    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+        BetterListCtrl.__init__(self, parent, style, tooltip)
         self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
     
     def _CopyToClipboard(self, event):

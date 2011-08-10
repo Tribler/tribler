@@ -19,7 +19,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, SelectableListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, SelectableListCtrl
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -185,9 +185,6 @@ class TorrentDetails(wx.Panel):
             "Status": "Unknown"
         }
         
-        if 'torrent_id' not in self.torrent:
-            self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
-
         if self.compact:
             vSizer = wx.FlexGridSizer(0, 6, 3, 3)
             vSizer.AddGrowableCol(1,4) #we give more space to name and status
@@ -216,11 +213,7 @@ class TorrentDetails(wx.Panel):
             else:
                 parent = self.notebook    
             
-            nrColumns = 2
-            if isinstance(self, LibraryDetails):
-                nrColumns = 3 
-            
-            self.listCtrl = SortedListCtrl(parent, nrColumns)
+            self.listCtrl = SelectableListCtrl(parent)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             if isinstance(self, LibraryDetails):
@@ -273,7 +266,6 @@ class TorrentDetails(wx.Panel):
                     except:
                         print >> sys.stderr, "Could not format filename", self.torrent['name']
                 self.listCtrl.SetItemData(pos, pos)
-                self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
                 
                 size = self.guiutility.utility.size_format(size)
                 self.listCtrl.SetStringItem(pos, 1, size)
@@ -299,7 +291,8 @@ class TorrentDetails(wx.Panel):
                 self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
                 self.buttonPanel.SetSizer(self.buttonSizer)
                 
-                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+                hSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_VERTICAL), 0, wx.EXPAND|wx.ALL, 3)
+                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.RIGHT, 3)
                 parent.SetSizer(hSizer)
                 self.notebook.AddPage(parent, "Files")
             else:
@@ -862,14 +855,11 @@ class TorrentDetails(wx.Panel):
         self.guiutility.frame.guiserver.add_task(self._UpdateStatus, id = "TorrentDetails_updateStatus")
         
     def _UpdateStatus(self):
-        if 'torrent_id' not in self.torrent:
-            self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
-        
-        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
+        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['infohash'])
         if swarmInfo:
             self.torrent['num_seeders'] = swarmInfo[1]
             self.torrent['num_leechers'] = swarmInfo[2]
-            self.torrent['last_check'] = swarmInfo[3]
+            self.torrent['last_check'] = swarmInfo[3] or 0
             
             diff = time() - self.torrent['last_check']
             if diff > 1800: #force update if last update more than 30 minutes ago
@@ -981,7 +971,7 @@ class LibraryDetails(TorrentDetails):
         peersPanel = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
          
-        self.peerList = SelectableListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = False)
+        self.peerList = SelectableListCtrl(peersPanel, tooltip = False)
         self.peerList.InsertColumn(0, 'IP-address')
         self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
@@ -1548,7 +1538,7 @@ class MyChannelDetails(wx.Panel):
         
     def _showTorrent(self, torrent, information):
         notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-        listCtrl = SortedListCtrl(notebook, 2)
+        listCtrl = BetterListCtrl(notebook)
         listCtrl.InsertColumn(0, 'Name')
         listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             
@@ -1566,8 +1556,6 @@ class MyChannelDetails(wx.Panel):
                 except:
                     print >> sys.stderr, "Could not format filename", torrent['name']
             listCtrl.SetItemData(pos, pos)
-            listCtrl.itemDataMap.setdefault(pos, [filename, size])
-            
             size = self.guiutility.utility.size_format(size)
             listCtrl.SetStringItem(pos, 1, size)
             

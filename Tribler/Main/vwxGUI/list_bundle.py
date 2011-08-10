@@ -49,7 +49,7 @@ class BundleListItem(ListItem):
                                        self.general_description, self.description,
                                        -BUNDLE_FONT_SIZE_DECREMENT)
         self.AddEvents(self.bundlepanel)
-        self.vSizer.Add(self.bundlepanel, 1, wx.EXPAND|wx.TOP, -3)
+        self.vSizer.Add(self.bundlepanel, 1, wx.EXPAND)
         
     def RefreshData(self, data):
         infohash, item_data, original_data = data

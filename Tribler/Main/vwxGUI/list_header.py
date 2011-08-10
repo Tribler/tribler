@@ -580,7 +580,8 @@ class SearchHelpHeader(SearchHeader):
         </ul>
         </p>"""
         
-        dlg = wx.Dialog(None, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
+        dlg = wx.Dialog(GUIUtility.getInstance().frame, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
+        dlg.CenterOnParent()
         dlg.SetBackgroundColour(wx.WHITE)
 
         sizer = wx.FlexGridSizer(2,2)

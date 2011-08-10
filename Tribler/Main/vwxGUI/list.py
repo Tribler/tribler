@@ -1005,6 +1005,7 @@ class LibaryList(List):
 
     def OnAdd(self, event):
         dlg = AddTorrent(self, self.guiutility.frame)
+        dlg.CenterOnParent()
         dlg.ShowModal()
         dlg.Destroy()
 

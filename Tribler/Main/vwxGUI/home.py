@@ -11,7 +11,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl, SelectableListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
@@ -54,13 +54,14 @@ class Home(XRCPanel):
         
         textSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.searchBox = wx.TextCtrl(self, style = wx.TE_PROCESS_ENTER)
+        self.searchBox = wx.TextCtrl(self, -1, 'T', style = wx.TE_PROCESS_ENTER)
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
-        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown) 
         
-        textSizer.Add(self.searchBox, 1)
+        textSizer.Add(self.searchBox, 1, wx.EXPAND)
+        self.searchBox.SetLabel('')
+        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown)
         
         searchButton = wx.Button(self, -1, 'Search')
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
@@ -302,7 +303,7 @@ class NewTorrentPanel(HomePanel):
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
     
     def CreatePanel(self):
-        self.list = SelectableListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list = SelectableListCtrl(self)
         self.list.InsertColumn(0, 'Torrent')
         self.list.setResizeColumn(0)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
@@ -385,7 +386,7 @@ class TopContributorsPanel(HomePanel):
         self.RefreshList()
     
     def CreatePanel(self):
-        self.list = SortedListCtrl(self, 2, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list = BetterListCtrl(self)
         self.list.InsertColumn(0, 'Name')
         self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
         self.list.setResizeColumn(0)

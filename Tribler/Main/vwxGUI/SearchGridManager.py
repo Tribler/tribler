@@ -229,8 +229,8 @@ class TorrentManager:
         else:
             return torrent_filename[1]
     
-    def getSwarmInfo(self, torrent_id):
-        return self.torrent_db.getSwarmInfo(torrent_id)
+    def getSwarmInfo(self, infohash):
+        return self.torrent_db.getSwarmInfoByInfohash(infohash)
     
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr

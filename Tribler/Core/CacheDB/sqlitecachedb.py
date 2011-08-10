@@ -439,7 +439,8 @@ class SQLiteCacheDBBase:
             if threading.currentThread().getName() == "MainThread":
                 for sql_line in sql.split(";"):
                     try:
-                        key, rest = sql_line.strip().split(" ", 1)
+                        #key, rest = sql_line.strip().split(" ", 1)
+                        key = sql_line[:50]
                         print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
                         # print_stack()
                     except:
