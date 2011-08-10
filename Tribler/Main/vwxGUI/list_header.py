@@ -378,7 +378,7 @@ class ButtonHeader(TitleHeader):
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddStretchSpacer()
-        hSizer.Add(self.add)
+        hSizer.Add(self.add, 0, wx.EXPAND)
         hSizer.Add(self.resume)
         hSizer.Add(self.stop)
         hSizer.Add(self.delete)
