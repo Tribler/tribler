@@ -548,6 +548,12 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
             <li>'size=:200' will show items smaller than 200 Mbytes</li>
             <li>'size=100:' will show items larger than 100 Mbytes</li>
         </ul>
+        Finally if you are in the Library you can filter items by state, i.e.
+        <ul>
+            <li>state=completed will show only items which are completed</li>
+            <li>state=active will show items which currently are being downloaded</li>
+            <li>state=stopped will show items which are stopped/paused and not completed</li> 
+        </ul>
         </p>"""
         
         dlg = wx.Dialog(None, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))

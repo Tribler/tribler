@@ -7,6 +7,8 @@ import os.path
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, COMMENT_REQ_COLUMNS
 from collections import namedtuple
 from Tribler.Core.CacheDB.sqlitecachedb import safenamedtuple
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING,\
+    DLSTATUS_STOPPED
 
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
@@ -127,6 +129,18 @@ class Torrent(Helper):
     
     def hasChannel(self):
         return self.channel_permid != ''
+    
+    @property
+    def state(self):
+        if self.ds:
+            if self.ds.progress == 1.0:
+                return 'completed'
+            
+            if self.ds.get_status() == DLSTATUS_DOWNLOADING:
+                return 'active'
+            
+            if self.ds.get_status() == DLSTATUS_STOPPED:
+                return 'stopped'
     
 class RemoteTorrent(Torrent):
     __slots__ = ('query_permids')

@@ -308,6 +308,7 @@ class List(XRCPanel):
         self.borders = borders
         self.showChange = showChange
         self.dirty = False
+        self.filter = ''
 
         self.id = 0
 
@@ -394,6 +395,8 @@ class List(XRCPanel):
         self.__check_thread()
 
         if self.ready:
+            self.filter = ''
+            
             manager = self.GetManager()
             if manager and getattr(manager, 'Reset', False):
                 manager.Reset()
@@ -546,12 +549,38 @@ class List(XRCPanel):
         if __debug__ and currentThread().getName() != "MainThread":
             print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
-            
+    
     def OnFilter(self, keyword):
-        def doFilter():
-            self.header.FilterCorrect(self.list.FilterItems(keyword))
-        #Niels: use callafter due to the filteritems method being slow and halting the events
-        wx.CallAfter(doFilter)
+        new_filter = keyword.lower().strip()
+        if new_filter != self.filter:
+            
+            highlight = True
+            if new_filter == self.filter[:-1]:
+                highlight = False
+            
+            try:
+                re.compile(new_filter)
+                self.header.FilterCorrect(True)
+                self.filter = new_filter
+                
+            except: #regex incorrect
+                self.header.FilterCorrect(False)
+                self.filter = ''
+                
+            wx.CallAfter(self.list.SetFilter, self.MatchFilter, self.GetFilterMessage, highlight)
+    
+    def MatchFilter(self, item):
+        return re.search(self.filter, item[1][0].lower())
+    
+    def GetFilterMessage(self, empty = False):
+        if empty:
+            message = '0 items'
+        else:
+            message = 'Only showing items'
+        
+        if self.filter:
+            return message + ' matching "%s"'%self.filter
+        return message
         
     def SetFilteredResults(self, nr):
         pass
@@ -559,8 +588,66 @@ class List(XRCPanel):
     def Layout(self):
         self.__check_thread()
         return wx.Panel.Layout(self)
+    
+class SizeList(List):
+    
+    def OnFilter(self, keyword):
+        new_filter = keyword.lower().strip()
+        
+        self.sizefilter = None
+        if new_filter.find("size=") > -1:
+            try:
+                minSize = 0
+                maxSize = sys.maxint
+                
+                start = new_filter.find("size=") + 5
+                end = new_filter.find(" ", start)
+                if end == -1:
+                    end = len(new_filter)
+                    
+                sizeStr = new_filter[start:end]
+                if sizeStr.find(":") > -1:
+                    sizes = sizeStr.split(":")
+                    if sizes[0] != '':
+                        minSize = int(sizes[0])
+                    if sizes[1] != '':
+                        maxSize = int(sizes[1])
+                else:
+                    minSize = maxSize = int(sizeStr)
+                    
+                self.sizefilter = [minSize, maxSize]
+                
+                #Setting filter to make sure that this new filter is treated as one
+                self.filter = '_newfilter_'
+                new_filter = new_filter[:start - 5] + new_filter[end:]
+            except:
+                pass
+        
+        List.OnFilter(self, new_filter)
+    
+    def MatchFilter(self, item):
+        if self.sizefilter:
+            size = int(item[2].length/1048576.0)
+            if size < self.sizefilter[0] or size > self.sizefilter[1]:
+                return False
+        
+        return List.MatchFilter(self, item)
+    
+    def GetFilterMessage(self, empty = False):
+        message = List.GetFilterMessage(self, empty)
+        
+        if self.sizefilter:
+            if self.sizefilter[0] == self.sizefilter[1]:
+                message += " equal to %d MB in size."%self.sizefilter[0]
+            elif self.sizefilter[0] == 0:
+                message += " smaller than %d MB in size."%self.sizefilter[1]
+            elif self.sizefilter[1] == sys.maxint:
+                message += " larger than %d MB in size"%self.sizefilter[0]
+            else:
+                message += " between %d and %d MB in size."%(self.sizefilter[0], self.sizefilter[1])
+        return message
 
-class GenericSearchList(List):
+class GenericSearchList(SizeList):
     def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
         List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
         
@@ -708,7 +795,7 @@ class SearchList(GenericSearchList):
         self.keywords = None
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
+                   {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
@@ -869,7 +956,7 @@ class SearchList(GenericSearchList):
 
 from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now 
 
-class LibaryList(List):
+class LibaryList(SizeList):
     def __init__(self):
         self.user_download_choice = UserDownloadChoice.get_singleton()
         self.guiutility = GUIUtility.getInstance()
@@ -1018,10 +1105,7 @@ class LibaryList(List):
             self.SetData([])
         
         dlg.Destroy()
-    
-    def OnFilter(self, keyword):
-        self.header.FilterCorrect(self.list.FilterItems(keyword))
-    
+            
     def RefreshItems(self, dslist):
         if self.ready and self.ShouldGuiUpdate():
             totals = {2:0, 3:0, 4:0}
@@ -1140,6 +1224,43 @@ class LibaryList(List):
        
     def Hide(self):
         self.Show(False)
+        
+    def OnFilter(self, keyword):
+        new_filter = keyword.lower().strip()
+        
+        self.statefilter = None
+        if new_filter.find("state=") > -1:
+            try:
+                start = new_filter.find("state=") + 6
+                end = new_filter.find(" ", start)
+                if end == -1:
+                    end = len(new_filter)
+                
+                state = new_filter[start:end]
+                if state in ['completed','active','stopped']: 
+                    self.statefilter = state
+                
+                #Setting filter to make sure that this new filter is treated as one
+                self.filter = '_newfilter_'
+                new_filter = new_filter[:start - 6] + new_filter[end:]
+            except:
+                pass
+        
+        SizeList.OnFilter(self, new_filter)
+    
+    def MatchFilter(self, item):
+        if self.statefilter:
+            if self.statefilter != item[2].state:
+                return False
+        
+        return SizeList.MatchFilter(self, item)
+    
+    def GetFilterMessage(self, empty = False):
+        message = SizeList.GetFilterMessage(self, empty)
+        
+        if self.statefilter:
+            message += " with state %s"%self.statefilter
+        return message
 
 class ChannelList(List):
     def __init__(self):

@@ -375,14 +375,8 @@ class AbstractListBody():
         self.cur_expanded = None
         
         #quick filter
-        self.filter = ''
-        self.sizefiler = None
-        self.filtercolumn = 0
-        self.filtersizecolumn = -1
-        for i in xrange(len(self.columns)):
-            if self.columns[i].get('sizeCol', False):
-                self.filtersizecolumn = i
-                break
+        self.filter = None
+        self.filterMessage = None
             
         #sorting
         self.sortcolumn = None
@@ -447,82 +441,13 @@ class AbstractListBody():
         if self.sortcolumn != None:
             self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
     
-    def FilterItems(self, keyword, column = 0):
-        if __debug__ and currentThread().getName() != "MainThread":
-            print  >> sys.stderr,"ListBody: FilterItems thread",currentThread().getName(),"is NOT MainThread"
-            print_stack()
+    def SetFilter(self, filter, filterMessage, highlight):
+        self.filter = filter
+        self.filterMessage = filterMessage
         
-        new_filter = keyword.lower().strip()
-        if new_filter != self.filter or column != self.filtercolumn:
-            
-            highlight = column == self.filtercolumn
-            if new_filter == self.filter[:-1]:
-                highlight = False
-            
-            self.sizefiler = None
-            if self.filtersizecolumn > -1 and new_filter.find("size=") > -1:
-                try:
-                    minSize = 0
-                    maxSize = sys.maxint
-                    
-                    start = new_filter.find("size=") + 5
-                    end = new_filter.find(" ", start)
-                    if end == -1:
-                        end = len(new_filter)
-                        
-                    sizeStr = new_filter[start:end]
-                    if sizeStr.find(":") > -1:
-                        sizes = sizeStr.split(":")
-                        if sizes[0] != '':
-                            minSize = int(sizes[0])
-                        if sizes[1] != '':
-                            maxSize = int(sizes[1])
-                    else:
-                        minSize = maxSize = int(sizeStr)
-                        
-                    self.sizefiler = [minSize, maxSize]
-                    new_filter = new_filter[:start - 5] + new_filter[end:]
-                except:
-                    pass
-            
-            self.filter = new_filter.strip()
-            self.filtercolumn = column
-            try:
-                re.compile(self.filter)
-            except: #regex incorrect
-                self.filter = ''
-                return False
-            
-            finally:
-                self.Scroll(-1, 0)
-                self.SetData(highlight = highlight)
-        return True
-        
-    def MatchFilter(self, item):
-        if self.sizefiler:
-            size = int(item[1][self.filtersizecolumn]/1048576.0)
-            if size < self.sizefiler[0] or size > self.sizefiler[1]:
-                return False
-        return re.search(self.filter, item[1][self.filtercolumn].lower())
-    
-    def __GetFilterMessage(self):
-        if self.filter != '':
-            message = 'Only showing items matching "%s"'%self.filter
-        elif self.sizefiler:
-            message = 'Only showing items'
-        else:
-            message = ''
-            
-        if self.sizefiler:
-            if self.sizefiler[0] == self.sizefiler[1]:
-                message += " equal to %d MB in size."%self.sizefiler[0]
-            elif self.sizefiler[0] == 0:
-                message += " smaller than %d MB in size."%self.sizefiler[1]
-            elif self.sizefiler[1] == sys.maxint:
-                message += " larger than %d MB in size"%self.sizefiler[0]
-            else:
-                message += " between %d and %d MB in size."%(self.sizefiler[0], self.sizefiler[1])
-        return message
+        self.Scroll(-1, 0)
+        self.SetData(highlight = highlight)
+
     
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
@@ -585,9 +510,8 @@ class AbstractListBody():
             
         self.Freeze()
         
-        self.filter = ''
-        self.sizefiler = None
-        self.filtercolumn = 0
+        self.filter = None
+        self.filterMessage = None
         self.sortcolumn = None
         
         self.vSizer.ShowItems(False)
@@ -698,15 +622,15 @@ class AbstractListBody():
         message = ''
         
         #apply quickfilter
-        if self.filter != '' or self.sizefiler:
-            data = filter(self.MatchFilter, self.raw_data)
+        if self.filter:
+            data = filter(self.filter, self.raw_data)
             if len(data) != len(self.raw_data):
                 self.parent_list.SetFilteredResults(len(data))
             else:
                 self.parent_list.SetFilteredResults(None)
 
             if len(data) == 0:
-                message = "0" + self.__GetFilterMessage()[12:]
+                message = self.filterMessage(empty = True) + '.'
         else:
             self.parent_list.SetFilteredResults(None)
             data = self.raw_data
@@ -785,7 +709,10 @@ class AbstractListBody():
         self.loadNext.Show(False)
         self.vSizer.Remove(self.messagePanel)
         
-        message = self.__GetFilterMessage()
+        if self.filter:
+            message = self.filterMessage() + '.'
+        else:
+            message = ''
         
         #Add created/cached items
         for curdata in self.data:
