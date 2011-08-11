@@ -14,7 +14,7 @@ from community import SimpleDispersyTestCommunity
 from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.Core.dispersy.crypto import ec_to_private_bin, ec_from_private_pem
 from Tribler.Core.dispersy.script import ScriptBase
-from Tribler.Core.dispersy.member import MyMember
+from Tribler.Core.dispersy.member import MyMember, Member
 from Tribler.Core.dispersy.dprint import dprint
 
 class SetupScript(ScriptBase):
