@@ -165,7 +165,7 @@ class SetupScript(ScriptBase):
             for message in self._community.get_meta_messages():
                 if not isinstance(message.resolution, PublicResolution):
                     for allowed in (u"authorize", u"revoke", u"permit"):
-                        for public_key in self._community.hardcoded_master_public_key.itervalues():
+                        for public_key in self._community.hardcoded_member_public_keys.itervalues():
                             permission_triplets.append((Member.get_instance(public_key), message, allowed))
             if permission_triplets:
                 self._community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
