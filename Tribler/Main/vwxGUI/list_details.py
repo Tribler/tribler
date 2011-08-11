@@ -615,9 +615,28 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.AddStretchSpacer()
         
         if not self.compact and not self.noChannel:
-            channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
-            if channel is None or channel[0] != bin2str(self.guiutility.utility.session.get_permid()):
-                header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?")
+            def loadChannel():
+                myLabel = label = tooltip = None
+                
+                channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
+                if channel is None or channel[0] != bin2str(self.guiutility.utility.session.get_permid()):
+                    headerStr = "Did you enjoy this torrent?"
+                    
+                    if channel:
+                        label = "Click to see more from %s's Channel."%channel[1]
+                        tooltip = "Click to go to %s's Channel."%channel[1]
+                        myLabel = "Or spread it using your channel"
+                    else:
+                        myLabel = "Spread it using your channel"
+                else:
+                    headerStr = "You are sharing this torrent in your channel"
+                    label = "Open your channel"
+                    tooltip = "Click to go to your Channel."
+                    
+                wx.CallAfter(showChannel, channel, headerStr, label, tooltip, myLabel)
+        
+            def showChannel(channel, headerStr, label, tooltip, myLabel=None):
+                header = wx.StaticText(self.buttonPanel, -1, headerStr)
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
@@ -625,34 +644,23 @@ class TorrentDetails(wx.Panel):
                 self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
                 
                 if channel:
-                    channeltext = LinkStaticText(self.buttonPanel, "Click to see more from %s's Channel."%channel[1])
-                    channeltext.SetToolTipString("Click to go to %s's Channel."%channel[1])
-                    channeltext.target = 'channel'
+                    channeltext = LinkStaticText(self.buttonPanel, label)
+                    channeltext.SetLabel(label)
+                    channeltext.SetToolTipString(tooltip)
                     channeltext.channel = channel
+                    channeltext.target = 'channel'
                     channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                     self.buttonSizer.Add(channeltext, 0, wx.ALL|wx.EXPAND, 3)
                 
-                    mychannel = LinkStaticText(self.buttonPanel, "Or spread it using your channel")
-                else:
-                    mychannel = LinkStaticText(self.buttonPanel, "Spread it using your channel")
+                if myLabel:
+                    mychannel = LinkStaticText(self.buttonPanel, myLabel)
+                    mychannel.Bind(wx.EVT_LEFT_UP, self.OnMyChannel)
+                    mychannel.SetToolTipString('Add this torrent to your channel.')
+                    self.buttonSizer.Add(mychannel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
                     
-                mychannel.Bind(wx.EVT_LEFT_UP, self.OnMyChannel)
-                mychannel.SetToolTipString('Add this torrent to your channel.')
-                self.buttonSizer.Add(mychannel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
-            else:
-                header = wx.StaticText(self.buttonPanel, -1, "You are sharing this torrent in your channel")
-                font = header.GetFont()
-                font.SetWeight(wx.FONTWEIGHT_BOLD)
-                header.SetFont(font)
-                header.SetMinSize((1,-1))
-                self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
-                
-                channeltext = LinkStaticText(self.buttonPanel, "Open your channel")
-                channeltext.SetToolTipString("Click to go to your Channel.")
-                channeltext.target = 'channel'
-                channeltext.channel = channel
-                channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
-                self.buttonSizer.Add(channeltext, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
+                self.buttonSizer.Layout()
+        
+            self.guiutility.frame.guiserver.add_task(loadChannel, id = "TorrentDetails_loadChannel")
              
         if getattr(self, 'subtitleChoice', None):
             self.subtitleChoice.Enable(True)

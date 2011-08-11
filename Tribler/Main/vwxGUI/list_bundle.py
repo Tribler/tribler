@@ -181,7 +181,7 @@ class BundlePanel(wx.Panel):
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.AddSpacer((22, -1))
-        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 3)
+        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 3)
         self.SetSizer(sizer)
     
     def AddHeader(self):

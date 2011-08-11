@@ -354,7 +354,9 @@ class ABCApp(wx.App):
     
             # Start the 90s test download
             # guiUtility = GUIUtility.getInstance()
-            self.guiUtility.frame.startDownload(tdef = torrent_def, doemode=DOE_MODE_PRIVATE)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            destdir = defaultDLConfig.get_dest_dir()
+            self.guiUtility.frame.startDownload(tdef = torrent_def, destdir=destdir, doemode=DOE_MODE_PRIVATE)
     
             # 300000ms = 300s = 5 minutes
             self.guiserver.add_task(self.del_dl, 300)
@@ -732,13 +734,15 @@ class ABCApp(wx.App):
                 self.seeding_snapshot_count += 1
                 
                 if snapshot_seeding_stats:
-                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                    reputation = bc_db.getMyReputation()
-                    #self.utility.session.close_dbhandler(bc_db)
+                    def updateSeedingStats():
+                        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                        reputation = bc_db.getMyReputation()
                     
-                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval) 
-                    #self.utility.session.close_dbhandler(seedingstats_db)
+                        seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
+                        seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
+                    
+                    #Niels: using guiserver to do db-stuff
+                    self.guiserver.add_task(updateSeedingStats)
 # _Crawling Seeding Stats
 
         except:
