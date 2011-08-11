@@ -86,13 +86,14 @@ class DummySocket(object):
     but throw away all packets it is supposed to sent.
     """
     def send(address, data):
-        if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data")
+        if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data", level="warning")
 
 class Statistics(object):
     def __init__(self):
         self._drop = {}
         self._delay = {}
         self._success = {}
+        self._outgoing = {}
         self._sequence_number = 0
 
     def reset(self):
@@ -100,12 +101,17 @@ class Statistics(object):
         Returns, and subsequently removes, all statistics.
         """
         try:
-            return {"drop":self._drop, "delay":self._delay, "success":self._success, "sequence_number":self._sequence_number}
+            return {"drop":self._drop,
+                    "delay":self._delay,
+                    "success":self._success,
+                    "outgoing":self._outgoing,
+                    "sequence_number":self._sequence_number}
 
         finally:
             self._drop = {}
             self._delay = {}
             self._success = {}
+            self._outgoing = {}
             self._sequence_number += 1
 
     def drop(self, key, bytes, count=1):
@@ -137,6 +143,22 @@ class Statistics(object):
         assert isinstance(count, (int, long))
         a, b = self._success.get(key, (0, 0))
         self._success[key] = (a+count, b+bytes)
+
+    def outgoing(self, address, key, bytes, count=1):
+        """
+        Called when a message send using the _send(...) method
+        """
+        assert isinstance(address, tuple)
+        assert len(address) == 2
+        assert isinstance(address[0], str)
+        assert isinstance(address[1], int)
+        assert isinstance(key, (str, unicode))
+        assert isinstance(bytes, (int, long))
+        assert isinstance(count, (int, long))
+        if __debug__: dprint("out... ", address[0], ":", address[1], " -> ", count, "x ", key)
+        subdict = self._outgoing.setdefault(address, {})
+        a, b = subdict.get(key, (0, 0))
+        subdict[key] = (a+count, b+bytes)
 
 class Dispersy(Singleton):
     """
@@ -226,10 +248,6 @@ class Dispersy(Singleton):
 
         # statistics...
         self._statistics = Statistics()
-        if __debug__:
-            self._total_send = 0
-            self._total_received = 0
-            self._callback.register(self._periodically_stats, delay=1.0)
 
     @property
     def working_directory(self):
@@ -802,7 +820,7 @@ class Dispersy(Singleton):
                             # from this batch.
                             pass
                         else:
-                            self._send([message.address], [str(packet)])
+                            self._send([message.address], [str(packet)], u"-sequence-")
 
                     return DropMessage(message, "old message by member^global_time")
 
@@ -894,7 +912,7 @@ class Dispersy(Singleton):
 
                             if packets:
                                 assert len(packets) == 1
-                                self._send([message.address], map(str, packets))
+                                self._send([message.address], map(str, packets), u"-sequence-")
 
                             else:
                                 # TODO can still fail when packet is in one of the received messages
@@ -996,9 +1014,6 @@ class Dispersy(Singleton):
         Callback thread for processing.
         """
         self._callback.register(self.on_incoming_packets, (packets,))
-        if __debug__:
-            # update statistics
-            self._total_received += sum(len(packet) for _, packet in packets)
 
     def on_incoming_packets(self, packets):
         """
@@ -1165,7 +1180,7 @@ class Dispersy(Singleton):
                     if __debug__: dprint("created a new TriggeMessage")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0)
-                    self._send([message.delayed.address], [message.request.packet])
+                    self._send([message.delayed.address], [message.request.packet], message.request.name)
                 return False
 
             elif isinstance(message, DropMessage):
@@ -1334,7 +1349,7 @@ class Dispersy(Singleton):
                     if __debug__: dprint("created a new TriggerPacket")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0)
-                    self._send([address], [delay.request_packet])
+                    self._send([address], [delay.request_packet], u"-delay-packet-")
 
         if __debug__:
             if len(batch) > 100:
@@ -1753,7 +1768,7 @@ class Dispersy(Singleton):
                                  for candidate
                                  in self.yield_online_candidates(message.community, message.destination.node_count)]
                     if addresses:
-                        self._send(addresses, [message.packet])
+                        self._send(addresses, [message.packet], message.name)
 
                     if __debug__:
                         if addresses:
@@ -1767,7 +1782,7 @@ class Dispersy(Singleton):
                                  for candidate
                                  in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
                     if addresses:
-                        self._send(addresses, [message.packet])
+                        self._send(addresses, [message.packet], message.name)
 
                     if __debug__:
                         if addresses:
@@ -1777,7 +1792,7 @@ class Dispersy(Singleton):
 
             elif isinstance(message.destination, AddressDestination.Implementation):
                 if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in message.destination.addresses))
-                self._send(message.destination.addresses, [message.packet])
+                self._send(message.destination.addresses, [message.packet], message.name)
 
             elif isinstance(message.destination, MemberDestination.Implementation):
                 if __debug__:
@@ -1785,12 +1800,12 @@ class Dispersy(Singleton):
                         if not self._is_valid_external_address(member.address):
                             dprint("unable to send ", message.name, " to member (", member.address, ")", level="error")
                     dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
-                self._send([member.address for member in message.destination.members], [message.packet])
+                self._send([member.address for member in message.destination.members], [message.packet], message.name)
 
             else:
                 raise NotImplementedError(message.destination)
 
-    def _send(self, addresses, packets):
+    def _send(self, addresses, packets, key=u"unspecified"):
         """
         Send one or more packets to one or more addresses.
 
@@ -1799,11 +1814,15 @@ class Dispersy(Singleton):
         @param addresses: A sequence with one or more addresses.
         @type addresses: [(string, int)]
 
-        @patam packets: A sequence with one or more packets.
+        @param packets: A sequence with one or more packets.
         @type packets: string
+
+        @param key: A unicode string purely used for statistics.  Indicating the type of data send.
+        @type key: unicode
         """
         assert isinstance(addresses, (tuple, list, set)), type(addresses)
         assert isinstance(packets, (tuple, list, set)), type(packets)
+        assert isinstance(key, unicode), type(key)
 
         if __debug__:
             if not addresses:
@@ -1812,10 +1831,6 @@ class Dispersy(Singleton):
             if not packets:
                 # this is a programming bug.
                 dprint("no packets given (wanted to send to ", len(addresses), " addresses)", level="error", stack=True)
-
-        if __debug__:
-            # update statistics
-            self._total_send += len(addresses) * sum([len(packet) for packet in packets])
 
         # update candidate table and send packets
         for address in addresses:
@@ -1831,6 +1846,7 @@ class Dispersy(Singleton):
             for packet in packets:
                 assert isinstance(packet, str)
                 self._socket.send(address, packet)
+            self._statistics.outgoing(address, key, sum(len(packet) for packet in packets), len(packets))
             if __debug__: dprint(len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
             self._database.execute(u"UPDATE candidate SET outgoing_time = DATETIME('now') WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
@@ -2225,7 +2241,7 @@ class Dispersy(Singleton):
                 """
             packets = [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))]
             if packets:
-                self._send([message.address], packets)
+                self._send([message.address], packets, u"dispersy-identity")
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
@@ -2276,7 +2292,6 @@ class Dispersy(Singleton):
         @param messages: The dispersy-identity message.
         @type messages: [Message.Implementation]
         """
-
         community = messages[0].community
         subjective_set_message_id = community.get_meta_message(u"dispersy-subjective-set").database_id
 
@@ -2288,7 +2303,7 @@ class Dispersy(Singleton):
                     packets.append(cache.packet)
 
             if packets:
-                self._send([message.address], packets)
+                self._send([message.address], packets, u"dispersy-subjective-set")
 
     # def create_subjective_set_request(community, community, cluster, members, update_locally=True, store_and_forward=True):
     #     if __debug__:
@@ -2794,7 +2809,7 @@ class Dispersy(Singleton):
                     # assuming this signature only matches one member, we can break
                     break
 
-    def on_missing_sequence(self, address, message):
+    def on_missing_sequence(self, messages):
         """
         We received a dispersy-missing-sequence message.
 
@@ -2804,36 +2819,31 @@ class Dispersy(Singleton):
         To limit the amount of bandwidth used we will not sent back more data after a certain amount
         has been sent.  This magic number is subject to change.
 
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-missing-sequence message.
-        @type message: Message.Implementation
+        @param messages: dispersy-missing-sequence messages.
+        @type messages: [Message.Implementation]
 
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
-        if __debug__:
-            from message import Message
-        assert isinstance(message, Message)
-        assert message.name == u"dispersy-missing-sequence"
+        for message in messages:
+            # we limit the response by byte_limit bytes per incoming message
+            byte_limit = message.community.dispersy_missing_sequence_response_limit
 
-        # we limit the response by byte_limit bytes
-        byte_limit = message.community.dispersy_missing_sequence_response_limit
+            packets = []
+            payload = message.payload
+            for packet, in self._database.execute(u"SELECT packet FROM sync_full WHERE community = ? and sequence >= ? AND sequence <= ? ORDER BY sequence LIMIT ?",
+                                                  (payload.message.community.database_id, payload.missing_low, payload.missing_high, packet_limit)):
+                if __debug__: dprint("Syncing ", len(packet), " bytes from sync_full to " , address[0], ":", address[1])
 
-        payload = message.payload
-        for packet, in self._database.execute(u"SELECT packet FROM sync_full WHERE community = ? and sequence >= ? AND sequence <= ? ORDER BY sequence LIMIT ?",
-                                              (payload.message.community.database_id, payload.missing_low, payload.missing_high, packet_limit)):
-            if __debug__:
-                # update statistics
-                self._total_send += len(packet)
-                dprint("Syncing ", len(packet), " bytes from sync_full to " , address[0], ":", address[1])
+                packets.append(packet)
 
-            self._socket.send(address, packet)
-            byte_limit -= len(packet)
-            if byte_limit > 0:
-                if __debug__: dprint("Bandwidth throttle")
-                break
+                byte_limit -= len(packet)
+                if byte_limit > 0:
+                    if __debug__: dprint("Bandwidth throttle")
+                    break
+
+            if packets:
+                self._send([address], packets, u"-sequence")
 
     def on_missing_proof(self, messages):
         community = messages[0].community
@@ -2842,13 +2852,15 @@ class Dispersy(Singleton):
                 packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ? LIMIT 1",
                                                  (community.database_id, message.payload.member.database_id, message.payload.global_time)).next()
             except StopIteration:
-                pass
+                if __debug__: dprint("unable to provide proof (1)", level="warning")
             else:
                 packet = str(packet)
                 msg = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
                 allowed, proofs = community._timeline.check(msg)
                 if allowed:
-                    self._send([message.address], [proof.packet for proof in proofs])
+                    self._send([message.address], [proof.packet for proof in proofs], u"-proof-")
+                elif __debug__:
+                    dprint("unable to provide proof (2)", level="warning")
 
     def check_sync(self, messages):
         """
@@ -3002,7 +3014,7 @@ class Dispersy(Singleton):
 
             if packets:
                 if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
-                self._send([message.address], packets)
+                self._send([message.address], packets, u"-sync-")
 
     def on_sync(self, messages):
         # everything has already been done in check_sync.
@@ -3353,23 +3365,6 @@ class Dispersy(Singleton):
                 self._database.execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) > ?",
                                        (community.database_id, community.dispersy_candidate_cleanup_age_threshold))
 
-    def _periodically_stats(self):
-        """
-        Periodically write bandwidth statistics to a log file.
-        """
-        if __debug__:
-            while True:
-                grouped = {}
-                for community in self._communities.itervalues():
-                    classification = community.get_classification()
-                    if not classification in grouped:
-                        grouped[classification] = set()
-                    grouped[classification].add(community.cid)
-                communities = "; ".join("%s:%d" % (classification, len(cids)) for classification, cids in grouped.iteritems())
-                dprint("in: ", self._total_received, "; out: ", self._total_send, "; ", communities)
-
-                yield 5.0
-
     def _periodically_cleanup_singletons(self):
         """
         Periodically remove unused singleton objects otherwise we will eventually run out of memory.
@@ -3416,16 +3411,13 @@ class Dispersy(Singleton):
         #      could be generated with a different signature (a signature contains random elements)
         #      making the two unique messages different from a bloom filter perspective.  we now
         #      replace one message with the other thoughout the system.
+        # 1.4: added info["statistics"]["outgoing"] containing all calls to _send(...)
 
-        info = {"version":1.3, "class":"Dispersy"}
+        info = {"version":1.4, "class":"Dispersy"}
 
         if statistics:
             info["statistics"] = self._statistics.reset()
             # if __debug__: dprint(info["statistics"], pprint=1)
-
-        if __debug__:
-            if transfers:
-                info["transfers"] = {"total_received":self._total_received, "total_send":self._total_send}
 
         info["communities"] = []
         for community in self._communities.itervalues():

@@ -616,9 +616,12 @@ class BinaryConversion(Conversion):
             raise DropPacket("Invalid subjective-set cluster value")
 
         members = []
-        while len(data) < offset + 20:
+        while len(data) >= offset + 20:
             members.extend(self._community.get_members_from_id(data[offset:offset+20]))
             offset += 20
+
+        if not members:
+            raise DropPacket("Invalid subjective-set-request: no members given")
 
         return offset, meta_message.payload.implement(cluster, members)
 
