@@ -1,21 +1,19 @@
 from meta import MetaObject
 
 """
-Each Privilege can be distributed, usualy through the transfer of a
-message, in different ways.  These ways are defined by
-DistributionMeta object that is associated to the Privilege.
+Each Privilege can be distributed, usualy through the transfer of a message, in different ways.
+These ways are defined by DistributionMeta object that is associated to the Privilege.
 
-The DistributionMeta associated to the Privilege is used to create a
-Distribution object that is assigned to the Message.
+The DistributionMeta associated to the Privilege is used to create a Distribution object that is
+assigned to the Message.
 
-Example: A community has a permission called 'user-name'.  This
-Permission has the LastSyncDistributionMeta object assigned to it.
-The LastSyncDistributionMeta object dictates some values such as the
-size and stepping used for the BloomFilter.
+Example: A community has a permission called 'user-name'.  This Permission has the
+LastSyncDistributionMeta object assigned to it.  The LastSyncDistributionMeta object dictates some
+values such as the size and stepping used for the BloomFilter.
 
-Whenever a the 'user-name' Permission is used, a LastSyncDistribution
-object is created.  The LastSyncDistribution object holds additional
-information for this specific message, such as the global_time.
+Whenever a the 'user-name' Permission is used, a LastSyncDistribution object is created.  The
+LastSyncDistribution object holds additional information for this specific message, such as the
+global_time.
 """
 
 class Distribution(MetaObject):
@@ -50,21 +48,17 @@ class Distribution(MetaObject):
 
 class SyncDistribution(Distribution):
     """
-    Allows gossiping and synchronization of messages thoughout the
-    community.
+    Allows gossiping and synchronization of messages thoughout the community.
 
-    Sequence numbers can be enabled or disabled per meta-message.
-    When disabled the sequence number is always zero.  When enabled
-    the claim_sequence_number method can be called to obtain the next
+    Sequence numbers can be enabled or disabled per meta-message.  When disabled the sequence number
+    is always zero.  When enabled the claim_sequence_number method can be called to obtain the next
     requence number in sequence.
 
-    Currently there is one situation where disabling sequence numbers
-    is required.  This is when the message will be signed by multiple
-    members.  In this case the sequence number is claimed but may not
-    be used (if the other members refuse to add their signature).
-    This causes a missing sequence message.  This in turn could be
-    solved by creating a placeholder message, however, this is not
-    currently, and my never be, implemented.
+    Currently there is one situation where disabling sequence numbers is required.  This is when the
+    message will be signed by multiple members.  In this case the sequence number is claimed but may
+    not be used (if the other members refuse to add their signature).  This causes a missing
+    sequence message.  This in turn could be solved by creating a placeholder message, however, this
+    is not currently, and my never be, implemented.
 
     The PRIORITY value ranges [0:255] where the 0 is the lowest priority and 255 the highest.  Any
     messages that have a priority below 32 will not be synced.  These messages require a mechanism
@@ -78,15 +72,9 @@ class SyncDistribution(Distribution):
         def __init__(self, meta, global_time, sequence_number=0):
             assert isinstance(meta, SyncDistribution)
             assert isinstance(sequence_number, (int, long))
-            # assert (meta._enable_sequence_number and sequence_number > 0) or (not meta._enable_sequence_number and sequence_number == 0), "enable_sequence_number:{0} sequence_number:{1}".format(meta._enable_sequence_number, sequence_number)
+            assert (meta._enable_sequence_number and sequence_number > 0) or (not meta._enable_sequence_number and sequence_number == 0)
             super(SyncDistribution.Implementation, self).__init__(meta, global_time)
-            if sequence_number:
-                assert sequence_number > 0
-                self._sequence_number = sequence_number
-            elif meta._enable_sequence_number:
-                self._sequence_number = meta.claim_sequence_number()
-            else:
-                self._sequence_number = 0
+            self._sequence_number = sequence_number
 
         @property
         def enable_sequence_number(self):
@@ -165,12 +153,14 @@ class SyncDistribution(Distribution):
         assert isinstance(message, Message)
         if self._enable_sequence_number:
             # obtain the most recent sequence number that we have used
-            self._current_sequence_number, = message.community.dispersy.database.execute(u"SELECT MAX(sync.distribution_sequence) FROM sync JOIN reference_user_sync ON (reference_user_sync.sync = sync.id) WHERE sync.community = ? AND reference_user_sync.user = ? AND name = ?", (message.community.database_id, message.community.my_member.database_id, message.database_id)).next()
+            self._current_sequence_number, = message.community.dispersy.database.execute(u"SELECT MAX(distribution_sequence) FROM sync WHERE community = ? AND user = ? AND name = ?",
+                                                                                         (message.community.database_id, message.community.my_member.database_id, message.database_id)).next()
             if self._current_sequence_number is None:
                 # no entries in the database yet
                 self._current_sequence_number = 0
 
-        self._synchronization_direction_id, = message.community.dispersy.database.execute(u"SELECT key FROM tag WHERE value = ?", (self._synchronization_direction,)).next()
+        self._synchronization_direction_id, = message.community.dispersy.database.execute(u"SELECT key FROM tag WHERE value = ?",
+                                                                                          (self._synchronization_direction,)).next()
 
     def claim_sequence_number(self):
         assert self._enable_sequence_number
@@ -223,6 +213,3 @@ class RelayDistribution(Distribution):
 
     def generate_footprint(self):
         return "RelayDistribution"
-
-
-

@@ -1184,7 +1184,7 @@ class Dispersy(Singleton):
                 return False
 
             elif isinstance(message, DropMessage):
-                if __debug__: dprint("drop: ", message)
+                if __debug__: dprint("drop: ", message, level="warning")
                 self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
                 return False
 
@@ -3079,7 +3079,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-authorize")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
@@ -3165,7 +3165,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-revoke")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
@@ -3286,6 +3286,26 @@ class Dispersy(Singleton):
                     yield message
                 else:
                     yield DelayMessageByProof(message)
+
+    def _claim_master_member_sequence_number(self, community, meta):
+        """
+        Tries to guess the most recent sequence number used by the master member for META in
+        COMMUNITY.
+
+        This is a risky method because sequence numbers must be unique, however, we can not
+        guarantee that two peers do not claim a sequence number for the master member at around the
+        same time.  Unfortunately we can not overcome this problem in a distributed fashion.
+
+        Also note that calling this method twice will give identital values.  Ensure that the
+        message is updated locally before claiming another value to ensure different sequence
+        numbers are used.
+        """
+        sequence_number, = self._database.execute(u"SELECT MAX(distribution_sequence) FROM sync WHERE community = ? AND user = ? and name = ?",
+                                                  (community.database_id, community.master_member.database_id, meta.database_id)).next()
+        if sequence_number is None:
+            return 1
+        else:
+            return sequence_number + 1
 
     def _periodically_create_sync(self, community):
         """
