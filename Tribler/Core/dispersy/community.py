@@ -1075,7 +1075,7 @@ class Community(object):
                 # check that this is the packet we are looking for, i.e. has the right cluster
                 conversion = self.get_conversion(packet[:22])
                 message = conversion.decode_message(("", -1), packet)
-                tmp_key = (member, message.destination.cluster)
+                tmp_key = (member, message.payload.cluster)
                 if not tmp_key in self._subjective_sets:
                     self._subjective_sets[tmp_key] = SubjectiveSetCache(packet, message.payload.subjective_set)
 
