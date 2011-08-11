@@ -138,7 +138,6 @@ class SetupScript(ScriptBase):
                 dprint("my member is allowed to create messages")
                 break
 
-
             messages = [sync_meta.implement(sync_meta.authentication.implement(self._community.my_member),
                                             sync_meta.distribution.implement(self._community.global_time),
                                             sync_meta.destination.implement(),
@@ -150,12 +149,24 @@ class SetupScript(ScriptBase):
             yield 1.0
 
         else:
+            # Used in the 3.5.8 and 3.5.9 test
+            #
+            # dprint("creating authorizations")
+            # permission_triplets = []
+            # for message in self._community.get_meta_messages():
+            #     if not isinstance(message.resolution, PublicResolution):
+            #         for allowed in (u"authorize", u"revoke", u"permit"):
+            #             permission_triplets.append((self._community.my_member, message, allowed))
+            # if permission_triplets:
+            #     self._community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
+
             dprint("creating authorizations")
             permission_triplets = []
             for message in self._community.get_meta_messages():
                 if not isinstance(message.resolution, PublicResolution):
                     for allowed in (u"authorize", u"revoke", u"permit"):
-                        permission_triplets.append((self._community.my_member, message, allowed))
+                        for public_key in self._community.hardcoded_master_public_key.itervalues():
+                            permission_triplets.append((Member.get_instance(public_key), message, allowed))
             if permission_triplets:
                 self._community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
 
