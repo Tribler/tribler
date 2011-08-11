@@ -737,13 +737,15 @@ class ABCApp(wx.App):
                 self.seeding_snapshot_count += 1
                 
                 if snapshot_seeding_stats:
-                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                    reputation = bc_db.getMyReputation()
-                    #self.utility.session.close_dbhandler(bc_db)
+                    def updateSeedingStats():
+                        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                        reputation = bc_db.getMyReputation()
                     
-                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval) 
-                    #self.utility.session.close_dbhandler(seedingstats_db)
+                        seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
+                        seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
+                    
+                    #Niels: using guiserver to do db-stuff
+                    self.guiserver.add_task(updateSeedingStats)
 # _Crawling Seeding Stats
 
         except:
