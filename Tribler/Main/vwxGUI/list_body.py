@@ -50,12 +50,12 @@ class ListItem(wx.Panel):
                 if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
                     self.icontype = self.columns[i]['icon']
                     self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
-                    self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                    self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                 else:
                     icon = self.columns[i]['icon'](self)
                     if icon:
                         icon = wx.StaticBitmap(self, -1, icon)
-                        self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                        self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                         
             type = self.columns[i].get('type','label')
             if type == 'label':
@@ -74,14 +74,14 @@ class ListItem(wx.Panel):
                 label.SetLabel(str_data.replace('&', "&&"))
                 self.controls.append(label)
                 
-                self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+                self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
                 if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                     label.SetMinSize((1,-1))
                      
             elif type == 'method':
                 control = self.columns[i]['method'](self, self)
                 if control:
-                    self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+                    self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
                     self.controls.append(control)
                     
                     if self.columns[i]['width'] == -1:
@@ -90,10 +90,11 @@ class ListItem(wx.Panel):
                             self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
                 else:
                     if self.columns[i]['width'] != -1:
-                        self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
+                        self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT, 3)
         
-        if rightSpacer > 0:
-            self.hSizer.AddSpacer((rightSpacer, -1))
+        #always end with a spacer of size 3
+        rightSpacer += 3
+        self.hSizer.AddSpacer((rightSpacer, -1))
         self.hSizer.Layout()
         
         self.AddEvents(self)

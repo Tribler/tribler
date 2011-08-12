@@ -97,10 +97,10 @@ class ListHeader(wx.Panel):
                     self.defaultSort = i
                 else:
                     label.sortIcon = wx.StaticBitmap(self, -1, empty)
-                sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                 
                 if columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
-                    columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth()
+                    columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth() + 3
                     
                 elif columns[i]['width'] == wx.LIST_AUTOSIZE:
                     sizer.AddStretchSpacer()
@@ -108,9 +108,10 @@ class ListHeader(wx.Panel):
                 else:
                     if isinstance(columns[i]['width'], basestring) and columns[i]['width'].endswith('em'):
                         test_string = 'T' * int(columns[i]['width'][:-2])
-                        columns[i]['width'] = self.GetTextExtent(test_string)[0] + 6
+                        labelWidth = self.GetTextExtent(test_string)[0]
+                        columns[i]['width'] = labelWidth + 3 + down.GetWidth()
                     
-                    remainingWidth = columns[i]['width'] - (label.GetBestSize()[0] + down.GetWidth())
+                    remainingWidth = columns[i]['width'] - label.GetBestSize()[0] - down.GetWidth() - 3
                     if remainingWidth > 0:
                         sizer.AddSpacer((remainingWidth, 1))
                     else:
@@ -119,38 +120,31 @@ class ListHeader(wx.Panel):
                     
                 self.columnHeaders.append(label)
             else:
-                spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
+                spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                 self.columnHeaders.append(spacer)
                 
                 
-        self.scrollBar = sizer.AddSpacer((0,0))
+        self.scrollBar = sizer.AddSpacer((3,0))
         self.scrollBar.Show(False)
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
         item = self.columnHeaders[column]
         if item.GetSize()[0] != width:
-            if getattr(item, 'SetSize', None):
-                item.SetSize((width, -1))
+            if getattr(item, 'SetMinSize', None):
+                if getattr(item, 'sortIcon', False):
+                    width -= (item.sortIcon.GetWidth() + 3)
+                item.SetMinSize((width, -1))
             else:
                 item.SetSpacer((width, -1))
             self.scrollBar.sizer.Layout()
 
     def SetSpacerRight(self, right):
-        if right > 0:
-            dirty = False
+        if self.scrollBar:
+            right = max(3, right + 3)
+            
             if self.scrollBar.GetSize()[0] != right:
                 self.scrollBar.SetSpacer((right, 0))
-                dirty = True
-            if not self.scrollBar.IsShown():
-                self.scrollBar.Show(True)
-                dirty = True
-            
-            if dirty:
-                self.scrollBar.sizer.Layout()
-        else:
-            if self.scrollBar.IsShown():
-                self.scrollBar.Show(False)
                 self.scrollBar.sizer.Layout()
     
     def OnMouse(self, event):
