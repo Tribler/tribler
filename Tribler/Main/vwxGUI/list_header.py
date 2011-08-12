@@ -378,7 +378,7 @@ class SearchHeaderHelper():
         pass
 
     def OnKey(self, event):
-        self.parent_list.OnFilter(self.filter.GetValue().strip())
+        self.parent_list.GotFilter(self.filter.GetValue().strip())
     
     def SetFiltered(self, nr):
         if nr:
@@ -548,11 +548,12 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
             <li>'size=:200' will show items smaller than 200 Mbytes</li>
             <li>'size=100:' will show items larger than 100 Mbytes</li>
         </ul>
+        <hr>
         Finally if you are in the Library you can filter items by state, i.e.
         <ul>
-            <li>state=completed will show only items which are completed</li>
-            <li>state=active will show items which currently are being downloaded</li>
-            <li>state=stopped will show items which are stopped/paused and not completed</li> 
+            <li>'state=completed' will show only items which are completed</li>
+            <li>'state=active' will show items which currently are being downloaded</li>
+            <li>'state=stopped' will show items which are stopped/paused and not completed</li> 
         </ul>
         </p>"""
         
@@ -564,7 +565,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         icon = wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MESSAGE_BOX))
         sizer.Add(icon, 0, wx.TOP, 10)
         
-        hwin = wx.html.HtmlWindow(dlg, -1, size = (500, 300))
+        hwin = wx.html.HtmlWindow(dlg, -1, size = (600, 400))
         hwin.SetPage(html)
         sizer.Add(hwin)
         

@@ -129,7 +129,7 @@ class NameIconWizardPage(WizardPageSimple):
             bm = data2wxBitmap(self.iconmime, self.icondata)
         else:
             im = IconsManager.getInstance()
-            bm = im.get_default('personsMode','DEFAULT_THUMB')
+            bm = im.get_default('PEER_THUMB')
 
         if sys.platform == 'darwin':
             path = get_home_dir()

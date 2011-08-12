@@ -169,7 +169,7 @@ class TorrentDetails(AbstractDetails):
             self.torrent = torrent
             ds = self.torrent.ds
             
-            if self.torrent.get('ChannelTorrents.id', False):
+            if self.torrent.get('channeltorrent_id', False):
                 self.canEdit = True 
         
             self.Freeze()
@@ -248,8 +248,8 @@ class TorrentDetails(AbstractDetails):
 
         overview.SetupScrolling(rate_y = 5)
             
-        if self.torrent.get('ChannelTorrents.id', False):
-            markings = startWorker(None, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent['ChannelTorrents.id'], ))
+        if self.torrent.get('channeltorrent_id', False):
+            markings = startWorker(None, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
             markings = markings.get()
             
             if len(markings) > 0:
@@ -267,12 +267,11 @@ class TorrentDetails(AbstractDetails):
             vSizer = wx.FlexGridSizer(0, 2, 3, 3)
             vSizer.AddGrowableCol(1)
             
-            self.isEditable['name'] = EditText(edit, self.torrent['name'])
-            self.isEditable['description'] = EditText(edit, self.torrent.get('description', '') or '', True)
+            self.isEditable['name'] = EditText(edit, self.torrent.name)
+            self.isEditable['description'] = EditText(edit, self.torrent.description or '', True)
             
-            self._add_row(edit, vSizer, "Name",self.isEditable['name'])
+            self._add_row(edit, vSizer, "Name", self.isEditable['name'])
             self._add_row(edit, vSizer, "Description",self.isEditable['description'])
-            
             editSizer.Add(vSizer, 0, wx.EXPAND)
             
             def save(event):
@@ -283,16 +282,16 @@ class TorrentDetails(AbstractDetails):
             editSizer.Add(saveButton, 0, wx.ALIGN_RIGHT)
         
         #Create torrent overview
-        if self.torrent.get('ChannelTorrents.id', False):
+        if self.torrent.get('channeltorrent_id', False):
             from channel import CommentList
             self.commentList = CommentList(self.notebook, canReply = True, quickPost = True)
             commentManager = self.commentList.GetManager()
-            commentManager.SetIds(self.torrent['ChannelTorrents.channel_id'], channeltorrent_id = self.torrent['ChannelTorrents.id'])
+            commentManager.SetIds(self.torrent.channel_id, channeltorrent_id = self.torrent.channeltorrent_id)
             
             from channel import ModificationList
             self.modificationList = ModificationList(self.notebook)
             modificationManager = self.modificationList.GetManager()
-            modificationManager.SetId(self.torrent['ChannelTorrents.id'])
+            modificationManager.SetId(self.torrent.channeltorrent_id)
             
             self.notebook.AddPage(self.commentList, 'Comments')
             self.notebook.AddPage(self.modificationList, 'Modifications')
@@ -1214,19 +1213,16 @@ class LibraryDetails(TorrentDetails):
     def _SetTitle(self, state):
         TorrentDetails._SetTitle(self, state)
 
-        if state == TorrentDetails.INACTIVE:
-            return
-        
-        if state == TorrentDetails.FINISHED or state == TorrentDetails.FINISHED_INACTIVE:
+        if state in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
             statestr = "Seeding"
             
         elif state == TorrentDetails.VOD:
             statestr = "Streaming"
             
-        elif state == TorrentDetails.INCOMPLETE or state == TorrentDetails.INCOMPLETE_INACTIVE:
+        elif state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
             statestr = "Downloading"
         
-        if state == TorrentDetails.FINISHED_INACTIVE or state == TorrentDetails.INCOMPLETE_INACTIVE:
+        if state in [TorrentDetails.FINISHED_INACTIVE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
             button = "Start "+statestr
         else:
             button = "Stop "+statestr
@@ -1507,9 +1503,13 @@ class ProgressPanel(wx.Panel):
                 if eta == '' or eta.find('unknown') != -1:
                     eta = sizestr
                     
-                    if seeds == 0 and peers == 0 and ds:
+                    if dls == 0 and uls == 0 and ds:
                         if ds.get_num_con_initiated() > 0:
-                            eta += ' - connecting...'
+                            eta += ' - connecting'
+                            
+                            nrdots = (self.status.GetLabel()[-3:].count('.')+1) % 4
+                            eta += '.'*nrdots
+                        
                 else:
                     eta = sizestr + ' - ' + eta
                 

@@ -2,31 +2,21 @@
 # Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-from Tribler.Category.Category import Category
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
-from Tribler.Main.vwxGUI.bgPanel import *
-from Tribler.Main.Utility.constants import *
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.simpledefs import *
-from Tribler.Main.Utility.constants import *
-from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.__init__ import LIBRARYNAME
-from threading import Event, Thread
-from time import time
-from traceback import print_exc
-from webbrowser import open_new
-from wx import xrc
 import random
-import urllib
-import webbrowser
 import wx
 import os
+import sys
+from wx import xrc
+
+from Tribler.__init__ import LIBRARYNAME
+
+from Tribler.Category.Category import Category
+from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 DEBUG = False
 
@@ -35,8 +25,19 @@ def forceWxThread(func):
         if wx.Thread_IsMain():
             func(*args, **kwargs)
         else:
+            print >> sys.stderr, "SWITCHING TO GUITHREAD", func.__name__
             wx.CallAfter(func, *args, **kwargs)
             
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def warnWxThread(func):
+    def invoke_func(*args,**kwargs):
+        if not wx.Thread_IsMain():
+            print >> sys.stderr, "NOT ON GUITHREAD", func.__name__
+        
+        return func(*args, **kwargs)
+    
     invoke_func.__name__ = func.__name__
     return invoke_func
 

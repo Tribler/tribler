@@ -603,6 +603,13 @@ class PeerDBHandler(BasicDBHandler):
         #    return self.mm.load_data(permid)
         #3else:
         #    return None
+    
+    def getPeerIconByPeerId(self, peerid):
+        item = self.getOne('thumbnail', peer_id=peerid)
+        if item:
+            return NETW_MIME_TYPE, str2bin(item)
+        else:
+            return None, None
 
 
     def searchNames(self,kws):
@@ -3545,6 +3552,7 @@ class ChannelCastDBHandler(object):
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? AND infohash = ?"
         result = self._db.fetchone(sql, (channel_id, bin2str(infohash)))
+        
         return self.__fixTorrent(keys, result)
     
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
@@ -3573,10 +3581,7 @@ class ChannelCastDBHandler(object):
         sql = "SELECT " + ", ".join(keys) +" FROM MetaDataChannel, ChannelMetaData WHERE MetaDataChannel.metadata_id = ChannelMetaData.id AND channel_id = ? ORDER BY inserted DESC"
         if limit:
             sql += " LIMIT %d"%limit
-        results = self._db.fetchall(sql, (channel_id,))
-        
-        modifications = [dict(zip(keys,result)) for result in results]
-        return modifications
+        return self._db.fetchall(sql, (channel_id,))
     
     def getTorrentsFromPlaylist(self, playlist_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents, PlaylistTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? ORDER BY time_stamp DESC"
@@ -3596,10 +3601,7 @@ class ChannelCastDBHandler(object):
         sql = "SELECT " + ", ".join(keys) +" FROM MetaDataPlaylist, ChannelMetaData WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND channel_id = ? ORDER BY inserted DESC"
         if limit:
             sql += " LIMIT %d"%limit
-        results = self._db.fetchall(sql, (playlist_id,))
-        
-        modifications = [dict(zip(keys,result)) for result in results]
-        return modifications
+        return self._db.fetchall(sql, (playlist_id,))
     
     def getTorrentsNotInPlaylist(self, channel_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent, ChannelTorrents WHERE CollectedTorrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY time_stamp DESC"
@@ -3607,6 +3609,11 @@ class ChannelCastDBHandler(object):
         return self.__fixTorrents(keys, results)
     
     def __fixTorrent(self, keys, torrent):
+        if len(keys) == 1:
+            if keys[0] == 'infohash':
+                return str2bin(torrent)
+            return torrent
+        
         if torrent and 'infohash' in keys:
             torrent = list(torrent)
 
@@ -3649,25 +3656,21 @@ class ChannelCastDBHandler(object):
         sql = "SELECT " + ", ".join(keys) + " FROM Comments LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id LEFT JOIN CommentPlaylist On Comments.id = CommentPlaylist.comment_id LEFT JOIN CommentTorrent On Comments.id = CommentTorrent.comment_id WHERE channel_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
-        
-        tuple = safenamedtuple('Comment', keys)
-        return map(tuple._make, self._db.fetchall(sql, (channel_id, )))
+        return self._db.fetchall(sql, (channel_id, ))
 
     def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentPlaylist LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentPlaylist.comment_id AND playlist_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
-        
-        tuple = safenamedtuple('Comment', keys)
-        return map(tuple._make, self._db.fetchall(sql, (playlist_id, )))
+
+        return self._db.fetchall(sql, (playlist_id, ))
     
     def getCommentsFromChannelTorrentId(self, channeltorrent_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentTorrent LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentTorrent.comment_id AND channeltorrent_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         
-        tuple = safenamedtuple('Comment', keys)
-        return map(tuple._make, self._db.fetchall(sql, (channeltorrent_id, )))    
+        return self._db.fetchall(sql, (channeltorrent_id, ))
         
     def searchChannels(self, keywords):
         # search channels based on keywords

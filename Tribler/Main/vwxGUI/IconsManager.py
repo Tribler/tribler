@@ -5,7 +5,6 @@ import wx, os
 import cStringIO
 
 from Tribler.Core.API import *
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
@@ -20,11 +19,17 @@ class IconsManager:
         if IconsManager.__single:
             raise RuntimeError, "IconsManager is singleton"
         
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+        
         self.guiUtility = GUIUtility.getInstance()
         self.guiImagePath = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images')
-        self.defaults = {}
-        self.defaults['personsMode'] = {}
-        self.defaults['personsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeer.png'))
+        
+        self.defaults = {'PEER_THUMB':{}, 'TORRENT':{}, 'TORRENT_NEW':{}, 'MODIFICATION':{}, 'COMMENT':{}}
+        self.defaults['PEER_THUMB'][ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeer.png'))
+        self.defaults['TORRENT'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'file_extension_tor.png'))
+        self.defaults['TORRENT_NEW'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'file_extension_tornew.png'))
+        self.defaults['MODIFICATION'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'edit_diff.png'))
+        self.defaults['COMMENT'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'comments.png'))
         
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
         IconsManager.__single = self
@@ -39,17 +44,27 @@ class IconsManager:
         return IconsManager.__single
     getInstance = staticmethod(getInstance)
     
-    def get_default(self,mode,name):
-        return self.defaults[mode][name]
-    
+    def get_default(self, name, dim=ICON_MAX_DIM):
+        if dim not in self.defaults[name]:
+            img = self.defaults[name][ICON_MAX_DIM].ConvertToImage()
+            img.Rescale(dim,dim)
             
-    def load_wxBitmap(self,permid, dim = ICON_MAX_DIM):
+            self.defaults[name][dim] = wx.BitmapFromImage(img,-1)
+        return self.defaults[name][dim]
+            
+    def load_wxBitmap(self, permid, dim = ICON_MAX_DIM):
         [_mimetype,data] = self.peer_db.getPeerIcon(permid)
         if data is None:
             return None
         else:
             return data2wxBitmap('image/jpeg',data, dim)
-
+        
+    def load_wxBitmapByPeerId(self, peerid, dim = ICON_MAX_DIM):
+        [_mimetype,data] = self.peer_db.getPeerIconByPeerId(peerid)
+        if data is None:
+            return None
+        else:
+            return data2wxBitmap('image/jpeg',data, dim)
 
 def data2wxImage(type,data,dim=ICON_MAX_DIM):
     try:
@@ -64,13 +79,13 @@ def data2wxImage(type,data,dim=ICON_MAX_DIM):
             im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
         else:
             im = wx.ImageFromStreamMime(mi,type)
-        
-        return im.Scale(dim,dim)
+            
+        im.Rescale(dim,dim)
+        return im 
     except:
         print >> sys.stderr, 'data2wxImage called (%s, %s)' % (`type`,`dim`)
         print_exc()
         return None
-        
 
 def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
     try:
@@ -85,4 +100,3 @@ def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
         print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (`type`,`dim`)
         print_exc()
         return None
-        

@@ -244,7 +244,7 @@ class ChannelFooter(ListFooter):
             
             buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
             buttonSizer.Add(self.spam)
-            buttonSizer.Add(wx.StaticText(self, -1, 'or'), wx.LEFT|wx.RIGHT|wx.ALIGN_CENTRE_VERTICAL, 3)
+            buttonSizer.Add(wx.StaticText(self, -1, 'or'), wx.LEFT|wx.RIGHT|wx.ALIGN_CENTRE_VERTICAL, 7)
             buttonSizer.Add(self.favorite)
             
             vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, 10)

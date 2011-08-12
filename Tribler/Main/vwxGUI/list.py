@@ -308,6 +308,7 @@ class List(XRCPanel):
         self.borders = borders
         self.showChange = showChange
         self.dirty = False
+        self.rawfilter = ''
         self.filter = ''
 
         self.id = 0
@@ -350,19 +351,6 @@ class List(XRCPanel):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
         self.ready = True
     
-    def format_time(self, val):
-        today = datetime.today()
-        discovered = datetime.fromtimestamp(val)
-        
-        diff = today - discovered
-        if diff.days > 0 or today.day != discovered.day:
-            return discovered.strftime('%d-%m-%Y')
-        return discovered.strftime('Today %H:%M')
-
-    def format_size(self, val):
-        size = (val/1048576.0)
-        return "%.0f MB"%size
-    
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns)
 
@@ -395,6 +383,7 @@ class List(XRCPanel):
         self.__check_thread()
 
         if self.ready:
+            self.rawfilter = ''
             self.filter = ''
             
             manager = self.GetManager()
@@ -550,26 +539,36 @@ class List(XRCPanel):
             print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
     
-    def OnFilter(self, keyword):
-        new_filter = keyword.lower().strip()
-        if new_filter != self.filter:
+    def GotFilter(self, keyword):
+        oldrawfilter = self.rawfilter
+        self.rawfilter = keyword.lower().strip()
+        
+        if self.rawfilter == '':
+            wx.CallAfter(self.list.SetFilter, None, None, False)
+            
+        else:
+            self.OnFilter(self.rawfilter)
             
             highlight = True
-            if new_filter == self.filter[:-1]:
+            if oldrawfilter[:-1] == self.rawfilter: #did the user simple remove 1 character?
                 highlight = False
             
-            try:
-                re.compile(new_filter)
-                self.header.FilterCorrect(True)
-                self.filter = new_filter
-                
-            except: #regex incorrect
-                self.header.FilterCorrect(False)
-                self.filter = ''
-                
             wx.CallAfter(self.list.SetFilter, self.MatchFilter, self.GetFilterMessage, highlight)
+        
+    def OnFilter(self, keyword):
+        self.filter = keyword
+        try:
+            re.compile(self.filter)
+            self.header.FilterCorrect(True)
+            
+        except: #regex incorrect
+            self.filter = ''
+            self.header.FilterCorrect(False)
+        
     
     def MatchFilter(self, item):
+        if self.filter == '':
+            return True
         return re.search(self.filter, item[1][0].lower())
     
     def GetFilterMessage(self, empty = False):
@@ -616,9 +615,6 @@ class SizeList(List):
                     minSize = maxSize = int(sizeStr)
                     
                 self.sizefilter = [minSize, maxSize]
-                
-                #Setting filter to make sure that this new filter is treated as one
-                self.filter = '_newfilter_'
                 new_filter = new_filter[:start - 5] + new_filter[end:]
             except:
                 pass
@@ -795,7 +791,7 @@ class SearchList(GenericSearchList):
         self.keywords = None
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
@@ -1240,8 +1236,6 @@ class LibaryList(SizeList):
                 if state in ['completed','active','stopped']: 
                     self.statefilter = state
                 
-                #Setting filter to make sure that this new filter is treated as one
-                self.filter = '_newfilter_'
                 new_filter = new_filter[:start - 6] + new_filter[end:]
             except:
                 pass
@@ -1268,7 +1262,7 @@ class ChannelList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': self.__favorite_icon, 'sortAsc': True}, \
-                   {'name':'Latest Update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'fmt': self.format_time}, \
+                   {'name':'Latest Update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'fmt': format_time}, \
                    {'type':'method', 'width': 75, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateTorrents, 'name':'Torrents'}]
         

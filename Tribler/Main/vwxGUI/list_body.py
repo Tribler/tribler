@@ -11,10 +11,13 @@ import re
 from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon
 
 from __init__ import *
+from Tribler.Main.vwxGUI.GuiUtility import warnWxThread
 
 DEBUG = False
 
 class ListItem(wx.Panel):
+    
+    @warnWxThread
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         wx.Panel.__init__(self, parent)
          
@@ -43,6 +46,7 @@ class ListItem(wx.Panel):
         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
         self.SetSizer(self.vSizer)
     
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         self.controls = []
         if leftSpacer > 0:
@@ -102,6 +106,7 @@ class ListItem(wx.Panel):
         
         self.AddEvents(self)
     
+    @warnWxThread
     def AddEvents(self, control):
         if getattr(control, 'GetWindow', False): #convert sizeritems
             control = control.GetWindow()
@@ -118,10 +123,12 @@ class ListItem(wx.Panel):
         if func:
             for child in func():
                 self.AddEvents(child)
-          
+    
+    @warnWxThread  
     def GetIcon(self, background, state):
         return NativeIcon.getInstance().getBitmap(self, self.icontype, background, state)
-        
+    
+    @warnWxThread
     def RefreshData(self, data):
         if isinstance(data[2], dict): #update original_data
             for key in data[2].keys():
@@ -186,7 +193,8 @@ class ListItem(wx.Panel):
         
         self.Thaw()
         self.data = data[1]
-        
+    
+    @warnWxThread
     def Highlight(self, timeout = 3.0):
         def removeHighlight():
             try:
@@ -201,7 +209,8 @@ class ListItem(wx.Panel):
             else:
                 self.highlightTimer.Restart(timeout * 1000)
             self.BackgroundColor(LIST_HIGHTLIGHT)
-         
+    
+    @warnWxThread    
     def ShowSelected(self):
         def IsSelected(control):
             if getattr(control, 'GetWindow', False): #convert sizeritems
@@ -223,6 +232,7 @@ class ListItem(wx.Panel):
         else:
             self.BackgroundColor(self.list_deselected)
     
+    @warnWxThread
     def BackgroundColor(self, color):
         if self.GetBackgroundColour() != color:
             self.Freeze()
@@ -246,6 +256,7 @@ class ListItem(wx.Panel):
             self.Refresh()
             self.Thaw()
     
+    @warnWxThread
     def Deselect(self):
         dirty = False
         if self.selected:
@@ -261,7 +272,8 @@ class ListItem(wx.Panel):
     
     def GetColumn(self, column):
         return self.data[column]
-
+    
+    @warnWxThread
     def OnMouse(self, event):
         if event.Entering():
             event.GetEventObject().selected = True
@@ -280,7 +292,8 @@ class ListItem(wx.Panel):
                 self.OnClick(event)
             
         event.Skip() #Allow windows to paint button hover
-        
+    
+    @warnWxThread
     def OnClick(self, event = None):
         if not self.expanded:
             if self.parent_list.OnExpand(self):
@@ -294,7 +307,8 @@ class ListItem(wx.Panel):
             
             if getattr(self, 'expandedState', False):
                 self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 0))
-        
+    
+    @warnWxThread
     def Expand(self, panel):
         self.expandedPanel = panel
         
@@ -309,6 +323,7 @@ class ListItem(wx.Panel):
     def GetExpandedPanel(self):
         return self.expandedPanel
 
+    @warnWxThread
     def Collapse(self):
         if self.expanded:
             self.expanded = False
@@ -325,6 +340,8 @@ class ListItem(wx.Panel):
         return "ListItem" + " ".join(map(str, self.data))
         
 class AbstractListBody():
+    
+    @warnWxThread
     def __init__(self, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None, hasFilter = True):
         self.columns = columns
         self.leftSpacer = leftSpacer
@@ -392,10 +409,12 @@ class AbstractListBody():
         # Allow list-items to store the most recent mouse left-down events:
         self.lastMouseLeftDownEvent = None
     
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, wx.WHITE)
         self.listpanel.SetBackgroundColour(colour)
     
+    @warnWxThread
     def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED):
         if font:
             self.SetFont(font)
@@ -403,7 +422,8 @@ class AbstractListBody():
             self.SetForegroundColour(foregroundcolour)
 
         self.list_selected = list_selected
-        
+
+    @warnWxThread        
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
         
@@ -447,8 +467,8 @@ class AbstractListBody():
         
         self.Scroll(-1, 0)
         self.SetData(highlight = highlight)
-
     
+    @warnWxThread
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
         
@@ -465,6 +485,7 @@ class AbstractListBody():
         self.Thaw()
         return panel
     
+    @warnWxThread
     def OnCollapse(self, item = None, onchange = True):
         self.Freeze()
         
@@ -479,7 +500,8 @@ class AbstractListBody():
         if onchange:
             self.OnChange()
         self.Thaw()
-        
+    
+    @warnWxThread
     def OnChange(self, scrollToTop = False):
         self.Freeze()
         
@@ -504,6 +526,7 @@ class AbstractListBody():
             
         self.Thaw()
     
+    @warnWxThread
     def Reset(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: reset"
@@ -531,18 +554,21 @@ class AbstractListBody():
     
     def InList(self, key):
         return key in self.items
-
+    
+    @warnWxThread
     def ScrollToEnd(self, scroll_to_end):
         if scroll_to_end:
             self.Scroll(-1, self.vSizer.GetSize()[1])
         else:
             self.Scroll(-1, 0)
-            
+        
+    @warnWxThread
     def ScrollToId(self, id):
         if id in self.items:
             sy = self.items[id].GetPosition()[1] / self.GetScrollPixelsPerUnit()[1]
             self.Scroll(-1, sy)
-
+    
+    @warnWxThread
     def ShowMessage(self, message):
         if not self.messagePanel.IsShown():
             self.Freeze()
@@ -562,14 +588,16 @@ class AbstractListBody():
             self.messageText.SetLabel(message)
             self.messagePanel.Layout()
     
+    @warnWxThread
     def ShowLoading(self):
         self.ShowMessage('Loading, please wait.')
-        #Try to yield, allows us to show loading text
-        try:
-            wx.Yield()
-        except:
-            pass
+#        #Try to yield, allows us to show loading text
+#        try:
+#            wx.Yield()
+#        except:
+#            pass
     
+    @warnWxThread
     def RefreshData(self, key, data):
         if key in self.items:
             if DEBUG:
@@ -584,6 +612,7 @@ class AbstractListBody():
                 
                 panel.RefreshData(data)
     
+    @warnWxThread
     def SetData(self, data = None, highlight = True):
         if DEBUG:
             print >> sys.stderr, "ListBody: new data", time()
@@ -619,8 +648,6 @@ class AbstractListBody():
         
         self.Freeze()
         
-        message = ''
-        
         #apply quickfilter
         if self.filter:
             data = filter(self.filter, self.raw_data)
@@ -628,9 +655,6 @@ class AbstractListBody():
                 self.parent_list.SetFilteredResults(len(data))
             else:
                 self.parent_list.SetFilteredResults(None)
-
-            if len(data) == 0:
-                message = self.filterMessage(empty = True) + '.'
         else:
             self.parent_list.SetFilteredResults(None)
             data = self.raw_data
@@ -664,8 +688,8 @@ class AbstractListBody():
             except:
                 pass
             
-        elif message != '':
-            self.ShowMessage(message)
+        elif self.filter:
+            self.ShowMessage(self.filterMessage(empty = True) + '.')
         
         if self.done:
             self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
@@ -673,7 +697,7 @@ class AbstractListBody():
             self.Bind(wx.EVT_IDLE, self.OnIdle)
         
         self.Thaw()
-        
+    
     def OnIdle(self, event):
         if not self.done and self.data:
             self.CreateItems()
@@ -691,6 +715,7 @@ class AbstractListBody():
         self.loadNext.Disable()
         wx.CallAfter(self.CreateItems, sys.maxint, sys.maxint)
 
+    @warnWxThread
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = None):
         if not nr_items_to_add:
             nr_items_to_add = self.list_item_max
@@ -755,7 +780,7 @@ class AbstractListBody():
                     self.loadNext.Show()
                 break
        
-        if message != '':
+        if len(message) > 12:
             self.messageText.SetLabel(message)
             
             self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
@@ -768,10 +793,11 @@ class AbstractListBody():
         self.done = done
         if DEBUG:
             print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1, "done:", self.done
-        
+    
     def GetItem(self, key):
         return self.items[key]
-       
+    
+    @warnWxThread   
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
             if item == remove:
@@ -789,6 +815,7 @@ class AbstractListBody():
     def GetExpandedItems(self):
         return [(key, item) for key, item in self.items.iteritems() if item.expanded]
     
+    @warnWxThread
     def Select(self, key, raise_event = True):
         self.DeselectAll()
         
@@ -801,6 +828,7 @@ class AbstractListBody():
                 
             self.items[key].ShowSelected()
     
+    @warnWxThread
     def DeselectAll(self):
         for _, item in self.items.iteritems():
             item.Deselect()

@@ -1003,32 +1003,32 @@ class ChannelSearchGridManager:
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
     
-    def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, keys)
+    def getTorrentFromChannelId(self, channel_id, infohash):
+        data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, CHANNEL_REQ_COLUMNS)
         return self._createTorrent(data)
 
-    def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
-        data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, keys) 
+    def getTorrentFromChannelTorrentId(self, channeltorrent_id):
+        data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS) 
         return self._createTorrent(data)
     
-    def getTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys, limit)
+    def getTorrentsFromChannelId(self, channel_id, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents)
     
-    def getRecentTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getRecentTorrentsFromChannelId(channel_id, keys, limit)
+    def getRecentTorrentsFromChannelId(self, channel_id, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getRecentTorrentsFromChannelId(channel_id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents)
 
-    def getTorrentsNotInPlaylist(self, channel_id, keys, filterTorrents = True):
-        hits = self.channelcast_db.getTorrentsNotInPlaylist(channel_id, keys)
+    def getTorrentsNotInPlaylist(self, channel_id, filterTorrents = True):
+        hits = self.channelcast_db.getTorrentsNotInPlaylist(channel_id, CHANNEL_REQ_COLUMNS)
         return self._createTorrents(hits, filterTorrents)
     
-    def getTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getTorrentsFromPlaylist(playlist_id, keys, limit)
+    def getTorrentsFromPlaylist(self, playlist_id, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getTorrentsFromPlaylist(playlist_id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents)
     
-    def getRecentTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist_id, keys, limit)
+    def getRecentTorrentsFromPlaylist(self, playlist_id,  filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist_id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents)
     
     def _createTorrent(self, tuple):
@@ -1050,12 +1050,12 @@ class ChannelSearchGridManager:
         data = self.channelcast_db.getTorrentModifications(channeltorrent_id)
         return self._createModifications(data)
     
-    def getRecentModificationsFromChannelId(self, channel_id, keys, filterTorrents = True, limit = None):
-        data = self.channelcast_db.getRecentModificationsFromChannelId(channel_id, keys, limit)
+    def getRecentModificationsFromChannelId(self, channel_id, filterTorrents = True, limit = None):
+        data = self.channelcast_db.getRecentModificationsFromChannelId(channel_id, MODIFICATION_REQ_COLUMNS, limit)
         return self._createModifications(data)
 
-    def getRecentModificationsFromPlaylist(self, playlist_id, keys, filterTorrents = True, limit = None):
-        data = self.channelcast_db.getRecentModificationsFromPlaylist(playlist_id, keys, limit)
+    def getRecentModificationsFromPlaylist(self, playlist_id, filterTorrents = True, limit = None):
+        data = self.channelcast_db.getRecentModificationsFromPlaylist(playlist_id, MODIFICATION_REQ_COLUMNS, limit)
         return self._createModifications(data)
 
     def _createModifications(self, hits):
@@ -1067,16 +1067,16 @@ class ChannelSearchGridManager:
             
         return returnList
     
-    def getCommentsFromChannelId(self, channel_id, keys, limit = None, resolve_names = True):
-        hits = self.channelcast_db.getCommentsFromChannelId(channel_id, keys, limit)
+    def getCommentsFromChannelId(self, channel_id, limit = None, resolve_names = True):
+        hits = self.channelcast_db.getCommentsFromChannelId(channel_id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits)
 
-    def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
-        hits = self.channelcast_db.getCommentsFromPlayListId(playlist_id, keys, limit)
+    def getCommentsFromPlayListId(self, playlist_id, limit = None):
+        hits = self.channelcast_db.getCommentsFromPlayListId(playlist_id, COMMENTPLAY_REQ_COLUMNS, limit)
         return self._createComments(hits)
             
-    def getCommentsFromChannelTorrentId(self, channel_torrent_id, keys, limit = None):
-        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent_id, keys, limit)
+    def getCommentsFromChannelTorrentId(self, channel_torrent_id, limit = None):
+        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent_id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits)
         
     def _createComments(self, hits):
@@ -1084,6 +1084,8 @@ class ChannelSearchGridManager:
         for hit in hits:
             comment = Comment(*hit)
             comment.get_nickname = self.utility.session.get_nickname
+            comment.get_mugshot = self.utility.session.get_mugshot
+            
             returnList.append(comment)
             
         return returnList
@@ -1173,8 +1175,7 @@ class ChannelSearchGridManager:
     def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
         infohash = None
         if channeltorrent_id:
-            infohash_dict = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash'])
-            infohash = infohash_dict['infohash'] 
+            infohash = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash'])
         
         def dispersy_thread():
             community = self._disp_get_community_from_channel_id(channel_id)

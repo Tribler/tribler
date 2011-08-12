@@ -17,12 +17,46 @@ from Tribler.Core.dispersy.member import MyMember
 
 from message import DelayMessageReqChannelMessage
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from threading import currentThread, Event
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
     from lencoder import log
-    
-    
+
+_register_task = None
+
+def forceDispersyThread(func):
+    def invoke_func(*args,**kwargs):
+        if not currentThread().getName()== 'Dispersy':
+            def dispersy_thread():
+                func(*args, **kwargs)
+            _register_task(dispersy_thread)
+        else:
+            func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forceAndReturnDispersyThread(func):
+    def invoke_func(*args,**kwargs):
+        if not currentThread().getName()== 'Dispersy':
+            event = Event()
+            
+            result = None
+            def dispersy_thread():
+                result = func(*args, **kwargs)
+                event.set()
+                
+            _register_task(dispersy_thread)
+            event.wait()
+            
+            return result
+        else:
+            return func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
 class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
@@ -66,8 +100,9 @@ class ChannelCommunity(Community):
                     self._channel_id = self._cid
             except:
                 pass
-            
-        self._register_task = self._dispersy.callback.register
+        
+        global _register_task
+        _register_task = self._dispersy.callback.register
 
     def initiate_meta_messages(self):
         if self.integrate_with_tribler:
@@ -306,22 +341,21 @@ class ChannelCommunity(Community):
             startWorker(None, self._channelcast_db.on_playlist_from_dispersy, wargs = (self._channel_id, dispersy_id, message.payload.name, message.payload.description))
 
     #create, check or receive comments
+    @forceDispersyThread
     def create_comment(self, text, timestamp, reply_to, reply_after, playlist_id, infohash, store=True, update=True, forward=True):
-        def dispersy_thread():
-            reply_to_message = reply_to
-            reply_after_message = reply_after
-            playlist_message = playlist_id
-            
-            if reply_to:
-                reply_to_message = self._get_message_from_dispersy_id(reply_to, 'comment')
-            if reply_after:
-                reply_after_message = self._get_message_from_dispersy_id(reply_after, 'comment')
-            if playlist_id:
-                playlist_message = self._get_message_from_playlist_id(playlist_id)
-            self._disp_create_comment(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store, update, forward)
-    
-        self._register_task(dispersy_thread)
+        reply_to_message = reply_to
+        reply_after_message = reply_after
+        playlist_message = playlist_id
+        
+        if reply_to:
+            reply_to_message = self._get_message_from_dispersy_id(reply_to, 'comment')
+        if reply_after:
+            reply_after_message = self._get_message_from_dispersy_id(reply_after, 'comment')
+        if playlist_id:
+            playlist_message = self._get_message_from_playlist_id(playlist_id)
+        self._disp_create_comment(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store, update, forward)
 
+    @forceDispersyThread
     def _disp_create_comment(self, text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store=True, update=True, forward=True):
         reply_to_mid = None
         reply_to_global_time = None
@@ -387,6 +421,7 @@ class ChannelCommunity(Community):
             startWorker(None, self._channelcast_db.on_comment_from_dispersy, wargs = (self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash))
         
     #modify channel, playlist or torrent
+    @forceDispersyThread
     def modifyChannel(self, modifications, store=True, update=True, forward=True):
         def db_callback():
             latest_modifications = {}
@@ -399,15 +434,13 @@ class ChannelCommunity(Community):
         latest_modifications = startWorker(None, db_callback)
         latest_modifications = latest_modifications.get()
         
-        def dispersy_thread():
-            modification_on_message = self._get_latest_channel_message()
+        modification_on_message = self._get_latest_channel_message()
             
-            for type, value in modifications.iteritems():
-                type = unicode(type)
-                self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
-        
-        self._register_task(dispersy_thread)
-        
+        for type, value in modifications.iteritems():
+            type = unicode(type)
+            self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
+    
+    @forceDispersyThread
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
         def db_callback():
             latest_modifications = {}
@@ -420,14 +453,10 @@ class ChannelCommunity(Community):
         latest_modifications = startWorker(None, db_callback)
         latest_modifications = latest_modifications.get()
         
-        def dispersy_thread():
-            modification_on_message = self._get_message_from_playlist_id(playlist_id)
-            
-            for type, value in modifications.iteritems():
-                type = unicode(type)
-                self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
-
-        self._register_task(dispersy_thread)
+        modification_on_message = self._get_message_from_playlist_id(playlist_id)
+        for type, value in modifications.iteritems():
+            type = unicode(type)
+            self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
     
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
         def db_callback():
@@ -575,12 +604,10 @@ class ChannelCommunity(Community):
             self._dispersy._send([message.address], [channelmessage.packet])
             
     #check or receive warning messages
+    @forceDispersyThread
     def create_warning(self, text, timestamp, cause, store=True, update=True, forward=True):
-        def dispersy_thread():
-            cause = self._get_message_from_dispersy_id(cause)
-            self._disp_create_warning(text, timestamp, cause, store, update, forward)
-            
-        self._register_task(dispersy_thread)
+        cause = self._get_message_from_dispersy_id(cause)
+        self._disp_create_warning(text, timestamp, cause, store, update, forward)
     
     def _disp_create_warning(self, text, timestamp, cause, store=True, update=True, forward=True):
         message = cause.load_message()
@@ -629,11 +656,9 @@ class ChannelCommunity(Community):
             startWorker(None, self._channelcast_db.on_warning, wargs = (self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp))
             
     #check or receive torrent_mark messages
+    @forceDispersyThread
     def create_mark_torrent(self, infohash, type,  timestamp, store=True, update=True, forward=True):
-        def dispersy_thread():
-            self._disp_create_mark_torrent(infohash, type, timestamp, store, update, forward)
-            
-        self._register_task(dispersy_thread)
+        self._disp_create_mark_torrent(infohash, type, timestamp, store, update, forward)
     
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")
@@ -667,6 +692,7 @@ class ChannelCommunity(Community):
             startWorker(None, self._channelcast_db.on_mark_torrent, wargs = (self._channel_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp))
             
     #helper functions
+    @forceAndReturnDispersyThread
     def _get_latest_channel_message(self):
         # 1. get the packet
         try:
@@ -707,7 +733,7 @@ class ChannelCommunity(Community):
 
         # 1. get the dispersy identifier from the channel_id
         delayedResult = startWorker(None, self._channelcast_db.getTorrentFromChannelTorrentId, wargs = (torrent_id, ['dispersy_id']))
-        dispersy_id = delayedResult.get()['dispersy_id']
+        dispersy_id = delayedResult.get()
         
         # 2. get the message
         message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
@@ -740,6 +766,7 @@ class ChannelCommunity(Community):
         dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? ORDER BY prev_global_time DESC", (type_id, playlist_id))
         return self._determine_latest_modification(dispersy_ids)
         
+    @forceAndReturnDispersyThread
     def _determine_latest_modification(self, list):
         
         if len(list) > 0:
@@ -774,7 +801,8 @@ class ChannelCommunity(Community):
             if len(conflicting_messages) > 0:
                 # 4. return first message
                 return conflicting_messages[0]
-        
+    
+    @forceAndReturnDispersyThread
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:

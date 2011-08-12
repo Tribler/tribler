@@ -12,6 +12,7 @@ from list_body import *
 from list_details import *
 from __init__ import *
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 
 DEBUG = False
 
@@ -52,7 +53,7 @@ class ChannelManager():
             self.list.dirty = False
             
             nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
-            total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id, CHANNEL_REQ_COLUMNS)
+            total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id)
             return total_items, nrfiltered, torrentList, playlists
         
         startWorker(self._on_data, db_callback, jobID = "ChannelManager_refresh_list")
@@ -81,7 +82,7 @@ class ChannelManager():
         
     def _refresh_partial(self, infohashes):
         for infohash in infohashes:
-            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelId, cargs=(infohash,), wargs=(self.list.id, infohash, CHANNEL_REQ_COLUMNS))
+            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelId, cargs=(infohash,), wargs=(self.list.id, infohash))
         
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -115,8 +116,8 @@ class SelectedChannelList(GenericSearchList):
         self.title = None
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}, \
-                   {'name':'Size', 'width':  '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
+                   {'name':'Size', 'width':  '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
@@ -218,8 +219,8 @@ class SelectedChannelList(GenericSearchList):
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
         else:
-            for i in range(1, self.notebook.GetPageCount()):
-                self.notebook.RemovePage(i)
+            for i in range(self.notebook.GetPageCount(), 1, -1):
+                self.notebook.RemovePage(i-1)
         
     def SetTitle(self, title, description):
         if title != self.title:
@@ -294,9 +295,9 @@ class SelectedChannelList(GenericSearchList):
             self.guiutility.showPlaylist(item.original_data)
             return False
         
-        panel = GenericSearchList.OnExpand(self, item)
-        panel.ShowChannelAd(False)
-        return panel
+        item.button.Hide()
+        item.button.Refresh()
+        return TorrentDetails(item, item.original_data, noChannel = True)
 
     def OnCollapse(self, item, panel):
         if not isinstance(item, PlaylistItem):
@@ -313,7 +314,7 @@ class SelectedChannelList(GenericSearchList):
     def OnSaveTorrent(self, panel):
         changes = panel.GetChanged()
         if len(changes)>0:
-            self.channelsearch_manager.modifyTorrent(self.id, panel.torrent['ChannelTorrents.id'], changes)
+            self.channelsearch_manager.modifyTorrent(self.id, panel.torrent.channeltorrent_id, changes)
             panel.Saved()
             
     def OnRemoveVote(self, event):
@@ -439,7 +440,7 @@ class PlaylistManager():
     def _refresh_list(self):
         def db_call():
             self.list.dirty = False
-            self.channelsearch_manager.getTorrentsFromPlaylist(self.list.id, CHANNEL_REQ_COLUMNS)
+            self.channelsearch_manager.getTorrentsFromPlaylist(self.list.id)
             
         startWorker(self._on_data, db_call)
         
@@ -525,7 +526,7 @@ class ManageChannelFilesManager():
     def _refresh(self):
         def db_call():
             self.list.dirty = False
-            return self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, CHANNEL_REQ_COLUMNS, filterTorrents = False)
+            return self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, filterTorrents = False)
         
         startWorker(self._on_data, db_call)
         
@@ -591,12 +592,12 @@ class ManageChannelPlaylistsManager():
             self.list.dirty = True
     
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannelId, wargs = (self.list.id, CHANNEL_REQ_COLUMNS), wkwargs = {'filterTorrents' : False})
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannelId, wargs = (self.list.id,), wkwargs = {'filterTorrents' : False})
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
         
     def GetTorrentsFromPlaylist(self, playlist_id):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist_id, CHANNEL_REQ_COLUMNS), wkwargs = {'filterTorrents' : False})
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist_id,), wkwargs = {'filterTorrents' : False})
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
     
@@ -955,7 +956,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
 class ManageChannelFilesList(List):
     def __init__(self, parent):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
-                   {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}]
+                   {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}]
    
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
     
@@ -1193,6 +1194,121 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         self._filterAvailable(dlg)
 
+class AvantarItem(ListItem):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
+        self.header = ''
+        self.body = ''
+        self.avantar = None
+        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+    
+    def AddComponents(self, leftSpacer, rightSpacer):
+        titleRow = wx.BoxSizer(wx.HORIZONTAL)
+        if leftSpacer > 0:
+            titleRow.AddSpacer((leftSpacer, -1))
+        
+        if self.avantar:
+            titleRow.Add(wx.StaticBitmap(self, bitmap = self.avantar), 0, wx.RIGHT, 7)
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        header = wx.StaticText(self, -1, self.header)
+        _set_font(header, -1, wx.FONTWEIGHT_BOLD)
+        
+        #as body can be indefinitely large, we limit the string here
+        def find_nth(haystack, needle, n):
+            start = haystack.find(needle)
+            while start >= 0 and n > 1:
+                start = haystack.find(needle, start+len(needle))
+                n -= 1
+            return start
+        
+        #find 6th line or break at 600 characters
+        breakAt = find_nth(self.body, '\n', 6)
+        if breakAt != -1:
+            breakAt = min(breakAt, 600)
+        else:
+            breakAt = 600
+            
+        self.desc = wx.StaticText(self, -1, self.body[:breakAt], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+        vSizer.Add(header, 0, wx.EXPAND)
+        vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
+        vSizer.Add(self.desc, 0, wx.EXPAND)
+        
+        if len(self.body) > breakAt:
+            self.expand = wx.Button(self, -1, "Click to view full item")
+            self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
+            vSizer.Add(self.expand, 0, wx.ALIGN_RIGHT)
+        
+        titleRow.Add(vSizer, 1)
+        
+        if rightSpacer > 0:
+            titleRow.AddSpacer((rightSpacer, -1))
+        self.vSizer.Add(titleRow, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
+        self.AddEvents(self)
+    
+    def OnFull(self, event):
+        self.desc.SetLabel(self.body)
+        self.expand.Show(False)
+        self.parent_list.OnChange()
+        
+class CommentItem(AvantarItem):
+    
+    def AddComponents(self, leftSpacer, rightSpacer):
+        comment = self.original_data
+        self.header = "Posted %s by %s"%(format_time(comment.time_stamp).lower(), comment.name)
+        self.body = comment.comment
+        self.avantar = comment.avantar
+        
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+class CommentActivityItem(AvantarItem):
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        comment = self.original_data
+        self.header = "New comment received %s, posted by %s"%(format_time(comment.time_stamp).lower(), comment.name)
+        self.body = comment.comment
+        self.avantar = comment.avantar
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('COMMENT', SMALL_ICON_MAX_DIM)
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+
+class NewTorrentActivityItem(AvantarItem):
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        torrent = self.original_data
+        
+        self.header = "New torrent received %s"%(format_time(torrent.time_stamp).lower())
+        self.body = torrent.name
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('TORRENT_NEW', SMALL_ICON_MAX_DIM)
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+
+class TorrentActivityItem(AvantarItem):
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        torrent = self.original_data
+        
+        self.header = "Discovered a torrent %s, injected at %s"%(format_time(torrent.inserted).lower(), format_time(torrent.time_stamp).lower())
+        self.body = torrent.name
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('TORRENT', SMALL_ICON_MAX_DIM)
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+class ModificationActivityItem(AvantarItem):
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        modification = self.original_data
+
+        self.header = "Discovered a modification %s"%(format_time(modification.inserted).lower())
+        self.body = "Modified %s in '%s'"%(modification.name, modification.value)
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+
 class CommentManager:
     def __init__(self, list):
         self.list = list
@@ -1230,22 +1346,22 @@ class CommentManager:
             self.list.dirty = False
             
             if self.playlist_id:
-                return self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS)
+                return self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id)
             elif self.channeltorrent_id:
-                return self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id, COMMENT_REQ_COLUMNS)
+                return self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id)
             else:
-                return self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS)
+                return self.channelsearch_manager.getCommentsFromChannelId(self.channel_id)
         
         startWorker(self.list.SetDelayedData, db_callback)    
        
     def getNrComments(self):
         def db_callback():
             if self.playlist_id:
-                return len(self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS))
+                return len(self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id))
             elif self.channeltorrent_id:
-                return len(self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id, COMMENT_REQ_COLUMNS))
+                return len(self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id))
             else:
-                return len(self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS))
+                return len(self.channelsearch_manager.getCommentsFromChannelId(self.channel_id))
         
         total_items = startWorker(None, db_callback, jobID = "getNrComments")
         total_items = total_items.get()
@@ -1256,7 +1372,7 @@ class CommentManager:
         
         items = self.list.GetItems().values()
         if len(items) > 0:
-            reply_after = items[-1].original_data['dispersy_id']
+            reply_after = items[-1].original_data.dispersy_id
         
         def db_callback():
             if self.playlist_id:
@@ -1291,7 +1407,7 @@ class CommentList(List):
     def SetData(self, data):
         List.SetData(self, data)
         
-        data = [(comment.id,[comment.name, comment.comment, self.format_time(comment.time_stamp)], comment, CommentItem) for comment in data]
+        data = [(comment.id,[], comment, CommentItem) for comment in data]
         if len(data) > 0:
             self.list.SetData(data)
         else:
@@ -1316,33 +1432,6 @@ class CommentList(List):
     def OnThankYou(self, event):
         self.GetManager().addComment(u'Thanks for uploading')
         self.footer.SetComment('')
-
-class CommentItem(ListItem):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
-        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
-        
-    def AddComponents(self, leftSpacer, rightSpacer):
-        titleRow = wx.BoxSizer(wx.HORIZONTAL)
-        if leftSpacer > 0:
-            titleRow.AddSpacer((leftSpacer, -1))
-        
-        title = "Posted %s by %s"%(self.data[2].lower(), self.original_data.name)
-        if self.original_data.get('torrent_name'):
-            title += ' in %s'%self.original_data.torrent_name
-        elif self.original_data.get('playlist_name'):
-            title += ' in %s'%self.original_data.playlist_name
-        
-        title = wx.StaticText(self, -1, title)
-        titleRow.Add(title)
-
-        if rightSpacer > 0:
-            titleRow.AddSpacer((rightSpacer, -1))
-        self.vSizer.Add(titleRow, 0, wx.EXPAND)
-        self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
-        self.desc.SetMinSize((1, -1))
-        self.hSizer.AddSpacer((40, -1))
-        self.hSizer.Add(self.desc, 1, wx.ALL, 3)
-        self.AddEvents(self)
 
 class ActivityManager:
     def __init__(self, list):
@@ -1374,15 +1463,15 @@ class ActivityManager:
             self.list.dirty = False
             
             if self.playlist_id:
-                commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, COMMENT_REQ_COLUMNS, limit = 10)
-                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS, limit = 10)
-                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, CHANNEL_REQ_COLUMNS, limit = 10)
-                recentModifications = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, MODIFICATION_REQ_COLUMNS  + ['inserted'], limit = 10)
+                commentList = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist_id, limit = 10)
+                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist_id, limit = 10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, limit = 10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist_id, limit = 10)
             else:
-                commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, COMMENT_REQ_COLUMNS, limit = 10)
-                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS, limit = 10)
-                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, CHANNEL_REQ_COLUMNS, limit = 10)
-                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannelId(self.channel_id, MODIFICATION_REQ_COLUMNS + ['inserted'], limit = 10)
+                commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, limit = 10)
+                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, limit = 10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, limit = 10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannelId(self.channel_id, limit = 10)
                 
             return commentList, torrentList, recentTorrentList, recentModifications
         startWorker(self._on_data, db_callback)
@@ -1410,23 +1499,16 @@ class ActivityList(List):
     
     def SetData(self, comments, torrents, recent_torrents, recent_modifications):
         List.SetData(self, torrents)
-        def genCommentActivity(comment):
-            return "new comment received", self.format_time(comment.time_stamp), comment.name + "  " + comment.comment
         
-        def genNewTorrentActivity(torrent):
-            return "new torrent received", self.format_time(torrent.time_stamp), torrent.name
-    
-        def genTorrentActivity(torrent):
-            return "discovered a torrent", self.format_time(torrent.inserted), torrent.name
-    
-        def genModificationActivity(modification):
-            return "discovered a modification", self.format_time(modification.inserted), "modified %s in '%s'"%(modification.name, modification.value)
+        #remove duplicates
+        recent_torrent_infohashes = set([torrent.infohash for torrent in recent_torrents])
+        torrents = [torrent for torrent in torrents if torrent.infohash not in recent_torrent_infohashes]
         
-        #first element must be timestamp, allows for easy sorting 
-        data =  [(comment.time_stamp, (comment.id, genCommentActivity(comment), comment, ActivityItem)) for comment in comments]
-        data += [(file.time_stamp, (file.infohash, genNewTorrentActivity(file), file, ActivityItem)) for file in torrents]
-        data += [(file.inserted, (file.infohash, genTorrentActivity(file), file, ActivityItem)) for file in recent_torrents]
-        data += [(modification.inserted, (modification.id, genModificationActivity(modification), modification, ActivityItem)) for modification in recent_modifications]
+        #first element must be timestamp, allows for easy sorting
+        data =  [(comment.time_stamp, ("COMMENT_%d"%comment.id, (), comment, CommentActivityItem)) for comment in comments]
+        data += [(torrent.time_stamp, (torrent.infohash, (), torrent, NewTorrentActivityItem)) for torrent in recent_torrents]
+        data += [(torrent.inserted, (torrent.infohash, (), torrent, TorrentActivityItem)) for torrent in torrents]
+        data += [(modification.inserted, ("MODIFICATION_%d"%modification.id, (), modification, ModificationActivityItem)) for modification in recent_modifications]
         data.sort(reverse = True)
         
         #removing timestamp
@@ -1439,24 +1521,6 @@ class ActivityList(List):
     def OnExpand(self, item):
         if 'infohash' in item.original_data: #is this a torrent?
             self.parent_list.Select(item.original_data.infohash)
-    
-class ActivityItem(ListItem):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
-        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
-        
-    def AddComponents(self, leftSpacer, rightSpacer):
-        titleRow = wx.BoxSizer(wx.HORIZONTAL)
-        if leftSpacer > 0:
-            titleRow.AddSpacer((leftSpacer, -1))
-        
-        titleRow.Add(wx.StaticText(self, -1, self.data[1] + " : " +self.data[0].capitalize()))
-
-        if rightSpacer > 0:
-            titleRow.AddSpacer((rightSpacer, -1))
-        self.vSizer.Add(titleRow, 0, wx.EXPAND|wx.TOP, 3)
-        self.hSizer.AddSpacer((40, -1))
-        self.hSizer.Add(wx.StaticText(self, -1, self.data[2]), 0, wx.BOTTOM, 3)
-        self.AddEvents(self)
 
 class ModificationManager:
     def __init__(self, list):
@@ -1503,7 +1567,7 @@ class ModificationList(List):
     
     def SetData(self, data):
         List.SetData(self, data)
-        data = [(modification.id, [modification.name, modification.value, self.format_time(modification.inserted)], modification, ModificationItem) for modification in data]
+        data = [(modification.id, [modification.name, modification.value, format_time(modification.inserted)], modification, ModificationItem) for modification in data]
         
         if len(data) > 0:
             self.list.SetData(data)

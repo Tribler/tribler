@@ -1,14 +1,14 @@
 #Niels: getValidArgs nased on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import sys
-from inspect import getargspec
-import functools
-from Tribler.Video.utils import videoextdefaults
 import os.path
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, COMMENT_REQ_COLUMNS
-from collections import namedtuple
-from Tribler.Core.CacheDB.sqlitecachedb import safenamedtuple
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING,\
-    DLSTATUS_STOPPED
+import functools
+from inspect import getargspec, isfunction, ismethod
+
+from Tribler.Video.utils import videoextdefaults
+from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
+from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager,\
+    SMALL_ICON_MAX_DIM
 
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
@@ -66,6 +66,7 @@ def cacheProperty(func):
     return property(_get, None, _del)
 
 class Helper(object):
+    __slots__ = ('_cache')
     def get(self, key, default = None):
         return getattr(self, key, default)
     
@@ -148,12 +149,10 @@ class RemoteTorrent(Torrent):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel_id, channel_permid, channel_name, subscriptions, neg_votes)
         self.query_permids = query_permids
 
-class CollectedTorrent(Torrent):
-    __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check')
+class CollectedTorrent:
+    __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check', 'torrent')
     def __init__(self, torrent, torrentdef):
-        Torrent.__init__(self, torrent.torrent_id, torrent.infohash, torrent.name, torrent.length, torrent.category_id, torrent.status_id, torrent.num_seeders, torrent.num_leechers, torrent.channel_id, torrent.channel_permid, torrent.channel_name, torrent.channel_posvotes, torrent.channel_negvotes)
-        self.torrent_db = torrent.torrent_db
-        self.ds = torrent.ds
+        self.torrent = torrent
         
         self.comment = torrentdef.get_comment_as_unicode()
         if torrentdef.get_tracker_hierarchy():
@@ -163,6 +162,13 @@ class CollectedTorrent(Torrent):
         self.creation_date = torrentdef.get_creation_date()
         self.files = torrentdef.get_files_as_unicode_with_length()
         self.last_check = -1
+        
+    def __getattr__(self, name):
+        if hasattr(self.torrent, name):
+            func = getattr(self.torrent, name)
+        else:
+            func = getattr(self, name)
+        return func
     
     @cacheProperty
     def swarminfo(self):
@@ -207,10 +213,7 @@ class CollectedTorrent(Torrent):
     
 class NotCollectedTorrent(CollectedTorrent):
     def __init__(self, torrent, files, trackers):
-        Torrent.__init__(self, torrent.torrent_id, torrent.infohash, torrent.name, torrent.length, torrent.category_id, torrent.status_id, torrent.num_seeders, torrent.num_leechers, torrent.channel_id, torrent.channel_permid, torrent.channel_name, torrent.channel_posvotes, torrent.channel_negvotes)
-        self.torrent_db = torrent.torrent_db
-        self.ds = torrent.ds
-        
+        self.torrent = torrent
         self.comment = None
         self.trackers = trackers
         self.creation_date = -1
@@ -305,12 +308,13 @@ class Channel(Helper):
         return self.nr_torrents == 0
         
 class Comment(Helper):
-    __slots__ = ('id', 'dispersy_id', 'playlist_id', 'channeltorrent_id', 'name', 'peer_id', 'comment', 'time_stamp')
+    __slots__ = ('id', 'dispersy_id', 'playlist_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'time_stamp', 'get_nickname', 'get_mugshot')
     def __init__(self, id, dispersy_id, playlist_id, channeltorrent_id, name, peer_id, comment, time_stamp):
         self.id = id
         self.dispersy_id = dispersy_id
         self.playlist_id = playlist_id
         self.channeltorrent_id = channeltorrent_id
+        
         self._name = name
         self.peer_id = peer_id
         self.comment = comment
@@ -324,6 +328,21 @@ class Comment(Helper):
             return 'Peer %d'%self.peer_id
         return self._name
     
+    @cacheProperty
+    def avantar(self):
+        im = IconsManager.getInstance()
+        
+        if self.peer_id == None:
+            mime, data = self.get_mugshot()
+            if data:
+                data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
+        else:
+            data = im.load_wxBitmapByPeerId(self.peer_id, SMALL_ICON_MAX_DIM)
+
+        if data is None:
+            data = im.get_default('PEER_THUMB',SMALL_ICON_MAX_DIM)
+        return data
+                
 class Modification(Helper):
     __slots__ = ('id', 'type_id', 'value', 'inserted', 'channelcast_db')
     def __init__(self, id, type_id, value, inserted):
