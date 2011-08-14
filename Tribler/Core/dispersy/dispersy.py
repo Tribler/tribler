@@ -1573,10 +1573,7 @@ class Dispersy(Singleton):
             for score, iterator in groupby(sorted(candidates, key=sorting_key, reverse=True), key=sorting_key):
                 candidates = [candidate for _, candidate in iterator]
                 shuffle(candidates)
-
-                if __debug__:
-                    if len(candidates) > 1:
-                        dprint("randomized ", len(candidates), " candidates with score ", score)
+                if __debug__: dprint("shuffled ", len(candidates), " candidates with score ", score)
 
                 for candidate in candidates:
                     # TODO: we should perform the unique check before creating the candidate object
