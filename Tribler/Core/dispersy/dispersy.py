@@ -1845,7 +1845,7 @@ class Dispersy(Singleton):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
                     addresses = [candidate.address
                                  for candidate
-                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
+                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, [message.destination.cluster])]
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
