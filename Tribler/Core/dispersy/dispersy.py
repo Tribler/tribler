@@ -1603,13 +1603,13 @@ class Dispersy(Singleton):
         assert isinstance(batch, int)
         return islice(self._yield_subjective_candidates(community, clusters, batch), limit)
 
-    def _yield_subjective_candidates(self, community, clusters, batch):
+    def _yield_subjective_candidates(self, community, cluster, batch):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(batch, int)
 
-        for candidate in self._yield_online_candidates(community, clusters, batch):
+        for candidate in self._yield_online_candidates(community, [cluster], batch):
             # we need to check the members associated to these candidates and see if they are
             # interested in this cluster
             for member in candidate.members:
@@ -1845,7 +1845,7 @@ class Dispersy(Singleton):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
                     addresses = [candidate.address
                                  for candidate
-                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, [message.destination.cluster])]
+                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
