@@ -1584,7 +1584,7 @@ class Dispersy(Singleton):
                         unique.add(candidate.address)
                         yield candidate
 
-    def yield_subjective_candidates(self, community, limit, clusters, batch=100):
+    def yield_subjective_candidates(self, community, limit, cluster, batch=100):
         """
         Returns a generator that yields at most LIMIT unique Candidate objects ordered by most
         likely to least likely to be online and who we believe have our public key in their
@@ -1597,16 +1597,17 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
-        assert isinstance(clusters, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, int), clusters)
-        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        assert isinstance(cluster, int)
+        assert cluster in community.subjective_set_clusters
         assert isinstance(batch, int)
-        return islice(self._yield_subjective_candidates(community, clusters, batch), limit)
+        return islice(self._yield_subjective_candidates(community, cluster, batch), limit)
 
     def _yield_subjective_candidates(self, community, cluster, batch):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
+        assert isinstance(cluster, int)
+        assert cluster in community.subjective_set_clusters
         assert isinstance(batch, int)
 
         for candidate in self._yield_online_candidates(community, [cluster], batch):
