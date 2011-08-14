@@ -597,6 +597,53 @@ class Community(object):
         return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 14) // 8
 
     @property
+    def dispersy_candidate_online_range(self):
+        """
+        The range -in seconds from the last time we received a packet from an address- that we
+        define a candidate to be online.
+
+        For instance: the range (0, 300) will mark addresses, from where we received a packet
+        withing the last 300 seconds, to be online.
+
+        @rtype: (int, int)
+        """
+        return (0, 300)
+
+    @property
+    def dispersy_candidate_online_scores(self):
+        return [(10, 10), (30, 7), (60, 4), (120, 2), (300, 1)]
+
+    @property
+    def dispersy_candidate_direct_observation_score(self):
+        """
+        Candidates that we have directly observed to exist are given this score in the candidate
+        selection algorithm.
+
+        @rtype int
+        """
+        return 3
+
+    @property
+    def dispersy_candidate_indirect_observation_score(self):
+        """
+        Candidates that we have indirectly observed to exist are given this score in the candidate
+        selection algorithm.
+
+        Note that using indirect observation increases the diversity of the candidate selection at
+        the cost of possibly using candidates that have been obtained from malicious nodes.
+
+        @rtype int
+        """
+        return 2
+
+    @property
+    def dispersy_candidate_subjective_set_score(self):
+        """
+        @rtype (int, int)
+        """
+        return 3
+
+    @property
     def dispersy_sync_initial_delay(self):
         return 10.0
 

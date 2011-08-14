@@ -40,10 +40,12 @@ supply.  Aside from the four policies, each meta-message also defines the commun
 of, the name it uses as an internal identifier, and the class that will contain the payload.
 """
 
-from sys import maxint
+from datetime import datetime
 from hashlib import sha1
 from itertools import groupby, islice
 from os.path import abspath
+from random import shuffle
+from sys import maxint
 from threading import Lock
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
@@ -1489,62 +1491,125 @@ class Dispersy(Singleton):
             # update bloom filters
             meta.community.free_sync_range(free_sync_range)
 
-    def yield_online_candidates(self, community, limit, batch=100):
+    def yield_online_candidates(self, community, limit, clusters=(), batch=100):
         """
-        Returns a generator that yields at most LIMIT unique Candicate objects ordered by most
-        likely to least likely to be online.
+        Returns a generator that yields at most LIMIT unique Candicate objects representing nodes
+        that are likely to be online.
+
+        The following community properties affect the candidate choices:
+         - dispersy_candidate_online_scores
+         - dispersy_candidate_direct_observation_score
+         - dispersy_candidate_indirect_observation_score
+         - dispersy_candidate_subjective_set_score
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
         assert isinstance(batch, int)
-        return islice(self._yield_online_candidates(community, min(limit, batch)), limit)
+        assert isinstance(clusters, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, int), clusters)
+        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        return islice(self._yield_online_candidates(community, clusters, batch), limit)
 
-    def _yield_online_candidates(self, community, batch):
+    def _yield_online_candidates(self, community, clusters, batch):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(batch, int)
+        assert isinstance(clusters, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, int), clusters)
+        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+
+        def get_observation(observation_score, subjective_set_score, host, port, incoming_time, outgoing_time, external_time):
+            candidate = Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
+
+            # add direct observation score
+            total_score = observation_score
+
+            # add recently online score
+            age = (now - candidate.incoming_time).seconds
+            for high, score in online_scores:
+                if age <= high:
+                    total_score += score
+                    break
+
+            # add subjective set score
+            if subjective_sets:
+                for member in candidate.members:
+                    for subjective_set in subjective_sets:
+                        if member.public_key in subjective_set:
+                            total_score += subjective_set_score
+
+            return total_score, candidate
+
+        now = datetime.now()
+        subjective_sets = [community.get_subjective_set(community.my_member, cluster) for cluster in clusters]
+        incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
+        replacements = ("'-%d seconds'" % incoming_time_high, "'-%d seconds'" % incoming_time_low)
+
+        direct_observation_sql = u"SELECT host, port, incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time BETWEEN DATETIME('now', %s) AND DATETIME('now', %s) ORDER BY incoming_time DESC LIMIT ? OFFSET ?" % replacements
+        indirect_observation_sql = u"SELECT host, port, incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND external_time BETWEEN DATETIME('now', %s) AND DATETIME('now', %s) ORDER BY external_time DESC LIMIT ? OFFSET ?" % replacements
+
+        online_scores = community.dispersy_candidate_online_scores
+        direct_observation_score = community.dispersy_candidate_direct_observation_score
+        indirect_observation_score = community.dispersy_candidate_indirect_observation_score
+        subjective_set_score = community.dispersy_candidate_subjective_set_score
+
+        sorting_key = lambda tup: tup[0]
+        unique = set()
 
         for offset in xrange(0, maxint, batch):
             # cache all items returned from the select statement, otherwise the cursur will be
             # re-used whenever another query is performed by the caller
-            sql = u"""SELECT host, port, incoming_time, outgoing_time, external_time
-                      FROM candidate
-                      WHERE community = ?
-                      ORDER BY incoming_time DESC
-                      LIMIT ?
-                      OFFSET ?"""
-            candidates = list(self._database.execute(sql, (community.database_id, batch, offset)))
-            for host, port, incoming_time, outgoing_time, external_time in candidates:
-                yield Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
-            else:
-                if not candidates:
-                    break
+            candidates = []
+            candidates.extend(get_observation(direct_observation_score, subjective_set_score, *tup) for tup in self._database.execute(direct_observation_sql, (community.database_id, batch, offset)))
+            candidates.extend(get_observation(indirect_observation_score, subjective_set_score, *tup) for tup in self._database.execute(indirect_observation_sql, (community.database_id, batch, offset)))
 
-    def yield_subjective_candidates(self, community, limit, cluster, batch=100):
+            if __debug__: dprint("there are ", len(candidates), " candidates in this batch")
+            if not candidates:
+                break
+
+            for score, iterator in groupby(sorted(candidates, key=sorting_key, reverse=True), key=sorting_key):
+                candidates = [candidate for _, candidate in iterator]
+                shuffle(candidates)
+
+                if __debug__:
+                    if len(candidates) > 1:
+                        dprint("randomized ", len(candidates), " candidates with score ", score)
+
+                for candidate in candidates:
+                    # TODO: we should perform the unique check before creating the candidate object
+                    if not candidate.address in unique:
+                        unique.add(candidate.address)
+                        yield candidate
+
+    def yield_subjective_candidates(self, community, limit, clusters, batch=100):
         """
         Returns a generator that yields at most LIMIT unique Candidate objects ordered by most
         likely to least likely to be online and who we believe have our public key in their
         subjective set.
+
+        Usefull when we create a messages that uses the SubjectiveDestination policy and we want to
+        spread this to nodes that are likely to be interested in these messages.
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
+        assert isinstance(clusters, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, int), clusters)
+        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
         assert isinstance(batch, int)
-        assert isinstance(cluster, int)
-        assert cluster in community.subjective_set_clusters
-        return islice(self._yield_subjective_candidates(community, min(limit, batch), cluster), limit)
+        return islice(self._yield_subjective_candidates(community, clusters, batch), limit)
 
-    def _yield_subjective_candidates(self, community, batch, cluster):
+    def _yield_subjective_candidates(self, community, clusters, batch):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(batch, int)
 
-        for candidate in self._yield_online_candidates(community, batch):
+        for candidate in self._yield_online_candidates(community, clusters, batch):
             # we need to check the members associated to these candidates and see if they are
             # interested in this cluster
             for member in candidate.members:
