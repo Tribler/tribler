@@ -621,7 +621,7 @@ class Community(object):
 
         @rtype int
         """
-        return 3
+        return 5
 
     @property
     def dispersy_candidate_indirect_observation_score(self):
@@ -634,14 +634,23 @@ class Community(object):
 
         @rtype int
         """
-        return 2
+        return 5
 
     @property
     def dispersy_candidate_subjective_set_score(self):
         """
         @rtype (int, int)
         """
-        return 3
+        return 10
+
+    @property
+    def dispersy_candidate_probabilistic_factor(self):
+        """
+        The range of the random factor that the score of each candidate is multiplied with.
+
+        @rtype (float, float)
+        """
+        return (1.0, 3.0)
 
     @property
     def dispersy_sync_initial_delay(self):

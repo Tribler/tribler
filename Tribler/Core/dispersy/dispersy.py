@@ -44,7 +44,7 @@ from datetime import datetime
 from hashlib import sha1
 from itertools import groupby, islice
 from os.path import abspath
-from random import shuffle
+from random import random
 from sys import maxint
 from threading import Lock
 
@@ -1521,14 +1521,13 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not isinstance(x, int), clusters)
         assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
 
-        def get_observation(observation_score, subjective_set_score, host, port, incoming_time, outgoing_time, external_time):
+        def get_observation(observation_score, host, port, age, incoming_time, outgoing_time, external_time):
             candidate = Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
 
             # add direct observation score
             total_score = observation_score
 
             # add recently online score
-            age = (now - candidate.incoming_time).seconds
             for high, score in online_scores:
                 if age <= high:
                     total_score += score
@@ -1541,20 +1540,21 @@ class Dispersy(Singleton):
                         if member.public_key in subjective_set:
                             total_score += subjective_set_score
 
-            return total_score, candidate
+            score = total_score * (probabilistic_factor_min + (probabilistic_factor_max - probabilistic_factor_min) * random())
+            if __debug__: dprint("SCORE ", total_score, " -> ", score, " for ", host, ":", port)
+            return score, candidate
 
-        now = datetime.now()
         subjective_sets = [community.get_subjective_set(community.my_member, cluster) for cluster in clusters]
         incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
-        replacements = ("'-%d seconds'" % incoming_time_high, "'-%d seconds'" % incoming_time_low)
 
-        direct_observation_sql = u"SELECT host, port, incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time BETWEEN DATETIME('now', %s) AND DATETIME('now', %s) ORDER BY incoming_time DESC LIMIT ? OFFSET ?" % replacements
-        indirect_observation_sql = u"SELECT host, port, incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND external_time BETWEEN DATETIME('now', %s) AND DATETIME('now', %s) ORDER BY external_time DESC LIMIT ? OFFSET ?" % replacements
+        direct_observation_sql = u"SELECT host, port, strftime('%%s', 'now') - strftime('%%s', incoming_time), incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time BETWEEN DATETIME('now', '-%d seconds') AND DATETIME('now', '-%d seconds') ORDER BY incoming_time DESC LIMIT ? OFFSET ?" % (incoming_time_high, incoming_time_low)
+        indirect_observation_sql = u"SELECT host, port, strftime('%%s', 'now') - strftime('%%s', external_time), incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time NOT BETWEEN DATETIME('NOW', '-%d seconds') AND DATETIME('now', '-%d seconds') AND external_time BETWEEN DATETIME('now', '-%d seconds') AND DATETIME('now', '-%d seconds') ORDER BY external_time DESC LIMIT ? OFFSET ?" % (incoming_time_high, incoming_time_low, incoming_time_high, incoming_time_low)
 
         online_scores = community.dispersy_candidate_online_scores
         direct_observation_score = community.dispersy_candidate_direct_observation_score
         indirect_observation_score = community.dispersy_candidate_indirect_observation_score
         subjective_set_score = community.dispersy_candidate_subjective_set_score
+        probabilistic_factor_min, probabilistic_factor_max = community.dispersy_candidate_probabilistic_factor
 
         sorting_key = lambda tup: tup[0]
         unique = set()
@@ -1563,23 +1563,19 @@ class Dispersy(Singleton):
             # cache all items returned from the select statement, otherwise the cursur will be
             # re-used whenever another query is performed by the caller
             candidates = []
-            candidates.extend(get_observation(direct_observation_score, subjective_set_score, *tup) for tup in self._database.execute(direct_observation_sql, (community.database_id, batch, offset)))
-            candidates.extend(get_observation(indirect_observation_score, subjective_set_score, *tup) for tup in self._database.execute(indirect_observation_sql, (community.database_id, batch, offset)))
+            candidates.extend(get_observation(direct_observation_score, *tup) for tup in list(self._database.execute(direct_observation_sql, (community.database_id, batch, offset))))
+            candidates.extend(get_observation(indirect_observation_score, *tup) for tup in list(self._database.execute(indirect_observation_sql, (community.database_id, batch, offset))))
 
             if __debug__: dprint("there are ", len(candidates), " candidates in this batch")
             if not candidates:
                 break
 
-            for score, iterator in groupby(sorted(candidates, key=sorting_key, reverse=True), key=sorting_key):
-                candidates = [candidate for _, candidate in iterator]
-                shuffle(candidates)
-                if __debug__: dprint("shuffled ", len(candidates), " candidates with score ", score)
-
-                for candidate in candidates:
-                    # TODO: we should perform the unique check before creating the candidate object
-                    if not candidate.address in unique:
-                        unique.add(candidate.address)
-                        yield candidate
+            for score, candidate in sorted(candidates, key=sorting_key, reverse=True):
+                # TODO: we should perform the unique check before creating the candidate object
+                if not candidate.address in unique:
+                    unique.add(candidate.address)
+                    if __debug__: dprint("Yield ", candidate.host, ":", candidate.port, " with score ", score)
+                    yield candidate
 
     def yield_subjective_candidates(self, community, limit, cluster, batch=100):
         """
@@ -1829,7 +1825,7 @@ class Dispersy(Singleton):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
                     addresses = [candidate.address
                                  for candidate
-                                 in self.yield_online_candidates(message.community, message.destination.node_count)]
+                                 in self.yield_online_candidates(message.community, message.destination.node_count, message.community.subjective_set_clusters)]
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
