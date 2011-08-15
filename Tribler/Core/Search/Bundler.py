@@ -867,7 +867,7 @@ class Bundler:
         """
         algorithm = Bundler.algorithms[bundle_mode]
         if algorithm is None:
-            return hits
+            return hits, bundle_mode
         
         if Bundler.GROUP_TOP_N is not None:
             hits1, hits2 = hits[:Bundler.GROUP_TOP_N], hits[Bundler.GROUP_TOP_N:]
