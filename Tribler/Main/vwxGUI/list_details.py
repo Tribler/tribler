@@ -27,7 +27,7 @@ from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
-DEBUG = True
+DEBUG = False
 
 class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent, compact=False, noChannel=False):

@@ -127,22 +127,20 @@ class ListHeader(wx.Panel):
                 spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                 self.columnHeaders.append(spacer)
                 
-                
         self.scrollBar = sizer.AddSpacer((3,0))
-        self.scrollBar.Show(False)
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
         changed = False
         item = self.columnHeaders[column]
+        
         if isinstance(item, wx.Window):
             if item.GetSize()[0] != width:
                 if getattr(item, 'sortIcon', False):
                     width -= (item.sortIcon.GetWidth() + 3)
                 item.SetMinSize((width, -1))
                 changed = True
-        else:
-            if item.GetSpacer()[0] != width:
+        elif item.GetSpacer()[0] != width:
                 item.SetSpacer((width, -1))
                 changed = True
             
@@ -207,7 +205,7 @@ class ListHeader(wx.Panel):
             newDirection = not self.sortedDirection
             
             if newDirection == self.columns[newColumn].get('sortAsc', False): #back to default, treat as off
-                newColumn = None
+                newColumn = -1
         else:
             newDirection = self.columns[newColumn].get('sortAsc', False)
         
@@ -221,16 +219,16 @@ class ListHeader(wx.Panel):
     def _SetSortedIcon(self, newColumn, newDirection):
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         
-        if self.sortedColumn is not None and newColumn != self.sortedColumn:
+        if self.sortedColumn != -1 and newColumn != self.sortedColumn:
             prevSort = self.columnHeaders[self.sortedColumn].sortIcon
             prevSort.SetBitmap(empty)
             prevSort.Refresh()
         
-        if newColumn is None and self.defaultSort != -1:
+        if newColumn == -1 and self.defaultSort != -1:
             newColumn = self.defaultSort
             newDirection = self.columns[self.defaultSort].get('sortAsc', False)
         
-        if newColumn is not None:
+        if newColumn != -1:
             newSort = self.columnHeaders[newColumn].sortIcon
             if newDirection: 
                 newSort.SetBitmap(up)

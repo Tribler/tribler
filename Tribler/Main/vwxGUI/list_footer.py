@@ -73,7 +73,6 @@ class TitleFooter(ListFooter):
         hSizer.Add(self.title)
         
         self.scrollBar = hSizer.AddSpacer((0,0))
-        self.scrollBar.Show(False)
         self.scrollBar.sizer = hSizer
         
     def SetTitle(self, title):
@@ -83,20 +82,11 @@ class TitleFooter(ListFooter):
         self.Thaw()
         
     def SetSpacerRight(self, right):
-        if right > 0:
-            dirty = False
+        if self.scrollBar:
+            right = max(3, right + 3)
+            
             if self.scrollBar.GetSize()[0] != right:
                 self.scrollBar.SetSpacer((right, 0))
-                dirty = True
-            if not self.scrollBar.IsShown():
-                self.scrollBar.Show(True)
-                dirty = True
-            
-            if dirty:
-                self.scrollBar.sizer.Layout()
-        else:
-            if self.scrollBar.IsShown():
-                self.scrollBar.Show(False)
                 self.scrollBar.sizer.Layout()
         
 class TotalFooter(TitleFooter):
@@ -116,15 +106,14 @@ class TotalFooter(TitleFooter):
                 size = (self.columns[i]['width'],-1)
                  
             label = wx.StaticText(self, i, '', style = self.columns[i].get('footer_style',0)|wx.ST_NO_AUTORESIZE, size = size)
-            hSizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+            hSizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
             
             if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                 label.SetMinSize((1,-1))
             
             self.totals.append(label) 
         
-        self.scrollBar = hSizer.AddSpacer((0,0))
-        self.scrollBar.Show(False)
+        self.scrollBar = hSizer.AddSpacer((3,0))
         self.scrollBar.sizer = hSizer
     
     def SetTotal(self, column, total):

@@ -47,6 +47,9 @@ class tribler_topButton(wx.Panel):
         
         self.location = None
         self.state = tribler_topButton.ENABLED
+        self.parentBitmap = None
+        self.parentColor = None
+        
         self.loadBitmaps()
         self.setParentBitmap()
         

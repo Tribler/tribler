@@ -402,6 +402,10 @@ class AbstractListBody():
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
         
+        #Niels: translating between -1 and None conventions
+        if column == -1:
+            column = None
+            
         self.sortcolumn = column
         self.sortreverse = reverse
         
