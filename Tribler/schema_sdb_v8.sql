@@ -1,5 +1,5 @@
 -- Tribler SQLite Database
--- Version: 6
+-- Version: 8
 --
 -- History:
 --   v1: Published as part of Tribler 4.5
@@ -7,7 +7,8 @@
 --   v3: Published as part of Next-Share M16
 --   v4: Published as part of Tribler 5.2
 --   v5: Published as part of Next-Share M30 for subtitles integration
---   v6: Published as part of Tribler 5.3
+--   v7: Published as part of Tribler 5.3
+--   v8: Published as part of Tribler 5.4
 
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
@@ -472,6 +473,15 @@ CREATE TABLE UserEventLog (
   timestamp      numeric,
   type           integer,
   message        text
+);
+
+
+----------------------------------------
+-- v8: BundlerPreference
+
+CREATE TABLE BundlerPreference (
+  query         text PRIMARY KEY,
+  bundle_mode   integer
 );
 
 

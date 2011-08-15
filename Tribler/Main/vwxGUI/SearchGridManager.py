@@ -331,10 +331,10 @@ class TorrentManager:
         
         # vliegendhart: do grouping here
         # Niels: important, we should not change self.hits otherwise prefetching will not work 
-        returned_hits = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
+        returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
         #return [len(self.hits), self.filteredResults , self.hits]
-        return [len(returned_hits), self.filteredResults , returned_hits]
+        return [len(returned_hits), self.filteredResults , selected_bundle_mode, returned_hits]
 
     def prefetch_hits(self):
         """

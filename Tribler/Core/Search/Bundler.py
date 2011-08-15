@@ -832,7 +832,8 @@ class Bundler:
     
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
     
-    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF = range(4)
+    # DO NOT CHANGE THE ORDER, STORED IN DB
+    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC = range(5)
     algorithms = [IntGrouping(), LevGrouping(), SizeGrouping(), None]
     
     def __init__(self):
@@ -914,7 +915,7 @@ class Bundler:
             self.__gc()
             self.number_of_calls = 0
         
-        return hits1_withbundles + hits2
+        return hits1_withbundles + hits2, bundle_mode # TODO: impl magic
     
     def __gc(self):
         # GC is rather simple. Just cut the links to old versions

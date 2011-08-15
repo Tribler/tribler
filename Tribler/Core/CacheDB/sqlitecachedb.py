@@ -25,7 +25,8 @@ import apsw
 ##Changed from 4 to 5 by andrea for subtitles support
 ##Changed from 5 to 6 by George Milescu for ProxyService  
 ##Changed from 6 to 7 for Raynor's TermFrequency table
-CURRENT_MAIN_DB_VERSION = 7
+##Changed from 7 to 8 for Raynor's BundlerPreference table
+CURRENT_MAIN_DB_VERSION = 8
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -1249,7 +1250,20 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             """
             self.execute_write(sql, commit=False)
-
+        
+        if fromver < 8:
+            sql=\
+            """
+            --------------------------------------
+            -- Creating BundlerPreference DB
+            ----------------------------------
+            CREATE TABLE BundlerPreference (
+              query         text PRIMARY KEY,
+              bundle_mode   integer
+            );
+            """
+            self.execute_write(sql, commit=False)
+        
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
         self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)

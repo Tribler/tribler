@@ -6,6 +6,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler
 
 class SearchSideBar(wx.Panel):
     
@@ -23,6 +24,7 @@ class SearchSideBar(wx.Panel):
                                  Bundler.ALG_NUMBERS: 'Numbers',
                                  Bundler.ALG_SIZE: 'Size',
                                  Bundler.ALG_OFF: 'Off'}
+        self.bundle_db = BundlerPreferenceDBHandler.getInstance()
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -216,18 +218,29 @@ class SearchSideBar(wx.Panel):
         newstate = event.GetEventObject().action
         self.SetBundleState(newstate)
         
+        def db_callback():
+            # self.uelog.addEvent(message="Foo", type = 3) # 3?
+            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+            self.bundle_db.storePreference(keywords, newstate)
+        
+        self.guiutility.frame.guiserver.add_task(db_callback)
+        
     def SetBundleState(self, newstate):
         if newstate is None:
-            local_override = False
             auto_guess = False
             
+            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+            stored_state = self.bundle_db.getPreference(keywords)
+            local_override = stored_state is not None
+            
             if local_override:
-                pass # TODO
+                newstate = stored_state
             elif auto_guess:
                 pass # TODO
             else:
                 newstate = Bundler.ALG_NAME # default
         
+        self.bundlestate = newstate
         self.Freeze()
         
         if newstate != Bundler.ALG_OFF:
@@ -254,7 +267,12 @@ class SearchSideBar(wx.Panel):
         
         self.Layout()
         self.Thaw()
-        
+    
+    def SetSelectedBundleMode(self, selected_bundle_mode):
+        if self.bundlestate == Bundler.ALG_MAGIC:
+            # TODO: MAGIC PAINT
+            pass 
+    
     def OnChannel(self, event):
         label = event.GetEventObject()
         channel_name = label.GetLabel()

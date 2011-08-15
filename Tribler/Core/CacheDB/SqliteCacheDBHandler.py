@@ -4729,7 +4729,7 @@ class UserEventLogDBHandler(BasicDBHandler):
     lock = threading.Lock()
     
     # maximum number of events to store
-    # when this maximum is reached, approx. 50% of teh entries are deleted.
+    # when this maximum is reached, approx. 50% of the entries are deleted.
     MAX_EVENTS = 2*10000
     
     def getInstance(*args, **kw):
@@ -4783,7 +4783,44 @@ class UserEventLogDBHandler(BasicDBHandler):
         else:
             self._db.commit()
             
-        
+
+class BundlerPreferenceDBHandler(BasicDBHandler):
+    """
+    The Bundler Preference database handler singleton for 
+    storing a chosen bundle method for a particular query.
+    """
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if BundlerPreferenceDBHandler.__single is None:
+            BundlerPreferenceDBHandler.lock.acquire()   
+            try:
+                if BundlerPreferenceDBHandler.__single is None:
+                    BundlerPreferenceDBHandler(*args, **kw)
+            finally:
+                BundlerPreferenceDBHandler.lock.release()
+        return BundlerPreferenceDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if BundlerPreferenceDBHandler.__single is not None:
+            raise RuntimeError, "BundlerPreferenceDBHandler is singleton"
+        BundlerPreferenceDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()      
+        BasicDBHandler.__init__(self,db, 'BundlerPreference')
+    
+    def storePreference(self, keywords, bundle_mode):
+        query = ' '.join(sorted(set(keywords)))
+        self._db.execute_write('INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)',
+                               (query, bundle_mode))
+    
+    def getPreference(self, keywords):
+        # returns None if query not in db
+        query = ' '.join(sorted(set(keywords)))
+        return self.getOne('bundle_mode', query=query)
+
     
 def doPeerSearchNames(self,dbname,kws):
     """ Get all peers that have the specified keywords in their name. 

@@ -1,29 +1,30 @@
-import os
-import sys
-from threading import currentThread
-from traceback import print_stack
-
-import wx
-from wx import html
-from time import time
-from datetime import date, datetime
-
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.API import *
-from Tribler.__init__ import LIBRARYNAME
-
-from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Main.Dialogs.AddTorrent import AddTorrent
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
-from list_footer import *
-from list_header import *
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.__init__ import LIBRARYNAME
+from __init__ import *
+from datetime import date, datetime
 from list_body import *
 from list_details import *
+from list_footer import *
+from list_header import *
 from list_sidebar import *
-from __init__ import *
+from threading import currentThread
+from time import time
+from traceback import print_stack
+from wx import html
+import os
+import sys
+import wx
+
+
+
+
 
 DEBUG = False
 
@@ -46,15 +47,16 @@ class RemoteSearchManager:
             self.list.SetKeywords(keywords, None)
         
         def db_callback():
-            [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
+            [total_items, nrfiltered, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
             [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
-            wx.CallAfter(self._on_refresh, data_files, total_items, nrfiltered, total_channels)
+            wx.CallAfter(self._on_refresh, data_files, total_items, nrfiltered, total_channels, selected_bundle_mode)
 
         self.guiserver.add_task(db_callback, id = "RemoteSearchManager_refresh")
         
-    def _on_refresh(self, data_files, total_items, nrfiltered, total_channels):
+    def _on_refresh(self, data_files, total_items, nrfiltered, total_channels, selected_bundle_mode):
         self.list.SetNrResults(total_items, nrfiltered, total_channels, self.oldkeywords)
         self.list.SetFF(self.guiutility.getFamilyFilter())
+        self.list.SetSelectedBundleMode(selected_bundle_mode)
         self.list.SetData(data_files)
         
     def refresh_channel(self):
@@ -656,6 +658,8 @@ class GenericSearchList(List):
         self.header.SetFF(family_filter)
         
     def SetData(self, data):
+        from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now
+        
         List.SetData(self, data)
         
         if len(data) > 0:
@@ -847,7 +851,10 @@ class SearchList(GenericSearchList):
             self.total_results = nr
         else:
             self.header.SetTitle('Searching for "%s"'%keywords)
-            
+    
+    def SetSelectedBundleMode(self, selected_bundle_mode):
+        self.leftLine.SetSelectedBundleMode(selected_bundle_mode)
+    
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
         
@@ -899,7 +906,6 @@ class SearchList(GenericSearchList):
         self.footer.SetSpacerRight(diff)
         event.Skip()
 
-from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now 
 
 class LibaryList(List):
     def __init__(self):
