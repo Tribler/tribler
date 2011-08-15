@@ -120,6 +120,9 @@ class TriblerLaunchMany(Thread):
                 
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
+
+            # new database stuff will run on only one thread
+            self.database_thread = Callback()
                 
             cachedb.init(config, self.rawserver_fatalerrorfunc)
             
@@ -311,7 +314,7 @@ class TriblerLaunchMany(Thread):
         self.session.dispersy_member = None
         if config['dispersy']:
             # Dispersy needs to run on a thread.  We use a RawServer instance.
-            self.dispersy_thread = Callback()
+            self.dispersy_thread = self.database_thread
             self.dispersy_thread.register(self.start_dispersy)
             self.dispersy_thread.start(name="Dispersy")
 
