@@ -82,7 +82,7 @@ class ListHeader(wx.Panel):
     def AddColumns(self, sizer, parent, columns):
         self.columnHeaders = []
         
-        down, _, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
+        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         for i in xrange(len(columns)):
             if columns[i].get('name', '') != '':
                 label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
@@ -92,7 +92,11 @@ class ListHeader(wx.Panel):
                 sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
                 
                 if columns[i].get('defaultSorted', False):
-                    label.sortIcon = wx.StaticBitmap(self, -1, down)
+                    if columns[i].get('sortAsc', False):
+                        label.sortIcon = wx.StaticBitmap(self, -1, up)
+                    else:
+                        label.sortIcon = wx.StaticBitmap(self, -1, down)
+                        
                     self.sortedColumn = i
                     self.defaultSort = i
                 else:
@@ -129,14 +133,20 @@ class ListHeader(wx.Panel):
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
+        changed = False
         item = self.columnHeaders[column]
-        if item.GetSize()[0] != width:
-            if getattr(item, 'SetMinSize', None):
+        if isinstance(item, wx.Window):
+            if item.GetSize()[0] != width:
                 if getattr(item, 'sortIcon', False):
                     width -= (item.sortIcon.GetWidth() + 3)
                 item.SetMinSize((width, -1))
-            else:
+                changed = True
+        else:
+            if item.GetSpacer()[0] != width:
                 item.SetSpacer((width, -1))
+                changed = True
+            
+        if changed:
             self.scrollBar.sizer.Layout()
 
     def SetSpacerRight(self, right):
@@ -197,7 +207,7 @@ class ListHeader(wx.Panel):
             newDirection = not self.sortedDirection
             
             if newDirection == self.columns[newColumn].get('sortAsc', False): #back to default, treat as off
-                newColumn = -1
+                newColumn = None
         else:
             newDirection = self.columns[newColumn].get('sortAsc', False)
         
@@ -211,12 +221,16 @@ class ListHeader(wx.Panel):
     def _SetSortedIcon(self, newColumn, newDirection):
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         
-        if self.sortedColumn != -1 and newColumn != self.sortedColumn:
+        if self.sortedColumn is not None and newColumn != self.sortedColumn:
             prevSort = self.columnHeaders[self.sortedColumn].sortIcon
             prevSort.SetBitmap(empty)
             prevSort.Refresh()
         
-        if newColumn != -1:
+        if newColumn is None and self.defaultSort != -1:
+            newColumn = self.defaultSort
+            newDirection = self.columns[self.defaultSort].get('sortAsc', False)
+        
+        if newColumn is not None:
             newSort = self.columnHeaders[newColumn].sortIcon
             if newDirection: 
                 newSort.SetBitmap(up)
