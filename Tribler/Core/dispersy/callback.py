@@ -107,7 +107,7 @@ class Callback(object):
             if not id_:
                 self._id += 1
                 id_ = self._id
-            self._new_actions.append(("register", (self._timestamp if self._thread_ident == get_ident() else time() + delay,
+            self._new_actions.append(("register", (delay + (self._timestamp if self._thread_ident == get_ident() else time()),
                                                    512 - priority,
                                                    id_,
                                                    (call, args, {} if kargs is None else kargs),
@@ -115,6 +115,14 @@ class Callback(object):
             # wakeup if sleeping
             self._event.set()
             return id_
+
+    def _switch(self, generator, timestamp, priority, id_, callback):
+        if __debug__: dprint("switch threads ", generator)
+        with self._lock:
+            if not isinstance(id_, str):
+                self._id += 1
+                id_ = self._id
+            self._new_actions.append(("register", (timestamp, priority, id_, generator, callback)))
 
     def persistent_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0, callback=None, callback_args=(), callback_kargs=None):
         """
@@ -142,7 +150,7 @@ class Callback(object):
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
         if __debug__: dprint("reregister ", call, " after ", delay, " seconds")
         with self._lock:
-            self._new_actions.append(("persistent-register", (self._timestamp if self._thread_ident == get_ident() else time() + delay,
+            self._new_actions.append(("persistent-register", (delay + (self._timestamp if self._thread_ident == get_ident() else time()),
                                                               512 - priority,
                                                               id_,
                                                               (call, args, {} if kargs is None else kargs),
@@ -299,10 +307,16 @@ class Callback(object):
                             # if __debug__:
                             #     self.stop(wait=False)
                         else:
-                            # schedule CALL again in RESULT seconds
-                            assert isinstance(result, float)
-                            assert result >= 0.0
-                            heappush(requests, (deadline + result, priority, root_id, call, callback))
+                            if isinstance(result, float):
+                                # schedule CALL again in RESULT seconds
+                                assert result >= 0.0
+                                heappush(requests, (deadline + result, priority, root_id, call, callback))
+                            elif isinstance(result, Callback):
+                                # schedule CALL again on the Callback instance RESULT
+                                assert not result is self
+                                result._switch(call, deadline, priority, root_id, callback)
+                            else:
+                                dprint("Yielded invalalid type", level="error")
 
                     else:
                         try:
@@ -368,28 +382,39 @@ if __debug__:
     if __name__ == "__main__":
         c = Callback()
         c.start()
+        d = Callback()
+        d.start()
+
+        # def call():
+        #     dprint(time())
+
+        # sleep(2)
+        # dprint(time())
+        # c.register(call, delay=1.0)
+
+        # sleep(2)
+        # dprint(line=1)
+
+        # def call():
+        #     delay = 3.0
+        #     for i in range(10):
+        #         dprint(time(), " ", i)
+        #         sleep(delay)
+        #         if delay > 0.0:
+        #             delay -= 1.0
+        #         yield 1.0
+        # c.register(call)
+        # sleep(11)
+        # dprint(line=1)
 
         def call():
-            dprint(time())
-
-        sleep(2)
-        dprint(time())
-        c.register(call, delay=1.0)
-
-        sleep(2)
-        dprint(line=1)
-
-        def call():
-            delay = 3.0
-            for i in range(10):
-                dprint(time(), " ", i)
-                sleep(delay)
-                if delay > 0.0:
-                    delay -= 1.0
-                yield 1.0
+            yield d
+            # perform code on Callback d
+            yield c
+            # perform code on Callback c
         c.register(call)
-        sleep(11)
+        sleep(2.0)
         dprint(line=1)
 
-        # todo: fix the wait on same thread issue
+        d.stop()
         c.stop()
