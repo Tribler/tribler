@@ -6,6 +6,7 @@ A callback thread running Dispersy.
 """
 
 from heapq import heappush, heappop
+from thread import get_ident
 from threading import Thread, Lock, Event
 from time import sleep, time
 from types import GeneratorType
@@ -21,6 +22,9 @@ class Callback(object):
 
         # _lock is used to protect variables that are written to on multiple threads
         self._lock = Lock()
+
+        # _thread_ident is used to detect when methods are called from the same thread
+        self._thread_ident = 0
 
         # _state contains the current state of the thread.  it is protected by _lock and follows the
         # following states:
@@ -103,7 +107,7 @@ class Callback(object):
             if not id_:
                 self._id += 1
                 id_ = self._id
-            self._new_actions.append(("register", (self._timestamp + delay,
+            self._new_actions.append(("register", (self._timestamp if self._thread_ident == get_ident() else time() + delay,
                                                    512 - priority,
                                                    id_,
                                                    (call, args, {} if kargs is None else kargs),
@@ -138,7 +142,7 @@ class Callback(object):
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
         if __debug__: dprint("reregister ", call, " after ", delay, " seconds")
         with self._lock:
-            self._new_actions.append(("persistent-register", (self._timestamp + delay,
+            self._new_actions.append(("persistent-register", (self._timestamp if self._thread_ident == get_ident() else time() + delay,
                                                               512 - priority,
                                                               id_,
                                                               (call, args, {} if kargs is None else kargs),
@@ -191,6 +195,9 @@ class Callback(object):
                 self._state = "STATE_PLEASE_STOP"
                 if __debug__: dprint("STATE_PLEASE_STOP")
 
+                # wakeup if sleeping
+                self._event.set()
+
             if wait:
                 while self._state == "STATE_PLEASE_STOP" and timeout > 0.0:
                     sleep(0.01)
@@ -216,6 +223,8 @@ class Callback(object):
         requests = [] # (deadline, priority, root_id, (call, args, kargs), callback)
         # expired requests are ordered and handled by priority
         expired = [] # (priority, deadline, root_id, (call, args, kargs), callback)
+
+        self._thread_ident = get_ident()
 
         with lock:
             assert self._state == "STATE_INIT"
@@ -354,3 +363,34 @@ class Callback(object):
         with lock:
             if __debug__: dprint("STATE_FINISHED")
             self._state = "STATE_FINISHED"
+
+if __debug__:
+    if __name__ == "__main__":
+        c = Callback()
+        c.start()
+
+        def call():
+            dprint(time())
+
+        sleep(2)
+        dprint(time())
+        c.register(call, delay=1.0)
+
+        sleep(2)
+        dprint(line=1)
+
+        def call():
+            delay = 3.0
+            for i in range(10):
+                dprint(time(), " ", i)
+                sleep(delay)
+                if delay > 0.0:
+                    delay -= 1.0
+                yield 1.0
+        c.register(call)
+        sleep(11)
+        dprint(line=1)
+
+        # todo: fix the wait on same thread issue
+        c.stop(wait=False)
+        sleep(1.0)
