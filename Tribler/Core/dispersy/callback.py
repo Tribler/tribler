@@ -183,7 +183,7 @@ class Callback(object):
         """
         Stop the asynchronous thread.
 
-        Deadlock will occur when called with wait=True on the same thread.
+        When called with wait=True on the same thread we will return immediately.
         """
         assert isinstance(timeout, float)
         assert isinstance(wait, bool)
@@ -198,7 +198,7 @@ class Callback(object):
                 # wakeup if sleeping
                 self._event.set()
 
-            if wait:
+            if wait and not self._thread_ident == get_ident():
                 while self._state == "STATE_PLEASE_STOP" and timeout > 0.0:
                     sleep(0.01)
                     timeout -= 0.01
@@ -392,5 +392,4 @@ if __debug__:
         dprint(line=1)
 
         # todo: fix the wait on same thread issue
-        c.stop(wait=False)
-        sleep(1.0)
+        c.stop()
