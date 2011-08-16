@@ -6,7 +6,8 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler,\
+    UserEventLogDBHandler
 
 class SearchSideBar(wx.Panel):
     
@@ -19,12 +20,14 @@ class SearchSideBar(wx.Panel):
         
         self.nrfiltered = 0
         self.family_filter = True
-        self.bundlestates = [Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
+        self.bundlestates = [Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_MAGIC, Bundler.ALG_OFF]
         self.bundlestates_str = {Bundler.ALG_NAME: 'Name',
                                  Bundler.ALG_NUMBERS: 'Numbers',
                                  Bundler.ALG_SIZE: 'Size',
+                                 Bundler.ALG_MAGIC: 'Magic',
                                  Bundler.ALG_OFF: 'Off'}
         self.bundle_db = BundlerPreferenceDBHandler.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -215,13 +218,17 @@ class SearchSideBar(wx.Panel):
             channel.SetToolTipString('')
     
     def OnRebundle(self, event):
+        curstate = self.bundlestate
         newstate = event.GetEventObject().action
         self.SetBundleState(newstate)
         
         def db_callback():
-            # self.uelog.addEvent(message="Foo", type = 3) # 3?
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
             self.bundle_db.storePreference(keywords, newstate)
+            query = ' '.join(keywords)
+            self.uelog.addEvent(message="Bundler GUI: %s -> %s; %s -> %s; q=%s" 
+                                % (curstate, newstate, self.bundlestates_str[curstate], 
+                                   self.bundlestates_str[newstate], query), type = 3)
         
         self.guiutility.frame.guiserver.add_task(db_callback)
         

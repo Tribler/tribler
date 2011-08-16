@@ -126,7 +126,7 @@ class GroupsList(object):
     # Certain algorithms use a datatstructure that's hard to modify. For example,
     # the size grouping algorithm uses an IntervalTree. Adding new intervals is easy,
     # but removing is not.
-    def __init__(self, query, algorithm, hits, prev_grouplist = None, max_bundles = None):
+    def __init__(self, query, algorithm, hits, prev_grouplist = None, max_bundles = None, two_step=False):
         """
         Constructs a GroupsList.
         
@@ -135,6 +135,7 @@ class GroupsList(object):
         @param hits The hits retrieved by the query.
         @param prev_grouplist Optionally, a previous version of this GroupsList.
         @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
+        @param two_step Constructs the object in two steps. Default: False. See also: finalize().
         """
         self.query = query
         self.algorithm = algorithm
@@ -149,8 +150,58 @@ class GroupsList(object):
         self.infohashes = set()
         self.representative_hashes = set()
         
-        self._add_all(hits, max_bundles=max_bundles)
+        self.old_representatives, self.old_index, self.reuse = self._compute_diff(hits)
         
+        self.max_bundles = max_bundles
+        self.unprocessed_hits = hits
+        
+        if not two_step:
+            self.finalize()
+        
+    
+    def finalize(self):
+        """
+        Finalizes this GroupsList in case of a two-step construction.
+        """
+        if self.unprocessed_hits is not None:
+            self._add_all(self.unprocessed_hits, max_bundles=self.max_bundles)
+            self.unprocessed_hits = None
+    
+    def is_finalized(self):
+        """
+        Returns whether this GroupsList is finalized.
+        @return True if this GroupsList is finalized, False otherwise.
+        """
+        return self.unprocessed_hits is None
+    
+    def _compute_diff(self, hits):
+        """
+        Private auxiliary method to compute the differences since the previous
+        GroupsList and updates the context state.
+        
+        @param hits The hits to be grouped.
+        @return A tuple containing the previous representatives, the previous index 
+        and whether the old GroupsList can be reused.
+        """
+        if self.prev_grouplist is not None:
+            old_hashes = self.prev_grouplist.infohashes
+            old_representatives = self.prev_grouplist.representative_hashes
+            old_index = self.prev_grouplist.index
+            new_hits = [hit for hit in hits if hit['infohash'] not in old_hashes]
+            missing_hits = len(new_hits)+len(old_hashes) > len(hits) 
+        else:
+            old_representatives = set()
+            old_index = {}
+            new_hits = hits
+            missing_hits = False
+        
+        reuse = self.prev_grouplist and not new_hits and not missing_hits
+        self.algorithm.update_context_state(new_hits, self.context_state)
+        
+        if DEBUG:
+            print >>sys.stderr, '>> Bundler.py, new hits:', len(new_hits)
+        
+        return old_representatives, old_index, reuse
     
     def _add_all(self, hits, max_bundles=None):
         """
@@ -180,6 +231,10 @@ class GroupsList(object):
         context_state = self.context_state
         grouped_hits = self.groups
         
+        infohashes = self.infohashes
+        old_representatives = self.old_representatives
+        old_index = self.old_index
+        
         def create_new_group(hit_infohash, group_id, index, key, context_state):
             # compute simkey for new group
             simkey = algorithm.simkey(key, context_state)
@@ -194,25 +249,7 @@ class GroupsList(object):
             new_group = HitsGroup(group_id, key, hit_infohash)
             return new_group
         
-        infohashes = self.infohashes
-        if self.prev_grouplist is not None:
-            old_hashes = self.prev_grouplist.infohashes
-            old_representatives = self.prev_grouplist.representative_hashes
-            old_index = self.prev_grouplist.index
-            new_hits = [hit for hit in hits if hit['infohash'] not in old_hashes]
-            missing_hits = len(new_hits)+len(old_hashes) > len(hits) 
-        else:
-            old_representatives = old_hashes = set()
-            old_index = {}
-            new_hits = hits
-            missing_hits = False
-            
-        algorithm.update_context_state(new_hits, context_state)
-        
-        if DEBUG:
-            print >>sys.stderr, '>> Bundler.py, new hits:', len(new_hits)
-        
-        if self.prev_grouplist and not new_hits and not missing_hits:
+        if self.reuse:
             if DEBUG:
                 print >>sys.stderr, '>> Bundler.py: No new hits, no missing hits, reusing the old groupings'
             
@@ -600,7 +637,12 @@ class TrieNode(object):
             node = node.children[letter]
         
         node.word = word
-
+    
+    def width(self, level=0):
+        if level:
+            return max(1, sum(t.width(level-1) for t in self.children.itervalues()))
+        else:
+            return 1
 
 LOG_COSTS = False
 LOG_DEPTH = False
@@ -834,7 +876,14 @@ class Bundler:
     
     # DO NOT CHANGE THE ORDER, STORED IN DB
     ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC = range(5)
-    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping(), None]
+    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping()]
+    
+    PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC'.split()
+    
+    # ALG_MAGIC CONSTANTS
+    MIN_LEVTRIE_WIDTH = 6
+    LEVTRIE_DEPTH = 1
+    REDUCTION_THRESHOLD = 0.9
     
     def __init__(self):
         self.clear()
@@ -863,30 +912,106 @@ class Bundler:
         Bundle.ALG_* constants. 
         @param searchkeywords The search keywords used to retrieve 
         the list of hits.
-        @return A list containing hits and bundles.
+        @return A list containing hits and bundles and the actual applied bundle mode.
         """
-        algorithm = Bundler.algorithms[bundle_mode]
-        if algorithm is None:
-            return hits, bundle_mode
+        bundled_hits = None
+        selected_bundle_mode = bundle_mode
         
-        if Bundler.GROUP_TOP_N is not None:
-            hits1, hits2 = hits[:Bundler.GROUP_TOP_N], hits[Bundler.GROUP_TOP_N:]
+        if bundle_mode in [Bundler.ALG_OFF, None]:
+            selected_bundle_mode = Bundler.ALG_OFF
+            bundled_hits = hits
+        
         else:
-            hits1 = hits
-            hits2 = []
-        
-        query = ' '.join(searchkeywords)
-        if self.previous_query != query:
-            self.previous_groups = {}
-        
-        self._benchmark_start()
-        grouped_hits = GroupsList(query, algorithm, hits1,
-                                  self.previous_groups.get(bundle_mode, None),
-                                  Bundler.MAX_BUNDLES)
-        self._benchmark_end()
+            query = ' '.join(searchkeywords)
+            if self.previous_query != query:
+                self.previous_groups = {}
+                self.previous_query = query
+            
+            if Bundler.GROUP_TOP_N is not None:
+                hits1, hits2 = hits[:Bundler.GROUP_TOP_N], hits[Bundler.GROUP_TOP_N:]
+            else:
+                hits1 = hits
+                hits2 = []
+            
+            if bundle_mode == Bundler.ALG_MAGIC:
+                success = False
+                
+                # try ALG_NAME
+                selected_bundle_mode = Bundler.ALG_NAME
+                algorithm = Bundler.algorithms[selected_bundle_mode]
+                
+                grouped_hits = GroupsList(query, algorithm, hits1,
+                                          self.previous_groups.get(selected_bundle_mode, None),
+                                          Bundler.MAX_BUNDLES, two_step=True)
+                
+                levtrie_root = grouped_hits.context_state.levtrie.root
+                levtrie_width = levtrie_root.width(level=Bundler.LEVTRIE_DEPTH)
+                if DEBUG:
+                    print >>sys.stderr, '>> Bundler.py MAGIC: levtrie_width =', levtrie_width, '(depth %s)' % Bundler.LEVTRIE_DEPTH
+                    print >>sys.stderr, '>> Bundler.py MAGIC: levtrie_width =', levtrie_root.width(2), '(depth 2)'
+                
+                if levtrie_width >= Bundler.MIN_LEVTRIE_WIDTH:
+                    grouped_hits.finalize()
+                    self.previous_groups[selected_bundle_mode] = grouped_hits
+                    bundled_hits = self._convert_groupslist(grouped_hits, algorithm, hits2)
+                    success = True
+                
+                # try ALG_NUMBERS
+                if not success:
+                    selected_bundle_mode = Bundler.ALG_NUMBERS
+                    bundled_hits, _ = self.bundle(hits, selected_bundle_mode, searchkeywords)
+                    
+                    # TODO: set success?
+                    
+                # try ALG_SIZE
+                if not success:
+                    selected_bundle_mode = Bundler.ALG_SIZE
+                    bundled_hits, _ = self.bundle(hits, selected_bundle_mode, searchkeywords)
+                    
+                    # TODO: set success?
+                
+                # FAILURE => OFF
+                if bundled_hits:
+                    reduction = float(len(hits1)-len(bundled_hits)+1)/len(hits1)
+                    if reduction >= Bundler.REDUCTION_THRESHOLD:
+                        if DEBUG:
+                            print >>sys.stderr, '>> Bundler.py MAGIC: FAILURE; %0.2f reduction rate using %s' \
+                            % (reduction, Bundler.PRINTABLE_ALG_CONSTANTS[selected_bundle_mode])
+                        selected_bundle_mode = Bundler.ALG_OFF
+                        bundled_hits = hits
+                
+                # FALLBACK => OFF
+                elif not success:
+                    if DEBUG:
+                        print >>sys.stderr, '>> Bundler.py MAGIC: FALLBACK'
+                    selected_bundle_mode = Bundler.ALG_OFF
+                    bundled_hits = hits
+                
+                
+            else:
+                algorithm = Bundler.algorithms[bundle_mode]
+                
+                self._benchmark_start()
+                grouped_hits = GroupsList(query, algorithm, hits1,
+                                          self.previous_groups.get(bundle_mode, None),
+                                          Bundler.MAX_BUNDLES)
+                self._benchmark_end()
+            
+                self.previous_groups[bundle_mode] = grouped_hits
+                bundled_hits = self._convert_groupslist(grouped_hits, algorithm, hits2)
+            
+            
+            self.number_of_calls += 1
+            if self.number_of_calls == Bundler.GC_ROUNDS:
+                self.__gc()
+                self.number_of_calls = 0
+            
+        return bundled_hits, selected_bundle_mode
     
-        hits1_withbundles = []
-        for group in grouped_hits.groups:
+    
+    def _convert_groupslist(self, groupslist, algorithm, suffix=[]):
+        res = []
+        for group in groupslist.groups:
             if len(group) > 1:
                 d = dict(key = 'Group%05d' % group.id,
                          bundle = list(group), 
@@ -903,19 +1028,11 @@ class Bundler:
                     if key in head:
                         d[key] = head[key]
                 
-                hits1_withbundles.append(d)
+                res.append(d)
             else:
-                hits1_withbundles.append(group[0])
+                res.append(group[0])
         
-        self.previous_query = query
-        self.previous_groups[bundle_mode] = grouped_hits
-        
-        self.number_of_calls += 1
-        if self.number_of_calls == Bundler.GC_ROUNDS:
-            self.__gc()
-            self.number_of_calls = 0
-        
-        return hits1_withbundles + hits2, bundle_mode # TODO: impl magic
+        return res
     
     def __gc(self):
         # GC is rather simple. Just cut the links to old versions
