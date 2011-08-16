@@ -42,15 +42,15 @@ echo "* Cleaning up *.pyc files..."
 find . -iregex '.*\(dispersy\|Community\).*\.py[co]' -delete
 echo "* Recompiling python classes..."
 (/usr/bin/env python | grep -v Listing ) <<END
-import compileall
+from compileall import compile_dir
 import re
-compileall.compile_dir('.', rx=re.compile('/[.]svn'), force=False)
+compile_dir('.', rx=re.compile('/[.]svn'), force=False)
 END
 
 (/usr/bin/env python -O | grep -v Listing ) <<END
-import compileall
+from compileall import compile_dir
 import re
-compileall.compile_dir('.', rx=re.compile('/[.]svn'), force=False)
+compile_dir('.', rx=re.compile('/[.]svn'), force=False)
 END
 
 

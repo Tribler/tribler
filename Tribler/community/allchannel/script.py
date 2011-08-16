@@ -4,7 +4,7 @@ from string import letters
 from time import time
 
 from community import AllChannelCommunity
-from Tribler.Community.channel.community import ChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity
 from preview import PreviewChannelCommunity
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter

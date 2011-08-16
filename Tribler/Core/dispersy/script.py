@@ -14,6 +14,7 @@ from hashlib import sha1
 from random import random, shuffle
 from struct import pack, unpack_from
 from time import clock, time
+from lencoder import log
 import gc
 import hashlib
 import math
@@ -98,229 +99,229 @@ class ScriptBase(object):
     def caller(self, run):
         self._script.add_testcase(run)
 
-    def run():
+    def run(self):
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
 
- class ScenarioScriptBase(ScriptBase):
-     #TODO: all bartercast references should be converted to some universal style    
-     def __init__(self, script, name, logfile, **kargs):
-         ScriptBase.__init__(self, script, name, **kargs)
+class ScenarioScriptBase(ScriptBase):
+    #TODO: all bartercast references should be converted to some universal style    
+    def __init__(self, script, name, logfile, **kargs):
+        ScriptBase.__init__(self, script, name, **kargs)
         
-         self._timestep = float(kargs.get('timestep', 1.0))
-         self._stepcount = 0
-         self._starting_timestamp = float(kargs.get('starting_timestamp', time()))
-         self._logfile = logfile
+        self._timestep = float(kargs.get('timestep', 1.0))
+        self._stepcount = 0
+        self._starting_timestamp = float(kargs.get('starting_timestamp', time()))
+        self._logfile = logfile
 
-     def find_peer_by_name(self, peername):
-         assert isinstance(peername, str)
-         if not peername in self._members:
-             with open('data/peers') as fp:
-                 for line in fp:
-                     name, ip, port, public_key, _ = line.split()
-                     if name == peername:
-                         public_key = public_key.decode("HEX")
-                         self._members[name] = (Member(public_key, sync_with_database=True), (ip, int(port)))
-                         break
-                 else:
-                     raise ValueError("Node with name '%s' not in nodes db" % peername)
-         return self._members[peername]
+    def find_peer_by_name(self, peername):
+        assert isinstance(peername, str)
+        if not peername in self._members:
+            with open('data/peers') as fp:
+                for line in fp:
+                    name, ip, port, public_key, _ = line.split()
+                    if name == peername:
+                        public_key = public_key.decode("HEX")
+                        self._members[name] = (Member(public_key, sync_with_database=True), (ip, int(port)))
+                        break
+                else:
+                    raise ValueError("Node with name '%s' not in nodes db" % peername)
+        return self._members[peername]
 
-     def set_online(self):
-         """ Restore on_incoming_packets and _send functions of
-         dispersy back to normal.
+    def set_online(self):
+        """ Restore on_incoming_packets and _send functions of
+        dispersy back to normal.
 
-         This simulates a node coming online, since it's able to send
-         and receive messages.
-         """
-         dprint("Going online")
-         self._dispersy.on_incoming_packets = self.original_on_incoming_packets
-         self._dispersy._send = self.original_send
+        This simulates a node coming online, since it's able to send
+        and receive messages.
+        """
+        dprint("Going online")
+        self._dispersy.on_incoming_packets = self.original_on_incoming_packets
+        self._dispersy._send = self.original_send
 
-     def set_offline(self):
-         """ Replace on_incoming_packets and _sends functions of
-         dispersy with dummies
+    def set_offline(self):
+        """ Replace on_incoming_packets and _sends functions of
+        dispersy with dummies
 
-         This simulates a node going offline, since it's not able to
-         send or receive any messages
-         """
-         def dummy_function(*params):
-             return
-         dprint("Going offline")
-         self._dispersy.on_incoming_packets = dummy_function
-         self._dispersy._send = dummy_function
+        This simulates a node going offline, since it's not able to
+        send or receive any messages
+        """
+        def dummy_function(*params):
+            return
+        dprint("Going offline")
+        self._dispersy.on_incoming_packets = dummy_function
+        self._dispersy._send = dummy_function
 
-     def get_commands_from_fp(self, fp, step):
-         """ Return a list of commands from file handle for step
+    def get_commands_from_fp(self, fp, step):
+        """ Return a list of commands from file handle for step
 
-         Read lines from fp and return all the lines starting at
-         timestamp equal to step. If we read the end of the file,
-         without commands to return, then I return -1.
-         """
-         commands = []
-         while True:
-             cursor_position = fp.tell()
-             line = fp.readline().strip()
-             if not line:
-                 if commands: return commands
-                 else: return -1
+        Read lines from fp and return all the lines starting at
+        timestamp equal to step. If we read the end of the file,
+        without commands to return, then I return -1.
+        """
+        commands = []
+        while True:
+            cursor_position = fp.tell()
+            line = fp.readline().strip()
+            if not line:
+                if commands: return commands
+                else: return -1
 
-             cmdstep, command = line.split(' ', 1)
+            cmdstep, command = line.split(' ', 1)
 
-             cmdstep = int(cmdstep)
-             if cmdstep < step:
-                 continue
-             elif cmdstep == step:
-                 commands.append(command)
-             else:
-                 # restore cursor position and break
-                 fp.seek(cursor_position)
-                 break
+            cmdstep = int(cmdstep)
+            if cmdstep < step:
+                continue
+            elif cmdstep == step:
+                commands.append(command)
+            else:
+                # restore cursor position and break
+                fp.seek(cursor_position)
+                break
 
-         return commands
+        return commands
 
-     def sleep(self):
-         """ Calculate the time to sleep.
-         """
-         now = time()
-         expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
-         st = max(0.0, expected_time - now) * random()
-         log(self._logfile, "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
-         return st
+    def sleep(self):
+        """ Calculate the time to sleep.
+        """
+        now = time()
+        expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
+        st = max(0.0, expected_time - now) * random()
+        log(self._logfile, "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
+        return st
     
-     def join_community(self, my_member):
-         pass
+    def join_community(self, my_member):
+        pass
     
-     def execute_scenario_cmds(self, commands):
-         pass
+    def execute_scenario_cmds(self, commands):
+        pass
 
-     def run(self):
-         if __debug__: log(self._logfile, "start-barter-script")
+    def run(self):
+        if __debug__: log(self._logfile, "start-barter-script")
 
-         self._members = {}
-         self.original_on_incoming_packets = self._dispersy.on_incoming_packets
-         self.original_send = self._dispersy._send
+        self._members = {}
+        self.original_on_incoming_packets = self._dispersy.on_incoming_packets
+        self.original_send = self._dispersy._send
 
-         #
-         # Read our configuration from the peer.conf file
-         # name, ip, port, public and private key
-         #
-         with open('data/peer.conf') as fp:
-             my_name, ip, port, public_key, private_key = fp.readline().split()
-             public_key = public_key.decode("HEX")
-             private_key = private_key.decode("HEX")
-             my_address = (ip, int(port))
-         if __debug__: log(self._logfile, "read-config-done")
+        #
+        # Read our configuration from the peer.conf file
+        # name, ip, port, public and private key
+        #
+        with open('data/peer.conf') as fp:
+            my_name, ip, port, public_key, private_key = fp.readline().split()
+            public_key = public_key.decode("HEX")
+            private_key = private_key.decode("HEX")
+            my_address = (ip, int(port))
+        if __debug__: log(self._logfile, "read-config-done")
 
-         # create mymember
-         my_member = MyMember(public_key, private_key, sync_with_database=True)
-         dprint(my_member)
+        # create mymember
+        my_member = MyMember(public_key, private_key, sync_with_database=True)
+        dprint(my_member)
 
-         # join the community with the newly created member
-         self._community = self.join_community(my_member)
-         dprint("Joined barter community ", self._community._my_member)
-         if __debug__:
-             log(self._logfile, "joined-barter-community")
-             log(self._logfile, "barter-community-property", name="sync_interval", value=self._community.dispersy_sync_interval)
-             log(self._logfile, "barter-community-property", name="sync_member_count", value=self._community.dispersy_sync_member_count)
-             log(self._logfile, "barter-community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
-             log(self._logfile, "barter-community-property", name="timestep", value=self._timestep)
+        # join the community with the newly created member
+        self._community = self.join_community(my_member)
+        dprint("Joined barter community ", self._community._my_member)
+        if __debug__:
+            log(self._logfile, "joined-barter-community")
+            log(self._logfile, "barter-community-property", name="sync_interval", value=self._community.dispersy_sync_interval)
+            log(self._logfile, "barter-community-property", name="sync_member_count", value=self._community.dispersy_sync_member_count)
+            log(self._logfile, "barter-community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
+            log(self._logfile, "barter-community-property", name="timestep", value=self._timestep)
 
-         yield 2.0
+        yield 2.0
 
-         # create a dispersy-identity message for my_member and the
-         # self._community community.  This message will be sent to all
-         # the peers in the 'peers' file to (a) add them to our candidate
-         # table (b) let them know about our existance and our public
-         # key
-         meta = self._community.get_meta_message(u"dispersy-identity")
-         message = meta.implement(meta.authentication.implement(meta.community._my_member),
-                                  meta.distribution.implement(meta.community.claim_global_time()),
-                                  meta.destination.implement(),
-                                  meta.payload.implement(my_address))
-         self._dispersy.store_update_forward([message], True, True, False)
+        # create a dispersy-identity message for my_member and the
+        # self._community community.  This message will be sent to all
+        # the peers in the 'peers' file to (a) add them to our candidate
+        # table (b) let them know about our existance and our public
+        # key
+        meta = self._community.get_meta_message(u"dispersy-identity")
+        message = meta.implement(meta.authentication.implement(meta.community._my_member),
+                                meta.distribution.implement(meta.community.claim_global_time()),
+                                meta.destination.implement(),
+                                meta.payload.implement(my_address))
+        self._dispersy.store_update_forward([message], True, True, False)
 
-         # now send the dispersy-identity message to everybody the
-         # dispersy-identity is a CommunityDestination message but
-         # currently we don't know anyone else in the
-         # community. Therefore we have to specifically forward the
-         # message to peers using the _dispersy._send function with
-         # (ip, port) combinations we read from the 'data/peers' file
-         if __debug__:
-             _peer_counter = 0
-         with self._dispersy.database as execute:
-             #remove original tracker
-             execute(u"DELETE FROM candidate where community=0")
+        # now send the dispersy-identity message to everybody the
+        # dispersy-identity is a CommunityDestination message but
+        # currently we don't know anyone else in the
+        # community. Therefore we have to specifically forward the
+        # message to peers using the _dispersy._send function with
+        # (ip, port) combinations we read from the 'data/peers' file
+        if __debug__:
+            _peer_counter = 0
+        with self._dispersy.database as execute:
+            #remove original tracker
+            execute(u"DELETE FROM candidate where community=0")
             
-             with open('data/peers') as file:
-                 for line in file:
-                     name, ip, port, public_key, _ = line.split(' ', 4)
-                     if __debug__:
-                         _peer_counter += 1
-                         log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                     if name == my_name: continue
-                     public_key = public_key.decode('HEX')
-                     port = int(port)
+            with open('data/peers') as file:
+                for line in file:
+                    name, ip, port, public_key, _ = line.split(' ', 4)
+                    if __debug__:
+                        _peer_counter += 1
+                        log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
+                    if name == my_name: continue
+                    public_key = public_key.decode('HEX')
+                    port = int(port)
 
-                     #self._dispersy._send([(ip, port)], [message.packet])
+                    #self._dispersy._send([(ip, port)], [message.packet])
                     
-                     #inserting all peers from data/peer as 'trackers'
-                     execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (0, unicode(ip), port))
-                     execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
+                    #inserting all peers from data/peer as 'trackers'
+                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (0, unicode(ip), port))
+                    execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
                     
-                     #if __debug__:
-                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
-         if __debug__:
-             log(self._logfile, "done-reading-peers")
+                    #if __debug__:
+                    #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
+        if __debug__:
+            log(self._logfile, "done-reading-peers")
 
-         yield 2.0
+        yield 2.0
 
-         # open the scenario files, as generated from Mircea's Scenario
-         # Generator
-         scenario_fp = open('data/bartercast.log')
-         availability_fp = open('data/availability.log')
+        # open the scenario files, as generated from Mircea's Scenario
+        # Generator
+        scenario_fp = open('data/bartercast.log')
+        availability_fp = open('data/availability.log')
 
-         self._stepcount = 0
+        self._stepcount = 0
 
-         # wait until we reach the starting time
-         yield self.sleep()
+        # wait until we reach the starting time
+        yield self.sleep()
 
-         self._stepcount = 1
+        self._stepcount = 1
 
-         # start the scenario
-         while True:
-             # get commands
-             scenario_cmds = self.get_commands_from_fp(scenario_fp, self._stepcount)
-             availability_cmds = self.get_commands_from_fp(availability_fp, self._stepcount)
+        # start the scenario
+        while True:
+            # get commands
+            scenario_cmds = self.get_commands_from_fp(scenario_fp, self._stepcount)
+            availability_cmds = self.get_commands_from_fp(availability_fp, self._stepcount)
 
-             # if there are no commands exit the while loop
-             if scenario_cmds == -1 and availability_cmds == -1:
-                 if __debug__: log(self._logfile, "no-commands")
-                 break
-             else:
-                 # if there is a start in the avaibility_cmds then go
-                 # online
-                 if availability_cmds != -1 and 'start' in availability_cmds:
-                     self.set_online()
+            # if there are no commands exit the while loop
+            if scenario_cmds == -1 and availability_cmds == -1:
+                if __debug__: log(self._logfile, "no-commands")
+                break
+            else:
+                # if there is a start in the avaibility_cmds then go
+                # online
+                if availability_cmds != -1 and 'start' in availability_cmds:
+                    self.set_online()
 
-                 # if there are barter_cmds then execute them
-                 if scenario_cmds != -1:
-                     self.execute_scenario_cmds(scenario_cmds)
+                # if there are barter_cmds then execute them
+                if scenario_cmds != -1:
+                    self.execute_scenario_cmds(scenario_cmds)
 
-                 # if there is a stop in the availability_cmds then go
-                 # offline
-                 if availability_cmds != -1 and 'stop' in availability_cmds:
-                     self.set_offline()
+                # if there is a stop in the availability_cmds then go
+                # offline
+                if availability_cmds != -1 and 'stop' in availability_cmds:
+                    self.set_offline()
 
-             # sleep until the next step
-             yield self.sleep()
-             self._stepcount += 1
+            # sleep until the next step
+            yield self.sleep()
+            self._stepcount += 1
 
-         # I finished the scenario execution. I should stay online
-         # until killed. Note that I can still sync and exchange
-         # messages with other peers.
-         while True:
-             # wait to be killed
-             yield 100.0
+        # I finished the scenario execution. I should stay online
+        # until killed. Note that I can still sync and exchange
+        # messages with other peers.
+        while True:
+            # wait to be killed
+            yield 100.0
 
 class DispersyClassificationScript(ScriptBase):
     def run(self):

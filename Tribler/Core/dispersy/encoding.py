@@ -33,8 +33,19 @@ def _a_encode_list(values, mapping):
     """
     [1,2,3] --> ['3', 'l', '1', 'i', '1', '1', 'i', '2', '1', 'i', '3']
     """
-    assert isinstance(values, (list,set)), "VALUE has invalid type: %s" % type(values)
+    assert isinstance(values, list), "VALUE has invalid type: %s" % type(values)
     encoded = [str(len(values)).encode("UTF-8"), "l"]
+    extend = encoded.extend
+    for value in values:
+        extend(mapping[type(value)](value, mapping))
+    return encoded
+
+def _a_encode_set(values, mapping):
+    """
+    [1,2,3] --> ['3', 'l', '1', 'i', '1', '1', 'i', '2', '1', 'i', '3']
+    """
+    assert isinstance(values, set), "VALUE has invalid type: %s" % type(values)
+    encoded = [str(len(values)).encode("UTF-8"), "L"]
     extend = encoded.extend
     for value in values:
         extend(mapping[type(value)](value, mapping))
@@ -44,7 +55,7 @@ def _a_encode_tuple(values, mapping):
     """
     (1,2) --> ['2', 't', '1', 'i', '1', '1', 'i', '2']
     """
-    assert isinstance(values, tuple), "VALUE has invalid type: %s" % type(value)
+    assert isinstance(values, tuple), "VALUE has invalid type: %s" % type(values)
     encoded = [str(len(values)).encode("UTF-8"), "t"]
     extend = encoded.extend
     for value in values:
@@ -55,7 +66,7 @@ def _a_encode_dictionary(values, mapping):
     """
     {'foo':'bar', 'moo':'milk'} --> ['2', 'd', '3', 's', 'foo', '3', 's', 'bar', '3', 's', 'moo', '4', 's', 'milk']
     """
-    assert isinstance(values, dict), "VALUE has invalid type: %s" % type(value)
+    assert isinstance(values, dict), "VALUE has invalid type: %s" % type(values)
     encoded = [str(len(values)).encode("UTF-8"), "d"]
     extend = encoded.extend
     for key, value in sorted(values.items()):
@@ -77,7 +88,7 @@ _a_encode_mapping = {int:_a_encode_int,
                      unicode:_a_encode_unicode,
                      str:_a_encode_bytes,
                      list:_a_encode_list,
-                     set:_a_encode_list,
+                     set:_a_encode_set,
                      tuple:_a_encode_tuple,
                      dict:_a_encode_dictionary,
                      type(None):_a_encode_none}
@@ -268,6 +279,22 @@ def _a_decode_list(stream, offset, count, mapping):
 
     return offset, container
 
+def _a_decode_set(stream, offset, count, mapping):
+    """
+    'a1L3i123',3,1 --> 8,set(123)
+    'a2L1i41i2',3,1 --> 8,set(4,2)
+    """
+    container = set
+    for _ in range(count):
+
+        index = offset
+        while 48 <= ord(stream[index]) <= 57:
+            index += 1
+        offset, value = mapping[stream[index]](stream, index+1, int(stream[offset:index]), mapping)
+        container.add(value)
+
+    return offset, container
+
 def _a_decode_tuple(stream, offset, count, mapping):
     """
     'a1t3i123',3,1 --> 8,[123]
@@ -319,6 +346,7 @@ _a_decode_mapping = {"i":_a_decode_int,
                      "s":_a_decode_unicode,
                      "b":_a_decode_bytes,
                      "l":_a_decode_list,
+                     "L":_a_decode_set,
                      "t":_a_decode_tuple,
                      "d":_a_decode_dictionary,
                      "n":_a_decode_none}

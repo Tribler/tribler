@@ -121,36 +121,35 @@ def main():
                 script.add("simpledispersytest-generate-messages", GenerateMessagesScript, include_with_all=False)
                 script.add("simpledispersytest-destroy-community", KillCommunityScript, include_with_all=False)
 
-            # if not opt.disable_allchannel_script:
-            #     from Tribler.Community.allchannel.script import AllChannelScript
-            #     script = Script.get_instance(dispersy_rawserver)
-            #     script.add("allchannel", AllChannelScript, include_with_all=False)
+            if not opt.disable_allchannel_script:
+#                from Tribler.Community.allchannel.script import AllChannelScript
+#                script.add("allchannel", AllChannelScript, include_with_all=False)
 
-            #     from Tribler.Community.allchannel.script import AllChannelScenarioScript
-            #     args = {}
-            #     if opt.script_args:
-            #         for arg in opt.script_args.split(','):
-            #             key, value = arg.split('=')
-            #             args[key] = value
+                from Tribler.Community.allchannel.script import AllChannelScenarioScript
+                args = {}
+                if opt.script_args:
+                    for arg in opt.script_args.split(','):
+                        key, value = arg.split('=')
+                        args[key] = value
 
-            #     script.add("allchannel-scenario", AllChannelScenarioScript, args, include_with_all=False)
+                script.add("allchannel-scenario", AllChannelScenarioScript, args, include_with_all=False)
 
-            # if not opt.disable_barter_script:
-            #     from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
-
-            #     args = {}
-            #     if opt.script_args:
-            #         for arg in opt.script_args.split(','):
-            #             key, value = arg.split('=')
-            #             args[key] = value
-
-            #     script.add("barter", BarterScript)
-            #     script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
-
-            # # bump the rawserver, or it will delay everything... since it sucks.
-            # def bump():
-            #     pass
-            # rawserver.add_task(bump)
+#             if not opt.disable_barter_script:
+#                 from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
+#
+#                 args = {}
+#                 if opt.script_args:
+#                     for arg in opt.script_args.split(','):
+#                         key, value = arg.split('=')
+#                         args[key] = value
+#
+#                 script.add("barter", BarterScript)
+#                 script.add("barter-scenario", BarterScenarioScript, args, include_with_all=False)
+#
+#             # bump the rawserver, or it will delay everything... since it sucks.
+#             def bump():
+#                 pass
+#             rawserver.add_task(bump)
 
             script.load(opt.script)
 
@@ -160,8 +159,8 @@ def main():
     command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
     command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=1.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
-    # command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
-    # command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
+    command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
+    command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
     command_line_parser.add_option("--disable-simple-dispersy-test-script", action="store_true", help="Include simple-dispersy-test scripts", default=False)
     command_line_parser.add_option("--disable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
