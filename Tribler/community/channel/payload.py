@@ -19,6 +19,9 @@ class ChannelPayload(Payload):
         @property
         def description(self):
             return self._description
+        
+class PlaylistPayload(ChannelPayload):
+    pass
 
 class TorrentPayload(Payload):
     class Implementation(Payload.Implementation):
@@ -62,24 +65,6 @@ class TorrentPayload(Payload):
         def trackers(self):
             return self._trackers
 
-class PlaylistPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, name, description):
-            assert isinstance(name, unicode)
-            assert len(name) < 255
-            assert isinstance(description, unicode)
-            assert len(description) < 1024
-            super(PlaylistPayload.Implementation, self).__init__(meta)
-            self._name = name
-            self._description = description
-
-        @property
-        def name(self):
-            return self._name
-
-        @property
-        def description(self):
-            return self._description
 
 class CommentPayload(Payload):
     class Implementation(Payload.Implementation):

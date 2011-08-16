@@ -33,7 +33,7 @@ def _a_encode_list(values, mapping):
     """
     [1,2,3] --> ['3', 'l', '1', 'i', '1', '1', 'i', '2', '1', 'i', '3']
     """
-    assert isinstance(values, list), "VALUE has invalid type: %s" % type(value)
+    assert isinstance(values, (list,set)), "VALUE has invalid type: %s" % type(values)
     encoded = [str(len(values)).encode("UTF-8"), "l"]
     extend = encoded.extend
     for value in values:
@@ -77,6 +77,7 @@ _a_encode_mapping = {int:_a_encode_int,
                      unicode:_a_encode_unicode,
                      str:_a_encode_bytes,
                      list:_a_encode_list,
+                     set:_a_encode_list,
                      tuple:_a_encode_tuple,
                      dict:_a_encode_dictionary,
                      type(None):_a_encode_none}

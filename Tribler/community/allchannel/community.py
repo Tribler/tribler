@@ -21,9 +21,7 @@ from Tribler.Core.dispersy.member import MyMember
 
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
-
-from distutils.util import execute
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.community.allchannel.payload import ChannelCastRequestPayload
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -81,20 +79,16 @@ class AllChannelCommunity(Community):
         self.integrate_with_tribler = integrate_with_tribler
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
-            from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
-            from Tribler.Core.CacheDB.Notifier import Notifier
         
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
             self._votecast_db = VoteCastDBHandler.getInstance()
             self._peer_db = PeerDBHandler.getInstance()
-            self._notifier = Notifier.getInstance().notify
             
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._votecast_db = VoteCastDBStub(self._dispersy)
             self._peer_db = PeerDBStub(self._dispersy)
-            self._notifier = False
         
         self._register_task = self.dispersy.callback.register
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
@@ -105,9 +99,8 @@ class AllChannelCommunity(Community):
         # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
         # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
         return [Message(self, u"channelcast", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
-                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast),
-                Message(self, u"channel-search-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchRequestPayload(), self.check_channel_search_request, self.on_channel_search_request),
-                Message(self, u"channel-search-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channel_search_response, self.on_channel_search_response),
+                Message(self, u"channelcast-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast)
                 ]
 
     def initiate_conversions(self):
@@ -120,72 +113,61 @@ class AllChannelCommunity(Community):
     def create_channelcast(self, forward=True):
         try:
             now = time()
-            #cleanup blocklist
-            for peer in self._blocklist.keys():
-                if self._blocklist[peer] + CHANNELCAST_BLOCK_PERIOD < now: #unblock peer
-                    self._blocklist.pop(peer)
-                    
-            #do we have something to send?
-            packets_to_sync = startWorker(None, self._channelcast_db.getRecentAndRandomTorrents)
-            packets_to_sync = list(packets_to_sync.get())
             
-            if len(packets_to_sync) > 0:
-                log("dispersy.log", "trying-to-send-channelcast", nr_packets = len(packets_to_sync))
-                
-                #loop through all candidates to see if we can find a non-blocked peer
-                for candidate in self._dispersy.yield_online_candidates(self, 100):
-                    members = candidate.members
+            favoriteTorrents = normalTorrents = None
+            #cleanup blocklist
+            for address in self._blocklist.keys():
+                if self._blocklist[address] + CHANNELCAST_BLOCK_PERIOD < now: #unblock address
+                    self._blocklist.pop(address)
                     
-                    blocked = True
-                    for member in members: #see if any of the members of this address isn't blocked
+            #loop through all candidates to see if we can find a non-blocked address
+            for candidate in self._dispersy.yield_online_candidates(self, 100):
+                if not candidate.address in self._blocklist:
+                    log("dispersy.log", "trying-to-send-channelcast")
+                    
+                    peer_ids = set()
+                    for member in candidate.members:
                         key = member.public_key
-                        if not key in self._blocklist:
-                            blocked = False
+                        peer_ids.add(self._peer_db.addOrGetPeerID(key))
+                    log("dispersy.log", "not-blocked", peers = len(peer_ids))
+                    
+                    #see if all members on this address are subscribed to my channel
+                    didFavorite = len(peer_ids) > 0
+                    for peer_id in peer_ids:
+                        vote = self._votecast_db.getVoteForMyChannel(peer_id)
+                        if vote != 2:
+                            didFavorite = False
                             break
                     
-                    if not blocked:
-                        peer_ids = set()
-                        for member in members:
-                            key = member.public_key
-                            peer_ids.add(self._peer_db.addOrGetPeerID(key))
+                    #Modify type of message depending on if all peers have marked my channels as their favorite
+                    if didFavorite:
+                        if not favoriteTorrents:
+                            favoriteTorrents = list(self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5))
+                        torrents = favoriteTorrents
+                    else:
+                        if not normalTorrents:
+                            normalTorrents = list(self._channelcast_db.getRecentAndRandomTorrents())
+                        torrents = normalTorrents
                         
-                        log("dispersy.log", "not-blocked", peers = len(peer_ids))
+                    if len(torrents) > 0:
+                        meta = self.get_meta_message(u"channelcast")
+                        message = meta.implement(meta.authentication.implement(),
+                                                 meta.distribution.implement(self.global_time),
+                                                 meta.destination.implement(),
+                                                 meta.payload.implement(torrents))
                         
-                        #see if all members on this address are subscribed to my channel
-                        favorites = True
-                        for peer_id in peer_ids:
-                            vote = self._votecast_db.getVoteForMyChannel(peer_id)
-                            if vote != 2:
-                                favorites = False
-                                break
+                        self._dispersy._send([candidate.address], [message.packet])
                         
-                        if len(packets_to_sync) > 0:
-                            # select channel messages (associated with the sync_ids)
-                            sql = u"SELECT sync.packet FROM sync WHERE sync.id IN ("
-                            sql += (u"?, "*len(packets_to_sync))[:-2]
-                            sql += u")"
-                    
-                            packets = [str(packet) for packet, in self._dispersy.database.execute(sql, packets_to_sync)]
-                            
-                            meta = self.get_meta_message(u"channelcast")
-                            message = meta.implement(meta.authentication.implement(),
-                                                     meta.distribution.implement(self.global_time),
-                                                     meta.destination.implement(),
-                                                     meta.payload.implement(packets))
-                            
-                            self._dispersy._send([candidate.address], [message.packet])
-                            
-                            #we've send something to this peer, add to blocklist
-                            for member in members:
-                                key = member.public_key
-                                self._blocklist[key] = now
-                            
-                            log("dispersy.log", "sending-channelcast", address = candidate.address, messages = len(packets_to_sync), marked = favorites)
-                            
-                            #we're done
-                            break
+                        #we've send something to this address, add to blocklist
+                        key = candidate.address
+                        self._blocklist[key] = now
+                        
+                        log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = len(torrents), marked = didFavorite)
+                        #we're done
+                        break
         except:
             raise
+        
         finally:
             self._register_task(self.create_channelcast, delay=CHANNELCAST_INTERVAL)
 
@@ -194,55 +176,54 @@ class AllChannelCommunity(Community):
         return messages
 
     def on_channelcast(self, messages):
-        incoming_packets = []
-        addresses = set()
-        channels = set()
-
         for message in messages:
-            incoming_packets.extend((message.address, packet) for packet in message.payload.packets)
-            addresses.add(message.address)
+            log("dispersy.log", "received-channelcast")
             
-            log("dispersy.log", "received-channelcast", nr_packets = len(message.payload.packets))
-
-        for _, packet in incoming_packets:
-            # ensure that all the PreviewChannelCommunity instances exist
-            try:
-                community = self._dispersy.get_community(packet[:20], True)
-            except KeyError:
-                if __debug__: dprint("join_community ", packet[:20].encode("HEX"))
-                community = PreviewChannelCommunity.join_community(packet[:20], "", self._my_member)
+            toCollect = {}
+            for cid, torrents in message.payload.torrents:
+                # ensure that all the PreviewChannelCommunity instances exist
+                try:
+                    community = self._dispersy.get_community(cid, True)
+                except KeyError:
+                    if __debug__: dprint("join_community ", cid.encode("HEX"))
+                    community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
                 
-            channels.add(community._channel_id)
-
-        # handle all packets
-        if incoming_packets:
-            self._dispersy.on_incoming_packets(incoming_packets)
-        
-        # start requesting not yet collected torrents
-        if self._notifier:
-            def notify(channel_id):
-                #self._notifier(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
-                pass
-            
-            infohashes = []
-            for channel_id in channels:
-                for infohash in self._channelcast_db.selectTorrentsToCollect(channel_id):
-                    infohashes.append((infohash, channel_id))
-            
-            permids = set()
-            for address in addresses:
-                for member in self.get_members_from_address(address):
-                    permids.add(member.public_key)
+                for infohash in community.selectTorrentsToCollect(torrents):
+                    toCollect.setdefault(cid,set()).add(infohash)
+                
+            nr_requests = sum([len(torrents) for torrents in toCollect.values()])
+            if nr_requests > 0:
+                self.create_channelcast_request(toCollect, message.address)
     
-                    # HACK! update the Peer table, if the tribler overlay did not discover this peer's
-                    # address yet
-                    if not self._peer_db.hasPeer(member.public_key):
-                        self._peer_db.addPeer(member.public_key, {"ip":address[0], "port":7760})
+    def create_channelcast_request(self, toCollect, address):
+        #create channelcast request message
+        meta = self.get_meta_message(u"channelcast-request")
+        message = meta.implement(meta.authentication.implement(),
+                                 meta.distribution.implement(self.global_time),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(toCollect))
+        self._dispersy._send([address], [message.packet])
+    
+    def check_channelcast_request(self, messages):
+        # no timeline check because NoAuthentication policy is used
+        return messages
+
+    def on_channelcast_request(self, messages):
+        for message in messages:
+            requested_packets = []
+            for cid, torrents in message.payload.torrents:
+                # ensure that all the PreviewChannelCommunity instances exist
+                try:
+                    community = self._dispersy.get_community(cid, True)
+                except KeyError:
+                    if __debug__: dprint("join_community ", cid.encode("HEX"))
+                    community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
                 
-            for infohash, channel_id in infohashes:
-                for permid in permids:
-                    #self._rtorrent_handler.download_torrent(permid, str(infohash), lambda infohash, metadata, filename: notify(channel_id) ,3)
-                    pass
+                for infohash in torrents:
+                    message = community._get_message_from_torrent_infohash(infohash)
+                    requested_packets.append(message.packet)
+            
+            self._dispersy._send([message.address], requested_packets)
     
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         self._register_task(self._disp_create_votecast, (vote, timestamp, store, update, forward))
@@ -325,181 +306,7 @@ class AllChannelCommunity(Community):
                     community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
                 
                 self._votecast_db.on_vote_from_dispersy(community._channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
-
-    # def _start_torrent_request_queue(self):
-    #     # check that we are not working on a request already
-    #     if not self._torrent_request_outstanding:
-    #         while True:
-    #             if not self._torrent_request_queue:
-    #                 if __debug__: dprint("no more infohashes outstanding")
-    #                 return
-
-    #             address, infohash = self._torrent_request_queue.pop(0)
-    #             if self._torrent_database._db.fetchone(u"SELECT 1 FROM Torrent WHERE infohash = ?", (infohash,)):
-    #                 if __debug__: dprint("we already have this infohash")
-    #                 continue
-
-    #             # found an infohash to request
-    #             break
-
-    #         self.create_torrent_request(address, infohash, self._fulfill_torrent_request, (address,))
-    #         self._torrent_request_outstanding = True
-
-    # def _fulfill_torrent_request(self, address, message, req_address):
-    #     if message:
-    #         # todo: handle torrent insert
-    #         pass
-
-    #     else:
-    #         # timeout on a request to req_address.  all requests to this address will likely
-    #         # timeout, hence remove all these requests
-    #         self._torrent_request_queue = [(address, infohash) for address, infohash in self._torrent_request_queue if not address == req_address]
-
-    #     self._torrent_request_outstanding = False
-    #     self._start_torrent_request_queue()
-
-    # def create_torrent_request(self, address, infohash, response_func, response_args=(), timeout=10.0, store_and_forward=True):
-    #     """
-    #     Create a message to request a .torrent file.
-    #     """
-    #     assert isinstance(infohash, str)
-    #     assert len(infohash) == 20
-    #     assert hasattr(response_func, "__call__")
-    #     assert isinstance(response_args, tuple)
-    #     assert isinstance(timeout, float)
-    #     assert timeout > 0.0
-    #     assert isinstance(store_and_forward, bool)
-
-    #     meta = self.get_meta_message(u"torrent-request")
-    #     request = meta.implement(meta.authentication.implement(),
-    #                              meta.distribution.implement(self.global_time),
-    #                              meta.destination.implement(address),
-    #                              meta.payload.implement(infohash))
-
-    #     if store_and_forward:
-    #         self._dispersy.store_and_forward([request])
-
-    #     if response_func:
-    #         meta = self.get_meta_message(u"torrent-response")
-    #         footprint = meta.generate_footprint(payload=(infohash,))
-    #         self._dispersy.await_message(footprint, response_func, response_args, timeout)
-
-    #     return request
-
-    # def on_torrent_request(self, address, message):
-    #     """
-    #     Received a 'torrent-request' message.
-    #     """
-    #     # we need to find the .torrent file and read the binary data
-    #     torrent = self._torrent_database.getTorrent(message.payload.infohash)
-    #     dprint(torrent, lines=1)
-    #     if not (torrent and torrent["destination_path"] and os.path.isfile(torrent["destination_path"])):
-    #         raise DropMessage("We do not have the requested infohash")
-    #         return
-    #     torrent_data = open(torrent["destination_path"], "r").read()
-
-    #     # we need to find, optionally, some meta data such as associated 'channel', 'torrent', and
-    #     # 'modify' messages.
-
-    #     # todo: niels?
-    #     # messages = [Message]
-
-    #     meta = self.get_meta_message(u"torrent-response")
-    #     response = meta.implement(meta.authentication.implement(),
-    #                               meta.distribution.implement(self.global_time),
-    #                               meta.destination.implement(address),
-    #                               meta.payload.implement(message.payload.infohash, torrent_data, messages))
-
-    #     self._dispersy.store_and_forward([message])
-
-    # def on_torrent_response(self, address, message):
-    #     """
-    #     Received a 'torrent-response' message.
-    #     """
-    #     # we ignore this message because we get a different callback to match it to the request
-    #     pass
-
-    def create_channel_search_request(self, skip, search, response_func, response_args=(), timeout=10.0, method=u"simple-any-keyword", store=True, forward=True):
-        """
-        Create a message to request a remote channel search.
-        """
-        assert isinstance(skip, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, Message), skip)
-        assert isinstance(search, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, unicode), search)
-        assert isinstance(method, unicode)
-        assert method in (u"simple-any-keyword", u"simple-all-keywords")
-        assert hasattr(response_func, "__call__")
-        assert isinstance(response_args, tuple)
-        assert isinstance(timeout, float)
-        assert timeout > 0.0
-
-        # todo: we need to set a max items in the bloom filter to limit the size.  the bloom filter
-        # be no more than +/- 1000 bytes large.
-        skip_bloomfilter = BloomFilter(max(1, len(skip)), 0.1)
-        map(skip_bloomfilter.add, (message.packet for message in skip))
-
-        meta = self.get_meta_message(u"channel-search-request")
-        request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(self.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(skip_bloomfilter, search, method))
-
-        if response_func:
-            meta = self.get_meta_message(u"channel-search-response")
-            footprint = meta.generate_footprint(payload=(sha1(request.packet).digest(),))
-            self._dispersy.await_message(footprint, response_func, response_args, timeout)
-
-        self._dispersy.store_update_forward([request], store, False, forward)
-        return request
-
-    def check_channel_search_request(self, messages):
-        for message in messages:
-            if not self._timeline.check(message):
-                yield DropMessage("TODO: implement delay by proof")
-                continue
-            yield message
-
-    def on_channel_search_request(self, messages):
-        """
-        Received a 'channel-search-request' message.
-        """
-        responses = []
-        for request in messages:
-            # we need to find channels matching the search criteria
-
-            packets = []
-
-            # todo: niels?
-            # packets = [packets]
-
-            # we need to find, optionally, some meta data such as associated 'torrent', and 'modify'
-            # messages.
-
-            # todo: niels?
-            # packets = [packets]
-
-            meta = self.get_meta_message(u"channel-search-response")
-            responses.append(meta.implement(meta.authentication.implement(),
-                                            meta.distribution.implement(self.global_time),
-                                            meta.destination.implement(address),
-                                            meta.payload.implement(sha1(request.packet).digest(), packets)))
-        self._dispersy.store_update_forward(responses, False, False, True)
-
-    def check_channel_search_response(self, messages):
-        for message in messages:
-            if not self._timeline.check(message):
-                yield DropMessage("TODO: implement delay by proof")
-                continue
-            yield message
-
-    def on_channel_search_response(self, messages):
-        """
-        Received a 'channel-search-response' message.
-        """
-        # we ignore this message because we get a different callback to match it to the request
-        pass
-
+    
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
@@ -521,30 +328,73 @@ class AllChannelCommunity(Community):
         assert message.name == messagename, "Expecting a '%s' message"%messagename
         return message
 
-
 class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
     
-    def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=3, NUM_OWN_RANDOM_TORRENTS=2):
-        sync_ids = set()
+    def convert_to_messages(self, results):
+        messages = []
+        for cid, packet, packet_id in results:
+            cid = str(cid)
+            packet = str(packet)
+            
+            try:
+                message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+                message.packet_id = packet_id
+                
+                messages.append((cid,message))
+            except ValueError, v:
+                #raise RuntimeError("Unable to decode packet")
+                raise
+        return messages
+    
+    def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
+        torrent_dict = {}
         last_result_time = None
-        # NUM_OWN_RECENT_TORRENTS latest packets
-        sql = u"SELECT sync.id, global_time FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT ?"
+        
+        sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT ?"
         results = self._dispersy.database.execute(sql, (NUM_OWN_RECENT_TORRENTS, ))
         
-        for syncid, time_stamp in results:
-            sync_ids.add(syncid)
-            last_result_time = time_stamp
+        messages = self.convert_to_messages(results)
+        for cid, message in messages:
+            torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
+            last_result_time = message.payload.timestamp
             
-        if len(sync_ids) == NUM_OWN_RECENT_TORRENTS:
-            sql = u"SELECT sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
+        if len(results) == NUM_OWN_RECENT_TORRENTS:
+            sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
             results = self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS))
+            
+            messages = self.convert_to_messages(results)
+            for cid, message in messages:
+                torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
+                last_result_time = message.payload.timestamp
+        return torrent_dict
 
-            for syncid, in results:
-                sync_ids.add(syncid)
-             
-        return sync_ids
+    def hasTorrents(self, infohashes):
+        sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'"
+        results = self._dispersy.database.execute(sql)
+        messages = self.convert_to_messages(results)
+        
+        haveTorrent = set()
+        for message in messages:
+            if message.payload.infohash in infohashes:
+                haveTorrent.add(message.payload.infohash)
+        
+        returnAr = []
+        for infohash in infohashes:
+            if infohash in haveTorrent:
+                returnAr.append(True)
+            else:
+                returnAr.append(False)
+        return returnAr
+    
+    def getTorrentFromChannelId(self, channel_id, infohash, keys):
+        sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'"
+        results = self._dispersy.database.execute(sql)
+        messages = self.convert_to_messages(results)
+        for message in messages:
+            if message.payload.infohash == infohash:
+                return message.packet_id
 
 class VoteCastDBStub():
     def __init__(self, dispersy):

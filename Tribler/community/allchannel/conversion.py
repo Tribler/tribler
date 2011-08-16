@@ -12,41 +12,21 @@ class AllChannelConversion(BinaryConversion):
     def __init__(self, community):
         super(AllChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
-        self.define_meta_message(chr(2), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
-        self.define_meta_message(chr(3), community.get_meta_message(u"channel-search-request"), self._encode_channel_search_request, self._decode_channel_search_request)
-        self.define_meta_message(chr(4), community.get_meta_message(u"channel-search-response"), self._encode_channel_search_response, self._decode_channel_search_response)
-        # self.define_meta_message(chr(2), community.get_meta_message(u"torrent-request"),
-        # self._encode_torrent_request, self._decode_torrent_request)
+        self.define_meta_message(chr(2), community.get_meta_message(u"channelcast-request"), self._encode_channelcast, self._decode_channelcast)
+        self.define_meta_message(chr(3), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
 
         self._address = ("", -1)
 
     def _encode_channelcast(self, message):
-        return pack("!H", len(message.payload.packets)), \
-               "".join([pack("!H", len(packet)) + packet for packet in message.payload.packets])
+        packet = encode(message.payload.torrents)
+        return packet,
 
     def _decode_channelcast(self, placeholder, offset, data):
-        if len(data) < offset + 2:
-            raise DropPacket("Insufficient packet size")
-        num_packets, = unpack_from("!H", data, offset)
-        offset += 2
-
-        packets = []
-        for _ in range(num_packets):
-            if len(data) < offset + 2:
-                raise DropPacket("Insufficient packet size")
-            length, = unpack_from("!H", data, offset)
-            if length < 22:
-                # must contain at least 20 bytes to identify the community and 2 bytes for the version
-                raise DropPacket("Packet to small")
-            offset += 2
-            if len(data) < offset + length:
-                raise DropPacket("Insufficient packet size")
-
-            packet = data[offset:offset+length]
-            offset += length
-            packets.append(packet)
-
-        return offset, placeholder.meta.payload.implement(packets)
+        try:
+            offset, payload = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the channelcast-payload")
+        return offset, placeholder.meta.payload.implement(payload)
     
     def _encode_votecast(self, message):
         return pack('!20shl', message.payload.cid, message.payload.vote, message.payload.timestamp),

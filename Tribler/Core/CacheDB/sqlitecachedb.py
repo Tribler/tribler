@@ -1733,7 +1733,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         
                         channel_id = self.fetchone(select_mychannel_id)
                         if channel_id:
-                            batch_insert = 250
+                            batch_insert = 50
                             
                             to_be_inserted = []
                             torrents = self.fetchall(select_mychannel_torrent, (my_permid, channel_id, batch_insert))

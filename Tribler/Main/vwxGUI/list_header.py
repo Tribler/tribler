@@ -8,7 +8,8 @@ from __init__ import LIST_RADIUS
 import sys
 import wx
 import os
-from traceback import print_stack
+
+DEBUG = False
 
 class ListHeaderIcon:
     __single = None
@@ -35,7 +36,8 @@ class ListHeaderIcon:
         return self.icons[key]
     
     def __createBitmap(self, parent, background, type, flag=0):
-        print >> sys.stderr, "Creating new sorting bitmaps", parent, background, type
+        if DEBUG:
+            print >> sys.stderr, "Creating new sorting bitmaps", parent, background, type
         nativeIcon = NativeIcon.getInstance()
         down = nativeIcon.getBitmap(parent, type, background, flag)
         
@@ -116,8 +118,12 @@ class ListHeader(wx.Panel):
                             labelWidth = self.GetTextExtent(test_string)[0]
                             columns[i]['width'] = labelWidth + 3 + down.GetWidth()
                         
-                        spacerWidth = columns[i]['width'] - 3 - down.GetWidth() - label.GetBestSize()[0]
-                        sizer.AddSpacer((spacerWidth, -1))
+                        remainingWidth = columns[i]['width'] - label.GetBestSize()[0] - down.GetWidth() - 3
+                        if remainingWidth > 0:
+                            sizer.AddSpacer((remainingWidth, 1))
+                        else:
+                            print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width']
+                            label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
                         
                     self.columnHeaders.append(label)
                 else:

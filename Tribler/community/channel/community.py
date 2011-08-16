@@ -16,8 +16,8 @@ from Tribler.Core.dispersy.destination import CommunityDestination, AddressDesti
 from Tribler.Core.dispersy.member import MyMember
 
 from message import DelayMessageReqChannelMessage
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 from threading import currentThread, Event
+from Tribler.community.allchannel.community import ChannelCastDBStub
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -62,7 +62,7 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, cid, master_key):
-        self.integrate_with_tribler = True
+        self.integrate_with_tribler = False
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
@@ -71,9 +71,7 @@ class ChannelCommunity(Community):
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
-            from Tribler.Core.CacheDB.sqlitecachedb import bin2str
             from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-            from Tribler.Core.defaults import NTFY_CHANNELCAST, NTFY_UPDATE
             from Tribler.Core.CacheDB.Notifier import Notifier
             
             # tribler channelcast database
@@ -87,12 +85,11 @@ class ChannelCommunity(Community):
             self._notifier = Notifier.getInstance().notify
     
             # tribler channel_id
-            def db_call():
-                self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
-            startWorker(None, db_call)
-            
+            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
+
             #modification_types
             self._modification_types = self._channelcast_db.modification_types
+        
         else:
             try:
                 message = self._get_latest_channel_message()
@@ -100,6 +97,8 @@ class ChannelCommunity(Community):
                     self._channel_id = self._cid
             except:
                 pass
+            
+            self._channelcast_db = ChannelCastDBStub(self._dispersy)
         
         global _register_task
         _register_task = self._dispersy.callback.register
@@ -119,9 +118,8 @@ class ChannelCommunity(Community):
                 return
             
             def handled_function(messages):
-                for message in messages:
-                    for _ in message.payload.torrentlist:
-                        log("dispersy.log", "handled-barter-record",type = "torrent")
+                for _ in messages:
+                    log("dispersy.log", "handled-barter-record",type = "torrent")
                         
             def handled_channel_function(messages):
                 log("dispersy.log", "received-channel-record")
@@ -147,46 +145,46 @@ class ChannelCommunity(Community):
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
-    @property
-    def dispersy_sync_bloom_filters(self):
-        #return self.bloom_option_1()
-        log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
-        
-        return self.bloom_option_2()
-        
-    def bloom_option_1(self):
-        #did we choose a sync range in the previous run where we got data?
-        if self._last_sync_range and self._last_sync_space_remaining != self._last_sync_range.space_remaining:
-            #stick to this one, try again
-            index = self._sync_ranges.index(self._last_sync_range)
-        else:
-            #first time or choose a different one
-            lambd = 1.0 / (len(self._sync_ranges) / 2.0)
-            index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
-        
-        sync_range = self._sync_ranges[index]
-        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
-        
-        self._last_sync_range = None
-        self._last_sync_space_remaining = None
-        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
-            self._last_sync_range = sync_range
-            self._last_sync_space_remaining = sync_range.space_remaining
-            
-        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]        
-    
-    def bloom_option_2(self):
-        index = randint(0, len(self._sync_ranges) - 1)
-        sync_range = self._sync_ranges[index]
-        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
-        
-        self._last_sync_range = None
-        self._last_sync_space_remaining = None
-        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
-            self._last_sync_range = sync_range
-            self._last_sync_space_remaining = sync_range.space_remaining
-            
-        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
+#    @property
+#    def dispersy_sync_bloom_filters(self):
+#        #return self.bloom_option_1()
+#        log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
+#        
+#        return self.bloom_option_2()
+#        
+#    def bloom_option_1(self):
+#        #did we choose a sync range in the previous run where we got data?
+#        if self._last_sync_range and self._last_sync_space_remaining != self._last_sync_range.space_remaining:
+#            #stick to this one, try again
+#            index = self._sync_ranges.index(self._last_sync_range)
+#        else:
+#            #first time or choose a different one
+#            lambd = 1.0 / (len(self._sync_ranges) / 2.0)
+#            index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
+#        
+#        sync_range = self._sync_ranges[index]
+#        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
+#        
+#        self._last_sync_range = None
+#        self._last_sync_space_remaining = None
+#        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
+#            self._last_sync_range = sync_range
+#            self._last_sync_space_remaining = sync_range.space_remaining
+#            
+#        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]        
+#    
+#    def bloom_option_2(self):
+#        index = randint(0, len(self._sync_ranges) - 1)
+#        sync_range = self._sync_ranges[index]
+#        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
+#        
+#        self._last_sync_range = None
+#        self._last_sync_space_remaining = None
+#        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
+#            self._last_sync_range = sync_range
+#            self._last_sync_space_remaining = sync_range.space_remaining
+#            
+#        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
     
     @property    
     def dispersy_sync_bloom_filter_error_rate(self):
@@ -231,10 +229,7 @@ class ChannelCommunity(Community):
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-
-            def SetChannel(delayedResult):
-                self._channel_id = delayedResult.get()
-            startWorker(SetChannel, self._channelcast_db.on_channel_from_dispersy, wargs = (self._cid, peer_id, message.payload.name, message.payload.description))
+            self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
 
     def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
         files = torrentdef.get_files_as_unicode_with_length()
@@ -298,12 +293,10 @@ class ChannelCommunity(Community):
             for member in self.get_members_from_address(address):
                 permids.add(member.public_key)
         
-        def torrents_inserted(delayedResult):
-            for infohash in infohashes:
-                for permid in permids:
-                    self._rtorrent_handler.download_torrent(permid, infohash, None ,2)
-        
-        startWorker(torrents_inserted, self._channelcast_db.on_torrents_from_dispersy, wargs = (torrentlist,))
+        self._channelcast_db.on_torrents_from_dispersy(torrentlist)
+        for infohash in infohashes:
+            for permid in permids:
+                self._rtorrent_handler.download_torrent(permid, infohash, None ,2)
 
     #create, check or receive playlists
     def create_playlist(self, name, description, infohashes = [], store=True, update=True, forward=True):
@@ -338,7 +331,7 @@ class ChannelCommunity(Community):
             if __debug__: dprint(message)
             dispersy_id = message.packet_id
             
-            startWorker(None, self._channelcast_db.on_playlist_from_dispersy, wargs = (self._channel_id, dispersy_id, message.payload.name, message.payload.description))
+            self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, message.payload.name, message.payload.description)
 
     #create, check or receive comments
     @forceDispersyThread
@@ -417,23 +410,17 @@ class ChannelCommunity(Community):
             playlist_dispersy_id = None
             if message.payload.playlist_packet:
                 playlist_dispersy_id = message.payload.playlist_packet.packet_id
-                
-            startWorker(None, self._channelcast_db.on_comment_from_dispersy, wargs = (self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash))
+            
+            self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
         
     #modify channel, playlist or torrent
     @forceDispersyThread
     def modifyChannel(self, modifications, store=True, update=True, forward=True):
-        def db_callback():
-            latest_modifications = {}
-            for type, value in modifications.iteritems():
-                type = unicode(type)
-                type_id = self._modification_types[type]
-                latest_modifications[type] = self._get_latest_modification_from_channel_id(type_id)
-            return latest_modifications
-        
-        latest_modifications = startWorker(None, db_callback)
-        latest_modifications = latest_modifications.get()
-        
+        latest_modifications = {}
+        for type, value in modifications.iteritems():
+            type = unicode(type)
+            type_id = self._modification_types[type]
+            latest_modifications[type] = self._get_latest_modification_from_channel_id(type_id)
         modification_on_message = self._get_latest_channel_message()
             
         for type, value in modifications.iteritems():
@@ -442,41 +429,29 @@ class ChannelCommunity(Community):
     
     @forceDispersyThread
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
-        def db_callback():
-            latest_modifications = {}
-            for type, value in modifications.iteritems():
-                type = unicode(type)
-                type_id = self._modification_types[type]
-                latest_modifications[type] = self._get_latest_modification_from_playlist_id(playlist_id, type_id)
-            return latest_modifications
-        
-        latest_modifications = startWorker(None, db_callback)
-        latest_modifications = latest_modifications.get()
+        latest_modifications = {}
+        for type, value in modifications.iteritems():
+            type = unicode(type)
+            type_id = self._modification_types[type]
+            latest_modifications[type] = self._get_latest_modification_from_playlist_id(playlist_id, type_id)
         
         modification_on_message = self._get_message_from_playlist_id(playlist_id)
         for type, value in modifications.iteritems():
             type = unicode(type)
             self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
     
+    @forceDispersyThread
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
-        def db_callback():
-            latest_modifications = {}
-            for type, value in modifications.iteritems():
-                type = unicode(type)
-                type_id = self._modification_types[type]
-                latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
-            return latest_modifications
+        latest_modifications = {}
+        for type, value in modifications.iteritems():
+            type = unicode(type)
+            type_id = self._modification_types[type]
+            latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
         
-        latest_modifications = startWorker(None, db_callback)
-        latest_modifications = latest_modifications.get()
-        
-        def dispersy_thread():
-            modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
-            
-            for type, value in modifications.iteritems():
-                type = unicode(type)
-                self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
-        self._register_task(dispersy_thread)
+        modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
+        for type, value in modifications.iteritems():
+            type = unicode(type)
+            self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
         
     def _disp_create_modification(self, modification_type, modifcation_value, modification_on, latest_modification, store=True, update=True, forward=True):
         latest_modification_mid = None
@@ -524,44 +499,36 @@ class ChannelCommunity(Community):
                 prev_modification_id = message.payload.prev_modification_id
             prev_modification_global_time = message.payload.prev_modification_global_time
             
-            def db_callback():
-                #load local ids from database
-                playlist_id = channeltorrent_id = None
-                if message_name ==  u"torrent":
-                    channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
-                    
-                elif message_name == u"playlist":
-                    playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
+            #load local ids from database
+            playlist_id = channeltorrent_id = None
+            if message_name ==  u"torrent":
+                channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
                 
-                #always store metadata
-                self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrent_id, playlist_id, self._channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time)
-                
-                #see if this is new information, if so call on_X_from_dispersy to update local 'cached' information
-                if message_name ==  u"torrent":
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
-                    if latest.packet_id == dispersy_id:
-                        self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+            elif message_name == u"playlist":
+                playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
             
-                elif message_name == u"playlist":
-                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
-                    if latest.packet_id == dispersy_id:
-                        self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
+            #always store metadata
+            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrent_id, playlist_id, self._channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time)
             
-                elif message_name == u"channel":
-                    latest = self._get_latest_modification_from_channel_id(modification_type_id)
-                    if latest.packet_id == dispersy_id:
-                        self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
-                        
-            startWorker(None, db_callback)
+            #see if this is new information, if so call on_X_from_dispersy to update local 'cached' information
+            if message_name ==  u"torrent":
+                latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                if latest.packet_id == dispersy_id:
+                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+        
+            elif message_name == u"playlist":
+                latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
+                if latest.packet_id == dispersy_id:
+                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
+        
+            elif message_name == u"channel":
+                latest = self._get_latest_modification_from_channel_id(modification_type_id)
+                if latest.packet_id == dispersy_id:
+                    self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
+
             
     #create, check or receive playlist_torrent messages
-    def create_playlist_torrents(self, playlist_id, infohashes, store=True, update=True, forward=True):
-        def dispersy_thread():
-            message = self._get_message_from_playlist_id(playlist_id)
-            self._disp_create_playlist_torrents(infohashes, message, store, update, forward)
-            
-        self._register_task(dispersy_thread)
-        
+    @forceDispersyThread
     def _disp_create_playlist_torrents(self, infohashes, playlist_message, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist_torrent")
         messages = []
@@ -589,7 +556,7 @@ class ChannelCommunity(Community):
         for message in messages:
             playlist_dispersy_id = message.payload.playlist.packet_id
             
-            startWorker(None, self._channelcast_db.on_playlist_torrent, wargs = (playlist_dispersy_id, message.payload.infohash))
+            self._channelcast_db.on_playlist_torrent(playlist_dispersy_id, message.payload.infohash)
             
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
@@ -605,10 +572,6 @@ class ChannelCommunity(Community):
             
     #check or receive warning messages
     @forceDispersyThread
-    def create_warning(self, text, timestamp, cause, store=True, update=True, forward=True):
-        cause = self._get_message_from_dispersy_id(cause)
-        self._disp_create_warning(text, timestamp, cause, store, update, forward)
-    
     def _disp_create_warning(self, text, timestamp, cause, store=True, update=True, forward=True):
         message = cause.load_message()
         mid = message.authentication.member.mid
@@ -653,13 +616,10 @@ class ChannelCommunity(Community):
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
-            startWorker(None, self._channelcast_db.on_warning, wargs = (self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp))
+            self._channelcast_db.on_warning(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp)
             
     #check or receive torrent_mark messages
     @forceDispersyThread
-    def create_mark_torrent(self, infohash, type,  timestamp, store=True, update=True, forward=True):
-        self._disp_create_mark_torrent(infohash, type, timestamp, store, update, forward)
-    
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")
         message = meta.implement(meta.authentication.implement(self._my_member),
@@ -688,9 +648,17 @@ class ChannelCommunity(Community):
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-            
-            startWorker(None, self._channelcast_db.on_mark_torrent, wargs = (self._channel_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp))
-            
+            self._channelcast_db.on_mark_torrent(self._channel_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp)
+    
+    #AllChannel functions
+    def selectTorrentsToCollect(self, infohashes):
+        collect = []
+        haveTorrents = self._channelcast_db.hasTorrents(infohashes)
+        for i in range(len(infohashes)):
+            if not haveTorrents[i]:
+                collect.append(infohashes[i])
+        return collect
+    
     #helper functions
     @forceAndReturnDispersyThread
     def _get_latest_channel_message(self):
@@ -717,8 +685,7 @@ class ChannelCommunity(Community):
         assert isinstance(playlist_id, (int, long))
         
         # 1. get the dispersy identifier from the channel_id
-        delayedResult = startWorker(None, self._channelcast_db.getPlaylist, wargs = (playlist_id, ('dispersy_id',)))
-        dispersy_id = delayedResult.get().dispersy_id
+        dispersy_id = self._channelcast_db.getPlaylist(playlist_id, ('dispersy_id',)).dispersy_id
 
         # 2. get the message
         message = self._get_message_from_dispersy_id(dispersy_id, 'playlist')
@@ -732,12 +699,23 @@ class ChannelCommunity(Community):
         assert isinstance(torrent_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        delayedResult = startWorker(None, self._channelcast_db.getTorrentFromChannelTorrentId, wargs = (torrent_id, ['dispersy_id']))
-        dispersy_id = delayedResult.get()
+        dispersy_id = self._channelcast_db.getTorrentFromChannelTorrentId(torrent_id, ['dispersy_id'])
         
         # 2. get the message
         message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
         return message
+    
+    def _get_message_from_torrent_infohash(self, torrent_infohash):
+        assert isinstance(torrent_infohash, str), 'infohash is a %s'%type(torrent_infohash)
+        assert len(torrent_infohash) == 20, 'infohash has length %d'%len(torrent_infohash)
+
+        # 1. get the dispersy identifier from the channel_id
+        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id, torrent_infohash, ['dispersy_id'])
+        
+        # 2. get the message
+        message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
+        return message
+
     
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long))

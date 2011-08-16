@@ -111,7 +111,7 @@ class SettingsDialog(wx.Dialog):
         mime, data = self.utility.session.get_mugshot()
         if data is None:
             im = IconsManager.getInstance()
-            self.mugshot = im.get_default('personsMode','DEFAULT_THUMB')
+            self.mugshot = im.get_default('PEER_THUMB')
         else:
             self.mugshot = data2wxBitmap(mime, data)
         

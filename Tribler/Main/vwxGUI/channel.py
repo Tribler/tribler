@@ -214,7 +214,8 @@ class SelectedChannelList(GenericSearchList):
         self.GetManager().my_channel_id = channel_id
     
     def SetDispersy(self, isDispersy):
-        if isDispersy:
+        
+        if True or isDispersy:
             if self.notebook.GetPageCount() == 1:
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")

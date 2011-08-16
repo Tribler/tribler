@@ -28,18 +28,18 @@ class ChannelCastPayload(Payload):
      - modify
     """
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, packets):
-            if __debug__:
-                from Tribler.Core.dispersy.message import Packet
-            assert isinstance(packets, list)
-            assert not filter(lambda x: not isinstance(x, str), packets)
-            assert not filter(lambda x: not len(x) >= 22, packets)
+        def __init__(self, meta, torrents):
+            assert isinstance(torrents, list)
+            
             super(ChannelCastPayload.Implementation, self).__init__(meta)
-            self._packets = packets
+            self._torrents = torrents
 
         @property
-        def packets(self):
-            return self._packets
+        def torrents(self):
+            return self._torrents
+
+class ChannelCastRequestPayload(ChannelCastPayload):      
+    pass
         
 class VoteCastPayload(Payload):
     """

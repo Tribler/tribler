@@ -291,7 +291,7 @@ class MagnetRequester():
         
             #save torrent
             torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'], include_mypref = False)
-            if torrent.get('torrent_file_name', False):
+            if torrent.get('torrent_file_name', False) and not os.path.isabs(torrent['torrent_file_name']):
                 torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
             else:
                 torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))

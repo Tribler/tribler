@@ -16,7 +16,7 @@ import os
 
 DEBUG = True
 
-class GUIDBProducer(threading.Thread):
+class GUIDBProducer():
     # Code to make this a singleton
     __single = None
     
@@ -24,12 +24,13 @@ class GUIDBProducer(threading.Thread):
         if GUIDBProducer.__single:
             raise RuntimeError, "GuiDBProducer is singleton"
         GUIDBProducer.__single = self
-        threading.Thread.__init__(self, name = "GuiDBProducer")
         
-        self.queue = Queue()
-        self.setDaemon(True)
+        #Let get the reference to the shared database_thread
+        from Tribler.Core.Session import Session
 
-        self.start()
+        session = Session.get_instance()
+        triblerlaunchmany = session.lm
+        self.database_thread = triblerlaunchmany.database_thread
         
     def getInstance(*args, **kw):
         if GUIDBProducer.__single is None:
@@ -37,29 +38,15 @@ class GUIDBProducer(threading.Thread):
         return GUIDBProducer.__single
     getInstance = staticmethod(getInstance)
     
-    def Add(self, sender, workerFn, args=(), kwargs={},
-            name=None, senderArg=None):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread. The name is 
         same as threading.Thread constructor parameters. 
-        If sendReturn is False, then the return 
-        value of workerFn() will not be sent. If senderArg is given, it 
-        must be the name of the keyword arg to use to pass the sender into 
-        the workerFn, so the function can send (typically many) results."""
+        If sendReturn is False, then the returnvalue of workerFn() will not be sent. """
         
         t1 = time()
-        
-        if senderArg:
-            kwargs[senderArg] = sender
-            
         def wrapper():
             try:
-                #Set name of this thread to indicate which task is being processed
-                if name:
-                    self.setName("GuiDBProducer(%s)"%name)
-                else:
-                    self.setName("GuiDBProducer")
-                
                 t2 = time()
                 result = workerFn(*args, **kwargs)
                 
@@ -68,31 +55,17 @@ class GUIDBProducer(threading.Thread):
             
             except Exception, exc:
                 originalTb = format_exc() 
-                extraInfo = self._extraInfo(exc)
-                sender.sendException(exc, originalTb, extraInfo)
+                sender.sendException(exc, originalTb)
                 
             else:
                 sender.sendResult(result)
-            
             t3 = time()
             
             if DEBUG:
-                print >> sys.stderr, self.getName(),"Task took", t3 - t1, "to complete, actual task took", t3 - t2 
-                    
-        self.queue.put(wrapper)
+                print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
+            
+        self.database_thread.register(wrapper, delay=delay, id_=name)
         
-    def _extraInfo(self, exception):
-        """This method could be overridden in a derived class to provide 
-        extra information when an exception is being sent instead of a 
-        result. """
-        return None
-        
-    def run(self):
-        while True:
-            task = self.queue.get()
-            task()
-            self.queue.task_done()
-
 #Wrapping Senders for new delayedResult impl  
 class MySender():
     def __init__(self, delayedResult, sendReturn):
@@ -105,9 +78,9 @@ class MySender():
         if self.sendReturn:
             self._sendImpl(self.delayedResult)
         
-    def sendException(self, exception, originalTb, extraInfo = None):
+    def sendException(self, exception, originalTb):
         assert exception is not None
-        self.delayedResult.setException(exception, originalTb, extraInfo)
+        self.delayedResult.setException(exception, originalTb)
         
         if self.sendReturn:
             self._sendImpl(self.delayedResult)
@@ -127,7 +100,6 @@ class MySenderCallAfter(MySender, SenderCallAfter):
 
 #ASyncDelayedResult, allows a get call before result is set
 #This call is blocking, but allows you to specify a timeout
-
 class ASyncDelayedResult():
     def __init__(self, jobID=None):
         self.__result = None
@@ -167,8 +139,8 @@ def startWorker(
     consumer, workerFn, 
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
-    jobID=None, delay=None,
-    sendReturn=True, senderArg=None):
+    jobID=None, delay=0.0,
+    sendReturn=True):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -199,11 +171,7 @@ def startWorker(
         sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs, sendReturn = sendReturn)
     
     thread = GUIDBProducer.getInstance()
-    if delay:
-        wx.CallLater(delay, thread.Add, sender, workerFn, wargs, wkwargs, 
-                   jobID, senderArg)
-    else:
-        thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-                   name=jobID, senderArg=senderArg)
+    thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
+                name=jobID, delay=delay)
 
     return result 
