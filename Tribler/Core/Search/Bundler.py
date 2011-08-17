@@ -881,9 +881,9 @@ class Bundler:
     PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC'.split()
     
     # ALG_MAGIC CONSTANTS
-    MIN_LEVTRIE_WIDTH = 6
-    LEVTRIE_DEPTH = 1
-    REDUCTION_THRESHOLD = 0.9
+    MIN_LEVTRIE_WIDTH = 50
+    LEVTRIE_DEPTH = 2
+    REDUCTION_THRESHOLD = 0.8
     
     def __init__(self):
         self.clear()
@@ -949,26 +949,26 @@ class Bundler:
                 if DEBUG:
                     print >>sys.stderr, '>> Bundler.py MAGIC: levtrie_width =', levtrie_width, '(depth %s)' % Bundler.LEVTRIE_DEPTH
                     print >>sys.stderr, '>> Bundler.py MAGIC: levtrie_width =', levtrie_root.width(2), '(depth 2)'
+                    print >>sys.stderr, '>> Bundler.py MAGIC: rel_levtrie_width =', levtrie_root.width(2)/(len(hits1)*1.0), '(depth 2)'
                 
                 if levtrie_width >= Bundler.MIN_LEVTRIE_WIDTH:
                     grouped_hits.finalize()
                     self.previous_groups[selected_bundle_mode] = grouped_hits
                     bundled_hits = self._convert_groupslist(grouped_hits, algorithm, hits2)
                     success = True
-                
-                # try ALG_NUMBERS
-                if not success:
-                    selected_bundle_mode = Bundler.ALG_NUMBERS
-                    bundled_hits, _ = self.bundle(hits, selected_bundle_mode, searchkeywords)
-                    
-                    # TODO: set success?
                     
                 # try ALG_SIZE
                 if not success:
                     selected_bundle_mode = Bundler.ALG_SIZE
                     bundled_hits, _ = self.bundle(hits, selected_bundle_mode, searchkeywords)
                     
-                    # TODO: set success?
+                    reduction = float(len(hits1)-len(bundled_hits)+1)/len(hits1)
+                    success = reduction < Bundler.REDUCTION_THRESHOLD
+                
+                # try ALG_NUMBERS
+                if not success:
+                    selected_bundle_mode = Bundler.ALG_NUMBERS
+                    bundled_hits, _ = self.bundle(hits, selected_bundle_mode, searchkeywords)
                 
                 # FAILURE => OFF
                 if bundled_hits:
@@ -986,7 +986,6 @@ class Bundler:
                         print >>sys.stderr, '>> Bundler.py MAGIC: FALLBACK'
                     selected_bundle_mode = Bundler.ALG_OFF
                     bundled_hits = hits
-                
                 
             else:
                 algorithm = Bundler.algorithms[bundle_mode]

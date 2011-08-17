@@ -793,7 +793,8 @@ class SearchList(GenericSearchList):
         
         list = wx.Panel(self)
         self.subheader = ListHeader(list, self.columns, radius = 0)
-        self.leftLine = SearchSideBar(self, size=(200,-1))
+        self.sidebar = SearchSideBar(self, size=(200,-1))
+        self.leftLine = self.sidebar
         self.rightLine = wx.Panel(self, size=(1,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -817,8 +818,8 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        self.header.SetFiltered = self.leftLine.SetFiltered
-        self.header.SetFF = self.leftLine.SetFF
+        self.header.SetFiltered = self.sidebar.SetFiltered
+        self.header.SetFF = self.sidebar.SetFF
         
         self.SetBackgroundColour(self.background)
         self.SetSizer(sizer)
@@ -853,7 +854,7 @@ class SearchList(GenericSearchList):
             self.header.SetTitle('Searching for "%s"'%keywords)
     
     def SetSelectedBundleMode(self, selected_bundle_mode):
-        self.leftLine.SetSelectedBundleMode(selected_bundle_mode)
+        self.sidebar.SetSelectedBundleMode(selected_bundle_mode)
     
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
@@ -872,12 +873,12 @@ class SearchList(GenericSearchList):
         
         channels = channel_hits.values()
         channels.sort(channel_occur, reverse = True)
-        self.leftLine.SetAssociatedChannels(channels)
+        self.sidebar.SetAssociatedChannels(channels)
             
     def SetMaxResults(self, max):
-        self.leftLine.SetMaxResults(max)
+        self.sidebar.SetMaxResults(max)
     def NewResult(self):
-        self.leftLine.NewResult()
+        self.sidebar.NewResult()
     
     def toggleFamilyFilter(self):
         GenericSearchList.toggleFamilyFilter(self)
@@ -885,7 +886,7 @@ class SearchList(GenericSearchList):
     
     def Reset(self):
         GenericSearchList.Reset(self)
-        self.leftLine.Reset()
+        self.sidebar.Reset()
         self.subheader.Reset()
     
     def SetBackgroundColour(self, colour):
@@ -905,7 +906,6 @@ class SearchList(GenericSearchList):
         self.subheader.SetSpacerRight(diff)
         self.footer.SetSpacerRight(diff)
         event.Skip()
-
 
 class LibaryList(List):
     def __init__(self):

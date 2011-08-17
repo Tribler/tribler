@@ -20,7 +20,7 @@ class SearchSideBar(wx.Panel):
         
         self.nrfiltered = 0
         self.family_filter = True
-        self.bundlestates = [Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_MAGIC, Bundler.ALG_OFF]
+        self.bundlestates = [Bundler.ALG_MAGIC, Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
         self.bundlestates_str = {Bundler.ALG_NAME: 'Name',
                                  Bundler.ALG_NUMBERS: 'Numbers',
                                  Bundler.ALG_SIZE: 'Size',
@@ -170,14 +170,17 @@ class SearchSideBar(wx.Panel):
         #channels should be a list, of occurrences, name, permid
         self.Freeze()
         
-        nr = min(len(channels), 3)
-        self.nochannels.Show(nr == 0)
-        for i in range(nr):
-            tooltip = "Click to go to %s's Channel."%channels[i][1]
-            
-            self.channels[i].SetLabel(channels[i][1])
-            self.channels[i].SetToolTipString(tooltip)
-            self.channels[i].channel_permid = channels[i][2]
+        self.nochannels.Show(len(self.channels) == 0)
+        for i in range(len(self.channels)):
+            if i < len(channels):
+                tooltip = "Click to go to %s's Channel."%channels[i][1]
+                
+                self.channels[i].SetLabel(channels[i][1])
+                self.channels[i].SetToolTipString(tooltip)
+                self.channels[i].channel_permid = channels[i][2]
+            else:
+                self.channels[i].SetLabel('')
+                self.channels[i].SetToolTipString('')
         self.Layout()
         self.Thaw()
     
@@ -234,7 +237,7 @@ class SearchSideBar(wx.Panel):
         
     def SetBundleState(self, newstate):
         if newstate is None:
-            auto_guess = False
+            auto_guess = True
             
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
             stored_state = self.bundle_db.getPreference(keywords)
@@ -242,10 +245,12 @@ class SearchSideBar(wx.Panel):
             
             if local_override:
                 newstate = stored_state
+                
             elif auto_guess:
-                pass # TODO
+                newstate = Bundler.ALG_MAGIC
+            
             else:
-                newstate = Bundler.ALG_NAME # default
+                newstate = Bundler.ALG_OFF # default
         
         self.bundlestate = newstate
         self.Freeze()
