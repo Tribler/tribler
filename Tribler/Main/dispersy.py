@@ -94,10 +94,7 @@ def main():
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         # load the script parser
-        print >> sys.stderr, "Starting script"
         if opt.script:
-            
-            print >> sys.stderr, "Starting script", opt.script    
             from Tribler.Core.dispersy.script import Script
             script = Script.get_instance(callback)
 
@@ -128,8 +125,6 @@ def main():
 #                from Tribler.Community.allchannel.script import AllChannelScript
 #                script.add("allchannel", AllChannelScript, include_with_all=False)
                 
-                print >> sys.stderr, "Including allchannel-scenario"
-                                
                 from Tribler.Community.allchannel.script import AllChannelScenarioScript
                 args = {}
                 if opt.script_args:
@@ -155,7 +150,6 @@ def main():
 #             def bump():
 #                 pass
 #             rawserver.add_task(bump)
-            sys.stderr.flush()
             script.load(opt.script)
 
     command_line_parser = optparse.OptionParser()
