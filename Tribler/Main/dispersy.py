@@ -166,6 +166,7 @@ def main():
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
 
+    print "Commandline parsed"
     command_line_parser.print_help(sys.stderr)
     sys.stderr.flush()
 
