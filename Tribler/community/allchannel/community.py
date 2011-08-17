@@ -339,10 +339,12 @@ class ChannelCastDBStub():
             packet = str(packet)
             
             try:
-                message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
+                community = self._dispersy.get_community(cid)
+                message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
                 message.packet_id = packet_id
                 
                 messages.append((cid,message))
+                
             except ValueError, v:
                 #raise RuntimeError("Unable to decode packet")
                 raise
