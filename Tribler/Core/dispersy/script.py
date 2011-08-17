@@ -269,7 +269,7 @@ class ScenarioScriptBase(ScriptBase):
                     
                     time_format = "%Y-%m-%d %H:%M:%S"
                     curtime = datetime.now()
-                    curtime = curtime.strftime(time_format)
+                    curtime = unicode(curtime.strftime(time_format))
                     
                     database.execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, ?, ?)", (0, unicode(ip), port, curtime, curtime))
                     database.execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
