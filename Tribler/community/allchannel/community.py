@@ -360,7 +360,7 @@ class ChannelCastDBStub():
             torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
             last_result_time = message.payload.timestamp
             
-        if len(results) == NUM_OWN_RECENT_TORRENTS:
+        if len(messages) == NUM_OWN_RECENT_TORRENTS:
             sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
             results = self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS))
             

@@ -207,11 +207,6 @@ class AllChannelScript(ScriptBase):
     
 class AllChannelScenarioScript(ScenarioScriptBase):
     def __init__(self, script, name, **kargs):
-        import sys
-        print >> sys.stderr, "Hello from AllChannelScenarioScript"
-        sys.stderr.flush()
-        
-        
         ScenarioScriptBase.__init__(self, script, name, 'barter.log', **kargs)
         
         self.my_channel = None
