@@ -235,7 +235,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             elif cur_command[0] == 'publish':
                 if self.my_channel:
                     infohash = ''.join(choice(letters) for i in xrange(20))
-                    torrents.append((infohash, int(time()), '', [], []))
+                    torrents.append((infohash, int(time()), u'', [], []))
             
             elif cur_command[0] == 'post':
                 if self.joined_community:
