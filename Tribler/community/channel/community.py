@@ -202,8 +202,9 @@ class ChannelCommunity(Community):
         return [DefaultConversion(self), ChannelConversion(self)]
 
     def create_channel(self, name, description, store=True, update=True, forward=True):
-        self._register_task(self._disp_create_channel, (name, description, store, update, forward))
+        self._disp_create_channel(name, description, store, update, forward)
     
+    @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"channel")
         message = meta.implement(meta.authentication.implement(self._my_member),
