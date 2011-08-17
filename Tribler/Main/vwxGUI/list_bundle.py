@@ -11,6 +11,7 @@ from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
 from traceback import print_exc
@@ -163,6 +164,10 @@ class BundlePanel(wx.Panel):
         self.load_icons()
         self.parent_listitem = parent
         self.parent_list = parent_list
+        
+        # logging
+        self.guiutility = GUIUtility.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         
         self.state = BundlePanel.COLLAPSED
         self.nrhits = -1
@@ -381,12 +386,22 @@ class BundlePanel(wx.Panel):
         
             self.ChangeState(BundlePanel.PARTIAL)
             self.ExpandHit(action)
-            
+        
+        def db_callback():
+            self.uelog.addEvent(message="Bundler GUI: BundleLink click; %s; %s;" %
+                                (self.nrhits, self.parent_listitem.general_description), type = 3)
+        self.guiutility.frame.guiserver.add_task(db_callback)
+    
     def OnMoreClick(self, event):
         #do expand
         self.ExpandAndHideParent()
         self.ChangeState(BundlePanel.FULL)
         
+        def db_callback():
+            self.uelog.addEvent(message="Bundler GUI: More click; %s; %s;" %
+                                (self.nrhits, self.parent_listitem.general_description), type = 3)
+        self.guiutility.frame.guiserver.add_task(db_callback)
+    
     def ExpandAndHideParent(self):
         listitem = self.GetParent()
         
