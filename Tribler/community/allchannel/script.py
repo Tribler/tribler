@@ -235,7 +235,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             elif cur_command[0] == 'publish':
                 if self.my_channel:
                     infohash = ''.join(choice(letters) for i in xrange(20))
-                    torrents.append((infohash, int(time())))
+                    torrents.append((infohash, int(time()), '', [], []))
             
             elif cur_command[0] == 'post':
                 if self.joined_community:
@@ -262,4 +262,5 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                     break
                 
         if len(torrents) > 0:
+            log(self._logfile, "creating-torrents")
             self.my_channel._disp_create_torrents(torrents)
