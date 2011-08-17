@@ -17,7 +17,6 @@ from Tribler.Core.dispersy.member import MyMember
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
-from Tribler.community.allchannel.community import ChannelCastDBStub
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -97,7 +96,8 @@ class ChannelCommunity(Community):
                     self._channel_id = self._cid
             except:
                 pass
-            
+
+            from Tribler.community.allchannel.community import ChannelCastDBStub
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
         
         global _register_task
