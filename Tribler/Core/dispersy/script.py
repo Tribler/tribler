@@ -15,7 +15,7 @@ from random import random, shuffle
 from struct import pack, unpack_from
 from time import clock, time
 from lencoder import log
-from datetime import now
+from datetime import datetime
 import gc
 import hashlib
 import math
@@ -268,7 +268,7 @@ class ScenarioScriptBase(ScriptBase):
                     #inserting all peers from data/peer as 'trackers'
                     
                     time_format = "%Y-%m-%d %H:%M:%S"
-                    curtime = now()
+                    curtime = datetime.now()
                     curtime = curtime.strftime(time_format)
                     
                     database.execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, ?, ?)", (0, unicode(ip), port),curtime,curtime)
