@@ -749,9 +749,13 @@ class GenericSearchList(List):
         item.button.Show()
     
     def StartDownload(self, torrent, files = None):
+        from list_bundle import BundleListView
+        
         def db_callback():
             if isinstance(self, SelectedChannelList):
                 self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
+            elif isinstance(self, BundleListView):
+                self.uelog.addEvent(message="Torrent: torrent download from bundle", type = 2)
             else:
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
