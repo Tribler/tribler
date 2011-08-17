@@ -1054,6 +1054,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         self.mypref_db = MyPreferenceDBHandler.getInstance()
         self.votecast_db = VoteCastDBHandler.getInstance()
+        self.channelcast_db = ChannelCastDBHandler.getInstance()
         
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
@@ -1783,8 +1784,7 @@ class TorrentDBHandler(BasicDBHandler):
                        'num_seeders',
                       'num_leechers', 
                       'comment',
-                      'channel_permid',
-                      'channel_name']        
+                      'channel_permid']        
         
         sql = ""
         count = 0
@@ -1811,8 +1811,11 @@ class TorrentDBHandler(BasicDBHandler):
         t2 = time()
         if len(channels) > 0:
             votes = self.votecast_db.getAllPosNegVotes(channels)
+            names = self.channelcast_db.getChannelNames(channels)
         else:
             votes = {}
+            names = {}
+            
         t3 = time()
         
         torrents_dict = {}
@@ -1845,8 +1848,7 @@ class TorrentDBHandler(BasicDBHandler):
             #bencode(None) is an Error
             if torrent['channel_permid'] is None:
                 torrent['channel_permid'] = ""
-            if torrent['channel_name'] is None:
-                torrent['channel_name'] = ""
+            torrent['channel_name'] = names.get(torrent['channel_permid'], "")
             
             try:
                 torrent['source'] = self.id2src[torrent['source_id']]
@@ -1866,8 +1868,6 @@ class TorrentDBHandler(BasicDBHandler):
             del torrent['status_id']
 
             torrent['subscriptions'], torrent['neg_votes'] = votes.get(torrent['channel_permid'], (0,0))        
-
-                        
             if torrent['num_seeders'] > 0:
                 torrent_list.append(torrent)
             else:
@@ -3517,6 +3517,20 @@ class ChannelCastDBHandler(BasicDBHandler):
         if isAvailable:
             return True
         return False
+    
+    def getChannelNames(self, permids):
+        names = {}
+        
+        publishers = "','".join(permids)
+        sqla = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id IN ('" + publishers + "') GROUP BY publisher_id"
+        sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
+        
+        results = self._db.fetchall(sqla)
+        for publisher_id, timestamp in results:
+            result = self._db.fetchone(sqlb, (publisher_id, timestamp))
+            names[publisher_id] = result
+        return names
+    
    
     def getChannel(self, permid):
         sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id == ?"
@@ -3528,7 +3542,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         publishers = "','".join(permids)
         sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id IN ('" + publishers + "')"
         return self._getChannels(sql)
-   
+    
     def getAllChannels(self):
         """ Returns all the channels """
         sql = "Select distinct publisher_id FROM ChannelCast"
