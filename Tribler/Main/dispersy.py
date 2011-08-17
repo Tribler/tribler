@@ -125,7 +125,7 @@ def main():
 #                from Tribler.Community.allchannel.script import AllChannelScript
 #                script.add("allchannel", AllChannelScript, include_with_all=False)
                 
-                from Tribler.Community.allchannel.script import AllChannelScenarioScript
+                from Tribler.community.allchannel.script import AllChannelScenarioScript
                 args = {}
                 if opt.script_args:
                     for arg in opt.script_args.split(','):
