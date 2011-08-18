@@ -22,6 +22,7 @@ from Tribler.Core.dispersy.member import MyMember
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.allchannel.payload import ChannelCastRequestPayload
+from traceback import print_exc
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -171,7 +172,9 @@ class AllChannelCommunity(Community):
                             break
             else:
                 log("dispersy.log", "no-data-for-channelcast")
+                
         except:
+            print_exc()
             raise
         
         finally:
@@ -354,6 +357,8 @@ class ChannelCastDBStub():
                 
             except ValueError, v:
                 #raise RuntimeError("Unable to decode packet")
+                import sys
+                print >> sys.stderr, "Unable to decode packet", cid, packet
                 raise
         return messages
     
