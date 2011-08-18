@@ -605,7 +605,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         for num, it in enumerate(choices): 
             self.dropdownlistbox.InsertStringItem(num, it)
             
-        self.dropdownlistbox.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
+        self.dropdownlistbox.SetColumnWidth(0, wx.LIST_AUTOSIZE) #autosize only works after adding rows
 
         
         itemcount = min(len(choices), 7) + 2
