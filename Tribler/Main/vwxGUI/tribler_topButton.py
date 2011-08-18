@@ -577,12 +577,6 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.entrycallback = entrycallback
         self.selectcallback = selectcallback
         
-        gp = self 
-        while (gp <> None) : 
-            gp.Bind(wx.EVT_MOVE , self.ControlChanged, gp)
-            gp.Bind(wx.EVT_SIZE , self.ControlChanged, gp)
-            gp = gp.GetParent()
-        
         self.Bind (wx.EVT_KILL_FOCUS, self.ControlChanged, self)
         self.Bind (wx.EVT_TEXT , self.EnteredText, self)
         self.Bind (wx.EVT_KEY_DOWN , self.KeyDown, self)
@@ -610,6 +604,9 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         for num, it in enumerate(choices): 
             self.dropdownlistbox.InsertStringItem(num, it)
+            
+        self.dropdownlistbox.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
+
         
         itemcount = min(len(choices), 7) + 2
         charheight = self.dropdownlistbox.GetCharHeight()
@@ -650,7 +647,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
     
                 self.guiserver.add_task(db_callback, id = "DoAutoComplete")
 
-    def KeyDown (self, event): 
+    def KeyDown(self, event): 
         skip = True 
         
         sel = self.dropdownlistbox.GetFirstSelected() 
@@ -674,7 +671,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_SPACE:
                 if sel > -1: #we select the current item if enter or space is pressed
                     skip = event.GetKeyCode() == wx.WXK_RETURN
-                    self.SetValueFromSelected()
+                    self.SetValueFromSelected(addSpace = (event.GetKeyCode() == wx.WXK_SPACE))
+                    self.ShowDropDown(False)
                 
             if event.GetKeyCode() == wx.WXK_ESCAPE : 
                 self.ShowDropDown(False) 
@@ -683,7 +681,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         if skip: 
             event.Skip()
 
-    def SetValueFromSelected(self) : 
+    def SetValueFromSelected(self, addSpace = False) : 
         ''' 
             Sets the wx.TextCtrl value from the selected wx.ListBox item.
             Will do nothing if no item is selected in the wx.ListBox. 
@@ -691,6 +689,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         sel = self.dropdownlistbox.GetFirstSelected() 
         if sel > -1 : 
             newval = self.dropdownlistbox.GetItemText(sel)
+            if addSpace:
+                newval += " "
             
             if newval != self.GetValue():
                 self.text = newval

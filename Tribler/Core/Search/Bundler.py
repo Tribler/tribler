@@ -10,9 +10,7 @@ from Tribler.Main.vwxGUI import LIST_ITEM_MAX_SIZE
 
 # Flags
 USE_PSYCO = False    # Enables Psyco optimization for the Levenshtein algorithm
-DEBUG = True         # Enables debug print messages to stderr
-
-
+DEBUG = False         # Enables debug print messages to stderr
 class HitsGroup(object):
     """
     A HitsGroup represents a list of similar hits (i.e., search results) grouped together.
