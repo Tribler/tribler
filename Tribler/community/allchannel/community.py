@@ -143,25 +143,21 @@ class AllChannelCommunity(Community):
                                 didFavorite = False
                                 break
                         
-                        log("dispersy.log", "not-blocked", marked = didFavorite)
-                        
                         #Modify type of message depending on if all peers have marked my channels as their favorite
-#                        if didFavorite:
-#                            if not favoriteTorrents:
-#                                favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5)
-#                            torrents = favoriteTorrents
-#                        else:
-                        torrents = normalTorrents
+                        if didFavorite:
+                            if not favoriteTorrents:
+                                favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5)
+                            torrents = favoriteTorrents
+                        else:
+                            torrents = normalTorrents
                             
                         if len(torrents) > 0:
-                            log("dispersy.log", "constructing message",)
                             meta = self.get_meta_message(u"channelcast")
                             message = meta.implement(meta.authentication.implement(),
                                                      meta.distribution.implement(self.global_time),
                                                      meta.destination.implement(),
                                                      meta.payload.implement(torrents))
                             
-                            log("dispersy.log", "sending message to", address = candidate.address)
                             self._dispersy._send([candidate.address], [message.packet])
                             
                             #we've send something to this address, add to blocklist
