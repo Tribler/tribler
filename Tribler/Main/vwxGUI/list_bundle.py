@@ -21,7 +21,7 @@ DEBUG = True
 BUNDLE_FONT_SIZE_DECREMENT = 1 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
 BUNDLE_FONT_COLOR = (50,50,50)
 
-BUNDLE_NUM_COLS = 3
+BUNDLE_NUM_COLS = 2
 BUNDLE_NUM_ROWS = 3
 
 class BundleListItem(ListItem):
@@ -178,15 +178,18 @@ class BundlePanel(wx.Panel):
         
         self.SetBackgroundColour(wx.WHITE)
         
+        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 #width of icon + 3px left spacer + 3px right spacer
+        grid_indent = 14 + self.indent
+        
         self.AddHeader()
-        self.AddGrid()
+        self.AddGrid(grid_indent)
         
         self.SetHits(hits)
         self.UpdateHeader(general_description, description)
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.AddSpacer((22, -1))
-        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 3)
+        sizer.AddSpacer((self.indent, -1))
+        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
         self.SetSizer(sizer)
     
     def AddHeader(self):
@@ -203,7 +206,7 @@ class BundlePanel(wx.Panel):
         self.SetGeneralDescription(general_description)
         self.SetDescription(description)
     
-    def AddGrid(self):
+    def AddGrid(self, indent):
         self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, BUNDLE_NUM_COLS, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
@@ -214,7 +217,7 @@ class BundlePanel(wx.Panel):
         
         for j in xrange(BUNDLE_NUM_COLS):
             self.grid.AddGrowableCol(j, 1)
-        self.vsizer.Add(self.grid, 1, wx.EXPAND)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, indent)
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
@@ -264,9 +267,6 @@ class BundlePanel(wx.Panel):
                 new_text.action = hit
                 self.grid.Add(new_text, 0, wx.EXPAND)
                 
-            for i in range(BUNDLE_NUM_COLS - items_to_add):
-                self.grid.AddSpacer((1,-1))
-            
             if self.nrhits > N:
                 caption = '(%s more...)' % (self.nrhits - N + 1)
                 
@@ -300,7 +300,7 @@ class BundlePanel(wx.Panel):
                 max_list -= 1
             
             self.bundlelist = BundleListView(parent = self, list_item_max = max_list)
-            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.BOTTOM, 17) #20 - 3 = 17
+            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.BOTTOM, self.indent - 7) #a 7px spacer is already present 
             
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method. Thus we have to do this after the add to the sizer

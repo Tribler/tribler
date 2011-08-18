@@ -6,6 +6,7 @@ from wx.lib.scrolledpanel import ScrolledPanel
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.vwxGUI import LIST_HIGHTLIGHT
 
 DEBUG = False
 
@@ -402,7 +403,7 @@ class LinkStaticText(wx.Panel):
         hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
             
         if self.icon and icon_align == wx.ALIGN_RIGHT:
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         
         if self.icon and text == '':
             self.icon.Hide()
@@ -416,7 +417,7 @@ class LinkStaticText(wx.Panel):
     def SetToolTipString(self, tip):
         wx.Panel.SetToolTipString(self, tip)
         self.text.SetToolTipString(tip)
-        if getattr(self, 'icon', False):
+        if self.icon:
             self.icon.SetToolTipString(tip)
         
     def SetLabel(self, text):
@@ -434,6 +435,31 @@ class LinkStaticText(wx.Panel):
         
     def GetFont(self):
         return self.text.GetFont()
+    
+    def ShowIcon(self, show = True):
+        if self.icon and self.icon.IsShown() != show:
+            self.icon.Show(show)
+    def IsIconShown(self):
+        if self.icon:
+            return self.icon.IsShown()
+        return False
+            
+    def SetIconToolTipString(self, tip):
+        if self.icon:
+            self.icon.SetToolTipString(tip)
+    
+    def HighLight(self, timeout = 2.0):
+        self.SetBackgroundColour(LIST_HIGHTLIGHT, blink=True)
+        self.Refresh()
+        wx.CallLater(timeout * 1000, self.Revert)
+        
+    def Revert(self):
+        self.SetBackgroundColour(self.originalColor, blink=True)
+        self.Refresh()
+    
+    def Blink(self):
+        self.HighLight(0.15)
+        wx.CallLater(300, self.HighLight, 0.15)
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         wx.Panel.Bind(self, event, handler, source, id, id2)
@@ -449,14 +475,16 @@ class LinkStaticText(wx.Panel):
             
         if event == wx.EVT_LEFT_UP:
             self.text.Bind(wx.EVT_HYPERLINK, text_handler, source, id, id2)
-        if getattr(self, 'icon', False):
+        if self.icon:
             self.icon.Bind(event, modified_handler, source, id, id2)
             
-    def SetBackgroundColour(self, colour):
+    def SetBackgroundColour(self, colour, blink = False):
+        if not blink:
+            self.originalColor = colour
         wx.Panel.SetBackgroundColour(self, colour)
         self.text.SetBackgroundColour(colour)
         
-        if getattr(self, 'icon', False) and getattr(self, 'icon_type', False):
+        if self.icon and self.icon_type:
             self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, colour, state=0))
             self.icon.Refresh()
 

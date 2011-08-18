@@ -12,6 +12,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler
 class SearchSideBar(wx.Panel):
     
     INDENT = 7
+    
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, size = size)
         self.guiutility =  GUIUtility.getInstance()
@@ -26,6 +27,7 @@ class SearchSideBar(wx.Panel):
                                  Bundler.ALG_SIZE: 'Size',
                                  Bundler.ALG_MAGIC: 'Magic',
                                  Bundler.ALG_OFF: 'Off'}
+        self.bundletexts = []
         self.bundle_db = BundlerPreferenceDBHandler.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
         
@@ -222,6 +224,12 @@ class SearchSideBar(wx.Panel):
     
     def OnRebundle(self, event):
         curstate = self.bundlestate
+        selectedByMagic = -1
+        for i, text in enumerate(self.bundletexts):
+            if isinstance(text, LinkStaticText) and text.IsIconShown():
+                selectedByMagic = self.bundlestates[i]
+                break
+        
         newstate = event.GetEventObject().action
         self.SetBundleState(newstate)
         
@@ -229,9 +237,15 @@ class SearchSideBar(wx.Panel):
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
             self.bundle_db.storePreference(keywords, newstate)
             query = ' '.join(keywords)
-            self.uelog.addEvent(message="Bundler GUI: %s -> %s; %s -> %s; q=%s" 
+            
+            selectedByMagicStr = ''
+            if selectedByMagic != -1:
+                selectedByMagicStr = self.bundlestates_str[selectedByMagic]
+            
+            self.uelog.addEvent(message="Bundler GUI: %s -> %s; %s -> %s; selectedByMagic %s (%s); q=%s" 
                                 % (curstate, newstate, self.bundlestates_str[curstate], 
-                                   self.bundlestates_str[newstate], query), type = 3)
+                                   self.bundlestates_str[newstate],
+                                   selectedByMagic, selectedByMagicStr, query), type = 3)
         
         self.guiutility.frame.guiserver.add_task(db_callback)
         
@@ -263,16 +277,21 @@ class SearchSideBar(wx.Panel):
         
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)
-        
+        self.bundletexts = []
         self.bundleSizer.Add(wx.StaticText(self, -1, 'Bundle by '))
         for i, state in enumerate(self.bundlestates):
             if newstate == state:
-                self.bundleSizer.Add(wx.StaticText(self, -1, self.bundlestates_str[state]))
+                text = wx.StaticText(self, -1, self.bundlestates_str[state])
+                self.bundleSizer.Add(text)
+                self.bundletexts.append(text)
             else:
-                link = LinkStaticText(self, self.bundlestates_str[state], None)
+                link = LinkStaticText(self, self.bundlestates_str[state], "wand.png")
+                link.ShowIcon(False)
+                link.SetIconToolTipString('Selected by Magic')
                 link.Bind(wx.EVT_LEFT_UP, self.OnRebundle)
                 link.action = state
                 self.bundleSizer.Add(link)
+                self.bundletexts.append(link)
                 
             if i+1 < len(self.bundlestates):
                 self.bundleSizer.AddSpacer((1, -1))
@@ -282,8 +301,19 @@ class SearchSideBar(wx.Panel):
     
     def SetSelectedBundleMode(self, selected_bundle_mode):
         if self.bundlestate == Bundler.ALG_MAGIC:
-            # TODO: MAGIC PAINT
-            pass 
+            self.Freeze()
+            
+            index = self.bundlestates.index(selected_bundle_mode)
+            for i in range(len(self.bundletexts)):
+                linkStaticText = self.bundletexts[i]
+                if isinstance(linkStaticText, LinkStaticText):
+                    if i == index: 
+                        if not linkStaticText.IsIconShown():
+                            linkStaticText.ShowIcon(True)
+                            wx.CallAfter(linkStaticText.Blink)
+                    else:
+                        linkStaticText.ShowIcon(False)
+            self.Thaw()
     
     def OnChannel(self, event):
         label = event.GetEventObject()

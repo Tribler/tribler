@@ -917,10 +917,10 @@ class Bundler:
         bundled_hits = None
         selected_bundle_mode = bundle_mode
         
-        if bundle_mode in [Bundler.ALG_OFF, None]:
+        if bundle_mode in [Bundler.ALG_OFF, None] or len(hits) == 0:
             selected_bundle_mode = Bundler.ALG_OFF
             bundled_hits = hits
-        
+            
         else:
             query = ' '.join(searchkeywords)
             if self.previous_query != query:

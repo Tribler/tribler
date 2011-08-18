@@ -326,6 +326,10 @@ class GUIUtility:
         
             manager = self.frame.selectedchannellist.GetManager()
             manager.refresh(channel_permid)
+            
+    def showChannels(self):
+        self.frame.top_bg.selectTab('channels')
+        self.ShowPage('channels')
     
     def showChannelResults(self, data_channel):
         self.frame.top_bg.selectTab('channels')
