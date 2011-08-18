@@ -90,8 +90,8 @@ cp ${DPRINT_CONF} $DISPERSY_DIR/dprint.conf
 
 cd $DISPERSY_DIR
 
-echo python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
-python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
-#python -O ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
+echo python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS > ${MYDIR}/python.log
+python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS > ${MYDIR}/python.log
+#python -O ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS > ${MYDIR}/python.log
 
 #read -p "Press the any key to close..."

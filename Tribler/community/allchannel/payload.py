@@ -29,7 +29,7 @@ class ChannelCastPayload(Payload):
     """
     class Implementation(Payload.Implementation):
         def __init__(self, meta, torrents):
-            assert isinstance(torrents, dict)
+            assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
             
             super(ChannelCastPayload.Implementation, self).__init__(meta)
             self._torrents = torrents

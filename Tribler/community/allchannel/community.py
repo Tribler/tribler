@@ -181,6 +181,7 @@ class AllChannelCommunity(Community):
             self._register_task(self.create_channelcast, delay=CHANNELCAST_INTERVAL)
 
     def check_channelcast(self, messages):
+        log("dispersy.log", "checking-channelcast")
         # no timeline check because NoAuthentication policy is used
         return messages
 
