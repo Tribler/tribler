@@ -32,12 +32,12 @@ class TopSearchPanel(bgPanel):
     def OnSearchKeyDown(self, event = None):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
+        
+        if getattr(self.searchField, 'ShowDropDown', False):
+            self.searchField.ShowDropDown(False)
         self.guiUtility.dosearch()
     
     def StartSearch(self):
-        if getattr(self.searchField, 'ShowDropDown', False):
-            self.searchField.ShowDropDown(False)    
-            
         if not self.results.IsEnabled():
             self.results.Enable()
                   
@@ -122,7 +122,6 @@ class TopSearchPanel(bgPanel):
         else:
             self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
         self.searchField.SetMinSize((400, -1))
-        #self.searchField.SetFocus()
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')

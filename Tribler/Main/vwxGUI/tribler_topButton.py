@@ -3,7 +3,7 @@ import wx, os, sys
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
 from wx.lib.scrolledpanel import ScrolledPanel
 
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import LIST_HIGHTLIGHT
@@ -546,10 +546,9 @@ class SelectableListCtrl(BetterListCtrl):
                     self.Select(index)
         
 class TextCtrlAutoComplete(wx.TextCtrl):
-    def __init__ (self, parent, choices = [], entrycallback = None, selectcallback = None, **therest):
+    def __init__ (self, parent, entrycallback = None, selectcallback = None, **therest):
         '''
-            Constructor works just like wx.TextCtrl except you can pass in a list of choices. 
-            You can also change the choice list at any time by calling SetChoices. 
+            Constructor works just like wx.TextCtrl
         ''' 
         if therest.has_key('style'): 
             therest['style']=wx.TE_PROCESS_ENTER|therest['style'] 
@@ -560,6 +559,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         # we need the GUITaskQueue to offload database activity, otherwise we may lock the GUI
         self.text = ""
+        self.choices = []
         self.guiserver = GUITaskQueue.getInstance()
         
         self.screenheight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
@@ -574,33 +574,33 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         sizer.Add(self.dropdownlistbox, 1, wx.EXPAND|wx.ALL, 3)
         self.dropdown.SetSizer(sizer)
         
-        self.SetChoices(choices)
         self.entrycallback = entrycallback
         self.selectcallback = selectcallback
         
         gp = self 
         while (gp <> None) : 
-            gp.Bind (wx.EVT_MOVE , self.ControlChanged, gp)
-            gp.Bind (wx.EVT_SIZE , self.ControlChanged, gp)
+            gp.Bind(wx.EVT_MOVE , self.ControlChanged, gp)
+            gp.Bind(wx.EVT_SIZE , self.ControlChanged, gp)
             gp = gp.GetParent()
-            
-        self.Bind (wx.EVT_KILL_FOCUS, self.ControlChanged, self) 
-        self.Bind (wx.EVT_TEXT , self.EnteredText, self) 
-        self.Bind (wx.EVT_KEY_DOWN , self.KeyDown, self) 
-        self.Bind (wx.EVT_LEFT_DOWN , self.ClickToggleDown, self) 
-        self.Bind (wx.EVT_LEFT_UP , self.ClickToggleUp, self) 
-        self.dropdown.Bind (wx.EVT_LISTBOX , self.ListItemSelected, self.dropdownlistbox)
+        
+        self.Bind (wx.EVT_KILL_FOCUS, self.ControlChanged, self)
+        self.Bind (wx.EVT_TEXT , self.EnteredText, self)
+        self.Bind (wx.EVT_KEY_DOWN , self.KeyDown, self)
+        
+        self.dropdown.Bind(wx.EVT_LISTBOX, self.ListItemSelected, self.dropdownlistbox)
         
     def ListClick(self, evt):
         toSel, _ = self.dropdownlistbox.HitTest(evt.GetPosition()) 
         if toSel == -1:
             return
+        
         self.dropdownlistbox.Select(toSel)
         self.SetValueFromSelected()
 
     def SetChoices (self, choices = [""]) :
         ''' Sets the choices available in the popup wx.ListBox. ''' 
         self.choices = choices 
+        
         #delete, if need, all the previous data
         if self.dropdownlistbox.GetColumnCount() != 0:
             self.dropdownlistbox.DeleteAllColumns()
@@ -619,13 +619,13 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdown.Layout()
 
     def ControlChanged (self, event) : 
-        self.ShowDropDown(False) 
+        self.ShowDropDown(False)
         event.Skip()
 
-    def EnteredText (self, event):
+    def EnteredText(self, event):
         text = event.GetString()
         if text != self.text: 
-            self.text  = text
+            self.text = text
 
             if self.entrycallback:
                 def wx_callback(choices):
@@ -648,18 +648,19 @@ class TextCtrlAutoComplete(wx.TextCtrl):
                         choices = self.entrycallback(text)
                         wx.CallAfter(wx_callback, choices)
     
-                self.guiserver.add_task(db_callback)
-        event.Skip()
+                self.guiserver.add_task(db_callback, id = "DoAutoComplete")
 
-    def KeyDown (self, event) : 
+    def KeyDown (self, event): 
         skip = True 
+        
         sel = self.dropdownlistbox.GetFirstSelected() 
         visible = self.dropdown.IsShown() 
         if event.GetKeyCode() == wx.WXK_DOWN : 
             if sel < (self.dropdownlistbox.GetItemCount () - 1) : 
-                self.dropdownlistbox.Select (sel+1) 
-                self.ListItemVisible() 
-            self.ShowDropDown () 
+                self.dropdownlistbox.Select(sel + 1) 
+                self.ListItemVisible()
+                
+            self.ShowDropDown() 
             skip = False
              
         if event.GetKeyCode() == wx.WXK_UP : 
@@ -671,7 +672,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         if visible : 
             if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_SPACE:
-                if sel > -1:
+                if sel > -1: #we select the current item if enter or space is pressed
                     skip = event.GetKeyCode() == wx.WXK_RETURN
                     self.SetValueFromSelected()
                 
@@ -682,16 +683,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         if skip: 
             event.Skip()
 
-    def ClickToggleDown (self, event) : 
-        self.lastinsertionpoint = self.GetInsertionPoint() 
-        event.Skip ()
-
-    def ClickToggleUp (self, event) : 
-        if (self.GetInsertionPoint() == self.lastinsertionpoint) : 
-            self.ShowDropDown (not self.dropdown.IsShown()) 
-        event.Skip ()
-
-    def SetValueFromSelected(self, doCallback = False) : 
+    def SetValueFromSelected(self) : 
         ''' 
             Sets the wx.TextCtrl value from the selected wx.ListBox item.
             Will do nothing if no item is selected in the wx.ListBox. 
@@ -699,9 +691,14 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         sel = self.dropdownlistbox.GetFirstSelected() 
         if sel > -1 : 
             newval = self.dropdownlistbox.GetItemText(sel)
-            self.SetValue(newval)
-            self.SetInsertionPoint(len(newval))
-            self.selectcallback()
+            
+            if newval != self.GetValue():
+                self.text = newval
+                
+                self.SetValue(newval)
+                self.SetInsertionPointEnd()
+                
+                self.selectcallback()
 
     def ShowDropDown(self, show = True) : 
         ''' Either display the drop down list (show = True) or hide it (show = False). '''
@@ -730,10 +727,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         ''' Moves the selected item to the top of the list ensuring it is always visible. ''' 
         self.dropdownlistbox.EnsureVisible(self.dropdownlistbox.GetFirstSelected())
 
-    def ListItemSelected (self, event) :
+    def ListItemSelected(self, event):
         self.SetValueFromSelected() 
-        event.Skip()
-        return self
     
 class ImageScrollablePanel(ScrolledPanel):
     def __init__(self, parent, id=-1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL|wx.VSCROLL):

@@ -11,7 +11,8 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl,\
+    TextCtrlAutoComplete
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
@@ -50,11 +51,17 @@ class Home(XRCPanel):
         
         textSizer = wx.FlexGridSizer(2, 2, 3, 7)
                 
-        self.searchBox = wx.TextCtrl(self, style = wx.TE_PROCESS_ENTER)
+                
+        if sys.platform == 'darwin': # mac
+            self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        else:
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback = self.guiutility.frame.top_bg.complete, selectcallback = self.guiutility.frame.top_bg.OnAutoComplete)
+            
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
-        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown)
+        self.searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+        
         if sys.platform == 'darwin': # mac
             self.searchBox.SetMinSize((450, self.searchBox.GetTextExtent('T')[1] + 5))
         else:
@@ -100,15 +107,12 @@ class Home(XRCPanel):
     def OnClick(self, event):
         term = self.searchBox.GetValue()
         self.guiutility.dosearch(term)
+        
+    def OnSearchKeyDown(self, event):
+        self.OnClick(event)
     
     def OnChannels(self, event):
         self.guiutility.showChannels()
-    
-    def KeyDown(self, event):
-        if event.GetKeyCode() == wx.WXK_RETURN:
-            self.OnClick(event)
-        else:
-            event.Skip()
             
     def SearchFocus(self):
         if self.isReady:
