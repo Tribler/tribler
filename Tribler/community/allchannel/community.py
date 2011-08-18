@@ -162,7 +162,10 @@ class AllChannelCommunity(Community):
                         key = candidate.address
                         self._blocklist[key] = now
                         
-                        log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = len(torrents), marked = didFavorite)
+                        
+                        nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                        log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = nr_torrents, marked = didFavorite)
+                        
                         #we're done
                         break
         except:
@@ -331,6 +334,7 @@ class AllChannelCommunity(Community):
 class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
+        self._cachedTorrents = {}
     
     def convert_to_messages(self, results):
         messages = []
@@ -372,31 +376,32 @@ class ChannelCastDBStub():
                 last_result_time = message.payload.timestamp
         return torrent_dict
 
-    def hasTorrents(self, infohashes):
+    def _cacheTorrents(self):
         sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'"
         results = self._dispersy.database.execute(sql)
         messages = self.convert_to_messages(results)
         
-        haveTorrent = set()
+        self._cachedTorrents = {}
         for message in messages:
-            if message.payload.infohash in infohashes:
-                haveTorrent.add(message.payload.infohash)
-        
+            self._cachedTorrents[message.payload.infohash] = message  
+
+    def hasTorrents(self, infohashes):
+        self._cacheTorrents()
+
         returnAr = []
         for infohash in infohashes:
-            if infohash in haveTorrent:
+            if infohash in self._cachedTorrents:
                 returnAr.append(True)
             else:
                 returnAr.append(False)
         return returnAr
     
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'"
-        results = self._dispersy.database.execute(sql)
-        messages = self.convert_to_messages(results)
-        for message in messages:
-            if message.payload.infohash == infohash:
-                return message.packet_id
+        if not infohash in self._cachedTorrents:
+            self._cacheTorrents()
+        
+        if infohash in self._cachedTorrents:
+            return self._cachedTorrents[infohash].packet_id
 
 class VoteCastDBStub():
     def __init__(self, dispersy):
