@@ -22,10 +22,6 @@ import os
 import sys
 import wx
 
-
-
-
-
 DEBUG = False
 
 class RemoteSearchManager:
@@ -143,16 +139,18 @@ class ChannelSearchManager:
             print >> sys.stderr, "ChannelManager complete refresh"
         
         if self.category != 'searchresults':
+            category = self.category
+            
             title = ''
-            if self.category == 'New':
+            if category == 'New':
                 title = 'New Channels'
-            elif self.category == 'Popular':
+            elif category == 'Popular':
                 title = 'Popular Channels'
-            elif self.category == 'Updated':
+            elif category == 'Updated':
                 title = 'Updated Channels'
-            elif self.category == 'All':
+            elif category == 'All':
                 title  = 'All Channels'
-            elif self.category == 'Favorites':
+            elif category == 'Favorites':
                 title = 'Your Favorites'
             self.list.SetTitle(title, None)
             
@@ -169,22 +167,23 @@ class ChannelSearchManager:
                     [total_items,data] = self.channelsearch_manager.getAllChannels()
                 elif self.category == 'Favorites':
                     [total_items,data] = self.channelsearch_manager.getSubscriptions()
-                wx.CallAfter(self._on_data, data, title, total_items)
+                wx.CallAfter(self._on_data, data, category, title, total_items)
             
             self.guiserver.add_task(db_callback, id = "ChannelSearchManager_refresh")
         else:
             if search_results:
                 total_items = len(search_results)
                 keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
-                self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
+                self._on_data(search_results, self.category, 'Search results for "%s"'%keywords, total_items)
     
-    def _on_data(self, data, title, total_items):
-        data = [channel for channel in data if channel[4] > 0]
-        
-        self.list.SetData(data)
-        self.list.SetTitle(title, len(data))
-        if DEBUG:
-            print >> sys.stderr, "ChannelManager complete refresh done"
+    def _on_data(self, data, category, title, total_items):
+        if category == self.category:
+            data = [channel for channel in data if channel[4] > 0]
+            
+            self.list.SetData(data)
+            self.list.SetTitle(title, len(data))
+            if DEBUG:
+                print >> sys.stderr, "ChannelManager complete refresh done"
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:
@@ -1322,6 +1321,8 @@ class ChannelList(List):
             self.header.ShowSortedBy(1)
         elif title.startswith('Search results'):
             self.header.ShowSortedBy(3)
+            
+        self.header.Refresh()
         
 class SelectedChannelList(GenericSearchList):
     def __init__(self):
