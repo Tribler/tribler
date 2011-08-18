@@ -143,12 +143,12 @@ class AllChannelCommunity(Community):
                                 break
                         
                         #Modify type of message depending on if all peers have marked my channels as their favorite
-                        if didFavorite:
-                            if not favoriteTorrents:
-                                favoriteTorrents = list(self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5))
-                            torrents = favoriteTorrents
-                        else:
-                            torrents = normalTorrents
+#                        if didFavorite:
+#                            if not favoriteTorrents:
+#                                favoriteTorrents = list(self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5))
+#                            torrents = favoriteTorrents
+#                        else:
+                        torrents = normalTorrents
                             
                         if len(torrents) > 0:
                             meta = self.get_meta_message(u"channelcast")
