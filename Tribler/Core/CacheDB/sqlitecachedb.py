@@ -46,6 +46,7 @@ TEST_OVERRIDE = False
 
 
 DEBUG = False
+DEBUG_THREAD = False
 
 class Warning(Exception):
     pass
@@ -436,7 +437,7 @@ class SQLiteCacheDBBase:
 
         # we should not perform database actions on the GUI (MainThread) thread because that might
         # block the GUI
-        if __debug__:
+        if DEBUG_THREAD:
             if threading.currentThread().getName() == "MainThread":
                 for sql_line in sql.split(";"):
                     try:
