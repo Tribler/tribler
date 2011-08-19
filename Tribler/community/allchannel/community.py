@@ -409,8 +409,6 @@ class ChannelCastDBStub():
         if not infohash in self._cachedTorrents:
             self._cacheTorrents()
         
-        import sys
-        print >> sys.stderr, "Get TORRENT", infohash, self._cachedTorrents.keys()
         if infohash in self._cachedTorrents:
             return self._cachedTorrents[infohash].packet_id
 
