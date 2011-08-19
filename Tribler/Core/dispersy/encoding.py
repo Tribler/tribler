@@ -284,7 +284,7 @@ def _a_decode_set(stream, offset, count, mapping):
     'a1L3i123',3,1 --> 8,set(123)
     'a2L1i41i2',3,1 --> 8,set(4,2)
     """
-    container = set
+    container = set()
     for _ in range(count):
 
         index = offset
@@ -432,19 +432,19 @@ if __debug__:
             assert len(s) == length, (len(s), length)
             assert value == v, (value, v)
 
-            value = in_
-            s = encode(value, "b")
-            length = len(s)
-            # length, v = decode(s)
-            if verbose:
-                print "dispersy B", length, ":", value, "->", s
-            else:
-                print "dispersy B", length
-            # assert len(s) == length, (len(s), length)
-            # assert value == v, (value, v)
+#            value = in_
+#            s = encode(value, "b")
+#            length = len(s)
+#            # length, v = decode(s)
+#            if verbose:
+#                print "dispersy B", length, ":", value, "->", s
+#            else:
+#                print "dispersy B", length
+#            # assert len(s) == length, (len(s), length)
+#            # assert value == v, (value, v)
 
             value = in_
-            if isinstance(value, (float, type(None))):
+            if isinstance(value, (float, type(None), set)):
                 print "bittorrent", "not supported"
             else:
                 # exception: tuple types are encoded as list
@@ -482,3 +482,4 @@ if __debug__:
         test(None)
         test(range(1000), False)
         test(["F" * 20 for _ in range(1000)], False)
+        test(set(['a','b']))
