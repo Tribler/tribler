@@ -354,7 +354,7 @@ class ChannelCastDBStub():
                 message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
                 message.packet_id = packet_id
                 
-                messages.append((cid,message))
+                messages.append((cid, message))
                 
             except ValueError, v:
                 #raise RuntimeError("Unable to decode packet")
@@ -391,7 +391,7 @@ class ChannelCastDBStub():
         messages = self.convert_to_messages(results)
         
         self._cachedTorrents = {}
-        for message in messages:
+        for _, message in messages:
             self._cachedTorrents[message.payload.infohash] = message  
 
     def hasTorrents(self, infohashes):
