@@ -265,8 +265,7 @@ class GenerateMessagesScript(SetupScript):
         while True:
             # create a new last-1-sync message every 6 minutes
             self._community.create_last_1_subjective_sync(u"last-1-subjective-sync; start:%f; at:%f; creator:%s" % (self._start_time, time(), self._community.my_member.mid.encode("HEX")))
-            yield 10.0
-            # yield 60.0 * 3
+            yield 60.0 * 3
 
         yield 1.0
 
