@@ -215,7 +215,7 @@ class ChannelCommunity(Community):
         return message
 
     def _disp_check_channel(self, messages):
-        log("dispersy.log", "only-accepting", self._meta_messages.keys())
+        log("dispersy.log", "only-accepting", keys = self._meta_messages.keys())
         
         for message in messages:
             if not self._timeline.check(message):
