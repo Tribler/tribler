@@ -177,6 +177,7 @@ class GUIUtility:
                 self.frame.librarylist.Hide()
             
             if page == 'home':
+                self.frame.home.ResetSearchBox()
                 self.frame.home.Show()
             else:
                 self.frame.home.Hide()

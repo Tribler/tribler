@@ -251,7 +251,7 @@ class SearchSideBar(wx.Panel):
         
     def SetBundleState(self, newstate):
         if newstate is None:
-            auto_guess = True
+            auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
             
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
             stored_state = self.bundle_db.getPreference(keywords)

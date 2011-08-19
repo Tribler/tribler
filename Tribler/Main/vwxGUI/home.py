@@ -113,6 +113,9 @@ class Home(XRCPanel):
     
     def OnChannels(self, event):
         self.guiutility.showChannels()
+    
+    def ResetSearchBox(self):
+        self.searchBox.Clear()
             
     def SearchFocus(self):
         if self.isReady:

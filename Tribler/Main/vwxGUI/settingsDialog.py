@@ -44,7 +44,8 @@ class SettingsDialog(wx.Dialog):
                              'portChange', \
                              'externalplayer',\
                              'batchstart',\
-                             'batchstop']
+                             'batchstop',\
+                             'use_bundle_magic']
 
         self.myname = None
         self.elements = {}
@@ -127,7 +128,7 @@ class SettingsDialog(wx.Dialog):
         else:
             self.elements['familyFilter'].SetSelection(1)
 
-        self.currentPopup = self.guiUtility.utility.config.Read('popup_player', "boolean")
+        self.currentPopup = self.utility.config.Read('popup_player', "boolean")
         if self.currentPopup:
             self.elements['externalplayer'].SetSelection(1)
         else:
@@ -136,13 +137,13 @@ class SettingsDialog(wx.Dialog):
         self.currentPortValue = str(self.guiUtility.get_port_number())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
         
-        maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', 'int')
+        maxdownloadrate = self.utility.config.Read('maxdownloadrate', 'int')
         if maxdownloadrate == 0:
             self.elements['downloadCtrl'].SetValue('unlimited')        
         else:
             self.elements['downloadCtrl'].SetValue(str(maxdownloadrate))
         
-        maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int')
+        maxuploadrate = self.utility.config.Read('maxuploadrate', 'int')
         if maxuploadrate == -1:
             self.elements['uploadCtrl'].SetValue('0')        
         elif maxuploadrate == 0:
@@ -154,6 +155,8 @@ class SettingsDialog(wx.Dialog):
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
         self.elements['diskLocationCtrl'].Enable(not self.defaultDLConfig.get_show_saveas())
         self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
+        
+        self.elements['use_bundle_magic'].SetValue(self.utility.config.Read('use_bundle_magic', "boolean"))
         
         wx.CallAfter(self.Refresh)
     
@@ -263,6 +266,10 @@ class SettingsDialog(wx.Dialog):
                 
                 self.moveCollectedTorrents(self.currentDestDir, valdir)
                 restart = True
+                
+            useBundleMagic = self.elements['use_bundle_magic'].IsChecked()
+            if useBundleMagic != self.utility.config.Read('use_bundle_magic', "boolean"):
+                self.utility.config.Write('use_bundle_magic', useBundleMagic, "boolean")
 
             state_dir = self.utility.session.get_state_dir()
             cfgfilename = self.utility.session.get_default_config_filename(state_dir)
@@ -283,8 +290,10 @@ class SettingsDialog(wx.Dialog):
             
             selectedPopup = self.elements['externalplayer'].GetSelection() == 1
             if self.currentPopup != selectedPopup:
-                self.guiUtility.utility.config.Write('popup_player', selectedPopup, "boolean")
+                self.utility.config.Write('popup_player', selectedPopup, "boolean")
                 restart = True
+            
+            self.utility.config.Flush()
             
             if restart:
                 dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?","Restart required", wx.ICON_QUESTION|wx.YES_NO|wx.YES_DEFAULT)

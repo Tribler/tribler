@@ -14,9 +14,8 @@ from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
-from traceback import print_exc
 
-DEBUG = True
+DEBUG = False
 
 BUNDLE_FONT_SIZE_DECREMENT = 1 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
 BUNDLE_FONT_COLOR = (50,50,50)
@@ -442,7 +441,7 @@ class BundleListView(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [3,3], True, showChange = True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [3,0], True, showChange = True, parent=parent)
     
     def CreateHeader(self):
         # Normally, the column-widths are fixed during this phase
