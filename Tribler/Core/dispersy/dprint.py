@@ -763,6 +763,10 @@ def dprint(*args, **kargs):
         messages.insert(0, "".join(kargs["box_char"] * kargs["box_width"]))
         messages.append("".join(kargs["box_char"] * kargs["box_width"]))
 
+    # always add stderr to output if level is error or exception is set
+    if kargs["level"] == LEVEL_ERROR or kargs["exception"]:
+        kargs["stderr"] = True
+
     if kargs["stdout"]:
         print >> stdout, prefix + ("\n"+prefix).join([msg[:10000] for msg in messages])
         if kargs["stack"]:
@@ -776,12 +780,16 @@ def dprint(*args, **kargs):
             #         print >> stdout, line,
         if kargs["exception"]:
             print_exception(*exc_info(), **{"file":stdout})
+            
+        stdout.flush()
     if kargs["stderr"]:
         print >> stderr, prefix + ("\n"+prefix).join([msg[:10000] for msg in messages])
         if kargs["stack"]:
             print_stack(file=stderr)
         if kargs["exception"]:
             print_exception(*exc_info(), **{"file":stderr})
+            
+        stderr.flush()
     if kargs["remote"]:
         # todo: the remote_host and remote_port are values that may change
         # for each message. when this happens different connections should
