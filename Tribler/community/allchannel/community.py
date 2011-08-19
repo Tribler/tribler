@@ -29,8 +29,8 @@ if __debug__:
     from lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
-CHANNELCAST_INTERVAL = 15.0
-CHANNELCAST_BLOCK_PERIOD = 15.0 * 60.0
+CHANNELCAST_INTERVAL = 5.0
+CHANNELCAST_BLOCK_PERIOD = 10.0 * 60.0
 
 class AllChannelCommunity(Community):
     """
@@ -164,9 +164,9 @@ class AllChannelCommunity(Community):
                             key = candidate.address
                             self._blocklist[key] = now
                             
-                            
+                            header = message.packet[:22].encode('HEX')
                             nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                            log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = nr_torrents, marked = didFavorite)
+                            log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = nr_torrents, marked = didFavorite, size=len(message.packet), header=header, cid=self._cid.encode('HEX'))
                             
                             #we're done
                             break
