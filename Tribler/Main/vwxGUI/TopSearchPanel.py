@@ -74,19 +74,21 @@ class TopSearchPanel(bgPanel):
         self.Freeze()
         
         self.home.SetValue(tab == 'home')
-        self.searchSizer.ShowItems(tab != 'home')
         self.results.SetValue(tab == 'search_results')
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
         
-        if tab != 'home':
-            if not self.bitmap:
-                self.setBitmap(self.loaded_bitmap)
-        else:
-            self.loaded_bitmap = self.bitmap
-            self.setBitmap(None)
-            self.SearchFocus()
+        
+        if tab != 'settings': #if settings is clicked do nothing
+            self.searchSizer.ShowItems(tab != 'home')
+            if tab != 'home': #if !home is clicked, show bitmap
+                if not self.bitmap:
+                    self.setBitmap(self.loaded_bitmap)
+            else: #if home is clicked, hide bitmap
+                self.loaded_bitmap = self.bitmap
+                self.setBitmap(None)
+                self.SearchFocus()
         
         self.Layout()
         self.Thaw()
