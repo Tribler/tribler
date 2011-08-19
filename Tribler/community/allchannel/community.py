@@ -298,7 +298,7 @@ class AllChannelCommunity(Community):
             self._dispersy._send([address], to_send[address])
         
     def on_votecast(self, messages):
-        if self._notifier:
+        if self.integrate_with_tribler:
             for message in messages:
                 cid = message.payload.cid
                 dispersy_id = message.packet_id
