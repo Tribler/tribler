@@ -206,6 +206,9 @@ class AllChannelCommunity(Community):
                 self.create_channelcast_request(toCollect, message.address)
     
     def create_channelcast_request(self, toCollect, address):
+        nr_requests = sum([len(torrents) for torrents in toCollect.values()])
+        log("dispersy.log", "requesting-channelcast-torrents", nrTorrentsRequested = nr_requests)
+        
         #create channelcast request message
         meta = self.get_meta_message(u"channelcast-request")
         message = meta.implement(meta.authentication.implement(),
