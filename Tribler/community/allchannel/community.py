@@ -190,7 +190,7 @@ class AllChannelCommunity(Community):
             log("dispersy.log", "received-channelcast")
             
             toCollect = {}
-            for cid, torrents in message.payload.torrents:
+            for cid, torrents in message.payload.torrents.iteritems():
                 # ensure that all the PreviewChannelCommunity instances exist
                 try:
                     community = self._dispersy.get_community(cid, True)
