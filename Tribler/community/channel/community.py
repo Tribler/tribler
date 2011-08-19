@@ -653,6 +653,8 @@ class ChannelCommunity(Community):
     
     #AllChannel functions
     def selectTorrentsToCollect(self, infohashes):
+        infohashes = list(infohashes)
+        
         collect = []
         haveTorrents = self._channelcast_db.hasTorrents(infohashes)
         for i in range(len(infohashes)):
