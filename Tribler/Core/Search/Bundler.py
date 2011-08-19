@@ -882,6 +882,7 @@ class Bundler:
     MIN_LEVTRIE_WIDTH = 50
     LEVTRIE_DEPTH = 2
     REDUCTION_THRESHOLD = 0.8
+    REDUCTION_MAX_RESULTS = 100
     
     def __init__(self):
         self.clear()
@@ -971,7 +972,7 @@ class Bundler:
                 # FAILURE => OFF
                 if bundled_hits:
                     reduction = float(len(hits1)-len(bundled_hits)+1)/len(hits1)
-                    if len(bundled_hits) < 100 and reduction >= Bundler.REDUCTION_THRESHOLD:
+                    if len(bundled_hits) < Bundler.REDUCTION_MAX_RESULTS and reduction >= Bundler.REDUCTION_THRESHOLD:
                         if DEBUG:
                             print >>sys.stderr, '>> Bundler.py MAGIC: FAILURE; %0.2f reduction rate using %s' \
                             % (reduction, Bundler.PRINTABLE_ALG_CONSTANTS[selected_bundle_mode])
