@@ -219,7 +219,8 @@ class ChannelCommunity(Community):
         log("dispersy.log", "only-accepting", keys = self._meta_messages.keys())
         
         for message in messages:
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 log("dispersy.log", "not-accepted")
                 yield DropMessage("TODO: implement delay by proof")
                 continue
@@ -276,7 +277,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
                 
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -328,7 +330,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -385,7 +388,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -482,7 +486,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 yield DropMessage("TODO: implement delay by proof")
                 continue
             yield message
@@ -555,7 +560,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 raise DropMessage("TODO: implement delay by proof")
             yield message
     
@@ -598,7 +604,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 raise DropMessage("TODO: implement delay by proof")
             yield message
             
@@ -642,7 +649,8 @@ class ChannelCommunity(Community):
                 yield DelayMessageReqChannelMessage(message)
                 continue
             
-            if not self._timeline.check(message):
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
                 raise DropMessage("TODO: implement delay by proof")
             yield message
     
