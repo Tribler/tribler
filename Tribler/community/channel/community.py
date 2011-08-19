@@ -122,6 +122,7 @@ class ChannelCommunity(Community):
                     log("dispersy.log", "handled-barter-record",type = "torrent")
                         
             def handled_channel_function(messages):
+                dprint("handled-channel-record", stack = True)
                 log("dispersy.log", "received-channel-record")
                 self._channel_id = self._cid
             
@@ -219,8 +220,11 @@ class ChannelCommunity(Community):
         
         for message in messages:
             if not self._timeline.check(message):
+                log("dispersy.log", "not-accepted")
                 yield DropMessage("TODO: implement delay by proof")
                 continue
+            
+            log("dispersy.log", "accepted")
             yield message
 
     def _disp_on_channel(self, messages):
