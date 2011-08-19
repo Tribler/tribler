@@ -230,8 +230,8 @@ class AllChannelCommunity(Community):
                     community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
                 
                 for infohash in torrents:
-                    message = community._get_message_from_torrent_infohash(infohash)
-                    requested_packets.append(message.packet)
+                    tormessage = community._get_message_from_torrent_infohash(infohash)
+                    requested_packets.append(tormessage.packet)
             
             self._dispersy._send([message.address], requested_packets)
     
