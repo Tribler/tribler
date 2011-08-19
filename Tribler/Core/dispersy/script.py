@@ -318,6 +318,10 @@ class ScenarioScriptBase(ScriptBase):
                 if availability_cmds != -1 and 'stop' in availability_cmds:
                     self.set_offline()
 
+                    
+            #print statistics
+            log("dispersy.log", "statistics", total_send = self._dispersy._total_send, total_received = self._dispersy._total_received)
+
             # sleep until the next step
             yield self.sleep()
             self._stepcount += 1
