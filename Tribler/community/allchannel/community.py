@@ -368,7 +368,7 @@ class ChannelCastDBStub():
         last_result_time = None
         
         sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT ?"
-        results = self._dispersy.database.execute(sql, (NUM_OWN_RECENT_TORRENTS, ))
+        results = list(self._dispersy.database.execute(sql, (NUM_OWN_RECENT_TORRENTS, )))
         
         messages = self.convert_to_messages(results)
         for cid, message in messages:
@@ -377,7 +377,7 @@ class ChannelCastDBStub():
             
         if len(messages) == NUM_OWN_RECENT_TORRENTS:
             sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
-            results = self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS))
+            results = list(self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS)))
             
             messages = self.convert_to_messages(results)
             for cid, message in messages:
@@ -387,7 +387,7 @@ class ChannelCastDBStub():
 
     def _cacheTorrents(self):
         sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'"
-        results = self._dispersy.database.execute(sql)
+        results = list(self._dispersy.database.execute(sql))
         messages = self.convert_to_messages(results)
         
         self._cachedTorrents = {}
