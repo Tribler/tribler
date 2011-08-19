@@ -1825,7 +1825,8 @@ class Dispersy(Singleton):
 
             if not self._is_valid_external_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
-                if __debug__: dprint("aborted sending a ", len(packet), " byte packet (invalid external address) to ", address[0], ":", address[1], level="error")
+                if __debug__: 
+                    dprint("aborted sending a ", len(packet), " byte packet (invalid external address) to ", address[0], ":", address[1], "my_adress ",self._my_external_address[0],":",self._my_external_address[1], level="error", stack=True)
                 continue
 
             for packet in packets:

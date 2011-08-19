@@ -212,6 +212,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         self.my_channel = None
         self.joined_community = None
         self.want_to_join = False
+        self.torrentindex = 1
     
     def join_community(self, my_member):
         self.my_member = my_member
@@ -234,7 +235,10 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             
             elif cur_command[0] == 'publish':
                 if self.my_channel:
-                    infohash = ''.join(choice(letters) for i in xrange(20))
+                    infohash = str(self.torrentindex)
+                    infohash += ''.join(choice(letters) for i in xrange(20-len(infohash)))
+                    
+                    self.torrentindex += 1
                     torrents.append((infohash, int(time()), u'', (), ()))
             
             elif cur_command[0] == 'post':
