@@ -124,7 +124,9 @@ class Timeline(object):
 
             else:
                 raise NotImplementedError("Unknown Resolution")
-
+            
+            if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (see above)")
+            assert len(all_proofs) > 0
         return (True, all_proofs)
 
     def authorize(self, author, global_time, permission_triplets, proof):
