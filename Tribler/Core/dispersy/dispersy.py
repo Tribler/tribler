@@ -1318,7 +1318,10 @@ class Dispersy(Singleton):
             try:
                 community = self.get_community(packet[2:22])
             except KeyError:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], " "+packet[:22].encode('HEX'), level="warning")
+                if __debug__: 
+                    dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", address[0], ":", address[1], " "+packet[:22].encode('HEX'), level="warning")
+                    cids = [community.cid.encode('HEX') for community in self.get_communities()]
+                    dprint("known communities ", cids)
                 self._statistics.drop("_convert_packets_into_batch:unknown community", len(packet))
                 continue
 
