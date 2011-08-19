@@ -221,7 +221,7 @@ class AllChannelCommunity(Community):
     def on_channelcast_request(self, messages):
         for message in messages:
             requested_packets = []
-            for cid, torrents in message.payload.torrents:
+            for cid, torrents in message.payload.torrents.iteritems():
                 # ensure that all the PreviewChannelCommunity instances exist
                 try:
                     community = self._dispersy.get_community(cid, True)
