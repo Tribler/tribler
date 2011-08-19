@@ -2204,22 +2204,27 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not isinstance(x[0], tuple), routes), "(host, ip) tuple"
         assert not filter(lambda x: not isinstance(x[1], float), routes), "age in seconds"
 
-        for address, age in routes:
-            if self._is_valid_external_address(address):
-                if __debug__: dprint("update candidate table for ", address[0], ":", address[1])
+        self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, external_time) VALUES (?, ?, ?, DATETIME('now', ?))",
+                                   ((community.database_id, unicode(address[0]), address[1], u"-%d seconds" % age) for address, age in routes if self._is_valid_external_address(address)))
 
-                # TODO: we are overwriting our own age... first check that if we have this
-                # address, that our age is higher before updating
-                age = u"-%d seconds" % age
-                self._database.execute(u"UPDATE candidate SET external_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
-                                       (age, community.database_id, unicode(address[0]), address[1]))
-                if self._database.changes == 0:
-                    self._database.execute(u"INSERT INTO candidate(community, host, port, external_time) VALUES(?, ?, ?, DATETIME('now', ?))",
-                                           (community.database_id, unicode(address[0]), address[1], age))
+        # for address, age in routes:
+        #     if self._is_valid_external_address(address):
+        #         if __debug__: dprint("update candidate table for ", address[0], ":", address[1])
 
-            elif __debug__:
-                level = "normal" if address == self.external_address else "warning"
-                dprint("dropping invalid route ", address[0], ":", address[1], level=level)
+        #         # TODO: we are overwriting our own age... first check that if we have this
+        #         # address, that our age is higher before updating
+        #         age = u"-%d seconds" % age
+        #         self._database.execute(u"UPDATE candidate SET external_time = DATETIME('now', ?) WHERE community = ? AND host = ? AND port = ?",
+        #                                (age, community.database_id, unicode(address[0]), address[1]))
+        #         if self._database.changes == 0:
+        #             self._database.execute(u"INSERT INTO candidate(community, host, port, external_time) VALUES(?, ?, ?, DATETIME('now', ?))",
+        #                                    (community.database_id, unicode(address[0]), address[1], age))
+
+        if __debug__:
+            for address, age in routes:
+                if not self._is_valid_external_address(address):
+                    level = "normal" if address == self.external_address else "warning"
+                    dprint("dropping invalid route ", address[0], ":", address[1], level=level)
 
     def on_candidate_request(self, messages):
         """

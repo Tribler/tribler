@@ -116,13 +116,17 @@ class Callback(object):
             self._event.set()
             return id_
 
-    def _switch(self, generator, timestamp, priority, id_, callback):
+    def _switch(self, generator, deadline, priority, id_, callback):
         if __debug__: dprint("switch threads ", generator)
         with self._lock:
             if not isinstance(id_, str):
                 self._id += 1
                 id_ = self._id
-            self._new_actions.append(("register", (timestamp, priority, id_, generator, callback)))
+            self._new_actions.append(("register", (deadline, priority, id_, generator, callback)))
+
+            # wakeup if sleeping
+            self._event.set()
+            return id_
 
     def persistent_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0, callback=None, callback_args=(), callback_kargs=None):
         """
@@ -408,12 +412,19 @@ if __debug__:
         # dprint(line=1)
 
         def call():
-            yield d
-            # perform code on Callback d
-            yield c
-            # perform code on Callback c
+            delay = 3.0
+            for i in range(10):
+                dprint(time(), " ", i)
+                yield d
+                # perform code on Callback d
+                sleep(delay)
+                if delay > 0.0:
+                    delay -= 1.0
+
+                yield c
+                # perform code on Callback c
         c.register(call)
-        sleep(2.0)
+        sleep(11.0)
         dprint(line=1)
 
         d.stop()
