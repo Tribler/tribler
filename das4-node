@@ -35,10 +35,10 @@ netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 
 # See if we need to run more nodes on this machine...
 echo $TOTAL_PEERS
-if $TOTAL_PEERS < $PEER_COUNT; then
+if [ "$TOTAL_PEERS" -lt "$PEER_COUNT" ]; then
 	echo "unbalanced load" > $PEERS_DIRECTORY/control/$(hostname)/output/debug2.txt
-	ADDITIONAL = $PEER_COUNT - $TOTAL_PEERS
-	if $ADDITIONAL <= $PRUN_CPU_RANK; then
+	ADDITIONAL = $[PEER_COUNT-TOTAL_PEERS]
+	if [ "$ADDITIONAL" -le "$PRUN_CPU_RANK" ]; then
 		PEERS_PER_NODE = $PEERS_PER_NODE + 1
 	fi
 fi
