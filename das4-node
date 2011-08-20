@@ -39,7 +39,6 @@ if [ "$TOTAL_PEERS" -lt "$PEER_COUNT" ]; then
 		let "PEERS_PER_NODE += 1"
 	fi
 fi
-echo $PEERS_PER_NODE
 
 # clean temporary directory
 rm -rf /tmp/$USER/dispersy/
