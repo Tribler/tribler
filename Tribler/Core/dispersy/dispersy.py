@@ -3062,14 +3062,20 @@ class Dispersy(Singleton):
             try:
                 packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND global_time = ? LIMIT 1",
                                                  (community.database_id, message.payload.member.database_id, message.payload.global_time)).next()
+
             except StopIteration:
-                pass
+                if __debug__: dprint("someone asked for proof for a message that we do not have", level="warning")
+
             else:
                 packet = str(packet)
                 msg = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
                 allowed, proofs = community._timeline.check(msg)
                 if allowed:
+                    if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)", force=1)
                     self._send([message.address], [proof.packet for proof in proofs])
+
+                else:
+                    if __debug__: dprint("someone asked for proof for a message that is not allowed (", len(proofs), " packets)", force=1)
 
     def check_sync(self, messages):
         """
