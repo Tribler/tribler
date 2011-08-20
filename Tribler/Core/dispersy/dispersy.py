@@ -3232,6 +3232,9 @@ class Dispersy(Singleton):
                 if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
                 self._send([message.address], packets)
 
+            else:
+                if __debug__: dprint("did not find anything to sync, ignoring dispersy-sync message")
+
     def on_sync(self, messages):
         # everything has already been done in check_sync.
         pass
@@ -3301,6 +3304,22 @@ class Dispersy(Singleton):
 
         self.store_update_forward([message], store, update, forward)
         return message
+
+    # def check_authorize(self, messages):
+    #     check = message.community._timeline.check
+
+    #     for message in messages:
+    #         allowed, proofs = check(message)
+    #         if allowed:
+
+    #             # ensure that the author has the authorize permission
+    #             authorize_allowed, authorize_proofs = check(messageauthor, global_time, [(message, u"authorize") for _, message, __ in permission_triplets])
+    #             if not authorize_allowed:
+    #                 yield DelayMessageByProof(message)
+
+    #             yield message
+    #         else:
+    #             yield DelayMessageByProof(message)
 
     def on_authorize(self, messages):
         """
