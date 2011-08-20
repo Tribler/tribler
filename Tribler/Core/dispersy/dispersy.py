@@ -3072,6 +3072,9 @@ class Dispersy(Singleton):
                 allowed, proofs = community._timeline.check(msg)
                 if allowed:
                     if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)", force=1)
+                    if __debug__:
+                        for proof in proofs:
+                            dprint("returning the following proof (", len(proof), " bytes): ", proof[:22].encode("HEX"), force=1)
                     self._send([message.address], [proof.packet for proof in proofs])
 
                 else:
