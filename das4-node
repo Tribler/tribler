@@ -32,9 +32,9 @@ mkdir -p $PEERS_DIRECTORY/control/$(hostname)/output/
 netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 
 # See if we need to run more nodes on this machine...
-echo [$PEERS_PER_NODE * $SGE_TASK_LAST] > $PEERS_DIRECTORY/control/$(hostname)/output/debug.txt
+echo $PEERS_PER_NODE*$SGE_TASK_LAST > $PEERS_DIRECTORY/control/$(hostname)/output/debug.txt
 echo "unbalanced load" > $PEERS_DIRECTORY/control/$(hostname)/output/debug1.txt
-if [$PEERS_PER_NODE * $SGE_TASK_LAST] < $PEER_COUNT; then
+if $PEERS_PER_NODE * $SGE_TASK_LAST < $PEER_COUNT; then
 	echo "unbalanced load" > $PEERS_DIRECTORY/control/$(hostname)/output/debug2.txt
 	ADDITIONAL = $PEER_COUNT - [$PEERS_PER_NODE * $SGE_TASK_LAST]
 	if $ADDITIONAL <= $PRUN_CPU_RANK; then
