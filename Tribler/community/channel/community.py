@@ -8,7 +8,7 @@ from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.message import Message, DropMessage
+from Tribler.Core.dispersy.message import Message, DropMessage, DelayMessageByProof
 from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
