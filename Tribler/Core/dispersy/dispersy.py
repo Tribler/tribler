@@ -3071,14 +3071,11 @@ class Dispersy(Singleton):
                 msg = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
                 allowed, proofs = community._timeline.check(msg)
                 if allowed:
-                    if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)", force=1)
-                    if __debug__:
-                        for proof in proofs:
-                            dprint("returning the following proof (", len(proof.packet), " bytes): ", proof.packet[:22].encode("HEX"), force=1)
+                    if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)")
                     self._send([message.address], [proof.packet for proof in proofs])
 
                 else:
-                    if __debug__: dprint("someone asked for proof for a message that is not allowed (", len(proofs), " packets)", force=1)
+                    if __debug__: dprint("someone asked for proof for a message that is not allowed (", len(proofs), " packets)")
 
     def check_sync(self, messages):
         """
