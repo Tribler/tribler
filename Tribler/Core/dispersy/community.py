@@ -993,7 +993,12 @@ class Community(object):
          this method should be moved to Dispersy
         """
         assert isinstance(public_key, str)
-        return Member.get_instance(public_key)
+        # note that this allows a security attack where someone might obtain a crypographic key that
+        # has the same sha1 as the master member, however unlikely.  the only way to prevent this,
+        # as far as we know, is to increase the size of the community identifier, for instance by
+        # using sha256 instead of sha1.
+        cls = MasterMember if sha1(public_key).digest() == self._cid else Member
+        return cls.get_instance(public_key)
 
     def get_members_from_id(self, mid):
         """
@@ -1022,7 +1027,12 @@ class Community(object):
         """
         assert isinstance(mid, str)
         assert len(mid) == 20
-        return [Member.get_instance(str(public_key)) for public_key, in list(self._dispersy_database.execute(u"SELECT public_key FROM user WHERE mid = ?", (buffer(mid),)))]
+        # note that this allows a security attack where someone might obtain a crypographic key that
+        # has the same sha1 as the master member, however unlikely.  the only way to prevent this,
+        # as far as we know, is to increase the size of the community identifier, for instance by
+        # using sha256 instead of sha1.
+        cls = MasterMember if mid == self._cid else Member
+        return [cls.get_instance(str(public_key)) for public_key, in list(self._dispersy_database.execute(u"SELECT public_key FROM user WHERE mid = ?", (buffer(mid),)))]
 
     def get_members_from_address(self, address, verified=True):
         """
