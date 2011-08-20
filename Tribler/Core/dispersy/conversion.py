@@ -718,7 +718,7 @@ class BinaryConversion(Conversion):
         payload = message.payload
         return pack("!QH", payload.global_time, len(payload.member.public_key)), payload.member.public_key
 
-    def _decode_missing_proof(self, meta_message, offset, data):
+    def _decode_missing_proof(self, placeholder, offset, data):
         if len(data) < offset + 10:
             raise DropPacket("Insufficient packet size (_decode_missing_proof)")
 
@@ -731,7 +731,7 @@ class BinaryConversion(Conversion):
         member = self._community.get_member(key)
         offset += key_length
 
-        return offset, meta_message.payload.implement(member, global_time)
+        return offset, placeholder.meta.payload.implement(member, global_time)
 
     #
     # Encoding

@@ -29,6 +29,7 @@ mkdir -p $PEERS_DIRECTORY/control/$(hostname)
 mkdir -p $PEERS_DIRECTORY/control/$(hostname)/output/
 
 netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
+echo $PRUN_CPU_RANK > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 
 # clean temporary directory
 rm -rf /tmp/$USER/dispersy/
