@@ -34,7 +34,7 @@ mkdir -p $PEERS_DIRECTORY/control/$(hostname)/output/
 netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 
 # See if we need to run more nodes on this machine...
-echo $TOTAL_PEERS > $PEERS_DIRECTORY/control/$(hostname)/output/debug1.txt
+echo $TOTAL_PEERS
 if $TOTAL_PEERS < $PEER_COUNT; then
 	echo "unbalanced load" > $PEERS_DIRECTORY/control/$(hostname)/output/debug2.txt
 	ADDITIONAL = $PEER_COUNT - $TOTAL_PEERS
