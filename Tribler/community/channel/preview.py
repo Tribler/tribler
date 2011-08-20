@@ -21,6 +21,9 @@ class PreviewChannelCommunity(ChannelCommunity):
         for name in [u"dispersy-identity",
                      u"dispersy-missing-identity",
                      u"dispersy-destroy-community",
+                     u"dispersy-authorize",
+                     u"dispersy-missing-proof",
+                     u"dispersy-revoke",
 
                      u"channel",
                      u"torrent",

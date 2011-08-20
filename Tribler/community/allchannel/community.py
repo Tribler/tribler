@@ -2,7 +2,6 @@ from hashlib import sha1
 from time import time
 
 from conversion import AllChannelConversion
-from preview import PreviewChannelCommunity
 from payload import ChannelCastPayload, VoteCastPayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
 
 # from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
@@ -19,8 +18,10 @@ from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistr
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
 from Tribler.Core.dispersy.member import MyMember
 
+
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.allchannel.payload import ChannelCastRequestPayload
 from traceback import print_exc
 

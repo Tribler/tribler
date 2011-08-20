@@ -5,7 +5,7 @@ from time import time
 
 from community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
-from preview import PreviewChannelCommunity
+from Tribler.community.channel.preview import PreviewChannelCommunity
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
