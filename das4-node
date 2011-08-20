@@ -36,7 +36,7 @@ netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 # See if we need to run more nodes on this machine...
 if [ "$TOTAL_PEERS" -lt "$PEER_COUNT" ]; then
 	if [ "$ADDITIONAL" -le "$PRUN_CPU_RANK" ]; then
-		PEERS_PER_NODE = $[PEERS_PER_NODE + 1]
+		let "PEERS_PER_NODE += 1"
 	fi
 fi
 echo $PEERS_PER_NODE
