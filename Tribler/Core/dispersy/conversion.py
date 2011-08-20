@@ -10,7 +10,7 @@ from destination import MemberDestination, CommunityDestination, AddressDestinat
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution, RelayDistribution
 from encoding import encode, decode
-from member import PrivateMember, MasterMember
+from member import PrivateMember
 from message import DelayPacket, DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
 from resolution import LinearResolution
 
@@ -886,6 +886,10 @@ class BinaryConversion(Conversion):
 
                 for member in members:
                     if __debug__:
+                        # make sure that a master member is correctly retrieved
+                        from member import MasterMember
+                        if member.mid == self._community.cid:
+                            assert isinstance(member, MasterMember)
                         debug_begin = clock()
                     first_signature_offset = len(data) - member.signature_length
                     if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
