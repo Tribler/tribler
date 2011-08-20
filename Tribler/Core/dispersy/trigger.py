@@ -84,11 +84,11 @@ class TriggerCallback(Trigger):
         assert isinstance(messages, list)
         assert len(messages) > 0
         for message in messages:
-            # if __debug__:
-            #     if self._responses_remaining > 0:
-            #         dprint("Does it match? ", bool(self._responses_remaining > 0 and self._search(message.footprint)))
-            #         dprint("Expression: ", self._debug_pattern)
-            #         dprint(" Footprint: ", message.footprint)
+            if __debug__:
+                if self._responses_remaining > 0:
+                    dprint("Does it match? ", bool(self._responses_remaining > 0 and self._search(message.footprint)))
+                    dprint("Expression: ", self._debug_pattern)
+                    dprint(" Footprint: ", message.footprint)
             if self._responses_remaining > 0 and self._search(message.footprint):
                 if __debug__: dprint("match footprint for one callback")
                 self._responses_remaining -= 1
@@ -168,10 +168,10 @@ class TriggerPacket(Trigger):
         assert len(messages) > 0
         if self._search:
             for message in messages:
-                # if __debug__:
-                #     dprint("Does it match? ", bool(self._search and self._search(message.footprint)), " for ", len(self._packets), " waiting packets")
-                #     dprint("Expression: ", self._pattern)
-                #     dprint(" Footprint: ", message.footprint)
+                if __debug__:
+                    dprint("Does it match? ", bool(self._search and self._search(message.footprint)), " for ", len(self._packets), " waiting packets")
+                    dprint("Expression: ", self._pattern)
+                    dprint(" Footprint: ", message.footprint)
                 if self._search(message.footprint):
                     # set self._search to None to avoid this regular expression again
                     self._search = None
@@ -245,10 +245,10 @@ class TriggerMessage(Trigger):
         assert len(messages) > 0
         if self._search:
             for message in messages:
-                # if __debug__:
-                #     dprint("Does it match? ", bool(self._search and self._search(message.footprint)), " for ", len(self._messages), " waiting messages")
-                #     dprint("Expression: ", self._pattern)
-                #     dprint(" Footprint: ", message.footprint)
+                if __debug__:
+                    dprint("Does it match? ", bool(self._search and self._search(message.footprint)), " for ", len(self._messages), " waiting messages")
+                    dprint("Expression: ", self._pattern)
+                    dprint(" Footprint: ", message.footprint)
                 if self._search(message.footprint):
                     # set self._search to None to avoid this regular expression again
                     self._search = None
