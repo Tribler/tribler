@@ -23,6 +23,8 @@ PEER_COUNT=$3
 EXPERIMENT_LENGTH=$4
 PEERS_PER_NODE=$[ $PEER_COUNT / $SGE_TASK_LAST ]
 PEERS_PER_NODE=${PEERS_PER_NODE/\.*}
+TOTAL_PEERS=$PEERS_PER_NODE*${#SGE_TASK_LAST}
+
 
 # Clean output of previous runs
 rm -rf $PEERS_DIRECTORY/control/$(hostname)
@@ -32,11 +34,10 @@ mkdir -p $PEERS_DIRECTORY/control/$(hostname)/output/
 netstat -su  > $PEERS_DIRECTORY/control/$(hostname)/output/udp_stats_start.txt
 
 # See if we need to run more nodes on this machine...
-echo $PEERS_PER_NODE*$SGE_TASK_LAST > $PEERS_DIRECTORY/control/$(hostname)/output/debug.txt
-echo "unbalanced load" > $PEERS_DIRECTORY/control/$(hostname)/output/debug1.txt
-if $PEERS_PER_NODE * $SGE_TASK_LAST < $PEER_COUNT; then
+echo $TOTAL_PEERS > $PEERS_DIRECTORY/control/$(hostname)/output/debug1.txt
+if $TOTAL_PEERS < $PEER_COUNT; then
 	echo "unbalanced load" > $PEERS_DIRECTORY/control/$(hostname)/output/debug2.txt
-	ADDITIONAL = $PEER_COUNT - [$PEERS_PER_NODE * $SGE_TASK_LAST]
+	ADDITIONAL = $PEER_COUNT - $TOTAL_PEERS
 	if $ADDITIONAL <= $PRUN_CPU_RANK; then
 		PEERS_PER_NODE = $PEERS_PER_NODE + 1
 	fi
