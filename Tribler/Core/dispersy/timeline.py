@@ -155,7 +155,9 @@ class Timeline(object):
         # check that AUTHOR is allowed to perform these authorizations
         authorize_allowed, authorize_proofs = self._check(author, global_time, [(message, u"authorize") for _, message, __ in permission_triplets])
         if not authorize_allowed:
-            if __debug__: dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
+            if __debug__:
+                dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
+                dprint("-- the author is... master member? ", isinstance(author, MasterMember), "; my member? ", isinstance(author, MyMember))
             return (False, authorize_proofs)
 
         for member, message, permission in permission_triplets:
