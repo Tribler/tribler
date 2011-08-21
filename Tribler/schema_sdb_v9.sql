@@ -9,6 +9,7 @@
 --   v5: Published as part of Next-Share M30 for subtitles integration
 --   v7: Published as part of Tribler 5.3
 --   v8: Published as part of Tribler 5.4
+--   v8: Published as part of Tribler 5.5/6.0?
 
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
@@ -416,7 +417,15 @@ CREATE TABLE UserEventLog (
 );
 
 ----------------------------------------
--- v8: Open2Edit replacing ChannelCast tables
+-- v8: BundlerPreference
+
+CREATE TABLE BundlerPreference (
+  query         text PRIMARY KEY,
+  bundle_mode   integer
+);
+
+----------------------------------------
+-- v9: Open2Edit replacing ChannelCast tables
 
 CREATE TABLE IF NOT EXISTS Channels (
   id                        integer         PRIMARY KEY ASC,
@@ -616,7 +625,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 8);
+INSERT INTO MyInfo VALUES ('version', 9);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
