@@ -2594,7 +2594,7 @@ class Dispersy(Singleton):
         for message in messages:
             message.community.clear_subjective_set_cache(message.authentication.member, message.payload.cluster, message.packet, message.payload.subjective_set)
 
-    def on_subjective_set_request(self, messages):
+    def on_missing_subjective_set(self, messages):
         """
         We received a dispersy-missing-subjective-set message.
 
