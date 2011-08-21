@@ -308,6 +308,7 @@ class MainFrame(wx.Frame):
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
                 dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
+                dlg.CenterOnParent()
                 if dlg.ShowModal() == wx.ID_OK:
                     destdir = dlg.GetPath()
                 else:

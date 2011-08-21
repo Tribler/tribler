@@ -26,7 +26,9 @@ from collections import namedtuple
 ##Changed from 4 to 5 by andrea for subtitles support
 ##Changed from 5 to 6 by George Milescu for ProxyService  
 ##Changed from 6 to 7 for Raynor's TermFrequency table
-CURRENT_MAIN_DB_VERSION = 8
+##Changed from 7 to 8 for Raynor's BundlerPreference table
+##Changed from 8 to 9 for Niels's Open2Edit tables
+CURRENT_MAIN_DB_VERSION = 9
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -46,6 +48,7 @@ TEST_OVERRIDE = False
 
 
 DEBUG = False
+DEBUG_THREAD = False
 
 class Warning(Exception):
     pass
@@ -452,12 +455,12 @@ class SQLiteCacheDBBase:
 
         # we should not perform database actions on the GUI (MainThread) thread because that might
         # block the GUI
-        if __debug__:
+        if DEBUG_THREAD:
             if threading.currentThread().getName() == "MainThread":
                 for sql_line in sql.split(";"):
                     try:
                         #key, rest = sql_line.strip().split(" ", 1)
-                        key = sql_line[:25]
+                        key = sql_line[:50]
                         print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
                         # print_stack()
                     except:
@@ -1271,9 +1274,21 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             """
             self.execute_write(sql, commit=False)
-            
         
         if fromver < 8:
+            sql=\
+            """
+            --------------------------------------
+            -- Creating BundlerPreference DB
+            ----------------------------------
+            CREATE TABLE BundlerPreference (
+              query         text PRIMARY KEY,
+              bundle_mode   integer
+            );
+            """
+            self.execute_write(sql, commit=False)
+        
+        if fromver < 9:
             sql=\
             """
             CREATE TABLE IF NOT EXISTS Channels (
@@ -1587,7 +1602,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 dbg_ts2 = time()
                 print >>sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2-dbg_ts1)
         
-        if fromver < 8:
+        if fromver < 9:
             from Tribler.Core.Session import Session
             session = Session.get_instance()
             

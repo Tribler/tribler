@@ -11,16 +11,16 @@ from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
-from traceback import print_exc
 
-DEBUG = True
+DEBUG = False
 
 BUNDLE_FONT_SIZE_DECREMENT = 1 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
 BUNDLE_FONT_COLOR = (50,50,50)
 
-BUNDLE_NUM_COLS = 3
+BUNDLE_NUM_COLS = 2
 BUNDLE_NUM_ROWS = 3
 
 class BundleListItem(ListItem):
@@ -49,7 +49,7 @@ class BundleListItem(ListItem):
                                        self.general_description, self.description,
                                        -BUNDLE_FONT_SIZE_DECREMENT)
         self.AddEvents(self.bundlepanel)
-        self.vSizer.Add(self.bundlepanel, 1, wx.EXPAND|wx.TOP, -3)
+        self.vSizer.Add(self.bundlepanel, 1, wx.EXPAND)
         
     def RefreshData(self, data):
         infohash, item_data, original_data = data
@@ -164,6 +164,10 @@ class BundlePanel(wx.Panel):
         self.parent_listitem = parent
         self.parent_list = parent_list
         
+        # logging
+        self.guiutility = GUIUtility.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
+        
         self.state = BundlePanel.COLLAPSED
         self.nrhits = -1
         self.bundlelist = None
@@ -173,15 +177,18 @@ class BundlePanel(wx.Panel):
         
         self.SetBackgroundColour(wx.WHITE)
         
+        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 #width of icon + 3px left spacer + 3px right spacer
+        grid_indent = 14 + self.indent
+        
         self.AddHeader()
-        self.AddGrid()
+        self.AddGrid(grid_indent)
         
         self.SetHits(hits)
         self.UpdateHeader(general_description, description)
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.AddSpacer((22, -1))
-        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 3)
+        sizer.AddSpacer((self.indent, -1))
+        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
         self.SetSizer(sizer)
     
     def AddHeader(self):
@@ -198,7 +205,7 @@ class BundlePanel(wx.Panel):
         self.SetGeneralDescription(general_description)
         self.SetDescription(description)
     
-    def AddGrid(self):
+    def AddGrid(self, indent):
         self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, BUNDLE_NUM_COLS, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
@@ -209,7 +216,7 @@ class BundlePanel(wx.Panel):
         
         for j in xrange(BUNDLE_NUM_COLS):
             self.grid.AddGrowableCol(j, 1)
-        self.vsizer.Add(self.grid, 1, wx.EXPAND)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, indent)
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
@@ -258,9 +265,6 @@ class BundlePanel(wx.Panel):
                 new_text.action = hit
                 self.grid.Add(new_text, 0, wx.EXPAND)
                 
-            for i in range(BUNDLE_NUM_COLS - items_to_add):
-                self.grid.AddSpacer((1,-1))
-            
             if self.nrhits > N:
                 caption = '(%s more...)' % (self.nrhits - N + 1)
                 
@@ -294,7 +298,7 @@ class BundlePanel(wx.Panel):
                 max_list -= 1
             
             self.bundlelist = BundleListView(parent = self, list_item_max = max_list)
-            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.LEFT|wx.BOTTOM, 17) #20 - 3 = 17
+            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.BOTTOM, self.indent - 7) #a 7px spacer is already present 
             
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method. Thus we have to do this after the add to the sizer
@@ -380,12 +384,22 @@ class BundlePanel(wx.Panel):
         
             self.ChangeState(BundlePanel.PARTIAL)
             self.ExpandHit(action)
-            
+        
+        def db_callback():
+            self.uelog.addEvent(message="Bundler GUI: BundleLink click; %s; %s;" %
+                                (self.nrhits, self.parent_listitem.general_description), type = 3)
+        self.guiutility.frame.guiserver.add_task(db_callback)
+    
     def OnMoreClick(self, event):
         #do expand
         self.ExpandAndHideParent()
         self.ChangeState(BundlePanel.FULL)
         
+        def db_callback():
+            self.uelog.addEvent(message="Bundler GUI: More click; %s; %s;" %
+                                (self.nrhits, self.parent_listitem.general_description), type = 3)
+        self.guiutility.frame.guiserver.add_task(db_callback)
+    
     def ExpandAndHideParent(self):
         listitem = self.GetParent()
         
@@ -422,11 +436,11 @@ class BundleListView(GenericSearchList):
     def __init__(self, parent = None, list_item_max = None):
         self.list_item_max = list_item_max
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
+                   {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, showChange = True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [3,0], True, showChange = True, parent=parent)
     
     def CreateHeader(self, parent):
         # Normally, the column-widths are fixed during this phase

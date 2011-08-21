@@ -427,6 +427,10 @@ class AbstractListBody():
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
         
+        #Niels: translating between -1 and None conventions
+        if column == -1:
+            column = None
+            
         self.sortcolumn = column
         self.sortreverse = reverse
         
@@ -513,16 +517,13 @@ class AbstractListBody():
         self.Refresh()
         
         #Determine scrollrate
-        if not self.rate:
-            rate_y = 20
-            nritems = len(self.vSizer.GetChildren())
-            if nritems > 0:
-                height = self.vSizer.GetSize()[1]
-                rate_y = height / nritems
-                self.rate = rate_y
-            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
-        else:
-            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
+        rate_y = 20
+        nritems = len(self.vSizer.GetChildren())
+        if nritems > 0:
+            height = self.vSizer.GetSize()[1]
+            rate_y = height / nritems
+            self.rate = rate_y
+        self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
             
         self.Thaw()
     

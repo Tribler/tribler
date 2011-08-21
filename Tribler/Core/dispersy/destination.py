@@ -102,7 +102,7 @@ class CommunityDestination(Destination):
 
 class SubjectiveDestination(Destination):
     class Implementation(Destination.Implementation):
-        def __init__(self, meta, is_valid=False):
+        def __init__(self, meta, is_valid):
             """
             TODO
 

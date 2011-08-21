@@ -23,6 +23,8 @@ class SRstatusbar(wx.StatusBar):
         self.sr = wx.StaticText(self.srPanel)
         help = wx.StaticBitmap(self.srPanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images" , "help.png"),wx.BITMAP_TYPE_ANY))
         help.Bind(wx.EVT_LEFT_UP, self.helpClick)
+        help.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+
         self.updown = wx.StaticText(self.srPanel)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -51,7 +53,8 @@ class SRstatusbar(wx.StatusBar):
         self.Bind(wx.EVT_SIZE, self.OnSize)
  
     def helpClick(self,event=None):
-        dlg = wx.Dialog(None, -1, self.utility.lang.get('sharing_reputation_information_title'), style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
+        dlg = wx.Dialog(self.guiUtility.frame, -1, self.utility.lang.get('sharing_reputation_information_title'), style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
+        dlg.CenterOnParent()
         dlg.SetBackgroundColour(wx.WHITE)
 
         sizer = wx.FlexGridSizer(2,2)

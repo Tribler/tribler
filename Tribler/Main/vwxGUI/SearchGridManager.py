@@ -268,8 +268,8 @@ class TorrentManager:
         else:
             return torrent
     
-    def getSwarmInfo(self, torrent_id):
-        return self.torrent_db.getSwarmInfo(torrent_id)
+    def getSwarmInfo(self, infohash):
+        return self.torrent_db.getSwarmInfoByInfohash(infohash)
     
     def getTorrentByInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
@@ -373,14 +373,13 @@ class TorrentManager:
             print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.library_manager.addDownloadStates(self.hits)
         
-        # vliegendhart: do grouping here
-        returned_hits = self.bundler.bundle(self.hits, self.bundle_mode, self.searchkeywords)
+        # Niels: important, we should not change self.hits otherwise prefetching will not work 
+        returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
         
-        bundle_mode_changed = self.bundle_mode_changed
-        self.bundle_mode_changed = False 
+        bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
+        self.bundle_mode_changed = False
         
-        #return [len(self.hits), self.filteredResults , self.hits]
-        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, returned_hits]
+        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits]
 
     def prefetch_hits(self):
         """
@@ -866,6 +865,7 @@ class LibraryManager:
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
+        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
         self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
     
     def getHitsInCategory(self):

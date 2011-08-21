@@ -36,7 +36,7 @@ class AddTorrent(wx.Dialog):
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         header.SetFont(font)
         vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
-        vSizer.Add(wx.StaticText(self, -1, 'This could either be a direct http-link (starting with http://), or a magnet link'), wx.BOTTOM, 3)
+        vSizer.Add(wx.StaticText(self, -1, 'This could either be a direct http-link (starting with http://), or a magnet link'), 0, wx.BOTTOM, 3)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.magnet = wx.TextCtrl(self, -1)

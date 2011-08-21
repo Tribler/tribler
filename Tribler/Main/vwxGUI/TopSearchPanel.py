@@ -35,12 +35,12 @@ class TopSearchPanel(bgPanel):
     def OnSearchKeyDown(self, event = None):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
+        
+        if getattr(self.searchField, 'ShowDropDown', False):
+            self.searchField.ShowDropDown(False)
         self.guiUtility.dosearch()
     
     def StartSearch(self):
-        if getattr(self.searchField, 'ShowDropDown', False):
-            self.searchField.ShowDropDown(False)    
-            
         if not self.results.IsEnabled():
             self.results.Enable()
                   
@@ -99,19 +99,21 @@ class TopSearchPanel(bgPanel):
         self.Freeze()
         
         self.home.SetValue(tab == 'home')
-        self.searchSizer.ShowItems(tab != 'home')
         self.results.SetValue(tab == 'search_results')
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
         
-        if tab != 'home':
-            if not self.bitmap:
-                self.setBitmap(self.loaded_bitmap)
-        else:
-            self.loaded_bitmap = self.bitmap
-            self.setBitmap(None)
-            self.SearchFocus()
+        
+        if tab != 'settings': #if settings is clicked do nothing
+            self.searchSizer.ShowItems(tab != 'home')
+            if tab != 'home': #if !home is clicked, show bitmap
+                if not self.bitmap:
+                    self.setBitmap(self.loaded_bitmap)
+            else: #if home is clicked, hide bitmap
+                self.loaded_bitmap = self.bitmap
+                self.setBitmap(None)
+                self.SearchFocus()
         
         self.Layout()
         self.Thaw()
@@ -147,7 +149,6 @@ class TopSearchPanel(bgPanel):
         else:
             self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
         self.searchField.SetMinSize((400, -1))
-        #self.searchField.SetFocus()
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')

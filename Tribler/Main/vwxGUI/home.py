@@ -12,7 +12,8 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl, SelectableListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl,\
+    TextCtrlAutoComplete
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
@@ -42,36 +43,57 @@ class Home(XRCPanel):
         
         vSizer.AddStretchSpacer()
         
-        searchSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        text = wx.StaticText(self, -1, "Welcome to Tribler")
+        text = wx.StaticText(self, -1, "Tribler")
         font = text.GetFont()
-        font.SetPointSize(font.GetPointSize() * 2.5)
+        font.SetPointSize(font.GetPointSize() * 3)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         text.SetForegroundColour((255, 51, 0))
         text.SetFont(font)
         
-        subtext = wx.StaticText(self, -1, "Let us show you just how easy file-sharing can be. Enter any search query in the box below,\nor use channels to discover content selected by others.")
-        
-        textSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        self.searchBox = wx.TextCtrl(self, style = wx.TE_PROCESS_ENTER)
+        textSizer = wx.FlexGridSizer(2, 2, 3, 7)
+                
+                
+        if sys.platform == 'darwin': # mac
+            self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        else:
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback = self.guiutility.frame.top_bg.complete, selectcallback = self.guiutility.frame.top_bg.OnAutoComplete)
+            
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
-        self.searchBox.Bind(wx.EVT_KEY_DOWN , self.KeyDown) 
+        self.searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         
-        textSizer.Add(self.searchBox, 1)
+        if sys.platform == 'darwin': # mac
+            self.searchBox.SetMinSize((450, self.searchBox.GetTextExtent('T')[1] + 5))
+        else:
+            self.searchBox.SetMinSize((450, -1))
         
-        searchButton = wx.Button(self, -1, 'Search')
+        textSizer.Add(text, 0, wx.EXPAND|wx.RIGHT, 7)
+        scalingSizer = wx.BoxSizer(wx.HORIZONTAL)
+        scalingSizer.Add(self.searchBox)
+        
+        if sys.platform == 'darwin': # mac
+            searchButton = wx.Button(self, -1, '\n')
+            searchButton.SetLabel('Search')
+        else:
+            searchButton = wx.Button(self, -1, 'Search')
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
-        textSizer.Add(searchButton, 0, wx.EXPAND)
         
-        searchSizer.Add(text, 0, wx.ALIGN_CENTER|wx.BOTTOM, 3)
-        searchSizer.Add(subtext, 0, wx.BOTTOM, 3)
-        searchSizer.Add(textSizer, 0, wx.EXPAND)
+        scalingSizer.Add(searchButton, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
-        vSizer.Add(searchSizer, 0, wx.ALIGN_CENTER)
+        textSizer.Add(scalingSizer, 0, wx.ALIGN_CENTER_VERTICAL)
+        textSizer.AddSpacer((1,1))
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(wx.StaticText(self, -1, "Take me to "))
+        channelLink = LinkStaticText(self, "channels", icon = None)
+        
+        channelLink.Bind(wx.EVT_LEFT_UP, self.OnChannels)
+        hSizer.Add(channelLink)
+        hSizer.Add(wx.StaticText(self, -1, " to see what others are sharing"))
+        textSizer.Add(hSizer)
+        
+        vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
         
         buzzpanel = BuzzPanel(self)
@@ -86,12 +108,15 @@ class Home(XRCPanel):
     def OnClick(self, event):
         term = self.searchBox.GetValue()
         self.guiutility.dosearch(term)
+        
+    def OnSearchKeyDown(self, event):
+        self.OnClick(event)
     
-    def KeyDown(self, event):
-        if event.GetKeyCode() == wx.WXK_RETURN:
-            self.OnClick(event)
-        else:
-            event.Skip()
+    def OnChannels(self, event):
+        self.guiutility.showChannels()
+    
+    def ResetSearchBox(self):
+        self.searchBox.Clear()
             
     def SearchFocus(self):
         if self.isReady:
@@ -271,12 +296,13 @@ class NetworkPanel(HomePanel):
     def UpdateStats(self):
         def db_callback():
             stats = self.torrentdb.getTorrentsStats()
-            self._UpdateStats(stats)
-        
+            nr_channels = self.channelcastdb.getNrChannels()
+            self._UpdateStats(stats, nr_channels)
+
         self.guiserver.add_task(db_callback, id = "NetworkPanel_UpdateStats")
     
     @forceWxThread
-    def _UpdateStats(self, stats):
+    def _UpdateStats(self, stats, nr_channels):
         self.nrTorrents.SetLabel(str(stats[0]))
         if stats[1] is None:
             self.totalSize.SetLabel(str(stats[1]))
@@ -284,7 +310,7 @@ class NetworkPanel(HomePanel):
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
-        self.nrChannels.SetLabel(str(self.channelcastdb.getNrChannels()))
+        self.nrChannels.SetLabel(str(nr_channels))
         self.nrConnected.SetLabel('%d peers'%len(self.remotequerymsghandler.get_connected_peers()))
         if self.freeMem:
             self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
@@ -304,7 +330,7 @@ class NewTorrentPanel(HomePanel):
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
     
     def CreatePanel(self):
-        self.list = SelectableListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list = SelectableListCtrl(self)
         self.list.InsertColumn(0, 'Torrent')
         self.list.setResizeColumn(0)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
@@ -389,7 +415,7 @@ class TopContributorsPanel(HomePanel):
         self.RefreshList()
     
     def CreatePanel(self):
-        self.list = SortedListCtrl(self, 2, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list = BetterListCtrl(self)
         self.list.InsertColumn(0, 'Name')
         self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
         self.list.setResizeColumn(0)
@@ -448,7 +474,7 @@ class BuzzPanel(HomePanel):
         self.nbdb = NetworkBuzzDBHandler.getInstance()
         self.xxx_filter = Category.getInstance().xxx_filter
         
-        HomePanel.__init__(self, parent, 'Search suggestions', LIST_GREY)
+        HomePanel.__init__(self, parent, "Click below to explore what's hot", LIST_GREY)
          
         self.tags = []
         self.buzz_cache = [[],[],[]]

@@ -93,6 +93,7 @@ class ScriptBase(object):
     def __init__(self, script, name, **kargs):
         self._script = script
         self._name = name
+        self._kargs = kargs
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
         self._dispersy.callback.register(self.run)

@@ -1475,7 +1475,11 @@ class TorrentDBHandler(BasicDBHandler):
             if tier > 0:
                 sql += " AND announce_tier<=%d"%tier
             return self._db.fetchall(sql)
-        
+    
+    def getSwarmInfoByInfohash(self, infohash):
+        sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id = tr.torrent_id AND t.infohash  = ?"
+        return self._db.fetchone(sql, (bin2str(infohash),))
+    
     def getSwarmInfo(self, torrent_id):
         """
         returns info about swarm size from Torrent and TorrentTracker tables.
@@ -1849,10 +1853,10 @@ class TorrentDBHandler(BasicDBHandler):
         if len(channels) > 0:
             votes = self.votecast_db.getAllPosNegVotes(channels)
             names_permid = self.channelcast_db.getNamesPermidForChannels(channels)
+
         else:
             votes = {}
             names_permid = {}
-
         t3 = time()
         
         torrents_dict = {}
@@ -1899,7 +1903,10 @@ class TorrentDBHandler(BasicDBHandler):
             
             del torrent['source_id']
             torrent['subscriptions'], torrent['neg_votes'] = votes.get(torrent['channel_id'], (0,0))
-                        
+
+            del torrent['category_id']
+            del torrent['status_id']
+
             if torrent['num_seeders'] > 0:
                 torrent_list.append(torrent)
             else:
@@ -3719,9 +3726,36 @@ class ChannelCastDBHandler(object):
             return results
         return []
        
+<<<<<<< .working
     def getChannel(self, channel_id):
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id = ?"
         channels = self._getChannels(sql, (channel_id,))
+=======
+    def isItemInChannel(self,publisher_id,infohash):
+        sql = "select count(*) from ChannelCast where publisher_id=? and infohash=? ;"
+        
+        isAvailable = self._db.fetchone(sql,(publisher_id,infohash))
+        if isAvailable:
+            return True
+        return False
+    
+    def getChannelNames(self, permids):
+        names = {}
+        
+        publishers = "','".join(permids)
+        sqla = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id IN ('" + publishers + "') GROUP BY publisher_id"
+        sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
+        
+        results = self._db.fetchall(sqla)
+        for publisher_id, timestamp in results:
+            result = self._db.fetchone(sqlb, (publisher_id, timestamp))
+            names[publisher_id] = result
+        return names
+    
+   
+    def getChannel(self, permid):
+        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id == ?"
+        channels = self._getChannels(sql, (permid,))
         if len(channels) > 0:
             return channels[0]
     
@@ -3730,7 +3764,7 @@ class ChannelCastDBHandler(object):
         channels = self._getChannels(sql, (channel_permid,))
         if len(channels) > 0:
             return channels[0]
-    
+
     def getAllChannels(self):
         """ Returns all the channels """
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
@@ -4905,7 +4939,7 @@ class UserEventLogDBHandler(BasicDBHandler):
     lock = threading.Lock()
     
     # maximum number of events to store
-    # when this maximum is reached, approx. 50% of teh entries are deleted.
+    # when this maximum is reached, approx. 50% of the entries are deleted.
     MAX_EVENTS = 2*10000
     
     def getInstance(*args, **kw):
@@ -4959,7 +4993,44 @@ class UserEventLogDBHandler(BasicDBHandler):
         else:
             self._db.commit()
             
-        
+
+class BundlerPreferenceDBHandler(BasicDBHandler):
+    """
+    The Bundler Preference database handler singleton for 
+    storing a chosen bundle method for a particular query.
+    """
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if BundlerPreferenceDBHandler.__single is None:
+            BundlerPreferenceDBHandler.lock.acquire()   
+            try:
+                if BundlerPreferenceDBHandler.__single is None:
+                    BundlerPreferenceDBHandler(*args, **kw)
+            finally:
+                BundlerPreferenceDBHandler.lock.release()
+        return BundlerPreferenceDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if BundlerPreferenceDBHandler.__single is not None:
+            raise RuntimeError, "BundlerPreferenceDBHandler is singleton"
+        BundlerPreferenceDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()      
+        BasicDBHandler.__init__(self,db, 'BundlerPreference')
+    
+    def storePreference(self, keywords, bundle_mode):
+        query = ' '.join(sorted(set(keywords)))
+        self._db.execute_write('INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)',
+                               (query, bundle_mode))
+    
+    def getPreference(self, keywords):
+        # returns None if query not in db
+        query = ' '.join(sorted(set(keywords)))
+        return self.getOne('bundle_mode', query=query)
+
     
 def doPeerSearchNames(self,dbname,kws):
     """ Get all peers that have the specified keywords in their name. 

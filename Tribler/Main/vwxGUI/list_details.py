@@ -19,13 +19,17 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl, EditText, SelectableListCtrl, _set_font
+
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font
 
 from list_header import ListHeader
 from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+
+VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
+DEBUG = False
 
 class AbstractDetails(wx.Panel):
     def _create_tab(self, notebook, tabname, header = None, spacer = 3):
@@ -81,7 +85,6 @@ class AbstractDetails(wx.Panel):
         sizer.Add(vSizer)
         return vSizer
 
-DEBUG = False
 class TorrentDetails(AbstractDetails):
     FINISHED = 5
     FINISHED_INACTIVE = 4
@@ -319,11 +322,7 @@ class TorrentDetails(AbstractDetails):
             else:
                 parent = self.notebook    
             
-            nrColumns = 2
-            if isinstance(self, LibraryDetails):
-                nrColumns = 3 
-            
-            self.listCtrl = SortedListCtrl(parent, nrColumns)
+            self.listCtrl = SelectableListCtrl(parent)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             if isinstance(self, LibraryDetails):
@@ -377,7 +376,6 @@ class TorrentDetails(AbstractDetails):
                     except:
                         print >> sys.stderr, "Could not format filename", self.torrent.name
                 self.listCtrl.SetItemData(pos, pos)
-                self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
                 
                 size = "%.1f MB"%(size/1048576.0)
                 self.listCtrl.SetStringItem(pos, 1, size)
@@ -403,7 +401,8 @@ class TorrentDetails(AbstractDetails):
                 self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
                 self.buttonPanel.SetSizer(self.buttonSizer)
                 
-                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+                hSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_VERTICAL), 0, wx.EXPAND|wx.ALL, 3)
+                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.RIGHT, 3)
                 parent.SetSizer(hSizer)
                 self.notebook.AddPage(parent, "Files")
             else:
@@ -670,14 +669,13 @@ class TorrentDetails(AbstractDetails):
                     channeltext = LinkStaticText(parent, "Click to see more from %s's Channel."%self.torrent.channel_name)
                     channeltext.SetToolTipString("Click to go to %s's Channel."%self.torrent.channel_name)
                     channeltext.target = 'channel'
-                    
                     channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                     sizer.Add(channeltext, 0, wx.ALL|wx.EXPAND, 3)
                 
                     mychannel = LinkStaticText(parent, "Or spread it using your channel")
                 else:
                     mychannel = LinkStaticText(parent, "Spread it using your channel")
-                    
+
                 mychannel.Bind(wx.EVT_LEFT_UP, self.OnMyChannel)
                 mychannel.SetToolTipString('Add this torrent to your channel.')
                 sizer.Add(mychannel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
@@ -710,7 +708,7 @@ class TorrentDetails(AbstractDetails):
         play.Bind(wx.EVT_LEFT_UP, self.OnPlay)
         vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
         sizer.Add(vSizer, 0,wx.EXPAND, 3)
-        
+
         if getattr(self, 'subtitleChoice', None):
             self.subtitleChoice.Enable(True)
         if getattr(self, 'subtitleBrowse', None):
@@ -1142,8 +1140,8 @@ class LibraryDetails(TorrentDetails):
         self.onstop = onstop
         self.onresume = onresume
         self.ondelete = ondelete 
+
         self.old_progress = -1
-        
         TorrentDetails.__init__(self, parent, torrent)
     
     def _addTabs(self, ds):
@@ -1158,7 +1156,7 @@ class LibraryDetails(TorrentDetails):
         peersPanel = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
          
-        self.peerList = SelectableListCtrl(peersPanel, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = False)
+        self.peerList = SelectableListCtrl(peersPanel, tooltip = False)
         self.peerList.InsertColumn(0, 'IP-address')
         self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
@@ -1573,7 +1571,7 @@ class MyChannelDetails(wx.Panel):
     @forceWxThread
     def showTorrent(self, torrent):
         notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-        listCtrl = SortedListCtrl(notebook, 2)
+        listCtrl = BetterListCtrl(notebook)
         listCtrl.InsertColumn(0, 'Name')
         listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             
@@ -1591,8 +1589,6 @@ class MyChannelDetails(wx.Panel):
                 except:
                     print >> sys.stderr, "Could not format filename", torrent.name
             listCtrl.SetItemData(pos, pos)
-            listCtrl.itemDataMap.setdefault(pos, [filename, size])
-            
             size = self.guiutility.utility.size_format(size)
             listCtrl.SetStringItem(pos, 1, size)
             

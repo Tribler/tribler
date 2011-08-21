@@ -76,11 +76,18 @@ def _a_encode_dictionary(values, mapping):
         extend(mapping[type(value)](value, mapping))
     return encoded
 
-def _a_encode_none(values, mapping):
+def _a_encode_none(value, mapping):
     """
     None --> ['0', 'n']
     """
     return ['0n']
+
+def _a_encode_bool(value, mapping):
+    """
+    True  --> ['0', 'T']
+    False --> ['0', 'F']
+    """
+    return ['0T' if value else '0F']
 
 _a_encode_mapping = {int:_a_encode_int,
                      long:_a_encode_int,
@@ -91,7 +98,8 @@ _a_encode_mapping = {int:_a_encode_int,
                      set:_a_encode_set,
                      tuple:_a_encode_tuple,
                      dict:_a_encode_dictionary,
-                     type(None):_a_encode_none}
+                     type(None):_a_encode_none,
+                     bool:_a_encode_bool}
 
 # def _b_uint_to_bytes(i):
 #     assert isinstance(i, (int, long))
@@ -179,11 +187,18 @@ _a_encode_mapping = {int:_a_encode_int,
 #         extend(mapping[type(value)](value, mapping))
 #     return encoded
 
-# def _b_encode_none(values, mapping):
+# def _b_encode_none(value, mapping):
 #     """
 #     None --> [_b_uint_to_bytes(0), 'n']
 #     """
-#     return [_b_uint_to_bytes(0), 'n']
+#     return [_b_uint_to_bytes(0), "n"]
+
+# def _b_encode_bool(value, mapping):
+#     """
+#     True  --> [_b_uint_to_bytes(0), 'T']
+#     False --> [_b_uint_to_bytes(0), 'F']
+#     """
+#     return [_b_uint_to_bytes(0), "T" if value else "F"]
 
 # _b_encode_mapping = {int:_b_encode_int,
 #                      long:_b_encode_int,
@@ -193,23 +208,24 @@ _a_encode_mapping = {int:_a_encode_int,
 #                      list:_b_encode_list,
 #                      tuple:_b_encode_tuple,
 #                      dict:_b_encode_dictionary,
-#                      type(None):_b_encode_none}
+#                      type(None):_b_encode_none,
+#                      bool:_b_encode_bool}
 
-# def bytes_to_uint(stream, offset=0):
-#     assert isinstance(stream, str)
-#     assert isinstance(offset, (int, long))
-#     assert offset >= 0
-#     bit8 = 16*8
-#     mask7 = 2**7-1
-#     i = 0
-#     while offset < len(stream):
-#         c = ord(stream[offset])
-#         i |= mask7 & c
-#         if not bit8 & c:
-#             return i
-#         offset += 1
-#         i <<= 7
-#     raise ValueError()
+def bytes_to_uint(stream, offset=0):
+    assert isinstance(stream, str)
+    assert isinstance(offset, (int, long))
+    assert offset >= 0
+    bit8 = 16*8
+    mask7 = 2**7-1
+    i = 0
+    while offset < len(stream):
+        c = ord(stream[offset])
+        i |= mask7 & c
+        if not bit8 & c:
+            return i
+        offset += 1
+        i <<= 7
+    raise ValueError()
 
 def encode(data, version="a"):
     """
@@ -228,8 +244,8 @@ def encode(data, version="a"):
     if version == "a":
         return "a" + "".join(_a_encode_mapping[type(data)](data, _a_encode_mapping))
     elif version == "b":
-        raise ValueError("This version is not yet implemented")
-        # return "b" + "".join(_b_encode_mapping[type(data)](data, _b_encode_mapping))
+        # raise ValueError("This version is not yet implemented")
+        return "b" + "".join(_b_encode_mapping[type(data)](data, _b_encode_mapping))
     else:
         raise ValueError("Unknown encode version")
 
@@ -336,10 +352,24 @@ def _a_decode_dictionary(stream, offset, count, mapping):
 
 def _a_decode_none(stream, offset, count, mapping):
     """
-    'a0n',3,0 -> 2,None
+    'a0n',3,0 -> 3,None
     """
     assert count == 0
     return offset, None
+
+def _a_decode_true(stream, offset, count, mapping):
+    """
+    'a0T',3,1 -> 3,True
+    """
+    assert count == 0
+    return offset, True
+
+def _a_decode_false(stream, offset, count, mapping):
+    """
+    'a0F',3,1 -> 3,False
+    """
+    assert count == 0
+    return offset, False
 
 _a_decode_mapping = {"i":_a_decode_int,
                      "f":_a_decode_float,
@@ -349,7 +379,9 @@ _a_decode_mapping = {"i":_a_decode_int,
                      "L":_a_decode_set,
                      "t":_a_decode_tuple,
                      "d":_a_decode_dictionary,
-                     "n":_a_decode_none}
+                     "n":_a_decode_none,
+                     "T":_a_decode_true,
+                     "F":_a_decode_false}
 
 def decode(stream, offset=0):
     """
@@ -432,16 +464,16 @@ if __debug__:
             assert len(s) == length, (len(s), length)
             assert value == v, (value, v)
 
-#            value = in_
-#            s = encode(value, "b")
-#            length = len(s)
-#            # length, v = decode(s)
-#            if verbose:
-#                print "dispersy B", length, ":", value, "->", s
-#            else:
-#                print "dispersy B", length
-#            # assert len(s) == length, (len(s), length)
-#            # assert value == v, (value, v)
+            # value = in_
+            # s = encode(value, "b")
+            # length = len(s)
+            # # length, v = decode(s)
+            # if verbose:
+            #     print "dispersy B", length, ":", value, "->", s
+            # else:
+            #     print "dispersy B", length
+            # # assert len(s) == length, (len(s), length)
+            # # assert value == v, (value, v)
 
             value = in_
             if isinstance(value, (float, type(None), set)):
@@ -483,3 +515,6 @@ if __debug__:
         test(range(1000), False)
         test(["F" * 20 for _ in range(1000)], False)
         test(set(['a','b']))
+        test(True)
+        test(False)
+        test([True, True, False, True, False, False])

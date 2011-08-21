@@ -195,6 +195,7 @@ class GUIUtility:
                 self.frame.librarylist.Show(False)
             
             if page == 'home':
+                self.frame.home.ResetSearchBox()
                 self.frame.home.Show()
             elif self.guiPage == 'home':
                 self.frame.home.Show(False)
@@ -372,6 +373,10 @@ class GUIUtility:
         manager = self.frame.selectedchannellist.GetManager()
         manager.refresh(channel)
         self.ShowPage('selectedchannel')        
+            
+    def showChannels(self):
+        self.frame.top_bg.selectTab('channels')
+        self.ShowPage('channels')
     
     @forceWxThread
     def showChannelResults(self, data_channel):

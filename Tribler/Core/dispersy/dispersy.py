@@ -40,10 +40,12 @@ supply.  Aside from the four policies, each meta-message also defines the commun
 of, the name it uses as an internal identifier, and the class that will contain the payload.
 """
 
-from sys import maxint
+from datetime import datetime
 from hashlib import sha1
 from itertools import groupby, islice
 from os.path import abspath
+from random import random
+from sys import maxint
 from threading import Lock
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
@@ -87,13 +89,14 @@ class DummySocket(object):
     but throw away all packets it is supposed to sent.
     """
     def send(address, data):
-        if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data")
+        if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data", level="warning")
 
 class Statistics(object):
     def __init__(self):
         self._drop = {}
         self._delay = {}
         self._success = {}
+        self._outgoing = {}
         self._sequence_number = 0
 
     def reset(self):
@@ -101,12 +104,17 @@ class Statistics(object):
         Returns, and subsequently removes, all statistics.
         """
         try:
-            return {"drop":self._drop, "delay":self._delay, "success":self._success, "sequence_number":self._sequence_number}
+            return {"drop":self._drop,
+                    "delay":self._delay,
+                    "success":self._success,
+                    "outgoing":self._outgoing,
+                    "sequence_number":self._sequence_number}
 
         finally:
             self._drop = {}
             self._delay = {}
             self._success = {}
+            self._outgoing = {}
             self._sequence_number += 1
 
     def drop(self, key, bytes, count=1):
@@ -138,6 +146,22 @@ class Statistics(object):
         assert isinstance(count, (int, long))
         a, b = self._success.get(key, (0, 0))
         self._success[key] = (a+count, b+bytes)
+
+    def outgoing(self, address, key, bytes, count=1):
+        """
+        Called when a message send using the _send(...) method
+        """
+        assert isinstance(address, tuple)
+        assert len(address) == 2
+        assert isinstance(address[0], str)
+        assert isinstance(address[1], int)
+        assert isinstance(key, (str, unicode))
+        assert isinstance(bytes, (int, long))
+        assert isinstance(count, (int, long))
+        if __debug__: dprint("out... ", address[0], ":", address[1], " -> ", count, "x ", key)
+        subdict = self._outgoing.setdefault(address, {})
+        a, b = subdict.get(key, (0, 0))
+        subdict[key] = (a+count, b+bytes)
 
 class Dispersy(Singleton):
     """
@@ -224,10 +248,6 @@ class Dispersy(Singleton):
 
         # statistics...
         self._statistics = Statistics()
-        if __debug__:
-            self._total_send = 0
-            self._total_received = 0
-            self._callback.register(self._periodically_stats, delay=1.0)
 
     @property
     def working_directory(self):
@@ -842,7 +862,7 @@ class Dispersy(Singleton):
                             # from this batch.
                             pass
                         else:
-                            self._send([message.address], [str(packet)])
+                            self._send([message.address], [str(packet)], u"-sequence-")
 
                     return DropMessage(message, "old message by member^global_time")
 
@@ -934,7 +954,7 @@ class Dispersy(Singleton):
 
                             if packets:
                                 assert len(packets) == 1
-                                self._send([message.address], map(str, packets))
+                                self._send([message.address], map(str, packets), u"-sequence-")
 
                             else:
                                 # TODO can still fail when packet is in one of the received messages
@@ -1036,9 +1056,6 @@ class Dispersy(Singleton):
         Callback thread for processing.
         """
         self._callback.register(self.on_incoming_packets, (packets,))
-        if __debug__:
-            # update statistics
-            self._total_received += sum(len(packet) for _, packet in packets)
 
     def on_incoming_packets(self, packets, cache=True):
         """
@@ -1217,11 +1234,11 @@ class Dispersy(Singleton):
                     if __debug__: dprint("created a new TriggeMessage")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0)
-                    self._send([message.delayed.address], [message.request.packet])
+                    self._send([message.delayed.address], [message.request.packet], message.request.name)
                 return False
 
             elif isinstance(message, DropMessage):
-                if __debug__: dprint("drop: ", message)
+                if __debug__: dprint("drop: ", message, level="warning")
                 self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
                 return False
 
@@ -1381,7 +1398,7 @@ class Dispersy(Singleton):
                     if __debug__: dprint("created a new TriggerPacket")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0)
-                    self._send([address], [delay.request_packet])
+                    self._send([address], [delay.request_packet], u"-delay-packet-")
 
         if __debug__:
             if len(batch) > 100:
@@ -1521,39 +1538,127 @@ class Dispersy(Singleton):
             # update bloom filters
             meta.community.free_sync_range(free_sync_range)
 
-    def yield_online_candidates(self, community, limit, batch=100):
+    def yield_online_candidates(self, community, limit, clusters=(), batch=100):
         """
-        Returns a generator that yields LIMIT unique Candicate objects ordered by most likely to
-        least likely to be online.
+        Returns a generator that yields at most LIMIT unique Candicate objects representing nodes
+        that are likely to be online.
+
+        The following community properties affect the candidate choices:
+         - dispersy_candidate_online_scores
+         - dispersy_candidate_direct_observation_score
+         - dispersy_candidate_indirect_observation_score
+         - dispersy_candidate_subjective_set_score
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
         assert isinstance(batch, int)
-        return islice(self._yield_online_candidates(community, min(limit, batch)), limit)
+        assert isinstance(clusters, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, int), clusters)
+        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        return islice(self._yield_online_candidates(community, clusters, batch), limit)
 
-    def _yield_online_candidates(self, community, batch=100):
+    def _yield_online_candidates(self, community, clusters, batch):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(batch, int)
+        assert isinstance(clusters, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, int), clusters)
+        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+
+        def get_observation(observation_score, host, port, age, incoming_time, outgoing_time, external_time):
+            candidate = Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
+
+            # add direct observation score
+            total_score = observation_score
+
+            # add recently online score
+            for high, score in online_scores:
+                if age <= high:
+                    total_score += score
+                    break
+
+            # add subjective set score
+            if subjective_sets:
+                for member in candidate.members:
+                    for subjective_set in subjective_sets:
+                        if member.public_key in subjective_set:
+                            total_score += subjective_set_score
+
+            score = total_score * (probabilistic_factor_min + (probabilistic_factor_max - probabilistic_factor_min) * random())
+            if __debug__: dprint("SCORE ", total_score, " -> ", score, " for ", host, ":", port)
+            return score, candidate
+
+        subjective_sets = [community.get_subjective_set(community.my_member, cluster) for cluster in clusters]
+        incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
+
+        direct_observation_sql = u"SELECT host, port, strftime('%%s', 'now') - strftime('%%s', incoming_time), incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time BETWEEN DATETIME('now', '-%d seconds') AND DATETIME('now', '-%d seconds') ORDER BY incoming_time DESC LIMIT ? OFFSET ?" % (incoming_time_high, incoming_time_low)
+        indirect_observation_sql = u"SELECT host, port, strftime('%%s', 'now') - strftime('%%s', external_time), incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time NOT BETWEEN DATETIME('NOW', '-%d seconds') AND DATETIME('now', '-%d seconds') AND external_time BETWEEN DATETIME('now', '-%d seconds') AND DATETIME('now', '-%d seconds') ORDER BY external_time DESC LIMIT ? OFFSET ?" % (incoming_time_high, incoming_time_low, incoming_time_high, incoming_time_low)
+
+        online_scores = community.dispersy_candidate_online_scores
+        direct_observation_score = community.dispersy_candidate_direct_observation_score
+        indirect_observation_score = community.dispersy_candidate_indirect_observation_score
+        subjective_set_score = community.dispersy_candidate_subjective_set_score
+        probabilistic_factor_min, probabilistic_factor_max = community.dispersy_candidate_probabilistic_factor
+
+        sorting_key = lambda tup: tup[0]
+        unique = set()
 
         for offset in xrange(0, maxint, batch):
             # cache all items returned from the select statement, otherwise the cursur will be
             # re-used whenever another query is performed by the caller
-            sql = u"""SELECT host, port, incoming_time, outgoing_time, external_time
-                      FROM candidate
-                      WHERE community = ?
-                      ORDER BY incoming_time DESC
-                      LIMIT ?
-                      OFFSET ?"""
-            candidates = list(self._database.execute(sql, (community.database_id, batch, offset)))
-            for host, port, incoming_time, outgoing_time, external_time in candidates:
-                yield Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
-            else:
-                if not candidates:
-                    break
+            candidates = []
+            candidates.extend(get_observation(direct_observation_score, *tup) for tup in list(self._database.execute(direct_observation_sql, (community.database_id, batch, offset))))
+            candidates.extend(get_observation(indirect_observation_score, *tup) for tup in list(self._database.execute(indirect_observation_sql, (community.database_id, batch, offset))))
+
+            if __debug__: dprint("there are ", len(candidates), " candidates in this batch")
+            if not candidates:
+                break
+
+            for score, candidate in sorted(candidates, key=sorting_key, reverse=True):
+                # TODO: we should perform the unique check before creating the candidate object
+                if not candidate.address in unique:
+                    unique.add(candidate.address)
+                    if __debug__: dprint("Yield ", candidate.host, ":", candidate.port, " with score ", score)
+                    yield candidate
+
+    def yield_subjective_candidates(self, community, limit, cluster, batch=100):
+        """
+        Returns a generator that yields at most LIMIT unique Candidate objects ordered by most
+        likely to least likely to be online and who we believe have our public key in their
+        subjective set.
+
+        Usefull when we create a messages that uses the SubjectiveDestination policy and we want to
+        spread this to nodes that are likely to be interested in these messages.
+        """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(limit, int)
+        assert isinstance(cluster, int)
+        assert cluster in community.subjective_set_clusters
+        assert isinstance(batch, int)
+        return islice(self._yield_subjective_candidates(community, cluster, batch), limit)
+
+    def _yield_subjective_candidates(self, community, cluster, batch):
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(cluster, int)
+        assert cluster in community.subjective_set_clusters
+        assert isinstance(batch, int)
+
+        for candidate in self._yield_online_candidates(community, [cluster], batch):
+            # we need to check the members associated to these candidates and see if they are
+            # interested in this cluster
+            for member in candidate.members:
+                subjective_set = community.get_subjective_set(member, cluster)
+                # TODO when we do not have a subjective_set from member, we should request it to
+                # ensure that we make a valid decision next time
+                if subjective_set and community.my_member.public_key in subjective_set:
+                    yield candidate
 
     def yield_mixed_candidates(self, community, limit, diff_range=(0.0, 30.0), age_range=(120.0, 300.0), batch=100):
         """
@@ -1761,13 +1866,27 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
 
         for message in messages:
-            if isinstance(message.destination, (CommunityDestination.Implementation, SubjectiveDestination.Implementation, SimilarityDestination.Implementation)):
+            if isinstance(message.destination, (CommunityDestination.Implementation, SimilarityDestination.Implementation)):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
                     addresses = [candidate.address
                                  for candidate
-                                 in self.yield_online_candidates(message.community, message.destination.node_count)]
+                                 in self.yield_online_candidates(message.community, message.destination.node_count, message.community.subjective_set_clusters)]
                     if addresses:
-                        self._send(addresses, [message.packet])
+                        self._send(addresses, [message.packet], message.name)
+
+                    if __debug__:
+                        if addresses:
+                            dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
+                        else:
+                            dprint("failed to send ", message.name, " (", len(message.packet), " bytes) because there are no destination addresses", level="warning")
+
+            elif isinstance(message.destination, SubjectiveDestination.Implementation):
+                if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
+                    addresses = [candidate.address
+                                 for candidate
+                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
+                    if addresses:
+                        self._send(addresses, [message.packet], message.name)
 
                     if __debug__:
                         if addresses:
@@ -1777,7 +1896,7 @@ class Dispersy(Singleton):
 
             elif isinstance(message.destination, AddressDestination.Implementation):
                 if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in message.destination.addresses))
-                self._send(message.destination.addresses, [message.packet])
+                self._send(message.destination.addresses, [message.packet], message.name)
 
             elif isinstance(message.destination, MemberDestination.Implementation):
                 if __debug__:
@@ -1785,12 +1904,12 @@ class Dispersy(Singleton):
                         if not self._is_valid_external_address(member.address):
                             dprint("unable to send ", message.name, " to member (", member.address, ")", level="error")
                     dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
-                self._send([member.address for member in message.destination.members], [message.packet])
+                self._send([member.address for member in message.destination.members], [message.packet], message.name)
 
             else:
                 raise NotImplementedError(message.destination)
 
-    def _send(self, addresses, packets):
+    def _send(self, addresses, packets, key=u"unspecified"):
         """
         Send one or more packets to one or more addresses.
 
@@ -1799,11 +1918,15 @@ class Dispersy(Singleton):
         @param addresses: A sequence with one or more addresses.
         @type addresses: [(string, int)]
 
-        @patam packets: A sequence with one or more packets.
+        @param packets: A sequence with one or more packets.
         @type packets: string
+
+        @param key: A unicode string purely used for statistics.  Indicating the type of data send.
+        @type key: unicode
         """
         assert isinstance(addresses, (tuple, list, set)), type(addresses)
         assert isinstance(packets, (tuple, list, set)), type(packets)
+        assert isinstance(key, unicode), type(key)
 
         if __debug__:
             if not addresses:
@@ -1813,10 +1936,6 @@ class Dispersy(Singleton):
                 # this is a programming bug.
                 dprint("no packets given (wanted to send to ", len(addresses), " addresses)", level="error", stack=True)
 
-        if __debug__:
-            # update statistics
-            self._total_send += len(addresses) * sum([len(packet) for packet in packets])
-
         # update candidate table and send packets
         for address in addresses:
             assert isinstance(address, tuple), address
@@ -1825,13 +1944,13 @@ class Dispersy(Singleton):
 
             if not self._is_valid_external_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
-                if __debug__: 
-                    dprint("aborted sending a ", len(packet), " byte packet (invalid external address) to ", address[0], ":", address[1], "my_adress ",self._my_external_address[0],":",self._my_external_address[1], level="error")
+                if __debug__: dprint("aborted sending ", sum(len(packet) for packet in packets), " bytes in ", len(packets), " packets (invalid external address) to ", address[0], ":", address[1], level="error")
                 continue
 
             for packet in packets:
                 assert isinstance(packet, str)
                 self._socket.send(address, packet)
+            self._statistics.outgoing(address, key, sum(len(packet) for packet in packets), len(packets))
             if __debug__: dprint(len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
             self._database.execute(u"UPDATE candidate SET outgoing_time = DATETIME('now') WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
@@ -2438,7 +2557,7 @@ class Dispersy(Singleton):
                 """
             packets = [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))]
             if packets:
-                self._send([message.address], packets)
+                self._send([message.address], packets, u"dispersy-identity")
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
@@ -2454,10 +2573,10 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
 
         # modify the subjective set (bloom filter)
-        try:
-            subjective_set = community.get_subjective_set(community.my_member, cluster)
-        except KeyError:
-            subjective_set = BloomFilter(len(members), 0.1)
+        subjective_set = community.get_subjective_set(community.my_member, cluster)
+        if not subjective_set:
+            # TODO set the correct bloom filter params
+            subjective_set = BloomFilter(community.dispersy_subjective_set_error_rate, community.dispersy_subjective_set_bits)
         if reset:
             subjective_set.clear()
         map(subjective_set.add, (member.public_key for member in members))
@@ -2472,50 +2591,36 @@ class Dispersy(Singleton):
         return message
 
     def on_subjective_set(self, messages):
-        # we do not need to do anything here for now because we retrieve all information directly
-        # from the database each time we need it.  Hence no in-memory actions needs to occur.  Note
-        # that this data is immediately stored in the database when this method returns.
-        pass
+        for message in messages:
+            message.community.clear_subjective_set_cache(message.authentication.member, message.payload.cluster, message.packet, message.payload.subjective_set)
 
-    def on_missing_subjective_set(self, address, message):
+    def on_subjective_set_request(self, messages):
         """
         We received a dispersy-missing-subjective-set message.
 
-        The dispersy-missing-subjective-set message contains one member (20 byte sha1 digest) for
-        which the subjective set is requested.  We will search our database for any maching
-        subjective sets (there may be more, as the 20 byte sha1 digest may match more than one
-        member) and sent them back.
+        The dispersy-subjective-set-request message contains a list of Member instance for which the
+        subjective set is requested.  We will search our database any subjective sets that we have.
+
+        If the subjective set for self.my_member is requested and this is not found in the database,
+        a default subjective set will be created.
 
         @see: create_subjective_set_request
 
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-missing-subjective-set message.
-        @type message: Message.Implementation
+        @param messages: The dispersy-missing-subjective-set messages.
+        @type messages: [Message.Implementation]
         """
-        assert isinstance(message, Message.Implementation), type(message)
-        assert message.name == u"dispersy-missing-subjective-set"
+        community = messages[0].community
+        subjective_set_message_id = community.get_meta_message(u"dispersy-subjective-set").database_id
 
-        subjective_set_message_id = message.community.get_meta_message(u"dispersy-subjective-set")
-        packets = []
-        for member in message.payload.members:
-            # retrieve the packet from the database
-            try:
-                packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND name = ? LIMIT",
-                                                 (message.community.database.id, member.database_id, subjective_set_message_id)).next()
-            except StopIteration:
-                continue
-            packet = str(packet)
+        for message in messages:
+            packets = []
+            for member in message.payload.members:
+                cache = community.get_subjective_set_cache(member, message.payload.cluster)
+                if cache:
+                    packets.append(cache.packet)
 
-            # check that this is the packet we are looking for, i.e. has the right cluster
-            conversion = self.get_conversion(packet[:22])
-            subjective_set_message = conversion.decode_message(address, packet)
-            if subjective_set_message.destination.cluster == message.payload.clusters:
-                packets.append(packet)
-
-        if packets:
-            self._send([address], [packet])
+            if packets:
+                self._send([message.address], packets, u"dispersy-subjective-set")
 
     # def create_subjective_set_request(community, community, cluster, members, update_locally=True, store_and_forward=True):
     #     if __debug__:
@@ -3017,7 +3122,7 @@ class Dispersy(Singleton):
                     # assuming this signature only matches one member, we can break
                     break
 
-    def on_missing_sequence(self, address, message):
+    def on_missing_sequence(self, messages):
         """
         We received a dispersy-missing-sequence message.
 
@@ -3027,34 +3132,31 @@ class Dispersy(Singleton):
         To limit the amount of bandwidth used we will not sent back more data after a certain amount
         has been sent.  This magic number is subject to change.
 
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-missing-sequence message.
-        @type message: Message.Implementation
+        @param messages: dispersy-missing-sequence messages.
+        @type messages: [Message.Implementation]
 
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
-        assert isinstance(message, Message)
-        assert message.name == u"dispersy-missing-sequence"
+        for message in messages:
+            # we limit the response by byte_limit bytes per incoming message
+            byte_limit = message.community.dispersy_missing_sequence_response_limit
 
-        # we limit the response by byte_limit bytes
-        byte_limit = message.community.dispersy_missing_sequence_response_limit
+            packets = []
+            payload = message.payload
+            for packet, in self._database.execute(u"SELECT packet FROM sync_full WHERE community = ? and sequence >= ? AND sequence <= ? ORDER BY sequence LIMIT ?",
+                                                  (payload.message.community.database_id, payload.missing_low, payload.missing_high, packet_limit)):
+                if __debug__: dprint("Syncing ", len(packet), " bytes from sync_full to " , address[0], ":", address[1])
 
-        payload = message.payload
-        for packet, in self._database.execute(u"SELECT packet FROM sync_full WHERE community = ? and sequence >= ? AND sequence <= ? ORDER BY sequence LIMIT ?",
-                                              (payload.message.community.database_id, payload.missing_low, payload.missing_high, packet_limit)):
-            if __debug__:
-                # update statistics
-                self._total_send += len(packet)
-                dprint("Syncing ", len(packet), " bytes from sync_full to " , address[0], ":", address[1])
+                packets.append(packet)
 
-            self._socket.send(address, packet)
-            byte_limit -= len(packet)
-            if byte_limit > 0:
-                if __debug__: dprint("Bandwidth throttle")
-                break
+                byte_limit -= len(packet)
+                if byte_limit > 0:
+                    if __debug__: dprint("Bandwidth throttle")
+                    break
+
+            if packets:
+                self._send([address], packets, u"-sequence")
 
     def on_missing_proof(self, messages):
         community = messages[0].community
@@ -3072,7 +3174,7 @@ class Dispersy(Singleton):
                 allowed, proofs = community._timeline.check(msg)
                 if allowed:
                     if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)")
-                    self._send([message.address], [proof.packet for proof in proofs])
+                    self._send([message.address], [proof.packet for proof in proofs], u"-proof-")
 
                 else:
                     if __debug__: dprint("someone asked for proof for a message that is not allowed (", len(proofs), " packets)")
@@ -3192,13 +3294,15 @@ class Dispersy(Singleton):
                         packet_cluster = packet_meta.destination.cluster
 
                         # we need the subjective set for this particular cluster
-                        if not packet_cluster in subjective_sets:
+                        assert packet_cluster in subjective_sets, "subjective_sets must contain all existing clusters, however, some may be None"
+                        subjective_set = subjective_sets[packet_cluster]
+                        if not subjective_set:
                             if __debug__: dprint("Subjective set not available (not ", packet_cluster, " in ", subjective_sets.keys(), ")")
                             yield DelayMessageBySubjectiveSet(message, packet_cluster)
                             break
 
                         # is packet_public_key in the subjective set
-                        if not packet_public_key in subjective_sets[packet_cluster]:
+                        if not packet_public_key in subjective_set:
                             # do not send this packet: not in the requester's subjective set
                             continue
 
@@ -3227,7 +3331,7 @@ class Dispersy(Singleton):
 
             if packets:
                 if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
-                self._send([message.address], packets)
+                self._send([message.address], packets, u"-sync-")
 
             else:
                 if __debug__: dprint("did not find anything to sync, ignoring dispersy-sync message")
@@ -3295,7 +3399,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-authorize")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
@@ -3397,7 +3501,7 @@ class Dispersy(Singleton):
 
         meta = community.get_meta_message(u"dispersy-revoke")
         message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
-                                 meta.distribution.implement(community.claim_global_time()),
+                                 meta.distribution.implement(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                  meta.destination.implement(),
                                  meta.payload.implement(permission_triplets))
 
@@ -3635,6 +3739,26 @@ class Dispersy(Singleton):
                 else:
                     yield DelayMessageByProof(message)
 
+    def _claim_master_member_sequence_number(self, community, meta):
+        """
+        Tries to guess the most recent sequence number used by the master member for META in
+        COMMUNITY.
+
+        This is a risky method because sequence numbers must be unique, however, we can not
+        guarantee that two peers do not claim a sequence number for the master member at around the
+        same time.  Unfortunately we can not overcome this problem in a distributed fashion.
+
+        Also note that calling this method twice will give identital values.  Ensure that the
+        message is updated locally before claiming another value to ensure different sequence
+        numbers are used.
+        """
+        sequence_number, = self._database.execute(u"SELECT MAX(distribution_sequence) FROM sync WHERE community = ? AND user = ? and name = ?",
+                                                  (community.database_id, community.master_member.database_id, meta.database_id)).next()
+        if sequence_number is None:
+            return 1
+        else:
+            return sequence_number + 1
+
     def _periodically_create_sync(self, community):
         """
         Periodically disperse the latest bloom filters for this community.
@@ -3713,23 +3837,6 @@ class Dispersy(Singleton):
                                        (community.database_id, community.dispersy_candidate_cleanup_age_threshold))
             yield 120.0
 
-    def _periodically_stats(self):
-        """
-        Periodically write bandwidth statistics to a log file.
-        """
-        if __debug__:
-            while True:
-                grouped = {}
-                for community in self._communities.itervalues():
-                    classification = community.get_classification()
-                    if not classification in grouped:
-                        grouped[classification] = set()
-                    grouped[classification].add(community.cid)
-                communities = "; ".join("%s:%d" % (classification, len(cids)) for classification, cids in grouped.iteritems())
-                dprint("in: ", self._total_received, "; out: ", self._total_send, "; ", communities)
-
-                yield 5.0
-
     def _watchdog(self):
         """
         Periodically called to flush changes to disk, most importantly, it will catch the
@@ -3765,16 +3872,13 @@ class Dispersy(Singleton):
         #      could be generated with a different signature (a signature contains random elements)
         #      making the two unique messages different from a bloom filter perspective.  we now
         #      replace one message with the other thoughout the system.
+        # 1.4: added info["statistics"]["outgoing"] containing all calls to _send(...)
 
-        info = {"version":1.3, "class":"Dispersy"}
+        info = {"version":1.4, "class":"Dispersy"}
 
         if statistics:
             info["statistics"] = self._statistics.reset()
             # if __debug__: dprint(info["statistics"], pprint=1)
-
-        if __debug__:
-            if transfers:
-                info["transfers"] = {"total_received":self._total_received, "total_send":self._total_send}
 
         info["communities"] = []
         for community in self._communities.itervalues():

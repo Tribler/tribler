@@ -52,6 +52,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.fullscreen_enabled = False
         self.fullscreenwindow = None
         self.play_enabled = False
+        self.stop_enabled = False
         self.scroll_enabled = False
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -107,6 +108,10 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'pause', 'play')
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
             self.ppbtn.setSelected(2)
+            
+            self.sbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'stop')
+            self.sbtn.Bind(wx.EVT_LEFT_UP, self.OnStop)
+            self.sbtn.setSelected(2)
     
             volumebox = wx.BoxSizer(wx.HORIZONTAL)
             self.vol1 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol1')
@@ -139,18 +144,13 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
             self.fsbtn.setSelected(2)
 
-            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
-            self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
-            self.save_callback = lambda:None
-            self.save_button.Hide()
-
             self.ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-            self.ctrlsizer.AddSpacer((5,0))
-            
-            self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             self.ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-            self.ctrlsizer.Add(volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            
             self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            self.ctrlsizer.Add(volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
 
             mainbox.Add(self.ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
             if border:
@@ -251,8 +251,10 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.timer = wx.Timer(self)
                 self.Bind(wx.EVT_TIMER, self.UpdateSlider)
             self.timer.Start(500)
+            
         self.enableFullScreen()
         self.enablePlay()
+        self.enableStop()
         self.enableScroll()
 
     def StartPlay(self):
@@ -365,6 +367,14 @@ class EmbeddedPlayerPanel(wx.Panel):
     def disablePlay(self):
         self.play_enabled = False
         self.ppbtn.setSelected(2)
+        
+    def enableStop(self):
+        self.stop_enabled = True
+        self.sbtn.setSelected(False)
+        
+    def disableStop(self):
+        self.stop_enabled = False
+        self.sbtn.setSelected(2)
 
     def enableFullScreen(self):
         self.fullscreen_enabled = True
@@ -467,6 +477,11 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.vlcwrap.sound_set_volume(volume)  ## float(self.volume.GetValue()) / 100
+
+    def OnStop(self, event):
+        if self.vlcwrap and self.stop_enabled:
+            self.Stop()
+            self.disableStop()
 
     def Stop(self):
         self.__check_thread()
@@ -744,3 +759,79 @@ class VLCLogoWindow(wx.Panel):
         dc.EndDrawing()
         if evt is not None:
             evt.Skip(True)
+
+#Niels: this is a wrapper to make wx.media.mediactrl respond to the vlcwrap commands
+#Unfortunately it does not work on linux and mac, making it useless
+#import wx.media
+#self.vlcwin = wx.media.MediaCtrl(self)
+#self.vlcwrap = FakeVlc(self.vlcwin)
+#            
+#def fake():
+#    pass
+#self.vlcwin.show_loading = fake
+#self.vlcwin.tell_vclwrap_window_for_playback = fake
+#self.vlcwin.stop_animation = fake
+#
+#class FakeVlc():
+#    def __init__(self, mediactrl):
+#        self.mediactrl = mediactrl
+#        self.mediactrl.Bind(wx.media.EVT_MEDIA_LOADED, self.OnLoaded)
+#        
+#    def stop(self):
+#        print >> sys.stderr, "Stop"
+#        self.mediactrl.Stop()
+#        
+#    def playlist_clear(self):
+#        pass
+#    
+#    def load(self, url, streaminfo):
+#        print >> sys.stderr, "Load", url
+#        self.mediactrl.LoadFromURI(url)
+#        wx.CallLater(1000, self.OnLoaded, None)
+#    
+#    def OnLoaded(self, event):
+#        print >> sys.stderr, "Loaded", event
+#        self.start()
+#    
+#    def start(self, startposition = 0):
+#        print >> sys.stderr, "Play"
+#        
+#        if self.mediactrl.Play():
+#            if startposition != 0:
+#                self.mediactrl.Seek(startposition)
+#        else:
+#            print >> sys.stderr, "Play returned False"
+#        
+#    def pause(self):
+#        print >> sys.stderr, "Pause"
+#        self.mediactrl.Pause()
+#        
+#    def resume(self):
+#        if self.get_our_state() == MEDIASTATE_PLAYING:
+#            self.pause()
+#        else:
+#            self.start()
+#        
+#    def set_media_position(self, pos):
+#        print >> sys.stderr, "Seek"
+#        self.mediactrl.Seek(pos)
+#    
+#    def get_media_position(self):
+#        return self.mediactrl.Tell()
+#    
+#    def get_our_state(self):
+#        state = self.mediactrl.GetState()
+#        if state == wx.media.MEDIASTATE_STOPPED:
+#            return MEDIASTATE_STOPPED
+#        
+#        if state == wx.media.MEDIASTATE_PAUSED:
+#            return MEDIASTATE_PAUSED
+#        
+#        if state == wx.media.MEDIASTATE_PLAYING:
+#            return MEDIASTATE_PLAYING
+#    
+#    def get_stream_information_length(self):
+#        return self.mediactrl.Length()
+#    
+#    def sound_set_volume(self, vol):
+#        self.mediactrl.SetVolume(vol)  

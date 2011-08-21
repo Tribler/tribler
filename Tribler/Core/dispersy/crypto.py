@@ -31,15 +31,16 @@ def ec_generate_key(security):
 
     Security can be u'low', u'medium', or u'high' depending on how secure you need your Elliptic
     Curve to be.  Currently these values translate into:
-     - low:    NID_sect233k1  ~64 byte signatures
-     - medium: NID_sect409k1 ~108 byte signatures
-     - high:   NID_sect571k1 ~151 byte signatures
+     - very-low: NID_sect163k1  ~42 byte signatures
+     - low:      NID_sect233k1  ~60 byte signatures
+     - medium:   NID_sect409k1 ~104 byte signatures
+     - high:     NID_sect571r1 ~144 byte signatures
 
-    @param security: Level of security {u'low', u'medium', or u'high'}.
+    @param security: Level of security {u'very-low', u'low', u'medium', or u'high'}.
     @type security: unicode
 
     @note that the NID must always be 160 bits or more, otherwise it will not be able to sign a sha1
-    digest.
+     digest.
     """
     assert isinstance(security, unicode)
     assert security in _curves
@@ -218,7 +219,7 @@ if __name__ == "__main__":
 
     import math
     import time
-    for curve in [u"low", u"medium", u"high"]:
+    for curve in [u"very-low", u"low", u"medium", u"high"]:
         ec = ec_generate_key(curve)
         private_pem = ec_to_private_pem(ec)
         public_pem = ec_to_public_pem(ec)
@@ -243,6 +244,16 @@ if __name__ == "__main__":
         assert ec_verify(ec2, "foo-bar", ec_sign(ec, "foo-bar"))
         ec2 = ec_from_private_bin(private_bin)
         assert ec_verify(ec2, "foo-bar", ec_sign(ec, "foo-bar"))
+
+    ##
+
+    # all available curves
+    # from M2Crypto import EC
+    # for attr in dir(EC):
+    #     if attr.startswith("NID_"):
+    #         print attr
+
+    ##
 
     # s = open("pem2", "r").read()
     # ec = ec_from_private_pem(s)

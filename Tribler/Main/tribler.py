@@ -355,7 +355,9 @@ class ABCApp(wx.App):
     
             # Start the 90s test download
             # guiUtility = GUIUtility.getInstance()
-            self.guiUtility.frame.startDownload(tdef = torrent_def, doemode=DOE_MODE_PRIVATE)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            destdir = defaultDLConfig.get_dest_dir()
+            self.guiUtility.frame.startDownload(tdef = torrent_def, destdir=destdir, doemode=DOE_MODE_PRIVATE)
     
             # 300000ms = 300s = 5 minutes
             self.guiserver.add_task(self.del_dl, 300)

@@ -6,10 +6,13 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler,\
+    UserEventLogDBHandler
 
 class SearchSideBar(wx.Panel):
     
     INDENT = 7
+    
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, size = size)
         self.guiutility =  GUIUtility.getInstance()
@@ -18,11 +21,15 @@ class SearchSideBar(wx.Panel):
         
         self.nrfiltered = 0
         self.family_filter = True
-        self.bundlestates = [Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
+        self.bundlestates = [Bundler.ALG_MAGIC, Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
         self.bundlestates_str = {Bundler.ALG_NAME: 'Name',
                                  Bundler.ALG_NUMBERS: 'Numbers',
                                  Bundler.ALG_SIZE: 'Size',
+                                 Bundler.ALG_MAGIC: 'Magic',
                                  Bundler.ALG_OFF: 'Off'}
+        self.bundletexts = []
+        self.bundle_db = BundlerPreferenceDBHandler.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -158,15 +165,19 @@ class SearchSideBar(wx.Panel):
     def SetAssociatedChannels(self, channels):
         #channels should be a list, of occurrences, name, permid
         self.Freeze()
-        
-        nr = min(len(channels), 3)
-        self.nochannels.Show(nr == 0)
-        for i in range(nr):
-            tooltip = "Click to go to %s's Channel."%channels[i][1]
-            
-            self.channels[i].SetLabel(channels[i][1])
-            self.channels[i].SetToolTipString(tooltip)
-            self.channels[i].channel = channels[i]
+
+        self.nochannels.Show(len(self.channels) == 0)
+        for i in range(len(self.channels)):
+            if i < len(channels):
+                tooltip = "Click to go to %s's Channel."%channels[i][1]
+                
+                self.channels[i].SetLabel(channels[i][1])
+                self.channels[i].SetToolTipString(tooltip)
+                self.channels[i].channel_permid = channels[i][2]
+            else:
+                self.channels[i].SetLabel('')
+                self.channels[i].SetToolTipString('')
+
         self.Layout()
         self.Thaw()
     
@@ -206,21 +217,50 @@ class SearchSideBar(wx.Panel):
             channel.SetToolTipString('')
     
     def OnRebundle(self, event):
+        curstate = self.bundlestate
+        selectedByMagic = -1
+        for i, text in enumerate(self.bundletexts):
+            if isinstance(text, LinkStaticText) and text.IsIconShown():
+                selectedByMagic = self.bundlestates[i]
+                break
+        
         newstate = event.GetEventObject().action
         self.SetBundleState(newstate)
         
+        def db_callback():
+            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+            self.bundle_db.storePreference(keywords, newstate)
+            query = ' '.join(keywords)
+            
+            selectedByMagicStr = ''
+            if selectedByMagic != -1:
+                selectedByMagicStr = self.bundlestates_str[selectedByMagic]
+            
+            self.uelog.addEvent(message="Bundler GUI: %s -> %s; %s -> %s; selectedByMagic %s (%s); q=%s" 
+                                % (curstate, newstate, self.bundlestates_str[curstate], 
+                                   self.bundlestates_str[newstate],
+                                   selectedByMagic, selectedByMagicStr, query), type = 3)
+        
+        self.guiutility.frame.guiserver.add_task(db_callback)
+        
     def SetBundleState(self, newstate):
         if newstate is None:
-            local_override = False
-            auto_guess = False
+            auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
+            
+            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+            stored_state = self.bundle_db.getPreference(keywords)
+            local_override = stored_state is not None
             
             if local_override:
-                pass # TODO
+                newstate = stored_state
+                
             elif auto_guess:
-                pass # TODO
+                newstate = Bundler.ALG_MAGIC
+            
             else:
-                newstate = Bundler.ALG_NAME # default
+                newstate = Bundler.ALG_OFF # default
         
+        self.bundlestate = newstate
         self.Freeze()
         
         if newstate != Bundler.ALG_OFF:
@@ -231,23 +271,44 @@ class SearchSideBar(wx.Panel):
         
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)
-        
+        self.bundletexts = []
         self.bundleSizer.Add(wx.StaticText(self, -1, 'Bundle by '))
         for i, state in enumerate(self.bundlestates):
             if newstate == state:
-                self.bundleSizer.Add(wx.StaticText(self, -1, self.bundlestates_str[state]))
+                text = wx.StaticText(self, -1, self.bundlestates_str[state])
+                self.bundleSizer.Add(text)
+                self.bundletexts.append(text)
             else:
-                link = LinkStaticText(self, self.bundlestates_str[state], None)
+                link = LinkStaticText(self, self.bundlestates_str[state], "wand.png")
+                link.ShowIcon(False)
+                link.SetIconToolTipString('Selected by Magic')
                 link.Bind(wx.EVT_LEFT_UP, self.OnRebundle)
                 link.action = state
                 self.bundleSizer.Add(link)
+                self.bundletexts.append(link)
                 
             if i+1 < len(self.bundlestates):
                 self.bundleSizer.AddSpacer((1, -1))
         
         self.Layout()
         self.Thaw()
-        
+    
+    def SetSelectedBundleMode(self, selected_bundle_mode):
+        if self.bundlestate == Bundler.ALG_MAGIC:
+            self.Freeze()
+            
+            index = self.bundlestates.index(selected_bundle_mode)
+            for i in range(len(self.bundletexts)):
+                linkStaticText = self.bundletexts[i]
+                if isinstance(linkStaticText, LinkStaticText):
+                    if i == index: 
+                        if not linkStaticText.IsIconShown():
+                            linkStaticText.ShowIcon(True)
+                            wx.CallAfter(linkStaticText.Blink)
+                    else:
+                        linkStaticText.ShowIcon(False)
+            self.Thaw()
+    
     def OnChannel(self, event):
         label = event.GetEventObject()
         channel_name = label.GetLabel()

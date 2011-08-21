@@ -97,9 +97,13 @@ class ListHeader(wx.Panel):
                     label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
                     label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                     sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
-                
+
                     if columns[i].get('defaultSorted', False):
-                        label.sortIcon = wx.StaticBitmap(self, -1, down)
+                        if columns[i].get('sortAsc', False):
+                            label.sortIcon = wx.StaticBitmap(self, -1, up)
+                        else:
+                            label.sortIcon = wx.StaticBitmap(self, -1, down)
+                        
                         self.sortedColumn = i
                         self.defaultSort = i
                     else:
@@ -129,23 +133,21 @@ class ListHeader(wx.Panel):
                 else:
                     spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                     self.columnHeaders.append(spacer)
-        
+
         self.scrollBar = sizer.AddSpacer((3,0))
-        self.scrollBar.Show(False)
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
+        changed = False
         item = self.columnHeaders[column]
-        if item.GetSize()[0] != width:
-            if getattr(item, 'SetMinSize', None):
+        if isinstance(item, wx.Window):
+            if item.GetSize()[0] != width:
                 if getattr(item, 'sortIcon', False):
                     width -= (item.sortIcon.GetWidth() + 3)
                 item.SetMinSize((width, -1))
-            else:
+                changed = True
+        elif item.GetSpacer()[0] != width:
                 item.SetSpacer((width, -1))
-            
-            if self.scrollBar:
-                self.scrollBar.sizer.Layout()
 
     def SetSpacerRight(self, right):
         if self.scrollBar:
@@ -223,6 +225,10 @@ class ListHeader(wx.Panel):
             prevSort = self.columnHeaders[self.sortedColumn].sortIcon
             prevSort.SetBitmap(empty)
             prevSort.Refresh()
+        
+        if newColumn == -1 and self.defaultSort != -1:
+            newColumn = self.defaultSort
+            newDirection = self.columns[self.defaultSort].get('sortAsc', False)
         
         if newColumn != -1:
             newSort = self.columnHeaders[newColumn].sortIcon
@@ -533,6 +539,9 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
 
     def GetSubTitlePanel(self, parent):
         pass
+    
+    def GetTitlePanel(self, parent):
+        pass
    
     def helpClick(self,event=None):
         title = 'Search within results'
@@ -563,7 +572,8 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         </ul>
         </p>"""
         
-        dlg = wx.Dialog(None, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
+        dlg = wx.Dialog(GUIUtility.getInstance().frame, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
+        dlg.CenterOnParent()
         dlg.SetBackgroundColour(wx.WHITE)
 
         sizer = wx.FlexGridSizer(2,2)
@@ -586,6 +596,10 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         dlg.SetSizerAndFit(border)
         dlg.ShowModal()
         dlg.Destroy()
+        
+    def Reset(self):
+        FamilyFilterHeader.Reset(self)
+        self.filter.Clear()
 
 class ChannelHeader(SearchHeader):
     DESCRIPTION_MAX_HEIGTH = 100

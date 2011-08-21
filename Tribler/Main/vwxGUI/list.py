@@ -10,23 +10,24 @@ from wx import html
 from time import time
 from datetime import date, datetime
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import ProgressStaticText
 from Tribler.Core.API import *
-from Tribler.__init__ import LIBRARYNAME
-
-from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Main.Dialogs.AddTorrent import AddTorrent
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
-from list_footer import *
-from list_header import *
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.__init__ import LIBRARYNAME
+
+from __init__ import *
 from list_body import *
 from list_details import *
+from list_footer import *
+from list_header import *
 from list_sidebar import *
-from __init__ import *
+
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from collections import namedtuple
 
@@ -60,17 +61,18 @@ class RemoteSearchManager:
             self.list.SetKeywords(keywords)
         
         def db_callback():
-            [total_items, nrfiltered, new_items, data_files] = self.torrentsearch_manager.getHitsInCategory()
+            [total_items, nrfiltered, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
             [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
-            return data_files, total_items, nrfiltered, new_items, total_channels
-        
+            return data_files, total_items, nrfiltered, new_items, total_channels, selected_bundle_mode
+
         startWorker(self._on_refresh, db_callback)
-        
+
     def _on_refresh(self, delayedResult):
-        data_files, total_items, nrfiltered, new_items, total_channels = delayedResult.get()
-        
+        data_files, total_items, nrfiltered, total_channels, selected_bundle_mode = delayedResult.get()
+               
         self.list.SetNrResults(total_items, total_channels)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
+        self.list.SetSelectedBundleMode(selected_bundle_mode)
         
         if new_items:
             self.list.SetData(data_files)
@@ -163,16 +165,18 @@ class ChannelSearchManager:
             print >> sys.stderr, "ChannelManager complete refresh"
         
         if self.category != 'searchresults':
+            category = self.category
+            
             title = ''
-            if self.category == 'New':
+            if category == 'New':
                 title = 'New Channels'
-            elif self.category == 'Popular':
+            elif category == 'Popular':
                 title = 'Popular Channels'
-            elif self.category == 'Updated':
+            elif category == 'Updated':
                 title = 'Updated Channels'
-            elif self.category == 'All':
+            elif category == 'All':
                 title  = 'All Channels'
-            elif self.category == 'Favorites':
+            elif category == 'Favorites':
                 title = 'Your Favorites'
             self.list.SetTitle(title)
             
@@ -182,33 +186,37 @@ class ChannelSearchManager:
                 data = []
                 total_items = 0
                 
-                if self.category == 'New':
+                if category == 'New':
                     total_items, data = self.channelsearch_manager.getNewChannels()
-                elif self.category == 'Popular':
+                elif category == 'Popular':
                     total_items, data = self.channelsearch_manager.getPopularChannels()
-                elif self.category == 'Updated':
+                elif category == 'Updated':
                     total_items, data = self.channelsearch_manager.getUpdatedChannels()
-                elif self.category == 'All':
+                elif category == 'All':
                     total_items, data = self.channelsearch_manager.getAllChannels()
-                elif self.category == 'Favorites':
+                elif category == 'Favorites':
                     total_items, data = self.channelsearch_manager.getMySubscriptions()
-                return data, total_items
+                return data, category
             
-            startWorker(self._on_data, db_callback, jobID = "ChannelSearchManager_refresh")
+            startWorker(self._on_data_delayed, db_callback, jobID = "ChannelSearchManager_refresh")
 
         else:
             if search_results:
                 total_items = len(search_results)
-                keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
-                self._on_data(search_results, 'Search results for "%s"'%keywords, total_items)
-                
-    def _on_data(self, delayedResult):
-        data, total_items = delayedResult.get()
-        
-        data = [channel for channel in data if not channel.isEmpty()]
-        self.list.SetData(data)
-        if DEBUG:
-            print >> sys.stderr, "ChannelManager complete refresh done"
+                keywords = ' '.join(self.channelsearch_manager.searchkeywords)
+                self.list.SetTitle('Search results for "%s"'%keywords)
+                self._on_data(search_results, self.category)
+    
+    def _on_data_delayed(self, delayedResult):
+        data, category = delayedResult.get()
+        self._on_data(data, category)
+    
+    def _on_data(self, data, category):
+        if category == self.category:
+            data = [channel for channel in data if not channel.isEmpty()]
+            self.list.SetData(data)
+            if DEBUG:
+                print >> sys.stderr, "ChannelManager complete refresh done"
             
     def refresh_partial(self, ids):
         for id in ids:
@@ -687,6 +695,8 @@ class GenericSearchList(SizeList):
         self.header.SetFF(family_filter, nr_filtered)
         
     def SetData(self, data):
+        from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now
+        
         List.SetData(self, data)
         
         if len(data) > 0:
@@ -758,9 +768,13 @@ class GenericSearchList(SizeList):
     
     def StartDownload(self, torrent, files = None):
         from Tribler.Main.vwxGUI.channel import SelectedChannelList
+        from list_bundle import BundleListView
+        
         def db_callback():
             if isinstance(self, SelectedChannelList):
                 self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
+            elif isinstance(self, BundleListView):
+                self.uelog.addEvent(message="Torrent: torrent download from bundle", type = 2)
             else:
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
@@ -806,7 +820,8 @@ class SearchList(GenericSearchList):
         
         list = wx.Panel(self)
         self.subheader = ListHeader(list, self, self.columns, radius = 0)
-        self.leftLine = SearchSideBar(self, size=(200,-1))
+        self.sidebar = SearchSideBar(self, size=(200,-1))
+        self.leftLine = self.sidebar
         self.rightLine = wx.Panel(self, size=(1,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -830,7 +845,8 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        self.header.SetFF = self.leftLine.SetFF
+        self.header.SetFiltered = self.sidebar.SetFiltered
+        self.header.SetFF = self.sidebar.SetFF
         
         self.SetBackgroundColour(self.background)
         self.SetSizer(sizer)
@@ -851,7 +867,10 @@ class SearchList(GenericSearchList):
         footer = ChannelResultFooter(parent)
         footer.SetEvents(self.OnChannelResults)
         return footer 
-            
+    
+    def SetSelectedBundleMode(self, selected_bundle_mode):
+        self.sidebar.SetSelectedBundleMode(selected_bundle_mode)
+    
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
         
@@ -869,7 +888,7 @@ class SearchList(GenericSearchList):
         
         channels = channel_hits.values()
         channels.sort(channel_occur, reverse = True)
-        self.leftLine.SetAssociatedChannels(channels)
+        self.sidebar.SetAssociatedChannels(channels)
         
     def SetNrResults(self, nr, nr_channels):
         self.total_results = nr
@@ -914,10 +933,10 @@ class SearchList(GenericSearchList):
         self.footer.SetLabel(title, self.total_channels)
             
     def SetMaxResults(self, max):
-        self.leftLine.SetMaxResults(max)
+        self.sidebar.SetMaxResults(max)
         
     def NewResult(self):
-        self.leftLine.NewResult()
+        self.sidebar.NewResult()
     
     def toggleFamilyFilter(self):
         GenericSearchList.toggleFamilyFilter(self)
@@ -925,7 +944,7 @@ class SearchList(GenericSearchList):
     
     def Reset(self):
         GenericSearchList.Reset(self)
-        self.leftLine.Reset()
+        self.sidebar.Reset()
         self.subheader.Reset()
         
         self.total_results = None
@@ -949,8 +968,6 @@ class SearchList(GenericSearchList):
         self.subheader.SetSpacerRight(diff)
         self.footer.SetSpacerRight(diff)
         event.Skip()
-
-from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now 
 
 class LibaryList(SizeList):
     def __init__(self):
@@ -1029,6 +1046,7 @@ class LibaryList(SizeList):
 
     def OnAdd(self, event):
         dlg = AddTorrent(self, self.guiutility.frame)
+        dlg.CenterOnParent()
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -1387,6 +1405,8 @@ class ChannelList(List):
             self.header.ShowSortedBy(1)
         elif self.title.startswith('Search results'):
             self.header.ShowSortedBy(3)
+        
+        self.header.Refresh()
 
     def SetMyChannelId(self, channel_id):
         self.my_id = channel_id
@@ -1394,10 +1414,7 @@ class ChannelList(List):
         #to reset icons we have to reset the complete list :(
         self.list.Reset()        
         self.GetManager().refresh()
-        
-    def SetFilteredResults(self, nr):
-        self.header.SetNrResults(nr)
-        
+   
     def Reset(self):
         List.Reset(self)
         

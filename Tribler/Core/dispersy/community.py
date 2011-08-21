@@ -18,10 +18,11 @@ from random import gauss, choice
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
+from cache import CacheDict
 from conversion import BinaryConversion, DefaultConversion
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from decorator import documentation
-from destination import CommunityDestination, AddressDestination
+from destination import CommunityDestination, AddressDestination, SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
@@ -71,6 +72,13 @@ class SyncRange(object):
         self.space_remaining = self.capacity
         for bloom_filter in self.bloom_filters:
             bloom_filter.clear()
+
+class SubjectiveSetCache(object):
+    def __init__(self, packet, subjective_set):
+        assert isinstance(packet, str)
+        assert isinstance(subjective_set, BloomFilter)
+        self.packet = packet
+        self.subjective_set = subjective_set
 
 class Community(object):
     @classmethod
@@ -271,7 +279,7 @@ class Community(object):
         assert len(cid) == 20
         assert isinstance(master_public_key, str)
         assert not master_public_key or cid == sha1(master_public_key).digest()
-        if __debug__: dprint(cid.encode("HEX"))
+        if __debug__: dprint("initializing ", self.get_classification(), " ", cid.encode("HEX"))
 
         # dispersy
         self._dispersy = Dispersy.get_instance()
@@ -326,14 +334,22 @@ class Community(object):
         self._time_high = 1
         self._sync_ranges = []
         self._initialize_sync_ranges()
+        if __debug__:
+            from math import ceil
+            b = BloomFilter(self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_bits)
+            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
+
+        # the subjective sets.  the dictionary containing subjective sets that were recently used.
+        self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs
+        self._subjective_set_clusters = []   # all cluster numbers used by subjective sets
+        self._initialize_subjective_sets()
+        if __debug__:
+            b = BloomFilter(self.dispersy_subjective_set_error_rate, self.dispersy_subjective_set_bits)
+            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
 
         # initial timeline.  the timeline will keep track of member permissions
         self._timeline = Timeline()
         self._initialize_timeline()
-
-        # the subjective sets.  the dictionary contains all our, most recent, subjective sets per
-        # cluster.  These are made when a meta message uses the SubjectiveDestination policy.
-        # self._subjective_sets = self.get_subjective_sets(self._my_member)
 
     def _initialize_master_member(self, master_public_key):
         if master_public_key:
@@ -404,6 +420,58 @@ class Community(object):
 
         # todo: maybe we can add a callback or event notifier to give a progress indication while
         # loading millions of packets...
+
+    def _initialize_subjective_sets(self):
+        assert isinstance(self._subjective_sets, CacheDict)
+        assert len(self._subjective_sets) == 0
+        assert isinstance(self._subjective_set_clusters, list)
+        assert len(self._subjective_set_clusters) == 0
+
+        try:
+            meta = self.get_meta_message(u"dispersy-subjective-set")
+
+        except KeyError:
+            # subjective sets are disabled for this community
+            pass
+
+        else:
+            # ensure we have all unique cluster numbers
+            self._subjective_set_clusters = list(set(meta.destination.cluster for meta in self.get_meta_messages() if isinstance(meta.destination, SubjectiveDestination)))
+
+            # load all subjective sets by self.my_member
+            for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND name = ?",
+                                                           (self._database_id, self._my_member.database_id, meta.database_id)):
+                packet = str(packet)
+
+                # check that this is the packet we are looking for, i.e. has the right cluster
+                conversion = self.get_conversion(packet[:22])
+                message = conversion.decode_message(("", -1), packet)
+                key = (self._my_member, message.payload.cluster)
+                assert not key in self._subjective_sets
+                self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
+
+            # ensure that there are no missing subjective sets
+            for cluster in self._subjective_set_clusters:
+                    key = (self._my_member, cluster)
+                    if not key in self._subjective_sets:
+                        # create this missing subjective set
+                        message = self.create_dispersy_subjective_set(cluster, [self._my_member])
+                        self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
+
+            if self._subjective_sets:
+                # apparently we have one or more subjective sets
+                self._dispersy.callback.register(self._periodically_cleanup_subjective_sets)
+
+    def _periodically_cleanup_subjective_sets(self):
+        while True:
+            # peek once every minute.  given that the initial_poke_count is 10, this will ensure
+            # that a cache instance will exist for at least 10 peeks (unless we run out of cache
+            # space)
+            yield 60.0
+
+            if __debug__: dprint(self._subjective_sets)
+            for key, cache in self._subjective_sets.cleanup():
+                if __debug__: dprint("member: ", key[0].database_id, "; cluster: ", key[1])
 
     def _initialize_timeline(self):
         # load existing permissions from the database
@@ -529,6 +597,62 @@ class Community(object):
         return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 14) // 8
 
     @property
+    def dispersy_candidate_online_range(self):
+        """
+        The range -in seconds from the last time we received a packet from an address- that we
+        define a candidate to be online.
+
+        For instance: the range (0, 300) will mark addresses, from where we received a packet
+        withing the last 300 seconds, to be online.
+
+        @rtype: (int, int)
+        """
+        return (0, 300)
+
+    @property
+    def dispersy_candidate_online_scores(self):
+        return [(10, 10), (30, 7), (60, 4), (120, 2), (300, 1)]
+
+    @property
+    def dispersy_candidate_direct_observation_score(self):
+        """
+        Candidates that we have directly observed to exist are given this score in the candidate
+        selection algorithm.
+
+        @rtype int
+        """
+        return 5
+
+    @property
+    def dispersy_candidate_indirect_observation_score(self):
+        """
+        Candidates that we have indirectly observed to exist are given this score in the candidate
+        selection algorithm.
+
+        Note that using indirect observation increases the diversity of the candidate selection at
+        the cost of possibly using candidates that have been obtained from malicious nodes.
+
+        @rtype int
+        """
+        return 5
+
+    @property
+    def dispersy_candidate_subjective_set_score(self):
+        """
+        @rtype (int, int)
+        """
+        return 10
+
+    @property
+    def dispersy_candidate_probabilistic_factor(self):
+        """
+        The range of the random factor that the score of each candidate is multiplied with.
+
+        @rtype (float, float)
+        """
+        return (1.0, 3.0)
+
+    @property
     def dispersy_sync_initial_delay(self):
         return 10.0
 
@@ -574,9 +698,8 @@ class Community(object):
 
         - A typical MTU is 1500 bytes
 
-        - A typical IP header is 20 bytes
-
-        - The maximum IP header is 60 bytes (this includes information for VPN, tunnels, etc.)
+        - A typical IP header is 20 bytes.  However, the maximum IP header is 60 bytes (this
+          includes information for VPN, tunnels, etc.)
 
         - The UDP header is 8 bytes
 
@@ -661,6 +784,49 @@ class Community(object):
         return 10 * 1025
 
     @property
+    def dispersy_subjective_set_error_rate(self):
+        """
+        The error rate that is allowed within the subjective set bloom filter.
+
+        Having a higher error rate will allow for more items to be stored in the bloom filter,
+        allowing more public keys to be placed stored.  Although this has the disadvantage that more
+        false positives will occur.
+
+        A false positive will mean that it might be perceived that we included peer A in our
+        subjective set while in fact we did not.  Hence more false positives will result in more
+        incoming traffic that we ourselves will also store since it matches our subjective set.
+
+        @rtype: float
+        """
+        return 0.0001
+
+    @property
+    def dispersy_subjective_set_bits(self):
+        """
+        The size in bits of this bloom filter.
+
+        We want one dispersy-subjective-set message to fit within a single MTU.  There are several
+        numbers that need to be taken into account.
+
+        - A typical MTU is 1500 bytes
+
+        - A typical IP header is 20 bytes.  However, the maximum IP header is 60 bytes (this
+          includes information for VPN, tunnels, etc.)
+
+        - The UDP header is 8 bytes
+
+        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, user,
+          global-time)
+
+        - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
+          The current value is: self._my_member.signature_length
+
+        - The dispersy-subjective-set message uses 1 byte to indicate the cluster and 3 bytes for
+          the num_slices and bits_per_slice
+        """
+        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 1 - 3) * 8
+
+    @property
     def cid(self):
         """
         The 20 byte sha1 digest of the public master key, in other words: the community identifier.
@@ -699,6 +865,14 @@ class Community(object):
         @rtype: Dispersy
         """
         return self._dispersy
+
+    @property
+    def subjective_set_clusters(self):
+        """
+        The cluster values that this community supports.
+        @rtype: [int]
+        """
+        return self._subjective_set_clusters
 
     def unload_community(self):
         """
@@ -892,6 +1066,77 @@ class Community(object):
                 # did not break, meaning, we can not split any more sync ranges
                 return
 
+    def clear_subjective_set_cache(self, member, cluster, packet="", subjective_set=None):
+        """
+        Either remove or replace an entry in the subjective set cache.
+
+        @param member: The member for who we want the subjective set.
+        @type member: Member
+
+        @param cluster: The cluster identifier.  Where 0 < cluster < 255.
+        @type cluster: int
+
+        @param packet: Optional.  The binary packet representing the dispersy-subjective-set message.
+        @type packet: string
+
+        @param subjective_set: Optional.  The subjective set.
+        @type subjective_set: BloomFilter
+        """
+        assert isinstance(member, Member)
+        assert isinstance(cluster, int)
+        assert cluster in self._subjective_set_clusters, (cluster, self._subjective_set_clusters)
+        assert isinstance(packet, str)
+        assert subjective_set is None or isinstance(subjective_set, BloomFilter)
+        assert (packet and subjective_set) or (not packet and not subjective_set)
+        key = (member, cluster)
+        if packet and subjective_set:
+            self._subjective_sets[key] = SubjectiveSetCache(packet, subjective_set)
+        else:
+            del self._subjective_sets[key]
+
+    def get_subjective_set_cache(self, member, cluster):
+        """
+        Returns the SubjectiveSetCache object for a certain member and cluster.
+
+        This cache object contains two parameters: packet and subjective_set.  The packet parameter
+        is a string containing the binary representation of the dispersy-subjective-set message.
+        The subjective_set is a bloom_filter containing the subjective set.
+
+        @param member: The member for who we want the subjective set.
+        @type member: Member
+
+        @param cluster: The cluster identifier.  Where 0 < cluster < 255.
+        @type cluster: int
+
+        @return: The cache object or None
+        @rtype: SubjectiveSetCache or None
+        """
+        assert isinstance(member, Member)
+        assert isinstance(cluster, int)
+        assert cluster in self._subjective_set_clusters, (cluster, self._subjective_set_clusters)
+        key = (member, cluster)
+        if not key in self._subjective_sets:
+            try:
+                subjective_set_message_id = self.get_meta_message(u"dispersy-subjective-set").database_id
+            except KeyError:
+                # dispersy-subjective-set message is disabled
+                return None
+
+            # cache fail... fetch from database.  note that we will add all clusters in the cache
+            # regardless of the requested cluster
+            for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND user = ? AND name = ?",
+                                                           (self._database_id, member.database_id, subjective_set_message_id)):
+                packet = str(packet)
+
+                # check that this is the packet we are looking for, i.e. has the right cluster
+                conversion = self.get_conversion(packet[:22])
+                message = conversion.decode_message(("", -1), packet)
+                tmp_key = (member, message.payload.cluster)
+                if not tmp_key in self._subjective_sets:
+                    self._subjective_sets[tmp_key] = SubjectiveSetCache(packet, message.payload.subjective_set)
+
+        return self._subjective_sets.get(key)
+
     def get_subjective_set(self, member, cluster):
         """
         Returns the subjective set for a certain member and cluster.
@@ -902,77 +1147,31 @@ class Community(object):
         @param cluster: The cluster identifier.  Where 0 < cluster < 255.
         @type cluster: int
 
-        @return: The bloom filter associated to the member and cluster or None
+        @return: The subjective set bloom filter or None
         @rtype: BloomFilter or None
-
-        @raise KeyError: When the subjective set is not known.
         """
         assert isinstance(member, Member)
         assert isinstance(cluster, int)
-        assert 0 < cluster < 2^8, "CLUSTER must fit in one byte"
-        # assert cluster in self._subjective_sets
-        subjective_set = self.get_subjective_sets(member)
-        return subjective_set[cluster]
-        # if not member in self._subjective_sets:
-        #     self._subjective_sets[member] = self.get_subjective_sets(member)
-        # return self._subjective_sets[cluster]
+        assert cluster in self._subjective_set_clusters, (cluster, self._subjective_set_clusters)
+        cache = self.get_subjective_set_cache(member, cluster)
+        return cache.subjective_set if cache else None
 
     def get_subjective_sets(self, member):
         """
         Returns all subjective sets for a certain member.
 
-        We can return an empty dictionary when no sets are available for this member.
+        Each cluster that is used in this community will be represented in the result, however, when
+        we are missing a subjective set the entry will be None.  In this case, the subjective set
+        can be retrieved using a dispersy-missing-subjective-set message.
 
-        @param member: The member for who we want the subjective set.
+        @param member: The member for who we want the subjective sets.
         @type member: Member
 
-        @return: A dictionary with all cluster / bloom filter pairs
-        @rtype: {cluster:bloom-filter}
+        @return: A dictionary with all cluster/bloomfilter pairs
+        @rtype: {cluster:bloom-filter} where bloom-filter may be None
         """
         assert isinstance(member, Member)
-
-        existing_sets = {}
-
-        try:
-            meta_message = self.get_meta_message(u"dispersy-subjective-set")
-
-        except KeyError:
-            # dispersy-subjective-set message is disabled
-            pass
-
-        else:
-
-            # retrieve all the subjective sets that were created by member
-            sql = u"SELECT sync.packet FROM sync WHERE community = ? AND user = ? AND name = ?"
-
-            # dprint(sql)
-            # dprint((self._database_id, member.database_id, meta_message.database_id))
-
-            for packet, in self._dispersy_database.execute(sql, (self._database_id, member.database_id, meta_message.database_id)):
-                assert isinstance(packet, buffer)
-                packet = str(packet)
-                conversion = self.get_conversion(packet[:22])
-                message = conversion.decode_message(("", -1), packet)
-                assert message.name == "dispersy-subjective-set"
-                assert not message.payload.cluster in existing_sets
-                existing_sets[message.payload.cluster] = message.payload.subjective_set
-
-        # # either use an existing or create a new bloom filter for each subjective set (cluster)
-        # # that we are using
-        # subjective_sets = {}
-        # for meta_message in self._meta_messages.iter_values():
-        #     if isinstance(meta_message.destination, SubjectiveDestination):
-        #         cluster = meta_message.destination.cluster
-        #         if not cluster in subjective_sets:
-        #             if cluster in existing_sets:
-        #                 subjective_sets[cluster] = existing_sets[cluster]
-        #             elif create_new:
-        #                 subjective_sets[cluster] = BloomFilter(500, 0.1)
-
-        # # 3. return the sets.  this will be stored in self._subjective_sets for later reference.
-        # return subjective_sets
-
-        return existing_sets
+        return dict((cluster, self.get_subjective_set(member, cluster)) for cluster in self._subjective_set_clusters)
 
     def get_member(self, public_key):
         """
