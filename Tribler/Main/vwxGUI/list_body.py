@@ -558,13 +558,17 @@ class AbstractListBody():
         self.Refresh()
         
         #Determine scrollrate
-        nritems = len(self.vSizer.GetChildren())
-        if nritems > 1:
-            height = self.vSizer.GetSize()[1]
-            rate_y = height / nritems
-            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
+        if self.rate  is None:
+            nritems = len(self.vSizer.GetChildren())
+            if nritems > 1:
+                height = self.vSizer.GetSize()[1]
+                self.rate = height / nritems
+                
+                self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
+            else:
+                self.SetupScrolling(scrollToTop = scrollToTop)
         else:
-            self.SetupScrolling(scrollToTop = scrollToTop)
+            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             
         self.Thaw()
     
@@ -578,6 +582,7 @@ class AbstractListBody():
         self.sizefiler = None
         self.filtercolumn = 0
         self.sortcolumn = None
+        self.rate = None
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
