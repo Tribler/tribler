@@ -62,6 +62,7 @@ class SyncRange(object):
         self.space_remaining -= 1
         for bloom_filter in self.bloom_filters:
             bloom_filter.add(packet)
+        if __debug__: dprint("add ", len(packet), " byte packet to sync range. ", self.space_remaining, " space remaining")
 
     def free(self):
         self.space_freed += 1
@@ -345,7 +346,7 @@ class Community(object):
         self._initialize_subjective_sets()
         if __debug__:
             b = BloomFilter(self.dispersy_subjective_set_error_rate, self.dispersy_subjective_set_bits)
-            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
+            dprint("subjective set. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
 
         # initial timeline.  the timeline will keep track of member permissions
         self._timeline = Timeline()
