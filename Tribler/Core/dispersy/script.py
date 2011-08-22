@@ -1459,6 +1459,12 @@ class DispersySyncScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
+        # one dispersy-subjective-set
+        # one dispersy-identity (master member)
+        # one dispersy-identity (my member)
+        # one dispersy-authorize
+        self._initial_spaces_used_in_sync = 4
+
         # scaling: when we have to many messages in the sync bloom filter
         self.caller(self.batch_reversed_enlarging_sync_bloom)
         self.caller(self.batch_enlarging_sync_bloom)
@@ -1515,12 +1521,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining, community._sync_ranges[0].space_remaining
 
         messages = []
         for counter in xrange(11):
@@ -1567,12 +1574,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         messages = []
         for counter in xrange(11):
@@ -1620,12 +1628,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         messages = []
         for counter in xrange(11):
@@ -1672,12 +1681,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         messages = []
         for counter in xrange(11):
@@ -1728,12 +1738,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 25
                 return 245
+        space_remaining = 25 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 22 # 25 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1741,7 +1752,7 @@ class DispersySyncScript(ScriptBase):
         node.set_community(community)
         node.init_my_member()
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 21 # 25 - 4 (disp-identity*3, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 1
 
         # create a few messages in each sync bloomfilter range
         messages = []
@@ -1779,12 +1790,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1792,8 +1804,7 @@ class DispersySyncScript(ScriptBase):
         node.set_community(community)
         node.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
-                                                              # master ident, owner ident, node ident
+        assert community._sync_ranges[0].space_remaining == space_remaining - 1
 
         # create a lot of messages, the first few sync ranges should go 'empty'
         for global_time in xrange(10, 51):
@@ -1829,12 +1840,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -1843,7 +1855,7 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 1
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
@@ -1852,23 +1864,23 @@ class DispersySyncScript(ScriptBase):
         nodeB.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 5 # 10 - 5 (disp-identity*4, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 2
 
         # the remaining_messages will contain messages that must be in the sync ranges after the merge
         remaining_messages = []
 
         # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(5):
+        for i in xrange(4):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0 # 10 -10 (disp-identity*4, disp-authorize, filler*5)
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # ensure that range (200:100] is completely filled (index 1)
         for i in xrange(10):
             remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
         assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (disp-identity*4, disp-authorize, filler*5)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (filler*10)
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # fill range (300:200] with 50% filler and 50% removable (index 2)
         for i in xrange(5):
@@ -1878,9 +1890,9 @@ class DispersySyncScript(ScriptBase):
                     xrange(210, 215)]
         nodeA.give_messages(messages)
         assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (disp-identity*4, disp-authorize, filler*5)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (filler*10)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
+        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # fill range (400:300] with 50% filler and 50% removable (index 3)
         for i in xrange(5):
@@ -1890,10 +1902,10 @@ class DispersySyncScript(ScriptBase):
                     xrange(310, 315)]
         nodeB.give_messages(messages)
         assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0 # 10 - 10 (disp-identity*4, disp-authorize, filler*5)
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (filler*10)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
+        assert community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining
+        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # now we will free 50% of in the (500:400] range (index 2)
         messagesA = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
@@ -1911,11 +1923,11 @@ class DispersySyncScript(ScriptBase):
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
         assert len(community._sync_ranges) == 5
-        assert community._sync_ranges[4].space_remaining == 0 # 10 - 10 (disp-identity*4, disp-authorize, filler*5)
-        assert community._sync_ranges[3].space_remaining == 0 # 10 - 10 (filler*10)
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (filler*10)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (last-9-text*10)
-        assert community._sync_ranges[0].space_remaining == 2 # 10 - 8 (last-9-text*8)
+        assert community._sync_ranges[4].space_remaining == 0, community._sync_ranges[4].space_remaining
+        assert community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining
+        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 2, community._sync_ranges[0].space_remaining
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1944,12 +1956,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -1958,7 +1971,7 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 1
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
@@ -1967,7 +1980,7 @@ class DispersySyncScript(ScriptBase):
         nodeB.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 5 # 10 - 5 (disp-identity*4, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 2
 
         # create node and ensure that SELF knows the node address
         nodeC = DebugNode()
@@ -1976,16 +1989,16 @@ class DispersySyncScript(ScriptBase):
         nodeC.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 4 # 10 - 4 (disp-identity*5, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 3
 
         # the remaining_messages will contain messages that must be in the sync ranges after the merge
         remaining_messages = []
 
         # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(4):
+        for i in xrange(3):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0 # 10 -10 (disp-identity*5, disp-authorize, filler*4)
+        assert community._sync_ranges[0].space_remaining == 0
 
         # fill range (200:100] with 50% filler and 50% removable (index 1)
         for i in xrange(5):
@@ -1995,8 +2008,8 @@ class DispersySyncScript(ScriptBase):
                     xrange(110, 115)]
         nodeA.give_messages(messages)
         assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (disp-identity*5, disp-authorize, filler*5)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
+        assert community._sync_ranges[1].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0
 
         # fill range (300:200] with 50% filler and 50% removable (index 2)
         for i in xrange(5):
@@ -2006,9 +2019,9 @@ class DispersySyncScript(ScriptBase):
                     xrange(210, 215)]
         nodeB.give_messages(messages)
         assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (disp-identity*5, disp-authorize, filler*5)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
+        assert community._sync_ranges[2].space_remaining == 0
+        assert community._sync_ranges[1].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0
 
         # fill range (400:300] with 50% filler and 50% removable (index 3)
         for i in xrange(5):
@@ -2018,10 +2031,10 @@ class DispersySyncScript(ScriptBase):
                     xrange(310, 315)]
         nodeC.give_messages(messages)
         assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0 # 10 - 10 (disp-identity*5, disp-authorize, filler*5)
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*5, filler*5)
+        assert community._sync_ranges[3].space_remaining == 0
+        assert community._sync_ranges[2].space_remaining == 0
+        assert community._sync_ranges[1].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0
 
         # now we will free 50% in the (200:100] range (index 1)
         messagesA = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
@@ -2046,11 +2059,11 @@ class DispersySyncScript(ScriptBase):
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
         assert len(community._sync_ranges) >= 6
-        assert community._sync_ranges[-1].space_remaining == 0 # 10 - 10 (disp-identity*5, disp-authorize, filler*5)
+        assert community._sync_ranges[-1].space_remaining == 0
         assert community._sync_ranges[-1].space_freed == 0
-        assert community._sync_ranges[-2].space_remaining == 0 # 10 - 10 (filler*10)
+        assert community._sync_ranges[-2].space_remaining == 0
         assert community._sync_ranges[-2].space_freed == 0
-        assert community._sync_ranges[-3].space_remaining == 0 # 10 - 5 (filler*5)
+        assert community._sync_ranges[-3].space_remaining == 0
         assert community._sync_ranges[-3].space_freed == 5
 
         # cleanup
@@ -2077,12 +2090,13 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -2091,7 +2105,7 @@ class DispersySyncScript(ScriptBase):
         nodeA.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 6 # 10 - 4 (disp-identity*3, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 1
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
@@ -2100,7 +2114,7 @@ class DispersySyncScript(ScriptBase):
         nodeB.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 5 # 10 - 5 (disp-identity*4, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 2
 
         # create node and ensure that SELF knows the node address
         nodeC = DebugNode()
@@ -2109,16 +2123,16 @@ class DispersySyncScript(ScriptBase):
         nodeC.init_my_member()
         self.assert_sync_ranges(community, [])
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 4 # 10 - 6 (disp-identity*5, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining - 3
 
         # the remaining_messages will contain messages that must be in the sync ranges after the merge
         remaining_messages = []
 
         # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(4):
+        for i in xrange(3):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0 # 10 -10 (disp-identity*5, disp-authorize, filler*4)
+        assert community._sync_ranges[0].space_remaining == 0
 
         # fill range (200:100] with 30% filler and 70% removable (index 1)
         for i in xrange(3):
@@ -2128,8 +2142,8 @@ class DispersySyncScript(ScriptBase):
                     xrange(110, 117)]
         nodeA.give_messages(messages)
         assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (disp-identity, disp-authorize, disp-identity*3, filler*5)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*7, filler*3)
+        assert community._sync_ranges[1].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0
 
         # fill range (300:200] with 30% filler and 70% removable (index 2)
         for i in xrange(3):
@@ -2139,9 +2153,9 @@ class DispersySyncScript(ScriptBase):
                     xrange(210, 217)]
         nodeB.give_messages(messages)
         assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (disp-identity, disp-authorize, disp-identity*3, filler*5)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (last-9-text*7, filler*3)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*7, filler*3)
+        assert community._sync_ranges[2].space_remaining == 0
+        assert community._sync_ranges[1].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0
 
         # fill range (400:300] with 30% filler and 70% removable (index 3)
         for i in xrange(3):
@@ -2151,10 +2165,10 @@ class DispersySyncScript(ScriptBase):
                     xrange(310, 317)]
         nodeC.give_messages(messages)
         assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0 # 10 - 10 (disp-identity, disp-authorize, disp-identity*3, filler*5)
-        assert community._sync_ranges[2].space_remaining == 0 # 10 - 10 (last-9-text*7, filler*3)
-        assert community._sync_ranges[1].space_remaining == 0 # 10 - 10 (last-9-text*7, filler*3)
-        assert community._sync_ranges[0].space_remaining == 0 # 10 - 10 (last-9-text*7, filler*3)
+        assert community._sync_ranges[3].space_remaining == 0
+        assert community._sync_ranges[2].space_remaining == 0
+        assert community._sync_ranges[1].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0
 
         # now we will free 70% in the (200:100] range (index 1)
         messagesA = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
@@ -2178,8 +2192,8 @@ class DispersySyncScript(ScriptBase):
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
         assert len(community._sync_ranges) >= 6
-        assert community._sync_ranges[-1].space_remaining == 0 # 10 - 10 (disp-identity, disp-authorize, disp-identity*3, filler*5)
-        assert community._sync_ranges[-2].space_remaining == 1 # 10 - 9 (filler*9)
+        assert community._sync_ranges[-1].space_remaining == 0
+        assert community._sync_ranges[-2].space_remaining == 1
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2773,13 +2787,14 @@ class DispersySyncScript(ScriptBase):
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
                 return 100
+        space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"last-1-multimember-text")
         assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 7 # 10 - 3 (disp-identity*2, disp-authorize)
+        assert community._sync_ranges[0].space_remaining == space_remaining
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()

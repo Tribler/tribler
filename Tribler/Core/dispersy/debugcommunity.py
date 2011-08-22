@@ -18,14 +18,14 @@ from dprint import dprint
 #
 
 class DebugNode(Node):
-    def _create_text_message(self, message_name, text, global_time):
+    def _create_text_message(self, message_name, text, global_time, destination=()):
         assert isinstance(message_name, unicode)
         assert isinstance(text, str)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(message_name)
         return meta.implement(meta.authentication.implement(self._my_member),
                               meta.distribution.implement(global_time),
-                              meta.destination.implement(),
+                              meta.destination.implement(*destination),
                               meta.payload.implement(text))
 
     def _create_sequence_text_message(self, message_name, text, global_time, sequence_number):
@@ -93,7 +93,7 @@ class DebugNode(Node):
                               meta.payload.implement(number))
 
     def create_subjective_set_text_message(self, text, global_time):
-        return self._create_text_message(u"subjective-set-text", text, global_time)
+        return self._create_text_message(u"subjective-set-text", text, global_time, destination=(True,))
 
     def create_protected_full_sync_text_message(self, text, global_time):
         return self._create_text_message(u"protected-full-sync-text", text, global_time)
