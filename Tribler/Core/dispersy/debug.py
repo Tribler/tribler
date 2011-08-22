@@ -71,8 +71,8 @@ class Node(object):
         return self._my_member
 
     def init_my_member(self, bits=None, sync_with_database=None, candidate=True, identity=True):
-        assert bits is None, "The parameter bits is depricated and must be None"
-        assert sync_with_database is None, "The parameter sync_with_database is depricated and must be None"
+        assert bits is None, "The parameter bits is deprecated and must be None"
+        assert sync_with_database is None, "The parameter sync_with_database is deprecated and must be None"
 
         ec = ec_generate_key(u"low")
         self._my_member = DebugPrivateMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=False)
@@ -169,7 +169,7 @@ class Node(object):
             dprint("droped ", len(packet), " bytes from ", address[0], ":", address[1])
 
     def receive_packet(self, timeout=None, addresses=None, packets=None):
-        assert timeout is None, "The parameter TIMEOUT is depricated and must be None"
+        assert timeout is None, "The parameter TIMEOUT is deprecated and must be None"
         assert isinstance(addresses, (type(None), list))
         assert isinstance(packets, (type(None), list))
 
@@ -189,7 +189,7 @@ class Node(object):
             return address, packet
 
     def receive_message(self, timeout=None, addresses=None, packets=None, message_names=None, payload_types=None, distributions=None, destinations=None):
-        assert timeout is None, "The parameter TIMEOUT is depricated and must be None"
+        assert timeout is None, "The parameter TIMEOUT is deprecated and must be None"
         assert isinstance(addresses, (type(None), list))
         assert isinstance(packets, (type(None), list))
         assert isinstance(message_names, (type(None), list))

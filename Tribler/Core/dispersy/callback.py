@@ -84,14 +84,6 @@ class Callback(object):
         """
         return self._exception
 
-    def add_task(self, func, delay=0.0):
-        import sys
-        import traceback
-        print >> sys.stderr, "Depricated: Callback.add_task(FUNC, DELAY).  Use Callback.register(FUNC, delay=DELAY) instead"
-        traceback.print_stack()
-        assert isinstance(delay, (int, float))
-        return self.register(func, delay=float(delay))
-
     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", callback=None, callback_args=(), callback_kargs=None):
         assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
