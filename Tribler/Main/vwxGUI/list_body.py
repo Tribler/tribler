@@ -554,13 +554,13 @@ class AbstractListBody():
         self.Refresh()
         
         #Determine scrollrate
-        rate_y = 20
         nritems = len(self.vSizer.GetChildren())
-        if nritems > 0:
+        if nritems > 1:
             height = self.vSizer.GetSize()[1]
             rate_y = height / nritems
-            self.rate = rate_y
-        self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
+            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
+        else:
+            self.SetupScrolling(scrollToTop = scrollToTop)
             
         self.Thaw()
     
