@@ -876,6 +876,10 @@ class Bundler:
     ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC = range(5)
     algorithms = [IntGrouping(), LevGrouping(), SizeGrouping()]
     
+    # Tag these instances with their code:
+    for i, algorithm in enumerate(algorithms):
+        algorithm.ALG_CODE = i
+    
     PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC'.split()
     
     # ALG_MAGIC CONSTANTS
@@ -1014,7 +1018,8 @@ class Bundler:
                 d = dict(key = 'Group%05d' % group.id,
                          bundle = list(group), 
                          bundle_description = algorithm.description_for(group),
-                         bundle_general_description = algorithm.general_description())
+                         bundle_general_description = algorithm.general_description(),
+                         bundle_algorithm = algorithm.ALG_CODE)
                 
                 if group.has_changed():
                     d['bundle_changed'] = True

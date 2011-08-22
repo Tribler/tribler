@@ -5,7 +5,7 @@ import os
 import sys
 import wx
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody, NativeIcon
+from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
@@ -17,8 +17,9 @@ from __init__ import *
 
 DEBUG = False
 
-BUNDLE_FONT_SIZE_DECREMENT = 0 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
+BUNDLE_FONT_SIZE_DECREMENT = 0 
 BUNDLE_FONT_COLOR = (50,50,50)
+BUNDLE_GRID_COLLAPSE = 800
 
 BUNDLE_NUM_COLS = 2
 BUNDLE_NUM_ROWS = 3
@@ -180,10 +181,9 @@ class BundlePanel(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         
         self.indent = parent.expandedState.GetSize()[0] + 3 + 3 #width of icon + 3px left spacer + 3px right spacer
-        grid_indent = 14 + self.indent
         
         self.AddHeader()
-        self.AddGrid(grid_indent)
+        self.AddGrid()
         
         self.SetHits(hits)
         self.UpdateHeader(general_description, description)
@@ -209,7 +209,7 @@ class BundlePanel(wx.Panel):
         self.SetGeneralDescription(general_description)
         self.SetDescription(description)
     
-    def AddGrid(self, indent):
+    def AddGrid(self):
         self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
@@ -220,7 +220,7 @@ class BundlePanel(wx.Panel):
         
         for j in xrange(self.num_cols):
             self.grid.AddGrowableCol(j, 1)
-        self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, indent)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14 + self.indent)
         
     def RebuildGrid(self, new_cols):
         if self.num_cols != new_cols:
@@ -244,10 +244,12 @@ class BundlePanel(wx.Panel):
             for j in xrange(self.num_cols):
                 self.grid.AddGrowableCol(j, 1)
                 
-            self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14)
+            self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14 + self.indent)
             
-            self.Thaw()
             self.parent_list.OnChange()
+            self.Layout()
+            self.parent_listitem.Layout()
+            self.Thaw()
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
@@ -313,7 +315,7 @@ class BundlePanel(wx.Panel):
         
     def CheckGrid(self, event):
         width = self.GetSize()[0]
-        if width < 800:
+        if width < BUNDLE_GRID_COLLAPSE:
             self.RebuildGrid(1)
         else:
             self.RebuildGrid(BUNDLE_NUM_COLS)
