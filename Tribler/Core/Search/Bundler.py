@@ -1030,6 +1030,7 @@ class Bundler:
             else:
                 res.append(group[0])
         
+        res.extend(suffix)
         return res
     
     def __gc(self):
