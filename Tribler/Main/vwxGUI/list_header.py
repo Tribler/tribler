@@ -137,7 +137,7 @@ class ListHeader(wx.Panel):
         if isinstance(item, wx.Window):
             if item.GetSize()[0] != width:
                 if getattr(item, 'sortIcon', False):
-                    width -= (item.sortIcon.GetWidth() + 3)
+                    width -= (item.sortIcon.GetSize()[0] + 3)
                 item.SetMinSize((width, -1))
                 changed = True
         elif item.GetSpacer()[0] != width:

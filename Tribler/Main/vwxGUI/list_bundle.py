@@ -17,7 +17,7 @@ from __init__ import *
 
 DEBUG = False
 
-BUNDLE_FONT_SIZE_DECREMENT = 1 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
+BUNDLE_FONT_SIZE_DECREMENT = 0 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
 BUNDLE_FONT_COLOR = (50,50,50)
 
 BUNDLE_NUM_COLS = 2
@@ -164,6 +164,8 @@ class BundlePanel(wx.Panel):
         self.parent_listitem = parent
         self.parent_list = parent_list
         
+        self.num_cols = BUNDLE_NUM_COLS
+        
         # logging
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
@@ -190,6 +192,8 @@ class BundlePanel(wx.Panel):
         sizer.AddSpacer((self.indent, -1))
         sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
         self.SetSizer(sizer)
+        
+        self.Bind(wx.EVT_SIZE, self.CheckGrid)
     
     def AddHeader(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -206,7 +210,7 @@ class BundlePanel(wx.Panel):
         self.SetDescription(description)
     
     def AddGrid(self, indent):
-        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, BUNDLE_NUM_COLS, 3, 7)
+        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
         self.grid.SetMinSize((1,-1))
@@ -214,9 +218,36 @@ class BundlePanel(wx.Panel):
         for i in xrange(BUNDLE_NUM_ROWS):
             self.grid.AddGrowableRow(i, 1)
         
-        for j in xrange(BUNDLE_NUM_COLS):
+        for j in xrange(self.num_cols):
             self.grid.AddGrowableCol(j, 1)
         self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, indent)
+        
+    def RebuildGrid(self, new_cols):
+        if self.num_cols != new_cols:
+            self.Freeze()
+            
+            self.num_cols = new_cols
+            
+            children = self.grid.GetChildren()
+            children_controls = []
+            for child in children:
+                children_controls.append(child.GetWindow())
+            
+            self.grid.Clear(False)
+            self.vsizer.Detach(self.grid)
+            self.grid.Destroy()
+            
+            self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
+            for child in children_controls:
+                self.grid.Add(child, 0, wx.EXPAND)
+                
+            for j in xrange(self.num_cols):
+                self.grid.AddGrowableCol(j, 1)
+                
+            self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14)
+            
+            self.Thaw()
+            self.parent_list.OnChange()
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
@@ -279,6 +310,15 @@ class BundlePanel(wx.Panel):
                 self.ShowGrid(False)
                     
         self.Thaw()
+        
+    def CheckGrid(self, event):
+        width = self.GetSize()[0]
+        if width < 800:
+            self.RebuildGrid(1)
+        else:
+            self.RebuildGrid(BUNDLE_NUM_COLS)
+                    
+        event.Skip()
     
     def ShowGrid(self, show):
         if show:
@@ -439,7 +479,7 @@ class BundleListView(GenericSearchList):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
-                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+                   {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         GenericSearchList.__init__(self, columns, LIST_GREY, [3,0], True, showChange = True, parent=parent)
     

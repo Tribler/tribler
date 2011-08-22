@@ -56,41 +56,45 @@ class ListItem(wx.Panel):
                     if icon:
                         icon = wx.StaticBitmap(self, -1, icon)
                         self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-                        
-            type = self.columns[i].get('type','label')
+                
+            if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
+                option = 1
+                size = wx.DefaultSize
+            else:
+                option = 0
+                size = (self.columns[i]['width'],-1)
+                
+            type = self.columns[i].get('type', 'label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
+                control = wx.StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
                 
-                if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                    option = 1
-                    size = wx.DefaultSize
-                else:
-                    option = 0
-                    size = (self.columns[i]['width'],-1)
-                
-                label = wx.StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
+                if fontWeight != wx.FONTWEIGHT_NORMAL:
+                    font = control.GetFont()
+                    font.SetWeight(fontWeight)
+                    control.SetFont(font)
                 
                 #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
-                label.SetLabel(str_data.replace('&', "&&"))
-                self.controls.append(label)
+                control.SetLabel(str_data.replace('&', "&&"))
                 
-                self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
-                if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                    label.SetMinSize((1,-1))
-                     
             elif type == 'method':
                 control = self.columns[i]['method'](self, self)
-                if control:
-                    self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
-                    self.controls.append(control)
-                    
-                    if self.columns[i]['width'] == -1:
-                        self.columns[i]['width'] = control.GetSize()[0]
-                        if self.parent_list.parent_list.header:
-                            self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
-                else:
-                    if self.columns[i]['width'] != -1:
-                        self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT, 3)
+            
+            if control:
+                self.controls.append(control)
+                self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                
+                if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
+                    control.SetMinSize((1,-1))
+                
+                elif self.columns[i]['width'] == LIST_AUTOSIZEHEADER:
+                    self.columns[i]['width'] = control.GetSize()[0]
+                    if self.parent_list.parent_list.header:
+                        self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])  
+            else:
+                if self.columns[i]['width'] != LIST_AUTOSIZEHEADER:
+                    self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT, 3)    
         
         #always end with a spacer of size 3
         rightSpacer += 3

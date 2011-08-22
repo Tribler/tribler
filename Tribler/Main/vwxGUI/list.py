@@ -780,12 +780,12 @@ class SearchList(GenericSearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'fontWeight': wx.FONTWEIGHT_BOLD}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
-                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+                   {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, parent=parent)
         
@@ -842,9 +842,11 @@ class SearchList(GenericSearchList):
     def CreateFooter(self):
         footer = ChannelResultFooter(self)
         footer.SetEvents(self.OnChannelResults)
-        return footer 
+        return footer
     
     def SetKeywords(self, keywords, nr = None):
+        self.keywords = keywords
+        
         if isinstance(nr, int):
             if nr == 0:
                 self.header.SetTitle('No results for "%s"'%keywords)
@@ -922,7 +924,6 @@ class LibaryList(List):
                    {'type':'method', 'name':'Connections', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateConnections, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
-        
      
         List.__init__(self, columns, LIST_GREY, [7,7], True)
     
@@ -1331,13 +1332,10 @@ class SelectedChannelList(GenericSearchList):
         self.channelsearch_manager = self.guiutility.channelsearch_manager 
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   #{'name':'Created', 'width': -1, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time},\
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}, \
                    {'name':'Size', 'width':  '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
-                   #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
-                   #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
-                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+                   {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True)
         
