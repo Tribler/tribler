@@ -552,26 +552,23 @@ class TorrentDetails(wx.Panel):
         
         #Optional stream button
         if self.information[0]:
-            self.playSpacer = self.buttonSizer.AddStretchSpacer()
-            self.playSpacer.Show(not self.compact)
-            
-            self.play = wx.Panel(self.buttonPanel)
-            self.play.SetBackgroundColour(LIST_DESELECTED)
-            vSizer = wx.BoxSizer(wx.VERTICAL)
+            self.playSpacer = wx.BoxSizer(wx.VERTICAL)
+            if not self.compact:
+                self.playSpacer.AddStretchSpacer()
             
             if not self.compact:
-                header = wx.StaticText(self.play, -1, "Impatient?")
+                header = wx.StaticText(self.buttonPanel, -1, "Impatient?")
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
-                vSizer.Add(header, 0, wx.ALL, 3)
+                self.playSpacer.Add(header, 0, wx.ALL, 3)
             
-            play = LinkStaticText(self.play, "Start playing this torrent now")
+            play = LinkStaticText(self.buttonPanel, "Start playing this torrent now")
             play.SetToolTipString('Start playing this torrent.')
             play.Bind(wx.EVT_LEFT_UP, self.OnPlay)
-            vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
-            self.play.SetSizer(vSizer)
-            self.buttonSizer.Add(self.play, 0,wx.EXPAND, 3)
+            
+            self.playSpacer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
+            self.buttonSizer.Add(self.playSpacer, 0,wx.EXPAND, 3)
             
         if isinstance(self, LibraryDetails):
             self.vod_log = wx.StaticText(self.buttonPanel)
@@ -923,9 +920,8 @@ class TorrentDetails(wx.Panel):
                     self.vod_log.Hide()
             elif ds.is_vod():
                 label = 'You are streaming this torrent'
-                if getattr(self, 'play', False):
-                    self.play.Hide()
-                    self.playSpacer.Show(False)
+                if getattr(self, 'playSpacer', False):
+                    self.playSpacer.ShowItems(False)
                     self.buttonPanel.Layout()
                 
                 if ds.vod_status_msg:
@@ -1122,29 +1118,26 @@ class LibraryDetails(TorrentDetails):
         self.peerList._doResize()
         self.peerList.Thaw()
 
-class ProgressPanel(wx.Panel):
+class ProgressPanel(wx.BoxSizer):
     #eta style
     ETA_DEFAULT = 1
     ETA_EXTENDED = 2
     
     def __init__(self, parent, item, style = ETA_DEFAULT):
-        wx.Panel.__init__(self, parent)
-        self.SetBackgroundColour(LIST_DESELECTED)
+        wx.BoxSizer.__init__(self, wx.VERTICAL)
         self.item = item
         self.style = style
         guiutility = GUIUtility.getInstance()
         self.utility = guiutility.utility
 
-        self.pb = ProgressBar(self)
-        self.status = wx.StaticText(self)
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.AddStretchSpacer()
-        vSizer.Add(self.pb, 0, wx.EXPAND)
-        vSizer.Add(self.status, 0, wx.EXPAND)
+        self.pb = ProgressBar(parent)
+        self.status = wx.StaticText(parent)
         
-        vSizer.AddStretchSpacer()
+        self.AddStretchSpacer()
+        self.Add(self.pb, 0, wx.EXPAND)
+        self.Add(self.status, 0, wx.EXPAND)
         
-        self.SetSizer(vSizer)
+        self.AddStretchSpacer()
         self.Update()
         
     def Update(self, ds = None):
