@@ -257,6 +257,8 @@ class GUIUtility:
                 
         else:
             wantkeywords = split_into_keywords(input)
+            wantkeywords = [keyword for keyword in wantkeywords if len(keyword) > 2]
+            
             if len(' '.join(wantkeywords))  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
             else:

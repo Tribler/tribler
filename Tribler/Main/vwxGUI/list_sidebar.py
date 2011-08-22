@@ -12,6 +12,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler
 class SearchSideBar(wx.Panel):
     
     INDENT = 7
+    HEADER_FONT_WEIGHT = wx.FONTWEIGHT_NORMAL
     
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, size = size)
@@ -35,9 +36,10 @@ class SearchSideBar(wx.Panel):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         header = wx.StaticText(self, -1, 'Search')
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
+            font = header.GetFont()
+            font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
+            header.SetFont(font)
         hSizer.Add(header, 0, wx.ALIGN_CENTER_VERTICAL)
         
         self.searchState = wx.StaticText(self)
@@ -59,9 +61,10 @@ class SearchSideBar(wx.Panel):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         header = wx.StaticText(self, -1, 'Family Filter')
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
+            font = header.GetFont()
+            font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
+            header.SetFont(font)
         hSizer.Add(header)
         
         self.ffstate = wx.StaticText(self)
@@ -80,9 +83,11 @@ class SearchSideBar(wx.Panel):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         header = wx.StaticText(self, -1, 'Bundling')
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
+            font = header.GetFont()
+            font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
+            header.SetFont(font)
+        
         hSizer.Add(header)
         
         #keep longest text in bundlestatetext, to define bestsize (width) for sidepanel
@@ -92,14 +97,16 @@ class SearchSideBar(wx.Panel):
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
             
         self.bundleSizer = wx.FlexGridSizer(0, 2, 0, 0)
+        self.SetBundleState(None)
         self.vSizer.Add(self.bundleSizer, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
         
         self.vSizer.AddSpacer((-1,15))
         
         header = wx.StaticText(self, -1, 'Associated Channels')
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
+            font = header.GetFont()
+            font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
+            header.SetFont(font)
         self.vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
         
