@@ -1231,7 +1231,8 @@ class TorrentDBHandler(BasicDBHandler):
         filedict = {}
         for filename in torrentdef.get_files_as_unicode():
             for keyword in split_into_keywords(filename):
-                filedict[keyword] = filedict.get(keyword, 0) + 1
+                if len(keyword) > 2:
+                    filedict[keyword] = filedict.get(keyword, 0) + 1
         
         file_keywords = filedict.keys()
         if len(file_keywords) > 50:
@@ -1241,9 +1242,10 @@ class TorrentDBHandler(BasicDBHandler):
             file_keywords = file_keywords[:50]
         
         keywords.update(file_keywords)
-        #only insert keywords with length 3 or higher (results in a reduction of +/- 18%)
-        keywords = [keyword for keyword in keywords if len(keyword) > 2]
         
+        #only insert keywords with length 2 or higher
+        keywords = [keyword for keyword in keywords if len(keyword) > 1]
+                
         # store the keywords in the InvertedIndex table in the database
         if len(keywords) > 0:
             values = [(keyword, torrent_id) for keyword in keywords]
