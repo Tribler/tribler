@@ -424,14 +424,30 @@ class LinkStaticText(wx.Panel):
         if self.icon and icon_align == wx.ALIGN_LEFT:
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        #Niels: text or url needs to be non-empty, we don't use url thus fixing it to 'url' 
-        self.text = wx.HyperlinkCtrl(self, -1, text, 'url') 
-        self.text.SetNormalColour(font_colour)
-        self.text.SetVisitedColour(font_colour)
-        font = self.text.GetFont()
-        font.SetPointSize(font.GetPointSize() + font_increment)
-        self.text.SetFont(font)
-        
+        try:
+            if font_increment:
+                raise RuntimeError('Not Supported by lib.agw.hyperlink')
+            
+            from wx.lib.agw.hyperlink import HyperLinkCtrl, EVT_HYPERLINK_LEFT
+            self.text = HyperLinkCtrl(self, -1, text)
+            self.text.EnableRollover(True)
+            self.text.AutoBrowse(False)
+            self.text.SetColours(font_colour, font_colour, (255, 0, 0, 255))
+            self.text.SetUnderlines(False, False, True)
+            self.text.UpdateLink()
+            
+            self.hyperLinkEvent = EVT_HYPERLINK_LEFT
+        except:
+            #Niels: text or url needs to be non-empty, we don't use url thus fixing it to 'url'
+            self.text = wx.HyperlinkCtrl(self, -1, text, 'url')
+            self.text.SetNormalColour(font_colour)
+            self.text.SetVisitedColour(font_colour)
+            font = self.text.GetFont()
+            font.SetPointSize(font.GetPointSize() + font_increment)
+            self.text.SetFont(font)
+            
+            self.hyperLinkEvent = wx.EVT_HYPERLINK
+            
         hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
             
         if self.icon and icon_align == wx.ALIGN_RIGHT:
@@ -457,6 +473,9 @@ class LinkStaticText(wx.Panel):
             self.icon.Show(text != '')
             
         self.text.SetLabel(text)
+        self.text.SetURL(text)
+        if getattr(self.text, 'UpdateLink', False):
+            self.text.UpdateLink()
         self.Layout()
     
     def GetLabel(self):
@@ -506,7 +525,7 @@ class LinkStaticText(wx.Panel):
             handler(mouse_event)
             
         if event == wx.EVT_LEFT_UP:
-            self.text.Bind(wx.EVT_HYPERLINK, text_handler, source, id, id2)
+            self.text.Bind(self.hyperLinkEvent, text_handler, source, id, id2)
         if self.icon:
             self.icon.Bind(event, modified_handler, source, id, id2)
             
