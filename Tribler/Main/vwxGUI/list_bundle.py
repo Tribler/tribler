@@ -419,8 +419,9 @@ class BundlePanel(wx.Panel):
             # Reason for non-persistence (for now) is least-surprise.
             # If the user collapses a bundled listitem, the previously 
             # clicked item is still at the same location.
-            self.hits.remove(action)
-            self.hits.insert(0, action)
+            if action in self.hits:
+                self.hits.remove(action)
+                self.hits.insert(0, action)
         
             self.ChangeState(BundlePanel.PARTIAL)
             self.ExpandHit(action)
