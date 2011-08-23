@@ -141,6 +141,9 @@ class BundleListItem(ListItem):
             control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         else:
             ListItem.AddEvents(self, control)
+            
+    def OnEventSize(self, width):
+        return self.bundlepanel.OnEventSize(width)
 
 class BundlePanel(wx.Panel):
     
@@ -192,8 +195,6 @@ class BundlePanel(wx.Panel):
         sizer.AddSpacer((self.indent, -1))
         sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
         self.SetSizer(sizer)
-        
-        self.Bind(wx.EVT_SIZE, self.CheckGrid)
     
     def AddHeader(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -224,8 +225,6 @@ class BundlePanel(wx.Panel):
         
     def RebuildGrid(self, new_cols):
         if self.num_cols != new_cols:
-            self.Freeze()
-            
             self.num_cols = new_cols
             
             children = self.grid.GetChildren()
@@ -246,10 +245,11 @@ class BundlePanel(wx.Panel):
                 
             self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14 + self.indent)
             
-            self.parent_list.OnChange()
             self.Layout()
             self.parent_listitem.Layout()
-            self.Thaw()
+            
+            return True
+        return False
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
@@ -313,14 +313,11 @@ class BundlePanel(wx.Panel):
                     
         self.Thaw()
         
-    def CheckGrid(self, event):
-        width = self.GetSize()[0]
+    def OnEventSize(self, width):
         if width < BUNDLE_GRID_COLLAPSE:
-            self.RebuildGrid(1)
-        else:
-            self.RebuildGrid(BUNDLE_NUM_COLS)
-                    
-        event.Skip()
+            return self.RebuildGrid(1)
+        
+        return self.RebuildGrid(BUNDLE_NUM_COLS)
     
     def ShowGrid(self, show):
         if show:

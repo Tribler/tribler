@@ -631,8 +631,8 @@ class GenericSearchList(List):
         return button
 
     def CreateRatio(self, parent, item):
-        seeders = int(item.original_data['num_seeders'] or -1)
-        leechers = int(item.original_data['num_leechers'] or -1)
+        seeders = int(item.original_data['num_seeders'] or 0)
+        leechers = int(item.original_data['num_leechers'] or 0)
         item.data[-2] = seeders + leechers
         
         control = SwarmHealth(parent)
