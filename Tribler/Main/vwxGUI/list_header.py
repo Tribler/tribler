@@ -50,7 +50,7 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, columns, radius = LIST_RADIUS):
+    def __init__(self, parent, columns, radius = LIST_RADIUS, spacers = [0,0]):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.columnHeaders = []
@@ -62,20 +62,20 @@ class ListHeader(wx.Panel):
         self.defaultSort = -1
         self.sortedDirection = False
 
-        self.AddComponents(columns)
+        self.AddComponents(columns, spacers)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnResize)
 
-    def AddComponents(self, columns):
+    def AddComponents(self, columns, spacers):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        if self.radius > 0:
-            hSizer.AddSpacer((self.radius,10))
+        if self.radius+spacers[0] > 0:
+            hSizer.AddSpacer((self.radius + spacers[0],10))
             
         self.AddColumns(hSizer, self, columns)
         
-        if self.radius > 0:
-            hSizer.AddSpacer((self.radius,10))
+        if self.radius+spacers[1] > 0:
+            hSizer.AddSpacer((self.radius+spacers[1],10))
         
         self.SetSizer(hSizer)
         

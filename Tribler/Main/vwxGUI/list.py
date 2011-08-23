@@ -631,8 +631,8 @@ class GenericSearchList(List):
         return button
 
     def CreateRatio(self, parent, item):
-        seeders = int(item.original_data['num_seeders'])
-        leechers = int(item.original_data['num_leechers'])
+        seeders = int(item.original_data['num_seeders'] or -1)
+        leechers = int(item.original_data['num_leechers'] or -1)
         item.data[-2] = seeders + leechers
         
         control = SwarmHealth(parent)
@@ -758,7 +758,7 @@ class GenericSearchList(List):
             else:
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
-        self.guiutility.frame.guiserver.add_task(db_callback)
+        self.guiutility.frame.guiserver.add_task(db_callback)3
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):
@@ -782,8 +782,6 @@ class SearchList(GenericSearchList):
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'fontWeight': wx.FONTWEIGHT_BOLD}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
-                   #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
-                   #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
@@ -795,7 +793,7 @@ class SearchList(GenericSearchList):
         sizer.Add(self.header, 0, wx.EXPAND)
         
         list = wx.Panel(self)
-        self.subheader = ListHeader(list, self.columns, radius = 7)
+        self.subheader = ListHeader(list, self.columns, radius=0, spacers=[7,7])
         self.sidebar = SearchSideBar(self, size=(200,-1))
         self.leftLine = self.sidebar
         self.rightLine = wx.Panel(self, size=(1,-1))

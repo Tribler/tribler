@@ -483,7 +483,7 @@ class BundleListView(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [3,7], True, showChange = True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, showChange = True, parent=parent)
     
     def CreateHeader(self):
         # Normally, the column-widths are fixed during this phase

@@ -336,10 +336,42 @@ class NativeIcon:
         else:
             background = wx.Brush(background).GetColour().Get()
         
-        icons = self.icons.setdefault(type, {}).setdefault(background, {})
-        if state not in icons:
-            icons[state] = self.__createBitmap(parent, background, type, state)
-        return icons[state]
+        icons = self.icons.setdefault(type, {})
+        if background not in icons:
+            icons.setdefault(background, {})
+            
+            def fixSize(bitmap, width, height):
+                if width != bitmap.GetWidth() or height != bitmap.GetHeight():
+                
+                    bmp = wx.EmptyBitmap(width,height)
+                    dc = wx.MemoryDC(bmp)
+                    dc.SetBackground(wx.Brush(background))
+                    dc.Clear()
+                    
+                    offset_x = (width - bitmap.GetWidth())/2
+                    offset_y = (height - bitmap.GetHeight())/2
+                    
+                    dc.DrawBitmap(bitmap, offset_x, offset_y)
+                    dc.SelectObject(wx.NullBitmap)
+                    del dc
+                    
+                    return bmp
+                return bitmap
+            
+            #create both icons
+            icons[background][0] = self.__createBitmap(parent, background, type, 0)
+            icons[background][1] = self.__createBitmap(parent, background, type, 1)
+            
+            width = max(icons[background][0].GetWidth(), icons[background][1].GetWidth())
+            height = max(icons[background][0].GetHeight(), icons[background][1].GetHeight())
+            
+            icons[background][0] = fixSize(icons[background][0], width, height)
+            icons[background][1] = fixSize(icons[background][1], width, height)
+            
+        
+        if state not in icons[background]:
+            icons[background][state] = self.__createBitmap(parent, background, type, state)
+        return icons[background][state]
     
     def __createBitmap(self, parent, background, type, state):
         if state == 1:
@@ -352,7 +384,7 @@ class NativeIcon:
         
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
         #Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24,24) 
+        bmp = wx.EmptyBitmap(24,24)
         dc = wx.MemoryDC(bmp)
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
