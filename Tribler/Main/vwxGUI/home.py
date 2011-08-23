@@ -165,6 +165,9 @@ class Stats(wx.Panel):
         self.ready = True
         
         self.Bind(wx.EVT_KEY_UP, self.onKey)
+        if sys.platform.startswith('win'):
+            # on Windows, the panel doesn't respond to keypresses
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.onMouse)
     
     def onActivity(self, msg):
         if self.ready:
@@ -172,6 +175,13 @@ class Stats(wx.Panel):
         
     def onKey(self, event):
         if event.ControlDown() and event.GetKeyCode() == 73: #ctrl + i
+            import wx.lib.inspection
+            wx.lib.inspection.InspectionTool().Show()
+        else:
+            event.Skip()
+    
+    def onMouse(self, event):
+        if all([event.RightUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]): 
             import wx.lib.inspection
             wx.lib.inspection.InspectionTool().Show()
         else:
