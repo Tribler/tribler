@@ -163,10 +163,20 @@ class Stats(wx.Panel):
         self.SetSizer(vSizer)
         self.Layout()
         self.ready = True
+        
+        self.Bind(wx.EVT_KEY_UP, self.onKey)
     
     def onActivity(self, msg):
         if self.ready:
             self.activity.onActivity(msg)
+        
+    def onKey(self, event):
+        if event.ControlDown() and event.GetKeyCode() == 73: #ctrl + i
+            import wx.lib.inspection
+            wx.lib.inspection.InspectionTool().Show()
+        else:
+            event.Skip()
+                
         
 class HomePanel(wx.Panel):
     def __init__(self, parent, title, background):
