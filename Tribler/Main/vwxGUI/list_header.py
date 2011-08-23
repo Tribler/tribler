@@ -282,10 +282,10 @@ class ListHeader(wx.Panel):
         event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):
+    def __init__(self, parent, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=LIST_RADIUS):
         self.font_increment = font_increment
         self.fontweight = fontweight
-        ListHeader.__init__(self, parent, columns)
+        ListHeader.__init__(self, parent, columns, radius)
     
     def AddColumns(self, sizer, parent, columns):
         vSizer = wx.BoxSizer(wx.VERTICAL)

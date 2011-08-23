@@ -180,7 +180,7 @@ class BundlePanel(wx.Panel):
         
         self.SetBackgroundColour(wx.WHITE)
         
-        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 #width of icon + 3px left spacer + 3px right spacer
+        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
         
         self.AddHeader()
         self.AddGrid()
@@ -483,7 +483,7 @@ class BundleListView(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [3,0], True, showChange = True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [3,7], True, showChange = True, parent=parent)
     
     def CreateHeader(self):
         # Normally, the column-widths are fixed during this phase

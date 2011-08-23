@@ -787,7 +787,7 @@ class SearchList(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -795,7 +795,7 @@ class SearchList(GenericSearchList):
         sizer.Add(self.header, 0, wx.EXPAND)
         
         list = wx.Panel(self)
-        self.subheader = ListHeader(list, self.columns, radius = 0)
+        self.subheader = ListHeader(list, self.columns, radius = 7)
         self.sidebar = SearchSideBar(self, size=(200,-1))
         self.leftLine = self.sidebar
         self.rightLine = wx.Panel(self, size=(1,-1))
