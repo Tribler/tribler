@@ -265,7 +265,7 @@ class GUIUtility:
                 
                 self.current_search_query = wantkeywords
                 if DEBUG:
-                    print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
+                    print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords, time()
                 
                 self.frame.searchlist.Freeze()
                 

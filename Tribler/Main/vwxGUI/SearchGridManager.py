@@ -251,7 +251,7 @@ class TorrentManager:
         bundle_mode = self.bundle_mode
         
         if DEBUG:
-            print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:",categorykey,range
+            print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:",categorykey
         
         categorykey = categorykey.lower()
         enabledcattuples = self.category.getCategoryNames()
@@ -324,14 +324,17 @@ class TorrentManager:
         # boudewijn: now that we have sorted the search results we
         # want to prefetch the top N torrents.
         self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
-
-        if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.library_manager.addDownloadStates(self.hits)
         
+        if DEBUG:
+            beginbundle = time()
+            
         # vliegendhart: do grouping here
         # Niels: important, we should not change self.hits otherwise prefetching will not work 
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
+        
+        if DEBUG:
+            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
 
         #return [len(self.hits), self.filteredResults , self.hits]
         return [len(returned_hits), self.filteredResults , selected_bundle_mode, returned_hits]
@@ -463,7 +466,7 @@ class TorrentManager:
         29/06/11 boudewijn: from now on called on the GUITaskQueue instead on the wx MainThread to
         avoid blocking the GUI because of the database queries.
         """
-        self.guiserver.add_task(lambda: self._gotRemoteHits(permid, kws, answers), id = "TorrentSearchManager_gotRemoteHits")
+        self.guiserver.add_task(lambda: self._gotRemoteHits(permid, kws, answers))
         
     def _gotRemoteHits(self, permid, kws, answers):
         try:
@@ -1039,7 +1042,7 @@ class ChannelSearchGridManager:
         
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
-        self.guiserver.add_task(lambda:self._gotRemoteHits(permid, kws, answers), id = "TorrentSearchManager_gotRemoteHits")
+        self.guiserver.add_task(lambda:self._gotRemoteHits(permid, kws, answers))
         
     def _gotRemoteHits(self, permid, kws, answers):
         #

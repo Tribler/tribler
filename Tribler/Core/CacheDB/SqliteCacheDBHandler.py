@@ -1797,7 +1797,7 @@ class TorrentDBHandler(BasicDBHandler):
             if count < len(kws):
                 sql += " intersect "
         
-        mainsql = """select T.*, C.publisher_id as channel_permid, C.publisher_name as channel_name 
+        mainsql = """select T.*, C.publisher_id as channel_permid
                      from Torrent T LEFT OUTER JOIN ChannelCast C on T.infohash = C.infohash 
                      where T.torrent_id in (%s) order by T.num_seeders desc """ % (sql)
         if not local:

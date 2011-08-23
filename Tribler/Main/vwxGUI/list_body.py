@@ -688,7 +688,7 @@ class AbstractListBody():
         
     def __SetData(self):
         if DEBUG:
-            print >> sys.stderr, "ListBody: set data", time()
+            print >> sys.stderr, "ListBody: __SetData", time()
         
         if __debug__ and currentThread().getName() != "MainThread":
             print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
@@ -767,7 +767,7 @@ class AbstractListBody():
             nr_items_to_add = self.list_item_max
         
         if DEBUG:
-            print >> sys.stderr, "ListBody: Creating items"
+            print >> sys.stderr, "ListBody: Creating items", time()
         
         initial_nr_items_to_add = nr_items_to_add    
         done = True
