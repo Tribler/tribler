@@ -393,6 +393,7 @@ class AbstractListBody():
         
         # Allow list-items to store the most recent mouse left-down events:
         self.lastMouseLeftDownEvent = None
+        self.curWidth = -1
         self.Bind(wx.EVT_SIZE, self.OnEventSize)
     
     def SetBackgroundColour(self, colour):
@@ -873,19 +874,22 @@ class AbstractListBody():
             item.Deselect()
             
     def OnEventSize(self, event):
-        doOnChange = False
-        
-        self.Freeze()
-        
         width = self.GetSize()[0]
-        for item in self.items.itervalues():
-            if item.OnEventSize(width):
-                doOnChange = True
-
-        if doOnChange:
-            self.OnChange()
+        if width != self.curWidth:
+            doOnChange = False
+        
+            self.Freeze()
+            self.curWidth = width
             
-        self.Thaw()
+            for item in self.items.itervalues():
+                if item.OnEventSize(width):
+                    doOnChange = True
+
+            if doOnChange:
+                self.OnChange()
+            
+            self.Thaw()
+        event.Skip()
  
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
