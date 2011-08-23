@@ -758,7 +758,7 @@ class GenericSearchList(List):
             else:
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
         
-        self.guiutility.frame.guiserver.add_task(db_callback)3
+        self.guiutility.frame.guiserver.add_task(db_callback)
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):
