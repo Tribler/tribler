@@ -164,7 +164,7 @@ class ListItem(wx.Panel):
                                 break
                             else:
                                 cur_sizeritem_index += 1
-                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
                         
                         self.hSizer.Detach(self.controls[control_index])
                         self.controls[control_index].Hide()
