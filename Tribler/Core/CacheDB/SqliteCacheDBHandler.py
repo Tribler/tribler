@@ -1807,8 +1807,8 @@ class TorrentDBHandler(BasicDBHandler):
         
         channels = set()
         for result in results:
-            if result[-2]:
-                channels.add(result[-2])
+            if result[-1]:
+                channels.add(result[-1])
         
         t2 = time()
         if len(channels) > 0:
