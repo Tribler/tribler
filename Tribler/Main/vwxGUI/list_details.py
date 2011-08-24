@@ -91,11 +91,14 @@ class TorrentDetails(wx.Panel):
             pass
     
     def showTorrent(self, torrent, information):
-        if DEBUG:
-            print >> sys.stderr, "TorrentDetails: finished loading (ON GUISERVER)", self.torrent['name']
+        try:
+            if DEBUG:
+                print >> sys.stderr, "TorrentDetails: finished loading (ON GUISERVER)", self.torrent['name']
         
-        #switch back to gui thread
-        wx.CallAfter(self._showTorrent, torrent, information)
+            #switch back to gui thread
+            wx.CallAfter(self._showTorrent, torrent, information)
+        except wx.PyDeadObjectError:
+            pass
         
     def _showTorrent(self, torrent, information):
         if DEBUG:
