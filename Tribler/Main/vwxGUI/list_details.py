@@ -67,6 +67,7 @@ class TorrentDetails(wx.Panel):
         else:
             #Load/collect torrent using guitaskqueue
             self.guiutility.frame.guiserver.add_task(self.loadTorrent, id = "TorrentDetails_loadTorrent")
+            wx.CallLater(10000, self._timeout)
         
     def loadTorrent(self):
         try:
@@ -78,8 +79,6 @@ class TorrentDetails(wx.Panel):
             if requesttype:
                 #switch back to gui thread
                 wx.CallAfter(self._showRequestType, requesttype)
-            
-            wx.CallLater(10000, self._timeout)
         except wx.PyDeadObjectError:
             pass
     
@@ -902,8 +901,8 @@ class TorrentDetails(wx.Panel):
     def _UpdateStatus(self):
         swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['infohash'])
         if swarmInfo:
-            self.torrent['num_seeders'] = swarmInfo[1]
-            self.torrent['num_leechers'] = swarmInfo[2]
+            self.torrent['num_seeders'] = swarmInfo[1] or 0
+            self.torrent['num_leechers'] = swarmInfo[2] or 0
             self.torrent['last_check'] = swarmInfo[3] or 0
             
             diff = time() - self.torrent['last_check']

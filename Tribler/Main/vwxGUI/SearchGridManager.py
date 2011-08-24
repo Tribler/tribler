@@ -500,8 +500,8 @@ class TorrentManager:
                     newval['category'] = value['category'][0] 
                     # We trust the peer
                     newval['status'] = 'good'
-                    newval['num_seeders'] = value['seeder']
-                    newval['num_leechers'] = value['leecher']
+                    newval['num_seeders'] = value['seeder'] or 0
+                    newval['num_leechers'] = value['leecher'] or 0
 
                     # OLPROTO_VER_NINETH includes a torrent_size. Set to
                     # -1 when not available.
@@ -609,9 +609,9 @@ class TorrentManager:
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the torrent results
     def sort(self):
-        self.doStatNormalization(self.hits,'num_seeders', 'norm_num_seeders')
-        self.doStatNormalization(self.hits,'neg_votes', 'norm_neg_votes')
-        self.doStatNormalization(self.hits,'subscriptions', 'norm_subscriptions')
+        self.doStatNormalization(self.hits, 'num_seeders', 'norm_num_seeders')
+        self.doStatNormalization(self.hits, 'neg_votes', 'norm_neg_votes')
+        self.doStatNormalization(self.hits, 'subscriptions', 'norm_subscriptions')
 
         def cmp(a,b):
             # normScores can be small, so multiply
@@ -629,7 +629,7 @@ class TorrentManager:
         tot = 0
 
         for hit in hits:
-            tot += hit.get(normKey, 0)
+            tot += (hit.get(normKey, 0) or 0)
         
         if len(hits) > 0:
             mean = tot/len(hits)
@@ -638,7 +638,7 @@ class TorrentManager:
         
         sum = 0
         for hit in hits:
-            temp = hit.get(normKey,0) - mean
+            temp = (hit.get(normKey, 0) or 0) - mean
             temp = temp * temp
             sum += temp
         
@@ -651,7 +651,7 @@ class TorrentManager:
         
         for hit in hits:
             if stdDev > 0:
-                hit[newKey] = (hit.get(normKey,0)-mean)/ stdDev
+                hit[newKey] = ((hit.get(normKey, 0) or 0) - mean) / stdDev
             else:
                 hit[newKey] = 0
                 
