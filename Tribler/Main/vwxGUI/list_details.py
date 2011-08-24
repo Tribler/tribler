@@ -1188,6 +1188,8 @@ class ProgressPanel(wx.BoxSizer):
         
         if ds != None:
             progress = ds.get_progress()
+            size = ds.get_length()
+            
             seeds, peers = ds.get_num_seeds_peers()
             
             dls = ds.get_current_speed('down')*1024
@@ -1195,8 +1197,11 @@ class ProgressPanel(wx.BoxSizer):
             
             eta = ds.get_eta()
             status = ds.get_status()
+            
         else:
             progress = self.item.original_data.get('progress', 0) / 100.0
+            size = self.item.original_data.get('length', False)
+            
             seeds = peers = None
             dls = uls = 0
             
@@ -1230,7 +1235,6 @@ class ProgressPanel(wx.BoxSizer):
             
             elif status == DLSTATUS_DOWNLOADING:
                 sizestr = ''
-                size = self.item.original_data.get('length', False)
                 if size:
                     size_progress = size*progress
                     

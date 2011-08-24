@@ -323,6 +323,13 @@ class DownloadState(Serializable):
                 files.append(f)
             return files
         
+    def get_length(self):
+        tdef = self.download.get_def()
+        if len(self.download.get_selected_files()) > 0:
+            files = self.download.get_selected_files() 
+        else:
+            files = tdef.get_files()
+        return tdef.get_length(files)
         
     def get_availability(self):
         """ Return overall the availability of all pieces, using connected peers
