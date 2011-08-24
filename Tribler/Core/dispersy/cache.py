@@ -66,7 +66,7 @@ class CacheDict(object):
         delta = self._pokes / size
         self._pokes -= delta * size
         if delta:
-            map(peek, self._dict.itervalues)
+            map(peek, self._dict.itervalues())
 
         if size > self._max_caches:
             cleanup_counter = size - self._max_caches
