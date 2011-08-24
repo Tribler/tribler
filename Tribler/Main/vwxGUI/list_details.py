@@ -393,6 +393,16 @@ class TorrentDetails(wx.Panel):
             
             sizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
     
+    def DownloadStarted(self):
+        self.ShowPanel(1)
+        
+        #Switch to Files tab if in compact mode
+        if self.compact:
+            for i in range(self.notebook.GetPageCount()):
+                if self.notebook.GetPageText(i) == 'Files':
+                    self.notebook.ChangeSelection(i)
+                    break
+        
     def ShowPanel(self, type = None):
         if getattr(self, 'buttonSizer', False):
             if type is None:
@@ -459,9 +469,14 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.AddStretchSpacer()
         
         download_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        #Niels: multiline wx.button bug, if we ever want multiple init with multiline
-        self.downloadButton = wx.Button(self.buttonPanel, -1, "Download\n")
-        self.downloadButton.SetLabel("Download")
+        if wx.Platform=="__WXMAC__":
+            self.downloadButton = wx.Button(self.buttonPanel, -1, "Download")
+        else:
+            
+            #Niels: multiline wx.button bug, if we ever want multiple init with multiline
+            self.downloadButton = wx.Button(self.buttonPanel, -1, "Download\n")
+            self.downloadButton.SetLabel("Download")
+        
         self.downloadButton.SetToolTipString('Start downloading this torrent.')
         self.downloadButton.Bind(wx.EVT_BUTTON, self.OnDownload)
         
@@ -747,17 +762,18 @@ class TorrentDetails(wx.Panel):
                     startfile(file)
                     
     def OnFilesSelected(self, event):
-        if getattr(self, 'downloadButton', False):
-            nrSelected = self.listCtrl.GetSelectedItemCount()
-            if nrSelected > 0 and nrSelected < self.listCtrl.GetItemCount():
-                #not all files selected
-                label = "Download \nselected only"
-            else:
-                label = 'Download'
-                
-            if label != self.downloadButton.GetLabel():     
-                self.downloadButton.SetLabel(label)
-                self.buttonPanel.Layout()
+        if wx.Platform !="__WXMAC__":
+            if getattr(self, 'downloadButton', False):
+                nrSelected = self.listCtrl.GetSelectedItemCount()
+                if nrSelected > 0 and nrSelected < self.listCtrl.GetItemCount():
+                    #not all files selected
+                    label = "Download \nselected only"
+                else:
+                    label = 'Download'
+                    
+                if label != self.downloadButton.GetLabel():
+                    self.downloadButton.SetLabel(label)
+                    self.buttonPanel.Layout()
     
     def _ToggleSubtitleChoice(self, showChoice = None):
         if not showChoice:

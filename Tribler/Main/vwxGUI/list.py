@@ -72,7 +72,7 @@ class RemoteSearchManager:
             
             torrent_details = item.GetExpandedPanel()
             if torrent_details:
-                torrent_details.ShowPanel(1)
+                torrent_details.DownloadStarted()
             
     def torrentUpdated(self, infohash):
         def db_callback():
@@ -280,7 +280,7 @@ class ChannelManager():
             item = self.list.GetItem(infohash)
             
             torrent_details = item.GetExpandedPanel()
-            torrent_details.ShowPanel(1)
+            torrent_details.DownloadStarted()
 
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
