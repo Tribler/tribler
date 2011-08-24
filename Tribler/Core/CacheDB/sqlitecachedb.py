@@ -1398,6 +1398,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 print >>sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2-dbg_ts1)
                 
         if fromver < 8:
+            if DEBUG:
+                print >> sys.stderr, "STARTING UPGRADE"
+                import time
+                t1 = time.time()
+                
             from Tribler.Core.Search.SearchManager import split_into_keywords
             
             #due to a bug, we have to insert all keywords with a length of 2
@@ -1413,7 +1418,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     if len(keyword) == 2:
                         values.append((keyword, torrent_id))
             
-            self.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=True)
+            if DEBUG:
+                t2 = time.time()
+            
+            self.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values, commit=True)
+            if DEBUG:
+                print >> sys.stderr, "INSERTING NEW KEYWORDS TOOK", time.time() - t1, "INSERTING took", time.time() - t2
+            
 
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern
