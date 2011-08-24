@@ -571,7 +571,7 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         self.SetToolTipString(tooltip)
         
 class SelectableListCtrl(BetterListCtrl):
-    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         BetterListCtrl.__init__(self, parent, style, tooltip)
         self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
     
