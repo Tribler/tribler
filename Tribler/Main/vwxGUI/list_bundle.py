@@ -168,7 +168,11 @@ class BundlePanel(wx.Panel):
         self.parent_listitem = parent
         self.parent_list = parent_list
         
-        self.num_cols = BUNDLE_NUM_COLS
+        listbody_width = parent_list.GetSize()[0] 
+        if listbody_width < BUNDLE_GRID_COLLAPSE:
+            self.num_cols = 1
+        else:
+            self.num_cols = BUNDLE_NUM_COLS
         
         # logging
         self.guiutility = GUIUtility.getInstance()
