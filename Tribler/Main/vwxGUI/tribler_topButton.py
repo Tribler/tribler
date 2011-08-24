@@ -432,6 +432,7 @@ class LinkStaticText(wx.Panel):
             self.text = HyperLinkCtrl(self, -1, text)
             self.text.EnableRollover(True)
             self.text.AutoBrowse(False)
+            self.text.DoPopup(False) 
             self.text.SetColours(font_colour, font_colour, (255, 0, 0, 255))
             self.text.SetUnderlines(False, False, True)
             self.text.UpdateLink()
