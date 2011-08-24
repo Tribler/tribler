@@ -78,6 +78,8 @@ class TorrentDetails(wx.Panel):
             if requesttype:
                 #switch back to gui thread
                 wx.CallAfter(self._showRequestType, requesttype)
+            
+            wx.CallLater(10000, self._timeout)
         except wx.PyDeadObjectError:
             pass
     
@@ -101,10 +103,10 @@ class TorrentDetails(wx.Panel):
             pass
         
     def _showTorrent(self, torrent, information):
-        if DEBUG:
-            print >> sys.stderr, "TorrentDetails: finished loading", self.torrent['name']
-        
         try:
+            if DEBUG:
+                print >> sys.stderr, "TorrentDetails: finished loading", self.torrent['name']
+        
             self.torrent = torrent
             self.information = information
             ds = self.torrent.get('ds', None)
@@ -128,6 +130,19 @@ class TorrentDetails(wx.Panel):
             
             self.isReady = True
             self._Refresh(ds)
+        except wx.PyDeadObjectError:
+            pass
+    
+    def _timeout(self):
+        try:
+            if not self.isReady:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentDetails: timout on loading", self.torrent['name']
+            
+                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry.")
+            
+                self.Layout()
+                self.parent.parent_list.OnChange()
         except wx.PyDeadObjectError:
             pass
     
@@ -499,31 +514,37 @@ class TorrentDetails(wx.Panel):
         
         if not self.compact and not self.noChannel:
             def loadChannel():
-                #prefer local channel result
-                channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
-                if channel is None:
-                    if 'channel_permid' in self.torrent and self.torrent['channel_permid'] != '':
-                        channel = (self.torrent['channel_permid'], self.torrent['channel_name'], self.torrent['subscriptions'], {})
-                
-                if channel is not None:
-                    if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
-                        label = "This torrent is part of your Channel."
-                        tooltip = "Open your Channel."
-                    else:
-                        label = "Click to see more from %s's Channel."%channel[1]
-                        tooltip = "Click to go to %s's Channel."%channel[1]
-                        
-                    wx.CallAfter(showChannel, channel, label, tooltip)
+                try:
+                    #prefer local channel result
+                    channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
+                    if channel is None:
+                        if 'channel_permid' in self.torrent and self.torrent['channel_permid'] != '':
+                            channel = (self.torrent['channel_permid'], self.torrent['channel_name'], self.torrent['subscriptions'], {})
+                    
+                    if channel is not None:
+                        if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
+                            label = "This torrent is part of your Channel."
+                            tooltip = "Open your Channel."
+                        else:
+                            label = "Click to see more from %s's Channel."%channel[1]
+                            tooltip = "Click to go to %s's Channel."%channel[1]
+                            
+                        wx.CallAfter(showChannel, channel, label, tooltip)
+                except wx.PyDeadObjectError:
+                    pass
                             
             def showChannel(channel, label, tooltip):
-                self.channeltext.SetLabel(label)
-                self.channeltext.SetToolTipString(tooltip)
-                self.channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
-                
-                self.channeltext.target = 'channel'
-                self.channeltext.channel = channel
-                
-                self.channeltext.Show(True)
+                try:
+                    self.channeltext.SetLabel(label)
+                    self.channeltext.SetToolTipString(tooltip)
+                    self.channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
+                    
+                    self.channeltext.target = 'channel'
+                    self.channeltext.channel = channel
+                    
+                    self.channeltext.Show(True)
+                except wx.PyDeadObjectError:
+                    pass
             
             self.channeltext = LinkStaticText(self.buttonPanel, '')
             self.channeltext.SetMinSize((1, -1))
