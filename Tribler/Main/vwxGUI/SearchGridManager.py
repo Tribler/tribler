@@ -970,6 +970,9 @@ class ChannelSearchGridManager:
         channel = self.channelcast_db.getChannelFromPermid(channel_permid)
         if channel:
             return self._createChannel(channel)
+        
+    def getPermidFromChannel(self, channel_id):
+        return self.channelcast_db.getPermidForChannel(channel_id)
 
     def getNewChannels(self):
         two_months = time() - 5259487
@@ -1124,8 +1127,7 @@ class ChannelSearchGridManager:
         assert isinstance(channel_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        delayedResult = startWorker(None, self.channelcast_db.getDispersyCIDFromChannelId, wargs = (channel_id,))
-        dispersy_cid = delayedResult.get()
+        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
         dispersy_cid = str(dispersy_cid)
         
         # 2. get the community instance from the 20 byte identifier
@@ -1221,22 +1223,23 @@ class ChannelSearchGridManager:
         if not timestamp:
             timestamp = int(time())
         
-        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
-        dispersy_cid = str(dispersy_cid)
-        if dispersy_cid != '-1':
-            def dispersy_thread():
+        def dispersy_thread():
+            dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+            dispersy_cid = str(dispersy_cid)
+            if dispersy_cid != '-1':
                 for community in self.dispersy.get_communities():
                     if isinstance(community, AllChannelCommunity):
                         community._disp_create_votecast(dispersy_cid, vote, timestamp)
                         break
-            self.dispersy.callback.register(dispersy_thread)
+                
+            elif vote == 2:
+                self.votecastdb.subscribe(channel_id)
+            elif vote == -1:
+                self.votecastdb.spam(channel_id)
+            else:
+                self.votecastdb.unsubscribe(channel_id)
             
-        elif vote == 2:
-            self.votecastdb.subscribe(channel_id)
-        elif vote == -1:
-            self.votecastdb.spam(channel_id)
-        else:
-            self.votecastdb.unsubscribe(channel_id)
+        self.dispersy.callback.register(dispersy_thread)
     
     def markTorrent(self, channel_id, infohash, type, timestamp = None):
         if not timestamp:

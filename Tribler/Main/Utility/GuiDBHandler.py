@@ -9,6 +9,7 @@ from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedExceptio
 import threading
 from Queue import Queue
 from threading import Event
+from thread import get_ident
 from time import time
 import sys
 from traceback import format_stack, extract_stack, format_exc
@@ -63,8 +64,12 @@ class GUIDBProducer():
             
             if DEBUG:
                 print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
-            
-        self.database_thread.register(wrapper, delay=delay, id_=name)
+        
+        if get_ident() != self.database_thread._thread_ident:
+            self.database_thread.register(wrapper, delay=delay, id_=name)
+        else:
+            print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
+            wrapper()
         
 #Wrapping Senders for new delayedResult impl  
 class MySender():

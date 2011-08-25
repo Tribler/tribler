@@ -327,8 +327,12 @@ class SelectedChannelList(GenericSearchList):
         
         #Request all items from connected peers
         if not self.channel.isDispersy():
-            channelcast = BuddyCastFactory.getInstance().channelcast_core
-            channelcast.updateAChannel(self.id)
+            def db_call():
+                permid = self.channelsearch_manager.getPermidFromChannel(self.id)
+                channelcast = BuddyCastFactory.getInstance().channelcast_core
+                channelcast.updateAChannel(self.id, permid)
+            
+            startWorker(None, db_call)
         self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
     def OnSpam(self, event):
