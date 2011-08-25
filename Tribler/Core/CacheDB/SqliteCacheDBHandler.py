@@ -3736,9 +3736,9 @@ class ChannelCastDBHandler(object):
             names[publisher_id] = result
         return names
    
-    def getChannel(self, permid):
-        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id == ?"
-        channels = self._getChannels(sql, (permid,))
+    def getChannel(self, channel_id):
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id = ?"
+        channels = self._getChannels(sql, (channel_id,))
         if len(channels) > 0:
             return channels[0]
     
