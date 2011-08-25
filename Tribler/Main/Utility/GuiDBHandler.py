@@ -113,8 +113,7 @@ class ASyncDelayedResult():
         
         self.isFinished.set()
         
-    def setException(self, exception, original_traceback, extraInfo):
-        self.__result = extraInfo
+    def setException(self, exception, original_traceback):
         self.__original_traceback = original_traceback
         self.__exception = exception
         
@@ -123,7 +122,6 @@ class ASyncDelayedResult():
     def get(self, timeout = None):
         if self.isFinished.wait(timeout):
             if self.__exception: # exception was raised!
-                self.__exception.extraInfo = self.__result
                 self.__exception.originalTraceback = self.__original_traceback
                 print >> sys.stderr, self.__original_traceback 
                 raise self.__exception

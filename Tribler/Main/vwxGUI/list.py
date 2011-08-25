@@ -61,14 +61,14 @@ class RemoteSearchManager:
             self.list.SetKeywords(keywords)
         
         def db_callback():
-            [total_items, nrfiltered, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
+            [total_items, nrfiltered, new_items, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
             [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return data_files, total_items, nrfiltered, new_items, total_channels, selected_bundle_mode
 
         startWorker(self._on_refresh, db_callback)
 
     def _on_refresh(self, delayedResult):
-        data_files, total_items, nrfiltered, total_channels, selected_bundle_mode = delayedResult.get()
+        data_files, total_items, nrfiltered, new_items, total_channels, selected_bundle_mode = delayedResult.get()
                
         self.list.SetNrResults(total_items, total_channels)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
@@ -845,7 +845,7 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        self.header.SetFiltered = self.sidebar.SetFiltered
+        #self.header.SetFiltered = self.sidebar.SetFiltered
         self.header.SetFF = self.sidebar.SetFF
         
         self.SetBackgroundColour(self.background)

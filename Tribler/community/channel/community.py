@@ -61,7 +61,7 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, cid, master_key):
-        self.integrate_with_tribler = False
+        self.integrate_with_tribler = True
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
@@ -194,7 +194,15 @@ class ChannelCommunity(Community):
     @property
     def dispersy_candidate_online_scores(self):
         return []
-        
+    
+    @property
+    def dispersy_candidate_direct_observation_score(self):
+        return 1
+
+    @property
+    def dispersy_candidate_indirect_observation_score(self):
+        return 1
+    
     @property
     def dispersy_sync_interval(self):
         return 5.0

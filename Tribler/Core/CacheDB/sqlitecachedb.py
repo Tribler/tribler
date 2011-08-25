@@ -1708,15 +1708,19 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             print >> sys.stderr, "Converting took", time() - t1
             if my_channel_name:
                 def dispersy_started(subject,changeType,objectID):
-                    community = None
+                    print >> sys.stderr, "Dispersy started"
                     
+                    community = None
                     def create_my_channel():
                         global community
                         
                         if my_channel_name:
+                            print >> sys.stderr, "Dispersy started, creating community"
+                            
                             community = ChannelCommunity.create_community(session.dispersy_member)
                             community._disp_create_channel(my_channel_name, u'')
-                            
+
+                            print >> sys.stderr, "Dispersy started, community created"                            
                             #insert votes
                             insert_votes_for_me()
                             
@@ -1724,6 +1728,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             dispersy.callback.register(insert_my_torrents, delay = 10)
                             
                     def insert_votes_for_me():
+                        print >> sys.stderr, "Dispersy started, inserting votes"
                         my_channel_id = self.fetchone(select_mychannel_id)
                         
                         to_be_inserted = []
@@ -1744,6 +1749,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     def insert_my_torrents():
                         global community
                         
+                        print >> sys.stderr, "Dispersy started, inserting torrents"
                         torrent_dir = session.get_torrent_collecting_dir()
                         
                         channel_id = self.fetchone(select_mychannel_id)
@@ -1778,7 +1784,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 drop_votecast = "DROP TABLE VoteCast"
                                 #self.execute_write(drop_votecast)
                         else:
-                            dispersy.rawserver.add_task(insert_my_torrents, 10)
+                            dispersy.callback.register(insert_my_torrents, delay = 10)
                     
                     from Tribler.community.channel.community import ChannelCommunity
                     from Tribler.Core.dispersy.dispersy import Dispersy

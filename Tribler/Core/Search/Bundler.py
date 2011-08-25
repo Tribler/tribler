@@ -185,7 +185,7 @@ class GroupsList(object):
             old_hashes = self.prev_grouplist.infohashes
             old_representatives = self.prev_grouplist.representative_hashes
             old_index = self.prev_grouplist.index
-            new_hits = [hit for hit in hits if hit['infohash'] not in old_hashes]
+            new_hits = [hit for hit in hits if hit.infohash not in old_hashes]
             missing_hits = len(new_hits)+len(old_hashes) > len(hits) 
         else:
             old_representatives = set()
@@ -247,29 +247,6 @@ class GroupsList(object):
             new_group = HitsGroup(group_id, key, hit_infohash)
             return new_group
         
-# <<<<<<< .working
-#         infohashes = self.infohashes
-#         if self.prev_grouplist is not None:
-#             old_hashes = self.prev_grouplist.infohashes
-#             old_representatives = self.prev_grouplist.representative_hashes
-#             old_index = self.prev_grouplist.index
-#             new_hits = [hit for hit in hits if hit.infohash not in old_hashes]
-#             missing_hits = len(new_hits)+len(old_hashes) > len(hits) 
-#         else:
-#             old_representatives = old_hashes = set()
-#             old_index = {}
-#             new_hits = hits
-#             missing_hits = False
-            
-#         algorithm.update_context_state(new_hits, context_state)
-        
-#         if DEBUG:
-#             print >>sys.stderr, '>> Bundler.py, new hits:', len(new_hits)
-        
-#         if self.prev_grouplist and not new_hits and not missing_hits:
-# =======
-#         if self.reuse:
-# >>>>>>> .merge-right.r22061
 
         # Niels: Used bundler.py from 5.4.x, i'll fix it afterwards.
         if self.reuse:

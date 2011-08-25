@@ -1904,9 +1904,6 @@ class TorrentDBHandler(BasicDBHandler):
             del torrent['source_id']
             torrent['subscriptions'], torrent['neg_votes'] = votes.get(torrent['channel_id'], (0,0))
 
-            del torrent['category_id']
-            del torrent['status_id']
-
             if torrent['num_seeders'] > 0:
                 torrent_list.append(torrent)
             else:
@@ -3725,19 +3722,6 @@ class ChannelCastDBHandler(object):
                     results.append((channel_id, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []
-       
-<<<<<<< .working
-    def getChannel(self, channel_id):
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id = ?"
-        channels = self._getChannels(sql, (channel_id,))
-=======
-    def isItemInChannel(self,publisher_id,infohash):
-        sql = "select count(*) from ChannelCast where publisher_id=? and infohash=? ;"
-        
-        isAvailable = self._db.fetchone(sql,(publisher_id,infohash))
-        if isAvailable:
-            return True
-        return False
     
     def getChannelNames(self, permids):
         names = {}
@@ -3751,7 +3735,6 @@ class ChannelCastDBHandler(object):
             result = self._db.fetchone(sqlb, (publisher_id, timestamp))
             names[publisher_id] = result
         return names
-    
    
     def getChannel(self, permid):
         sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id == ?"

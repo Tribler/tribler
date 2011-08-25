@@ -540,9 +540,6 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
     def GetSubTitlePanel(self, parent):
         pass
     
-    def GetTitlePanel(self, parent):
-        pass
-   
     def helpClick(self,event=None):
         title = 'Search within results'
         html = """<p>
@@ -598,7 +595,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         dlg.Destroy()
         
     def Reset(self):
-        FamilyFilterHeader.Reset(self)
+        SearchHeaderHelper.Reset(self)
         self.filter.Clear()
 
 class ChannelHeader(SearchHeader):
