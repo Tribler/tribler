@@ -1170,22 +1170,19 @@ class TorrentDBHandler(BasicDBHandler):
         if self._db.getTorrentID(infohash) is None:
             self._db.insert('Torrent', commit=commit, infohash=bin2str(infohash))
             
-    def addOrGetTorrentID(self, infohash, length = None):
+    def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
-            if length:
-                self._db.insert('Torrent', commit=True, infohash=bin2str(infohash), status_id = self._getStatusID("good"))
-            else:
-                self._db.insert('Torrent', commit=True, infohash=bin2str(infohash), status_id = self._getStatusID("good"), length = length)
+            self._db.insert('Torrent', commit=True, infohash=bin2str(infohash), status_id = self._getStatusID("good"))
             torrent_id = self._db.getTorrentID(infohash)
         return torrent_id
 
-    def addOrGetTorrentIDS(self, infohashes, lengths = [None]):
+    def addOrGetTorrentIDS(self, infohashes):
         if len(infohashes) == 1:
-            return [self.addOrGetTorrentID(infohashes[0], lengths[0])]
+            return [self.addOrGetTorrentID(infohashes[0])]
         
         to_be_inserted = []
         torrent_ids = self._db.getTorrentIDS(infohashes)
@@ -1195,20 +1192,31 @@ class TorrentDBHandler(BasicDBHandler):
                 to_be_inserted.append(infohashes[i])
         
         status_id = self._getStatusID("good")
-        if lengths[0]:
-            def iteritems():
-                for i in range(len(infohashes)):
-                    yield (bin2str(infohashes[i]), lengths[i], status_id)
-            
-            sql = "INSERT OR IGNORE INTO Torrent (infohash, length, status_id) VALUES (?, ?)"
-            self._db.executemany(sql, iteritems)
-            
-        else:
-            sql = "INSERT OR IGNORE INTO Torrent (infohash, status_id) VALUES (?, ?)"
-            self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
-            
+        sql = "INSERT OR IGNORE INTO Torrent (infohash, status_id) VALUES (?, ?)"
+        self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self._db.getTorrentIDS(infohashes)
-
+    
+    def updateTorrentIDS(self, torrents):
+        parameters = '?,'*len(torrents)
+        sql = "SELECT infohash, length FROM Torrent WHERE infohash IN ("+parameters[:-1]+")"
+        
+        infohashes = [bin2str(infohash) for infohash, _ in torrents]
+        existing = self._db.fetchall(sql, infohashes)
+        
+        doesExist = set()
+        for infohash, length in existing:
+            if length:
+                doesExist.add(str2bin(infohash))
+        
+        status_id = self._getStatusID("good")
+        should_update_or_insert = [(bin2str(infohash), length, status_id) for infohash, length in torrents if infohash not in doesExist] 
+        if len(should_update_or_insert) > 0:
+            sql = "INSERT OR REPLACE INTO Torrent (infohash, length, status_id) VALUES (?,?,?)"
+            self._db.executemany(sql, should_update_or_insert)
+        
+        infohashes = [infohash for infohash, _ in torrents]
+        return self._db.getTorrentIDS(infohashes)
+        
     def _getStatusID(self, status):
         return self.status_table.get(status.lower(), 0)
 
@@ -3256,17 +3264,16 @@ class ChannelCastDBHandler(object):
     def on_torrents_from_dispersy(self, torrentlist):
         print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
         
-        
-        sizes = []
-        for values in torrentlist:
-            length = 0
-            for path, file_length in values[5]:
-                length += file_length
-            sizes.append(length)
-            
-        infohashes = [values[2] for values in torrentlist]
-        torrent_ids = self.torrent_db.addOrGetTorrentIDS(infohashes, sizes)
-        
+        def yield_torrents():
+            for i in range(len(torrentlist)):
+                torrent = torrentlist[i]
+                
+                length = 0
+                for _, file_length in torrent[5]:
+                    length += file_length
+                    
+                yield (torrent[2], length)
+        torrent_ids = self.torrent_db.updateTorrentIDS(yield_torrents())
         updated_channels = {}
         
         insert_data = []
