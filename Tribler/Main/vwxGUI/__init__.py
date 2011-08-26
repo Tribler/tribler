@@ -19,7 +19,7 @@ TRIBLER_RED = wx.Colour(255, 51, 0)
 LIST_RADIUS = 7
 
 TORRENT_COLUMNS = ['infohash', 'name', 'length']
-CHANNEL_REQ_COLUMNS = ['CollectedTorrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.channel_id', 'ChannelTorrents.name', 'CollectedTorrent.name', 'description', 'time_stamp', 'inserted']
+CHANNEL_REQ_COLUMNS = ['Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.channel_id', 'ChannelTorrents.name', 'Torrent.name', 'description', 'time_stamp', 'inserted']
 PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
 
 COMMENT_REQ_COLUMNS = ['id', 'dispersy_id', "''", 'channeltorrent_id', 'name', 'Peer.peer_id as peer_id', 'comment', 'time_stamp']
