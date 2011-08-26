@@ -3658,6 +3658,8 @@ class ChannelCastDBHandler(object):
         return torrent
         
     def __fixTorrents(self, keys, results):
+        print >> sys.stderr, "FIXING %d torrents",len(results)
+        
         if 'infohash' in keys:
             infohash_index = keys.index('infohash')
             for i in range(len(results)):
