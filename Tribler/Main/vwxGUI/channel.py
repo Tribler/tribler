@@ -254,7 +254,7 @@ class SelectedChannelList(GenericSearchList):
             message += 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
             self.list.ShowMessage(message)
             
-            self.list.SetNrResults(0)
+            self.SetNrResults(0)
     
     def SetNrResults(self, nr):
         if self.channel.isFavorite() or self.my_channel:
