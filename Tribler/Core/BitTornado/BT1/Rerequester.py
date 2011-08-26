@@ -300,7 +300,7 @@ class Rerequester:
                         event = s[eventStart+6:eventEnd]
                     
                     doDHT = True
-                    if event and event == 'stopped':
+                    if event and event in ['stopped', 'completed']:
                         doDHT = False
                     
                     if doDHT:

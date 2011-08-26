@@ -553,7 +553,7 @@ class RePEXer(RePEXerInterface):
                 # in case of failure, call  rerequester_peers with None
                 self.requesting_tracker = False
                 self.rerequester_peers(None)
-        self.rerequest.announce(event = 2, callback=tracker_callback)
+        self.rerequest.announce(event = 1, callback=tracker_callback)
     
     #
     # Get SwarmCache
