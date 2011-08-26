@@ -7,6 +7,7 @@ from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import LIST_HIGHTLIGHT
+from wx.lib.stattext import GenStaticText
 
 DEBUG = False
 
@@ -405,6 +406,54 @@ class NativeIcon:
         #determine actual size of drawn icon, and return this subbitmap
         bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
         return bmp.GetSubBitmap(bb)
+    
+#Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
+class LinkText(GenStaticText):
+    def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0):
+        GenStaticText.__init__(self, parent, -1, label, style = style)
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        
+        self.fonts = []
+        for font in fonts:
+            if font is None:
+                font = self.GetFont()
+            self.fonts.append(font)
+        
+        self.colours = []
+        for colour in colours:
+            if colour is None:
+                colour = self.GetForegroundColour()
+            self.colours.append(colour)
+        
+        self.SetFontColour(self.fonts[0], self.colours[0])
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+    
+    def SetFontColour(self, font, colour):
+        needRefresh = False
+        
+        if self.GetFont() != font:
+            self.SetFont(font)
+            
+            needRefresh = True
+        
+        if self.GetForegroundColour() != colour:
+            self.SetForegroundColour(colour)
+                            
+            needRefresh = True
+        
+        if needRefresh:
+            self.Refresh()
+    
+    def OnMouseEvent(self, event):
+        if event.Moving():
+            self.SetFontColour(self.fonts[1], self.colours[1])
+        elif event.LeftUp() or event.LeftDown():            
+            pass
+        else:
+            self.SetFontColour(self.fonts[0], self.colours[0])
+            
+        event.Skip()
 
 class LinkStaticText(wx.Panel):
     def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
@@ -424,31 +473,13 @@ class LinkStaticText(wx.Panel):
         if self.icon and icon_align == wx.ALIGN_LEFT:
             hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        try:
-            if font_increment:
-                raise RuntimeError('Not Supported by lib.agw.hyperlink')
-            
-            from wx.lib.agw.hyperlink import HyperLinkCtrl, EVT_HYPERLINK_LEFT
-            self.text = HyperLinkCtrl(self, -1, text)
-            self.text.EnableRollover(True)
-            self.text.AutoBrowse(False)
-            self.text.DoPopup(False) 
-            self.text.SetColours(font_colour, font_colour, (255, 0, 0, 255))
-            self.text.SetUnderlines(False, False, True)
-            self.text.UpdateLink()
-            
-            self.hyperLinkEvent = EVT_HYPERLINK_LEFT
-        except:
-            #Niels: text or url needs to be non-empty, we don't use url thus fixing it to 'url'
-            self.text = wx.HyperlinkCtrl(self, -1, text, 'url')
-            self.text.SetNormalColour(font_colour)
-            self.text.SetVisitedColour(font_colour)
-            font = self.text.GetFont()
-            font.SetPointSize(font.GetPointSize() + font_increment)
-            self.text.SetFont(font)
-            
-            self.hyperLinkEvent = wx.EVT_HYPERLINK
-            
+        normalfont = self.GetFont()
+        normalfont.SetPointSize(normalfont.GetPointSize() + font_increment)
+        
+        selectedfont = self.GetFont()
+        selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
+        selectedfont.SetUnderlined(True)
+        self.text = LinkText(self, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)])
         hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
             
         if self.icon and icon_align == wx.ALIGN_RIGHT:
@@ -474,7 +505,6 @@ class LinkStaticText(wx.Panel):
             self.icon.Show(text != '')
             
         self.text.SetLabel(text)
-        self.text.SetURL(text)
         if getattr(self.text, 'UpdateLink', False):
             self.text.UpdateLink()
         self.Layout()
@@ -483,10 +513,8 @@ class LinkStaticText(wx.Panel):
         return self.text.GetLabel()
     
     def SetFont(self, font):
+        wx.Panel.SetFont(self, font)
         self.text.SetFont(font)
-        
-    def GetFont(self):
-        return self.text.GetFont()
     
     def ShowIcon(self, show = True):
         if self.icon and self.icon.IsShown() != show:
@@ -519,14 +547,7 @@ class LinkStaticText(wx.Panel):
         def modified_handler(actual_event, handler=handler):
             actual_event.SetEventObject(self)
             handler(actual_event)
-            
-        def text_handler(actual_event, handler=handler):
-            mouse_event = wx.MouseEvent(wx.wxEVT_LEFT_UP)
-            mouse_event.SetEventObject(self)
-            handler(mouse_event)
-            
-        if event == wx.EVT_LEFT_UP:
-            self.text.Bind(self.hyperLinkEvent, text_handler, source, id, id2)
+        self.text.Bind(event, modified_handler, source, id, id2)
         if self.icon:
             self.icon.Bind(event, modified_handler, source, id, id2)
             

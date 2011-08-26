@@ -3,7 +3,7 @@ import sys
 import os
 
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
-    NativeIcon
+    NativeIcon, LinkText
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -80,15 +80,20 @@ class ListHeader(wx.Panel):
         self.SetSizer(hSizer)
         
     def AddColumns(self, sizer, parent, columns):
+        selectedfont = self.GetFont()
+        selectedfont.SetUnderlined(True)
+        
         self.columnHeaders = []
         
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         for i in xrange(len(columns)):
             if columns[i].get('name', '') != '':
-                label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
-                label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                label = LinkText(parent, columns[i]['name'], fonts = [None, selectedfont], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
                 label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
-                label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                label.SetBackgroundColour(self.GetBackgroundColour())
+                label.column = i
+                label.Bind(wx.EVT_LEFT_UP, self.OnClick)
+                
                 sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
                 
                 if columns[i].get('defaultSorted', False):
@@ -155,53 +160,10 @@ class ListHeader(wx.Panel):
                 self.scrollBar.SetSpacer((right, 0))
                 self.scrollBar.sizer.Layout()
     
-    def OnMouse(self, event):
-        if event.Entering() or event.Moving():
-            label = event.GetEventObject()
-            if not getattr(label, 'selected', False):
-                font = label.GetFont()
-                
-                #Niels: Underline not working on Linux, using italic instead
-                if sys.platform == 'linux2': 
-                    font.SetStyle(wx.ITALIC)
-                else:
-                    font.SetUnderlined(True)
-                label.SetFont(font)
-                
-                label.selected = True
-                
-                for column in self.columnHeaders:
-                    if column != label and isinstance(column, wx.StaticText):
-                        column.selected = False
-                        font = column.GetFont()
-                        if sys.platform == 'linux2':
-                            font.SetStyle(wx.NORMAL)
-                        else:
-                            font.SetUnderlined(False)
-                        column.SetFont(font)
-                
-        elif event.Leaving():
-            label = event.GetEventObject()
-            if getattr(label, 'selected', False):
-                font = label.GetFont()
-                
-                if sys.platform == 'linux2':
-                    font.SetStyle(wx.NORMAL)
-                else:
-                    font.SetUnderlined(False)
-                label.SetFont(font)
-                
-                label.selected = False
-        
-        elif event.LeftUp():
-            self.OnClick(event)
-            
-        event.Skip() #Allow for windows button hovering
-    
     def OnClick(self, event):
-        newColumn = event.Id
+        newColumn = event.GetEventObject().column
         
-        if event.Id == self.sortedColumn:
+        if newColumn == self.sortedColumn:
             newDirection = not self.sortedDirection
             
             if newDirection == self.columns[newColumn].get('sortAsc', False): #back to default, treat as off
@@ -262,6 +224,9 @@ class ListHeader(wx.Panel):
                 else:
                     bitmap.SetBitmap(empty)
                 bitmap.Refresh()
+                
+            if getattr(self.columnHeaders[i], 'SetBackgroundColour', False):
+                self.columnHeaders[i].SetBackgroundColour(colour)
         return wx.Panel.SetBackgroundColour(self, colour)
     
     def OnPaint(self, event):
