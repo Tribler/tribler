@@ -1125,7 +1125,8 @@ class ChannelSearchGridManager:
             
             okGood = torrent.status_id != deadstatus_id
             return okCategory and okGood
-        return filter(torrentFilter, hits)
+        #return filter(torrentFilter, hits)
+        return hits
     
     def _disp_get_community_from_channel_id(self, channel_id):
         assert isinstance(channel_id, (int, long))
