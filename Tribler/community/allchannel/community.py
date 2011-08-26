@@ -31,7 +31,7 @@ if __debug__:
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 5.0
-CHANNELCAST_BLOCK_PERIOD = 10.0 * 60.0
+CHANNELCAST_BLOCK_PERIOD = 10 #10.0 * 60.0
 
 class AllChannelCommunity(Community):
     """

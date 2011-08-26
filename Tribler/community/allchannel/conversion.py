@@ -26,7 +26,19 @@ class AllChannelConversion(BinaryConversion):
             offset, payload = decode(data, offset)
         except ValueError:
             raise DropPacket("Unable to decode the channelcast-payload")
+        
+        if not isinstance(payload, dict):
+            raise DropPacket("Invalid payload type")
+        
+        for cid, infohashes in payload.iteritems():
+            if not (isinstance(cid, str) and len(cid) == 20):
+                raise DropPacket("Invalid 'cid' type or value")
+            
+            for infohash in infohashes:        
+                if not (isinstance(infohash, str) and len(infohash) == 20):
+                    raise DropPacket("Invalid 'infohash' type or value")
         return offset, placeholder.meta.payload.implement(payload)
+            
     
     def _encode_votecast(self, message):
         return pack('!20shl', message.payload.cid, message.payload.vote, message.payload.timestamp),

@@ -3318,9 +3318,11 @@ class ChannelCastDBHandler(object):
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         torrent_ids = self._db.getTorrentIDS(infohashes)
+        
         for i in range(len(infohashes)):
             if torrent_ids[i] == None:
                 returnAr[i] = False
+        
             else:
                 sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
                 channeltorrent_id = self._db.fetchone(sql, (torrent_ids[i], ))
@@ -3539,7 +3541,7 @@ class ChannelCastDBHandler(object):
         sql = "select dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id==? and ChannelTorrents.dispersy_id <> -1 order by time_stamp desc limit ?"
         myrecenttorrents = self._db.fetchall(sql, (self._channel_id, NUM_OWN_RECENT_TORRENTS))
         for cid, infohash, timestamp in myrecenttorrents:
-            torrent_dict.setdefault(str(cid), set()).add(infohash)
+            torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             
             least_recent = timestamp
             
@@ -3547,10 +3549,10 @@ class ChannelCastDBHandler(object):
             sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id==? and time_stamp<? and dispersy_id <> -1 order by random() limit ?"
             myrandomtorrents = self._db.fetchall(sql,(self._channel_id, least_recent, NUM_OWN_RANDOM_TORRENTS))
             for cid, infohash, _ in myrecenttorrents:
-                torrent_dict.setdefault(str(cid), set()).add(infohash)
+                torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             
             for cid, infohash in myrandomtorrents:
-                torrent_dict.setdefault(str(cid), set()).add(infohash)
+                torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
         
         nr_records = sum(len(torrents) for torrents in torrent_dict.values())
         additionalSpace = (NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS) - nr_records
@@ -3561,14 +3563,14 @@ class ChannelCastDBHandler(object):
         sql = "select dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and dispersy_id <> -1 order by time_stamp desc limit ?"
         othersrecenttorrents = self._db.fetchall(sql, (NUM_OTHERS_RECENT_TORRENTS,))
         for cid, infohash, timestamp in othersrecenttorrents:
-            torrent_dict.setdefault(str(cid), set()).add(infohash)
+            torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             least_recent = timestamp
         
         if othersrecenttorrents and len(othersrecenttorrents) == NUM_OTHERS_RECENT_TORRENTS:
             sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and time_stamp < ? and dispersy_id <> -1 order by random() limit ?"
             othersrandomtorrents = self._db.fetchall(sql,(least_recent ,NUM_OTHERS_RANDOM_TORRENTS))
             for cid, infohash in othersrandomtorrents:
-                torrent_dict.setdefault(str(cid), set()).add(infohash)
+                torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
         
         nr_records = sum(len(torrents) for torrents in torrent_dict.values())
         additionalSpace = (NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS + NUM_OTHERS_RECENT_TORRENTS + NUM_OTHERS_RANDOM_TORRENTS) - nr_records
@@ -3576,7 +3578,7 @@ class ChannelCastDBHandler(object):
         sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select distinct channel_id from ChannelTorrents where torrent_id in (select torrent_id from MyPreference)) and dispersy_id <> -1  order by time_stamp desc limit ?"
         interesting_records = self._db.fetchall(sql,(NUM_OTHERS_DOWNLOADED,))
         for cid, infohash in interesting_records:
-            torrent_dict.setdefault(str(cid), set()).add(infohash)
+            torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             
         return torrent_dict
 

@@ -91,7 +91,7 @@ class RemoteSearchManager:
         self.list.SetNrChannels(delayedResult.get())
         
     def refresh_partial(self, ids):
-        for id in ids:
+        for infohash in ids:
             startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
     
     def downloadStarted(self, infohash):
