@@ -288,7 +288,23 @@ class Rerequester:
 
                 #Do dht request
                 if self.dht:
-                    self._dht_rerequest()
+                    event = None
+                    
+                    #get event from url
+                    eventStart = s.find('event=')
+                    if eventStart != -1:
+                        eventEnd = s.find('&', eventStart)
+                        if eventEnd == -1:
+                            eventEnd = len(s)
+                    
+                        event = s[eventStart+6:eventEnd]
+                    
+                    doDHT = True
+                    if event and event == 'stopped':
+                        doDHT = False
+                    
+                    if doDHT:
+                        self._dht_rerequest()
                 elif DEBUG_DHT:
                     print >>sys.stderr,"Rerequester: No DHT support loaded"
 
