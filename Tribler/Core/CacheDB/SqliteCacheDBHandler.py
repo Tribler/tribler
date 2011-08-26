@@ -3323,12 +3323,12 @@ class ChannelCastDBHandler(object):
         
         for i in range(len(infohashes)):
             if torrent_ids[i] == None:
-                returnAr[i] = False
+                returnAr.append(False)
         
             else:
                 sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
                 channeltorrent_id = self._db.fetchone(sql, (torrent_ids[i], ))
-                returnAr[i] = True if channeltorrent_id else False
+                returnAr.append(True if channeltorrent_id else False)
         return returnAr
     
     #Old code used by channelcast
@@ -3727,7 +3727,7 @@ class ChannelCastDBHandler(object):
                     results.append((channel_id, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []
-    
+
     def getChannelNames(self, permids):
         names = {}
         
