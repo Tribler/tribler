@@ -531,6 +531,7 @@ class TorrentManager:
             startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
         
     def _gotRemoteHits(self, permid, kws, answers):
+        refreshGrid = False
         try:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
@@ -621,7 +622,7 @@ class TorrentManager:
                     # Store or update self.remoteHits
                     self.remoteHits.append(newval)
                     
-                self.refreshGrid()
+                refreshGrid = True
                 return True
             
             elif DEBUG:
@@ -634,6 +635,9 @@ class TorrentManager:
         
         finally:
             self.remoteLock.release()
+            
+            if refreshGrid:
+                self.refreshGrid()
         
     def refreshGrid(self):
         if self.gridmgr is not None:

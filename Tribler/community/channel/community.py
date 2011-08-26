@@ -17,6 +17,8 @@ from Tribler.Core.dispersy.member import MyMember
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
+from traceback import print_stack
+import sys
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -43,13 +45,19 @@ def forceAndReturnDispersyThread(func):
             
             result = None
             def dispersy_thread():
-                result = func(*args, **kwargs)
-                event.set()
+                try:
+                    result = func(*args, **kwargs)
+                    
+                finally:
+                    event.set()
                 
             _register_task(dispersy_thread)
-            event.wait()
             
-            return result
+            if event.wait(100):
+                return result
+            
+            print_stack()
+            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__
         else:
             return func(*args, **kwargs)
             

@@ -3010,10 +3010,10 @@ class VoteCastDBHandler(BasicDBHandler):
     def removeVote(self, channel_id, voter_id):
         if voter_id:
             sql = "DELETE FROM ChannelVotes WHERE channel_id = ? AND voter_id = ?"
-            sql._db.execute_write(sql, (channel_id, voter_id))
+            self._db.execute_write(sql, (channel_id, voter_id))
         else:
             sql = "DELETE FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL"
-            sql._db.execute_write(sql, (channel_id, ))
+            self._db.execute_write(sql, (channel_id, ))
         
         self._updateVotes(channel_id)
             

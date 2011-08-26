@@ -12,7 +12,8 @@ from threading import Event
 from thread import get_ident
 from time import time
 import sys
-from traceback import format_stack, extract_stack, format_exc
+from traceback import format_stack, extract_stack, format_exc, print_exc,\
+    print_stack
 import os
 
 DEBUG = True
@@ -67,41 +68,34 @@ class GUIDBProducer():
         
         if get_ident() != self.database_thread._thread_ident:
             self.database_thread.register(wrapper, delay=delay, id_=name)
+            
         else:
             print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
             wrapper()
         
 #Wrapping Senders for new delayedResult impl  
 class MySender():
-    def __init__(self, delayedResult, sendReturn):
+    def __init__(self, delayedResult):
         self.delayedResult = delayedResult
-        self.sendReturn = sendReturn
     
     def sendResult(self, result):
         self.delayedResult.setResult(result)
-        
-        if self.sendReturn:
-            self._sendImpl(self.delayedResult)
+        self._sendImpl(self.delayedResult)
         
     def sendException(self, exception, originalTb):
         assert exception is not None
         self.delayedResult.setException(exception, originalTb)
-        
-        if self.sendReturn:
-            self._sendImpl(self.delayedResult)
-        else:
-            #will cause exception to be raised
-            self.delayedResult.get()
+        self._sendImpl(self.delayedResult)
         
 class MySenderWxEvent(MySender, SenderWxEvent):
-    def __init__(self, handler, eventClass, delayedResult, resultAttr="delayedResult", jobID=None, sendReturn = True, **kwargs):
+    def __init__(self, handler, eventClass, delayedResult, resultAttr="delayedResult", jobID=None, **kwargs):
         SenderWxEvent.__init__(self, handler, eventClass, resultAttr, jobID, **kwargs)
-        MySender.__init__(self, delayedResult, sendReturn)
+        MySender.__init__(self, delayedResult)
         
 class MySenderCallAfter(MySender, SenderCallAfter):
-    def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}, sendReturn = True):
+    def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
         SenderCallAfter.__init__(self, listener, jobID, args, kwargs)
-        MySender.__init__(self,  delayedResult, sendReturn)
+        MySender.__init__(self,  delayedResult)
 
 #ASyncDelayedResult, allows a get call before result is set
 #This call is blocking, but allows you to specify a timeout
@@ -124,26 +118,35 @@ class ASyncDelayedResult():
         
         self.isFinished.set()
     
-    def get(self, timeout = None):
+    def get(self, timeout = 100):
         if self.isFinished.wait(timeout):
             if self.__exception: # exception was raised!
                 self.__exception.originalTraceback = self.__original_traceback
-                print >> sys.stderr, self.__original_traceback 
+                
+                print >> sys.stderr, self.__original_traceback
                 raise self.__exception
-        
             return self.__result
-    
+        
+        else:
+            print_stack()
+            print >> sys.stderr, "TIMEOUT on get", self.__jobID
+            
     def wait(self, timeout = None):
         return self.isFinished.wait(timeout)
-            
+
+def exceptionConsumer(delayedResult, *args, **kwargs):
+    try:
+        delayedResult.get()
+    except Exception, e:
+        print >> sys.stderr, e.__original_traceback
+        
 #Modified startWorker to use our single thread
 #group and daemon variables have been removed 
 def startWorker(
     consumer, workerFn, 
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
-    jobID=None, delay=0.0,
-    sendReturn=True):
+    jobID=None, delay=0.0):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -155,7 +158,7 @@ def startWorker(
     """
     
     if not consumer:
-        sendReturn = False
+        consumer = exceptionConsumer
         
     if jobID is None:
         try:
@@ -169,9 +172,9 @@ def startWorker(
     
     if isinstance(consumer, wx.EvtHandler):
         eventClass = cargs[0]
-        sender = MySenderWxEvent(consumer, eventClass, result, jobID=jobID, sendReturn = sendReturn, **ckwargs)
+        sender = MySenderWxEvent(consumer, eventClass, result, jobID=jobID, **ckwargs)
     else:
-        sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs, sendReturn = sendReturn)
+        sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs)
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
