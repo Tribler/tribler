@@ -3189,15 +3189,17 @@ class ChannelCastDBHandler(object):
             update_channel = "UPDATE Channels SET dispersy_cid = ?, name = ?, description = ? WHERE id = ?"
             self._db.execute_write(update_channel, (_dispersy_cid, name, description, channel_id), commit = self.shouldCommit)
             
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+            
         else: #insert channel
             insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
             channel_id = self._db.fetchone(insert_channel, (_dispersy_cid, peer_id, name, description))
             
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
+            
         if not self._channel_id and self._get_my_dispersy_cid() == dispersy_cid:
             self._channel_id = channel_id
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_CREATE, channel_id)
-        
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
         return channel_id
         
     def on_channel_modification_from_dispersy(self, channel_id, modification_type, modification_value):
@@ -3538,14 +3540,14 @@ class ChannelCastDBHandler(object):
     def getRecentAndRandomTorrents(self,NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
         
+        least_recent = -1
         sql = "select dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id==? and ChannelTorrents.dispersy_id <> -1 order by time_stamp desc limit ?"
         myrecenttorrents = self._db.fetchall(sql, (self._channel_id, NUM_OWN_RECENT_TORRENTS))
         for cid, infohash, timestamp in myrecenttorrents:
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
-            
             least_recent = timestamp
             
-        if len(myrecenttorrents) == NUM_OWN_RECENT_TORRENTS:
+        if len(myrecenttorrents) == NUM_OWN_RECENT_TORRENTS and least_recent != -1:
             sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id==? and time_stamp<? and dispersy_id <> -1 order by random() limit ?"
             myrandomtorrents = self._db.fetchall(sql,(self._channel_id, least_recent, NUM_OWN_RANDOM_TORRENTS))
             for cid, infohash, _ in myrecenttorrents:
@@ -3560,13 +3562,14 @@ class ChannelCastDBHandler(object):
             NUM_OTHERS_RECENT_TORRENTS +=  additionalSpace/2
             NUM_OTHERS_RANDOM_TORRENTS +=  additionalSpace - (additionalSpace/2)
         
+        least_recent = -1
         sql = "select dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and dispersy_id <> -1 order by time_stamp desc limit ?"
         othersrecenttorrents = self._db.fetchall(sql, (NUM_OTHERS_RECENT_TORRENTS,))
         for cid, infohash, timestamp in othersrecenttorrents:
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             least_recent = timestamp
         
-        if othersrecenttorrents and len(othersrecenttorrents) == NUM_OTHERS_RECENT_TORRENTS:
+        if othersrecenttorrents and len(othersrecenttorrents) == NUM_OTHERS_RECENT_TORRENTS and least_recent != -1:
             sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and time_stamp < ? and dispersy_id <> -1 order by random() limit ?"
             othersrandomtorrents = self._db.fetchall(sql,(least_recent ,NUM_OTHERS_RANDOM_TORRENTS))
             for cid, infohash in othersrandomtorrents:

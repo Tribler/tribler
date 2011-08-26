@@ -57,7 +57,7 @@ class ChannelConversion(BinaryConversion):
         trackers = message.payload.trackers
         
         def create_msg():
-            normal_msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, files, trackers
+            normal_msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, tuple(files), tuple(trackers)
             normal_msg = encode(normal_msg)
             return zlib.compress(normal_msg, 9)
         

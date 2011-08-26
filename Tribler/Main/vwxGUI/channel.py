@@ -94,12 +94,12 @@ class ChannelManager():
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
             if self.list.ShouldGuiUpdate():
-                self._refresh_partial((infohash))
+                self._refresh_partial((infohash,))
             else:
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
             
-    def channelUpdated(self, permid):
+    def channelUpdated(self, id):
         if self.list.id == id:
             if self.list.ShouldGuiUpdate():
                 self._refresh_list()
