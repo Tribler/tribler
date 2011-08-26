@@ -466,9 +466,6 @@ class BundlePanel(wx.Panel):
             if item:
                 return item.GetExpandedPanel()
             
-    def SetFilteredResults(self, nr):
-        pass
-            
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
         
@@ -510,6 +507,9 @@ class BundleListView(GenericSearchList):
         return TorrentDetails(item, item.original_data, compact = True)
     
     def OnCollapseInternal(self, item):
+        pass
+    
+    def SetFilteredResults(self, nr):
         pass
     
     def OnChange(self, scrollToTop = False):
