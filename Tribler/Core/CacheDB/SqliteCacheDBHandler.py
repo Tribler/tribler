@@ -3837,7 +3837,7 @@ class ChannelCastDBHandler(object):
         return nr_favorites
     
     def getTimeframeForChannel(self, channel_id):
-        sql = 'Select min(time_stamp), max(time_stamp), count(distinct infohash) From ChannelTorrents Where channel_id = ?'
+        sql = 'Select min(time_stamp), max(time_stamp), count(distinct torrent_id) From ChannelTorrents Where channel_id = ?'
         return  self._db.fetchone(sql, (channel_id,))
     
     def getTorrentMarkings(self, channeltorrent_id):
