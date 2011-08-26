@@ -682,7 +682,7 @@ class ChannelCommunity(Community):
         infohashes = list(infohashes)
         
         collect = []
-        haveTorrents = self._channelcast_db.hasTorrents(infohashes)
+        haveTorrents = self._channelcast_db.hasTorrents(self._channel_id, infohashes)
         for i in range(len(infohashes)):
             if not haveTorrents[i]:
                 collect.append(infohashes[i])

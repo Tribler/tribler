@@ -292,13 +292,13 @@ class ChannelCastCore:
     def _sequentialQueryPeers(self, channel_id, publisher_id, peers, timeframe = None):
         def nextPeer(result, query_permid, query):
             if peers:
-                dorequest(peers)
+                dorequest()
         
         def seqtimeout(permid):
             #actual timeout, or did response arrive
             if peers and permid == peers[0][0]:
                 peers.pop(0)
-                dorequest(peers)
+                dorequest()
                 
         def seqcallback(query_permid, query, hits):
             #did timeout already occur?
@@ -308,7 +308,7 @@ class ChannelCastCore:
             else:
                 self.updateChannel(query_permid, query, hits)      
             
-        def dorequest(peers):
+        def dorequest():
             if peers:
                 permid, selversion = peers[0]
                 

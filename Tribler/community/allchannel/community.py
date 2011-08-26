@@ -398,7 +398,7 @@ class ChannelCastDBStub():
         for _, message in messages:
             self._cachedTorrents[message.payload.infohash] = message  
 
-    def hasTorrents(self, infohashes):
+    def hasTorrents(self, channel_id, infohashes):
         self._cacheTorrents()
 
         returnAr = []
