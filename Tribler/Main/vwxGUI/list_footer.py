@@ -185,6 +185,7 @@ class ChannelFooter(ListFooter):
         self.manage = wx.Button(self, -1, 'Edit this Channel')
         self.spam = wx.Button(self, -1, 'Mark as Spam')
         self.favorite = wx.Button(self, -1, 'Mark as Favorite')
+        self.ortext = None
         
     def SetEvents(self, spam, favorite, remove, manage):
         self.spam_eventhandler = spam
@@ -223,6 +224,8 @@ class ChannelFooter(ListFooter):
             
             self.spam.SetLabel('Mark as Spam')
             self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
+            
+            self.ortext = wx.StaticText(self, -1, 'or')
                 
             self.favorite.SetLabel('Mark as Favorite')
             self.favorite.Bind(wx.EVT_BUTTON, self.favorite_eventhandler)
@@ -233,7 +236,7 @@ class ChannelFooter(ListFooter):
             
             buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
             buttonSizer.Add(self.spam)
-            buttonSizer.Add(wx.StaticText(self, -1, 'or'), wx.LEFT|wx.RIGHT|wx.ALIGN_CENTRE_VERTICAL, 7)
+            buttonSizer.Add(self.ortext, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTRE_VERTICAL, 7)
             buttonSizer.Add(self.favorite)
             
             vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, 10)
@@ -243,6 +246,10 @@ class ChannelFooter(ListFooter):
         self.spam.Show(spam or not explicit_vote)
         self.manage.Show(manage)
         self.subtitle.Show(not explicit_vote)
+        
+        if self.ortext and explicit_vote:
+            self.ortext.Destroy()
+            self.ortext = None
         
         self.hSizer.Layout()
         self.Layout()

@@ -209,6 +209,7 @@ class SelectedChannelList(GenericSearchList):
             
     def SetVote(self, vote):
         self.footer.SetStates(vote == -1, vote == 2, self.my_channel)
+        self.Layout()
         
     def SetMyChannelId(self, channel_id):
         self.GetManager().my_channel_id = channel_id
