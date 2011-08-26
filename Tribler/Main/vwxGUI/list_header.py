@@ -438,7 +438,7 @@ class FamilyFilterHeader(TitleHeader):
         self.family_filter = family_filter
         self._SetLabels()
         
-    def SetFiltered(self, nr):
+    def SetFamilyFiltered(self, nr):
         self.nrfiltered = nr
         self._SetLabels()
     
@@ -465,6 +465,9 @@ class FamilyFilterHeader(TitleHeader):
         self.Thaw()
 
 class SearchHeader(FamilyFilterHeader):
+    def __init__(self, *args, **kwargs):
+        FamilyFilterHeader.__init__(self, *args, **kwargs)
+        self.curSubtitle = ''
     
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
@@ -487,14 +490,20 @@ class SearchHeader(FamilyFilterHeader):
         return hSizer
     
     def SetSubTitle(self, subtitle):
-        self.subtitle.SetLabel('( %s )'%subtitle)
-    
+        if subtitle != '':
+            self.curSubtitle = subtitle
+            self.subtitle.SetLabel('( %s )'%subtitle)
+        else:
+            self.subtitle.SetLabel(subtitle)
+            
     def FilterCorrect(self, regex_correct):
         pass
     
     def SetNrResults(self, nr = None):
         if nr is not None:
-            self.SetSubTitle('Discovered %d after filter'%nr)
+            self.subtitle.SetLabel('( Discovered %d after filter )'%nr)
+        else:
+            self.SetSubTitle(self.curSubtitle)
     
     def OnKey(self, event):
         self.parent.OnFilter(self.filter.GetValue().strip())
@@ -502,6 +511,7 @@ class SearchHeader(FamilyFilterHeader):
     def Reset(self):
         FamilyFilterHeader.Reset(self)
         self.subtitle.SetLabel('')
+        self.curSubtitle = ''
         self.filter.Clear()
         
 class SearchHelpHeader(SearchHeader):
@@ -527,9 +537,6 @@ class SearchHelpHeader(SearchHeader):
         return hSizer
 
     def GetSubTitlePanel(self, parent):
-        pass
-    
-    def GetTitlePanel(self, parent):
         pass
    
     def helpClick(self,event=None):

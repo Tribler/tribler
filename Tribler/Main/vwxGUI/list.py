@@ -43,14 +43,17 @@ class RemoteSearchManager:
             self.list.SetKeywords(keywords, None)
         
         def db_callback():
-            [total_items, nrfiltered, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
+            [total_items, nrfamlilyfiltered, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
             [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
-            wx.CallAfter(self._on_refresh, data_files, total_items, nrfiltered, total_channels, selected_bundle_mode)
+            wx.CallAfter(self._on_refresh, data_files, total_items, nrfamlilyfiltered, total_channels, selected_bundle_mode)
 
         self.guiserver.add_task(db_callback, id = "RemoteSearchManager_refresh")
         
-    def _on_refresh(self, data_files, total_items, nrfiltered, total_channels, selected_bundle_mode):
-        self.list.SetNrResults(total_items, nrfiltered, total_channels, self.oldkeywords)
+    def _on_refresh(self, data_files, total_items, nrfamlilyfiltered, total_channels, selected_bundle_mode):
+        self.list.SetKeywords(self.oldkeywords, total_items)
+        self.list.SetNrResults(total_items, nrfamlilyfiltered)
+        self.list.SetNrChannels(self.oldkeywords, total_channels)
+        
         self.list.SetFF(self.guiutility.getFamilyFilter())
         self.list.SetSelectedBundleMode(selected_bundle_mode)
         self.list.SetData(data_files)
@@ -259,19 +262,17 @@ class ChannelManager():
             print >> sys.stderr, "SelChannelManager complete refresh"
         
         def db_callback():
-            total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id, ChannelManager._req_columns)
-            wx.CallAfter(self._on_data, total_items, nrfiltered, torrentList)
+            total_items, nrfamlilyfiltered, torrentList  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id, ChannelManager._req_columns)
+            wx.CallAfter(self._on_data, total_items, nrfamlilyfiltered, torrentList)
         
         self.guiserver.add_task(db_callback, id = "ChannelManager_refresh_list")
         
-    def _on_data(self, total_items, nrfiltered, torrentList):
+    def _on_data(self, total_items, nrfamlilyfiltered, torrentList):
         torrentList = self.library_manager.addDownloadStates(torrentList)
         
-        if self.list.SetData(torrentList) < total_items: #some items are filtered by quickfilter (do not update total_items)
-            self.list.SetNrResults(None, nrfiltered)
-        else:
-            self.list.SetNrResults(total_items, nrfiltered)
-        
+        self.list.SetNrResults(total_items, nrfamlilyfiltered)
+        self.list.SetData(torrentList)
+                
         if DEBUG:    
             print >> sys.stderr, "SelChannelManager complete refresh done"
     
@@ -577,7 +578,10 @@ class List(XRCPanel):
         assert self.ready, "List not ready"
         if self.ready:
             self.list.Select(key, raise_event)
-            
+    
+    def SetFilteredResults(self, nr):
+        pass
+
     def ShouldGuiUpdate(self):
         if not self.IsShownOnScreen():
             return False
@@ -717,22 +721,17 @@ class GenericSearchList(List):
         data = (head['infohash'], [head['name'], head['length'], 0, 0], original_data)
         self.list.RefreshData(key, data)
     
+    def SetNrResults(self, nr, nrfamlilyfiltered):
+        self.total_results = nr
+        if isinstance(nrfamlilyfiltered, int):
+            self.header.SetFamilyFiltered(nrfamlilyfiltered)
+            
     def SetFilteredResults(self, nr):
         if nr != self.total_results: 
             self.header.SetNrResults(nr)
         else:
             self.header.SetNrResults()
-            
-    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
-        if keywords and isinstance(nr, int):
-            self.SetKeywords(keywords, nr)
-        
-        if isinstance(nr_filtered, int):
-            self.header.SetFiltered(nr_filtered)
-            
-        if isinstance(nr_channels, int):
-            self.footer.SetNrResults(nr_channels, keywords)
-    
+
     def OnFilter(self, keyword):
         def doFilter():
             self.header.FilterCorrect(self.list.FilterItems(keyword))
@@ -819,7 +818,7 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        self.header.SetFiltered = self.sidebar.SetFiltered
+        self.header.SetFamilyFiltered = self.sidebar.SetFamilyFiltered
         self.header.SetFF = self.sidebar.SetFF
         
         self.SetBackgroundColour(self.background)
@@ -842,6 +841,9 @@ class SearchList(GenericSearchList):
         footer.SetEvents(self.OnChannelResults)
         return footer
     
+    def SetNrChannels(self, keywords, nr_channels):
+        self.footer.SetNrResults(nr_channels, keywords)
+    
     def SetKeywords(self, keywords, nr = None):
         self.keywords = keywords
         
@@ -852,7 +854,6 @@ class SearchList(GenericSearchList):
                 self.header.SetTitle('Got 1 result for "%s"'%keywords)
             else:
                 self.header.SetTitle('Got %d results for "%s"'%(nr, keywords))
-            self.total_results = nr
         else:
             self.header.SetTitle('Searching for "%s"'%keywords)
     
@@ -1373,15 +1374,14 @@ class SelectedChannelList(GenericSearchList):
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         return self.list.SetData(data)
     
-    def SetNrResults(self, nr, nr_filtered):
-        if isinstance(nr, int):
-            self.total_results = nr
-            if self.total_results == 1:
-                self.header.SetSubTitle('Discovered %d torrent'%self.total_results)
-            else:
-                self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
+    def SetNrResults(self, nr, nrfamilyfiltered):
+        GenericSearchList.SetNrResults(self, nr, nrfamilyfiltered)
         
-        GenericSearchList.SetNrResults(self, None, nr_filtered, None, None)
+        if isinstance(nr, int):
+            if nr == 1:
+                self.header.SetSubTitle('Discovered %d torrent'%nr)
+            else:
+                self.header.SetSubTitle('Discovered %d torrents'%nr)
     
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)

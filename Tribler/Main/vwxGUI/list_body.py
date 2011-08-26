@@ -707,6 +707,7 @@ class AbstractListBody():
             if len(data) == 0:
                 message = "0" + self.__GetFilterMessage()[12:]
         else:
+            self.parent_list.SetFilteredResults(None)
             data = self.raw_data
             
         if not data:

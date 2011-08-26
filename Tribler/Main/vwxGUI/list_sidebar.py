@@ -131,7 +131,7 @@ class SearchSideBar(wx.Panel):
         self.family_filter = family_filter
         self._SetLabels()
     
-    def SetFiltered(self, nr):
+    def SetFamilyFiltered(self, nr):
         self.nrfiltered = nr
         self._SetLabels()
         
