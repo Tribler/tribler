@@ -347,7 +347,6 @@ class BundlePanel(wx.Panel):
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method. Thus we have to do this after the add to the sizer
             self.bundlelist.SetData(self.hits)
-            self.bundlelist.SetNrResults(len(self.hits), 0)
         
         elif self.bundlelist is not None and not show:
             self.vsizer.Detach(self.bundlelist)
@@ -466,6 +465,9 @@ class BundlePanel(wx.Panel):
             item = self.bundlelist.GetExpandedItem()
             if item:
                 return item.GetExpandedPanel()
+            
+    def SetFilteredResults(self, nr):
+        pass
             
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
