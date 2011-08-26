@@ -35,7 +35,9 @@ class EmbeddedPlayerPanel(wx.Panel):
     The Embedded Player consists of a VLCLogoWindow and the media controls such 
     as Play/Pause buttons and Volume Control.
     """
-
+    
+    VIDEO_SIZE = (320,240)
+    
     def __init__(self, parent, utility, vlcwrap, bg, border = True):
         wx.Panel.__init__(self, parent, -1)
         
@@ -90,7 +92,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.vlcwrap = vlcwrap
         if vlcwrap is not None:
             self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
-            self.vlcwin.SetMinSize((320,240))
+            self.vlcwin.SetMinSize(EmbeddedPlayerPanel.VIDEO_SIZE)
             
             if border:
                 player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
@@ -622,7 +624,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         
     def OnMaximize(self):
         if self.vlcwrap and self.border:
-            self.SetMinSize((320,-1))
+            self.SetMinSize((EmbeddedPlayerPanel.VIDEO_SIZE[0],-1))
             
             self.vlcwin.Show(True)
             self.ctrlsizer.ShowItems(True)
