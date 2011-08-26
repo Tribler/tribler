@@ -275,9 +275,9 @@ class Doe:
             self.overlay_bridge.add_task(olthread_send_download_piece_lambda,0)
             
             # ProxyService 90s Test_
-            from Tribler.Core.Statistics.Status.Status import get_status_holder
-            status = get_status_holder("Proxy90secondsTest")
-            status.create_and_add_event("requested-piece-to-proxy", [show_permid_short(proxy_permid), piece])
+#            from Tribler.Core.Statistics.Status.Status import get_status_holder
+#            status = get_status_holder("Proxy90secondsTest")
+#            status.create_and_add_event("requested-piece-to-proxy", [show_permid_short(proxy_permid), piece])
             # _ProxyService 90s Test
             
         except Exception,e:
@@ -745,9 +745,9 @@ class Doe:
                 single_dl.request_finished(piece)
 
                 # ProxyService 90s Test_
-                from Tribler.Core.Statistics.Status.Status import get_status_holder
-                status = get_status_holder("Proxy90secondsTest")
-                status.create_and_add_event("downloaded-piece", [piece, show_permid_short(permid)])
+#                from Tribler.Core.Statistics.Status.Status import get_status_holder
+#                status = get_status_holder("Proxy90secondsTest")
+#                status.create_and_add_event("downloaded-piece", [piece, show_permid_short(permid)])
                 # _ProxyService 90s Test
                 
                 if DEBUG:

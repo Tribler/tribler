@@ -246,9 +246,9 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self.startCMDLineTorrent)
         
         # ProxyService 90s Test_
-        from Tribler.Core.Session import Session
-        session = Session.get_instance()
-        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
+#        from Tribler.Core.Session import Session
+#        session = Session.get_instance()
+#        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
         # _ProxyService 90s Test
         
     def startCMDLineTorrent(self):
@@ -315,9 +315,9 @@ class MainFrame(wx.Frame):
                     dscfg.set_dest_dir(destdir)
             
                 # ProxyService 90s Test_
-                if doemode is not None:
-                    dscfg.set_doe_mode(doemode)
-                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
+#                if doemode is not None:
+#                    dscfg.set_doe_mode(doemode)
+#                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
                 # _ProxyService 90s Test
             
                 videofiles = tdef.get_files(exts=videoextdefaults)
