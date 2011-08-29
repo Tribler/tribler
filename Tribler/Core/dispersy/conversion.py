@@ -773,7 +773,7 @@ class BinaryConversion(Conversion):
             packet = "".join(container)
 
         elif isinstance(message.authentication, MemberAuthentication.Implementation):
-            assert message.authentication.member.private_key, message.authentication.member.database_id
+            assert message.authentication.member.private_key, (message.authentication.member.database_id, message.authentication.member.mid.encode("HEX"), id(message.authentication.member))
             data = "".join(container)
             signature = message.authentication.member.sign(data)
             message.authentication.set_signature(signature)

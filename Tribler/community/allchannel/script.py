@@ -224,6 +224,9 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         assert master.public_key
         assert not master.private_key
 
+        dprint("master: ", master.mid.encode("HEX"), " ", id(master), force=1)
+        dprint("member: ", my_member.mid.encode("HEX"), " ", id(my_member), force=1)
+
         # return AllChannelCommunity.join_community(sha1(master_key).digest(), master_key, my_member, integrate_with_tribler = False)
         return AllChannelCommunity.join_community(master, my_member, integrate_with_tribler = False)
     
