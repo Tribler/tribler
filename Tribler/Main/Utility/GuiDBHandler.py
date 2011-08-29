@@ -40,6 +40,9 @@ class GUIDBProducer():
         return GUIDBProducer.__single
     getInstance = staticmethod(getInstance)
     
+    def onSameThread(self):
+        return get_ident() == self.database_thread._thread_ident
+    
     def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread. The name is 
@@ -66,7 +69,7 @@ class GUIDBProducer():
             if DEBUG:
                 print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
         
-        if get_ident() != self.database_thread._thread_ident:
+        if not self.onSameThread():
             self.database_thread.register(wrapper, delay=delay, id_=name)
             
         else:
@@ -180,4 +183,8 @@ def startWorker(
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
                 name=jobID, delay=delay)
 
-    return result 
+    return result
+
+def onWorkerThread():
+    dbProducer = GUIDBProducer.getInstance()
+    return dbProducer.onSameThread()

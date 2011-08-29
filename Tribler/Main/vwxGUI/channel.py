@@ -1,7 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
 from Tribler.Main.vwxGUI.tribler_topButton import _set_font
 from Tribler.Core.API import *
 
@@ -37,29 +37,33 @@ class ChannelManager():
         else:
             self._refresh_partial(self.dirtyset)
         self.dirtyset.clear()
+    
+    @forceDBThread
+    def reload(self, channel_id):
+        channel = self.channelsearch_manager.getChannel(channel_id)
+        self.refresh(channel)
 
+    @forceWxThread
     def refresh(self, channel = None):
         if channel:
             self.list.Reset()
             self.list.SetChannel(channel)
 
         self._refresh_list()
-        
+    
+    @forceDBThread
     def _refresh_list(self):
         if DEBUG:
             print >> sys.stderr, "SelChannelManager complete refresh"
         
-        def db_callback():
-            self.list.dirty = False
-            
-            nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
-            total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id)
-            return total_items, nrfiltered, torrentList, playlists
+        self.list.dirty = False
         
-        startWorker(self._on_data, db_callback, jobID = "ChannelManager_refresh_list")
-        
-    def _on_data(self, delayedResult):
-        total_items, nrfiltered, torrents, playlists = delayedResult.get()
+        nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
+        total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id)
+        self._on_data(total_items, nrfiltered, torrentList, playlists)
+    
+    @forceWxThread  
+    def _on_data(self, total_items, nrfiltered, torrents, playlists):
         
         torrents = self.library_manager.addDownloadStates(torrents)
         total_items += len(playlists)
@@ -211,6 +215,9 @@ class SelectedChannelList(GenericSearchList):
         self.footer.SetStates(vote == -1, vote == 2, self.my_channel)
         self.Layout()
         
+    def Reload(self, *args):
+        self.GetManager().reload(self.id)
+        
     def SetMyChannelId(self, channel_id):
         self.GetManager().my_channel_id = channel_id
     
@@ -319,31 +326,33 @@ class SelectedChannelList(GenericSearchList):
             panel.Saved()
             
     def OnRemoveVote(self, event):
-        self.channelsearch_manager.remove_vote(self.id)
-        self.SetVote(0)
+        def db_call():
+            self.channelsearch_manager.remove_vote(self.id)
+            
+        startWorker(self.Reload, db_call)
     
     def OnFavorite(self, event = None):
-        self.channelsearch_manager.favorite(self.id)
-        self.SetVote(2)
+        def db_call():
+            self.channelsearch_manager.favorite(self.id)
+            
         
-        #Request all items from connected peers
-        if not self.channel.isDispersy():
-            def db_call():
+            #Request all items from connected peers
+            if not self.channel.isDispersy():
                 permid = self.channelsearch_manager.getPermidFromChannel(self.id)
                 channelcast = BuddyCastFactory.getInstance().channelcast_core
                 channelcast.updateAChannel(self.id, permid)
-            
-            startWorker(None, db_call)
-        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
+
+            self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
+        startWorker(self.Reload, db_call)
         
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
-            self.channelsearch_manager.spam(self.id)
-            self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
+            def db_call():
+                self.channelsearch_manager.spam(self.id)
+                self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2) 
             
-            self.SetVote(-1)
-            
+            startWorker(self.Reload, db_call)
         dialog.Destroy()
     
     def OnManage(self, event):

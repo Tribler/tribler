@@ -1233,23 +1233,20 @@ class ChannelSearchGridManager:
         if not timestamp:
             timestamp = int(time())
         
-        def dispersy_thread():
-            dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
-            dispersy_cid = str(dispersy_cid)
-            if dispersy_cid != '-1':
-                for community in self.dispersy.get_communities():
-                    if isinstance(community, AllChannelCommunity):
-                        community._disp_create_votecast(dispersy_cid, vote, timestamp)
-                        break
-                
-            elif vote == 2:
-                self.votecastdb.subscribe(channel_id)
-            elif vote == -1:
-                self.votecastdb.spam(channel_id)
-            else:
-                self.votecastdb.unsubscribe(channel_id)
+        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+        dispersy_cid = str(dispersy_cid)
+        if dispersy_cid != '-1':
+            for community in self.dispersy.get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    community._disp_create_votecast(dispersy_cid, vote, timestamp)
+                    break
             
-        self.dispersy.callback.register(dispersy_thread)
+        elif vote == 2:
+            self.votecastdb.subscribe(channel_id)
+        elif vote == -1:
+            self.votecastdb.spam(channel_id)
+        else:
+            self.votecastdb.unsubscribe(channel_id)
     
     def markTorrent(self, channel_id, infohash, type, timestamp = None):
         if not timestamp:

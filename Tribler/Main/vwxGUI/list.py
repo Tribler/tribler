@@ -158,6 +158,7 @@ class ChannelSearchManager:
             self.refresh()
         else:
             self.refresh_partial(self.dirtyset)
+            self.list.dirty = False
         self.dirtyset.clear()
     
     def refresh(self, search_results = None):
@@ -244,6 +245,10 @@ class ChannelSearchManager:
                     #Show new channel, but only if we are not showing search results
                     self.refresh()
                     
+            elif self.list.InList(id):
+                self.dirtyset.add(id)
+                self.list.dirty = True
+                
             elif not votecast:
                 if self.category == 'All':
                     update = True
@@ -251,6 +256,7 @@ class ChannelSearchManager:
                     update = len(self.list.GetItems()) < 20
                 else:
                     update = False
+                
                 if update: 
                     self.do_or_schedule_refresh()
 
@@ -1298,11 +1304,13 @@ class ChannelList(List):
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
     
     def __favorite_icon(self, item):
-        if item.original_data.id == self.my_id:
+        channel = item.original_data
+        if channel.id == self.my_id:
             return self.mychannel
-        if item.original_data.id in self.favorites:
+        
+        if channel.isFavorite():
             return self.favorite
-        if item.original_data.id in self.spam_channels:
+        if channel.isSpam():
             return self.spam
         return self.normal
     
@@ -1352,9 +1360,6 @@ class ChannelList(List):
         List.SetData(self, data)
         
         if len(data) > 0:
-            self.favorites = [channel.id for channel in data if channel.isFavorite()]
-            self.spam_channels = [channel.id for channel in data if channel.isSpam()]
-
             max_votes = max([channel.nr_favorites for channel in data])
             if max_votes > self.max_votes:
                 self.max_votes = max_votes

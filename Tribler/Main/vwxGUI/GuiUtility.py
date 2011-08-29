@@ -14,7 +14,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 
@@ -41,6 +41,16 @@ def warnWxThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+def forceDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if onWorkerThread():
+            func(*args, **kwargs)
+        else:
+            print >> sys.stderr, "SWITCHING TO DBTHREAD", func.__name__
+            startWorker(None, func, wargs=args, wkwargs=kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
 
 class GUIUtility:
     __single = None

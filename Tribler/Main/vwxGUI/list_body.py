@@ -53,6 +53,7 @@ class ListItem(wx.Panel):
             self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
+            icon = None
             if self.columns[i].get('icon', False):
                 if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
                     self.icontype = self.columns[i]['icon']
@@ -79,6 +80,7 @@ class ListItem(wx.Panel):
                 
                 #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
                 label.SetLabel(str_data.replace('&', "&&"))
+                label.icon = icon
                 self.controls.append(label)
                 
                 self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
@@ -89,6 +91,7 @@ class ListItem(wx.Panel):
                 control = self.columns[i]['method'](self, self)
                 if control:
                     self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                    control.icon = icon
                     self.controls.append(control)
                     
                     if self.columns[i]['width'] == -1:
@@ -143,6 +146,12 @@ class ListItem(wx.Panel):
         
         self.Freeze()
         for i in xrange(len(self.columns)):
+            if self.columns[i].get('icon', False) and not isinstance(self.columns[i]['icon'], basestring):
+                icon = self.columns[i]['icon'](self)
+                if icon:
+                    self.controls[control_index].icon.SetBitmap(icon)
+                    self.controls[control_index].icon.Refresh() 
+            
             type = self.columns[i].get('type','label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(data[1][i])
