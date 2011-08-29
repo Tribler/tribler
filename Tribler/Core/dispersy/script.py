@@ -323,7 +323,7 @@ class ScenarioScriptBase(ScriptBase):
             #print statistics
             #TODO: total_send, total_received should be implemented again
             #log("dispersy.log", "statistics", total_send = self._dispersy._total_send, total_received = self._dispersy._total_received)
-            log("dispersy.log", "statistics", total_send = 1, total_received = 1)
+            log("dispersy.log", "statistics", total_send = self._dispersy._statistics._total_up, total_received = self._dispersy._statistics._total_down)
 
             # sleep until the next step
             yield self.sleep()

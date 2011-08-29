@@ -98,6 +98,8 @@ class Statistics(object):
         self._success = {}
         self._outgoing = {}
         self._sequence_number = 0
+        self._total_up = 0
+        self._total_down = 0
 
     def reset(self):
         """
@@ -108,7 +110,9 @@ class Statistics(object):
                     "delay":self._delay,
                     "success":self._success,
                     "outgoing":self._outgoing,
-                    "sequence_number":self._sequence_number}
+                    "sequence_number":self._sequence_number,
+                    "total_up": self._total_up,
+                    "total_down": self._total_down}
 
         finally:
             self._drop = {}
@@ -116,6 +120,8 @@ class Statistics(object):
             self._success = {}
             self._outgoing = {}
             self._sequence_number += 1
+            self._total_up = 0
+            self._total_down = 0
 
     def drop(self, key, bytes, count=1):
         """
@@ -162,7 +168,15 @@ class Statistics(object):
         subdict = self._outgoing.setdefault(address, {})
         a, b = subdict.get(key, (0, 0))
         subdict[key] = (a+count, b+bytes)
-
+        
+    def increment_total_up(self, bytes):
+        assert isinstance(bytes, (int, long))
+        self._total_up += bytes
+        
+    def increment_total_down(self, bytes):
+        assert isinstance(bytes, (int, long))
+        self._total_down += bytes
+        
 class Dispersy(Singleton):
     """
     The Dispersy class provides the interface to all Dispersy related commands, managing the in- and
@@ -1143,6 +1157,9 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
         assert isinstance(cache, bool)
+        
+        bytes_received = sum(len(packet) for _, packet in packets)
+        self._statistics.increment_total_down(bytes_received)
 
         addresses = set()
         sort_key = lambda tup: (tup[0].priority, tup[0]) # meta, address, packet, conversion
@@ -1942,6 +1959,9 @@ class Dispersy(Singleton):
         assert isinstance(addresses, (tuple, list, set)), type(addresses)
         assert isinstance(packets, (tuple, list, set)), type(packets)
         assert isinstance(key, unicode), type(key)
+        
+        bytes_send = sum(len(packet) for packet in packets)
+        self._statistics.increment_total_up(bytes_send)
 
         if __debug__:
             if not addresses:
