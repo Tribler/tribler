@@ -612,7 +612,7 @@ class BinaryConversion(Conversion):
 
         # check that the cluster is valid, i.e. that there is a message with a SubjectiveDestination
         # policy and this cluster value
-        if not cluster in placeholder.meta.community.subjective_set_clusters:
+        if not cluster in meta.community.subjective_set_clusters:
             raise DropPacket("Invalid subjective-set cluster value")
 
         members = []
