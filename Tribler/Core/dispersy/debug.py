@@ -6,24 +6,17 @@ from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from destination import CommunityDestination, AddressDestination
 from distribution import DirectDistribution, LastSyncDistribution, FullSyncDistribution
 from dprint import dprint
-from member import MyMember, Member
-from member import PrivateMember, MyMember
+from member import Member
 from message import Message
-from payload import MissingSequencePayload, SyncPayload, SignatureResponsePayload, CandidateRequestPayload, IdentityPayload, SimilarityPayload
+from payload import MissingSequencePayload, SyncPayload, SignatureResponsePayload, CandidateRequestPayload, IdentityPayload
 from resolution import PublicResolution, LinearResolution
 
-class DebugOnlyMembers(object):
+class DebugOnlyMember(Member):
     _singleton_instances = {}
 
     @property
     def database_id(self):
-        return Member(self.public_key).database_id
-
-class DebugPrivateMember(DebugOnlyMembers, PrivateMember):
-    pass
-
-class DebugMyMember(DebugOnlyMembers, MyMember):
-    pass
+        return Member.get_instance(self.public_key).database_id
 
 class Node(object):
     _socket_range = (8000, 8999)
@@ -75,7 +68,7 @@ class Node(object):
         assert sync_with_database is None, "The parameter sync_with_database is deprecated and must be None"
 
         ec = ec_generate_key(u"low")
-        self._my_member = DebugPrivateMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=False)
+        self._my_member = DebugOnlyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=False)
 
         if identity:
             # update identity information
@@ -245,10 +238,10 @@ class Node(object):
                               meta.destination.implement(),
                               meta.payload.implement(address))
 
-    def create_dispersy_undo_message(self, message, global_time):
+    def create_dispersy_undo_message(self, message, global_time, sequence_number):
         meta = self._community.get_meta_message(u"dispersy-undo")
         return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
+                              meta.distribution.implement(global_time, sequence_number),
                               meta.destination.implement(),
                               meta.payload.implement(message.authentication.member, message.distribution.global_time, message))
 
@@ -295,16 +288,6 @@ class Node(object):
                               meta.distribution.implement(global_time),
                               meta.destination.implement(),
                               meta.payload.implement(time_low, time_high, bloom_filter))
-
-    def create_dispersy_similarity_message(self, cluster, community, similarity, global_time):
-        assert isinstance(cluster, int)
-        assert 0 < cluster < 2^8, "CLUSTER must fit in one byte"
-        assert isinstance(similarity, BloomFilter)
-        meta = self._community.get_meta_message(u"dispersy-similarity")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(cluster, similarity))
 
     def create_dispersy_missing_sequence_message(self, missing_member, missing_message_meta, missing_low, missing_high, global_time, destination_address):
         assert isinstance(missing_member, Member)

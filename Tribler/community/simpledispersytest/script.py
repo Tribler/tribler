@@ -14,7 +14,7 @@ from community import SimpleDispersyTestCommunity
 from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.Core.dispersy.crypto import ec_to_private_bin, ec_from_private_pem
 from Tribler.Core.dispersy.script import ScriptBase
-from Tribler.Core.dispersy.member import MyMember, Member
+from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.dprint import dprint
 
 class SetupScript(ScriptBase):
@@ -52,7 +52,7 @@ class SetupScript(ScriptBase):
             pem = open(expanduser("~/simpledispersytest_ec_private_key_%s" % member_name), "r").read()
             ec = ec_from_private_pem(pem)
             private_key = ec_to_private_bin(ec)
-            my_member = MyMember(hardcoded_public_key, private_key)
+            my_member = Member(hardcoded_public_key, private_key)
 
             # obtain the master_private_key for the master_member from disk
             pem = open(expanduser("~/simpledispersytest_ec_master_private_key"), "r").read()

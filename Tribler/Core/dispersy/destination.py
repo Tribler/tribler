@@ -167,88 +167,9 @@ class SubjectiveDestination(Destination):
     # def error_rate(self):
     #     return self._error_rate
 
+    def setup(self, message):
+        message.community.dispersy.database.execute(u"UPDATE meta_message SET cluster = ? WHERE id = ?",
+                                                    (self._cluster, message.database_id))
+
     def generate_footprint(self):
         return "SubjectiveDestination:" + str(self._cluster)
-
-class SimilarityDestination(Destination):
-    class Implementation(Destination.Implementation):
-        def __init__(self, meta, bic_occurrence=0):
-            assert isinstance(bic_occurrence, (int, long))
-            super(SimilarityDestination.Implementation, self).__init__(meta)
-            self._bic_occurrence = bic_occurrence
-
-        @property
-        def cluster(self):
-            return self._meta._cluster
-
-        @property
-        def size(self):
-            return self._meta._size
-
-        @property
-        def minimum_bits(self):
-            return self._meta._minimum_bits
-
-        @property
-        def maximum_bits(self):
-            return self._meta._maximum_bits
-
-        @property
-        def threshold(self):
-            return self._meta._threshold
-
-        @property
-        def bic_occurrence(self):
-            return self._bic_occurrence
-
-        @property
-        def is_similar(self):
-            return self._bic_occurrence >= self._meta._threshold
-
-        @property
-        def footprint(self):
-            return "SimilarityDestination:" + str(self._meta._cluster)
-
-    def __init__(self, cluster, size, minimum_bits, maximum_bits, threshold):
-        assert isinstance(cluster, int)
-        assert 0 < cluster < 2^8, "CLUSTER must fit in one byte"
-        assert isinstance(size, (int, long))
-        assert 0 < size < 2^16, "SIZE must fit in two bytes"
-        assert isinstance(minimum_bits, int)
-        assert 0 <= minimum_bits <= size
-        assert isinstance(maximum_bits, int)
-        assert minimum_bits <= maximum_bits <= size
-        assert isinstance(threshold, int)
-        assert 0 < threshold <= size
-        self._cluster = cluster
-        self._size = size
-        self._minimum_bits = minimum_bits
-        self._maximum_bits = maximum_bits
-        self._threshold = threshold
-
-    @property
-    def cluster(self):
-        return self._cluster
-
-    @property
-    def size(self):
-        return self._size
-
-    @property
-    def minimum_bits(self):
-        return self._minimum_bits
-
-    @property
-    def maximum_bits(self):
-        return self._maximum_bits
-
-    @property
-    def threshold(self):
-        return self._threshold
-
-    def generate_footprint(self):
-        return "SimilarityDestination:" + str(self._cluster)
-
-# class PrivilegedDestination(Destination):
-#     class Implementation(Destination.Implementation):
-#         pass

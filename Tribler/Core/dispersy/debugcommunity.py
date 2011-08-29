@@ -4,10 +4,10 @@ from authentication import MultiMemberAuthentication, MemberAuthentication
 from community import Community
 from conversion import BinaryConversion
 from debug import Node
-from destination import MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination
+from destination import MemberDestination, CommunityDestination, SubjectiveDestination
 from distribution import DirectDistribution, FullSyncDistribution, LastSyncDistribution
 from message import Message, DropPacket, DelayMessageByProof
-from member import Member, MyMember
+from member import Member
 from payload import Payload
 from resolution import PublicResolution, LinearResolution
 
@@ -68,29 +68,10 @@ class DebugNode(Node):
         return self._create_text_message(u"full-sync-text", text, global_time)
 
     def create_in_order_text_message(self, text, global_time):
-        return self._create_text_message(u"in-order-text", text, global_time)
+        return self._create_text_message(u"ASC-text", text, global_time)
 
     def create_out_order_text_message(self, text, global_time):
-        return self._create_text_message(u"out-order-text", text, global_time)
-
-    def create_random_order_text_message(self, text, global_time):
-        return self._create_text_message(u"random-order-text", text, global_time)
-
-    def create_taste_aware_message(self, number, global_time, sequence_number):
-        assert isinstance(number, (int, long))
-        meta = self._community.get_meta_message(u"taste-aware-record")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(number))
-
-    def create_taste_aware_message_last(self, number, global_time, sequence_number):
-        assert isinstance(number, (int, long))
-        meta = self._community.get_meta_message(u"taste-aware-record-last")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(number))
+        return self._create_text_message(u"DESC-text", text, global_time)
 
     def create_subjective_set_text_message(self, text, global_time):
         return self._create_text_message(u"subjective-set-text", text, global_time, destination=(True,))
@@ -110,12 +91,9 @@ class DebugCommunityConversion(BinaryConversion):
         self.define_meta_message(chr(3), community.get_meta_message(u"last-9-sequence-test"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(4), community.get_meta_message(u"double-signed-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(5), community.get_meta_message(u"triple-signed-text"), self._encode_text, self._decode_text)
-        self.define_meta_message(chr(6), community.get_meta_message(u"taste-aware-record"), self._encode_taste_aware_record, self._decode_taste_aware_record)
-        self.define_meta_message(chr(7), community.get_meta_message(u"taste-aware-record-last"), self._encode_taste_aware_record, self._decode_taste_aware_record)
         self.define_meta_message(chr(8), community.get_meta_message(u"full-sync-text"), self._encode_text, self._decode_text)
-        self.define_meta_message(chr(9), community.get_meta_message(u"in-order-text"), self._encode_text, self._decode_text)
-        self.define_meta_message(chr(10), community.get_meta_message(u"out-order-text"), self._encode_text, self._decode_text)
-        self.define_meta_message(chr(11), community.get_meta_message(u"random-order-text"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(9), community.get_meta_message(u"ASC-text"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(10), community.get_meta_message(u"DESC-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(12), community.get_meta_message(u"subjective-set-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(13), community.get_meta_message(u"last-1-multimember-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(14), community.get_meta_message(u"protected-full-sync-text"), self._encode_text, self._decode_text)
@@ -138,18 +116,6 @@ class DebugCommunityConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(text)
 
-    def _encode_taste_aware_record(self, message):
-        return pack("!L", message.payload.number),
-
-    def _decode_taste_aware_record(self, placeholder, offset, data):
-        if len(data) < offset + 4:
-            raise DropPacket("Insufficient packet size")
-
-        number, = unpack_from("!L", data, offset)
-        offset += 8
-
-        return offset, placeholder.meta.payload.implement(number)
-
 #
 # Payload
 #
@@ -164,17 +130,6 @@ class TextPayload(Payload):
         @property
         def text(self):
             return self._text
-
-class TasteAwarePayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, number):
-            assert isinstance(number, (int, long))
-            super(TasteAwarePayload.Implementation, self).__init__(meta)
-            self._number = number
-
-        @property
-        def number(self):
-            return self._number
 
 #
 # Community
@@ -198,20 +153,17 @@ class DebugCommunity(Community):
         return [DebugCommunityConversion(self)]
 
     def initiate_meta_messages(self):
-        return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128, history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"last-9-nosequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128, history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"last-9-sequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128, history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"last-1-multimember-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_func), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128, history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+        return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128, history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"last-9-nosequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128, history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"last-9-sequence-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128, history_size=9), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"last-1-multimember-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_func), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128, history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"double-signed-text", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_double_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"triple-signed-text", MultiMemberAuthentication(count=3, allow_signature_func=self.allow_triple_signed_text), PublicResolution(), DirectDistribution(), MemberDestination(), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"taste-aware-record", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"in-order", priority=128), SimilarityDestination(cluster=1, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
-                Message(self, u"taste-aware-record-last", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128, history_size=1), SimilarityDestination(cluster=2, size=16, minimum_bits=6, maximum_bits=10, threshold=12), TasteAwarePayload(), self.check_text, self.on_taste_aware_record),
-                Message(self, u"full-sync-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"in-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"out-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"random-order-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
-                Message(self, u"protected-full-sync-text", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"full-sync-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text, self.undo_text),
+                Message(self, u"ASC-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"DESC-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"protected-full-sync-text", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 ]
 
     def create_full_sync_text(self, text, store=True, update=True, forward=True):
@@ -234,20 +186,6 @@ class DebugCommunity(Community):
                                  meta.destination.implement(member),
                                  meta.payload.implement(text))
         return self.create_dispersy_signature_request(message, response_func, response_args, timeout, store, forward)
-
-    def create_taste_aware_record(self, number, sequence_number):
-        meta = self.get_meta_message(u"taste-aware-record")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(self.global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(number))
-
-    def create_taste_aware_record_last(self, number, sequence_number):
-        meta = self.get_meta_message(u"taste-aware-record-last")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(self.global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(number))
 
     def allow_double_signed_text(self, message):
         """
@@ -282,15 +220,6 @@ class DebugCommunity(Community):
     #
     def allow_signature_func(self, message):
         return True
-
-    #
-    # taste-aware-record
-    #
-    def on_taste_aware_record(self, address, message):
-        """
-        Received a taste aware record.
-        """
-        dprint(message.payload.number)
 
     #
     # protected-full-sync-text

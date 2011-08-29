@@ -444,7 +444,7 @@ def _config_read():
                         filter_add_by_pattern(chain, after, before, jump=jump)
             except Exception, e:
                 raise Exception("Error parsing line %s \"%s\"\n%s %s" % (line_number, line, type(e), str(e)))
-            
+
 _config_read()
 
 # class RemoteProtocol:
@@ -766,6 +766,8 @@ def dprint(*args, **kargs):
     # always add stderr to output if level is error or exception is set
     if kargs["level"] == LEVEL_ERROR or kargs["exception"]:
         kargs["stderr"] = True
+        kargs["stdout"] = False
+        print >> stdout, prefix + "See stderr for exception"
 
     if kargs["stdout"]:
         print >> stdout, prefix + ("\n"+prefix).join([msg[:10000] for msg in messages])
@@ -780,7 +782,6 @@ def dprint(*args, **kargs):
             #         print >> stdout, line,
         if kargs["exception"]:
             print_exception(*exc_info(), **{"file":stdout})
-            
         stdout.flush()
     if kargs["stderr"]:
         print >> stderr, prefix + ("\n"+prefix).join([msg[:10000] for msg in messages])
@@ -788,7 +789,6 @@ def dprint(*args, **kargs):
             print_stack(file=stderr)
         if kargs["exception"]:
             print_exception(*exc_info(), **{"file":stderr})
-            
         stderr.flush()
     if kargs["remote"]:
         # todo: the remote_host and remote_port are values that may change

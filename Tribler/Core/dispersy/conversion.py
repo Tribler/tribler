@@ -6,11 +6,10 @@ from struct import pack, unpack_from
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from crypto import ec_check_public_bin
-from destination import MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination, SimilarityDestination
+from destination import MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution, RelayDistribution
 from encoding import encode, decode
-from member import PrivateMember
 from message import DelayPacket, DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
 from resolution import LinearResolution
 
@@ -162,8 +161,6 @@ class BinaryConversion(Conversion):
         define(249, u"dispersy-candidate-response", self._encode_candidate_response, self._decode_candidate_response)
         define(248, u"dispersy-identity", self._encode_identity, self._decode_identity)
         define(247, u"dispersy-missing-identity", self._encode_missing_identity, self._decode_missing_identity)
-#         define(246, u"dispersy-similarity", self._encode_similarity, self._decode_similarity)
-#         define(245, u"dispersy-similarity-request", self._encode_similarity_request, self._decode_similarity_request)
         define(244, u"dispersy-destroy-community", self._encode_destroy_community, self._decode_destroy_community)
         define(243, u"dispersy-authorize", self._encode_authorize, self._decode_authorize)
         define(242, u"dispersy-revoke", self._encode_revoke, self._decode_revoke)
@@ -171,8 +168,6 @@ class BinaryConversion(Conversion):
         define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
         define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
-        # placeholder 239 for dispersy-missing-message
-        # placeholder 238 for dispersy-undo
         define(237, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
 
         if __debug__:
@@ -391,48 +386,6 @@ class BinaryConversion(Conversion):
             raise DropPacket("Insufficient packet size")
 
         return offset + 20, placeholder.meta.payload.implement(data[offset:offset+20])
-
-    def _encode_similarity(self, message):
-        payload = message.payload
-        assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
-        assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
-        assert len(payload.bloom_filter.prefix) == 0, "Should not have a prefix"
-        return pack("!BBH", payload.cluster, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), payload.bloom_filter.prefix, payload.bloom_filter.bytes
-
-    def _decode_similarity(self, placeholder, offset, data):
-        if len(data) < offset + 4:
-            raise DropPacket("Insufficient packet size")
-
-        cluster, num_slices, bits_per_slice = unpack_from("!BBH", data, offset)
-        offset += 4
-        if not num_slices > 0:
-            raise DropPacket("Invalid num_slices value")
-        if not bits_per_slice > 0:
-            raise DropPacket("Invalid bits_per_slice value")
-        if not (num_slices * bits_per_slice) / 8 == len(data) - offset:
-            raise DropPacket("Invalid number of bytes available")
-
-        similarity = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
-        offset += num_slices * bits_per_slice
-
-        return offset, placeholder.meta.payload.implement(cluster, similarity)
-
-    def _encode_similarity_request(self, message):
-        return (pack("!B", message.payload.cluster),) + tuple([member.mid for member in message.payload.members])
-
-    def _decode_similarity_request(self, placeholder, offset, data):
-        if len(data) < offset + 21:
-            raise DropPacket("Insufficient packet size")
-
-        cluster, = unpack_from("!B", data, offset)
-        offset += 1
-
-        members = []
-        while len(data) < offset + 20:
-            members.extend(self._community.get_members_from_id(data[offset:offset+20]))
-            offset += 20
-
-        return offset, placeholder.meta.payload.implement(cluster, members)
 
     def _encode_destroy_community(self, message):
         if message.payload.is_soft_kill:
@@ -712,7 +665,7 @@ class BinaryConversion(Conversion):
             raise DropPacket("Invalid global time (trying to apply undo to the future)")
 
         try:
-            packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, name.value, sync.packet FROM sync JOIN name ON name.id = sync.name WHERE community = ? AND user = ? AND global_time = ?",
+            packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, meta_message.name, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND sync.member = ? AND sync.global_time = ?",
                                                                                    (self._community.database_id, placeholder.authentication.member.database_id, global_time)).next()
         except StopIteration:
             raise DelayPacketByMissingMessage(self._community, placeholder.authentication.member, [global_time])
@@ -820,7 +773,7 @@ class BinaryConversion(Conversion):
             packet = "".join(container)
 
         elif isinstance(message.authentication, MemberAuthentication.Implementation):
-            assert isinstance(message.authentication.member, PrivateMember)
+            assert message.authentication.member.private_key, message.authentication.member.database_id
             data = "".join(container)
             signature = message.authentication.member.sign(data)
             message.authentication.set_signature(signature)
@@ -832,7 +785,7 @@ class BinaryConversion(Conversion):
             for signature, member in message.authentication.signed_members:
                 if signature:
                     signatures.append(signature)
-                elif isinstance(member, PrivateMember):
+                elif member.private_key:
                     signature = member.sign(data)
                     message.authentication.set_signature(member, signature)
                     signatures.append(signature)
@@ -848,7 +801,7 @@ class BinaryConversion(Conversion):
             dprint(message.name, " head+body+sig ", len(packet), " bytes")
 
             if len(packet) > 1500 - 60 - 8:
-                dprint("Packet size for ", message.name, " exceeds MTU - TCPheader - UDPheader (", len(packet), " bytes)", level="warning")
+                dprint("Packet size for ", message.name, " exceeds MTU - TCP header - UDP header (", len(packet), " bytes)", level="warning")
 
         # dprint(message.packet.encode("HEX"))
         return packet
@@ -894,10 +847,6 @@ class BinaryConversion(Conversion):
 
                 for member in members:
                     if __debug__:
-                        # make sure that a master member is correctly retrieved
-                        from member import MasterMember
-                        if member.mid == self._community.cid:
-                            assert isinstance(member, MasterMember)
                         debug_begin = clock()
                     first_signature_offset = len(data) - member.signature_length
                     if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
@@ -983,28 +932,6 @@ class BinaryConversion(Conversion):
         assert subjective_set, "We must always have subjective sets for ourself"
         return meta.destination.implement(placeholder.authentication.member.public_key in subjective_set)
 
-    def _decode_similarity_destination(self, placeholder):
-        meta = placeholder.meta
-        try:
-            my_similarity, = self._dispersy_database.execute(u"SELECT similarity FROM similarity WHERE community = ? AND user = ? AND cluster = ?",
-                                                             (self._community.database_id,
-                                                              self._community._my_member.database_id,
-                                                              meta.destination.cluster)).next()
-        except StopIteration:
-            raise DropPacket("We don't know our own similarity... should not happen")
-        my_similarity = BloomFilter(str(my_similarity), 0)
-
-        try:
-            sender_similarity, = self._dispersy_database.execute(u"SELECT similarity FROM similarity WHERE community = ? AND user = ? AND cluster = ?",
-                                                                 (self._community.database_id,
-                                                                  placeholder.authentication.member.database_id,
-                                                                  meta.destination.cluster)).next()
-        except StopIteration:
-            raise DelayPacketBySimilarity(self._community, placeholder.authentication.member, meta.destination)
-        sender_similarity = BloomFilter(str(sender_similarity), 0)
-
-        return meta.destination.implement(my_similarity.bic_occurrence(sender_similarity))
-
     def _decode_message(self, address, data, verify_all_signatures):
         """
         Decode a binary string into a Message structure, with some
@@ -1056,15 +983,13 @@ class BinaryConversion(Conversion):
             debug_begin = clock()
 
         # destination
-        assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination, SimilarityDestination))
+        assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination))
         if isinstance(placeholder.meta.destination, AddressDestination):
             placeholder.destination = placeholder.meta.destination.implement(("", 0))
         elif isinstance(placeholder.meta.destination, MemberDestination):
             placeholder.destination = placeholder.meta.destination.implement(self._community.my_member)
         elif isinstance(placeholder.meta.destination, SubjectiveDestination):
             placeholder.destination = self._decode_subjective_destination(placeholder)
-        elif isinstance(placeholder.meta.destination, SimilarityDestination):
-            placeholder.destination = self._decode_similarity_destination(placeholder)
         else:
             placeholder.destination = placeholder.meta.destination.implement()
 

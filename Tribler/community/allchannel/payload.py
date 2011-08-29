@@ -29,7 +29,15 @@ class ChannelCastPayload(Payload):
     """
     class Implementation(Payload.Implementation):
         def __init__(self, meta, torrents):
-            assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
+            if __debug__:
+                assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
+                for cid, infohashes in torrents.iteritems():
+                    assert isinstance(cid, str)
+                    assert len(cid) == 20
+                    assert isinstance(infohashes, set)
+                    assert not filter(lambda x: not isinstance(x, str), infohashes)
+                    assert not filter(lambda x: not len(x) == 20, infohashes)
+                    assert len(infohashes) > 0
             
             super(ChannelCastPayload.Implementation, self).__init__(meta)
             self._torrents = torrents

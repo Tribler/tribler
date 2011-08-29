@@ -52,4 +52,4 @@ class Candidate(object):
         # This flag is only set when a handshake was successfull.
         return [Member.get_instance(str(public_key))
                 for public_key,
-                in list(DispersyDatabase.get_instance().execute(u"SELECT public_key FROM user WHERE host = ? AND port = ? -- AND verified = 1", (unicode(self._host), self._port)))]
+                in list(DispersyDatabase.get_instance().execute(u"SELECT DISTINCT member.public_key FROM identity JOIN member ON member.id = identity.member WHERE identity.host = ? AND identity.port = ? -- AND verified = 1", (unicode(self._host), self._port)))]

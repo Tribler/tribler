@@ -6,7 +6,7 @@ queried as to who had what actions at some point in time.
 from itertools import count
 
 from authentication import MemberAuthentication, MultiMemberAuthentication
-from member import Member, MasterMember
+from member import Member
 from resolution import PublicResolution, LinearResolution
 
 if __debug__:
@@ -17,7 +17,11 @@ class Timeline(object):
         def __init__(self):
             self.timeline = [] # (global_time, {u'permission^message-name':(True/False, [Message.Implementation])})
 
-    def __init__(self):
+    def __init__(self, community):
+        if __debug__:
+            from community import Community
+            assert isinstance(community, Community)
+        self._community = community
         self._nodes = {}
 
     def check(self, message, permission=u"permit"):
@@ -77,8 +81,8 @@ class Timeline(object):
             if isinstance(message.resolution, PublicResolution):
                 if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (public resolution)")
 
-            # the MasterMember can do anything
-            elif isinstance(member, MasterMember):
+            # the master member can do anything
+            elif member == self._community.master_member:
                 if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (master member)")
 
             # allowed LinearResolution is stored in Timeline
@@ -156,9 +160,8 @@ class Timeline(object):
         authorize_allowed, authorize_proofs = self._check(author, global_time, [(message, u"authorize") for _, message, __ in permission_triplets])
         if not authorize_allowed:
             if __debug__:
-                from member import MyMember
                 dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
-                dprint("-- the author is... master member? ", isinstance(author, MasterMember), "; my member? ", isinstance(author, MyMember))
+                dprint("-- the author is... master member? ", author == self._community.master_member, "; my member? ", author == self._community.my_member)
             return (False, authorize_proofs)
 
         for member, message, permission in permission_triplets:

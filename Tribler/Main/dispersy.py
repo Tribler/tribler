@@ -167,7 +167,6 @@ def main():
     rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
     callback = Callback()
     callback.start(name="Dispersy")
-    callback.register(start)
 
     def rawserver_adrenaline():
         """
@@ -186,6 +185,7 @@ def main():
                 session_done_flag.set()
                 break
     callback.register(watchdog)
+    callback.register(start)
     rawserver.listen_forever(None)
     callback.stop()
 

@@ -2,7 +2,7 @@ from community import ChannelCommunity
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.member import MyMember
+from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
@@ -18,7 +18,7 @@ class ChannelNode(Node):
 class ChannelScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         self.caller(self.test_incoming_channel)
         self.caller(self.test_outgoing_channel)

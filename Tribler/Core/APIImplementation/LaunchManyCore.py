@@ -34,7 +34,6 @@ from Tribler.Core.dispersy.community import HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.community.simpledispersytest.community import SimpleDispersyTestCommunity
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -383,8 +382,8 @@ class TriblerLaunchMany(Thread):
         keypair = read_keypair(self.session.get_permid_keypair_filename())
 
         from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
-        from Tribler.Core.dispersy.member import MyMember
-        self.session.dispersy_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        from Tribler.Core.dispersy.member import Member
+        self.session.dispersy_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # load all HardKilledCommunity communities
         HardKilledCommunity.load_communities()
@@ -394,13 +393,6 @@ class TriblerLaunchMany(Thread):
 
         # start each ChannelCommunity that we joined
         communities = ChannelCommunity.load_communities()
-
-        # we will test Dispersy using a simple community that everyone belongs to and periodically
-        # relays messages
-        try:
-            SimpleDispersyTestCommunity.load_hardcoded_community()
-        except ValueError:
-            SimpleDispersyTestCommunity.join_hardcoded_community(self.session.dispersy_member)
 
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)

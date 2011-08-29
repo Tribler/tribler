@@ -74,7 +74,7 @@ class SyncDistribution(Distribution):
         def __init__(self, meta, global_time, sequence_number=0):
             assert isinstance(meta, SyncDistribution)
             assert isinstance(sequence_number, (int, long))
-            assert (meta._enable_sequence_number and sequence_number > 0) or (not meta._enable_sequence_number and sequence_number == 0)
+            assert (meta._enable_sequence_number and sequence_number > 0) or (not meta._enable_sequence_number and sequence_number == 0), (meta._enable_sequence_number, sequence_number)
             super(SyncDistribution.Implementation, self).__init__(meta, global_time)
             self._sequence_number = sequence_number
 
@@ -113,7 +113,7 @@ class SyncDistribution(Distribution):
         # note: the default priority should be 127, use higher or lowe values when needed.
         assert isinstance(enable_sequence_number, bool)
         assert isinstance(synchronization_direction, unicode)
-        assert synchronization_direction in (u"in-order", u"out-order", u"random-order")
+        assert synchronization_direction in (u"ASC", u"DESC")
         assert isinstance(priority, int)
         assert 0 <= priority <= 255
         self._enable_sequence_number = enable_sequence_number
@@ -121,7 +121,6 @@ class SyncDistribution(Distribution):
         self._priority = priority
         self._current_sequence_number = 0
         self._database_id = 0
-        self._synchronization_direction_id = 0
 
     @property
     def enable_sequence_number(self):
@@ -130,10 +129,6 @@ class SyncDistribution(Distribution):
     @property
     def synchronization_direction(self):
         return self._synchronization_direction
-
-    @property
-    def synchronization_direction_id(self):
-        return self._synchronization_direction_id
 
     @property
     def priority(self):
@@ -153,16 +148,9 @@ class SyncDistribution(Distribution):
         if __debug__:
             from message import Message
         assert isinstance(message, Message)
-        if self._enable_sequence_number:
-            # obtain the most recent sequence number that we have used
-            self._current_sequence_number, = message.community.dispersy.database.execute(u"SELECT MAX(distribution_sequence) FROM sync WHERE community = ? AND user = ? AND name = ?",
-                                                                                         (message.community.database_id, message.community.my_member.database_id, message.database_id)).next()
-            if self._current_sequence_number is None:
-                # no entries in the database yet
-                self._current_sequence_number = 0
 
-        self._synchronization_direction_id, = message.community.dispersy.database.execute(u"SELECT key FROM tag WHERE value = ?",
-                                                                                          (self._synchronization_direction,)).next()
+        message.community.dispersy.database.execute(u"UPDATE meta_message SET priority = ?, direction = ? WHERE id = ?",
+                                                    (self._priority, -1 if self._synchronization_direction == u"DESC" else 1, message.database_id))
 
     def claim_sequence_number(self):
         assert self._enable_sequence_number
@@ -183,6 +171,13 @@ class FullSyncDistribution(SyncDistribution):
     class Implementation(SyncDistribution.Implementation):
         pass
 
+    def setup(self, message):
+        super(FullSyncDistribution, self).setup(message)
+        if self._enable_sequence_number:
+            # obtain the most recent sequence number that we have used
+            self._current_sequence_number, = message.community.dispersy.database.execute(u"SELECT COUNT(1) FROM sync WHERE member = ? AND meta_message = ?",
+                                                                                         (message.community.my_member.database_id, message.database_id)).next()
+
 class LastSyncDistribution(SyncDistribution):
     class Implementation(SyncDistribution.Implementation):
         @property
@@ -197,7 +192,31 @@ class LastSyncDistribution(SyncDistribution):
         assert isinstance(history_size, int)
         assert history_size > 0
         super(LastSyncDistribution, self).__init__(enable_sequence_number, synchronization_direction, priority)
+        self._community = None
         self._history_size = history_size
+
+    def setup(self, message):
+        # keep the community for later
+        self._community = message.community
+
+    def claim_sequence_number(self):
+        assert self._enable_sequence_number
+
+        # unfortunately we can not set the _current_sequence_number in the setup(...) method because
+        # we can not decode a packet there
+        if self._current_sequence_number == 0:
+            try:
+                packet, = self._community.dispersy.database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? ORDER BY global_time DESC LIMIT 1",
+                                                                    (self._community.my_member.database_id, self.database_id)).next()
+            except StopIteration:
+                pass
+            else:
+                message = self._community.dispersy.convert_packet_to_message(str(packet))
+                if message:
+                    self._current_sequence_number = message.distribution.sequence_number
+
+        self._current_sequence_number += 1
+        return self._current_sequence_number
 
     @property
     def history_size(self):

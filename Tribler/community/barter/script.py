@@ -10,7 +10,7 @@ from community import BarterCommunity
 from lencoder import log
 
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.member import Member, MyMember, PrivateMember
+from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
@@ -28,7 +28,7 @@ class BarterNode(Node):
 class BarterScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         self.caller(self.test_incoming_barter_record)
         #todo: fix test
@@ -276,8 +276,8 @@ class BarterScenarioScript(ScriptBase):
             my_address = (ip, int(port))
         if __debug__: log("barter.log", "read-config-done")
 
-        # create mymember
-        my_member = MyMember(public_key, private_key, sync_with_database=True)
+        # create my member
+        my_member = Member(public_key, private_key, sync_with_database=True)
         dprint(my_member)
         my_public_key = public_key
 
@@ -318,7 +318,7 @@ class BarterScenarioScript(ScriptBase):
         incoming_packets = []
         meta = self._barter.get_meta_message(u"dispersy-identity")
         for index, address, public_key, private_key in all_peers:
-            temp_member = PrivateMember(public_key, private_key, sync_with_database=False)
+            temp_member = Member(public_key, private_key, sync_with_database=False)
             message = meta.implement(meta.authentication.implement(temp_member),
                                      meta.distribution.implement(index + 10), # give it a global time
                                      meta.destination.implement(),

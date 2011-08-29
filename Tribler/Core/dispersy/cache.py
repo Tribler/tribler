@@ -58,7 +58,7 @@ class CacheDict(object):
 
     def cleanup(self):
         """
-        Yields a list of (key, Cache) tuples that are eligable for cleanup.
+        Yields a list of (key, Cache) tuples that are removed from the cache.
         """
         size = len(self._dict)
         delta = self._pokes / size

@@ -14,6 +14,7 @@ from dprint import dprint
 
 if __debug__:
     import atexit
+    DELAY_FOR_WARNING = 0.5
 
 class Callback(object):
     def __init__(self):
@@ -94,7 +95,7 @@ class Callback(object):
         assert callback is None or callable(callback), "CALLBACK must be None or callable"
         assert isinstance(callback_args, tuple), "CALLBACK_ARGS has invalid type: %s" % type(callback_args)
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
-        if __debug__: dprint("register ", call, " after ", delay, "seconds")
+        if __debug__: dprint("register ", call, " after ", delay, " seconds")
         with self._lock:
             if not id_:
                 self._id += 1
@@ -250,8 +251,9 @@ class Callback(object):
                             heappush(requests, action)
                     else:
                         assert type_ == "unregister"
+                        if __debug__: dprint("unregister ", len([request for request in requests if request[2] == action]), ":", len([request for request in expired if request[2] == action]), " from requests ", action)
                         requests = [request for request in requests if not request[2] == action]
-                        expired = [request for request in expired if not request[1] == action]
+                        expired = [request for request in expired if not request[2] == action]
                 del new_actions[:]
                 self._event.clear()
 
@@ -282,7 +284,9 @@ class Callback(object):
                     if isinstance(call, GeneratorType):
                         try:
                             # start next generator iteration
-                            if __debug__: dprint("sync: %.4fs" % (get_timestamp() - deadline), " when calling ", call)
+                            if __debug__:
+                                debug_begin = get_timestamp()
+                                dprint("desync %.4fs" % (debug_begin - deadline), " before calling ", call)
                             result = call.next()
                         except StopIteration:
                             if callback:
@@ -296,12 +300,6 @@ class Callback(object):
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
                             dprint(exception=True, level="error")
-                            # boudewijn: it makes no sense to propagate the exception to the
-                            # callback if we will immediately stop afterwards.  to avoid confusion
-                            # between __debug__ and optimized behavior we will not stop the thread
-                            # when an exception occurs
-                            # if __debug__:
-                            #     self.stop(wait=False)
                         else:
                             if isinstance(result, float):
                                 # schedule CALL again in RESULT seconds
@@ -312,12 +310,19 @@ class Callback(object):
                                 assert not result is self
                                 result._switch(call, deadline, priority, root_id, callback)
                             else:
-                                dprint("Yielded invalalid type", level="error")
+                                dprint("yielded invalid type ", type(result), level="error")
+                        finally:
+                            if __debug__:
+                                debug_delay = get_timestamp() - debug_begin
+                                debug_level = "warning" if debug_delay > DELAY_FOR_WARNING else "normal"
+                                dprint("call took %.4fs to " % debug_delay, call, level=debug_level)
 
                     else:
                         try:
                             # callback
-                            if __debug__: dprint("sync: %.4fs" % (get_timestamp() - deadline), " when calling ", call[0])
+                            if __debug__:
+                                debug_begin = get_timestamp()
+                                dprint("desync %.4fs" % (debug_begin - deadline), " before calling ", call[0])
                             result = call[0](*call[1], **call[2])
                         except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
                             dprint(exception=True, level="error")
@@ -328,12 +333,6 @@ class Callback(object):
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
                             dprint(exception=True, level="error")
-                            # boudewijn: it makes no sense to propagate the exception to the
-                            # callback if we will immediately stop afterwards.  to avoid confusion
-                            # between __debug__ and optimized behavior we will not stop the thread
-                            # when an exception occurs
-                            # if __debug__:
-                            #     self.stop(wait=False)
                         else:
                             if isinstance(result, GeneratorType):
                                 # we only received the generator, no actual call has been made to the
@@ -344,6 +343,12 @@ class Callback(object):
                             elif callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
 
+                        finally:
+                            if __debug__:
+                                debug_delay = get_timestamp() - debug_begin
+                                debug_level = "warning" if debug_delay > DELAY_FOR_WARNING else "normal"
+                                dprint("call took %.4fs to " % debug_delay, call if isinstance(call, GeneratorType) else call[0], level=debug_level)
+
                     # break out of the while loop
                     break
 
@@ -351,12 +356,12 @@ class Callback(object):
                 # we need to wait for new requests
                 if requests:
                     # there are no requests that have to be handled right now. Sleep for a while.
-                    if __debug__: dprint("wait: %.1fs" % min(300.0, requests[0][0] - actual_time))
+                    if __debug__: dprint("wait at most %.1fs" % min(300.0, requests[0][0] - actual_time), " before next call")
                     self._event.wait(min(300.0, requests[0][0] - actual_time))
 
                 else:
                     # there are no requests on the list, wait till something is scheduled
-                    if __debug__: dprint("wait: 300.0s")
+                    if __debug__: dprint("wait at most 300.0s before next call")
                     self._event.wait(300.0)
                 continue
 

@@ -9,6 +9,7 @@ from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.destination import SubjectiveDestination
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, LastSyncDistribution
+from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.message import Message, DelayMessageByProof
 from Tribler.Core.dispersy.resolution import LinearResolution
 
@@ -53,17 +54,17 @@ class SimpleDispersyTestCommunity(Community):
     def join_hardcoded_community(cls, my_member):
         # ensure that the community has not already been loaded (as a HardKilledCommunity)
         if not Dispersy.get_instance().has_community(cls.hardcoded_cid):
-            return cls.join_community(cls.hardcoded_cid, cls.hardcoded_master_public_key, my_member)
+            return cls.join_community(Member.get_instance(cls.hardcoded_master_public_key), my_member)
 
     @classmethod
     def load_hardcoded_community(cls):
         # ensure that the community has not already been loaded (as a HardKilledCommunity)
         if not Dispersy.get_instance().has_community(cls.hardcoded_cid):
-            return cls.load_community(cls.hardcoded_cid, cls.hardcoded_master_public_key)
+            return cls.load_community(Member.get_instance(cls.hardcoded_master_public_key))
 
-    def __init__(self, cid, master_public_key):
-        super(SimpleDispersyTestCommunity, self).__init__(cid, master_public_key)
-        if __debug__: dprint(self._cid.encode("HEX"))
+    def __init__(self, master):
+        super(SimpleDispersyTestCommunity, self).__init__(master)
+        if __debug__: dprint(self._master_member.mid.encode("HEX"))
 
         # ensure that two of the hardcoder members (A, B, or C) has been picked
         cluster = self.get_meta_message(u"last-1-subjective-sync").destination.cluster
@@ -90,21 +91,21 @@ class SimpleDispersyTestCommunity(Community):
 
         self._status = get_status_holder("dispersy-simple-dispersy-test")
         self._status.add_reporter(TUDelftReporter(REPORTER_NAME, 300, self._my_member.public_key))
-        self._status.create_and_add_event("__init__^" + self._cid.encode("HEX"), ["last-1-subjective-sync"])
-        self._status.create_and_add_event("info^" + self._cid.encode("HEX"), [self._dispersy.info()])
-        self._status.create_and_add_event("subjective_set^" + self._cid.encode("HEX"), [(name, public_key in subjective_set) for name, public_key in self.hardcoded_member_public_keys.iteritems()])
+        self._status.create_and_add_event("__init__^" + self._master_member.mid.encode("HEX"), ["last-1-subjective-sync"])
+        self._status.create_and_add_event("info^" + self._master_member.mid.encode("HEX"), [self._dispersy.info()])
+        self._status.create_and_add_event("subjective_set^" + self._master_member.mid.encode("HEX"), [(name, public_key in subjective_set) for name, public_key in self.hardcoded_member_public_keys.iteritems()])
         self._status.report_now()
         self._dispersy.callback.register(self._periodically_info, delay=60.0)
 
     def initiate_meta_messages(self):
-        return [Message(self, u"last-1-subjective-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"in-order", priority=129, history_size=1), SubjectiveDestination(cluster=1, node_count=1), TextPayload(), self.check_last_1_subjective_sync, self.on_last_1_subjective_sync, delay=5.0)]
+        return [Message(self, u"last-1-subjective-sync", MemberAuthentication(encoding="sha1"), LinearResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=129, history_size=1), SubjectiveDestination(cluster=1, node_count=1), TextPayload(), self.check_last_1_subjective_sync, self.on_last_1_subjective_sync, delay=5.0)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), Conversion(self)]
 
     def dispersy_cleanup_community(self, message):
-        if __debug__: dprint(self._cid.encode("HEX"))
-        self._status.create_and_add_event("dispersy_cleanup_community^" + self._cid.encode("HEX") , [("is_soft_kill", message.payload.is_soft_kill), ("is_hard_kill", message.payload.is_hard_kill)])
+        if __debug__: dprint(self._master_member.mid.encode("HEX"))
+        self._status.create_and_add_event("dispersy_cleanup_community^" + self._master_member.mid.encode("HEX") , [("is_soft_kill", message.payload.is_soft_kill), ("is_hard_kill", message.payload.is_hard_kill)])
         self._status.report_now()
         self._status.get_reporter(REPORTER_NAME).stop()
         self._status.remove_reporter(REPORTER_NAME)
@@ -114,11 +115,11 @@ class SimpleDispersyTestCommunity(Community):
         return super(SimpleDispersyTestCommunity, self).dispersy_cleanup_community(message)
 
     def on_last_1_subjective_sync(self, messages):
-        if __debug__: dprint(self._cid.encode("HEX"))
-        self._status.create_and_add_event("on_last_1_subjective_sync^" + self._cid.encode("HEX"), [(message.address, message.distribution.global_time, message.payload.text) for message in messages])
+        if __debug__: dprint(self._master_member.mid.encode("HEX"))
+        self._status.create_and_add_event("on_last_1_subjective_sync^" + self._master_member.mid.encode("HEX"), [(message.address, message.distribution.global_time, message.payload.text) for message in messages])
 
     def create_last_1_subjective_sync(self, text):
-        if __debug__: dprint(self._cid.encode("HEX"))
+        if __debug__: dprint(self._master_member.mid.encode("HEX"))
         assert isinstance(text, unicode)
         meta = self.get_meta_message(u"last-1-subjective-sync")
         message = meta.implement(meta.authentication.implement(self._my_member),
@@ -129,7 +130,7 @@ class SimpleDispersyTestCommunity(Community):
         return message
 
     def check_last_1_subjective_sync(self, messages):
-        if __debug__: dprint(self._cid.encode("HEX"))
+        if __debug__: dprint(self._master_member.mid.encode("HEX"))
         for message in messages:
             allowed, proofs = self._timeline.check(message)
             if allowed:
@@ -138,11 +139,11 @@ class SimpleDispersyTestCommunity(Community):
                 yield DelayMessageByProof(message)
 
     def on_last_1_subjective_sync(self, messages):
-        if __debug__: dprint(self._cid.encode("HEX"))
-        self._status.create_and_add_event("on_last_1_subjective_sync^" + self._cid.encode("HEX"), [(message.address, message.distribution.global_time, message.payload.text) for message in messages])
+        if __debug__: dprint(self._master_member.mid.encode("HEX"))
+        self._status.create_and_add_event("on_last_1_subjective_sync^" + self._master_member.mid.encode("HEX"), [(message.address, message.distribution.global_time, message.payload.text) for message in messages])
 
     def _periodically_info(self):
         while True:
-            self._status.create_and_add_event("info^" + self._cid.encode("HEX"), [self._dispersy.info(attributes=False)])
+            self._status.create_and_add_event("info^" + self._master_member.mid.encode("HEX"), [self._dispersy.info(attributes=False)])
             yield 60.0
 

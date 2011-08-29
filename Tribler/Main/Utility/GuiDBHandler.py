@@ -16,7 +16,7 @@ from traceback import format_stack, extract_stack, format_exc, print_exc,\
     print_stack
 import os
 
-DEBUG = True
+DEBUG = False
 
 class GUIDBProducer():
     # Code to make this a singleton
@@ -188,3 +188,4 @@ def startWorker(
 def onWorkerThread():
     dbProducer = GUIDBProducer.getInstance()
     return dbProducer.onSameThread()
+

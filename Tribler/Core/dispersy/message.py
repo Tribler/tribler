@@ -91,37 +91,6 @@ class DelayPacketByMissingMessage(DelayPacket):
 
         super(DelayPacketByMissingMessage, self).__init__("Missing message", footprint, message.packet)
 
-# BROKEN, seems to be a copy paste from DelayPacketByMissingMember
-# class DelayPacketBySimilarity(DelayPacket):
-#     """
-#     Raised during Conversion.decode_message when no similarity is
-#     known for the message owner.
-
-#     Delaying until a dispersy-similarity-message is received that
-#     contains the missing similarity bitstream
-#     """
-#     def __init__(self, community, member, destination):
-#         if __debug__:
-#             from community import Community
-#             from member import Member
-#             from destination import SimilarityDestination
-#         assert isinstance(community, Community)
-#         assert isinstance(member, Member)
-#         assert isinstance(destination, SimilarityDestination)
-#         # the footprint that will trigger the delayed packet
-#         meta = community.get_meta_message(u"dispersy-identity")
-#         footprint = meta.generate_footprint()
-
-#         # the request message that asks for the message that will
-#         # trigger the delayed packet
-#         meta = community.get_meta_message(u"dispersy-identity-request")
-#         message = meta.implement(meta.authentication.implement(),
-#                                  meta.distribution.implement(community.global_time),
-#                                  meta.destination.implement(),
-#                                  meta.payload.implement(member.mid))
-
-#         super(DelayPacketBySimilarity, self).__init__("Missing similarity", footprint, message.packet)
-
 class DropPacket(Exception):
     """
     Raised by Conversion.decode_message when the packet is invalid.
@@ -271,33 +240,6 @@ class DelayMessageBySubjectiveSet(DelayMessage):
                                  meta.payload.implement(cluster, [delayed.authentication.member]))
 
         super(DelayMessageBySubjectiveSet, self).__init__("Missing subjective set", footprint, request, delayed)
-
-# class DelayMessageBySimilarity(DelayMessage):
-#     """
-#     Raised during Community.on_message when no similarity is known for
-#     the message owner.
-
-#     Delaying until a dispersy-similarity-message is received that
-#     contains the missing similarity bitstream
-#     """
-#     def __init__(self, message, cluster):
-#         if __debug__:
-#             from message import Message
-#         assert isinstance(message, Message.Implementation)
-#         assert isinstance(cluster, int)
-#         # the footprint that will trigger the delayed packet
-#         meta = message.community.get_meta_message(u"dispersy-similarity")
-#         footprint = meta.generate_footprint(authentication=([message.authentication.member.mid],))
-
-#         # the request message that asks for the message that will
-#         # trigger the delayed packet
-#         meta = message.community.get_meta_message(u"dispersy-similarity-request")
-#         message = meta.implement(meta.authentication.implement(),
-#                                  meta.distribution.implement(message.community.global_time),
-#                                  meta.destination.implement(),
-#                                  meta.payload.implement(cluster, [message.authentication.member]))
-
-#         super(DelayMessageBySimilarity, self).__init__("Missing similarity", footprint, message.packet)
 
 class DropMessage(Exception):
     """
@@ -521,9 +463,9 @@ class Message(MetaObject):
         # ensure that there is a database id associated to this
         # meta message name
         try:
-            self._database_id, = database.execute(u"SELECT id FROM name WHERE value = ?", (name,)).next()
+            self._database_id, = database.execute(u"SELECT id FROM meta_message WHERE community = ? AND name = ?", (community.database_id, name)).next()
         except StopIteration:
-            database.execute(u"INSERT INTO name (value) VALUES (?)", (name,))
+            database.execute(u"INSERT INTO meta_message (community, name) VALUES (?, ?)", (community.database_id, name))
             self._database_id = database.last_insert_rowid
 
         # allow optional setup methods to initialize the specific
@@ -606,7 +548,7 @@ class Message(MetaObject):
         from authentication import Authentication, NoAuthentication, MemberAuthentication, MultiMemberAuthentication
         from resolution import Resolution, PublicResolution, LinearResolution
         from distribution import Distribution, RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution
-        from destination import Destination, AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination
+        from destination import Destination, AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination
 
         assert isinstance(authentication, Authentication)
         assert isinstance(resolution, Resolution)
@@ -624,22 +566,22 @@ class Message(MetaObject):
         elif isinstance(authentication, MemberAuthentication):
             require(authentication, resolution, (PublicResolution, LinearResolution))
             require(authentication, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination))
+            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         elif isinstance(authentication, MultiMemberAuthentication):
             require(authentication, resolution, (PublicResolution, LinearResolution))
             require(authentication, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination))
+            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         else:
             raise ValueError("%s is not supported" % authentication.__class_.__name__)
 
         if isinstance(resolution, PublicResolution):
             require(resolution, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
             require(resolution, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination))
+            require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         elif isinstance(resolution, LinearResolution):
             require(resolution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(resolution, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination, SimilarityDestination))
+            require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         else:
             raise ValueError("%s is not supported" % resolution.__class_.__name__)
 
@@ -654,13 +596,13 @@ class Message(MetaObject):
         elif isinstance(distribution, FullSyncDistribution):
             require(distribution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution))
-            require(distribution, destination, (CommunityDestination, SubjectiveDestination, SimilarityDestination))
+            require(distribution, destination, (CommunityDestination, SubjectiveDestination))
             if isinstance(authentication, MultiMemberAuthentication) and distribution.enable_sequence_number:
                 raise ValueError("%s may not be used with %s when sequence numbers are enabled" % (distribution.__class__.__name__, authentication.__class__.__name__))
         elif isinstance(distribution, LastSyncDistribution):
             require(distribution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution))
-            require(distribution, destination, (CommunityDestination, SubjectiveDestination, SimilarityDestination))
+            require(distribution, destination, (CommunityDestination, SubjectiveDestination))
             if isinstance(authentication, MultiMemberAuthentication) and distribution.enable_sequence_number:
                 raise ValueError("%s may not be used with %s when sequence numbers are enabled" % (distribution.__class__.__name__, authentication.__class__.__name__))
         else:
@@ -679,10 +621,6 @@ class Message(MetaObject):
             require(destination, resolution, (PublicResolution, LinearResolution))
             require(destination, distribution, (DirectDistribution, FullSyncDistribution, LastSyncDistribution))
         elif isinstance(destination, SubjectiveDestination):
-            require(destination, authentication, (MemberAuthentication, MultiMemberAuthentication))
-            require(destination, resolution, (PublicResolution, LinearResolution))
-            require(destination, distribution, (FullSyncDistribution, LastSyncDistribution))
-        elif isinstance(destination, SimilarityDestination):
             require(destination, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(destination, resolution, (PublicResolution, LinearResolution))
             require(destination, distribution, (FullSyncDistribution, LastSyncDistribution))

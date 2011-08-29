@@ -9,52 +9,37 @@ This module provides an interface to the Dispersy database.
 @contact: dispersy@frayja.com
 """
 
-from socket import gethostbyname
 from os import path
 
 from database import Database
 
 schema = u"""
-CREATE TABLE user(
- id INTEGER PRIMARY KEY AUTOINCREMENT,          -- local counter for database optimization
+CREATE TABLE member(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
  mid BLOB,                                      -- member identifier (sha1 of public_key)
- public_key BLOB,                               -- member key (public part)
+ public_key BLOB,                               -- member public key
+ tags TEXT DEFAULT '',                          -- comma separated tags: store, ignore, and blacklist
+ UNIQUE(public_key));
+CREATE INDEX member_mid_index ON member(mid);
+
+CREATE TABLE private_key(
+ member INTEGER PRIMARY KEY REFERENCES member(id),
+ private_key BLOB);
+
+CREATE TABLE identity(
+ community INTEGER REFERENCES community(id),
+ member INTEGER REFERENCES member(id),
  host TEXT DEFAULT '',
  port INTEGER DEFAULT -1,
- tags INTEGER DEFAULT 0,
- UNIQUE(mid));
-
-CREATE TABLE tag(
- key INTEGER,
- value TEXT,
- UNIQUE(value));
-
-INSERT INTO tag (key, value) VALUES (1, 'store');
-INSERT INTO tag (key, value) VALUES (2, 'ignore');
-INSERT INTO tag (key, value) VALUES (4, 'blacklist');
-INSERT INTO tag (key, value) VALUES (1, 'in-order');
-INSERT INTO tag (key, value) VALUES (2, 'out-order');
-INSERT INTO tag (key, value) VALUES (3, 'random-order');
-
---CREATE TABLE identity(
--- user INTEGER REFERENCES user(id),
--- community INTEGER REFERENCES community(id),
--- packet BLOB,
--- UNIQUE(user, community));
+ PRIMARY KEY(community, member));
 
 CREATE TABLE community(
- id INTEGER PRIMARY KEY AUTOINCREMENT,          -- local counter for database optimization
- user INTEGER REFERENCES user(id),              -- my member that is used to sign my messages
- classification TEXT,                           -- the community type, typically the class name
- cid BLOB,                                      -- the sha1 digest of the public_key
- public_key BLOB DEFAULT '',                    -- community master key (public part) when available
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ master INTEGER REFERENCES member(id),          -- master member (permission tree root)
+ member INTEGER REFERENCES member(id),          -- my member (used to sign messages)
+ classification TEXT,                           -- community type, typically the class name
  auto_load BOOL DEFAULT 1,                      -- when 1 this community is loaded whenever a packet for it is received
- UNIQUE(user, cid, public_key));
-
-CREATE TABLE key(
- public_key BLOB,                               -- public part
- private_key BLOB,                              -- private part
- UNIQUE(public_key, private_key));
+ UNIQUE(master));
 
 CREATE TABLE candidate(
  community INTEGER REFERENCES community(id),
@@ -65,59 +50,39 @@ CREATE TABLE candidate(
  external_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when we heared about this address from 3rd party
  UNIQUE(community, host, port));
 
-CREATE TABLE name(
+CREATE TABLE meta_message(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
- value TEXT);
+ community INTEGER REFERENCES community(id),
+ name TEXT,
+ cluster INTEGER DEFAULT 0,
+ priority INTEGER DEFAULT 128,
+ direction INTEGER DEFAULT 1,                           -- direction used when synching (1 for ASC, -1 for DESC)
+ UNIQUE(community, name));
 
--- when a message has multiple signatures, using the MultiMemberAuthentication policy, the
--- reference_user_sync table contains an entry for each member
-CREATE TABLE reference_user_sync(
- user INTEGER REFERENCES user(id),
+CREATE TABLE reference_member_sync(
+ member INTEGER REFERENCES member(id),
  sync INTEGER REFERENCES sync(id),
- UNIQUE(user, sync));
+ UNIQUE(member, sync));
 
 CREATE TABLE sync(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  community INTEGER REFERENCES community(id),
- name INTEGER REFERENCES name(id),
- user INTEGER REFERENCES user(id),              -- the creator of the message
+ member INTEGER REFERENCES member(id),                  -- the creator of the message
  global_time INTEGER,
- synchronization_direction INTEGER REFERENCES tag(key),
- distribution_sequence INTEGER DEFAULT 0,       -- used for the sync-distribution policy
- destination_cluster INTEGER DEFAULT 0,         -- used for the similarity-destination policy
+ meta_message INTEGER REFERENCES meta_message(id),
+ undone BOOL DEFAULT 0,
  packet BLOB,
- priority INTEGER DEFAULT 128,                  -- added in version 2
- undone BOOL DEFAULT 0,                         -- added in version 3?
- UNIQUE(community, user, global_time));
+ UNIQUE(community, member, global_time));
+CREATE INDEX sync_meta_message_index ON sync(meta_message);
 
 CREATE TABLE malicious_proof(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  community INTEGER REFERENCES community(id),
- user INTEGER REFERENCES name(id),
+ member INTEGER REFERENCES name(id),
  packet BLOB);
 
---CREATE TABLE similarity(
--- id INTEGER PRIMARY KEY AUTOINCREMENT,
--- community INTEGER REFERENCES community(id),
--- user INTEGER REFERENCES user(id),
--- cluster INTEGER,
--- similarity BLOB,
--- packet BLOB,
--- UNIQUE(community, user, cluster));
-
--- TODO: remove id, community, user, and cluster columns and replace with refrence to similarity table
--- my_similarity is used to store the similarity bits
--- as set by the user *before* regulating
---CREATE TABLE my_similarity (
--- id INTEGER PRIMARY KEY AUTOINCREMENT,
--- community INTEGER REFERENCES community(id),
--- user INTEGER REFERENCES user(id),
--- cluster INTEGER,
--- similarity BLOB,
--- UNIQUE(community, user));
-
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '3');
+INSERT INTO option(key, value) VALUES('database_version', '4');
 """
 
 class DispersyDatabase(Database):
@@ -144,29 +109,27 @@ class DispersyDatabase(Database):
             # setup new database with current database_version
             self.executescript(schema)
 
-            # Add bootstrap users
-            self.bootstrap()
+            # # Add bootstrap members
+            # self.bootstrap()
 
         else:
             # upgrade an older version
 
             # upgrade from version 1 to version 2
             if database_version < 2:
-                with self:
-                    self.executescript(u"""
+                self.executescript(u"""
 ALTER TABLE sync ADD COLUMN priority INTEGER DEFAULT 128;
 UPDATE option SET value = '2' WHERE key = 'database_version';
 """)
 
             # upgrade from version 2 to version 3
             if database_version < 3:
-                with self:
-                    self.executescript(u"""
+                self.executescript(u"""
 CREATE TABLE malicious_proof(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  community INTEGER REFERENCES community(id),
  user INTEGER REFERENCES name(id),
- packet BLOB)
+ packet BLOB);
 ALTER TABLE sync ADD COLUMN undone BOOL DEFAULT 0;
 UPDATE tag SET value = 'blacklist' WHERE key = 4;
 UPDATE option SET value = '3' WHERE key = 'database_version';
@@ -174,20 +137,118 @@ UPDATE option SET value = '3' WHERE key = 'database_version';
 
             # upgrade from version 3 to version 4
             if database_version < 4:
-                # there is no version 4 yet...
-                # self.executescript(u"""UPDATE option SET value = '4' WHERE key = 'database_version';""")
+                self.executescript(u"""
+-- create new tables
+
+CREATE TABLE member(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ mid BLOB,
+ public_key BLOB,
+ tags TEXT DEFAULT '',
+ UNIQUE(public_key));
+CREATE INDEX member_mid_index ON member(mid);
+
+CREATE TABLE identity(
+ community INTEGER REFERENCES community(id),
+ member INTEGER REFERENCES member(id),
+ host TEXT DEFAULT '',
+ port INTEGER DEFAULT -1,
+ PRIMARY KEY(community, member));
+
+CREATE TABLE private_key(
+ member INTEGER PRIMARY KEY REFERENCES member(id),
+ private_key BLOB);
+
+CREATE TABLE new_community(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ master INTEGER REFERENCES member(id),
+ member INTEGER REFERENCES member(id),
+ classification TEXT,
+ auto_load BOOL DEFAULT 1,
+ UNIQUE(master));
+
+CREATE TABLE new_reference_member_sync(
+ member INTEGER REFERENCES member(id),
+ sync INTEGER REFERENCES sync(id),
+ UNIQUE(member, sync));
+
+CREATE TABLE meta_message(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ community INTEGER REFERENCES community(id),
+ name TEXT,
+ cluster INTEGER DEFAULT 0,
+ priority INTEGER DEFAULT 128,
+ direction INTEGER DEFAULT 1,
+ UNIQUE(community, name));
+
+CREATE TABLE new_sync(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ community INTEGER REFERENCES community(id),
+ member INTEGER REFERENCES member(id),
+ global_time INTEGER,
+ meta_message INTEGER REFERENCES meta_message(id),
+ undone BOOL DEFAULT 0,
+ packet BLOB,
+ UNIQUE(community, member, global_time));
+CREATE INDEX sync_meta_message_index ON new_sync(meta_message);
+
+CREATE TABLE new_malicious_proof(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ community INTEGER REFERENCES community(id),
+ member INTEGER REFERENCES name(id),
+ packet BLOB);
+
+-- populate new tables
+
+-- no tags have ever been set outside debugging hence we do not upgrade those
+INSERT INTO member (id, mid, public_key) SELECT id, mid, public_key FROM user;
+INSERT INTO identity (community, member, host, port) SELECT community.id, user.id, user.host, user.port FROM community JOIN user;
+INSERT INTO private_key (member, private_key) SELECT member.id, key.private_key FROM key JOIN member ON member.public_key = key.public_key;
+INSERT INTO new_community (id, member, master, classification, auto_load) SELECT community.id, community.user, user.id, community.classification, community.auto_load FROM community JOIN user ON user.mid = community.cid;
+INSERT INTO new_reference_member_sync (member, sync) SELECT user, sync FROM reference_user_sync;
+INSERT INTO new_malicious_proof (id, community, member, packet) SELECT id, community, user, packet FROM malicious_proof ;
+""")
+
+                # copy all data from sync and name into new_sync and meta_message
+                meta_messages = {}
+                for id, community, name, user, global_time, synchronization_direction, distribution_sequence, destination_cluster, packet, priority, undone in list(self.execute(u"SELECT sync.id, sync.community, name.value, sync.user, sync.global_time, sync.synchronization_direction, sync.distribution_sequence, sync.destination_cluster, sync.packet, sync.priority, sync.undone FROM sync JOIN name ON name.id = sync.name")):
+
+                    # get or create meta_message id
+                    key = (community, name)
+                    if not key in meta_messages:
+                        self.execute(u"INSERT INTO meta_message (community, name, cluster, priority, direction) VALUES (?, ?, ?, ?, ?)",
+                                     (community, name, destination_cluster, priority, -1 if synchronization_direction == 2 else 1))
+                        meta_messages[key] = self.last_insert_rowid
+                    meta_message = meta_messages[key]
+
+                    self.execute(u"INSERT INTO new_sync (community, member, global_time, meta_message, undone, packet) VALUES (?, ?, ?, ?, ?, ?)",
+                                 (community, user, global_time, meta_message, undone, packet))
+
+                self.executescript(u"""
+-- drop old tables and entries
+
+DROP TABLE community;
+DROP TABLE key;
+DROP TABLE malicious_proof;
+DROP TABLE name;
+DROP TABLE reference_user_sync;
+DROP TABLE sync;
+DROP TABLE tag;
+DROP TABLE user;
+
+-- rename replacement tables
+
+ALTER TABLE new_community RENAME TO community;
+ALTER TABLE new_reference_member_sync RENAME TO reference_member_sync;
+ALTER TABLE new_sync RENAME TO sync;
+ALTER TABLE new_malicious_proof RENAME TO malicious_proof;
+
+-- update database version
+UPDATE option SET value = '4' WHERE key = 'database_version';
+""")
+
+            # upgrade from version 4 to version 5
+            if database_version < 5:
+                # there is no version 5 yet...
+                # self.executescript(u"""UPDATE option SET value = '5' WHERE key = 'database_version';""")
                 pass
-
-    def bootstrap(self):
-        """
-        Populate the database with initial data.
-
-        This method is called after the database is initially created.  It ensures that one or more
-        bootstrap nodes are known.  Without these bootstrap nodes no other nodes will ever be found.
-        """
-        host = unicode(gethostbyname(u"dispersy1.tribler.org"))
-        port = 6421
-        public_key = "3081a7301006072a8648ce3d020106052b810400270381920004008444b3016503206d4a3429621dc0dda85481124e3c823a44aaee3f489df396a138af05409c15af6af8c5d88520078cd7d95808dceb49800d8e3532b737b68496225ac43051f99f035a6fecab844ae214471f5dc0c247fcdc199900ed64afd136537543ca41229df6e597b30facfd7dd4ce6d04ef7ded4fe19118cd951fcd43e4930eb963741fd806b4e46bde04c142".decode("HEX")
-        mid = "69249b231d04650175c01a622504a95a2dbbc728".decode("HEX")
-        self.execute(u"INSERT INTO user(mid, public_key) VALUES(?, ?)", (buffer(mid), buffer(public_key)))
-        self.execute(u"INSERT INTO candidate(community, host, port) VALUES(0, ?, ?)", (host, port))

@@ -8,13 +8,20 @@ rm -f dispersy.db
 rm -f dispersy.db-journal
 rm -f dispersy.log
 
-rm -f discovery.db
-rm -f discovery.db-journal
-
-rm -f barter.db
-rm -f barter.db-journal
-
-python Tribler/Main/dispersy.py --script all $@ || exit 1
+python Tribler/Main/dispersy.py --script dispersy-batch || exit 1
+python Tribler/Main/dispersy.py --script dispersy-candidate || exit 1
+python Tribler/Main/dispersy.py --script dispersy-classification || exit 1
+python Tribler/Main/dispersy.py --script dispersy-crypto || exit 1
+python Tribler/Main/dispersy.py --script dispersy-destroy-community || exit 1
+python Tribler/Main/dispersy.py --script dispersy-identical-payload || exit 1
+python Tribler/Main/dispersy.py --script dispersy-member-tag || exit 1
+python Tribler/Main/dispersy.py --script dispersy-missing-message || exit 1
+python Tribler/Main/dispersy.py --script dispersy-signature || exit 1
+python Tribler/Main/dispersy.py --script dispersy-subjective-set || exit 1
+python Tribler/Main/dispersy.py --script dispersy-sync || exit 1
+python Tribler/Main/dispersy.py --script dispersy-timeline || exit 1
+python Tribler/Main/dispersy.py --script dispersy-undo || exit 1
+#python Tribler/Main/dispersy.py --script all $@ || exit 1
 
 echo "================================================================================"
 echo "Testcases in optimized mode"
@@ -24,13 +31,20 @@ rm -f dispersy.db
 rm -f dispersy.db-journal
 rm -f dispersy.log
 
-rm -f discovery.db
-rm -f discovery.db-journal
-
-rm -f barter.db
-rm -f barter.db-journal
-
-python -O Tribler/Main/dispersy.py --script all $@ || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-batch || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-candidate || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-classification || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-crypto || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-destroy-community || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-identical-payload || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-member-tag || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-missing-message || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-signature || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-subjective-set || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-sync || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-timeline || exit 1
+python -O Tribler/Main/dispersy.py --script dispersy-undo || exit 1
+# python -O Tribler/Main/dispersy.py --script all $@ || exit 1
 
 echo "================================================================================"
 echo "Finished testcases successfully"

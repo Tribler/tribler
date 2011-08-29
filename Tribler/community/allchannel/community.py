@@ -7,17 +7,16 @@ from payload import ChannelCastPayload, VoteCastPayload, ChannelSearchRequestPay
 # from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 # from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
+from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
-from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.message import Message, DropMessage
-from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
-from Tribler.Core.dispersy.resolution import PublicResolution
-from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.destination import AddressDestination, CommunityDestination
-from Tribler.Core.dispersy.member import MyMember
-
+from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
+from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
+from Tribler.Core.dispersy.member import Member
+from Tribler.Core.dispersy.message import Message, DropMessage
+from Tribler.Core.dispersy.resolution import PublicResolution
 
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
@@ -58,14 +57,14 @@ class AllChannelCommunity(Community):
 
         if not communities:
             master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
-            cid = sha1(master_key).digest()
+            master = Member.get_instance(master_key)
 
             dispersy_database = DispersyDatabase.get_instance()
-            dispersy_database.execute(u"INSERT OR IGNORE INTO community (user, classification, cid, public_key) VALUES (?, ?, ?, ?)",
-                                      (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_key)))
+            dispersy_database.execute(u"INSERT OR IGNORE INTO community (master, member, classification) VALUES (?, ?, ?)",
+                                      (master.database_id, my_member.database_id, cls.get_classification()))
 
             # new community instance
-            community = cls.load_community(cid, master_key, *args, **kargs)
+            community = cls.load_community(master, *args, **kargs)
 
             # send out my initial dispersy-identity
             community.create_dispersy_identity()
@@ -75,8 +74,8 @@ class AllChannelCommunity(Community):
 
         return communities
 
-    def __init__(self, cid, master_key, integrate_with_tribler = True):
-        super(AllChannelCommunity, self).__init__(cid, master_key)
+    def __init__(self, master, integrate_with_tribler = True):
+        super(AllChannelCommunity, self).__init__(master)
         
         self.integrate_with_tribler = integrate_with_tribler
         if self.integrate_with_tribler:
@@ -102,7 +101,7 @@ class AllChannelCommunity(Community):
         # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
         return [Message(self, u"channelcast", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
                 Message(self, u"channelcast-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
-                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast)
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast)
                 ]
 
     def initiate_conversions(self):
@@ -167,7 +166,7 @@ class AllChannelCommunity(Community):
                             
                             header = message.packet[:22].encode('HEX')
                             nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                            log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = nr_torrents, marked = didFavorite, size=len(message.packet), header=header, cid=self._cid.encode('HEX'))
+                            log("dispersy.log", "sending-channelcast", address = candidate.address, torrents = nr_torrents, marked = didFavorite, size=len(message.packet), header=header, cid=self.cid.encode('HEX'))
                             
                             #we're done
                             break
@@ -197,7 +196,13 @@ class AllChannelCommunity(Community):
                     community = self._dispersy.get_community(cid, True)
                 except KeyError:
                     if __debug__: dprint("join_community ", cid.encode("HEX"))
-                    community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
+                    community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+
+                # if __debug__:
+                #     dprint(type(message.payload), " ", type(message.payload.meta), force=1)
+                #     for infohash in torrents:
+                #         assert isinstance(infohash, str)
+                #         assert len(infohash) == 20
                 
                 for infohash in community.selectTorrentsToCollect(torrents):
                     toCollect.setdefault(cid,set()).add(infohash)
@@ -271,7 +276,7 @@ class AllChannelCommunity(Community):
             cid = message.payload.cid
             
             authentication_member = message.authentication.member
-            if isinstance(authentication_member, MyMember):
+            if authentication_member == self._my_member:
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
@@ -308,7 +313,7 @@ class AllChannelCommunity(Community):
                 dispersy_id = message.packet_id
                 
                 authentication_member = message.authentication.member
-                if isinstance(authentication_member, MyMember):
+                if authentication_member == self._my_member:
                     peer_id = None
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
@@ -348,39 +353,43 @@ class ChannelCastDBStub():
         self._cachedTorrents = {}
     
     def convert_to_messages(self, results):
-        messages = []
-        for cid, packet, packet_id in results:
-            cid = str(cid)
-            packet = str(packet)
-            
-            try:
-                community = self._dispersy.get_community(cid)
-                message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
+        messages = self._dispersy.convert_packets_to_messages(packet for packet, _ in results)
+        for packet_id, message in zip((packet_id for _, packet_id in results), messages):
+            if message:
                 message.packet_id = packet_id
+                yield message
+        # for cid, packet, packet_id in results:
+        #     cid = str(cid)
+        #     packet = str(packet)
+            
+        #     try:
+        #         community = self._dispersy.get_community(cid)
+        #         message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
+        #         message.packet_id = packet_id
                 
-                messages.append((cid, message))
+        #         messages.append((cid, message))
                 
-            except ValueError, v:
-                #raise RuntimeError("Unable to decode packet")
-                import sys
-                print >> sys.stderr, "Unable to decode packet", cid, packet
-                raise
-        return messages
+        #     except ValueError, v:
+        #         #raise RuntimeError("Unable to decode packet")
+        #         import sys
+        #         print >> sys.stderr, "Unable to decode packet", cid, packet
+        #         raise
+        # return messages
     
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
         last_result_time = None
         
-        sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT ?"
+        sql = u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT ?"
         results = list(self._dispersy.database.execute(sql, (NUM_OWN_RECENT_TORRENTS, )))
         
-        messages = self.convert_to_messages(results)
+        messages = list(self.convert_to_messages(results))
         for cid, message in messages:
             torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
             last_result_time = message.payload.timestamp
             
         if len(messages) == NUM_OWN_RECENT_TORRENTS:
-            sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
+            sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
             results = list(self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS)))
             
             messages = self.convert_to_messages(results)
@@ -390,7 +399,7 @@ class ChannelCastDBStub():
         return torrent_dict
 
     def _cacheTorrents(self):
-        sql = u"SELECT community.cid, sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent'"
+        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent'"
         results = list(self._dispersy.database.execute(sql))
         messages = self.convert_to_messages(results)
         
@@ -421,7 +430,7 @@ class VoteCastDBStub():
         self._dispersy = dispersy
         
     def getDispersyId(self, cid, public_key):
-        sql = u"SELECT sync.id FROM sync JOIN user ON sync.user = user.id JOIN community ON community.id = sync.community JOIN name ON sync.name = name.id WHERE community.classification = 'AllChannelCommunity' AND name.value = 'votecast' AND user.public_key = ? ORDER BY global_time DESC LIMIT 1"
+        sql = u"SELECT sync.id FROM sync JOIN user ON sync.member = member.id JOIN community ON community.id = sync.community JOIN meta_message ON sync.meta_message = meta_message.id WHERE community.classification = 'AllChannelCommunity' AND meta_message.name = 'votecast' AND member.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
             id,  = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
             return int(id)

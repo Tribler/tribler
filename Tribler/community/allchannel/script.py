@@ -9,7 +9,7 @@ from Tribler.community.channel.preview import PreviewChannelCommunity
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.member import MyMember
+from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
 from Tribler.Core.dispersy.dprint import dprint
@@ -44,7 +44,7 @@ class AllChannelNode(Node):
 class AllChannelScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")                    
-        self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         self.caller(self.test_incoming_channel_propagate)
         self.caller(self.test_outgoing_channel_propagate)
@@ -257,7 +257,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             
             for community in dispersy.get_communities():
                 if isinstance(community, PreviewChannelCommunity) and community._channel_id:
-                    self._community._disp_create_votecast(community._cid, 2, int(time()))
+                    self._community._disp_create_votecast(community.cid, 2, int(time()))
                     
                     log(self._logfile, "joining-community")
                     self.joined_community = community

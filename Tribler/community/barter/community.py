@@ -105,9 +105,11 @@ class BarterCommunity(Community):
         STORE_AND_FORWARD: when True, dispersy-signature-request is send to OTHER_MEMBER.
         """
         if __debug__:
-            from Tribler.Core.dispersy.member import Public, Private
-        assert isinstance(second_member, Public)
-        assert not isinstance(second_member, Private)
+            from Tribler.Core.dispersy.member import Member
+        assert isinstance(second_member, Member)
+        assert second_member.public_key
+        assert isinstance(second_member, Member)
+        assert not second_member.private_key
         assert isinstance(first_upload, (int, long))
         assert isinstance(second_upload, (int, long))
 

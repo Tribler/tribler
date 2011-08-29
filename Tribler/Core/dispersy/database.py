@@ -111,7 +111,7 @@ class Database(Singleton):
             self._connection.commit()
             return True
         else:
-            if __debug__: dprint("ROLLBACK")
+            if __debug__: dprint("ROLLBACK", level="error")
             self._connection.rollback()
             return False
 
@@ -305,6 +305,36 @@ if __debug__:
         if not len(l) == 1000:
             print "ERROR"
             assert False
+
+        try:
+            with db:
+                db.execute(u"INSERT INTO pair (key, value) VALUES ('foo', 'bar')")
+                db.execute(u"INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42)")
+        except:
+            pass
+        # there should not be a foo/bar entry
+        try:
+            key, value = db.execute(u"SELECT key, value FROM pair WHERE key = 'foo'").next()
+            print "ERROR"
+            assert False
+        except StopIteration:
+            pass
+
+        try:
+            with db:
+                db.executescript(u"""
+INSERT INTO pair (key, value) VALUES ('foo', 'bar');
+INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42);
+""")
+        except sqlite3.OperationalError, e:
+            assert str(e) == "no such table: invalid_table_name", e
+        # there should not be a foo/bar entry
+        try:
+            key, value = db.execute(u"SELECT key, value FROM pair WHERE key = 'foo'").next()
+            print "ERROR"
+            assert False
+        except StopIteration:
+            pass
 
         e = time.time()
         db.commit()

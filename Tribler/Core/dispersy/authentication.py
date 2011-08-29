@@ -10,7 +10,6 @@ creator of this message.
 @contact: dispersy@frayja.com
 """
 
-from member import PrivateMember
 from meta import MetaObject
 
 class Authentication(MetaObject):

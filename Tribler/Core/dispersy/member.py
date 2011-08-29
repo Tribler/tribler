@@ -1,139 +1,219 @@
 # Python 2.5 features
 from __future__ import with_statement
 
-"""
-For each peer that we have the public key, we have one Member instance.  Each member instance is
-used to uniquely identify a peer.  Special Member subclasses exist to identify, for instance,
-youself.
-"""
-
 from hashlib import sha1
 
 from singleton import Parameterized1Singleton
 from dispersydatabase import DispersyDatabase
 from crypto import ec_from_private_bin, ec_from_public_bin, ec_to_public_bin, ec_signature_length, ec_verify, ec_sign
-from encoding import encode, decode
 
 if __debug__:
     from dprint import dprint
 
-class Public(object):
+class Member(Parameterized1Singleton):
+    """
+    The Member class represents a single member in the Dispersy database.
+
+    Each Member instance must be created or retrieved using has_instance or get_instance methods.
+
+    - instances that have a public_key can verify signatures.
+
+    - instances that have a private_key can both verify and sign data.
+
+    - instances that have neither a public_key nor a private key are special cases and are indexed
+      using the sha1 digest of the public key, supplied by some external party.
+    """
+
+    def __new__(cls, public_key, private_key="", sync_with_database=True, public_key_available=True):
+        """
+        Some member instances may be indexed using the sha1 digest instead of the public key.
+
+        we must check if this new instance replaces a previously made instance.
+        """
+        assert isinstance(public_key, str)
+        assert isinstance(private_key, str)
+        assert isinstance(sync_with_database, bool)
+        assert isinstance(public_key_available, bool)
+        assert (public_key_available and len(public_key) > 0 and not public_key.startswith("-----BEGIN")) or \
+               (not public_key_available and len(public_key) == 20), (len(public_key), public_key_available, public_key.encode("HEX"))
+        assert (public_key_available and len(private_key) > 0 and not private_key.startswith("-----BEGIN")) or len(private_key) == 0
+        if public_key_available:
+            mid = sha1(public_key).digest()
+            member = cls.has_instance(mid)
+            if member:
+                # TODO we might want to remove the old singleton link (indexed by mid), however, we
+                # need to force the issue since it is currently not allowed as there are still
+                # references to it
+                if __debug__: dprint("singleton fix!", force=1)
+                return member
+
+        return super(Member, cls).__new__(cls, public_key, private_key, sync_with_database, public_key_available)
+
+    def __init__(self, public_key, private_key="", sync_with_database=True, public_key_available=True):
+        """
+        Create a new Member instance.  Member instances must be reated or retrieved using
+        has_instance or get_instance.
+
+        To create a Member instance we either need a public_key or a mid.  If only the mid is
+        available it must be given as the public_key parameter and public_key_available must be
+        False.  In this case the member will be unable to verify or sign data.
+
+        Also not that it is possible, however unlikely, that someone is able to find another member
+        with the same mid.  This will cause conflicts until the public_key is available.
+        """
+        assert isinstance(public_key, str)
+        assert isinstance(private_key, str)
+        assert isinstance(sync_with_database, bool)
+        assert isinstance(public_key_available, bool)
+        assert (public_key_available and len(public_key) > 0 and not public_key.startswith("-----BEGIN")) or \
+               (not public_key_available and len(public_key) == 20), (len(public_key), public_key_available, public_key.encode("HEX"))
+        assert (public_key_available and len(private_key) > 0 and not private_key.startswith("-----BEGIN")) or len(private_key) == 0
+
+        database = DispersyDatabase.get_instance()
+
+        if hasattr(self, "_database_id"):
+            #
+            # singleton already exists.  we may have received a public or private key now, so update
+            # those in the database is needed
+            #
+            if __debug__: dprint("continue with existing singleton", force=1)
+
+            assert public_key_available, "the __new__ enforces that public_key must exist"
+            assert self._public_key == "" or self._public_key == public_key
+            assert self._private_key == "" or self._private_key == private_key
+
+            if not self._public_key:
+                self._public_key = public_key
+                if sync_with_database:
+                    database.execute(u"UPDATE member SET public_key = ? WHERE id = ?", (buffer(public_key), self._database_id))
+
+            if not self._private_key:
+                self._private_key = private_key
+                if sync_with_database:
+                    database.execute(u"UPDATE private_key SET private_key = ? WHERE member = ?", (buffer(private_key), self._database_id))
+
+        else:
+            #
+            # singleton did not exist.  we make a new one
+            #
+            if public_key_available:
+                self._public_key = public_key
+                self._private_key = private_key
+                self._mid = sha1(public_key).digest()
+                self._database_id = -1
+                self._address = ("", -1)
+                self._tags = []
+
+                if sync_with_database:
+                    try:
+                        self._database_id, private_key = database.execute(u"SELECT m.id, p.private_key FROM member AS m LEFT OUTER JOIN private_key AS p ON p.member = m.id WHERE m.public_key = ? LIMIT 1",
+                                                                 (buffer(self._public_key),)).next()
+                    except StopIteration:
+                        # TODO check if there is a member already in the database where we only had
+                        # the MID
+
+                        database.execute(u"INSERT INTO member(mid, public_key) VALUES(?, ?)", (buffer(self._mid), buffer(self._public_key)))
+                        self._database_id = database.last_insert_rowid
+
+                    else:
+                        if not self._private_key and private_key:
+                            self._private_key = str(private_key)
+
+            else:
+                self._public_key = ""
+                self._private_key = ""
+                self._mid = public_key
+                self._database_id = -1
+                self._address = ("", -1)
+                self._tags = []
+
+                if sync_with_database:
+                    try:
+                        # TODO do something smart to select the right mid (multiple can exist...)
+                        self._database_id, private_key, tags = database.execute(u"SELECT m.id, p.private_key FROM member AS m LEFT OUTER JOIN private_key AS p ON p.member = m.id WHERE m.mid = ? LIMIT 1",
+                                                                                (buffer(self._mid),)).next()
+                    except StopIteration:
+                        database.execute(u"INSERT INTO member(mid) VALUES(?)", (buffer(self._mid),))
+                        self._database_id = database.last_insert_rowid
+
+                    else:
+                        if not self._private_key and private_key:
+                            self._private_key = str(private_key)
+
+        if public_key_available:
+            # dprint(self._database_id, force=1)
+            # dprint(self._public_key.encode("HEX"), force=1)
+            # dprint(self._private_key.encode("HEX"), force=1)
+            self._ec = ec_from_private_bin(self._private_key) if self._private_key else ec_from_public_bin(self._public_key)
+            self._signature_length = ec_signature_length(self._ec)
+
+        else:
+            self._ec = None
+            self._signature_length = 0
+
+        if sync_with_database:
+            self.update()
+
+        if __debug__: dprint("mid:", self._mid.encode("HEX"), " db:", self._database_id, " public:", bool(self._public_key), " private:", bool(self._private_key), " from-public:", public_key_available)
+
+    def update(self):
+        """
+        Update tag and addresses from the database.
+        """
+        execute = DispersyDatabase.get_instance().execute
+
+        # set tags
+        try:
+            tags, = execute(u"SELECT tags FROM member WHERE id = ?", (self._database_id,)).next()
+        except StopIteration:
+            assert False, "should never occur"
+        else:
+            self._tags = [tag for tag in tags.split(",") if tag]
+            if __debug__:
+                assert len(set(self._tags)) == len(self._tags), ("there are duplicate tags", self._tags)
+                for tag in self._tags:
+                    assert tag in (u"store", u"ignore", u"blacklist"), tag
+
+        for community, host, port in execute(u"SELECT community, host, port FROM identity WHERE member = ?", (self._database_id,)):
+            # TODO we may have multiple addresses
+            self._address = (str(host), port)
+
     @property
     def mid(self):
         """
         The member id.  This is the 20 byte sha1 hash over the public key.
         """
-        raise NotImplementedError()
+        return self._mid
 
     @property
     def public_key(self):
         """
-        The public key.  This is binary representation of the public key.
+        The public key.
+
+        This is binary representation of the public key.
+
+        It may be an empty string when the public key is not yet available.  In this case the verify
+        method will always return False and the sign method will raise a RuntimeException.
         """
-        raise NotImplementedError()
+        return self._public_key
+
+    @property
+    def private_key(self):
+        """
+        The private key.
+
+        This is binary representation of the private key.
+
+        It may be an empty string when the private key is not yet available.  In this case the sign
+        method will raise a RuntimeException.
+        """
+        return self._private_key
 
     @property
     def signature_length(self):
         """
         The length, in bytes, of a signature.
         """
-        raise NotImplementedError()
-
-    def verify(self, data, signature, offset=0, length=0):
-        """
-        Verify that DATA, starting at OFFSET up to LENGTH bytes, was
-        signed by this member and matches SIGNATURE.
-
-        DATA is the signed data and the signature concatenated.
-        OFFSET is the offset for the signed data.
-        LENGTH is the length of the signature and the data, in bytes.
-
-        Returns True or False.
-        """
-        raise NotImplementedError()
-
-class Private(object):
-    @property
-    def private_key(self):
-        raise NotImplementedError()
-
-    def sign(self, data, offset=0, length=0):
-        """
-        Sign DATA using our private key.  Returns a signature.
-        """
-        raise NotImplementedError()
-
-class Member(Public, Parameterized1Singleton):
-    """
-    The Member class represents a single member in the Dispersy database.
-
-    There should only be one or less Member instance for each member in the database.  To ensure
-    this, each Member instance must be created or retrieved using has_instance or get_instance.
-    """
-
-    # This _singleton_instances is very important.  It ensures that all subclasses of Member use the
-    # same dictionary when looking for a public_key.  Otherwise each subclass would get its own
-    # _singleton_instances dictionary.
-    _singleton_instances = {}
-
-    def __init__(self, public_key, ec=None, sync_with_database=True):
-        """
-        Create a new Member instance.  Member instances must be reated or retrieved using
-        has_instance or get_instance.
-
-        PUBLIC_KEY must be a string giving the public EC key in DER format.  EC is an optional EC
-        object (given when created from private key).
-        """
-        assert isinstance(public_key, str)
-        assert not public_key.startswith("-----BEGIN")
-        assert isinstance(sync_with_database, bool)
-        self._public_key = public_key
-        if ec is None:
-            self._ec = ec_from_public_bin(public_key)
-        else:
-            self._ec = ec
-
-        self._signature_length = ec_signature_length(self._ec)
-        self._mid = sha1(public_key).digest()
-
-        self._database_id = -1
-        self._address = ("", -1)
-        self._tags = []
-
-        # sync with database
-        if sync_with_database:
-            if not self.update():
-                database = DispersyDatabase.get_instance()
-                database.execute(u"INSERT INTO user(mid, public_key) VALUES(?, ?)", (buffer(self._mid), buffer(self._public_key)))
-                self._database_id = database.last_insert_rowid
-
-    def update(self):
-        """
-        Update this instance from the database
-        """
-        try:
-            execute = DispersyDatabase.get_instance().execute
-
-            self._database_id, host, port, tags = execute(u"SELECT id, host, port, tags FROM user WHERE public_key = ? LIMIT 1", (buffer(self._public_key),)).next()
-            self._address = (str(host), port)
-            self._tags = []
-            if tags:
-                self._tags = list(execute(u"SELECT key FROM tag WHERE value & ?", (tags,)))
-            return True
-
-        except StopIteration:
-            return False
-
-    @property
-    def mid(self):
-        return self._mid
-
-    @property
-    def public_key(self):
-        return self._public_key
-
-    @property
-    def signature_length(self):
         return self._signature_length
 
     @property
@@ -174,13 +254,8 @@ class Member(Public, Parameterized1Singleton):
                 return False
             self._tags.remove(tag)
 
-        with DispersyDatabase.get_instance() as database:
-            # todo: at some point we may want to optimize this.  for now this is a feature that will
-            # probably not be used often hence we leave it like this.
-            tags = list(database.execute(u"SELECT key, value FROM tag"))
-            int_tags = [0, 0] + [key for key, value in tags if value in self._tags]
-            reduced = reduce(lambda a, b: a | b, int_tags)
-            database.execute(u"UPDATE user SET tags = ? WHERE public_key = ?", (reduced, buffer(self._public_key),))
+        execute = DispersyDatabase.get_instance().execute
+        execute(u"UPDATE member SET tags = ? WHERE id = ?", (u",".join(sorted(self._tags)), self._database_id))
         return True
 
     # @property
@@ -211,12 +286,35 @@ class Member(Public, Parameterized1Singleton):
     must_blacklist = property(__get_must_blacklist, __set_must_blacklist)
 
     def verify(self, data, signature, offset=0, length=0):
+        """
+        Verify that DATA, starting at OFFSET up to LENGTH bytes, was signed by this member and
+        matches SIGNATURE.
+
+        DATA is the signed data and the signature concatenated.
+        OFFSET is the offset for the signed data.
+        LENGTH is the length of the signature and the data, in bytes.
+
+        Returns True or False.
+        """
         assert isinstance(data, str)
         assert isinstance(signature, str)
         assert isinstance(offset, (int, long))
         assert isinstance(length, (int, long))
         length = length or len(data)
-        return self._signature_length == len(signature) and ec_verify(self._ec, sha1(data[offset:offset+length]).digest(), signature)
+        return self._public_key and \
+               self._signature_length == len(signature) \
+               and ec_verify(self._ec, sha1(data[offset:offset+length]).digest(), signature)
+
+    def sign(self, data, offset=0, length=0):
+        """
+        Returns the signature of DATA, starting at OFFSET up to LENGTH bytes.
+
+        Will raise a RuntimeException when this we do not have the private key.
+        """
+        if self._private_key:
+            return ec_sign(self._ec, sha1(data[offset:length or len(data)]).digest())
+        else:
+            raise RuntimeException("unable to sign data without the private key")
 
     def __eq__(self, member):
         assert isinstance(member, Member)
@@ -241,54 +339,6 @@ class Member(Public, Parameterized1Singleton):
         Returns a human readable string representing the member.
         """
         return "<%s %d %s>" % (self.__class__.__name__, self._database_id, self._mid.encode("HEX"))
-
-class PrivateMember(Private, Member):
-    def __init__(self, public_key, private_key=None, sync_with_database=True):
-        assert isinstance(public_key, str)
-        assert not public_key.startswith("-----BEGIN")
-        assert isinstance(private_key, (type(None), str))
-        assert private_key is None or not private_key.startswith("-----BEGIN")
-        assert isinstance(sync_with_database, bool)
-
-        if sync_with_database:
-            if private_key is None:
-                # get private key
-                database = DispersyDatabase.get_instance()
-                try:
-                    private_key = str(database.execute(u"SELECT private_key FROM key WHERE public_key == ? LIMIT 1", (buffer(public_key),)).next()[0])
-                except StopIteration:
-                    pass
-
-            else:
-                # set private key
-                database = DispersyDatabase.get_instance()
-                database.execute(u"INSERT OR IGNORE INTO key(public_key, private_key) VALUES(?, ?)", (buffer(public_key), buffer(private_key)))
-
-        if private_key is None:
-            raise ValueError("The private key is unavailable")
-
-        super(PrivateMember, self).__init__(public_key, ec_from_private_bin(private_key), sync_with_database)
-        self._private_key = private_key
-
-    @property
-    def private_key(self):
-        return self._private_key
-
-    def sign(self, data, offset=0, length=0):
-        """
-        Sign DATA using our private key.  Returns the signature.
-        """
-        assert not self._private_key is None
-        return ec_sign(self._ec, sha1(data[offset:length or len(data)]).digest())
-
-class MasterMember(Member):
-    pass
-
-class ElevatedMasterMember(MasterMember, PrivateMember):
-    pass
-
-class MyMember(PrivateMember):
-    pass
 
 if __debug__:
     if __name__ == "__main__":

@@ -13,7 +13,6 @@ from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthent
 from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.destination import CommunityDestination, AddressDestination
-from Tribler.Core.dispersy.member import MyMember
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
@@ -68,13 +67,13 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def __init__(self, cid, master_key):
+    def __init__(self, master):
         self.integrate_with_tribler = True
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
         
-        super(ChannelCommunity, self).__init__(cid, master_key)
+        super(ChannelCommunity, self).__init__(master)
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
@@ -92,7 +91,7 @@ class ChannelCommunity(Community):
             self._notifier = Notifier.getInstance().notify
     
             # tribler channel_id
-            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._cid),))
+            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._master_member.mid),))
 
             #modification_types
             self._modification_types = self._channelcast_db.modification_types
@@ -101,7 +100,7 @@ class ChannelCommunity(Community):
             try:
                 message = self._get_latest_channel_message()
                 if message:
-                    self._channel_id = self._cid
+                    self._channel_id = self._master_member.mid
             except:
                 pass
 
@@ -132,7 +131,7 @@ class ChannelCommunity(Community):
             def handled_channel_function(messages):
                 dprint("handled-channel-record", stack = True)
                 log("dispersy.log", "received-channel-record")
-                self._channel_id = self._cid
+                self._channel_id = self._master_member.mid
             
             disp_on_channel = handled_channel_function
             disp_on_torrent = handled_function
@@ -143,14 +142,14 @@ class ChannelCommunity(Community):
             disp_on_warning = dummy_function
             disp_on_mark_torrent = dummy_function
         
-        return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"random-order", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent),
-                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist),
-                Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment),
-                Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification),
-                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent),
-                Message(self, u"warning", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), WarningPayload(), self._disp_check_warning, disp_on_warning),
-                Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"out-order", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent),                
+        return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
+                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent, delay=3.0),
+                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist, delay=3.0),
+                Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, delay=3.0),
+                Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, delay=3.0),
+                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, delay=3.0),
+                Message(self, u"warning", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), WarningPayload(), self._disp_check_warning, disp_on_warning, delay=3.0),
+                Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, delay=3.0),
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
@@ -253,11 +252,11 @@ class ChannelCommunity(Community):
             if __debug__: dprint(message)
 
             authentication_member = message.authentication.member
-            if isinstance(authentication_member, MyMember):
+            if authentication_member == self._my_member:
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-            self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._cid, peer_id, message.payload.name, message.payload.description)
+            self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._master_member.mid, peer_id, message.payload.name, message.payload.description)
 
     def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
         files = torrentdef.get_files_as_unicode_with_length()
@@ -421,7 +420,7 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             
             authentication_member = message.authentication.member
-            if isinstance(authentication_member, MyMember):
+            if authentication_member == self._my_member:
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
@@ -636,7 +635,7 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             
             authentication_member = message.authentication.member
-            if isinstance(authentication_member, MyMember):
+            if authentication_member == self._my_member:
                 by_peer_id = None
             else:
                 by_peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
@@ -645,7 +644,7 @@ class ChannelCommunity(Community):
             
             cause_message = message.payload.packet.load_message()
             authentication_member = cause_message.authentication.member
-            if isinstance(authentication_member, MyMember):
+            if authentication_member == self._my_member:
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
@@ -679,7 +678,7 @@ class ChannelCommunity(Community):
             global_time = message.distribution.global_time
             
             authentication_member = message.authentication.member
-            if isinstance(authentication_member, MyMember):
+            if authentication_member == self._my_member:
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
@@ -699,23 +698,22 @@ class ChannelCommunity(Community):
     #helper functions
     @forceAndReturnDispersyThread
     def _get_latest_channel_message(self):
+        channel_meta = self.get_meta_message(u"channel")
+
         # 1. get the packet
         try:
-            sql = u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.cid = ? AND name.value = 'channel' ORDER BY global_time DESC"
-            packet, packet_id = self._dispersy.database.execute(sql, (buffer(self._cid), )).next()
+            packet, packet_id = self._dispersy.database.execute(u"SELECT packet, id FROM sync WHERE meta_message = ? ORDER BY global_time DESC LIMIT 1",
+                                                                (channel_meta.database_id,)).next()
         except StopIteration:
             raise RuntimeError("Could not find requested packet")
-        packet = str(packet)
-        
-        # 2. convert packet into a Message instance
-        try:
-            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-        except ValueError:
-            raise RuntimeError("Unable to decode packet")
-        message.packet_id = packet_id
 
-        # 3. check
-        assert message.name == 'channel', "Expecting a 'channel' message"
+        message = self._dispersy.convert_packet_to_message(str(packet))
+        if message:
+            assert message.name == u"channel", "Expecting a 'channel' message"
+            message.packet_id = packet_id
+        else:
+            raise RuntimeError("unable to convert packet")
+
         return message
         
     def _get_message_from_playlist_id(self, playlist_id):
@@ -821,24 +819,15 @@ class ChannelCommunity(Community):
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            cid, packet, packet_id = self._dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            packet, packet_id = self._dispersy.database.execute(u"SELECT packet, id FROM sync WHERE id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
-        cid = str(cid)
-        packet = str(packet)
 
-        # 2: check cid
-        assert cid == self._cid, "Message not part of this community"
+        message = self._dispersy.convert_packet_to_message(str(packet))
+        if message:
+            assert not messagename or message.name == messagename
+            message.packet_id = packet_id
+        else:
+            raise RuntimeError("unable to convert packet")
 
-        # 3. convert packet into a Message instance
-        try:
-            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-        except ValueError, v:
-            #raise RuntimeError("Unable to decode packet")
-            raise
-        message.packet_id = packet_id
-        
-        # 4. check
-        if messagename:
-            assert message.name == messagename, "Expecting a '%s' message"%messagename
         return message

@@ -25,7 +25,8 @@ def forceWxThread(func):
         if wx.Thread_IsMain():
             func(*args, **kwargs)
         else:
-            print >> sys.stderr, "SWITCHING TO GUITHREAD", func.__name__
+            if DEBUG:
+                print >> sys.stderr, "SWITCHING TO GUITHREAD", func.__name__
             wx.CallAfter(func, *args, **kwargs)
             
     invoke_func.__name__ = func.__name__
@@ -34,7 +35,8 @@ def forceWxThread(func):
 def warnWxThread(func):
     def invoke_func(*args,**kwargs):
         if not wx.Thread_IsMain():
-            print >> sys.stderr, "NOT ON GUITHREAD", func.__name__
+            if DEBUG:
+                print >> sys.stderr, "NOT ON GUITHREAD", func.__name__
         
         return func(*args, **kwargs)
     

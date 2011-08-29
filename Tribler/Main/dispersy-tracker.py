@@ -20,7 +20,7 @@ from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.community import Community, HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
-from Tribler.Core.dispersy.member import MyMember
+from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.conversion import BinaryConversion
 
@@ -39,30 +39,6 @@ class TrackerCommunity(Community):
     """
     This community will only use dispersy-candidate-request and dispersy-candidate-response messages.
     """
-    @classmethod
-    def join_community(cls, cid, master_key, my_member, *args, **kargs):
-        assert isinstance(cid, str)
-        assert len(cid) == 20
-        assert isinstance(master_key, str)
-        assert not master_key or cid == sha1(master_key).digest()
-        assert isinstance(my_member, MyMember)
-
-        database = DispersyDatabase.get_instance()
-        database.execute(u"INSERT INTO community(user, classification, cid, public_key) VALUES(?, ?, ?, ?)",
-                         (my_member.database_id, cls.get_classification(), buffer(cid), buffer(master_key)))
-
-        print "Join community", cid.encode("HEX")
-
-        # new community instance
-        community = cls(cid, master_key, *args, **kargs)
-
-        # send out my initial dispersy-identity
-        community.create_dispersy_identity()
-
-        return community
-
-    def __init__(self, cid, master_key):
-        super(TrackerCommunity, self).__init__(cid, master_key)
 
     def _initialize_meta_messages(self):
         super(TrackerCommunity, self)._initialize_meta_messages()
@@ -124,7 +100,7 @@ class TrackerDispersy(Dispersy):
 
         # get my_member, the key pair that we will use when we join a new community
         keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
-        self._my_member = MyMember(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        self._my_member = Member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
