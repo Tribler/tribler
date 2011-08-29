@@ -47,7 +47,7 @@ class Member(Parameterized1Singleton):
                 if __debug__: dprint("singleton fix!", force=1)
                 return member
 
-        return super(Member, cls).__new__()#cls, public_key, private_key, sync_with_database, public_key_available)
+        return super(Member, cls).__new__(cls)#, public_key, private_key, sync_with_database, public_key_available)
 
     def __init__(self, public_key, private_key="", sync_with_database=True, public_key_available=True):
         """
