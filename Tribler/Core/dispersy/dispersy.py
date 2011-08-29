@@ -2460,17 +2460,11 @@ class Dispersy(Singleton):
          policy) in the local dispersy database.  This parameter should (almost always) be True, its
          inclusion is mostly to allow certain debugging scenarios.
         @type store: bool
-
-        @param forward: When True the messages are forwarded (as defined by their message
-         destination policy) to other nodes in the community.  This parameter should (almost always)
-         be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store: bool
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(store, bool)
-        assert isinstance(forward, bool)
         meta = community.get_meta_message(u"dispersy-identity")
         message = meta.implement(meta.authentication.implement(community.my_member),
                                  meta.distribution.implement(community.claim_global_time()),
