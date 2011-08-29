@@ -166,7 +166,7 @@ class SetupScript(ScriptBase):
                 try:
                     packet = open(expanduser("~/simpledispersytest_permission_packet"), "r").read()
                 except:
-                    tield 1.0
+                    yield 1.0
                 else:
                     dprint("use existing permissions from disk")
                     self._community.dispersy.on_incoming_packets([("", -1), packet])
