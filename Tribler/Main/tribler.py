@@ -293,9 +293,7 @@ class ABCApp(wx.App):
             self.frame.Show(True)
             self.splash.Destroy()
             
-            wx.CallAfter(self.startWithRightView)
-            wx.CallAfter(self.loadSessionCheckpoint)
-            wx.CallAfter(self.set_reputation)
+            wx.CallAfter(self.PostInit2)
             
             # start the torrent feed thread
             self.torrentfeed = TorrentFeedThread.getInstance()
@@ -328,6 +326,22 @@ class ABCApp(wx.App):
             return False
 
         return True
+
+    def PostInit2(self):
+        self.startWithRightView()
+        self.loadSessionCheckpoint()
+        self.set_reputation()
+        
+        s = self.utility.session
+        s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
 
     # ProxyService 90s Test_
     def start_90s_dl(self, subject, changeType, objectID, *args):
@@ -472,16 +486,6 @@ class ABCApp(wx.App):
 
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.get_state_dir())
-
-        s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
 
         # set port number in GuiUtility
         if DEBUG:
