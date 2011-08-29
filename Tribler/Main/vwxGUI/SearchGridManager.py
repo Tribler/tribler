@@ -1042,13 +1042,9 @@ class ChannelSearchGridManager:
             ct = ChannelTorrent(*tuple)
             ct.torrent_db = self.torrent_db
             
-            if not ct.length:
-                print >> sys.stderr, 'IGNORING', ct.channeltorrent_id, ct.name
-                return None
-            
             #Only return ChannelTorrent with a name, old not-collected torrents 
             #will be filtered due to this
-            if ct.name != '':
+            if ct.name:
                 return ct
         
     def _createTorrents(self, hits, filterTorrents):

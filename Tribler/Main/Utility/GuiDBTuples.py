@@ -48,10 +48,12 @@ def cacheProperty(func):
         key = func.__name__
         try:
             return self._cache[key]
+        
         except AttributeError:
             self._cache = {}
             x = self._cache[key] = func(self)
             return x
+        
         except KeyError:
             x = self._cache[key] = func(self)
             return x
@@ -149,7 +151,7 @@ class RemoteTorrent(Torrent):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel_id, channel_permid, channel_name, subscriptions, neg_votes)
         self.query_permids = query_permids
 
-class CollectedTorrent:
+class CollectedTorrent(Helper):
     __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check', 'torrent')
     def __init__(self, torrent, torrentdef):
         self.torrent = torrent
@@ -165,18 +167,17 @@ class CollectedTorrent:
         
     def __getattr__(self, name):
         if hasattr(self.torrent, name):
-            func = getattr(self.torrent, name)
-        else:
-            func = getattr(self, name)
-        return func
+            return getattr(self.torrent, name)
+        elif hasattr(self, name):
+            return getattr(self, name)
     
     @cacheProperty
     def swarminfo(self):
         swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
         if swarminfo:
-            self.num_seeders = swarminfo[1]
-            self.num_leechers = swarminfo[2]
-            self.last_check = swarminfo[4]
+            self.num_seeders = swarminfo[1] or 0
+            self.num_leechers = swarminfo[2] or 0
+            self.last_check = swarminfo[4] or -1
         return swarminfo
     
     @cacheProperty
