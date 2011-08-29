@@ -215,7 +215,7 @@ class ScenarioScriptBase(ScriptBase):
         if __debug__: log(self._logfile, "read-config-done")
 
         # create my member
-        my_member = Member(public_key, private_key, sync_with_database=True)
+        my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
         assert my_member.public_key
         assert my_member.private_key
         dprint(my_member)
