@@ -160,15 +160,28 @@ class SetupScript(ScriptBase):
             # if permission_triplets:
             #     self._community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
 
-            dprint("creating authorizations")
-            permission_triplets = []
-            for message in self._community.get_meta_messages():
-                if not isinstance(message.resolution, PublicResolution):
-                    for allowed in (u"authorize", u"revoke", u"permit"):
-                        for public_key in self._community.hardcoded_member_public_keys.itervalues():
-                            permission_triplets.append((Member.get_instance(public_key), message, allowed))
-            if permission_triplets:
-                self._community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
+            wait = 30
+            for i in xrange(1, wait + 1):
+                dprint("checking for permissions on disk...")
+                try:
+                    packet = open(expanduser("~/simpledispersytest_permission_packet"), "r").read()
+                except:
+                    tield 1.0
+                else:
+                    dprint("use existing permissions from disk")
+                    self._community.dispersy.on_incoming_packets([("", -1), packet])
+                    break
+            else:
+                dprint("creating authorizations")
+                permission_triplets = []
+                for message in self._community.get_meta_messages():
+                    if not isinstance(message.resolution, PublicResolution):
+                        for allowed in (u"authorize", u"revoke", u"permit"):
+                            for public_key in self._community.hardcoded_member_public_keys.itervalues():
+                                permission_triplets.append((Member.get_instance(public_key), message, allowed))
+                if permission_triplets:
+                    message = self._community.create_dispersy_authorize(permission_triplets, sign_with_master=True)
+                    open(expanduser("~/simpledispersytest_permission_packet"), "w+").write(message.packet)
 
         yield 1.0
 
