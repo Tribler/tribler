@@ -215,9 +215,6 @@ class SelectedChannelList(GenericSearchList):
         self.footer.SetStates(vote == -1, vote == 2, self.my_channel)
         self.Layout()
         
-    def Reload(self, *args):
-        self.GetManager().reload(self.id)
-        
     def SetMyChannelId(self, channel_id):
         self.GetManager().my_channel_id = channel_id
     
@@ -326,33 +323,48 @@ class SelectedChannelList(GenericSearchList):
             panel.Saved()
             
     def OnRemoveVote(self, event):
+        #Set self.id to None to prevent updating twice
+        id = self.id
+        self.id = None
+        
         def db_call():
-            self.channelsearch_manager.remove_vote(self.id)
+            self.channelsearch_manager.remove_vote(id)
+            self.GetManager().reload(id)
             
-        startWorker(self.Reload, db_call)
+        startWorker(None, db_call)
     
     def OnFavorite(self, event = None):
+        #Set self.id to None to prevent updating twice
+        id = self.id
+        self.id = None
+        
         def db_call():
-            self.channelsearch_manager.favorite(self.id)
-            
+            self.channelsearch_manager.favorite(id)
         
             #Request all items from connected peers
             if not self.channel.isDispersy():
-                permid = self.channelsearch_manager.getPermidFromChannel(self.id)
+                permid = self.channelsearch_manager.getPermidFromChannel(id)
                 channelcast = BuddyCastFactory.getInstance().channelcast_core
                 channelcast.updateAChannel(self.id, permid)
 
             self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-        startWorker(self.Reload, db_call)
+            
+            self.GetManager().reload(id)
+        startWorker(None, db_call)
         
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
+            #Set self.id to None to prevent updating twice
+            id = self.id
+            self.id = None
+            
             def db_call():
-                self.channelsearch_manager.spam(self.id)
+                self.channelsearch_manager.spam(id)
                 self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2) 
             
-            startWorker(self.Reload, db_call)
+                self.GetManager().reload(id)
+            startWorker(None, db_call)
         dialog.Destroy()
     
     def OnManage(self, event):
