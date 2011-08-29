@@ -380,7 +380,7 @@ class ChannelCastDBStub():
         torrent_dict = {}
         last_result_time = None
         
-        sql = u"SELECT sync.packet, sync.id FROM sync JOIN name ON sync.name = name.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND name.value = 'torrent' ORDER BY global_time DESC LIMIT ?"
+        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' ORDER BY global_time DESC LIMIT ?"
         results = list(self._dispersy.database.execute(sql, (NUM_OWN_RECENT_TORRENTS, )))
         
         messages = list(self.convert_to_messages(results))
