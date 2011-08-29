@@ -357,7 +357,7 @@ class ChannelCastDBStub():
         for packet_id, message in zip((packet_id for _, packet_id in results), messages):
             if message:
                 message.packet_id = packet_id
-                yield message
+                yield message.community.cid, message
         # for cid, packet, packet_id in results:
         #     cid = str(cid)
         #     packet = str(packet)
