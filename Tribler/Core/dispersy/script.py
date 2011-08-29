@@ -275,7 +275,7 @@ class ScenarioScriptBase(ScriptBase):
                     curtime = unicode(curtime.strftime(time_format))
                     
                     database.execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, ?, ?)", (0, unicode(ip), port, curtime, curtime))
-                    database.execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
+                    database.execute(u"INSERT OR IGNORE INTO member(mid, public_key) VALUES(?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key)))
                     
                     #if __debug__:
                     #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
