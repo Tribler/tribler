@@ -162,14 +162,14 @@ class SetupScript(ScriptBase):
 
             wait = 30
             for i in xrange(1, wait + 1):
-                dprint("checking for permissions on disk...")
+                dprint("checking for permissions on disk. ", i, "/", wait, "...")
                 try:
                     packet = open(expanduser("~/simpledispersytest_permission_packet"), "r").read()
                 except:
                     yield 1.0
                 else:
                     dprint("use existing permissions from disk")
-                    self._community.dispersy.on_incoming_packets([(("", -1), packet)])
+                    self._community.dispersy.on_incoming_packets([(("130.161.158.222", 6711), packet)])
                     break
             else:
                 dprint("creating authorizations")
