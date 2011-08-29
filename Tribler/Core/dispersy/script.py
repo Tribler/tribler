@@ -216,6 +216,8 @@ class ScenarioScriptBase(ScriptBase):
 
         # create my member
         my_member = Member(public_key, private_key, sync_with_database=True)
+        assert my_member.public_key
+        assert my_member.private_key
         dprint(my_member)
 
         # join the community with the newly created member
