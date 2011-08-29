@@ -68,7 +68,7 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, master):
-        self.integrate_with_tribler = True
+        self.integrate_with_tribler = False
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
