@@ -353,7 +353,7 @@ class ChannelCastDBStub():
         self._cachedTorrents = {}
     
     def convert_to_messages(self, results):
-        messages = self._dispersy.convert_packets_to_messages(packet for packet, _ in results)
+        messages = self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
         for packet_id, message in zip((packet_id for _, packet_id in results), messages):
             if message:
                 message.packet_id = packet_id
