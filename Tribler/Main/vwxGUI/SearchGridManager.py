@@ -1041,10 +1041,15 @@ class ChannelSearchGridManager:
         if tuple:
             ct = ChannelTorrent(*tuple)
             ct.torrent_db = self.torrent_db
-            return ct
+            
+            #Only return ChannelTorrent with a name, old not-collected torrents 
+            #will be filtered due to this
+            if ct.name != '':
+                return ct
         
     def _createTorrents(self, hits, filterTorrents):
         hits = map(self._createTorrent, hits)
+        hits = filter(None, hits)
         
         self.filteredResults = 0
         if filterTorrents:
