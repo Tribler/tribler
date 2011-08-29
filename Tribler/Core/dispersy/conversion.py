@@ -877,7 +877,7 @@ class BinaryConversion(Conversion):
         # we want to know if the sender occurs in our subjective bloom filter
         subjective_set = meta.community.get_subjective_set(meta.community.my_member, meta.destination.cluster)
         assert subjective_set, "We must always have subjective sets for ourself"
-        return meta.destination.implement(placeholder.authentication.member.public_key in subjective_set)
+        return meta.destination.implement(meta_message.authentication.member.public_key in subjective_set)
 
     def _decode_similarity_destination(self, meta_message, authentication_impl):
         if __debug__:
