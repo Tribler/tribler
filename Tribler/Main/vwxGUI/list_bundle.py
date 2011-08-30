@@ -133,8 +133,12 @@ class BundleListItem(ListItem):
                 panel.Layout()
     
     def BackgroundColor(self, color):
+        self.Freeze()
+        
         ListItem.BackgroundColor(self, color)
         self.bundlepanel.SetBackgroundColour(color)
+        
+        self.Thaw()
         
     def AddEvents(self, control):
         if isinstance(control, LinkStaticText):
@@ -467,14 +471,16 @@ class BundlePanel(wx.Panel):
                 return item.GetExpandedPanel()
             
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, colour)
+        self.Freeze()
         
+        wx.Panel.SetBackgroundColour(self, colour)
         if getattr(self, 'grid', False):
             for sizeritem in self.grid.GetChildren():
-                if sizeritem.IsWindow():
-                    child = sizeritem.GetWindow()
-                    if isinstance(child, wx.Panel):
-                        child.SetBackgroundColour(colour)
+                child = sizeritem.GetWindow() or sizeritem.GetSizer()
+                if child and getattr(child, 'SetBackgroundColour', False): 
+                    child.SetBackgroundColour(colour)
+                        
+        self.Thaw()
     
 class BundleListView(GenericSearchList):
     

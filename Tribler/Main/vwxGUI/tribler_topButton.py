@@ -454,48 +454,51 @@ class LinkText(GenStaticText):
             self.SetFontColour(self.fonts[0], self.colours[0])
             
         event.Skip()
+        
+    def SetBackgroundColour(self, colour):
+        GenStaticText.SetBackgroundColour(self, colour)
+        self.Refresh()
 
-class LinkStaticText(wx.Panel):
+class LinkStaticText(wx.BoxSizer):
     def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
-        wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+        wx.BoxSizer.__init__(self, wx.HORIZONTAL)
+        self.parent = parent
         self.icon_type = icon_type
         
         if icon:
-            self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon = wx.StaticBitmap(parent, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
-            self.icon = wx.StaticBitmap(self, bitmap = NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, self.GetBackgroundColour(), state=0))
+            self.icon = wx.StaticBitmap(parent, bitmap = NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
             self.icon = None
+            
 
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         if self.icon and icon_align == wx.ALIGN_LEFT:
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        normalfont = self.GetFont()
+        normalfont = parent.GetFont()
         normalfont.SetPointSize(normalfont.GetPointSize() + font_increment)
         
-        selectedfont = self.GetFont()
+        selectedfont = parent.GetFont()
         selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
         selectedfont.SetUnderlined(True)
-        self.text = LinkText(self, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)])
-        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)])
+        self.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
             
         if self.icon and icon_align == wx.ALIGN_RIGHT:
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         
         if self.icon and text == '':
             self.icon.Hide()
         
-        self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-       
         if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
             self.SetBackgroundColour(parent.GetBackgroundColour())
         
     def SetToolTipString(self, tip):
-        wx.Panel.SetToolTipString(self, tip)
         self.text.SetToolTipString(tip)
         if self.icon:
             self.icon.SetToolTipString(tip)
@@ -513,12 +516,12 @@ class LinkStaticText(wx.Panel):
         return self.text.GetLabel()
     
     def SetFont(self, font):
-        wx.Panel.SetFont(self, font)
         self.text.SetFont(font)
     
     def ShowIcon(self, show = True):
         if self.icon and self.icon.IsShown() != show:
             self.icon.Show(show)
+    
     def IsIconShown(self):
         if self.icon:
             return self.icon.IsShown()
@@ -530,23 +533,24 @@ class LinkStaticText(wx.Panel):
     
     def HighLight(self, timeout = 2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT, blink=True)
-        self.Refresh()
         wx.CallLater(timeout * 1000, self.Revert)
         
     def Revert(self):
         self.SetBackgroundColour(self.originalColor, blink=True)
-        self.Refresh()
     
     def Blink(self):
         self.HighLight(0.15)
         wx.CallLater(300, self.HighLight, 0.15)
         
-    def Bind(self, event, handler, source=None, id=-1, id2=-1):
-        wx.Panel.Bind(self, event, handler, source, id, id2)
+    def SetCursor(self, cursor):
+        if self.icon:
+            self.icon.SetCursor(cursor)
         
+    def Bind(self, event, handler, source=None, id=-1, id2=-1):
         def modified_handler(actual_event, handler=handler):
             actual_event.SetEventObject(self)
             handler(actual_event)
+            
         self.text.Bind(event, modified_handler, source, id, id2)
         if self.icon:
             self.icon.Bind(event, modified_handler, source, id, id2)
@@ -554,11 +558,10 @@ class LinkStaticText(wx.Panel):
     def SetBackgroundColour(self, colour, blink = False):
         if not blink:
             self.originalColor = colour
-        wx.Panel.SetBackgroundColour(self, colour)
         self.text.SetBackgroundColour(colour)
         
         if self.icon and self.icon_type:
-            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, colour, state=0))
+            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.parent, self.icon_type, colour, state=0))
             self.icon.Refresh()
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):

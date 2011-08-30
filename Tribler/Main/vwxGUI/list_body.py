@@ -105,7 +105,7 @@ class ListItem(wx.Panel):
     
     def AddEvents(self, control):
         if getattr(control, 'GetWindow', False): #convert sizeritems
-            control = control.GetWindow()
+            control = control.GetWindow() or control.GetSizer()
         
         if getattr(control, 'Bind', False):
             if not isinstance(control, wx.Button):
@@ -244,7 +244,7 @@ class ListItem(wx.Panel):
                 self.expandedState.SetBitmap(self.GetIcon(color, state))
                 self.expandedState.Refresh()
             
-            self.Refresh()
+            #self.Refresh()
             self.Thaw()
     
     def Deselect(self):
