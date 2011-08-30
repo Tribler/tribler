@@ -15,6 +15,7 @@ from dprint import dprint
 if __debug__:
     import atexit
     DELAY_FOR_WARNING = 0.5
+    QUEUE_DELAY_FOR_WARNING = 1.0
 
 class Callback(object):
     def __init__(self):
@@ -273,6 +274,12 @@ class Callback(object):
                 self._timestamp = actual_time
 
             if expired:
+                if __debug__:
+                    for _, deadline, _, call, _ in expired:
+                        desync = get_timestamp() - deadline
+                        level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
+                        dprint("desync %.4fs" % desync, " for queued ", call, level=level)
+
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
 
@@ -286,7 +293,6 @@ class Callback(object):
                             # start next generator iteration
                             if __debug__:
                                 debug_begin = get_timestamp()
-                                dprint("desync %.4fs" % (debug_begin - deadline), " before calling ", call)
                             result = call.next()
                         except StopIteration:
                             if callback:
@@ -322,7 +328,6 @@ class Callback(object):
                             # callback
                             if __debug__:
                                 debug_begin = get_timestamp()
-                                dprint("desync %.4fs" % (debug_begin - deadline), " before calling ", call[0])
                             result = call[0](*call[1], **call[2])
                         except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
                             dprint(exception=True, level="error")
