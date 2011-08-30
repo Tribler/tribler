@@ -275,10 +275,14 @@ class Callback(object):
 
             if expired:
                 if __debug__:
+                    for deadline, _, _, call, _ in requests:
+                        desync = get_timestamp() - deadline
+                        dprint("queued %.4fs" % desync, " for request ", call if isinstance(call, GeneratorType) else call[0], force=1)
+
                     for _, deadline, _, call, _ in expired:
                         desync = get_timestamp() - deadline
                         level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
-                        dprint("desync %.4fs" % desync, " for queued ", call if isinstance(call, GeneratorType) else call[0], level=level)
+                        dprint("desync %.4fs" % desync, " for expited ", call if isinstance(call, GeneratorType) else call[0], level=level, force=1)
 
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)

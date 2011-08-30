@@ -168,15 +168,15 @@ class Statistics(object):
         subdict = self._outgoing.setdefault(address, {})
         a, b = subdict.get(key, (0, 0))
         subdict[key] = (a+count, b+bytes)
-        
+
     def increment_total_up(self, bytes):
         assert isinstance(bytes, (int, long))
         self._total_up += bytes
-        
+
     def increment_total_down(self, bytes):
         assert isinstance(bytes, (int, long))
         self._total_down += bytes
-        
+
 class Dispersy(Singleton):
     """
     The Dispersy class provides the interface to all Dispersy related commands, managing the in- and
@@ -342,6 +342,7 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-undo", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
                 Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
                 Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
+                # Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPlayload(), self._generic_timeline_check, self.on_dynamic_settings, delay=0.0),
 
                 #
                 # when something is missing, a dispersy-missing-... message can be used to request
@@ -2442,7 +2443,7 @@ class Dispersy(Singleton):
         # add routes in our candidate table
         self._update_routes_from_external_source(community, routes)
 
-    def create_identity(self, community, store=True):
+    def create_identity(self, community, store=True, update=True):
         """
         Create a dispersy-identity message.
 
@@ -2470,7 +2471,7 @@ class Dispersy(Singleton):
                                  meta.distribution.implement(community.claim_global_time()),
                                  meta.destination.implement(),
                                  meta.payload.implement(self._my_external_address))
-        self.store_update_forward([message], store, False, False)
+        self.store_update_forward([message], store, update, False)
         return message
 
     def on_identity(self, messages):
@@ -2494,6 +2495,14 @@ class Dispersy(Singleton):
 
             self._database.execute(u"INSERT OR REPLACE INTO identity (community, member, host, port) VALUES (?, ?, ?, ?)",
                                    (message.community.database_id, message.authentication.member.database_id, unicode(host), port))
+
+            if __debug__:
+                # there may be a Member instance indexed at the mid
+                member = message.authentication.member
+                assert member.public_key
+                if Member.has_instance(member.mid):
+                    assert id(Member.has_instance(member.mid)) == id(member)
+                    assert Member.has_instance(member.mid).public_key, "the public key should now be available"
 
             # update the in-memory member instance
             message.authentication.member.update()
@@ -3436,6 +3445,10 @@ class Dispersy(Singleton):
                 self._database.execute(u"DELETE FROM malicious_proof WHERE community = ?", (community.database_id,))
 
             self.reclassify_community(community, new_classification)
+
+    # def on_dynamic_settings(self, messages):
+    #     for message in messages:
+            
 
     def _generic_timeline_check(self, messages):
         meta = messages[0].meta

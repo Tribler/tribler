@@ -1287,16 +1287,12 @@ class Community(object):
         return self._dispersy.create_undo(self, message, sign_with_master, store, update, forward)
 
     @documentation(Dispersy.create_identity)
-    def create_dispersy_identity(self, store=True):
-        return self._dispersy.create_identity(self, store)
+    def create_dispersy_identity(self, store=True, update=True):
+        return self._dispersy.create_identity(self, store, update)
 
     @documentation(Dispersy.create_signature_request)
     def create_dispersy_signature_request(self, message, response_func, response_args=(), timeout=10.0, store=True, forward=True):
         return self._dispersy.create_signature_request(self, message, response_func, response_args, timeout, store, forward)
-
-#     @documentation(Dispersy.create_similarity)
-#     def create_dispersy_similarity(self, message, keywords, store=True, update=True, forward=True):
-#         return self._dispersy.create_similarity(self, message, keywords, store, update, forward)
 
     @documentation(Dispersy.create_destroy_community)
     def create_dispersy_destroy_community(self, degree, sign_with_master=False, store=True, update=True, forward=True):

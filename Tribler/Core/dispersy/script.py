@@ -224,6 +224,11 @@ class ScenarioScriptBase(ScriptBase):
                     
                 if name == my_name: continue
                 trackers.append((ip, int(port)))
+
+                # ensure that everyone has the public key (doesn't need to request a
+                # dispersy-identity msg)
+                self._dispersy_database.execute(u"INSERT OR REPLACE INTO member (mid, public_key) VALUES (?, ?)",
+                                                (buffer(sha1(public_key).digest()), buffer(public_key)))
         
         shuffle(trackers)
         bootstrap._trackers = trackers
@@ -252,19 +257,22 @@ class ScenarioScriptBase(ScriptBase):
 
         yield 2.0
 
-        # create a dispersy-identity message for my_member and the
-        # self._community community.  This message will be sent to all
-        # the peers in the 'peers' file to (a) add them to our candidate
-        # table (b) let them know about our existance and our public
-        # key
-        meta = self._community.get_meta_message(u"dispersy-identity")
-        message = meta.implement(meta.authentication.implement(meta.community._my_member),
-                                meta.distribution.implement(meta.community.claim_global_time()),
-                                meta.destination.implement(),
-                                meta.payload.implement(my_address))
-        self._dispersy.store_update_forward([message], True, True, False)
+        # 30/08/11 boudewijn: we do not need to create a dispersy-identity message.  it is created
+        # when we join the community and transferred on demand
+        #
+        # # create a dispersy-identity message for my_member and the
+        # # self._community community.  This message will be sent to all
+        # # the peers in the 'peers' file to (a) add them to our candidate
+        # # table (b) let them know about our existance and our public
+        # # key
+        # meta = self._community.get_meta_message(u"dispersy-identity")
+        # message = meta.implement(meta.authentication.implement(meta.community._my_member),
+        #                         meta.distribution.implement(meta.community.claim_global_time()),
+        #                         meta.destination.implement(),
+        #                         meta.payload.implement(my_address))
+        # self._dispersy.store_update_forward([message], True, True, False)
 
-        yield 2.0
+        # yield 2.0
 
         # open the scenario files, as generated from Mircea's Scenario
         # Generator

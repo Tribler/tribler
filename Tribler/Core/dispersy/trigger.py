@@ -68,7 +68,7 @@ class TriggerCallback(Trigger):
         if __debug__:
             self._debug_pattern = pattern
             dprint("create new trigger for one callback")
-            dprint(pattern)
+            dprint("pattern: ", self._debug_pattern)
         self._search = expression_compile(pattern).search
         self._response_func = response_func
         self._response_args = response_args
@@ -100,7 +100,9 @@ class TriggerCallback(Trigger):
 
     def on_timeout(self):
         if self._responses_remaining > 0:
-            if __debug__: dprint("timout on trigger with one callback", level="warning")
+            if __debug__:
+                dprint("timout on trigger with one callback", level="warning")
+                dprint("pattern: ", self._debug_pattern)
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
             self._response_func(None, *self._response_args)
@@ -134,7 +136,9 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[0][0], str)
                 assert isinstance(packet[0][1], int)
                 assert isinstance(packet[1], str)
-        if __debug__: dprint("create new trigger for ", len(packets), " packets")
+        if __debug__:
+            dprint("create new trigger for ", len(packets), " packets")
+            dprint("pattern: ", pattern)
         self._pattern = pattern
         self._search = expression_compile(pattern).search
         self._callback = callback
@@ -158,7 +162,9 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[1], str)
         if pattern == self._pattern:
             self._packets.extend(packets)
-            if __debug__: dprint("extend existing trigger with ", len(packets), " packets (now has ", len(self._packets), " packets)")
+            if __debug__:
+                dprint("extend existing trigger with ", len(packets), " packets (now has ", len(self._packets), " packets)")
+                dprint("pattern: ", self._pattern)
             return True
         else:
             return False
@@ -189,7 +195,9 @@ class TriggerPacket(Trigger):
 
     def on_timeout(self):
         if self._search:
-            if __debug__: dprint("timeout on trigger with ", len(self._packets), " packets", level="warning")
+            if __debug__:
+                dprint("timeout on trigger with ", len(self._packets), " packets", level="warning")
+                dprint("pattern: ", self._pattern)
             self._search = None
 
 class TriggerMessage(Trigger):
@@ -235,7 +243,9 @@ class TriggerMessage(Trigger):
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
         if pattern == self._pattern:
             self._messages.extend(messages)
-            if __debug__: dprint("extend existing trigger with ", len(messages), " messages (now has ", len(self._messages), " messages")
+            if __debug__:
+                dprint("extend existing trigger with ", len(messages), " messages (now has ", len(self._messages), " messages")
+                dprint("pattern: ", self._pattern)
             return True
         else:
             return False
@@ -266,5 +276,7 @@ class TriggerMessage(Trigger):
 
     def on_timeout(self):
         if self._search:
-            if __debug__: dprint("timeout on trigger with ", len(self._messages), " messages", level="warning")
+            if __debug__:
+                dprint("timeout on trigger with ", len(self._messages), " messages", level="warning")
+                dprint("pattern: ", self._pattern)
             self._search = None
