@@ -734,8 +734,8 @@ class BinaryConversion(Conversion):
             if message.authentication.encoding == "sha1":
                 container.append(message.authentication.member.mid)
             elif message.authentication.encoding == "bin":
-                assert member.public_key
-                assert ec_check_public_bin(member.public_key)
+                assert message.authentication.member.public_key
+                assert ec_check_public_bin(message.authentication.member.public_key)
                 container.extend((pack("!H", len(message.authentication.member.public_key)), message.authentication.member.public_key))
             else:
                 raise NotImplementedError(message.authentication.encoding)
