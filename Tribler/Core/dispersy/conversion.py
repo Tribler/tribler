@@ -251,7 +251,7 @@ class BinaryConversion(Conversion):
 
         key = data[offset:offset+key_length]
         if not ec_check_public_bin(key):
-            raise DropPacket("Invalid cryptographic key")
+            raise DropPacket("Invalid cryptographic key (_decode_missing_message)")
         member = self._community.get_member(key)
         offset += key_length
 
@@ -464,7 +464,7 @@ class BinaryConversion(Conversion):
 
             key = data[offset:offset+key_length]
             if not ec_check_public_bin(key):
-                raise DropPacket("Invalid cryptographic key")
+                raise DropPacket("Invalid cryptographic key (_decode_authorize)")
             member = self._community.get_member(key)
             offset += key_length
 
@@ -562,7 +562,7 @@ class BinaryConversion(Conversion):
 
             key = data[offset:offset+key_length]
             if not ec_check_public_bin(key):
-                raise DropPacket("Invalid cryptographic key")
+                raise DropPacket("Invalid cryptographic key (_decode_revoke)")
             member = self._community.get_member(key)
             offset += key_length
 
@@ -688,7 +688,7 @@ class BinaryConversion(Conversion):
 
         key = data[offset:offset+key_length]
         if not ec_check_public_bin(key):
-            raise DropPacket("Invalid cryptographic key")
+            raise DropPacket("Invalid cryptographic key (_decode_missing_proof)")
         member = self._community.get_member(key)
         offset += key_length
 
@@ -863,7 +863,7 @@ class BinaryConversion(Conversion):
                 offset += 2
                 key = data[offset:offset+key_length]
                 if not ec_check_public_bin(key):
-                    raise DropPacket("Invalid cryptographic key")
+                    raise DropPacket("Invalid cryptographic key (_decode_authentication)")
                 member = self._community.get_member(key)
                 offset += key_length
                 first_signature_offset = len(data) - member.signature_length
