@@ -9,6 +9,7 @@ from crypto import ec_from_private_bin, ec_from_public_bin, ec_to_public_bin, ec
 
 if __debug__:
     from dprint import dprint
+    from crypto import ec_check_public_bin, ec_check_private_bin
 
 class Member(Parameterized1Singleton):
     """
