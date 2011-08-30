@@ -275,6 +275,7 @@ class Community(object):
             dprint("master: ", master.database_id, force=1)
             dprint(list(self._dispersy_database.execute(u"SELECT * FROM member")), force=1)
             dprint(list(self._dispersy_database.execute(u"SELECT * FROM community")), force=1)
+            self._dispersy_database.commit()
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
 
         self._cid = master.mid

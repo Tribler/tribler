@@ -237,7 +237,7 @@ class ScenarioScriptBase(ScriptBase):
 
                 # ensure that everyone has the public key (doesn't need to request a
                 # dispersy-identity msg)
-                self._dispersy_database.execute(u"INSERT OR REPLACE INTO member (mid, public_key) VALUES (?, ?)",
+                self._dispersy_database.execute(u"INSERT INTO member (mid, public_key) VALUES (?, ?)",
                                                 (buffer(sha1(public_key).digest()), buffer(public_key)))
         
         shuffle(trackers)
