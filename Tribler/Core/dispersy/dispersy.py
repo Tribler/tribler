@@ -2556,7 +2556,10 @@ class Dispersy(Singleton):
             sql = u"SELECT packet FROM sync JOIN member ON member.id = sync.member WHERE sync.community = ? AND sync.meta_message = ? AND member.mid = ? LIMIT 10"
             packets = [str(packet) for packet, in self._database.execute(sql, (message.community.database_id, meta.database_id, buffer(message.payload.mid)))]
             if packets:
+                if __debug__: dprint("responding with ", len(packets), " identity messages")
                 self._send([message.address], packets, u"dispersy-identity")
+            else:
+                if __debug__: dprint("could not find any missing members.  no response is sent", level="warning")
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
