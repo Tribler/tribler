@@ -92,14 +92,21 @@ class Member(Parameterized1Singleton):
                 assert self._private_key == "" or self._private_key == private_key
 
                 if not self._public_key:
+                    assert public_key
+                    assert ec_check_public_bin(public_key), public_key.encode("HEX")
                     self._public_key = public_key
                     if sync_with_database:
                         database.execute(u"UPDATE member SET public_key = ? WHERE id = ?", (buffer(public_key), self._database_id))
 
                 if not self._private_key:
+                    assert private_key
+                    assert ec_check_private_bin(private_key), private_key.encode("HEX")
                     self._private_key = private_key
                     if sync_with_database:
                         database.execute(u"UPDATE private_key SET private_key = ? WHERE member = ?", (buffer(private_key), self._database_id))
+
+                self._ec = ec_from_private_bin(self._private_key) if self._private_key else ec_from_public_bin(self._public_key)
+                self._signature_length = ec_signature_length(self._ec)
 
             else:
                 # we have nothing new
@@ -110,6 +117,9 @@ class Member(Parameterized1Singleton):
             # singleton did not exist.  we make a new one
             #
             if public_key_available:
+                assert public_key
+                assert ec_check_public_bin(public_key), public_key.encode("HEX")
+                assert not private_key or ec_check_private_bin(private_key), private_key.encode("HEX")
                 self._public_key = public_key
                 self._private_key = private_key
                 self._mid = sha1(public_key).digest()
@@ -132,7 +142,11 @@ class Member(Parameterized1Singleton):
                         if not self._private_key and private_key:
                             self._private_key = str(private_key)
 
+                self._ec = ec_from_private_bin(self._private_key) if self._private_key else ec_from_public_bin(self._public_key)
+                self._signature_length = ec_signature_length(self._ec)
+
             else:
+                assert len(public_key) == 20, public_key.encode("HEX")
                 self._public_key = ""
                 self._private_key = ""
                 self._mid = public_key
@@ -142,27 +156,15 @@ class Member(Parameterized1Singleton):
 
                 if sync_with_database:
                     try:
-                        # TODO do something smart to select the right mid (multiple can exist...)
-                        self._database_id, private_key, tags = database.execute(u"SELECT m.id, p.private_key FROM member AS m LEFT OUTER JOIN private_key AS p ON p.member = m.id WHERE m.mid = ? LIMIT 1",
-                                                                                (buffer(self._mid),)).next()
+                        # # TODO do something smart to select the right mid (multiple can exist...)
+                        self._database_id, = database.execute(u"SELECT id FROM member WHERE mid = ? LIMIT 1",
+                                                              (buffer(self._mid),)).next()
                     except StopIteration:
                         database.execute(u"INSERT INTO member(mid) VALUES(?)", (buffer(self._mid),))
                         self._database_id = database.last_insert_rowid
 
-                    else:
-                        if not self._private_key and private_key:
-                            self._private_key = str(private_key)
-
-        if public_key_available:
-            # dprint(self._database_id, force=1)
-            # dprint(self._public_key.encode("HEX"), force=1)
-            # dprint(self._private_key.encode("HEX"), force=1)
-            self._ec = ec_from_private_bin(self._private_key) if self._private_key else ec_from_public_bin(self._public_key)
-            self._signature_length = ec_signature_length(self._ec)
-
-        else:
-            self._ec = None
-            self._signature_length = 0
+                self._ec = None
+                self._signature_length = 0
 
         if sync_with_database:
             self.update()

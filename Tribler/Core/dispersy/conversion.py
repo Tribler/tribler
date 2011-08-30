@@ -735,7 +735,7 @@ class BinaryConversion(Conversion):
                 container.append(message.authentication.member.mid)
             elif message.authentication.encoding == "bin":
                 assert message.authentication.member.public_key
-                assert ec_check_public_bin(message.authentication.member.public_key)
+                assert ec_check_public_bin(message.authentication.member.public_key), message.authentication.member.public_key.encode("HEX")
                 container.extend((pack("!H", len(message.authentication.member.public_key)), message.authentication.member.public_key))
             else:
                 raise NotImplementedError(message.authentication.encoding)
