@@ -269,6 +269,8 @@ class Community(object):
         try:
             self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
+            # TODO remove this! but for now, commit before crash
+            self._dispersy_database.commit()
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
 
         self._cid = master.mid
