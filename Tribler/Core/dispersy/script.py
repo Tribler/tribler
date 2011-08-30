@@ -198,11 +198,7 @@ class ScenarioScriptBase(ScriptBase):
 
     def run(self):
         if __debug__: log(self._logfile, "start-barter-script")
-
-        self._members = {}
-        self.original_on_incoming_packets = self._dispersy.on_incoming_packets
-        self.original_send = self._dispersy._send
-
+        
         #
         # Read our configuration from the peer.conf file
         # name, ip, port, public and private key
@@ -213,6 +209,30 @@ class ScenarioScriptBase(ScriptBase):
             private_key = private_key.decode("HEX")
             my_address = (ip, int(port))
         if __debug__: log(self._logfile, "read-config-done")
+        
+        if __debug__:
+            _peer_counter = 0
+            
+        import bootstrap
+        trackers = []
+        with open('data/peers') as file:
+            for line in file:
+                name, ip, port, public_key, _ = line.split(' ', 4)
+                if __debug__:
+                    _peer_counter += 1
+                    log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
+                    
+                if name == my_name: continue
+                trackers.append((ip, port))
+        
+        shuffle(trackers)
+        bootstrap._trackers = trackers
+        if __debug__:
+            log(self._logfile, "done-reading-peers")
+
+        self._members = {}
+        self.original_on_incoming_packets = self._dispersy.on_incoming_packets
+        self.original_send = self._dispersy._send
 
         # create my member
         my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
@@ -243,44 +263,6 @@ class ScenarioScriptBase(ScriptBase):
                                 meta.destination.implement(),
                                 meta.payload.implement(my_address))
         self._dispersy.store_update_forward([message], True, True, False)
-
-        # now send the dispersy-identity message to everybody the
-        # dispersy-identity is a CommunityDestination message but
-        # currently we don't know anyone else in the
-        # community. Therefore we have to specifically forward the
-        # message to peers using the _dispersy._send function with
-        # (ip, port) combinations we read from the 'data/peers' file
-        if __debug__:
-            _peer_counter = 0
-        with self._dispersy_database as database:
-            #remove original tracker
-            database.execute(u"DELETE FROM candidate where community=0")
-            
-            with open('data/peers') as file:
-                for line in file:
-                    name, ip, port, public_key, _ = line.split(' ', 4)
-                    if __debug__:
-                        _peer_counter += 1
-                        log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                    if name == my_name: continue
-                    public_key = public_key.decode('HEX')
-                    port = int(port)
-
-                    #self._dispersy._send([(ip, port)], [message.packet])
-                    
-                    #inserting all peers from data/peer as 'trackers'
-                    
-                    time_format = "%Y-%m-%d %H:%M:%S"
-                    curtime = datetime.now()
-                    curtime = unicode(curtime.strftime(time_format))
-                    
-                    database.execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, ?, ?)", (0, unicode(ip), port, curtime, curtime))
-                    database.execute(u"INSERT OR IGNORE INTO member(mid, public_key) VALUES(?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key)))
-                    
-                    #if __debug__:
-                    #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
-        if __debug__:
-            log(self._logfile, "done-reading-peers")
 
         yield 2.0
 
