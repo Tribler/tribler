@@ -233,7 +233,7 @@ class Community(object):
         @rtype: Community
         """
         assert isinstance(master, Member)
-        if __debug__: dprint("loading ", cls.get_classification(), " ", master.mid.encode("HEX"))
+        if __debug__: dprint("loading ", cls.get_classification(), " ", master.mid.encode("HEX"), stack=1)
         community = cls(master, *args, **kargs)
 
         # tell dispersy that there is a new community
@@ -272,10 +272,6 @@ class Community(object):
         try:
             self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            dprint("master: ", master.database_id, force=1)
-            dprint(list(self._dispersy_database.execute(u"SELECT * FROM member")), force=1)
-            dprint(list(self._dispersy_database.execute(u"SELECT * FROM community")), force=1)
-            self._dispersy_database.commit()
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
 
         self._cid = master.mid
