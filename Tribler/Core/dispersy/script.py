@@ -210,6 +210,12 @@ class ScenarioScriptBase(ScriptBase):
             my_address = (ip, int(port))
         if __debug__: log(self._logfile, "read-config-done")
         
+        # create my member
+        my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
+        assert my_member.public_key
+        assert my_member.private_key
+        dprint(my_member)
+
         if __debug__:
             _peer_counter = 0
             
@@ -218,6 +224,7 @@ class ScenarioScriptBase(ScriptBase):
         with open('data/peers') as file:
             for line in file:
                 name, ip, port, public_key, _ = line.split(' ', 4)
+                public_key = public_key.decode("HEX")
                 if __debug__:
                     _peer_counter += 1
                     log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
@@ -238,12 +245,6 @@ class ScenarioScriptBase(ScriptBase):
         self._members = {}
         self.original_on_incoming_packets = self._dispersy.on_incoming_packets
         self.original_send = self._dispersy._send
-
-        # create my member
-        my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
-        assert my_member.public_key
-        assert my_member.private_key
-        dprint(my_member)
 
         # join the community with the newly created member
         self._community = self.join_community(my_member)
