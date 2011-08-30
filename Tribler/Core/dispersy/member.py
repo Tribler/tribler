@@ -38,6 +38,7 @@ class Member(Parameterized1Singleton):
                (not public_key_available and len(public_key) == 20), (len(public_key), public_key_available, public_key.encode("HEX"))
         assert (public_key_available and len(private_key) > 0 and not private_key.startswith("-----BEGIN")) or len(private_key) == 0
         if public_key_available:
+            # determine if there already was a member with this mid (given the known public key)
             mid = sha1(public_key).digest()
             member = cls.has_instance(mid)
             if member:
@@ -46,6 +47,14 @@ class Member(Parameterized1Singleton):
                 # references to it
                 if __debug__: dprint("singleton fix!", force=1)
                 return member
+
+        else:
+            # determine if there already was a member with this public key (given the known mid)
+            for member in cls.get_instances():
+                # note that public_key, in this case, contains the mid
+                if member.mid == public_key:
+                    if __debug__: dprint("singleton fix", force=1)
+                    return member
 
         return super(Member, cls).__new__(cls)#, public_key, private_key, sync_with_database, public_key_available)
 
@@ -78,19 +87,23 @@ class Member(Parameterized1Singleton):
             #
             if __debug__: dprint("continue with existing singleton", force=1)
 
-            assert public_key_available, "the __new__ enforces that public_key must exist"
-            assert self._public_key == "" or self._public_key == public_key
-            assert self._private_key == "" or self._private_key == private_key
+            if public_key_available:
+                assert self._public_key == "" or self._public_key == public_key
+                assert self._private_key == "" or self._private_key == private_key
 
-            if not self._public_key:
-                self._public_key = public_key
-                if sync_with_database:
-                    database.execute(u"UPDATE member SET public_key = ? WHERE id = ?", (buffer(public_key), self._database_id))
+                if not self._public_key:
+                    self._public_key = public_key
+                    if sync_with_database:
+                        database.execute(u"UPDATE member SET public_key = ? WHERE id = ?", (buffer(public_key), self._database_id))
 
-            if not self._private_key:
-                self._private_key = private_key
-                if sync_with_database:
-                    database.execute(u"UPDATE private_key SET private_key = ? WHERE member = ?", (buffer(private_key), self._database_id))
+                if not self._private_key:
+                    self._private_key = private_key
+                    if sync_with_database:
+                        database.execute(u"UPDATE private_key SET private_key = ? WHERE member = ?", (buffer(private_key), self._database_id))
+
+            else:
+                # we have nothing new
+                pass
 
         else:
             #

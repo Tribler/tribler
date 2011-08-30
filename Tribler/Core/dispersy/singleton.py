@@ -147,6 +147,17 @@ class Parameterized1Singleton(object):
                     delattr(cls, "_singleton_instances")
 
     @classmethod
+    def get_instances(cls):
+        """
+        Returns a list with all the singleton instances.
+        """
+        with cls._singleton_lock:
+            if hasattr(cls, "_singleton_instances"):
+                return getattr(cls, "_singleton_instances").values()
+            else:
+                return []
+
+    @classmethod
     def referenced_instance(cls, arg):
         """
         Returns True if this singleton instance is referenced.
