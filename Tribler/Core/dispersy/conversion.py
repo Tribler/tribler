@@ -734,6 +734,8 @@ class BinaryConversion(Conversion):
             if message.authentication.encoding == "sha1":
                 container.append(message.authentication.member.mid)
             elif message.authentication.encoding == "bin":
+                assert member.public_key
+                assert ec_check_public_bin(member.public_key)
                 container.extend((pack("!H", len(message.authentication.member.public_key)), message.authentication.member.public_key))
             else:
                 raise NotImplementedError(message.authentication.encoding)
@@ -863,6 +865,7 @@ class BinaryConversion(Conversion):
                 offset += 2
                 key = data[offset:offset+key_length]
                 if not ec_check_public_bin(key):
+                    if __debug__: dprint(key_length, " ", key.encode("HEX"), level="warning")
                     raise DropPacket("Invalid cryptographic key (_decode_authentication)")
                 member = self._community.get_member(key)
                 offset += key_length
