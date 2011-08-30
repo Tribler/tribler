@@ -99,7 +99,7 @@ class Member(Parameterized1Singleton):
                     if sync_with_database:
                         database.execute(u"UPDATE member SET public_key = ? WHERE id = ?", (buffer(public_key), self._database_id))
 
-                if not self._private_key:
+                if not self._private_key and private_key:
                     assert private_key
                     assert ec_check_private_bin(private_key), private_key.encode("HEX")
                     self._private_key = private_key
