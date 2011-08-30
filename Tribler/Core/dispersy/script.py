@@ -214,7 +214,7 @@ class ScenarioScriptBase(ScriptBase):
         my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
         assert my_member.public_key
         assert my_member.private_key
-        dprint(my_member)
+        dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
         if __debug__:
             _peer_counter = 0
