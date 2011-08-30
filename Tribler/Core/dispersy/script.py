@@ -223,7 +223,7 @@ class ScenarioScriptBase(ScriptBase):
                     log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
                     
                 if name == my_name: continue
-                trackers.append((ip, port))
+                trackers.append((ip, int(port)))
         
         shuffle(trackers)
         bootstrap._trackers = trackers
