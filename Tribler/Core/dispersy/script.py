@@ -229,10 +229,8 @@ class ScenarioScriptBase(ScriptBase):
                     _peer_counter += 1
                     log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
                     
-                if name == my_name:
-                    assert public_key == my_member.public_key
+                if public_key == my_member.public_key:
                     continue
-                assert public_key != my_member.public_key
                 trackers.append((ip, int(port)))
 
                 # ensure that everyone has the public key (doesn't need to request a
