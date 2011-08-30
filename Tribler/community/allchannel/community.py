@@ -285,7 +285,7 @@ class AllChannelCommunity(Community):
                 community = self._dispersy.get_community(cid, True)
             except KeyError:
                 if __debug__: dprint("join_community ", cid.encode("HEX"))
-                community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
+                community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
             
             if community._channel_id:
                 dispersy_id = self._votecast_db.getDispersyId(community._channel_id, peer_id)
@@ -322,7 +322,7 @@ class AllChannelCommunity(Community):
                     community = self._dispersy.get_community(cid, True)
                 except KeyError:
                     if __debug__: dprint("join_community ", cid.encode("HEX"))
-                    community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
+                    community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
                 
                 self._votecast_db.on_vote_from_dispersy(community._channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
     
