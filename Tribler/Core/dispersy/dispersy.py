@@ -1094,7 +1094,7 @@ class Dispersy(Singleton):
         message.packet_id = packet_id
         return message
 
-    def convert_packet_to_message(self, packet):
+    def convert_packet_to_message(self, packet, load=True, auto_load=True):
         """
         Returns the Message representing the packet or None when no conversion is possible.
         """
@@ -1102,7 +1102,7 @@ class Dispersy(Singleton):
 
         # find associated community
         try:
-            community = self.get_community(packet[2:22])
+            community = self.get_community(packet[2:22], load, auto_load)
         except KeyError:
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (unknown community)", level="warning")
             return None

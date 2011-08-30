@@ -75,6 +75,9 @@ class ChannelCommunity(Community):
         
         super(ChannelCommunity, self).__init__(master)
 
+        global _register_task
+        _register_task = self._dispersy.callback.register
+
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
             from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -97,19 +100,19 @@ class ChannelCommunity(Community):
             self._modification_types = self._channelcast_db.modification_types
         
         else:
-            try:
-                message = self._get_latest_channel_message()
-                if message:
-                    self._channel_id = self._master_member.mid
-            except:
-                pass
+            def post_init():
+                try:
+                    message = self._get_latest_channel_message()
+                    if message:
+                        self._channel_id = self._master_member.mid
+                except:
+                    pass
+            # call this after the init is completed and the community is attached to dispersy
+            _register_task(post_init)
 
             from Tribler.community.allchannel.community import ChannelCastDBStub
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
         
-        global _register_task
-        _register_task = self._dispersy.callback.register
-
     def initiate_meta_messages(self):
         if self.integrate_with_tribler:
             disp_on_channel = self._disp_on_channel
