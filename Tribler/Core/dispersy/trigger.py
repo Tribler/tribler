@@ -160,7 +160,7 @@ class TriggerPacket(Trigger):
                 assert isinstance(packet[0][0], str)
                 assert isinstance(packet[0][1], int)
                 assert isinstance(packet[1], str)
-        if pattern == self._pattern:
+        if self._search and pattern == self._pattern:
             self._packets.extend(packets)
             if __debug__:
                 dprint("extend existing trigger with ", len(packets), " packets (now has ", len(self._packets), " packets)")
@@ -241,7 +241,7 @@ class TriggerMessage(Trigger):
         assert isinstance(messages, list)
         assert len(messages) > 0
         assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        if pattern == self._pattern:
+        if self._search and pattern == self._pattern:
             self._messages.extend(messages)
             if __debug__:
                 dprint("extend existing trigger with ", len(messages), " messages (now has ", len(self._messages), " messages")
