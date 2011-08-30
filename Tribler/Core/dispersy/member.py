@@ -138,7 +138,6 @@ class Member(Parameterized1Singleton):
 
                         database.execute(u"INSERT INTO member(mid, public_key) VALUES(?, ?)", (buffer(self._mid), buffer(self._public_key)))
                         self._database_id = database.last_insert_rowid
-                        dprint("INSERT INTO member... ", self._database_id, " ", id(self), " ", self._mid.encode("HEX"), force=1)
 
                     else:
                         if not self._private_key and private_key:
