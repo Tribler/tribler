@@ -3,7 +3,7 @@ import sys
 import os
 
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
-    NativeIcon, LinkText
+    NativeIcon, LinkText, BetterText as StaticText
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -255,7 +255,7 @@ class TitleHeader(ListHeader):
     def AddColumns(self, sizer, parent, columns):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.title = wx.StaticText(self)
+        self.title = StaticText(self)
         font = self.title.GetFont()
         font.SetPointSize(font.GetPointSize() + self.font_increment)
         font.SetWeight(self.fontweight)
@@ -326,7 +326,7 @@ class TitleHeader(ListHeader):
 
 class SubTitleHeader(TitleHeader):
     def GetSubTitlePanel(self, parent):
-        self.subtitle = wx.StaticText(parent)
+        self.subtitle = StaticText(parent)
         return self.subtitle
 
     def SetSubTitle(self, subtitle):
@@ -388,7 +388,7 @@ class MyChannelHeader(SubTitleHeader):
         self.SetTitle('My Channel')
     
     def GetTitlePanel(self, parent):
-        self.name = wx.StaticText(parent)
+        self.name = StaticText(parent)
         return self.name
         
     def SetName(self, name):
@@ -425,7 +425,7 @@ class FamilyFilterHeader(TitleHeader):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.ff = wx.StaticText(parent)
+        self.ff = StaticText(parent)
         self.ffbutton = LinkStaticText(parent, '', None)
         self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
         
@@ -482,7 +482,7 @@ class SearchHeader(FamilyFilterHeader):
     
     def GetTitlePanel(self, parent):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.subtitle = wx.StaticText(parent)
+        self.subtitle = StaticText(parent)
         hSizer.Add(self.subtitle)
         panel = FamilyFilterHeader.GetTitlePanel(self, parent)
         if panel:
@@ -601,7 +601,7 @@ class ChannelHeader(SearchHeader):
     def GetBelowPanel(self, parent):
         self.descriptionPanel = ImageScrollablePanel(parent)
         self.descriptionPanel.SetBackgroundColour(wx.WHITE)
-        self.description = wx.StaticText(self.descriptionPanel)
+        self.description = StaticText(self.descriptionPanel)
         
         sizer = wx.BoxSizer()
         sizer.Add(self.description)

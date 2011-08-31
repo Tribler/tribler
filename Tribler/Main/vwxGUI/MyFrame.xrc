@@ -6,7 +6,7 @@
   	</font> 
     <title></title>
     <size>1024,670</size>
-    <style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxTAB_TRAVERSAL|wxSYSTEM_MENU|wxRESIZE_BORDER</style>
+    <style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxTAB_TRAVERSAL|wxSYSTEM_MENU|wxRESIZE_BORDER|wxNO_FULL_REPAINT_ON_RESIZE|wxCLIP_CHILDREN</style>
     <bg>#FFFFFF</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>

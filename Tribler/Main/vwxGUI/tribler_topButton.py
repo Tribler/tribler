@@ -406,7 +406,19 @@ class NativeIcon:
         #determine actual size of drawn icon, and return this subbitmap
         bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
         return bmp.GetSubBitmap(bb)
+
+class BetterText(wx.StaticText):
+    def __init__(self, *args, **kwargs):
+        wx.StaticText.__init__(self, *args, **kwargs)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackGround)
     
+    def OnEraseBackGround(self, event):
+        pass
+    
+    def SetLabel(self, text):
+        if text != self.GetLabel():
+            wx.StaticText.SetLabel(self, text)
+ 
 #Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
 class LinkText(GenStaticText):
     def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0):

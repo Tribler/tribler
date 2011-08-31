@@ -19,7 +19,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, SelectableListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, SelectableListCtrl, BetterText as StaticText
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -47,7 +47,7 @@ class TorrentDetails(wx.Panel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         #Add messagePanel text
-        self.messagePanel = wx.StaticText(self, -1, "Loading details, please wait.")
+        self.messagePanel = StaticText(self, -1, "Loading details, please wait.")
         vSizer.Add(self.messagePanel, 0, wx.ALIGN_CENTRE_HORIZONTAL|wx.ALL, 3)
         
         #Add details view
@@ -154,7 +154,7 @@ class TorrentDetails(wx.Panel):
         panel.SetSizer(vSizer)
         
         if header:
-            header = wx.StaticText(panel, -1, header)
+            header = StaticText(panel, -1, header)
             font = header.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             header.SetFont(font)
@@ -165,7 +165,7 @@ class TorrentDetails(wx.Panel):
         
     def _add_row(self, parent, sizer, name, value, spacer = 10):
         if name:
-            name = wx.StaticText(parent, -1, name)
+            name = StaticText(parent, -1, name)
             font = name.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             name.SetFont(font)
@@ -175,9 +175,9 @@ class TorrentDetails(wx.Panel):
             if isinstance(value, basestring):
                 value = value.strip()
                 try:
-                    value = wx.StaticText(parent, -1, unicode(value))
+                    value = StaticText(parent, -1, unicode(value))
                 except:
-                    value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
+                    value = StaticText(parent, -1, value.decode('utf-8','ignore'))
                 value.SetMinSize((1,-1))
                 sizer.Add(value, 0, wx.EXPAND|wx.LEFT, spacer)
             else:
@@ -372,7 +372,7 @@ class TorrentDetails(wx.Panel):
             self.subtitleChoice.Enable(False)
             self.subtitleChoice.items = curlang
               
-            self.requestingSub = wx.StaticText(subtitlePanel)
+            self.requestingSub = StaticText(subtitlePanel)
             self.requestingSub.Show(False)
             
             self._add_row(subtitlePanel, vSizer, "Which subtitle do you want to use?", None, spacer = 3)
@@ -468,7 +468,7 @@ class TorrentDetails(wx.Panel):
             wx.CallAfter(self.ShowPanel, type)
 
     def _ShowTorrentDetails(self):
-        header = wx.StaticText(self.buttonPanel, -1, "Liking what you see?")
+        header = StaticText(self.buttonPanel, -1, "Liking what you see?")
         header.SetMinSize((1,-1))
         font = header.GetFont()
         if not self.compact:
@@ -479,7 +479,7 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
         
         if not self.compact:
-            subtitle = wx.StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
+            subtitle = StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
             subtitle.SetMinSize((1, -1))
             self.buttonSizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
         
@@ -505,7 +505,7 @@ class TorrentDetails(wx.Panel):
             play.Disable()
         
         download_play_sizer.Add(self.downloadButton)
-        download_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+        download_play_sizer.Add(StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
         download_play_sizer.Add(play, 0, wx.ALIGN_CENTER_VERTICAL)
         self.buttonSizer.Add(download_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
@@ -554,7 +554,7 @@ class TorrentDetails(wx.Panel):
     
     def _ShowDownloadProgress(self):
         #Header
-        self.downloadText = wx.StaticText(self.buttonPanel, -1, "You are downloading this torrent")
+        self.downloadText = StaticText(self.buttonPanel, -1, "You are downloading this torrent")
         font = self.downloadText.GetFont()
         if not self.compact:
             font.SetPointSize(font.GetPointSize()+1)
@@ -574,7 +574,7 @@ class TorrentDetails(wx.Panel):
         if not isinstance(self, LibraryDetails):
             if not self.compact:
                 #Progress
-                header = wx.StaticText(self.buttonPanel, -1, "Current progress")
+                header = StaticText(self.buttonPanel, -1, "Current progress")
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
@@ -595,7 +595,7 @@ class TorrentDetails(wx.Panel):
                 self.playSpacer.AddStretchSpacer()
             
             if not self.compact:
-                header = wx.StaticText(self.buttonPanel, -1, "Impatient?")
+                header = StaticText(self.buttonPanel, -1, "Impatient?")
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
@@ -609,7 +609,7 @@ class TorrentDetails(wx.Panel):
             self.buttonSizer.Add(self.playSpacer, 0,wx.EXPAND, 3)
             
         if isinstance(self, LibraryDetails):
-            self.vod_log = wx.StaticText(self.buttonPanel)
+            self.vod_log = StaticText(self.buttonPanel)
             self.vod_log.SetMinSize((1,-1))
             self.vod_log.Hide()
             
@@ -620,7 +620,7 @@ class TorrentDetails(wx.Panel):
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
     
     def _ShowDone(self):
-        header = wx.StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
+        header = StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
         header.SetMinSize((1,-1))
         font = header.GetFont()
         if not self.compact:
@@ -644,7 +644,7 @@ class TorrentDetails(wx.Panel):
         explore.Bind(wx.EVT_BUTTON, self.OnExplore)
         
         explore_play_sizer.Add(explore)
-        explore_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+        explore_play_sizer.Add(StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
         explore_play_sizer.Add(play)
         self.buttonSizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         self.buttonSizer.AddStretchSpacer()
@@ -671,7 +671,7 @@ class TorrentDetails(wx.Panel):
                 wx.CallAfter(showChannel, channel, headerStr, label, tooltip, myLabel)
         
             def showChannel(channel, headerStr, label, tooltip, myLabel=None):
-                header = wx.StaticText(self.buttonPanel, -1, headerStr)
+                header = StaticText(self.buttonPanel, -1, headerStr)
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
@@ -965,9 +965,8 @@ class TorrentDetails(wx.Panel):
                 
                 if ds.vod_status_msg:
                     vod_log = ds.vod_status_msg.replace(". ", ".\n")
-                    if self.vod_log and self.vod_log.GetLabel() != vod_log:
+                    if self.vod_log:
                         self.vod_log.SetLabel(vod_log)
-                        self.vod_log.Refresh()
                         
                         if not self.vod_log.IsShown():
                             self.vod_log.Show()
@@ -975,9 +974,8 @@ class TorrentDetails(wx.Panel):
             else:
                 label = 'You are downloading this torrent'
             
-            if getattr(self,'downloadText', False) and self.downloadText.GetLabel() != label:
+            if getattr(self,'downloadText', False):
                 self.downloadText.SetLabel(label)
-                self.downloadText.Refresh()
             self.buttonPanel.Show()
             
         else:
@@ -1026,7 +1024,7 @@ class LibraryDetails(TorrentDetails):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         if not finished:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.availability = wx.StaticText(peersPanel)
+            self.availability = StaticText(peersPanel)
             self._add_row(peersPanel, hSizer, 'Availability', self.availability, spacer = 3)
             vSizer.Add(hSizer, 0, wx.EXPAND)
         else:
@@ -1170,7 +1168,7 @@ class ProgressPanel(wx.BoxSizer):
         self.utility = guiutility.utility
 
         self.pb = ProgressBar(parent)
-        self.status = wx.StaticText(parent)
+        self.status = StaticText(parent)
         
         self.AddStretchSpacer()
         self.Add(self.pb, 0, wx.EXPAND)
@@ -1406,7 +1404,7 @@ class MyChannelTabs(wx.Panel):
             urlSizer = wx.FlexGridSizer(0, 2, 0, 5)
             urlSizer.AddGrowableCol(0)
             for url in urls:
-                rsstext = wx.StaticText(rssPanel, -1, url.replace('&', '&&'))
+                rsstext = StaticText(rssPanel, -1, url.replace('&', '&&'))
                 rsstext.SetMinSize((1,-1))
                 
                 deleteButton = wx.Button(rssPanel, -1, "Delete")
@@ -1426,10 +1424,10 @@ class MyChannelTabs(wx.Panel):
             refresh.Bind(wx.EVT_BUTTON, self.OnRefreshRss)
             rssSizer.Add(refresh, 0, wx.ALIGN_RIGHT | wx.TOP, 3)
         else:
-            rssSizer.Add(wx.StaticText(parent, -1, "No rss feeds are being monitored."))
+            rssSizer.Add(StaticText(parent, -1, "No rss feeds are being monitored."))
             
         #add-rss
-        rssSizer.Add(wx.StaticText(parent, -1, "Add an rss-feed:"), 0, wx.TOP, 3)
+        rssSizer.Add(StaticText(parent, -1, "Add an rss-feed:"), 0, wx.TOP, 3)
         addSizer = wx.BoxSizer(wx.HORIZONTAL)
         url = wx.TextCtrl(parent)
         addButton = wx.Button(parent, -1, "Add")
@@ -1465,13 +1463,13 @@ class MyChannelTabs(wx.Panel):
         return html
     
     def createHeader(self, parent, title, subtitle):
-        title = wx.StaticText(parent, -1, title)
+        title = StaticText(parent, -1, title)
         font = title.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         title.SetFont(font)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(title)
-        vSizer.Add(wx.StaticText(parent, -1, subtitle))
+        vSizer.Add(StaticText(parent, -1, subtitle))
         return vSizer
     
     def OnChange(self, event):
@@ -1631,7 +1629,7 @@ class MyChannelDetails(wx.Panel):
         
         currentsubs = self.subsupport.getSubtitleInfos(self.my_permid, self.torrent['infohash'])
         if len(currentsubs) > 0:
-            header = wx.StaticText(self.subtitles, -1, "Current Subtitles")
+            header = StaticText(self.subtitles, -1, "Current Subtitles")
             font = header.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             header.SetFont(font)
@@ -1640,16 +1638,16 @@ class MyChannelDetails(wx.Panel):
             curlang = [self.supportedLang[langkey] for langkey in currentsubs.keys()]
             curlang.sort()
             for lang in curlang:
-                self.vSizer.Add(wx.StaticText(self.subtitles, -1, lang), 0, wx.LEFT, 6)
+                self.vSizer.Add(StaticText(self.subtitles, -1, lang), 0, wx.LEFT, 6)
         else:
-            header = wx.StaticText(self.subtitles, -1, "No subtitles added to this .torrent.")
+            header = StaticText(self.subtitles, -1, "No subtitles added to this .torrent.")
             font = header.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             header.SetFont(font)
             self.vSizer.Add(header)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticText(self.subtitles, -1, "Add a subtitle to this .torrent"), 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer.Add(StaticText(self.subtitles, -1, "Add a subtitle to this .torrent"), 0, wx.ALIGN_CENTER_VERTICAL)
         hSizer.AddStretchSpacer()
         button = wx.Button(self.subtitles, -1, "Browse")
         button.Bind(wx.EVT_BUTTON, self.OnClick)

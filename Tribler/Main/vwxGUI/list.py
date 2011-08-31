@@ -1124,19 +1124,13 @@ class LibaryList(List):
                 totals[4] = totals[4] + item.data[4]
                 
                 nr_connections = str(item.data[2][0] + item.data[2][1])
-                if item.connections.GetLabel() != nr_connections:
-                    item.connections.SetLabel(nr_connections)
-                    item.connections.Refresh()
+                item.connections.SetLabel(nr_connections)
                 
                 down = self.utility.speed_format_new(item.data[3])
-                if item.down.GetLabel() != down:
-                    item.down.SetLabel(down)
-                    item.down.Refresh()
+                item.down.SetLabel(down)
                 
                 up = self.utility.speed_format_new(item.data[4])
-                if item.up.GetLabel() != up:
-                    item.up.SetLabel(up)
-                    item.up.Refresh()
+                item.up.SetLabel(up)
                 
                 if ds:
                     item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))

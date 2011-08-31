@@ -7,7 +7,7 @@ from traceback import print_stack
 from time import time
 import re
 
-from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon
+from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as StaticText
 
 from __init__ import *
 
@@ -67,7 +67,7 @@ class ListItem(wx.Panel):
             type = self.columns[i].get('type', 'label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-                control = wx.StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
                 
                 fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                 if fontWeight != wx.FONTWEIGHT_NORMAL:
@@ -146,8 +146,6 @@ class ListItem(wx.Panel):
                 
                 if str_data != self.controls[control_index].GetLabel():
                     self.controls[control_index].SetLabel(str_data)
-                    self.controls[control_index].Refresh()
-                    
                     has_changed = True
                 control_index += 1
             
@@ -350,7 +348,7 @@ class AbstractListBody():
         self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.messageText = wx.StaticText(self.messagePanel)
+        self.messageText = StaticText(self.messagePanel)
         self.loadNext = wx.Button(self.messagePanel)
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()

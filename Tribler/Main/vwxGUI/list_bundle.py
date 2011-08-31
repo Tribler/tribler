@@ -10,7 +10,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterText as StaticText
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
@@ -212,7 +212,7 @@ class BundlePanel(wx.BoxSizer):
     def AddHeader(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.header = wx.StaticText(self.parent, -1, ' ')
+        self.header = StaticText(self.parent, -1, ' ')
         self.info_icon = wx.StaticBitmap(self.parent, -1, self.icons['info'])
 
         sizer.Add(self.header, 0, wx.RIGHT, 7)
@@ -283,10 +283,9 @@ class BundlePanel(wx.BoxSizer):
             #total nr items did not change
             for i in range(min(len(children), items_to_add)):
                 link_static_text = children[i].GetWindow()
-                if link_static_text and getattr(link_static_text, 'GetLabel', False):
-                    if hits[i]['name'] != link_static_text.GetLabel():
-                        link_static_text.SetLabel(hits[i]['name'])
-                        link_static_text.action = hits[i]
+                if link_static_text and getattr(link_static_text, 'SetLabel', False):
+                    link_static_text.SetLabel(hits[i]['name'])
+                    link_static_text.action = hits[i]
                 else:
                     didChange = True
                     break
@@ -294,11 +293,10 @@ class BundlePanel(wx.BoxSizer):
             if self.nrhits > N:
                 more_caption = '(%s more...)' % (self.nrhits - N + 1)
                 link_static_text = children[i+1].GetWindow()
-                if link_static_text and getattr(link_static_text, 'GetLabel', False):
-                    if link_static_text.GetLabel() != more_caption:
-                        link_static_text.SetLabel(more_caption)
-                        link_static_text.Unbind(wx.EVT_LEFT_UP)
-                        link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+                if link_static_text and getattr(link_static_text, 'SetLabel', False):
+                    link_static_text.SetLabel(more_caption)
+                    link_static_text.Unbind(wx.EVT_LEFT_UP)
+                    link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
                 else:
                     didChange = True
 
