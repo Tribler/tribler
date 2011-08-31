@@ -26,7 +26,7 @@ from traceback import print_exc
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
-    from lencoder import log
+from lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 5.0
