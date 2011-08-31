@@ -21,7 +21,7 @@ import sys
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
-    from lencoder import log
+from lencoder import log
 
 _register_task = None
 
@@ -137,7 +137,8 @@ class ChannelCommunity(Community):
                     log("dispersy.log", "handled-barter-record",type = "torrent")
                         
             def handled_channel_function(messages):
-                dprint("handled-channel-record", stack = True)
+                if __debug__:
+                    dprint("handled-channel-record", stack = True)
                 log("dispersy.log", "received-channel-record")
                 self._channel_id = self._master_member.mid
             
