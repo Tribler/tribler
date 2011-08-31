@@ -1331,6 +1331,7 @@ class MyChannelTabs(wx.Panel):
         filespage.OnExpand = self.parent.OnExpand
         filespage.OnCollapse = self.parent.OnCollapse
         filespage.OnSort = self.parent.OnSort
+        filespage.SetFilteredResults = self.parent.SetFilteredResults
         
         """
         Disabled delete, does not actually work (purely local)
