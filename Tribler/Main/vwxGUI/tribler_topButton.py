@@ -463,7 +463,9 @@ class LinkStaticText(wx.BoxSizer):
     def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         self.parent = parent
+        
         self.icon_type = icon_type
+        self.icon_align = icon_align
         
         if icon:
             self.icon = wx.StaticBitmap(parent, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
@@ -472,8 +474,6 @@ class LinkStaticText(wx.BoxSizer):
             self.icon = wx.StaticBitmap(parent, bitmap = NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
             self.icon = None
-            
-
 
         if self.icon and icon_align == wx.ALIGN_LEFT:
             self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
@@ -486,8 +486,8 @@ class LinkStaticText(wx.BoxSizer):
         selectedfont.SetUnderlined(True)
         
         self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)])
-        self.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
-            
+        self.Add(self.text, 1, wx.ALIGN_CENTER_VERTICAL)
+        
         if self.icon and icon_align == wx.ALIGN_RIGHT:
             self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         
@@ -504,13 +504,15 @@ class LinkStaticText(wx.BoxSizer):
             self.icon.SetToolTipString(tip)
         
     def SetLabel(self, text):
-        if self.icon:
-            self.icon.Show(text != '')
+        if text != self.text.GetLabel():
+            if self.icon:
+                self.icon.Show(text != '')
             
-        self.text.SetLabel(text)
-        if getattr(self.text, 'UpdateLink', False):
-            self.text.UpdateLink()
-        self.Layout()
+            self.text.SetLabel(text)
+            if self.icon and self.icon_align == wx.ALIGN_RIGHT:
+                self.text.SetMaxSize((self.text.GetBestSize()[0], -1))    
+            
+            self.Layout()
     
     def GetLabel(self):
         return self.text.GetLabel()
@@ -530,6 +532,10 @@ class LinkStaticText(wx.BoxSizer):
     def SetIconToolTipString(self, tip):
         if self.icon:
             self.icon.SetToolTipString(tip)
+            
+    def SetMinSize(self, minsize):
+        self.text.SetMinSize(minsize)
+        self.Layout()
     
     def HighLight(self, timeout = 2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT, blink=True)
