@@ -10,7 +10,7 @@ from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.message import Message, DropMessage, DelayMessageByProof
 from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
-from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution
+from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.destination import CommunityDestination, AddressDestination
 
@@ -125,6 +125,8 @@ class ChannelCommunity(Community):
             disp_on_playlist_torrent = self._disp_on_playlist_torrent
             disp_on_warning = self._disp_on_warning
             disp_on_mark_torrent = self._disp_on_mark_torrent
+
+            disp_undo_comment = self._disp_undo_comment
             
         else:
             batch_delay = 1.0
@@ -150,11 +152,13 @@ class ChannelCommunity(Community):
             disp_on_playlist_torrent = dummy_function
             disp_on_warning = dummy_function
             disp_on_mark_torrent = dummy_function
+
+            disp_undo_comment = dummy_function
         
         return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
                 Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent, delay=batch_delay),
                 Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist, delay=batch_delay),
-                Message(self, u"comment", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, delay=batch_delay),
+                Message(self, u"comment", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, disp_undo_comment, delay=batch_delay),
                 Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, delay=batch_delay),
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, delay=batch_delay),
                 Message(self, u"warning", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), WarningPayload(), self._disp_check_warning, disp_on_warning, delay=batch_delay),
@@ -232,7 +236,42 @@ class ChannelCommunity(Community):
 
     def create_channel(self, name, description, store=True, update=True, forward=True):
         self._disp_create_channel(name, description, store, update, forward)
-    
+
+    def is_channel_public(self):
+        for meta in self.get_meta_messages():
+            if isinstance(meta.resolution, DynamicResolution):
+                policy, _ = self._timeline.get_resolution_policy(meta, self.global_time)
+                if not isinstance(policy, PublicResolution):
+                    return False
+        return True
+
+    def _change_policies(self, index):
+        for meta in self.get_meta_messages():
+            if isinstance(meta.resolution, DynamicResolution):
+                yield meta, meta.resolution.policies[index]
+
+    def make_channel_public(self):
+        assert not self.is_channel_public()
+        policies = list(self._change_policies(1))
+
+        if __debug__:
+            # all policy changes should go to the PublicResolution policy
+            for meta, policy in policies:
+                assert isinstance(policy, PublicResolution), meta.name
+
+        self.create_dispersy_dynamic_settings(policies)
+
+    def make_channel_private(self):
+        assert self.is_channel_public()
+        policies = list(self._change_policies(0))
+
+        if __debug__:
+            # all policy changes should go to the LinearResolution policy
+            for meta, policy in policies:
+                assert isinstance(policy, LinearResolution), meta.name
+
+        self.create_dispersy_dynamic_settings(policies)
+
     @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"channel")
@@ -451,6 +490,11 @@ class ChannelCommunity(Community):
                 playlist_dispersy_id = message.payload.playlist_packet.packet_id
             
             self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
+
+    def _disp_undo_comment(self, descriptors):
+        for member, global_time, packet in descriptors:
+            message = packet.load_message()
+            dprint("undo \"", message.name, "\" @", global_time)
         
     #modify channel, playlist or torrent
     @forceDispersyThread
