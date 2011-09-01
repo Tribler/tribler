@@ -897,6 +897,12 @@ class Community(object):
         self._global_time += 1
         return self._global_time
 
+    def update_global_time(self, global_time):
+        """
+        Increase the local global time if the given GLOBAL_TIME is larger.
+        """
+        self._global_time = max(self._global_time, global_time)
+
     def free_sync_range(self, global_times):
         """
         Update the sync ranges to reflect that previously stored messages, at the indicated

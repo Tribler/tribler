@@ -1772,6 +1772,8 @@ class Dispersy(Singleton):
             self._store(messages)
 
         if update:
+            # TODO in theory we do not need to update_global_time when we store...
+            messages[0].community.update_global_time(max(message.distribution.global_time for message in messages))
             messages[0].handle_callback(messages)
 
         if store:
