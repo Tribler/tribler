@@ -599,13 +599,12 @@ class BuzzPanel(HomePanel):
         if len(self.tags) > 0:
             text = self.tags.pop()
             text.SetLabel(term)
+            text.SetFonts([font, font])
+            text.Reset()
+            
         else:
-            text = StaticText(self.panel, wx.ID_ANY, term)
-            text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        
-        if font:
-            text.SetFont(font)
-        text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
+            text = LinkText(self.panel, term, fonts=[font, font], colours = [BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
+            text.Bind(wx.EVT_LEFT_UP, self.OnClick)
         text.SetToolTipString("Click to search for '%s'"%term)
         return text
     
@@ -675,16 +674,13 @@ class BuzzPanel(HomePanel):
             self.OnEnterWindow(event)
         elif event.Leaving():
             self.OnLeaveWindow(event)
-        elif event.LeftUp():
-            self.OnClick(event)
+
+        event.Skip()
     
     def OnEnterWindow(self, event):
         evtobj = event.GetEventObject()
         evtobj.enter = True
         self.DoPauseResume()
-        
-        if evtobj != self:
-            self.ShowSelected(evtobj)
         
     def OnLeaveWindow(self, event = None):
         if event:
@@ -692,29 +688,12 @@ class BuzzPanel(HomePanel):
             evtobj.enter = False
         
         self.DoPauseResume()
-        self.ShowSelected()
-
-    def ShowSelected(self, statictext = None):
-        if statictext:
-            statictext.enter = True
-            statictext.SetForegroundColour(BuzzPanel.ACTIVE_COLOR)
-            statictext.Refresh()
-        
-        for column in self.panel.GetChildren():
-            if column != statictext and isinstance(column, StaticText):
-                if column.ForegroundColour != BuzzPanel.INACTIVE_COLOR:
-                    column.enter = False
-                    column.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
-                    column.Refresh()
 
     def OnClick(self, event):
         evtobj = event.GetEventObject()
         term = evtobj.GetLabel()
         if term <> '...collecting buzz information...':
             self.guiutility.dosearch(term)
-            
-            #Deselect all terms + doresume
-            self.ShowSelected()
             self.DoPauseResume()
 
             # 29/06/11 boudewijn: do not perform database inserts on the GUI thread

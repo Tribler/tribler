@@ -425,21 +425,29 @@ class LinkText(GenStaticText):
         GenStaticText.__init__(self, parent, -1, label, style = style)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
+        self.SetFonts(fonts)
+        self.SetColours(colours)
+        self.Reset()
+        
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+    
+    def SetFonts(self, fonts):
         self.fonts = []
         for font in fonts:
             if font is None:
                 font = self.GetFont()
             self.fonts.append(font)
-        
+            
+    def SetColours(self, colours):
         self.colours = []
         for colour in colours:
             if colour is None:
                 colour = self.GetForegroundColour()
             self.colours.append(colour)
-        
+    
+    def Reset(self):
         self.SetFontColour(self.fonts[0], self.colours[0])
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
-        self.Bind(wx.EVT_MOTION, self.OnMouseEvent)
     
     def SetFontColour(self, font, colour):
         needRefresh = False
