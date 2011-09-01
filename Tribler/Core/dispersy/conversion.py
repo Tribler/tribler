@@ -11,7 +11,7 @@ from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution, RelayDistribution
 from encoding import encode, decode
 from message import DelayPacket, DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
-from resolution import LinearResolution
+from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
     from dprint import dprint
@@ -138,6 +138,12 @@ class BinaryConversion(Conversion):
         self._decode_distribution_map = {FullSyncDistribution:self._decode_full_sync_distribution,
                                          LastSyncDistribution:self._decode_last_sync_distribution,
                                          DirectDistribution:self._decode_direct_distribution}
+        self._encode_resolution_map = {PublicResolution:self._encode_public_resolution,
+                                       LinearResolution:self._encode_linear_resolution,
+                                       DynamicResolution:self._encode_dynamic_resolution}
+        self._decode_resolution_map = {PublicResolution:self._decode_public_resolution,
+                                       LinearResolution:self._decode_linear_resolution,
+                                       DynamicResolution:self._decode_dynamic_resolution}
         self._encode_message_map = dict() # message.name : (byte, encode_payload_func)
         self._decode_message_map = dict() # byte : (message, decode_payload_func)
 
@@ -169,6 +175,7 @@ class BinaryConversion(Conversion):
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
         define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
         define(237, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
+        define(236, u"dispersy-dynamic-settings", self._encode_dynamic_settings, self._decode_dynamic_settings)
 
         if __debug__:
             if debug_non_available:
@@ -694,6 +701,46 @@ class BinaryConversion(Conversion):
 
         return offset, placeholder.meta.payload.implement(member, global_time)
 
+    def _encode_dynamic_settings(self, message):
+        data = []
+        for meta, policy in message.payload.policies:
+            assert meta.name in self._encode_message_map, ("unknown message", meta.name)
+            assert isinstance(policy, (PublicResolution, LinearResolution))
+            assert isinstance(meta.resolution, DynamicResolution)
+            assert policy in meta.resolution.policies, "the given policy must be one available at meta message creation"
+            meta_id = self._encode_message_map[meta.name][0]
+            # currently only supporting resolution policy changes
+            policy_type = "r"
+            policy_index = meta.resolution.policies.index(policy)
+            data.append(pack("!ccB", meta_id, policy_type, policy_index))
+        return data
+
+    def _decode_dynamic_settings(self, placeholder, offset, data):
+        if len(data) < offset + 3:
+            raise DropPacket("Insufficient packet size (_decode_dynamic_settings)")
+
+        policies = []
+        while len(data) >= offset + 3:
+            meta_id, policy_type, policy_index = unpack_from("!ccB", data, offset)
+            if not meta_id in self._decode_message_map:
+                raise DropPacket("Unknown meta id")
+            meta = self._decode_message_map[meta_id][0]
+            if not isinstance(meta.resolution, DynamicResolution):
+                raise DropPacket("Invalid meta id")
+
+            # currently only supporting resolution policy changes
+            if not policy_type == "r":
+                raise DropPacket("Invalid policy type")
+            if not policy_index < len(meta.resolution.policies):
+                raise DropPacket("Invalid policy id")
+            policy = meta.resolution.policies[policy_index]
+
+            offset += 3
+
+            policies.append((meta, policy))
+
+        return offset, placeholder.meta.payload.implement(policies)
+
     #
     # Encoding
     #
@@ -701,20 +748,43 @@ class BinaryConversion(Conversion):
     @staticmethod
     def _encode_full_sync_distribution(container, message):
         if message.distribution.enable_sequence_number:
+            assert message.distribution.global_time
+            assert message.distribution.sequence_number
             container.append(pack("!QL", message.distribution.global_time, message.distribution.sequence_number))
         else:
+            assert message.distribution.global_time
             container.append(pack("!Q", message.distribution.global_time))
 
     @staticmethod
     def _encode_last_sync_distribution(container, message):
         if message.distribution.enable_sequence_number:
+            assert message.distribution.global_time
+            assert message.distribution.sequence_number
             container.append(pack("!QL", message.distribution.global_time, message.distribution.sequence_number))
         else:
+            assert message.distribution.global_time
             container.append(pack("!Q", message.distribution.global_time))
 
     @staticmethod
     def _encode_direct_distribution(container, message):
+        assert message.distribution.global_time
         container.append(pack("!Q", message.distribution.global_time))
+
+    @staticmethod
+    def _encode_public_resolution(container, message):
+        pass
+
+    @staticmethod
+    def _encode_linear_resolution(container, message):
+        pass
+
+    @staticmethod
+    def _encode_dynamic_resolution(container, message):
+        # TODO we should obtain which resolution policy is used from message.resolution (we need a
+        # resolution.implementation for that)
+        container.append(chr(0)) # using zero for now...
+
+        # TODO follow to either _encode_public_resolution or _encode_dynamic_resolution
 
     def encode_message(self, message):
         assert isinstance(message, Message.Implementation), message
@@ -727,7 +797,7 @@ class BinaryConversion(Conversion):
         if __debug__:
             debug_begin = clock()
 
-        # Authentication
+        # authentication
         if isinstance(message.authentication, NoAuthentication.Implementation):
             pass
         elif isinstance(message.authentication, MemberAuthentication.Implementation):
@@ -748,9 +818,13 @@ class BinaryConversion(Conversion):
             self.debug_stats["encode-meta"] += clock() - debug_begin
             debug_begin = clock()
 
-        # Destination does not hold any space in the message
+        # resolution
+        assert type(message.resolution) in self._encode_resolution_map
+        self._encode_resolution_map[type(message.resolution)](container, message)
 
-        # Distribution
+        # destination does not hold any space in the message
+
+        # distribution
         assert type(message.distribution) in self._encode_distribution_map
         self._encode_distribution_map[type(message.distribution)](container, message)
 
@@ -759,7 +833,7 @@ class BinaryConversion(Conversion):
             dprint(message.name, "          head ", sum(map(len, container)) + 1, " bytes")
             debug_begin = clock()
 
-        # Payload
+        # payload
         itererator = encode_payload_func(message)
         assert isinstance(itererator, (tuple, list)), (type(itererator), encode_payload_func)
         assert not filter(lambda x: not isinstance(x, str), itererator)
@@ -770,7 +844,7 @@ class BinaryConversion(Conversion):
             dprint(message.name, "     head+body ", sum(map(len, container)), " bytes")
             debug_begin = clock()
 
-        # Sign
+        # sign
         if isinstance(message.authentication, NoAuthentication.Implementation):
             packet = "".join(container)
 
@@ -816,24 +890,51 @@ class BinaryConversion(Conversion):
     def _decode_full_sync_distribution(placeholder, offset, data):
         if placeholder.meta.distribution.enable_sequence_number:
             global_time, sequence_number = unpack_from("!QL", data, offset)
+            if not global_time:
+                raise DropPacket("Invalid global time value (_decode_full_sync_distribution)")
+            if not sequence_number:
+                raise DropPacket("Invalid sequence number value (_decode_full_sync_distribution)")
             return offset + 12, placeholder.meta.distribution.implement(global_time, sequence_number)
         else:
             global_time, = unpack_from("!Q", data, offset)
+            if not global_time:
+                raise DropPacket("Invalid global time value (_decode_full_sync_distribution)")
             return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     @staticmethod
     def _decode_last_sync_distribution(placeholder, offset, data):
         if placeholder.meta.distribution.enable_sequence_number:
             global_time, sequence_number = unpack_from("!QL", data, offset)
+            if not global_time:
+                raise DropPacket("Invalid global time value (_decode_last_sync_distribution)")
+            if not sequence_number:
+                raise DropPacket("Invalid sequence number value (_decode_last_sync_distribution)")
             return offset + 12, placeholder.meta.distribution.implement(global_time, sequence_number)
         else:
             global_time, = unpack_from("!Q", data, offset)
+            if not global_time:
+                raise DropPacket("Invalid global time value (_decode_last_sync_distribution)")
             return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     @staticmethod
     def _decode_direct_distribution(placeholder, offset, data):
         global_time, = unpack_from("!Q", data, offset)
         return offset + 8, placeholder.meta.distribution.implement(global_time)
+
+    @staticmethod
+    def _decode_public_resolution(placeholder, offset, data):
+        return offset, placeholder.meta.resolution # TODO should be an implement
+
+    @staticmethod
+    def _decode_linear_resolution(placeholder, offset, data):
+        return offset, placeholder.meta.resolution # TODO should be an implement
+
+    @staticmethod
+    def _decode_dynamic_resolution(placeholder, offset, data):
+        if len(data) < offset + 1:
+            raise DropPacket("Insufficient packet size (_decode_dynamic_resolution)")
+        assert ord(data[offset]) == 0, "currently hardcoded to be 0"
+        return offset + 1, placeholder.meta.resolution # TODO should be an implement
 
     def _decode_authentication(self, authentication, offset, data):
         if isinstance(authentication, NoAuthentication):
@@ -984,6 +1085,10 @@ class BinaryConversion(Conversion):
         if __debug__:
             self.debug_stats["decode-authentication"] += clock() - debug_begin
             debug_begin = clock()
+
+        # resolution
+        assert type(placeholder.meta.resolution) in self._decode_resolution_map, type(placeholder.meta.resolution)
+        placeholder.offset, placeholder.resolution = self._decode_resolution_map[type(placeholder.meta.resolution)](placeholder, placeholder.offset, placeholder.data)
 
         # destination
         assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination))

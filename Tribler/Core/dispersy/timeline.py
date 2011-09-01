@@ -7,7 +7,7 @@ from itertools import count
 
 from authentication import MemberAuthentication, MultiMemberAuthentication
 from member import Member
-from resolution import PublicResolution, LinearResolution
+from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
     from dprint import dprint
@@ -23,6 +23,7 @@ class Timeline(object):
             assert isinstance(community, Community)
         self._community = community
         self._nodes = {}
+        self._policies = [] # [(global_time, {u'resolution^message-name':(resolution-policy, [Message.Implementation])})]
 
     def check(self, message, permission=u"permit"):
         """
@@ -77,61 +78,69 @@ class Timeline(object):
         all_proofs = []
 
         for message, permission in permission_pairs:
-            # everyone is allowed PublicResolution
-            if isinstance(message.resolution, PublicResolution):
-                if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (public resolution)")
-
             # the master member can do anything
-            elif member == self._community.master_member:
+            if member == self._community.master_member:
                 if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (master member)")
 
-            # allowed LinearResolution is stored in Timeline
-            elif isinstance(message.resolution, LinearResolution):
-                key = permission + "^" + message.name
-
-                if member in self._nodes:
-                    iterator = reversed(self._nodes[member].timeline)
-                    try:
-                        # go backwards while time > global_time
-                        while True:
-                            time, permissions = iterator.next()
-                            if time <= global_time:
-                                break
-
-                        # check permissions and continue backwards in time
-                        while True:
-                            if key in permissions:
-                                assert isinstance(permissions[key], tuple)
-                                assert len(permissions[key]) == 2
-                                assert isinstance(permissions[key][0], bool)
-                                assert isinstance(permissions[key][1], list)
-                                assert len(permissions[key][1]) > 0
-                                assert not filter(lambda x: not isinstance(x, Message.Implementation), permissions[key][1])
-                                allowed, proofs = permissions[key]
-
-                                if allowed:
-                                    if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", key, " (authorized)")
-                                    all_proofs.extend(proofs)
-                                    break
-                                else:
-                                    if __debug__: dprint("DENIED time:", global_time, " user:", member.database_id, " -> ", key, " (revoked)", level="warning")
-                                    return (False, [proofs])
-
-                            time, permissions = iterator.next()
-
-                    except StopIteration:
-                        if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (not authorized)", level="warning")
-                        return (False, [])
-                else:
-                    if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (no authorization)", level="warning")
-                    return (False, [])
-            
-                if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (see above)")
-                assert len(all_proofs) > 0
-
             else:
-                raise NotImplementedError("Unknown Resolution")
-            
+                resolution = message.resolution
+
+                # dynamically set the resolution policy
+                if isinstance(resolution, DynamicResolution):
+                    resolution, _ = self.get_resolution_policy(message, global_time)
+                    if __debug__: dprint("APPLY time:", global_time, " resolution^", message.name, " -> ", resolution.__class__.__name__)
+
+                # everyone is allowed PublicResolution
+                if isinstance(resolution, PublicResolution):
+                    if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (public resolution)")
+
+                # allowed LinearResolution is stored in Timeline
+                elif isinstance(resolution, LinearResolution):
+                    key = permission + "^" + message.name
+
+                    if member in self._nodes:
+                        iterator = reversed(self._nodes[member].timeline)
+                        try:
+                            # go backwards while time > global_time
+                            while True:
+                                time, permissions = iterator.next()
+                                if time <= global_time:
+                                    break
+
+                            # check permissions and continue backwards in time
+                            while True:
+                                if key in permissions:
+                                    assert isinstance(permissions[key], tuple)
+                                    assert len(permissions[key]) == 2
+                                    assert isinstance(permissions[key][0], bool)
+                                    assert isinstance(permissions[key][1], list)
+                                    assert len(permissions[key][1]) > 0
+                                    assert not filter(lambda x: not isinstance(x, Message.Implementation), permissions[key][1])
+                                    allowed, proofs = permissions[key]
+
+                                    if allowed:
+                                        if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", key, " (authorized)")
+                                        all_proofs.extend(proofs)
+                                        break
+                                    else:
+                                        if __debug__: dprint("DENIED time:", global_time, " user:", member.database_id, " -> ", key, " (revoked)", level="warning")
+                                        return (False, [proofs])
+
+                                time, permissions = iterator.next()
+
+                        except StopIteration:
+                            if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (not authorized)", level="warning")
+                            return (False, [])
+                    else:
+                        if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (no authorization)", level="warning")
+                        return (False, [])
+
+                    if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (see above)")
+                    assert len(all_proofs) > 0
+
+                else:
+                    raise NotImplementedError("Unknown Resolution")
+
         return (True, all_proofs)
 
     def authorize(self, author, global_time, permission_triplets, proof):
@@ -287,3 +296,44 @@ class Timeline(object):
                 raise NotImplementedError(message.resolution)
 
         return (True, revoke_proofs)
+
+    def get_resolution_policy(self, message, global_time):
+        """
+        Returns the resolution policy and associated proof that is used for MESSAGE at time
+        GLOBAL_TIME.
+        """
+        if __debug__:
+            from message import Message
+        assert isinstance(message, Message)
+        assert isinstance(global_time, (int, long))
+
+        key = u"resolution^" + message.name
+        for policy_time, policies in reversed(self._policies):
+            if policy_time < global_time and key in policies:
+                if __debug__: dprint("using ", policies[key][0].__class__.__name__, " for time ", global_time, " (configured at ", policy_time, ")")
+                return policies[key]
+
+        if __debug__: dprint("using ", message.resolution.default.__class__.__name__, " for time ", global_time, " (default)")
+        return message.resolution.default, []
+
+    def change_resolution_policy(self, message, global_time, policy, proof):
+        if __debug__:
+            from message import Message
+        assert isinstance(message, Message)
+        assert isinstance(global_time, (int, long))
+        assert isinstance(policy, (PublicResolution, LinearResolution))
+        assert isinstance(proof, Message.Implementation)
+
+        for policy_time, policies in reversed(self._policies):
+            if policy_time == global_time:
+                if __debug__: dprint("extending")
+                break
+        else:
+            if __debug__: dprint("creating")
+            policies = {}
+            self._policies.append((global_time, policies))
+            self._policies.sort()
+
+        # TODO it is possible that different members set different policies at the same time
+        policies[u"resolution^" + message.name] = (policy, [proof])
+        if __debug__: dprint(self._policies, lines=1)

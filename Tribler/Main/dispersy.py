@@ -105,21 +105,21 @@ def main():
                     script_kargs[key] = value
 
             if not opt.disable_dispersy_script:
-                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript, DispersyUndoScript, DispersyCryptoScript
-                script.add("dispersy-classification", DispersyClassificationScript)
-                script.add("dispersy-timeline", DispersyTimelineScript)
-                script.add("dispersy-candidate", DispersyCandidateScript)
-                script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)
+                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyCandidateScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript, DispersyUndoScript, DispersyCryptoScript, DispersyDynamicSettings
                 script.add("dispersy-batch", DispersyBatchScript)
-                script.add("dispersy-sync", DispersySyncScript)
-                script.add("dispersy-identical-payload", DispersyIdenticalPayloadScript)
-                # script.add("dispersy-similarity", DispersySimilarityScript)
-                script.add("dispersy-signature", DispersySignatureScript)
-                script.add("dispersy-member-tag", DispersyMemberTagScript)
-                script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
-                script.add("dispersy-missing-message", DispersyMissingMessageScript)
-                script.add("dispersy-undo", DispersyUndoScript)
+                script.add("dispersy-candidate", DispersyCandidateScript)
+                script.add("dispersy-classification", DispersyClassificationScript)
                 script.add("dispersy-crypto", DispersyCryptoScript)
+                script.add("dispersy-destroy-community", DispersyDestroyCommunityScript)
+                script.add("dispersy-dynamic-settings", DispersyDynamicSettings)
+                script.add("dispersy-identical-payload", DispersyIdenticalPayloadScript)
+                script.add("dispersy-member-tag", DispersyMemberTagScript)
+                script.add("dispersy-missing-message", DispersyMissingMessageScript)
+                script.add("dispersy-signature", DispersySignatureScript)
+                script.add("dispersy-subjective-set", DispersySubjectiveSetScript)
+                script.add("dispersy-sync", DispersySyncScript)
+                script.add("dispersy-timeline", DispersyTimelineScript)
+                script.add("dispersy-undo", DispersyUndoScript)
 
             if not opt.disable_simple_dispersy_test_script:
                 from Tribler.community.simpledispersytest.script import GenerateMessagesScript, KillCommunityScript

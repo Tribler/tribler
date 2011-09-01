@@ -302,13 +302,6 @@ class MissingIdentityPayload(Payload):
         def mid(self):
             return self._mid
 
-        @property
-        def footprint(self):
-            return "IdentityPayload:" + self._mid
-
-    def generate_footprint(self, mid):
-        return "IdentityPayload" + mid
-
 class SyncPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, time_low, time_high, bloom_filter):
@@ -480,3 +473,43 @@ class MissingProofPayload(Payload):
         @property
         def global_time(self):
             return self._global_time
+
+class DynamicSettingsPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, policies):
+            """
+            Create a new payload container for a dispersy-dynamic-settings message.
+
+            This message allows the community to start using different policies for one or more of
+            its messages.  Currently only the resolution policy can be dynamically changed.
+
+            The POLICIES is a list containing (meta_message, policy) tuples.  The policy that is
+            choosen must be one of the policies defined for the associated meta_message.
+
+            @param policies: A list with the new message policies.
+            @type *policies: [(meta_message, policy), ...]
+            """
+            if __debug__:
+                from message import Message
+                from resolution import PublicResolution, LinearResolution, DynamicResolution
+                assert isinstance(policies, (tuple, list))
+                for tup in policies:
+                    assert isinstance(tup, tuple)
+                    assert len(tup) == 2
+                    message, policy = tup
+                    assert isinstance(message, Message)
+                    # currently only supporting resolution policy changes
+                    assert isinstance(message.resolution, DynamicResolution)
+                    assert isinstance(policy, (PublicResolution, LinearResolution))
+                    assert policy in message.resolution.policies, "the given policy must be one available at meta message creation"
+
+            super(DynamicSettingsPayload.Implementation, self).__init__(meta)
+            self._policies = policies
+
+        @property
+        def policies(self):
+            """
+            Returns a list or tuple containing the new message policies.
+            @rtype: [(meta_message, policy), ...]
+            """
+            return self._policies

@@ -1305,6 +1305,10 @@ class Community(object):
     def create_dispersy_subjective_set(self, cluster, members, reset=True, store=True, update=True, forward=True):
         return self._dispersy.create_subjective_set(self, cluster, members, reset, store, update, forward)
 
+    @documentation(Dispersy.create_dynamic_settings)
+    def create_dispersy_dynamic_settings(self, policies, sign_with_master=False, store=True, update=True, forward=True):
+        return self._dispersy.create_dynamic_settings(self, policies, sign_with_master, store, update, forward)
+
     def dispersy_cleanup_community(self, message):
         """
         A dispersy-destroy-community message is received.

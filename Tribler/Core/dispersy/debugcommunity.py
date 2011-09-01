@@ -9,7 +9,7 @@ from distribution import DirectDistribution, FullSyncDistribution, LastSyncDistr
 from message import Message, DropPacket, DelayMessageByProof
 from member import Member
 from payload import Payload
-from resolution import PublicResolution, LinearResolution
+from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 from dprint import dprint
 
@@ -79,6 +79,9 @@ class DebugNode(Node):
     def create_protected_full_sync_text_message(self, text, global_time):
         return self._create_text_message(u"protected-full-sync-text", text, global_time)
 
+    def create_dynamic_resolution_text_message(self, text, global_time):
+        return self._create_text_message(u"dynamic-resolution-text", text, global_time)
+
 #
 # Conversion
 #
@@ -97,6 +100,7 @@ class DebugCommunityConversion(BinaryConversion):
         self.define_meta_message(chr(12), community.get_meta_message(u"subjective-set-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(13), community.get_meta_message(u"last-1-multimember-text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(14), community.get_meta_message(u"protected-full-sync-text"), self._encode_text, self._decode_text)
+        self.define_meta_message(chr(15), community.get_meta_message(u"dynamic-resolution-text"), self._encode_text, self._decode_text)
 
     def _encode_text(self, message):
         return pack("!B", len(message.payload.text)), message.payload.text
@@ -164,6 +168,7 @@ class DebugCommunity(Community):
                 Message(self, u"DESC-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"subjective-set-text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), SubjectiveDestination(cluster=1, node_count=10), TextPayload(), self.check_text, self.on_text),
                 Message(self, u"protected-full-sync-text", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
+                Message(self, u"dynamic-resolution-text", MemberAuthentication(), DynamicResolution(PublicResolution(), LinearResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text, self.undo_text),
                 ]
 
     def create_full_sync_text(self, text, store=True, update=True, forward=True):
@@ -226,6 +231,18 @@ class DebugCommunity(Community):
     #
     def create_protected_full_sync_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"protected-full-sync-text")
+        message = meta.implement(meta.authentication.implement(self._my_member),
+                                 meta.distribution.implement(self.claim_global_time()),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(text))
+        self._dispersy.store_update_forward([message], store, update, forward)
+        return message
+
+    #
+    # dynamic-resolution-text
+    #
+    def create_dynamic_resolution_text(self, text, store=True, update=True, forward=True):
+        meta = self.get_meta_message(u"dynamic-resolution-text")
         message = meta.implement(meta.authentication.implement(self._my_member),
                                  meta.distribution.implement(self.claim_global_time()),
                                  meta.destination.implement(),

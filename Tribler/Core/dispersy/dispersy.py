@@ -62,14 +62,15 @@ from message import Packet, Message
 from message import DropPacket, DelayPacket
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
 from payload import AuthorizePayload, RevokePayload, UndoPayload
-from payload import MissingSequencePayload, MissingProofPayload
-from payload import SyncPayload
-from payload import SignatureRequestPayload, SignatureResponsePayload
 from payload import CandidateRequestPayload, CandidateResponsePayload
-from payload import IdentityPayload, MissingIdentityPayload
-from payload import SubjectiveSetPayload, MissingSubjectiveSetPayload
 from payload import DestroyCommunityPayload
+from payload import DynamicSettingsPayload
+from payload import IdentityPayload, MissingIdentityPayload
 from payload import MissingMessagePayload
+from payload import MissingSequencePayload, MissingProofPayload
+from payload import SignatureRequestPayload, SignatureResponsePayload
+from payload import SubjectiveSetPayload, MissingSubjectiveSetPayload
+from payload import SyncPayload
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
@@ -342,7 +343,7 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-undo", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
                 Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
                 Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
-                # Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPlayload(), self._generic_timeline_check, self.on_dynamic_settings, delay=0.0),
+                Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, self.on_dynamic_settings, delay=0.0),
 
                 #
                 # when something is missing, a dispersy-missing-... message can be used to request
@@ -1094,18 +1095,24 @@ class Dispersy(Singleton):
         message.packet_id = packet_id
         return message
 
-    def convert_packet_to_message(self, packet, load=True, auto_load=True):
+    def convert_packet_to_message(self, packet, community=None, load=True, auto_load=True):
         """
         Returns the Message representing the packet or None when no conversion is possible.
         """
+        if __debug__:
+            from community import Community
         assert isinstance(packet, str)
+        assert isinstance(community, (type(None), Community))
+        assert isinstance(load, bool)
+        assert isinstance(auto_load, bool)
 
         # find associated community
-        try:
-            community = self.get_community(packet[2:22], load, auto_load)
-        except KeyError:
-            if __debug__: dprint("unable to convert a ", len(packet), " byte packet (unknown community)", level="warning")
-            return None
+        if not community:
+            try:
+                community = self.get_community(packet[2:22], load, auto_load)
+            except KeyError:
+                if __debug__: dprint("unable to convert a ", len(packet), " byte packet (unknown community)", level="warning")
+                return None
 
         # find associated conversion
         try:
@@ -1158,7 +1165,7 @@ class Dispersy(Singleton):
         assert len(packets) > 0
         assert not filter(lambda x: not len(x) == 2, packets)
         assert isinstance(cache, bool)
-        
+
         bytes_received = sum(len(packet) for _, packet in packets)
         self._statistics.increment_total_down(bytes_received)
 
@@ -2982,7 +2989,7 @@ class Dispersy(Singleton):
                   FROM sync
                   JOIN member ON member.id = sync.member
                   JOIN meta_message ON meta_message.id = sync.meta_message
-                  WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ?
+                  WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ?
                   ORDER BY meta_message.priority, sync.global_time * meta_message.direction"""
 
         community = messages[0].community
@@ -3446,9 +3453,69 @@ class Dispersy(Singleton):
 
             self.reclassify_community(community, new_classification)
 
-    # def on_dynamic_settings(self, messages):
-    #     for message in messages:
-            
+    def create_dynamic_settings(self, community, policies, sign_with_master=False, store=True, update=True, forward=True):
+        meta = community.get_meta_message(u"dispersy-dynamic-settings")
+        message = meta.implement(meta.authentication.implement(community.master_member if sign_with_master else community.my_member),
+                                 meta.distribution.implement(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
+                                 meta.destination.implement(),
+                                 meta.payload.implement(policies))
+        self.store_update_forward([message], store, update, forward)
+        return message
+
+    def on_dynamic_settings(self, messages):
+        timeline = messages[0].community._timeline
+        global_time = messages[0].community.global_time
+        changes = {}
+
+        for message in messages:
+            if __debug__: dprint("received ", len(message.payload.policies), " policy changes")
+            for meta, policy in message.payload.policies:
+                # TODO currently choosing the range that changed in a naive way, only using the
+                # lowest global time value
+                if meta in changes:
+                    range_ = changes[meta]
+                else:
+                    range_ = [global_time, global_time]
+                    changes[meta] = range_
+                range_[0] = min(message.distribution.global_time + 1, range_[0])
+
+                # apply new policy setting
+                timeline.change_resolution_policy(meta, message.distribution.global_time, policy, message)
+
+        if __debug__: dprint("updating ", len(changes), " ranges")
+        execute = self._database.execute
+        executemany = self._database.executemany
+        for meta, range_ in changes.iteritems():
+            if __debug__: dprint(meta.name, " [", range_[0], ":", "]")
+            undo = []
+            redo = []
+
+            for packet_id, packet, undone in list(execute(u"SELECT id, packet, undone FROM sync WHERE meta_message = ? AND global_time BETWEEN ? AND ?",
+                                                          (meta.database_id, range_[0], range_[1]))):
+                message = self.convert_packet_to_message(str(packet))
+                if message:
+                    message.packet_id = packet_id
+                    allowed, _ = timeline.check(message)
+                    if allowed and undone:
+                        if __debug__: dprint("redo message ", message.name, " at time ", message.distribution.global_time)
+                        redo.append(message)
+
+                    elif not (allowed or undone):
+                        if __debug__: dprint("undo message ", message.name, " at time ", message.distribution.global_time)
+                        undo.append(message)
+
+                    elif __debug__:
+                        if __debug__: dprint("no change for message ", message.name, " at time ", message.distribution.global_time)
+
+            if undo:
+                executemany(u"UPDATE sync SET undone = 1 WHERE id = ?", ((message.packet_id,) for message in undo))
+                assert self._database.changes == len(undo), (self._database.changes, len(undo))
+                meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
+
+            if redo:
+                executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
+                assert self._database.changes == len(redo), (self._database.changes, len(redo))
+                meta.handle_callback(redo)
 
     def _generic_timeline_check(self, messages):
         meta = messages[0].meta

@@ -34,7 +34,7 @@ from dprint import dprint
 # from lencoder import log
 from member import Member
 from message import Message, DropMessage, DelayMessageByProof
-from resolution import PublicResolution
+from resolution import PublicResolution, LinearResolution, DynamicResolution
 from singleton import Singleton
 
 from debugcommunity import DebugCommunity, DebugNode
@@ -4068,3 +4068,206 @@ class DispersyCryptoScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
+class DispersyDynamicSettings(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+
+        self.caller(self.default_resolution)
+        self.caller(self.change_resolution)
+        self.caller(self.change_resolution_undo)
+
+    def default_resolution(self):
+        """
+        Ensure that the default resolution policy is used first.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        meta = community.get_meta_message(u"dynamic-resolution-text")
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # check default policy
+        policy, proof = community._timeline.get_resolution_policy(meta, community.global_time)
+        assert isinstance(policy, PublicResolution)
+        assert proof == []
+
+        # NODE creates a message (should allow, because the default policy is PublicResolution)
+        global_time = 10
+        message = node.give_message(node.create_dynamic_resolution_text_message("Dprint=True", global_time))
+
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
+        except StopIteration:
+            assert False, "must accept the message"
+        assert not undone, "must accept the message"
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def change_resolution(self):
+        """
+        Change the resolution policy from default to linear and to public again.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        meta = community.get_meta_message(u"dynamic-resolution-text")
+        public = meta.resolution.policies[0]
+        linear = meta.resolution.policies[1]
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # check default policy
+        policy, proof = community._timeline.get_resolution_policy(meta, community.global_time + 1)
+        assert isinstance(policy, PublicResolution)
+        assert proof == []
+
+        # change and check policy
+        message = community.create_dispersy_dynamic_settings([(meta, linear)])
+        policy, proof = community._timeline.get_resolution_policy(meta, community.global_time + 1)
+        assert isinstance(policy, LinearResolution)
+        assert proof == [message]
+
+        # NODE creates a message (should allow)
+        global_time = message.distribution.global_time
+        message = node.give_message(node.create_dynamic_resolution_text_message("Dprint=True", global_time))
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
+        except StopIteration:
+            assert False, "must accept the message"
+        assert not undone, "must accept the message"
+
+        # NODE creates a message (should drop)
+        global_time += 1
+        message = node.give_message(node.create_dynamic_resolution_text_message("Dprint=True", global_time))
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
+        except StopIteration:
+            pass
+        else:
+            assert False, "must not accept the message"
+
+        # change and check policy
+        message = community.create_dispersy_dynamic_settings([(meta, public)])
+        policy, proof = community._timeline.get_resolution_policy(meta, community.global_time + 1)
+        assert isinstance(policy, PublicResolution)
+        assert proof == [message]
+
+        # NODE creates a message (should drop)
+        global_time = message.distribution.global_time
+        message = node.give_message(node.create_dynamic_resolution_text_message("Dprint=True", global_time))
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
+        except StopIteration:
+            pass
+        else:
+            assert False, "must not accept the message"
+
+        # NODE creates a message (should allow)
+        global_time += 1
+        message = node.give_message(node.create_dynamic_resolution_text_message("Dprint=True", global_time))
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
+        except StopIteration:
+            assert False, "must accept the message"
+        assert not undone, "must accept the message"
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def change_resolution_undo(self):
+        """
+        Change the resolution policy from default to linear, the messages already accepted should be
+        undone
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        meta = community.get_meta_message(u"dynamic-resolution-text")
+        public = meta.resolution.policies[0]
+        linear = meta.resolution.policies[1]
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # create policy change, but do not yet process
+        global_time = community._global_time
+        community._global_time = 10
+        policy_linear = community.create_dispersy_dynamic_settings([(meta, linear)], store=False, update=False, forward=False)
+        assert policy_linear.distribution.global_time == 11 # hence the policy starts at 12
+        community._global_time = 20
+        policy_public = community.create_dispersy_dynamic_settings([(meta, public)], store=False, update=False, forward=False)
+        assert policy_public.distribution.global_time == 21 # hence the policy starts at 22
+        community._global_time = global_time
+
+        for global_time in range(1, 32):
+            policy, proof = community._timeline.get_resolution_policy(meta, global_time)
+            assert isinstance(policy, PublicResolution)
+            assert proof == []
+
+        # NODE creates a message (should allow)
+        global_time = 25
+        text_message = node.give_message(node.create_dynamic_resolution_text_message("Dprint=True", global_time))
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, text_message.distribution.global_time)).next()
+        except StopIteration:
+            assert False, "must accept the message"
+        assert not undone, "must accept the message"
+
+        dprint("-- apply linear")
+
+        # process the policy change
+        node.give_message(policy_linear)
+
+        for global_time in range(1, 12):
+            policy, proof = community._timeline.get_resolution_policy(meta, global_time)
+            assert isinstance(policy, PublicResolution)
+            assert proof == []
+        for global_time in range(12, 32):
+            policy, proof = community._timeline.get_resolution_policy(meta, global_time)
+            assert isinstance(policy, LinearResolution)
+            assert [message.packet for message in proof] == [policy_linear.packet]
+
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, text_message.distribution.global_time)).next()
+        except StopIteration:
+            assert False, "the message must be in the database with undone = 1"
+        assert undone, "must have undone the message"
+
+        dprint("-- apply public")
+
+        # process the policy change
+        node.give_message(policy_public)
+
+        for global_time in range(1, 12):
+            policy, proof = community._timeline.get_resolution_policy(meta, global_time)
+            assert isinstance(policy, PublicResolution)
+            assert proof == []
+        for global_time in range(12, 22):
+            policy, proof = community._timeline.get_resolution_policy(meta, global_time)
+            assert isinstance(policy, LinearResolution)
+            assert [message.packet for message in proof] == [policy_linear.packet]
+        for global_time in range(22, 32):
+            policy, proof = community._timeline.get_resolution_policy(meta, global_time)
+            assert isinstance(policy, PublicResolution)
+            assert [message.packet for message in proof] == [policy_public.packet]
+
+        try:
+            undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                     (community.database_id, node.my_member.database_id, text_message.distribution.global_time)).next()
+        except StopIteration:
+            assert False, "must accept the message"
+        assert not undone, "must accept the message"
