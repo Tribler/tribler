@@ -246,10 +246,23 @@ class ListItem(wx.Panel):
             self.Thaw()
     
     def Deselect(self):
-        if self.selected or self.expanded:
-            self.selected = False
-            self.expanded = False
-            self.ShowSelected()
+        if self.GetBackgroundColour() == self.list_selected:
+            def SetDeselected(control):
+                if getattr(control, 'GetWindow', False): #convert sizeritems
+                    control = control.GetWindow()
+                
+                control.selected = False
+                if getattr(control, 'GetChildren', False): 
+                    children = control.GetChildren()
+                    for child in children:
+                        SetDeselected(child)
+            
+            SetDeselected(self)
+            
+            if self.expanded:
+                self.DoCollapse()
+            else:
+                self.ShowSelected()
     
     def GetColumn(self, column):
         return self.data[column]
@@ -281,11 +294,7 @@ class ListItem(wx.Panel):
                 if getattr(self, 'expandedState', False):
                     self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 1))
         else:
-            self.parent_list.OnCollapse(self)
-            self.expanded = False
-            
-            if getattr(self, 'expandedState', False):
-                self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 0))
+            self.DoCollapse()
         
     def Expand(self, panel):
         if getattr(panel, 'SetCursor', False):
@@ -299,6 +308,13 @@ class ListItem(wx.Panel):
     def GetExpandedPanel(self):
         if len(self.vSizer.GetChildren()) > 1:
             return self.vSizer.GetChildren()[1].GetWindow()
+
+    def DoCollapse(self):
+        self.parent_list.OnCollapse(self)
+        self.expanded = False
+            
+        if getattr(self, 'expandedState', False):
+            self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 0))
 
     def Collapse(self):
         self.expanded = False

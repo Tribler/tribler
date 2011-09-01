@@ -899,32 +899,38 @@ class TorrentDetails(wx.Panel):
         self.guiutility.frame.guiserver.add_task(self._UpdateStatus, id = "TorrentDetails_updateStatus")
         
     def _UpdateStatus(self):
-        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['infohash'])
-        if swarmInfo:
-            self.torrent['num_seeders'] = swarmInfo[1] or 0
-            self.torrent['num_leechers'] = swarmInfo[2] or 0
-            self.torrent['last_check'] = swarmInfo[3] or 0
-            
-            diff = time() - self.torrent['last_check']
-            if diff > 1800: #force update if last update more than 30 minutes ago
-                TorrentChecking(self.torrent['infohash']).start()
-            
-            wx.CallAfter(self.ShowStatus)
+        try:
+            swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['infohash'])
+            if swarmInfo:
+                self.torrent['num_seeders'] = swarmInfo[1] or 0
+                self.torrent['num_leechers'] = swarmInfo[2] or 0
+                self.torrent['last_check'] = swarmInfo[3] or 0
+                
+                diff = time() - self.torrent['last_check']
+                if diff > 1800: #force update if last update more than 30 minutes ago
+                    TorrentChecking(self.torrent['infohash']).start()
+                
+                wx.CallAfter(self.ShowStatus)
+        except wx.PyDeadObjectError:
+            pass
     
     def ShowStatus(self):
-        if self.isReady:
-            diff = time() - self.torrent['last_check']
-            if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
-                self.status.SetLabel("Unknown")
-            else:
-                if diff < 5:
-                    self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+        try:
+            if self.isReady:
+                diff = time() - self.torrent['last_check']
+                if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
+                    self.status.SetLabel("Unknown")
                 else:
-                    updated = self.guiutility.utility.eta_value(diff, 2)
-                    if updated == '<unknown>':
-                        self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+                    if diff < 5:
+                        self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
                     else:
-                        self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent['num_seeders'], self.torrent['num_leechers'] ,updated))
+                        updated = self.guiutility.utility.eta_value(diff, 2)
+                        if updated == '<unknown>':
+                            self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+                        else:
+                            self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent['num_seeders'], self.torrent['num_leechers'] ,updated))
+        except wx.PyDeadObjectError:
+            pass
            
     def OnRefresh(self, dslist):
         found = False

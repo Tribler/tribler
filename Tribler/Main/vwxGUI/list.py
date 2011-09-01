@@ -67,7 +67,7 @@ class RemoteSearchManager:
         
     def _on_refresh_channel(self, total_channels):
         keywords = ' '.join(self.torrentsearch_manager.searchkeywords)
-        self.list.SetNrResults(None, None, total_channels, keywords)
+        self.list.SetNrChannels(keywords, total_channels)
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -649,6 +649,9 @@ class GenericSearchList(List):
         item = event.GetEventObject().item
         self.Select(item.original_data['infohash'])
         self.StartDownload(item.original_data)
+        
+        button = event.GetEventObject()
+        button.Enable(False)
     
     def toggleFamilyFilter(self):
         self.guiutility.toggleFamilyFilter()
