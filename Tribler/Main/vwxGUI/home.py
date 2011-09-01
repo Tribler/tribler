@@ -12,7 +12,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl,\
-    TextCtrlAutoComplete
+    TextCtrlAutoComplete, BetterText as StaticText
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
@@ -42,7 +42,7 @@ class Home(XRCPanel):
         
         vSizer.AddStretchSpacer()
         
-        text = wx.StaticText(self, -1, "Tribler")
+        text = StaticText(self, -1, "Tribler")
         font = text.GetFont()
         font.SetPointSize(font.GetPointSize() * 3)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -84,12 +84,12 @@ class Home(XRCPanel):
         textSizer.AddSpacer((1,1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticText(self, -1, "Take me to "))
+        hSizer.Add(StaticText(self, -1, "Take me to "))
         channelLink = LinkStaticText(self, "channels", icon = None)
         
         channelLink.Bind(wx.EVT_LEFT_UP, self.OnChannels)
         hSizer.Add(channelLink)
-        hSizer.Add(wx.StaticText(self, -1, " to see what others are sharing"))
+        hSizer.Add(StaticText(self, -1, " to see what others are sharing"))
         textSizer.Add(hSizer)
         
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
@@ -235,7 +235,7 @@ class InfoPanel(HomePanel):
         panel = wx.Panel(self)
         panel.SetBackgroundColour(wx.WHITE)
         
-        text = wx.StaticText(panel, -1, "Welcome to Tribler\nblablabla")
+        text = StaticText(panel, -1, "Welcome to Tribler\nblablabla")
         sizer = wx.BoxSizer()
         sizer.Add(text, 1, wx.EXPAND|wx.ALL, 5)
         panel.SetSizer(sizer)
@@ -258,7 +258,7 @@ class NetworkPanel(HomePanel):
         
     def CreatePanel(self):
         def getBoldText(parent, text):
-            statictext = wx.StaticText(parent, -1, text)
+            statictext = StaticText(parent, -1, text)
             font = statictext.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             statictext.SetFont(font)
@@ -268,37 +268,37 @@ class NetworkPanel(HomePanel):
         panel.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.nrTorrents = wx.StaticText(panel)
-        self.nrFiles = wx.StaticText(panel)
-        self.totalSize = wx.StaticText(panel)
-        self.queueSize = wx.StaticText(panel)
-        self.nrChannels = wx.StaticText(panel)
-        self.nrConnected = wx.StaticText(panel)
+        self.nrTorrents = StaticText(panel)
+        self.nrFiles = StaticText(panel)
+        self.totalSize = StaticText(panel)
+        self.queueSize = StaticText(panel)
+        self.nrChannels = StaticText(panel)
+        self.nrConnected = StaticText(panel)
         
         self.freeMem = None
         try:
             if wx.GetFreeMemory() != -1:
-                self.freeMem = wx.StaticText(panel)
+                self.freeMem = StaticText(panel)
         except:
             pass
         
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
         
-        gridSizer.Add(wx.StaticText(panel, -1, 'Number files'), 0, wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Number files'), 0, wx.LEFT, 10)
         gridSizer.Add(self.nrFiles, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(wx.StaticText(panel, -1, 'Total size'), 0, wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Total size'), 0, wx.LEFT, 10)
         gridSizer.Add(self.totalSize, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(wx.StaticText(panel, -1, 'Torrents collected'), 0, wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Torrents collected'), 0, wx.LEFT, 10)
         gridSizer.Add(self.nrTorrents, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(wx.StaticText(panel, -1, 'Torrents in queue'), 0, wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Torrents in queue'), 0, wx.LEFT, 10)
         gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(wx.StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(wx.StaticText(panel, -1, 'Connected peers'), 0, wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Connected peers'), 0, wx.LEFT, 10)
         gridSizer.Add(self.nrConnected, 0, wx.EXPAND|wx.LEFT, 10)
         if self.freeMem:
-            gridSizer.Add(wx.StaticText(panel, -1, 'WX:Free memory'), 0, wx.LEFT, 10)
+            gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'), 0, wx.LEFT, 10)
             gridSizer.Add(self.freeMem, 0, wx.EXPAND|wx.LEFT, 10)
         
         vSizer.Add(gridSizer, 0, wx.EXPAND)
@@ -600,7 +600,7 @@ class BuzzPanel(HomePanel):
             text = self.tags.pop()
             text.SetLabel(term)
         else:
-            text = wx.StaticText(self.panel, wx.ID_ANY, term)
+            text = StaticText(self.panel, wx.ID_ANY, term)
             text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         
         if font:
@@ -701,7 +701,7 @@ class BuzzPanel(HomePanel):
             statictext.Refresh()
         
         for column in self.panel.GetChildren():
-            if column != statictext and isinstance(column, wx.StaticText):
+            if column != statictext and isinstance(column, StaticText):
                 if column.ForegroundColour != BuzzPanel.INACTIVE_COLOR:
                     column.enter = False
                     column.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)

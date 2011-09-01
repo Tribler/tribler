@@ -43,6 +43,9 @@ class TopSearchPanel(bgPanel):
                   
         self.selectTab('search_results')
         self.results.SetValue(True)
+        
+        if getattr(self.searchField, 'ShowDropDown', False):
+            self.searchField.ShowDropDown(False)
     
     def OnResults(self, event):
         self._selectPage('search_results')

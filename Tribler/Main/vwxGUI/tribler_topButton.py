@@ -421,7 +421,7 @@ class BetterText(wx.StaticText):
  
 #Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
 class LinkText(GenStaticText):
-    def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0):
+    def __init__(self, parent, label = '', fonts = [None, None], colours = [None, None], style = 0):
         GenStaticText.__init__(self, parent, -1, label, style = style)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         

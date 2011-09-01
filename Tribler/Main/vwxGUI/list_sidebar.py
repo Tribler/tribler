@@ -3,7 +3,7 @@ import wx.animate
 import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterText as StaticText
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler,\
@@ -35,14 +35,14 @@ class SearchSideBar(wx.Panel):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        header = wx.StaticText(self, -1, 'Search')
+        header = StaticText(self, -1, 'Search')
         if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
             font = header.GetFont()
             font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
             header.SetFont(font)
         hSizer.Add(header, 0, wx.ALIGN_CENTER_VERTICAL)
         
-        self.searchState = wx.StaticText(self)
+        self.searchState = StaticText(self)
         hSizer.Add(self.searchState, 1, wx.ALIGN_CENTER_VERTICAL)
         
         ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
@@ -60,19 +60,19 @@ class SearchSideBar(wx.Panel):
         self.vSizer.AddSpacer((-1,15))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        header = wx.StaticText(self, -1, 'Family Filter')
+        header = StaticText(self, -1, 'Family Filter')
         if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
             font = header.GetFont()
             font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
             header.SetFont(font)
         hSizer.Add(header)
         
-        self.ffstate = wx.StaticText(self)
+        self.ffstate = StaticText(self)
         hSizer.Add(self.ffstate)
         self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        self.ffblocked = wx.StaticText(self)
+        self.ffblocked = StaticText(self)
         self.vSizer.Add(self.ffblocked, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
         
         self.ffbutton = LinkStaticText(self, '', None)
@@ -82,7 +82,7 @@ class SearchSideBar(wx.Panel):
         self.vSizer.AddSpacer((-1,15))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        header = wx.StaticText(self, -1, 'Bundling')
+        header = StaticText(self, -1, 'Bundling')
         if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
             font = header.GetFont()
             font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
@@ -91,7 +91,7 @@ class SearchSideBar(wx.Panel):
         hSizer.Add(header)
         
         #keep longest text in bundlestatetext, to define bestsize (width) for sidepanel
-        self.bundlestatetext = wx.StaticText(self, -1, ' by Numbers')
+        self.bundlestatetext = StaticText(self, -1, ' by Numbers')
         hSizer.Add(self.bundlestatetext)
         self.vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
@@ -102,7 +102,7 @@ class SearchSideBar(wx.Panel):
         
         self.vSizer.AddSpacer((-1,15))
         
-        header = wx.StaticText(self, -1, 'Associated Channels')
+        header = StaticText(self, -1, 'Associated Channels')
         if SearchSideBar.HEADER_FONT_WEIGHT != wx.FONTWEIGHT_NORMAL:
             font = header.GetFont()
             font.SetWeight(SearchSideBar.HEADER_FONT_WEIGHT)
@@ -110,7 +110,7 @@ class SearchSideBar(wx.Panel):
         self.vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        self.nochannels = wx.StaticText(self, -1, 'None')
+        self.nochannels = StaticText(self, -1, 'None')
         self.vSizer.Add(self.nochannels, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
         
         self.channels = [LinkStaticText(self, '', icon = None) for _ in range(3)]
@@ -285,10 +285,10 @@ class SearchSideBar(wx.Panel):
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)
         self.bundletexts = []
-        self.bundleSizer.Add(wx.StaticText(self, -1, 'Bundle by '))
+        self.bundleSizer.Add(StaticText(self, -1, 'Bundle by '))
         for i, state in enumerate(self.bundlestates):
             if newstate == state:
-                text = wx.StaticText(self, -1, self.bundlestates_str[state])
+                text = StaticText(self, -1, self.bundlestates_str[state])
                 self.bundleSizer.Add(text)
                 self.bundletexts.append(text)
             else:

@@ -269,10 +269,11 @@ class GUIUtility:
                 
                 self.frame.searchlist.Freeze()
                 
+                self.frame.searchlist.Reset()
                 self.ShowPage('search_results')
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
-                self.frame.searchlist.Thaw()
+                self.frame.searchlist.Thaw()                
                 
                 #Peform local search
                 self.torrentsearch_manager.setSearchKeywords(wantkeywords)
