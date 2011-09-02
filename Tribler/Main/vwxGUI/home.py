@@ -604,6 +604,7 @@ class BuzzPanel(HomePanel):
             
         else:
             text = LinkText(self.panel, term, fonts=[font, font], colours = [BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
+            text.SetBackgroundColour(wx.WHITE)
             text.Bind(wx.EVT_LEFT_UP, self.OnClick)
         text.SetToolTipString("Click to search for '%s'"%term)
         return text
