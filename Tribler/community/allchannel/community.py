@@ -153,10 +153,7 @@ class AllChannelCommunity(Community):
                             
                         if len(torrents) > 0:
                             meta = self.get_meta_message(u"channelcast")
-                            message = meta.implement(meta.authentication.implement(),
-                                                     meta.distribution.implement(self.global_time),
-                                                     meta.destination.implement(),
-                                                     meta.payload.implement(torrents))
+                            message = meta.impl(distribution=(self.global_time,), payload=(torrents,))
                             
                             self._dispersy._send([candidate.address], [message.packet])
                             
@@ -217,10 +214,7 @@ class AllChannelCommunity(Community):
         
         #create channelcast request message
         meta = self.get_meta_message(u"channelcast-request")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(self.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(toCollect))
+        message = meta.impl(distribution=(self.global_time,), payload=(toCollect,))
         self._dispersy._send([address], [message.packet])
     
     def check_channelcast_request(self, messages):
@@ -262,10 +256,9 @@ class AllChannelCommunity(Community):
 
         #create vote message        
         meta = self.get_meta_message(u"votecast")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(cid, vote, timestamp))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(cid, vote, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
                     

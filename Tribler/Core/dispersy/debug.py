@@ -221,10 +221,9 @@ class Node(object):
 
     def create_dispersy_authorize(self, permission_triplets, sequence_number, global_time):
         meta = self._community.get_meta_message(u"dispersy-authorize")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(permission_triplets))
+        return meta.impl(authentication=(self._my_member),
+                         distribution=(global_time, sequence_number),
+                         payload=(permission_triplets,))
 
     def create_dispersy_identity_message(self, address, global_time):
         assert isinstance(address, tuple)
@@ -233,17 +232,15 @@ class Node(object):
         assert isinstance(address[1], int)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(u"dispersy-identity")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(address))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time,),
+                         payload=(address,))
 
     def create_dispersy_undo_message(self, message, global_time, sequence_number):
         meta = self._community.get_meta_message(u"dispersy-undo")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(message.authentication.member, message.distribution.global_time, message))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time, sequence_number),
+                         payload=(message.authentication.member, message.distribution.global_time, message))
 
     def create_dispersy_candidate_request_message(self, source_address, destination_address, source_default_conversion, routes, global_time):
         assert isinstance(source_address, tuple)
@@ -270,10 +267,10 @@ class Node(object):
         assert not filter(lambda route: not isinstance(route[1], float), routes)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(u"dispersy-candidate-request")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(destination_address),
-                              meta.payload.implement(source_address, destination_address, source_default_conversion, routes))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time,),
+                         destination=(destination_address,),
+                         payload=(source_address, destination_address, source_default_conversion, routes))
 
     def create_dispersy_sync_message(self, time_low, time_high, bloom_packets, global_time):
         assert isinstance(time_low, (int, long))
@@ -284,10 +281,9 @@ class Node(object):
         bloom_filter = BloomFilter(700, 0.001, prefix="x")
         map(bloom_filter.add, bloom_packets)
         meta = self._community.get_meta_message(u"dispersy-sync")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(time_low, time_high, bloom_filter))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time,),
+                         payload=(time_low, time_high, bloom_filter))
 
     def create_dispersy_missing_sequence_message(self, missing_member, missing_message_meta, missing_low, missing_high, global_time, destination_address):
         assert isinstance(missing_member, Member)
@@ -300,20 +296,19 @@ class Node(object):
         assert isinstance(destination_address[0], str)
         assert isinstance(destination_address[1], int)
         meta = self._community.get_meta_message(u"dispersy-missing-sequence")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(destination_address),
-                              meta.payload.implement(missing_member, missing_message_meta, missing_low, missing_high))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time,),
+                         destination=(destination_address,),
+                         payload=(missing_member, missing_message_meta, missing_low, missing_high))
 
     def create_dispersy_signature_request_message(self, message, global_time, destination_member):
         isinstance(message, Message.Implementation)
         isinstance(global_time, (int, long))
         isinstance(destination_member, Member)
         meta = self._community.get_meta_message(u"dispersy-signature-request")
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(destination_member),
-                              meta.payload.implement(message))
+        return meta.impl(distribution=(global_time,),
+                         destination=(destination_member,),
+                         payload=(message,))
 
     def create_dispersy_signature_response_message(self, request_id, signature, global_time, destination_address):
         assert isinstance(request_id, str)
@@ -325,10 +320,9 @@ class Node(object):
         assert isinstance(destination_address[0], str)
         assert isinstance(destination_address[1], int)
         meta = self._community.get_meta_message(u"dispersy-signature-response")
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(destination_address),
-                              meta.payload.implement(request_id, signature))
+        return meta.impl(distribution=(global_time,),
+                         destination=(destination_address,),
+                         payload=(request_id, signature))
 
     def create_dispersy_subjective_set_message(self, cluster, subjective_set, global_time):
         assert isinstance(cluster, int)
@@ -337,10 +331,9 @@ class Node(object):
         assert isinstance(global_time, (int, long))
         assert global_time > 0
         meta = self._community.get_meta_message(u"dispersy-subjective-set")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(cluster, subjective_set))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time,),
+                         payload=(cluster, subjective_set))
 
     def create_dispersy_missing_message_message(self, missing_member, missing_global_times, global_time, destination_address):
         assert isinstance(missing_member, Member)
@@ -352,17 +345,13 @@ class Node(object):
         assert isinstance(destination_address[0], str)
         assert isinstance(destination_address[1], int)
         meta = self._community.get_meta_message(u"dispersy-missing-message")
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(destination_address),
-                              meta.payload.implement(missing_member, missing_global_times))
+        return meta.impl(distribution=(global_time,),
+                         destination=(destination_address,),
+                         payload=(missing_member, missing_global_times))
 
     def create_dispersy_missing_proof_message(self, member, global_time):
         assert isinstance(member, Member)
         assert isinstance(global_time, (int, long))
         assert global_time > 0
         meta = self._community.get_meta_message(u"dispersy-missing-proof")
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(member, global_time))
+        return meta.impl(distribution=(global_time,), payload=(member, global_time))

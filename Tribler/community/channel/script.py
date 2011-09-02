@@ -10,10 +10,9 @@ from Tribler.Core.dispersy.dprint import dprint
 class ChannelNode(Node):
     def create_channel(self, name, description, global_time):
         meta = self._community.get_meta_message(u"channel")
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(name, description))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time,),
+                         payload=(name, description))
 
 class ChannelScript(ScriptBase):
     def run(self):

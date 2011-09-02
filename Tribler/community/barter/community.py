@@ -116,10 +116,9 @@ class BarterCommunity(Community):
         if __debug__: log("barter.log", "create-dispersy-signature-request")
 
         meta = self.get_meta_message(u"barter-record")
-        request = meta.implement(meta.authentication.implement([self._my_member, second_member]),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(first_upload, second_upload))
+        request = meta.impl(authentication=([self._my_member, second_member],),
+                            distribution=(self.claim_global_time(),),
+                            payload=(first_upload, second_upload))
         return self.create_dispersy_signature_request(request, self.on_signature_response, (request, 1), store=store, forward=forward)
 
     def allow_signature_request(self, message):

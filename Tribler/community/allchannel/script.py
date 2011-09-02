@@ -19,26 +19,17 @@ from Tribler.Core.dispersy.script import ScenarioScriptBase
 class AllChannelNode(Node):
     def create_channel_propagate(self, packets, global_time):
         meta = self._community.get_meta_message(u"channel-propagate")
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(packets))
+        return meta.impl(distribution=(global_time,), payload=(packets,))
 
     def create_torrent_request(self, infohash, global_time):
         meta = self._community.get_meta_message(u"torrent-request")
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(infohash))
+        return meta.impl(distribution=(global_time,), payload=(infohash,))
 
     def create_channel_search_request(self, skips, search, method, global_time):
         meta = self._community.get_meta_message(u"channel-search-request")
         skip = BloomFilter(max(10, len(skips)), 0.01)
         map(skip.add, skips)
-        return meta.implement(meta.authentication.implement(),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(skip, search, method))
+        return meta.impl(distribution=(global_time,), payload=(skip, search, method))
 
 class AllChannelScript(ScriptBase):
     def run(self):

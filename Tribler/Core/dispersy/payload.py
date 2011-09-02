@@ -35,7 +35,7 @@ class AuthorizePayload(Payload):
             """
             if __debug__:
                 from authentication import MemberAuthentication
-                from resolution import LinearResolution
+                from resolution import LinearResolution, DynamicResolution
                 from member import Member
                 from message import Message
                 for triplet in permission_triplets:
@@ -43,7 +43,7 @@ class AuthorizePayload(Payload):
                     assert len(triplet) == 3
                     assert isinstance(triplet[0], Member)
                     assert isinstance(triplet[1], Message)
-                    assert isinstance(triplet[1].resolution, LinearResolution)
+                    assert isinstance(triplet[1].resolution, (LinearResolution, DynamicResolution))
                     assert isinstance(triplet[1].authentication, MemberAuthentication)
                     assert isinstance(triplet[2], unicode)
                     assert triplet[2] in (u'permit', u'authorize', u'revoke')

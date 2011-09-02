@@ -13,17 +13,21 @@ if __debug__:
     from dprint import dprint
 
 class Timeline(object):
-    class Node(object):
-        def __init__(self):
-            self.timeline = [] # (global_time, {u'permission^message-name':(True/False, [Message.Implementation])})
-
     def __init__(self, community):
         if __debug__:
             from community import Community
             assert isinstance(community, Community)
+
+        # the community that this timeline is keeping track off
         self._community = community
-        self._nodes = {}
-        self._policies = [] # [(global_time, {u'resolution^message-name':(resolution-policy, [Message.Implementation])})]
+
+        # _members contains the permission grants and revokes per member
+        # Member / [(global_time, {u'permission^message-name':(True/False, [Message.Implementation])})]
+        self._members = {}
+
+        # _policies contains the policies that the community is currently using (dynamic settings)
+        # [(global_time, {u'resolution^message-name':(resolution-policy, [Message.Implementation])})]
+        self._policies = []
 
     def check(self, message, permission=u"permit"):
         """
@@ -37,18 +41,18 @@ class Timeline(object):
         assert permission in (u'permit', u'authorize', u'revoke')
         if isinstance(message.authentication, MemberAuthentication.Implementation):
             # MemberAuthentication
-            return self._check(message.authentication.member, message.distribution.global_time, [(message.meta, permission)])
+            return self._check(message.authentication.member, message.distribution.global_time, message.resolution, [(message.meta, permission)])
         else:
             # MultiMemberAuthentication
             all_proofs = []
             for member in  message.authentication.members:
-                allowed, proofs = self._check(member, message.distribution.global_time, [(message.meta, permission)])
+                allowed, proofs = self._check(member, message.distribution.global_time, message.resolution, [(message.meta, permission)])
                 all_proofs.extend(proofs)
                 if not allowed:
                     return (False, all_proofs)
             return (True, all_proofs)
 
-    def _check(self, member, global_time, permission_pairs):
+    def _check(self, member, global_time, resolution, permission_pairs):
         """
         Check is MEMBER has all of the permission pairs in PERMISSION_PAIRS at GLOBAL_TIME.
 
@@ -69,11 +73,12 @@ class Timeline(object):
                 assert isinstance(pair[0], Message), "Requires meta message"
                 assert isinstance(pair[1], unicode)
                 assert pair[1] in (u'permit', u'authorize', u'revoke')
+            assert resolution is None or isinstance(resolution, (PublicResolution.Implementation, LinearResolution.Implementation, DynamicResolution.Implementation))
 
         # TODO: we can make this more efficient by changing the loop a bit.  make a shallow copy of
         # the permission_pairs and remove one after another as they succeed.  key is to loop though
-        # the self._nodes[member].timeline once (currently looping over the timeline for every item
-        # in permission_pairs).
+        # the self._members[member] once (currently looping over the timeline for every item in
+        # permission_pairs).
 
         all_proofs = []
 
@@ -83,23 +88,28 @@ class Timeline(object):
                 if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (master member)")
 
             else:
-                resolution = message.resolution
-
                 # dynamically set the resolution policy
-                if isinstance(resolution, DynamicResolution):
-                    resolution, _ = self.get_resolution_policy(message, global_time)
+                if isinstance(resolution, DynamicResolution.Implementation):
+                    local_resolution, proof = self.get_resolution_policy(message, global_time)
+                    assert isinstance(local_resolution, (PublicResolution, LinearResolution, DynamicResolution))
+
+                    if not resolution.policy.meta == local_resolution:
+                        if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " (conflicting resolution policy)")
+                        return (False, proof)
+
+                    resolution = resolution.policy
                     if __debug__: dprint("APPLY time:", global_time, " resolution^", message.name, " -> ", resolution.__class__.__name__)
 
                 # everyone is allowed PublicResolution
-                if isinstance(resolution, PublicResolution):
+                if isinstance(resolution, PublicResolution.Implementation):
                     if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (public resolution)")
 
                 # allowed LinearResolution is stored in Timeline
-                elif isinstance(resolution, LinearResolution):
+                elif isinstance(resolution, LinearResolution.Implementation):
                     key = permission + "^" + message.name
 
-                    if member in self._nodes:
-                        iterator = reversed(self._nodes[member].timeline)
+                    if member in self._members:
+                        iterator = reversed(self._members[member])
                         try:
                             # go backwards while time > global_time
                             while True:
@@ -158,7 +168,7 @@ class Timeline(object):
                 assert len(triplet) == 3
                 assert isinstance(triplet[0], Member)
                 assert isinstance(triplet[1], Message)
-                assert isinstance(triplet[1].resolution, LinearResolution)
+                assert isinstance(triplet[1].resolution, (LinearResolution, DynamicResolution))
                 assert isinstance(triplet[1].authentication, MemberAuthentication)
                 assert isinstance(triplet[2], unicode)
                 assert triplet[2] in (u'permit', u'authorize', u'revoke')
@@ -166,7 +176,7 @@ class Timeline(object):
 
         # TODO: we must remove duplicates in the below permission_pairs list
         # check that AUTHOR is allowed to perform these authorizations
-        authorize_allowed, authorize_proofs = self._check(author, global_time, [(message, u"authorize") for _, message, __ in permission_triplets])
+        authorize_allowed, authorize_proofs = self._check(author, global_time, LinearResolution().implement(), [(message, u"authorize") for _, message, __ in permission_triplets])
         if not authorize_allowed:
             if __debug__:
                 dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
@@ -174,13 +184,13 @@ class Timeline(object):
             return (False, authorize_proofs)
 
         for member, message, permission in permission_triplets:
-            if isinstance(message.resolution, LinearResolution):
-                if not member in self._nodes:
-                    self._nodes[member] = self.Node()
+            if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
+                if not member in self._members:
+                    self._members[member] = []
 
                 key = permission + "^" + message.name
 
-                for index, (time, permissions) in zip(count(0), self._nodes[member].timeline):
+                for index, (time, permissions) in zip(count(0), self._members[member]):
                     # extend when time == global_time
                     if time == global_time:
                         if key in permissions:
@@ -206,7 +216,7 @@ class Timeline(object):
                     elif time > global_time:
                         # TODO: ensure that INDEX is correct!
                         if __debug__: dprint("AUTHORIZE time:", global_time, " user:", member.database_id, " -> ", key, " (inserting)")
-                        self._nodes[member].timeline.insert(index, (global_time, {key:(True, [proof])}))
+                        self._members[member].insert(index, (global_time, {key:(True, [proof])}))
                         break
 
                     # otherwise: go forward while time < global_time
@@ -214,7 +224,7 @@ class Timeline(object):
                 else:
                     # we have reached the end without a BREAK: append the permission
                     if __debug__: dprint("AUTHORIZE time:", global_time, " user:", member.database_id, " -> ", key, " (appending)")
-                    self._nodes[member].timeline.append((global_time, {key:(True, [proof])}))
+                    self._members[member].append((global_time, {key:(True, [proof])}))
 
             else:
                 raise NotImplementedError(message.resolution)
@@ -236,7 +246,7 @@ class Timeline(object):
                 assert len(triplet) == 3
                 assert isinstance(triplet[0], Member)
                 assert isinstance(triplet[1], Message)
-                assert isinstance(triplet[1].resolution, LinearResolution)
+                assert isinstance(triplet[1].resolution, (LinearResolution, DynamicResolution))
                 assert isinstance(triplet[1].authentication, MemberAuthentication)
                 assert isinstance(triplet[2], unicode)
                 assert triplet[2] in (u'permit', u'authorize', u'revoke')
@@ -244,19 +254,19 @@ class Timeline(object):
 
         # TODO: we must remove duplicates in the below permission_pairs list
         # check that AUTHOR is allowed to perform these authorizations
-        revoke_allowed, revoke_proofs = self._check(author, global_time, [(message, u"revoke") for _, message, __ in permission_triplets])
+        revoke_allowed, revoke_proofs = self._check(author, global_time, LinearResolution().implement(), [(message, u"revoke") for _, message, __ in permission_triplets])
         if not revoke_allowed:
             if __debug__: dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
             return (False, revoke_proofs)
 
         for member, message, permission in permission_triplets:
-            if isinstance(message.resolution, LinearResolution):
-                if not member in self._nodes:
-                    self._nodes[member] = self.Node()
+            if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
+                if not member in self._members:
+                    self._members[member] = []
 
                 key = permission + "^" + message.name
 
-                for index, (time, permissions) in zip(count(0), self._nodes[member].timeline):
+                for index, (time, permissions) in zip(count(0), self._members[member]):
                     # extend when time == global_time
                     if time == global_time:
                         if key in permissions:
@@ -282,7 +292,7 @@ class Timeline(object):
                     elif time > global_time:
                         # TODO: ensure that INDEX is correct!
                         if __debug__: dprint("REVOKE time:", global_time, " user:", member.database_id, " -> ", key, " (inserting)")
-                        self._nodes[member].timeline.insert(index, (global_time, {key:(False, [proof])}))
+                        self._members[member].insert(index, (global_time, {key:(False, [proof])}))
                         break
 
                     # otherwise: go forward while time < global_time
@@ -290,7 +300,7 @@ class Timeline(object):
                 else:
                     # we have reached the end without a BREAK: append the permission
                     if __debug__: dprint("REVOKE time:", global_time, " user:", member.database_id, " -> ", key, " (appending)")
-                    self._nodes[member].timeline.append((global_time, {key:(False, [proof])}))
+                    self._members[member].append((global_time, {key:(False, [proof])}))
 
             else:
                 raise NotImplementedError(message.resolution)

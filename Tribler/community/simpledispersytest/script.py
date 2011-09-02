@@ -79,10 +79,9 @@ class SetupScript(ScriptBase):
         sync_meta = self._community.get_meta_message(u"dispersy-sync")
         wait = 10
         for i in xrange(1, wait + 1):
-            messages = [sync_meta.implement(sync_meta.authentication.implement(self._community.my_member),
-                                            sync_meta.distribution.implement(self._community.global_time),
-                                            sync_meta.destination.implement(),
-                                            sync_meta.payload.implement(time_low, time_high, bloom_filter))
+            messages = [sync_meta.impl(authentication=(self._community.my_member,),
+                                       distribution=(self._community.global_time,),
+                                       payload=(time_low, time_high, bloom_filter))
                         for time_low, time_high, bloom_filter
                         in self._community.dispersy_sync_bloom_filters]
             self._dispersy.store_update_forward(messages, False, False, True)
@@ -116,10 +115,9 @@ class SetupScript(ScriptBase):
 
         else:
             dprint("creating first (or new) dispersy-identity for the master member")
-            message = meta.implement(meta.authentication.implement(self._community.master_member),
-                                     meta.distribution.implement(self._community.claim_global_time()),
-                                     meta.destination.implement(),
-                                     meta.payload.implement(("0.0.0.0", 0)))
+            message = meta.impl(authentication=(self._community.master_member,),
+                                distribution=(self._community.claim_global_time(),),
+                                payload=(("0.0.0.0", 0),))
             self._community.dispersy.store_update_forward([message], True, False, True)
 
         yield 1.0
@@ -138,10 +136,9 @@ class SetupScript(ScriptBase):
                 dprint("my member is allowed to create messages")
                 break
 
-            messages = [sync_meta.implement(sync_meta.authentication.implement(self._community.my_member),
-                                            sync_meta.distribution.implement(self._community.global_time),
-                                            sync_meta.destination.implement(),
-                                            sync_meta.payload.implement(time_low, time_high, bloom_filter))
+            messages = [sync_meta.impl(authentication=(self._community.my_member,),
+                                       distribution=(self._community.global_time,),
+                                       payload=(time_low, time_high, bloom_filter))
                         for time_low, time_high, bloom_filter
                         in self._community.dispersy_sync_bloom_filters]
             self._dispersy.store_update_forward(messages, False, False, True)

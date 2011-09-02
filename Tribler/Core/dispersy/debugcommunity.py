@@ -18,15 +18,16 @@ from dprint import dprint
 #
 
 class DebugNode(Node):
-    def _create_text_message(self, message_name, text, global_time, destination=()):
+    def _create_text_message(self, message_name, text, global_time, resolution=(), destination=()):
         assert isinstance(message_name, unicode)
         assert isinstance(text, str)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(message_name)
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(*destination),
-                              meta.payload.implement(text))
+        return meta.impl(authentication=(self._my_member,),
+                         resolution=tuple(resolution),
+                         distribution=(global_time,),
+                         destination=tuple(destination),
+                         payload=(text,))
 
     def _create_sequence_text_message(self, message_name, text, global_time, sequence_number):
         assert isinstance(message_name, unicode)
@@ -34,10 +35,9 @@ class DebugNode(Node):
         assert isinstance(global_time, (int, long))
         assert isinstance(sequence_number, (int, long))
         meta = self._community.get_meta_message(message_name)
-        return meta.implement(meta.authentication.implement(self._my_member),
-                              meta.distribution.implement(global_time, sequence_number),
-                              meta.destination.implement(),
-                              meta.payload.implement(text))
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time, sequence_number),
+                         payload=(text,))
 
     def _create_multimember_text_message(self, message_name, others, text, global_time):
         assert isinstance(message_name, unicode)
@@ -47,10 +47,9 @@ class DebugNode(Node):
         assert isinstance(text, str)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(message_name)
-        return meta.implement(meta.authentication.implement([self._my_member] + others),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(text))
+        return meta.impl(authentication=([self._my_member] + others,),
+                         distribution=(global_time,),
+                         payload=(text,))
 
     def create_last_1_test_message(self, text, global_time):
         return self._create_text_message(u"last-1-test", text, global_time)
@@ -79,8 +78,9 @@ class DebugNode(Node):
     def create_protected_full_sync_text_message(self, text, global_time):
         return self._create_text_message(u"protected-full-sync-text", text, global_time)
 
-    def create_dynamic_resolution_text_message(self, text, global_time):
-        return self._create_text_message(u"dynamic-resolution-text", text, global_time)
+    def create_dynamic_resolution_text_message(self, text, global_time, policy):
+        assert isinstance(policy, (PublicResolution.Implementation, LinearResolution.Implementation))
+        return self._create_text_message(u"dynamic-resolution-text", text, global_time, resolution=(policy,))
 
 #
 # Conversion
@@ -173,10 +173,9 @@ class DebugCommunity(Community):
 
     def create_full_sync_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"full-sync-text")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(text))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(text,))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -186,10 +185,10 @@ class DebugCommunity(Community):
 
     def create_double_signed_text(self, text, member, response_func, response_args=(), timeout=10.0, store=True, forward=True):
         meta = self.get_meta_message(u"double-signed-text")
-        message = meta.implement(meta.authentication.implement([self._my_member, member]),
-                                 meta.distribution.implement(self.global_time),
-                                 meta.destination.implement(member),
-                                 meta.payload.implement(text))
+        message = meta.impl(authentication=([self._my_member, member],),
+                            distribution=(self.global_time,),
+                            destination=(member,),
+                            payload=(text,))
         return self.create_dispersy_signature_request(message, response_func, response_args, timeout, store, forward)
 
     def allow_double_signed_text(self, message):
@@ -206,10 +205,10 @@ class DebugCommunity(Community):
 
     def create_triple_signed_text(self, text, member1, member2, response_func, response_args=(), timeout=10.0, store=True, forward=True):
         meta = self.get_meta_message(u"triple-signed-text")
-        message = meta.implement(meta.authentication.implement([self._my_member, member1, member2]),
-                                 meta.distribution.implement(self.global_time),
-                                 meta.destination.implement(member1, member2),
-                                 meta.payload.implement(text))
+        message = meta.impl(authentication=([self._my_member, member1, member2],),
+                            distribution=(self.global_time,),
+                            destination=(member1, member2),
+                            payload=(text,))
         return self.create_dispersy_signature_request(message, response_func, response_args, timeout, store, forward)
 
     def allow_triple_signed_text(self, message):
@@ -231,10 +230,9 @@ class DebugCommunity(Community):
     #
     def create_protected_full_sync_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"protected-full-sync-text")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(text))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(text,))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -243,10 +241,9 @@ class DebugCommunity(Community):
     #
     def create_dynamic_resolution_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"dynamic-resolution-text")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(text))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(text,))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 

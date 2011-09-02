@@ -1,4 +1,11 @@
-class Resolution(object):
+from meta import MetaObject
+
+class Resolution(MetaObject):
+    class Implementation(MetaObject.Implementation):
+        @property
+        def footprint(self):
+            return "Resolution"
+
     def setup(self, message):
         """
         Setup is called after the meta message is initially created.
@@ -7,17 +14,22 @@ class Resolution(object):
             from message import Message
         assert isinstance(message, Message)
 
+    def generate_footprint(self):
+        return "Resolution"
+
 class PublicResolution(Resolution):
     """
     PublicResolution allows any member to create a message.
     """
-    pass
+    class Implementation(Resolution.Implementation):
+        pass
 
 class LinearResolution(Resolution):
     """
     LinearResolution allows only members that have a specific permission to create a message.
     """
-    pass
+    class Implementation(Resolution.Implementation):
+        pass
 
 class DynamicResolution(Resolution):
     """
@@ -27,6 +39,31 @@ class DynamicResolution(Resolution):
     resolution policy.  Currently the policy can dynamically switch between either PublicResolution
     and LinearResolution.
     """
+    class Implementation(Resolution.Implementation):
+        def __init__(self, meta, policy):
+            """
+            Create a DynamicResolution.Implementation instance.
+
+            This object will contain the resolution policy used for a single message.  This message
+            must use one of the available policies defined in the associated meta_message object.
+            """
+            assert isinstance(policy, (PublicResolution.Implementation, LinearResolution.Implementation))
+            assert policy.meta in meta._policies
+            super(DynamicResolution.Implementation, self).__init__(meta)
+            self._policy = policy
+
+        @property
+        def default(self):
+            return self._meta._default
+
+        @property
+        def policies(self):
+            return self._meta._policies
+
+        @property
+        def policy(self):
+            return self._policy
+
     def __init__(self, *policies):
         """
         Create a DynamicResolution instance.

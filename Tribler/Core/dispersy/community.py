@@ -29,7 +29,7 @@ from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistr
 from encoding import encode
 from member import Member
 from message import Message, DropMessage
-from resolution import LinearResolution
+from resolution import LinearResolution, DynamicResolution
 from timeline import Timeline
 
 if __debug__:
@@ -128,10 +128,9 @@ class Community(object):
 
         # create the dispersy-identity for the master member
         meta = community.get_meta_message(u"dispersy-identity")
-        message = meta.implement(meta.authentication.implement(master),
-                                 meta.distribution.implement(community.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(("0.0.0.0", 0)))
+        message = meta.impl(authentication=(master,),
+                            distribution=(community.claim_global_time(),),
+                            payload=(("0.0.0.0", 0),))
         community.dispersy.store_update_forward([message], True, True, False)
 
         # create the dispersy-identity for my member
@@ -140,7 +139,7 @@ class Community(object):
         # authorize MY_MEMBER for each message
         permission_triplets = []
         for message in community.get_meta_messages():
-            if isinstance(message.resolution, LinearResolution):
+            if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
                 for allowed in (u"authorize", u"revoke", u"permit"):
                     permission_triplets.append((my_member, message, allowed))
         if permission_triplets:

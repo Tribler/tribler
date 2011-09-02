@@ -122,10 +122,10 @@ class SimpleDispersyTestCommunity(Community):
         if __debug__: dprint(self._master_member.mid.encode("HEX"))
         assert isinstance(text, unicode)
         meta = self.get_meta_message(u"last-1-subjective-sync")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(True),
-                                 meta.payload.implement(text))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            destination=(True,),
+                            payload=(text,))
         self._dispersy.store_update_forward([message], True, True, True)
         return message
 

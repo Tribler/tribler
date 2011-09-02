@@ -20,10 +20,9 @@ from random import random
 class BarterNode(Node):
     def create_barter_record(self, second_member, first_upload, second_upload, global_time):
         meta = self._community.get_meta_message(u"barter-record")
-        return meta.implement(meta.authentication.implement([self._my_member, second_member]),
-                              meta.distribution.implement(global_time),
-                              meta.destination.implement(),
-                              meta.payload.implement(first_upload, second_upload))
+        return meta.impl(authentication=([self._my_member, second_member],),
+                         distribution=(global_time,),
+                         payload=(first_upload, second_upload))
 
 class BarterScript(ScriptBase):
     def run(self):
@@ -319,10 +318,9 @@ class BarterScenarioScript(ScriptBase):
         meta = self._barter.get_meta_message(u"dispersy-identity")
         for index, address, public_key, private_key in all_peers:
             temp_member = Member(public_key, private_key, sync_with_database=False)
-            message = meta.implement(meta.authentication.implement(temp_member),
-                                     meta.distribution.implement(index + 10), # give it a global time
-                                     meta.destination.implement(),
-                                     meta.payload.implement(address))
+            message = meta.impl(authentication=(temp_member,),
+                                distribution=(index + 10,), # give it a global time
+                                payload=(address,))
             incoming_packets.append((address, message.packet))
         self._barter.dispersy.on_incoming_packets(incoming_packets)
 

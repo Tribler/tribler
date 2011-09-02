@@ -48,6 +48,10 @@ level_tag_map = {LEVEL_DEBUG:"D",
                  LEVEL_ERROR:"E",
                  LEVEL_FORCE:"F"}
 
+# allows us to determine that the last dprint call was an error, and hence, that the message 'see
+# stderr...' has already been printed to stdout
+_last_dprint_see_stderr = False
+
 _dprint_settings = {
     "binary":False,                     # print a binary representation of the arguments
     "box":False,                        # add a single line above and below the message
@@ -764,10 +768,17 @@ def dprint(*args, **kargs):
         messages.append("".join(kargs["box_char"] * kargs["box_width"]))
 
     # always add stderr to output if level is error or exception is set
+    global _last_dprint_see_stderr
     if kargs["level"] == LEVEL_ERROR or kargs["exception"]:
         kargs["stderr"] = True
         kargs["stdout"] = False
-        print >> stdout, prefix + "See stderr for exception"
+
+        # do not outpuy 'see stderr' on consecutive dprint calls
+        if not _last_dprint_see_stderr:
+            _last_dprint_see_stderr = True
+            print >> stdout, prefix + "See stderr for exception"
+    else:
+        _last_dprint_see_stderr = False
 
     if kargs["stdout"]:
         print >> stdout, prefix + ("\n"+prefix).join([msg[:10000] for msg in messages])
@@ -848,6 +859,16 @@ def strip_prefix(prefix, string):
         return string[len(prefix):]
     else:
         return string
+
+if __debug__:
+    if __name__ == "__main__":
+        dprint(1, level="error")
+        dprint(2, level="error")
+        dprint(3, level="error")
+        dprint("---", force=1)
+        dprint(1, level="error")
+        dprint(2, level="error")
+        dprint(3, level="error")
 
 # if __name__ == "__main__":
 

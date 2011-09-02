@@ -275,10 +275,9 @@ class ChannelCommunity(Community):
     @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"channel")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(name, description))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(name, description))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -312,10 +311,9 @@ class ChannelCommunity(Community):
 
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(infohash, timestamp, name, files, trackers))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time()),
+                            payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
         log("dispersy.log", "created-barter-record", size = len(message.packet)) # TODO: should change this to something more specific to channels
@@ -326,10 +324,9 @@ class ChannelCommunity(Community):
         
         meta = self.get_meta_message(u"torrent")
         for infohash, timestamp, name, files, trackers in torrentlist:
-            message = meta.implement(meta.authentication.implement(self._my_member),
-                                     meta.distribution.implement(self.claim_global_time()),
-                                     meta.destination.implement(),
-                                     meta.payload.implement(infohash, timestamp, name, files, trackers))
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.claim_global_time(),),
+                                payload=(infohash, timestamp, name, files, trackers))
             
             log("dispersy.log", "created-torrent-record", size = len(message.packet))
             log("dispersy.log", "created-barter-record")
@@ -384,10 +381,9 @@ class ChannelCommunity(Community):
 
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(name, description))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(name, description))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -442,10 +438,9 @@ class ChannelCommunity(Community):
             reply_after_global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"comment")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(text, timestamp, reply_to_message, reply_to_mid, reply_to_global_time, reply_after_message, reply_after_mid, reply_after_global_time, playlist_message, infohash))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(text, timestamp, reply_to_message, reply_to_mid, reply_to_global_time, reply_after_message, reply_after_mid, reply_after_global_time, playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -545,10 +540,9 @@ class ChannelCommunity(Community):
             latest_modification_global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"modification")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(modification_type, modifcation_value, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(modification_type, modifcation_value, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -617,10 +611,9 @@ class ChannelCommunity(Community):
         meta = self.get_meta_message(u"playlist_torrent")
         messages = []
         for infohash in infohashes:
-            message = meta.implement(meta.authentication.implement(self._my_member),
-                                     meta.distribution.implement(self.claim_global_time()),
-                                     meta.destination.implement(),
-                                     meta.payload.implement(infohash, playlist_message))
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.claim_global_time(),),
+                                payload=(infohash, playlist_message))
             messages.append(message)
 
         self._dispersy.store_update_forward(messages, store, update, forward)
@@ -663,10 +656,9 @@ class ChannelCommunity(Community):
         global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"warning")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(text, timestamp, cause, mid, global_time))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(text, timestamp, cause, mid, global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -708,10 +700,9 @@ class ChannelCommunity(Community):
     @forceDispersyThread
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")
-        message = meta.implement(meta.authentication.implement(self._my_member),
-                                 meta.distribution.implement(self.claim_global_time()),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(infohash, type, timestamp))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(infohash, type, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 

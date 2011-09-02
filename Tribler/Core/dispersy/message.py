@@ -1,5 +1,8 @@
 from meta import MetaObject
 
+if __debug__:
+    from dprint import dprint
+
 #
 # Exceptions
 #
@@ -50,10 +53,7 @@ class DelayPacketByMissingMember(DelayPacket):
         # the request message that asks for the message that will
         # trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-missing-identity")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(missing_member_id))
+        message = meta.impl(distribution=(community.global_time,), payload=(missing_member_id,))
 
         super(DelayPacketByMissingMember, self).__init__("Missing member", footprint, message.packet)
 
@@ -79,10 +79,7 @@ class DelayPacketByMissingMessage(DelayPacket):
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-missing-message")
-        message = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(community.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(member, global_times))
+        message = meta.impl(distribution=(community.global_time,), payload=(member, global_times))
 
         # TODO: currently we can ask for one or more missing messages len(global_times) > 1.
         # However, the TriggerPacket does not allow a value for min/max responses until it triggers.
@@ -150,10 +147,7 @@ class DelayMessageByProof(DelayMessage):
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-proof")
-        request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(delayed.community.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(delayed.authentication.member, delayed.distribution.global_time))
+        request = meta.impl(distribution=(delayed.community.global_time,), payload=(delayed.authentication.member, delayed.distribution.global_time))
 
         super(DelayMessageByProof, self).__init__("Missing proof", footprint, request, delayed)
 
@@ -208,10 +202,7 @@ class DelayMessageBySequence(DelayMessage):
         # the request message that asks for the message that will
         # trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-sequence")
-        request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(delayed.community.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(delayed.authentication.member, delayed.meta, missing_low, missing_high))
+        request = meta.impl(distribution=(delayed.community.global_time,), payload=(delayed.authentication.member, delayed.meta, missing_low, missing_high))
 
         super(DelayMessageBySequence, self).__init__("Missing sequence numbers", footprint, request, delayed)
 
@@ -234,10 +225,7 @@ class DelayMessageBySubjectiveSet(DelayMessage):
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-subjective-set")
-        request = meta.implement(meta.authentication.implement(),
-                                 meta.distribution.implement(delayed.community.global_time),
-                                 meta.destination.implement(),
-                                 meta.payload.implement(cluster, [delayed.authentication.member]))
+        request = meta.impl(distribution=(delayed.community.global_time,), payload=(cluster, [delayed.authentication.member]))
 
         super(DelayMessageBySubjectiveSet, self).__init__("Missing subjective set", footprint, request, delayed)
 
@@ -333,12 +321,13 @@ class Packet(MetaObject.Implementation):
 #
 class Message(MetaObject):
     class Implementation(Packet):
-        def __init__(self, meta, authentication, distribution, destination, payload, conversion=None, address=("", -1), packet="", packet_id=0):
+        def __init__(self, meta, authentication, resolution, distribution, destination, payload, conversion=None, address=("", -1), packet="", packet_id=0):
             if __debug__:
                 from payload import Payload
                 from conversion import Conversion
             assert isinstance(meta, Message), "META has invalid type '%s'" % type(meta)
             assert isinstance(authentication, meta._authentication.Implementation), "AUTHENTICATION has invalid type '%s'" % type(authentication)
+            assert isinstance(resolution, meta._resolution.Implementation), "RESOLUTION has invalid type '%s'" % type(resolution)
             assert isinstance(distribution, meta._distribution.Implementation), "DISTRIBUTION has invalid type '%s'" % type(distribution)
             assert isinstance(destination, meta._destination.Implementation), "DESTINATION has invalid type '%s'" % type(destination)
             assert isinstance(payload, meta._payload.Implementation), "PAYLOAD has invalid type '%s'" % type(payload)
@@ -351,6 +340,7 @@ class Message(MetaObject):
             assert isinstance(packet_id, (int, long))
             super(Message.Implementation, self).__init__(meta, packet, packet_id)
             self._authentication = authentication
+            self._resolution = resolution
             self._distribution = distribution
             self._destination = destination
             self._payload = payload
@@ -389,6 +379,10 @@ class Message(MetaObject):
         @property
         def authentication(self):
             return self._authentication
+
+        @property
+        def resolution(self):
+            return self._resolution
 
         @property
         def distribution(self):
@@ -539,6 +533,39 @@ class Message(MetaObject):
                         self._distribution.generate_footprint(*distribution),
                         self._destination.generate_footprint(*destination),
                         self._payload.generate_footprint(*payload)))
+
+    def impl(self, authentication=(), resolution=(), distribution=(), destination=(), payload=(), *args, **kargs):
+        if __debug__:
+            assert isinstance(authentication, tuple)
+            assert isinstance(resolution, tuple)
+            assert isinstance(distribution, tuple)
+            assert isinstance(destination, tuple)
+            assert isinstance(payload, tuple)
+            try:
+                authentication_impl = self._authentication.Implementation(self._authentication, *authentication)
+                resolution_impl = self._resolution.Implementation(self._resolution, *resolution)
+                distribution_impl = self._distribution.Implementation(self._distribution, *distribution)
+                destination_impl = self._destination.Implementation(self._destination, *destination)
+                payload_impl = self._payload.Implementation(self._payload, *payload)
+            except TypeError, exception:
+                dprint("message name:   ", self._name, level="error")
+                dprint("authentication: ", self._authentication.__class__.__name__, ".Implementation", level="error")
+                dprint("resolution:     ", self._resolution.__class__.__name__, ".Implementation", level="error")
+                dprint("distribution:   ", self._distribution.__class__.__name__, ".Implementation", level="error")
+                dprint("destination:    ", self._destination.__class__.__name__, ".Implementation", level="error")
+                dprint("payload:        ", self._payload.__class__.__name__, ".Implementation", level="error")
+                raise
+            else:
+                return self.Implementation(self, authentication_impl, resolution_impl, distribution_impl, destination_impl, payload_impl, *args, **kargs)
+
+        return self.Implementation(self,
+                                   self._authentication.Implementation(self._authentication, *authentication),
+                                   self._resolution.Implementation(self._resolution, *resolution),
+                                   self._distribution.Implementation(self._distribution, *distribution),
+                                   self._destination.Implementation(self._destination, *destination),
+                                   self._payload.Implementation(self._payload, *payload),
+                                   *args, **kargs)
+
 
     def __str__(self):
         return "<%s %s>" % (self.__class__.__name__, self._name)
