@@ -1521,35 +1521,35 @@ class Dispersy(Singleton):
         assert not filter(lambda x: not isinstance(x, int), clusters)
         assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
 
-        def get_observation(observation_score, host, port, age, incoming_time, outgoing_time, external_time):
-            candidate = Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
+        def get_observation(observation_score, host, port, incoming_age, outgoing_age, external_age):
+            candidate = Candidate(str(host), int(port), incoming_age, outgoing_age, external_age)
 
             # add direct observation score
             total_score = observation_score
 
             # add recently online score
             for high, score in online_scores:
-                if age <= high:
+                if incoming_age <= high:
                     total_score += score
                     break
 
-            # add subjective set score
+            # add subjective set score (i.e. am I interested in HER data?)
             if subjective_sets:
                 for member in candidate.members:
                     for subjective_set in subjective_sets:
                         if member.public_key in subjective_set:
                             total_score += subjective_set_score
+                            break
 
             score = total_score * (probabilistic_factor_min + (probabilistic_factor_max - probabilistic_factor_min) * random())
             if __debug__: dprint("SCORE ", total_score, " -> ", score, " for ", host, ":", port)
             return score, candidate
 
+        direct_observation_sql = u"SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time) AS outgoing_age, STRFTIME('%s', 'now') - STRFTIME('%s', external_time) AS external_age FROM candidate WHERE community = ? AND incoming_age BETWEEN ? AND ? ORDER BY incoming_age ASC LIMIT ? OFFSET ?"
+        indirect_observation_sql = u"SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time) AS outgoing_age, STRFTIME('%s', 'now') - STRFTIME('%s', external_time) AS external_age FROM candidate WHERE community = ? AND incoming_age NOT BETWEEN ? AND ? AND external_age BETWEEN ? AND ? ORDER BY external_age ASC LIMIT ? OFFSET ?"
+
         subjective_sets = [community.get_subjective_set(community.my_member, cluster) for cluster in clusters]
         incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
-
-        direct_observation_sql = u"SELECT host, port, strftime('%%s', 'now') - strftime('%%s', incoming_time), incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time BETWEEN DATETIME('now', '-%d seconds') AND DATETIME('now', '-%d seconds') ORDER BY incoming_time DESC LIMIT ? OFFSET ?" % (incoming_time_high, incoming_time_low)
-        indirect_observation_sql = u"SELECT host, port, strftime('%%s', 'now') - strftime('%%s', external_time), incoming_time, outgoing_time, external_time FROM candidate WHERE community = ? AND incoming_time NOT BETWEEN DATETIME('NOW', '-%d seconds') AND DATETIME('now', '-%d seconds') AND external_time BETWEEN DATETIME('now', '-%d seconds') AND DATETIME('now', '-%d seconds') ORDER BY external_time DESC LIMIT ? OFFSET ?" % (incoming_time_high, incoming_time_low, incoming_time_high, incoming_time_low)
-
         online_scores = community.dispersy_candidate_online_scores
         direct_observation_score = community.dispersy_candidate_direct_observation_score
         indirect_observation_score = community.dispersy_candidate_indirect_observation_score
@@ -1557,25 +1557,21 @@ class Dispersy(Singleton):
         probabilistic_factor_min, probabilistic_factor_max = community.dispersy_candidate_probabilistic_factor
 
         sorting_key = lambda tup: tup[0]
-        unique = set()
 
         for offset in xrange(0, maxint, batch):
             # cache all items returned from the select statement, otherwise the cursur will be
             # re-used whenever another query is performed by the caller
             candidates = []
-            candidates.extend(get_observation(direct_observation_score, *tup) for tup in list(self._database.execute(direct_observation_sql, (community.database_id, batch, offset))))
-            candidates.extend(get_observation(indirect_observation_score, *tup) for tup in list(self._database.execute(indirect_observation_sql, (community.database_id, batch, offset))))
+            candidates.extend(get_observation(direct_observation_score, *tup) for tup in list(self._database.execute(direct_observation_sql, (community.database_id, incoming_time_low, incoming_time_high, batch, offset))))
+            candidates.extend(get_observation(indirect_observation_score, *tup) for tup in list(self._database.execute(indirect_observation_sql, (community.database_id, incoming_time_low, incoming_time_high, incoming_time_low, incoming_time_high, batch, offset))))
 
             if __debug__: dprint("there are ", len(candidates), " candidates in this batch")
             if not candidates:
                 break
 
             for score, candidate in sorted(candidates, key=sorting_key, reverse=True):
-                # TODO: we should perform the unique check before creating the candidate object
-                if not candidate.address in unique:
-                    unique.add(candidate.address)
-                    if __debug__: dprint("Yield ", candidate.host, ":", candidate.port, " with score ", score)
-                    yield candidate
+                if __debug__: dprint("Yield ", candidate.host, ":", candidate.port, " with score ", score)
+                yield candidate
 
     def yield_subjective_candidates(self, community, limit, cluster, batch=100):
         """
@@ -1593,17 +1589,8 @@ class Dispersy(Singleton):
         assert isinstance(cluster, int)
         assert cluster in community.subjective_set_clusters
         assert isinstance(batch, int)
-        return islice(self._yield_subjective_candidates(community, cluster, batch), limit)
 
-    def _yield_subjective_candidates(self, community, cluster, batch):
-        if __debug__:
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(cluster, int)
-        assert cluster in community.subjective_set_clusters
-        assert isinstance(batch, int)
-
-        for candidate in self._yield_online_candidates(community, [cluster], batch):
+        for candidate in islice(self._yield_online_candidates(community, [cluster], batch), limit):
             # we need to check the members associated to these candidates and see if they are
             # interested in this cluster
             for member in candidate.members:
@@ -1613,113 +1600,44 @@ class Dispersy(Singleton):
                 if subjective_set and community.my_member.public_key in subjective_set:
                     yield candidate
 
-    def yield_mixed_candidates(self, community, limit, diff_range=(0.0, 30.0), age_range=(120.0, 300.0), batch=100):
+    def yield_mixed_candidates(self, community, limit, clusters=(), batch=100):
         """
         Returns a generator that yields LIMIT unique Candidate objects where the selection is a
         mixed between peers that are most likely to be online and peers that are less likely to be
         online.
-
-        Note that the diff_range and age_range parameters will be replaced in the future.
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
-        assert isinstance(batch, int)
-        return islice(self._yield_mixed_candidates(community, diff_range, age_range, min(limit, batch)), limit)
-
-    def _yield_mixed_candidates(self, community, diff_range, age_range, batch):
-        if __debug__:
-            from community import Community
-        assert isinstance(community, Community)
+        assert isinstance(clusters, (tuple, list))
+        assert not filter(lambda x: not isinstance(x, int), clusters)
+        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
         assert isinstance(batch, int)
 
-        unique = set()
+        counter = 0
+        for counter, candidate in enumerate(islice(self._yield_online_candidates(community, clusters, batch), limit)):
+            yield candidate
 
-        # the theory behind the address selection is:
-        # a. we want to keep contact with those who are online, hence we send messages to those that
-        #    have a small diff.
-        # b. we want to get connections to those that have been away for some time, hence we send
-        #    messages to those that have a high age.
-        sql = u"""SELECT host, port, incoming_time, outgoing_time, external_time
-                  FROM candidate
-                  WHERE community = ? AND (ABS(STRFTIME('%s', outgoing_time) - STRFTIME('%s', incoming_time)) BETWEEN ? AND ?
-                                           OR STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) BETWEEN ? AND ?)
-                  ORDER BY RANDOM()
-                  LIMIT ?
-                  OFFSET ?"""
-        for offset in xrange(0, maxint, batch):
-            # cache all items returned from the select statement, otherwise the cursur will be
-            # re-used whenever another query is performed by the caller
-            candidates = list(self._database.execute(sql, (community.database_id, diff_range[0], diff_range[1], age_range[0], age_range[1], batch, offset)))
-            for host, port, incoming_time, outgoing_time, external_time in candidates:
-                if not (host, port) in unique:
-                    unique.add((host, port))
-                    yield Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
-            else:
-                if not candidates:
-                    break
-
-        # we will try a few addresses from external sources (3rd party).  note that selecting these
-        # will add a value to the outgoing_time column because we will sent something to this
-        # address.
-        sql = u"""SELECT host, port, incoming_time, outgoing_time, external_time
-                  FROM candidate
-                  WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) BETWEEN ? AND ?
-                  ORDER BY RANDOM()
-                  LIMIT ?
-                  OFFSET ?"""
-        for offset in xrange(0, maxint, batch):
-            # cache all items returned from the select statement, otherwise the cursur will be
-            # re-used whenever another query is performed by the caller
-            candidates = list(self._database.execute(sql, (community.database_id, age_range[0], age_range[1], batch, offset)))
-            for host, port, incoming_time, outgoing_time, external_time in candidates:
-                if not (host, port) in unique:
-                    unique.add((host, port))
-                    yield Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
-            else:
-                if not candidates:
-                    break
-
-        # at this point we do not have sufficient nodes that were online recently.  as an
-        # alternative we will add the addresses of dispersy routers that should always be online
-        sql = u"""SELECT host, port, incoming_time, outgoing_time, external_time
-                  FROM candidate
-                  WHERE community = 0
-                  ORDER BY RANDOM()
-                  LIMIT ?
-                  OFFSET ?"""
-        for offset in xrange(0, maxint, batch):
-            # cache all items returned from the select statement, otherwise the cursur will be
-            # re-used whenever another query is performed by the caller
-            candidates = list(self._database.execute(sql, (batch, offset)))
-            for host, port, incoming_time, outgoing_time, external_time in candidates:
-                if not (host, port) in unique:
-                    unique.add((host, port))
-                    yield Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
-            else:
-                if not candidates:
-                    break
-
-        # fallback to just picking random addresses within this community.  unfortunately it is
-        # likely that the addresses will contain nodes that are offline
-        sql = u"""SELECT host, port, incoming_time, outgoing_time, external_time
-                  FROM candidate
-                  WHERE community = ?
-                  ORDER BY RANDOM()
-                  LIMIT ?
-                  OFFSET ?"""
-        for offset in xrange(0, maxint, batch):
-            # cache all items returned from the select statement, otherwise the cursur will be
-            # re-used whenever another query is performed by the caller
-            candidates = list(self._database.execute(sql, (community.database_id, batch, offset)))
-            for host, port, incoming_time, outgoing_time, external_time in candidates:
-                if not (host, port) in unique:
-                    unique.add((host, port))
-                    yield Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
-            else:
-                if not candidates:
-                    break
+        if counter + 1 < limit:
+            # at this point we do not have sufficient nodes that were online recently.  as an
+            # alternative we will add the addresses of dispersy routers that should always be online
+            sql = u"""
+SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time) AS outgoing_age, STRFTIME('%s', 'now') - STRFTIME('%s', external_time) AS external_age 
+FROM candidate
+WHERE community = 0
+ORDER BY RANDOM()
+LIMIT ?
+OFFSET ?"""
+            for offset in xrange(0, maxint, batch):
+                # cache all items returned from the select statement, otherwise the cursur will be
+                # re-used whenever another query is performed by the caller
+                candidates = list(self._database.execute(sql, (batch, offset)))
+                for host, port, incoming_age, outgoing_age, external_age in candidates:
+                    yield Candidate(str(host), port, incoming_age, outgoing_age, external_age)
+                else:
+                    if not candidates:
+                        break
 
     def store_update_forward(self, messages, store, update, forward):
         """
@@ -2109,8 +2027,8 @@ class Dispersy(Singleton):
         """
         community = messages[0].community
         meta = community.get_meta_message(u"dispersy-candidate-response")
-        minimal_age, maximal_age = community.dispersy_candidate_age_range
-        sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
+        minimal_age, maximal_age = community.dispersy_candidate_online_range
+        sql = u"""SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS age
             FROM candidate
             WHERE community = ? AND age BETWEEN ? AND ?
             ORDER BY age
@@ -3419,7 +3337,7 @@ class Dispersy(Singleton):
 
         else:
             while community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
-                minimal_age, maximal_age = community.dispersy_candidate_age_range
+                minimal_age, maximal_age = community.dispersy_candidate_online_range
                 limit = community.dispersy_candidate_limit
                 sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
                     FROM candidate
@@ -3433,7 +3351,7 @@ class Dispersy(Singleton):
                 conversion_version = community.get_conversion().version
                 requests = [meta.implement(authentication_impl, distribution_impl, meta.destination.implement(candidate.address), meta.payload.implement(self._my_external_address, candidate.address, conversion_version, candidates))
                             for candidate
-                            in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count, community.dispersy_candidate_request_destination_diff_range, community.dispersy_candidate_request_destination_age_range)]
+                            in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count)]
                 if requests:
                     self.store_update_forward(requests, False, False, True)
                 yield community.dispersy_candidate_request_interval
@@ -3472,7 +3390,7 @@ class Dispersy(Singleton):
                 self._database.commit()
                 break
 
-    def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True):
+    def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
         Returns a dictionary with runtime statistical information.
 
@@ -3493,8 +3411,9 @@ class Dispersy(Singleton):
         #      making the two unique messages different from a bloom filter perspective.  we now
         #      replace one message with the other thoughout the system.
         # 1.4: added info["statistics"]["outgoing"] containing all calls to _send(...)
+        # 1.5: replaced some dispersy_candidaye_... attributes and added a dump of the candidates
 
-        info = {"version":1.4, "class":"Dispersy"}
+        info = {"version":1.5, "class":"Dispersy"}
 
         if statistics:
             info["statistics"] = self._statistics.reset()
@@ -3510,12 +3429,15 @@ class Dispersy(Singleton):
                                                     for attr
                                                     in ("dispersy_candidate_request_initial_delay",
                                                         "dispersy_candidate_request_interval",
-                                                        "dispersy_candidate_age_range",
                                                         "dispersy_candidate_request_member_count",
-                                                        "dispersy_candidate_request_destination_diff_range",
-                                                        "dispersy_candidate_request_destination_age_range",
                                                         "dispersy_candidate_cleanup_age_threshold",
                                                         "dispersy_candidate_limit",
+                                                        "dispersy_candidate_online_range",
+                                                        "dispersy_candidate_online_scores",
+                                                        "dispersy_candidate_direct_observation_score",
+                                                        "dispersy_candidate_indirect_observation_score",
+                                                        "dispersy_candidate_subjective_set_score",
+                                                        "dispersy_candidate_probabilistic_factor",
                                                         "dispersy_sync_initial_delay",
                                                         "dispersy_sync_interval",
                                                         "dispersy_sync_bloom_filter_error_rate",
@@ -3531,6 +3453,20 @@ class Dispersy(Singleton):
 
             if database_sync:
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT name.value, COUNT(sync.id) FROM sync JOIN name ON name.id = sync.name WHERE community = ? GROUP BY sync.name", (community.database_id,)))
+
+            if candidate:
+                incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
+                sql = u"""
+SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time), STRFTIME('%%s', 'now') - STRFTIME('%s', external_time)
+FROM candidate
+WHERE community = ? AND age BETWEEN ? AND ?
+"""
+
+                online = [(str(host), port, incoming_age, outgoing_age, external_age)
+                          for host, port, incoming_age, outgoing_age, external_age
+                          in self._database.execute(sql, (community.database_id, incoming_time_low, incoming_time_high))]
+                total, = self._database.execute(u"SELECT COUNT(1) FROM candidate WHERE community = ?", (community.database_id,)).next()
+                community_info["candidates"] = {"online":online, "total":total}
 
         if __debug__: dprint(info, pprint=True)
         return info

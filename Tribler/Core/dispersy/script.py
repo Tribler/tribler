@@ -857,12 +857,67 @@ class DispersyCandidateScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = MyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
+        self.caller(self.stats)
+
+        self.caller(self.get_unknown_members_from_address)
+        self.caller(self.get_known_members_from_address)
+
         self.caller(self.incoming_candidate_request)
         self.caller(self.outgoing_candidate_response)
         self.caller(self.outgoing_candidate_request)
 
-        self.caller(self.get_unknown_members_from_address)
-        self.caller(self.get_known_members_from_address)
+    def stats(self):
+        """
+        Output some statistics based on candidate selection properties.
+        """
+        def direct_indirect_score(classes):
+            for c, s in classes.iteritems():
+                yield "%s-direct" % c, s + community.dispersy_candidate_direct_observation_score
+                yield "%s-indirect" % c, s + community.dispersy_candidate_indirect_observation_score
+
+        def online_score(classes):
+            for c, s in classes.iteritems():
+                for age, score in community.dispersy_candidate_online_scores:
+                    yield "%s-%d" % (c, age), s + score
+
+        def candidate_score(classes):
+            for c, s in classes.iteritems():
+                yield "%s-inset" % c, s + community.dispersy_candidate_subjective_set_score
+                yield c, s
+
+        def probability(classes):
+            low, high = community.dispersy_candidate_probabilistic_factor
+            for c, s in classes.iteritems():
+                yield (s * low, s * high), c
+
+        community = DebugCommunity.create_community(self._my_member)
+
+        classes = {"":0}
+        classes = dict(direct_indirect_score(classes))
+        classes = dict(online_score(classes))
+        classes = dict(candidate_score(classes))
+        scores = list(probability(classes))
+
+        lows = []
+        highs = []
+        names = []
+        for (low, high), name in sorted(scores):
+            lows.append(low)
+            highs.append(high)
+            names.append(name)
+            dprint("%5d:%-5d" % (low, high), " <- ", name)
+
+        # # R script
+        # h = open("candidate-stats.R", "w+")
+        # h.write("postscript(\"candidate-stats.eps\")\n")
+        # h.write("lows <- c(%s)\n" % ",".join(map(str, lows)))
+        # h.write("highs <- c(%s)\n" % ",".join(map(str, highs)))
+        # h.write("names <- c(\"%s\")\n" % "\",\"".join(names))
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
 
     def get_unknown_members_from_address(self):
         """
