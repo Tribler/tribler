@@ -421,9 +421,14 @@ class BetterText(wx.StaticText):
  
 #Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
 class LinkText(GenStaticText):
-    def __init__(self, parent, label = '', fonts = [None, None], colours = [None, None], style = 0):
+    def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0, parentsizer = None):
+        if parentsizer:
+            self.parentsizer = parentsizer
+        else:
+            self.parentsizer = parent
+
         GenStaticText.__init__(self, parent, -1, label, style = style)
-        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND)) 
         
         self.SetFonts(fonts)
         self.SetColours(colours)
@@ -448,6 +453,10 @@ class LinkText(GenStaticText):
     
     def Reset(self):
         self.SetFontColour(self.fonts[0], self.colours[0])
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackGround)
+    
+    def OnEraseBackGround(self, event):
+        pass
     
     def SetFontColour(self, font, colour):
         needRefresh = False
@@ -464,6 +473,7 @@ class LinkText(GenStaticText):
         
         if needRefresh:
             self.Refresh()
+            self.parentsizer.Layout()
     
     def OnMouseEvent(self, event):
         if event.Moving():
@@ -505,7 +515,7 @@ class LinkStaticText(wx.BoxSizer):
         selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
         selectedfont.SetUnderlined(True)
         
-        self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)])
+        self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)], parentsizer = self)
         self.Add(self.text, 1, wx.ALIGN_CENTER_VERTICAL)
         
         if self.icon and icon_align == wx.ALIGN_RIGHT:

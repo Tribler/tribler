@@ -88,7 +88,7 @@ class ListHeader(wx.Panel):
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         for i in xrange(len(columns)):
             if columns[i].get('name', '') != '':
-                label = LinkText(parent, columns[i]['name'], fonts = [None, selectedfont], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
+                label = LinkText(parent, columns[i]['name'], fonts = [None, selectedfont], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE, parentsizer = sizer)
                 label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
                 label.SetBackgroundColour(self.GetBackgroundColour())
                 label.column = i
