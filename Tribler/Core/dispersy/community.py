@@ -1375,7 +1375,7 @@ class Community(object):
         assert isinstance(name, unicode)
         if __debug__:
             if not name in self._meta_messages:
-                dprint("this community does not support the dispersy-subjective-set message", level="warning")
+                dprint("this community does not support the ", name, " message", level="warning")
         return self._meta_messages[name]
 
     def get_meta_messages(self):
