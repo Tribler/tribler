@@ -52,6 +52,19 @@ class Timeline(object):
                     return (False, all_proofs)
             return (True, all_proofs)
 
+    def allowed(self, meta, global_time=0, permission=u"permit"):
+        """
+        Check if we are allowed to create a message.
+        """
+        if __debug__:
+            from message import Message
+        assert isinstance(meta, Message)
+        assert isinstance(global_time, (int, long))
+        assert global_time > 0
+        assert isinstance(permission, unicode)
+        assert permission in (u'permit', u'authorize', u'revoke')
+        return self._check(self._community.my_member, global_time if global_time else self._community.global_time, permission)
+
     def _check(self, member, global_time, resolution, permission_pairs):
         """
         Check is MEMBER has all of the permission pairs in PERMISSION_PAIRS at GLOBAL_TIME.
@@ -73,7 +86,7 @@ class Timeline(object):
                 assert isinstance(pair[0], Message), "Requires meta message"
                 assert isinstance(pair[1], unicode)
                 assert pair[1] in (u'permit', u'authorize', u'revoke')
-            assert resolution is None or isinstance(resolution, (PublicResolution.Implementation, LinearResolution.Implementation, DynamicResolution.Implementation))
+            assert isinstance(resolution, (PublicResolution.Implementation, LinearResolution.Implementation, DynamicResolution.Implementation))
 
         # TODO: we can make this more efficient by changing the loop a bit.  make a shallow copy of
         # the permission_pairs and remove one after another as they succeed.  key is to loop though
