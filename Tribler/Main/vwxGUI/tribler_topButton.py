@@ -453,10 +453,6 @@ class LinkText(GenStaticText):
     
     def Reset(self):
         self.SetFontColour(self.fonts[0], self.colours[0])
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackGround)
-    
-    def OnEraseBackGround(self, event):
-        pass
     
     def SetFontColour(self, font, colour):
         needRefresh = False
