@@ -229,6 +229,7 @@ class ABCApp(wx.App):
            
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.frame = self.res.LoadFrame(None, "MyFrame")
+            self.frame.SetDoubleBuffered(True) 
             self.guiUtility.frame = self.frame
 
             self.frame.set_wxapp(self)

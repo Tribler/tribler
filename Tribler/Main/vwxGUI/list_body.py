@@ -547,6 +547,9 @@ class AbstractListBody():
             item.Expand(panel)
             self.OnChange()
             
+            #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
+            self.Refresh()
+            
         self.cur_expanded = item
         self.Thaw()
         return panel
@@ -564,6 +567,10 @@ class AbstractListBody():
         
         if onchange:
             self.OnChange()
+            
+            #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
+            self.Refresh()
+            
         self.Thaw()
         
     def OnChange(self, scrollToTop = False):
@@ -573,11 +580,8 @@ class AbstractListBody():
         self.listpanel.Layout()
         self.Layout()
         
-        #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
-        self.Refresh()
-        
         #Determine scrollrate
-        if self.rate  is None:
+        if self.rate is None:
             nritems = len(self.vSizer.GetChildren())
             if nritems > 1:
                 height = self.vSizer.GetSize()[1]

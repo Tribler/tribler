@@ -766,9 +766,10 @@ class TorrentDetails(wx.Panel):
                 self.uelog.addEvent(message="Torrent: torrent play from channel", type = 2)
             else:
                 self.uelog.addEvent(message="Torrent: torrent play from other", type = 2)   
-            
-        play.Enable(False)
-        wx.CallLater(5000, play.Enable, True)
+        
+        if isinstance(play, wx.Button):
+            play.Enable(False)
+            wx.CallLater(5000, play.Enable, True)
     
     def OnDoubleClick(self, event):
         selected = self.listCtrl.GetFirstSelected()
