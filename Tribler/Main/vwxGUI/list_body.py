@@ -67,7 +67,11 @@ class ListItem(wx.Panel):
             type = self.columns[i].get('type', 'label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-                control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                
+                style = self.columns[i].get('style',0)
+                if option == 0:
+                    style = style|wx.ST_NO_AUTORESIZE
+                control = StaticText(self, style=style|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
                 
                 fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                 if fontWeight != wx.FONTWEIGHT_NORMAL:
@@ -582,7 +586,7 @@ class AbstractListBody():
         
         #Determine scrollrate
         if self.rate is None:
-            nritems = len(self.vSizer.GetChildren())
+            nritems = len(self.vSizer.GetChildren()) / 3
             if nritems > 1:
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
