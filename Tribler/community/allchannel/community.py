@@ -29,7 +29,7 @@ if __debug__:
 from lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
-CHANNELCAST_INTERVAL = 5.0
+CHANNELCAST_INTERVAL = 15.0
 CHANNELCAST_BLOCK_PERIOD = 10.0 * 60.0
 
 class AllChannelCommunity(Community):

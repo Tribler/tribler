@@ -13,6 +13,7 @@ from list_details import *
 from __init__ import *
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
+from Tribler.community.channel.community import ChannelCommunity
 
 DEBUG = False
 
@@ -186,9 +187,7 @@ class SelectedChannelList(GenericSearchList):
         self.channel = channel
         
         self.Freeze()
-
         self.SetId(channel.id)
-        self.SetVote(channel.my_vote)
         self.SetTitle(channel.name, channel.description)
         
         nr_torrents = channel.nr_torrents
@@ -196,14 +195,24 @@ class SelectedChannelList(GenericSearchList):
             nr_torrents = min(nr_torrents, 50)
             
         self.SetNrResults(nr_torrents)
-        self.SetDispersy(channel.isDispersy())
         
+        if channel.isDispersy():
+            def state_call(delayedResult):
+                state, self.iamModerator = delayedResult.get()
+            
+                self.SetVote(channel.my_vote)
+                self.SetChannelState(state)
+                
+            startWorker(state_call, self.channelsearch_manager.getChannelState, wargs = (channel.id, ))
+        else:
+            self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED)
         self.Thaw()
 
     def SetId(self, id):
         self.id = id
         if id > 0:
             self.my_channel = self.GetManager().my_channel_id == id
+            self.iamModerator = self.my_channel
         
             manager = self.commentList.GetManager()
             manager.SetIds(channel_id = id)
@@ -212,14 +221,14 @@ class SelectedChannelList(GenericSearchList):
             manager.SetIds(channel_id = id)
             
     def SetVote(self, vote):
-        self.footer.SetStates(vote == -1, vote == 2, self.my_channel)
+        self.footer.SetStates(vote == -1, vote == 2, self.iamModerator)
         self.Layout()
         
     def SetMyChannelId(self, channel_id):
         self.GetManager().my_channel_id = channel_id
     
-    def SetDispersy(self, isDispersy):
-        if isDispersy:
+    def SetChannelState(self, state):
+        if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
@@ -706,6 +715,38 @@ class ManageChannel(XRCPanel, AbstractDetails):
         overviewpage.SetSizer(vSizer)
         self.notebook.AddPage(overviewpage, "Overview")
         
+        #Open2Edit settings
+        self.settingspage = wx.Panel(self.notebook)
+        self.settingspage.SetBackgroundColour(LIST_DESELECTED)
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.AddSpacer((-1, 10))
+        header =  "Community Settings"
+        self._add_header(self.settingspage, vSizer, header, spacer = 10)
+        
+        text  = "Tribler allows you to involve your community."
+        text += "You as a channel-owner have the option to define the openness of your community. "
+        text += "By choosing a more open setting, other users are allowed to do more.\n\n"
+        
+        text += "Currently three configurations exist:\n"
+        text += "\tClosed, only you can add new .torrents. Other users can only download them.\n"
+        text += "\tSemi-Open, only you can add new .torrents. Other users can download and comment on them.\n"
+        text += "\tOpen, only you can define playlists and delete torrents. Other users can do everything else, ie add torrents, categorize torrents, comment etc."
+        vSizer.Add(wx.StaticText(self.settingspage, -1, text), 0, wx.EXPAND|wx.ALL, 10)
+        
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        gridSizer.AddGrowableCol(1)
+        gridSizer.AddGrowableRow(1)
+        
+        self.statebox = wx.RadioBox(self.settingspage, choices = ('Closed', 'Semi-Open', 'Open'), style = wx.RA_VERTICAL) 
+        self._add_row(self.settingspage, gridSizer, "Configuration", self.statebox)
+        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.RIGHT, 10)
+        
+        saveButton = wx.Button(self.settingspage, -1, 'Save Changes')
+        saveButton.Bind(wx.EVT_BUTTON, self.SaveSettings)
+        vSizer.Add(saveButton, 0, wx.ALIGN_RIGHT|wx.ALL, 10)
+        self.settingspage.SetSizer(vSizer)
+        
         #shared files page
         self.fileslist = ManageChannelFilesList(self.notebook)
         self.fileslist.SetNrResults = self.header.SetNrTorrents
@@ -813,29 +854,49 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.playlistlist.GetManager().SetChannelId(channel_id)
         
         if channel_id:
-            def update_panel(delayedResult):
-                data = delayedResult.get() 
+            def db_call():
+                channel = self.channelsearch_manager.getChannel(channel_id)
+                channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel_id)
                 
-                name = data.name
+                return channel, channel_state, iamModerator
+            
+            def update_panel(delayedResult):
+                channel, channel_state, iamModerator = delayedResult.get() 
+                
+                name = channel.name
                 self.name.SetValue(name)
                 self.name.originalValue = name
 
-                description = data.description
+                description = channel.description
                 self.description.SetValue(description)
                 self.description.originalValue = description
                 
                 self.header.SetName('Management interface for %s\'s Channel'%name)
-                self.header.SetNrTorrents(data.nr_torrents, data.nr_favorites)
+                self.header.SetNrTorrents(channel.nr_torrents, channel.nr_favorites)
                 
-                if self.notebook.GetPageCount() == 1:
-                    self.notebook.AddPage(self.fileslist, "Manage torrents")
-                    self.notebook.AddPage(self.playlistlist, "Manage playlists")
-                    self.notebook.AddPage(self.managepage, "Manage")
+                self.createText.Hide()
+                self.saveButton.SetLabel('Save Changes')
+                
+                if iamModerator:
+                    self.statebox.SetSelection(channel_state)
+                    self.AddPage(self.notebook, self.settingspage, "Settings", 1)
+                else:
+                    self.RemovePage(self.notebook, "Settings")
                     
-                    self.createText.Hide()
-                    self.saveButton.SetLabel('Save Changes')
+                if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
+                    self.AddPage(self.notebook, self.fileslist, "Manage torrents", 2)
+                else:
+                    self.RemovePage(self.notebook, "Manage torrents")
+                
+                if iamModerator:
+                    self.AddPage(self.notebook, self.playlistlist, "Manage playlists", 3)
+                    self.AddPage(self.notebook, self.managepage, "Manage", 4)
+                else:
+                    self.RemovePage(self.notebook, "Manage playlists")
+                    self.RemovePage(self.notebook, "Manage")
                     
-            startWorker(update_panel, self.channelsearch_manager.getChannel, wargs = (channel_id, ))
+            startWorker(update_panel, db_call)
+            
         else:
             self.name.SetValue('')
             self.name.originalValue = ''
@@ -858,16 +919,33 @@ class ManageChannel(XRCPanel, AbstractDetails):
         if not self.channel_id:
             self.SetChannelId(channel_id)
     
+    def GetPage(self, notebook, title):
+        for i in range(notebook.GetPageCount()):
+            if notebook.GetPageText(i) == title:
+                return i
+        return None
+    
+    def AddPage(self, notebook, page, title, index):
+        curindex = self.GetPage(notebook, title)
+        if curindex is None:
+            index = min(notebook.GetPageCount(), index)
+            notebook.InsertPage(index, page, title)
+    
+    def RemovePage(self, notebook, title):
+        curindex = self.GetPage(notebook, title)
+        if curindex is not None:
+            notebook.RemovePage(curindex)
+    
     def IsChanged(self):
         return self.name.GetValue() != self.name.originalValue or self.description.GetValue() != self.description.originalValue
     
     def OnChange(self, event):
         page = event.GetSelection()
-        if page == 1:
+        if page == self.GetPage(self.notebook, "Manage torrents"):
             self.fileslist.Show()
             self.fileslist.SetFocus()
         
-        elif page == 2:
+        elif page == self.GetPage(self.notebook, "Manage playlists"):
             self.playlistlist.Show()
             self.playlistlist.SetFocus() 
         event.Skip()
@@ -964,6 +1042,10 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         self.name.originalValue = name
         self.description.originalValue = description
+        
+    def SaveSettings(self, event):
+        state = self.statebox.GetSelection()
+        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state))
     
     def playlistCreated(self, channel_id):
         if channel_id == self.channel_id:

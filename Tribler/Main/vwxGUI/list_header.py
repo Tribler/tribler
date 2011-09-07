@@ -89,7 +89,7 @@ class ListHeader(wx.Panel):
         self.columnHeaders = []
         
         if len(columns) > 0:
-            down, _, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
+            down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
             for i in xrange(len(columns)):
                 if columns[i].get('name', '') != '':
                     label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
@@ -431,6 +431,7 @@ class SubTitleSeachHeader(SearchHeaderHelper, SubTitleHeader):
 class ManageChannelHeader(SubTitleHeader):
     def __init__(self, parent, parent_list):
         TitleHeader.__init__(self, parent, parent_list, [])
+        self.nr_favorites = None
         
     def SetName(self, name):
         self.SetTitle(name)
@@ -451,6 +452,11 @@ class ManageChannelHeader(SubTitleHeader):
             subtitle = 'Sharing %d torrent'%nr
         else:
             subtitle = 'Sharing %d torrents'%nr
+            
+        if nr_favorites:
+            self.nr_favorites = nr_favorites
+        else:
+            nr_favorites = self.nr_favorites
         
         if nr > 0 and nr_favorites:
             if nr_favorites == 0:
@@ -463,6 +469,10 @@ class ManageChannelHeader(SubTitleHeader):
     
     def AddColumns(self, sizer, parent, columns):
         SubTitleHeader.AddColumns(self, sizer, parent, [])
+    
+    def Reset(self):
+        SubTitleHeader.Reset(self)
+        self.nr_favorites = None
 
 class FamilyFilterHeader(TitleHeader):
     def __init__(self, *args, **kwargs):

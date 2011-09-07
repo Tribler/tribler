@@ -941,7 +941,6 @@ class ChannelSearchGridManager:
         else:
             def dispersy_started(subject,changeType,objectID):
                 self.dispersy = Dispersy.get_instance()
-                
                 self.session.remove_observer(dispersy_started)
             
             self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
@@ -969,6 +968,14 @@ class ChannelSearchGridManager:
             self.do_vote(channel_id, channel.my_vote, timestamp)
         
         return channel
+    
+    def getChannelState(self, channel_id):
+        community = self._disp_get_community_from_channel_id(channel_id)
+        return community.get_channel_mode()
+    
+    def setChannelState(self, channel_id, channel_mode):
+        community = self._disp_get_community_from_channel_id(channel_id)
+        return community.set_channel_mode(channel_mode)
     
     def getChannelFromPermid(self, channel_permid):
         channel = self.channelcast_db.getChannelFromPermid(channel_permid)

@@ -68,7 +68,7 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, master):
-        self.integrate_with_tribler = False
+        self.integrate_with_tribler = True
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
@@ -126,7 +126,13 @@ class ChannelCommunity(Community):
             disp_on_warning = self._disp_on_warning
             disp_on_mark_torrent = self._disp_on_mark_torrent
 
+            disp_undo_torrent = self._disp_undo_torrent
+            disp_undo_playlist = self._disp_undo_playlist
             disp_undo_comment = self._disp_undo_comment
+            disp_undo_modification = self._disp_undo_modification
+            disp_undo_playlist_torrent = self._disp_undo_playlist_torrent
+            disp_undo_warning = self._disp_undo_warning
+            disp_undo_mark_torrent = self._disp_undo_mark_torrent
             
         else:
             batch_delay = 1.0
@@ -153,16 +159,22 @@ class ChannelCommunity(Community):
             disp_on_warning = dummy_function
             disp_on_mark_torrent = dummy_function
 
+            disp_undo_torrent = dummy_function
+            disp_undo_playlist = dummy_function
             disp_undo_comment = dummy_function
+            disp_undo_modification = dummy_function
+            disp_undo_playlist_torrent = dummy_function
+            disp_undo_warning = dummy_function
+            disp_undo_mark_torrent = dummy_function
         
         return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent, delay=batch_delay),
-                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist, delay=batch_delay),
+                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent, disp_undo_torrent, delay=batch_delay),
+                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist, disp_undo_playlist, delay=batch_delay),
                 Message(self, u"comment", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, disp_undo_comment, delay=batch_delay),
-                Message(self, u"modification", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, delay=batch_delay),
-                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, delay=batch_delay),
-                Message(self, u"warning", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), WarningPayload(), self._disp_check_warning, disp_on_warning, delay=batch_delay),
-                Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, delay=batch_delay),
+                Message(self, u"modification", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, disp_undo_modification, delay=batch_delay),
+                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, disp_undo_playlist_torrent, delay=batch_delay),
+                Message(self, u"warning", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), WarningPayload(), self._disp_check_warning, disp_on_warning, disp_undo_warning, delay=batch_delay),
+                Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, disp_undo_mark_torrent, delay=batch_delay),
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
@@ -233,44 +245,61 @@ class ChannelCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
-
-    def create_channel(self, name, description, store=True, update=True, forward=True):
-        self._disp_create_channel(name, description, store, update, forward)
-
-    def is_channel_public(self):
+    
+    CHANNEL_CLOSED, CHANNEL_SEMI_OPEN, CHANNEL_OPEN, CHANNEL_MODERATOR = range(4)
+    CHANNEL_ALLOWED_MESSAGES = ([], [u"comment", u"mark_torrent"], [u"torrent", u"comment", u"modification", u"playlist_torrent", u"warning", u"mark_torrent"], [u"channel", u"torrent", u"playlist", u"comment", u"modification", u"playlist_torrent", u"warning", u"mark_torrent"])
+    
+    def get_channel_mode(self):
+        public = set()
+        permitted = set()
+        
         for meta in self.get_meta_messages():
             if isinstance(meta.resolution, DynamicResolution):
                 policy, _ = self._timeline.get_resolution_policy(meta, self.global_time)
-                if not isinstance(policy, PublicResolution):
+            else:
+                policy = meta.resolution
+            
+            if isinstance(policy, PublicResolution):
+                public.add(meta.name)
+            else:
+                allowed, proofs = self._timeline.allowed(meta)
+                if allowed:
+                    permitted.add(meta.name)
+                    
+        def isCommunityType(state, checkPermitted = False):
+            for type in ChannelCommunity.CHANNEL_ALLOWED_MESSAGES[state]:
+                if type not in public:
+                    if checkPermitted and type in permitted:
+                        continue
                     return False
-        return True
+            return True
+        
+        isModerator = isCommunityType(ChannelCommunity.CHANNEL_MODERATOR, True)
+        if isCommunityType(ChannelCommunity.CHANNEL_OPEN):
+            return ChannelCommunity.CHANNEL_OPEN, isModerator
+        
+        if isCommunityType(ChannelCommunity.CHANNEL_SEMI_OPEN):
+            return ChannelCommunity.CHANNEL_SEMI_OPEN, isModerator
+        
+        return ChannelCommunity.CHANNEL_CLOSED, isModerator
+        
+    def set_channel_mode(self, mode):
+        curmode, isModerator = self.get_channel_mode()
+        if isModerator and mode != curmode:
+            public_messages = ChannelCommunity.CHANNEL_ALLOWED_MESSAGES[mode]
+            
+            new_policies = []
+            for meta in self.get_meta_messages():
+                if isinstance(meta.resolution, DynamicResolution):
+                    if meta.name in public_messages:
+                        new_policies.append((meta, meta.resolution.policies[1]))
+                    else:
+                        new_policies.append((meta, meta.resolution.policies[0]))
+            
+            self.create_dispersy_dynamic_settings(new_policies)
 
-    def _change_policies(self, index):
-        for meta in self.get_meta_messages():
-            if isinstance(meta.resolution, DynamicResolution):
-                yield meta, meta.resolution.policies[index]
-
-    def make_channel_public(self):
-        assert not self.is_channel_public()
-        policies = list(self._change_policies(1))
-
-        if __debug__:
-            # all policy changes should go to the PublicResolution policy
-            for meta, policy in policies:
-                assert isinstance(policy, PublicResolution), meta.name
-
-        self.create_dispersy_dynamic_settings(policies)
-
-    def make_channel_private(self):
-        assert self.is_channel_public()
-        policies = list(self._change_policies(0))
-
-        if __debug__:
-            # all policy changes should go to the LinearResolution policy
-            for meta, policy in policies:
-                assert isinstance(policy, LinearResolution), meta.name
-
-        self.create_dispersy_dynamic_settings(policies)
+    def create_channel(self, name, description, store=True, update=True, forward=True):
+        self._disp_create_channel(name, description, store, update, forward)
 
     @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
@@ -323,8 +352,10 @@ class ChannelCommunity(Community):
         messages = []
         
         meta = self.get_meta_message(u"torrent")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         for infohash, timestamp, name, files, trackers in torrentlist:
             message = meta.impl(authentication=(self._my_member,),
+                                resolution=(current_policy.implement(),),
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, timestamp, name, files, trackers))
             
@@ -370,6 +401,11 @@ class ChannelCommunity(Community):
         for infohash in infohashes:
             for permid in permids:
                 self._rtorrent_handler.download_torrent(permid, infohash, None ,2)
+                
+    def _disp_undo_torrent(self, descriptors):
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            self._channelcast_db.on_remove_torrent_from_dispersy(self._channel_id, dispersy_id)
 
     #create, check or receive playlists
     def create_playlist(self, name, description, infohashes = [], store=True, update=True, forward=True):
@@ -381,7 +417,9 @@ class ChannelCommunity(Community):
 
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         message = meta.impl(authentication=(self._my_member,),
+                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(name, description))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -405,6 +443,11 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             
             self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, message.payload.name, message.payload.description)
+            
+    def _disp_undo_playlist(self, descriptors):
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            self._channelcast_db.on_remove_playlist_from_dispersy(self._channel_id, dispersy_id)
 
     #create, check or receive comments
     @forceDispersyThread
@@ -438,7 +481,9 @@ class ChannelCommunity(Community):
             reply_after_global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"comment")
+        current_policy = self._timeline.get_resolution_policy(meta, self.global_time)
         message = meta.impl(authentication=(self._my_member,),
+                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(text, timestamp, reply_to_message, reply_to_mid, reply_to_global_time, reply_after_message, reply_after_mid, reply_after_global_time, playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -487,9 +532,9 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
 
     def _disp_undo_comment(self, descriptors):
-        for member, global_time, packet in descriptors:
-            message = packet.load_message()
-            dprint("undo \"", message.name, "\" @", global_time)
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            self._channelcast_db.on_remove_comment_from_dispersy(self._channel_id, dispersy_id)
         
     #modify channel, playlist or torrent
     @forceDispersyThread
@@ -540,7 +585,9 @@ class ChannelCommunity(Community):
             latest_modification_global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"modification")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         message = meta.impl(authentication=(self._my_member,),
+                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(modification_type, modifcation_value, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -604,14 +651,69 @@ class ChannelCommunity(Community):
                 if latest.packet_id == dispersy_id:
                     self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
 
+    def _disp_undo_modification(self, descriptors):
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            
+            message = packet.load_message()
+            message_name = message.name
+            modifying_dispersy_id = message.payload.modification_on.packet_id
+            modification_type = message.payload.modification_type
+            modification_type_id = self._modification_types[modification_type]
+            
+            #load local ids from database
+            playlist_id = channeltorrent_id = None
+            if message_name ==  u"torrent":
+                channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
+                
+            elif message_name == u"playlist":
+                playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
+            
+            shouldUpdate = False
+            if message_name ==  u"torrent":
+                latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                shouldUpdate = latest.packet_id == dispersy_id
+        
+            elif message_name == u"playlist":
+                latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
+                shouldUpdate = latest.packet_id == dispersy_id
+        
+            elif message_name == u"channel":
+                latest = self._get_latest_modification_from_channel_id(modification_type_id)
+                shouldUpdate = latest.packet_id == dispersy_id
+                    
+            self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id)
+            
+            #the remove update was the latest, thus we should load the current latest and update the fields the database
+            if shouldUpdate:
+                if message_name ==  u"torrent":
+                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                    modification_value = latest.payload.modification_value if latest else ''
+                    
+                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+        
+                elif message_name == u"playlist":
+                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
+                    modification_value = latest.payload.modification_value if latest else ''
+                    
+                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
+            
+                elif message_name == u"channel":
+                    latest = self._get_latest_modification_from_channel_id(modification_type_id)
+                    modification_value = latest.payload.modification_value if latest else ''
+                    
+                    self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
             
     #create, check or receive playlist_torrent messages
     @forceDispersyThread
     def _disp_create_playlist_torrents(self, infohashes, playlist_message, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist_torrent")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+
         messages = []
         for infohash in infohashes:
             message = meta.impl(authentication=(self._my_member,),
+                                resolution=(current_policy.implement(),),
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, playlist_message))
             messages.append(message)
@@ -636,6 +738,11 @@ class ChannelCommunity(Community):
             
             self._channelcast_db.on_playlist_torrent(playlist_dispersy_id, message.payload.infohash)
             
+    def _disp_undo_playlist_torrent(self, descriptors):
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            self._channelcast_db.on_remove_playlist_torrent(self._channel_id, dispersy_id)
+            
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
         for message in messages:
@@ -656,7 +763,10 @@ class ChannelCommunity(Community):
         global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"warning")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        
         message = meta.impl(authentication=(self._my_member,),
+                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(text, timestamp, cause, mid, global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -695,12 +805,20 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
             self._channelcast_db.on_warning(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp)
+    
+    def _disp_undo_warning(self, descriptors):
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            self._channelcast_db.on_remove_warning(self._channel_id, dispersy_id)
             
     #check or receive torrent_mark messages
     @forceDispersyThread
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+
         message = meta.impl(authentication=(self._my_member,),
+                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(infohash, type, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -719,6 +837,7 @@ class ChannelCommunity(Community):
     
     def _disp_on_mark_torrent(self, messages):
         for message in messages:
+            dispersy_id = message.packet_id
             global_time = message.distribution.global_time
             
             authentication_member = message.authentication.member
@@ -726,7 +845,12 @@ class ChannelCommunity(Community):
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-            self._channelcast_db.on_mark_torrent(self._channel_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp)
+            self._channelcast_db.on_mark_torrent(self._channel_id, dispersy_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp)
+            
+    def _disp_undo_mark_torrent(self, descriptors):
+        for _, _, packet in descriptors:
+            dispersy_id = packet.packet_id
+            self._channelcast_db.on_remove_mark_torrent(self._channel_id, dispersy_id)
     
     #AllChannel functions
     def selectTorrentsToCollect(self, infohashes):

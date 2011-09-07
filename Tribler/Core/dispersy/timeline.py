@@ -86,8 +86,7 @@ class Timeline(object):
                 assert isinstance(pair[0], Message), "Requires meta message"
                 assert isinstance(pair[1], unicode)
                 assert pair[1] in (u'permit', u'authorize', u'revoke')
-            assert isinstance(resolution, (PublicResolution.Implementation, LinearResolution.Implementation, DynamicResolution.Implementation,
-                                           PublicResolution, LinearResolution))
+            assert isinstance(resolution, (PublicResolution.Implementation, LinearResolution.Implementation, DynamicResolution.Implementation, PublicResolution, LinearResolution, DynamicResolution)), resolution
 
         # TODO: we can make this more efficient by changing the loop a bit.  make a shallow copy of
         # the permission_pairs and remove one after another as they succeed.  key is to loop though
@@ -103,9 +102,13 @@ class Timeline(object):
 
             else:
                 # dynamically set the resolution policy
-                if isinstance(resolution, DynamicResolution.Implementation):
+                if isinstance(resolution, DynamicResolution):
+                    resolution, proof = self.get_resolution_policy(message, global_time)
+                    assert isinstance(resolution, (PublicResolution, LinearResolution))
+                
+                elif isinstance(resolution, DynamicResolution.Implementation):
                     local_resolution, proof = self.get_resolution_policy(message, global_time)
-                    assert isinstance(local_resolution, (PublicResolution, LinearResolution, DynamicResolution))
+                    assert isinstance(local_resolution, (PublicResolution, LinearResolution))
 
                     if not resolution.policy.meta == local_resolution:
                         if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " (conflicting resolution policy)")
@@ -190,7 +193,7 @@ class Timeline(object):
 
         # TODO: we must remove duplicates in the below permission_pairs list
         # check that AUTHOR is allowed to perform these authorizations
-        authorize_allowed, authorize_proofs = self._check(author, global_time, LinearResolution, [(message, u"authorize") for _, message, __ in permission_triplets])
+        authorize_allowed, authorize_proofs = self._check(author, global_time, LinearResolution(), [(message, u"authorize") for _, message, __ in permission_triplets])
         if not authorize_allowed:
             if __debug__:
                 dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
@@ -268,7 +271,7 @@ class Timeline(object):
 
         # TODO: we must remove duplicates in the below permission_pairs list
         # check that AUTHOR is allowed to perform these authorizations
-        revoke_allowed, revoke_proofs = self._check(author, global_time, LinearResolution, [(message, u"revoke") for _, message, __ in permission_triplets])
+        revoke_allowed, revoke_proofs = self._check(author, global_time, LinearResolution(), [(message, u"revoke") for _, message, __ in permission_triplets])
         if not revoke_allowed:
             if __debug__: dprint("the author is NOT allowed to perform authorizations for one or more of the given permission triplets")
             return (False, revoke_proofs)
