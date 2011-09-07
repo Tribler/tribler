@@ -60,7 +60,7 @@ class Timeline(object):
             from message import Message
         assert isinstance(meta, Message)
         assert isinstance(global_time, (int, long))
-        assert global_time > 0
+        assert global_time >= 0
         assert isinstance(permission, unicode)
         assert permission in (u'permit', u'authorize', u'revoke')
         return self._check(self._community.my_member, global_time if global_time else self._community.global_time, permission)
