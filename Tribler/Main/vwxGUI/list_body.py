@@ -10,6 +10,7 @@ import re
 from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as StaticText
 
 from __init__ import *
+from wx._core import PyDeadObjectError
 
 DEBUG = False
 
@@ -67,11 +68,7 @@ class ListItem(wx.Panel):
             type = self.columns[i].get('type', 'label')
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-                
-                style = self.columns[i].get('style',0)
-                if option == 0:
-                    style = style|wx.ST_NO_AUTORESIZE
-                control = StaticText(self, style=style|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
                 
                 fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                 if fontWeight != wx.FONTWEIGHT_NORMAL:
@@ -190,20 +187,25 @@ class ListItem(wx.Panel):
         self.Thaw()
         self.data = data[1]
         
-    def Highlight(self, timeout = 3.0):
-        def removeHighlight():
-            try:
-                self.ShowSelected()
-                self.highlightTimer = None
-            except: #PyDeadError
-                pass
-        
+    def Highlight(self, timeout = 3.0, revert = True):
         if self.IsShownOnScreen():
-            if self.highlightTimer == None:
-                self.highlightTimer = wx.CallLater(timeout * 1000, removeHighlight)
-            else:
-                self.highlightTimer.Restart(timeout * 1000)
             self.BackgroundColor(LIST_HIGHTLIGHT)
+            
+            if revert:
+                if self.highlightTimer == None:
+                    self.highlightTimer = wx.CallLater(timeout * 1000, self.Revert)
+                else:
+                    self.highlightTimer.Restart(timeout * 1000)
+            return True
+        return False
+            
+    def Revert(self):
+        try:
+            self.ShowSelected()
+            self.highlightTimer = None
+            
+        except PyDeadObjectError: #PyDeadError
+            pass
          
     def ShowSelected(self):
         def IsSelected(control):
@@ -804,6 +806,8 @@ class AbstractListBody():
         self.loadNext.Show(False)
         self.vSizer.Remove(self.messagePanel)
         
+        revertList = []
+        
         message = self.__GetFilterMessage()
         #Add created/cached items
         for curdata in self.data:
@@ -825,8 +829,10 @@ class AbstractListBody():
                     item.Show()
                     
                     if key in self.highlightSet:
-                        item.Highlight(1)
                         self.highlightSet.remove(key)
+                        
+                        if item.Highlight(revert = False):
+                            revertList.append(key)
                                             
                 nr_items_to_add -= 1
             else:
@@ -855,6 +861,9 @@ class AbstractListBody():
             
         self.OnChange()
         self.Thaw()
+        
+        if len(revertList) > 0:
+            wx.CallLater(1000, self.Revert, revertList)
         
         self.done = done
         if DEBUG:
@@ -895,6 +904,11 @@ class AbstractListBody():
     def DeselectAll(self):
         for _, item in self.items.iteritems():
             item.Deselect()
+            
+    def Revert(self, revertList):
+        for key in revertList:
+            if key in self.items:
+                self.items[key].Revert()
             
     def OnEventSize(self, event):
         width = self.GetSize()[0]
