@@ -42,7 +42,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 
 from datetime import datetime
 from hashlib import sha1
-from itertools import groupby, islice
+from itertools import groupby, islice, count
 from os.path import abspath
 from random import random
 from sys import maxint
@@ -231,6 +231,14 @@ class Dispersy(Singleton):
         self._external_address_votes = {self._my_external_address:set()}
         self.external_address_vote(self._my_external_address, ("", -1))
 
+        # bootstrap peers
+        self._bootstrap_addresses = get_bootstrap_addresses()
+        for peer in self._bootstrap_addresses:
+            if peer is None:
+                self._callback.register(self._retry_bootstrap_addresses)
+                self._bootstrap_addresses = [peer for peer in self._bootstrap_addresses if peer]
+                break
+
         # all available communities.  cid:Community pairs.
         self._communities = {}
 
@@ -244,6 +252,8 @@ class Dispersy(Singleton):
                                               FullSyncDistribution:self._check_full_sync_distribution_batch,
                                               LastSyncDistribution:self._check_last_sync_distribution_batch}
 
+        # # check connectability periodically
+        # self._callback.register(self._periodically_connectability)
 
         # cleanup the database periodically
         self._callback.register(self._periodically_cleanup_database)
@@ -253,6 +263,26 @@ class Dispersy(Singleton):
 
         # statistics...
         self._statistics = Statistics()
+
+    def _retry_bootstrap_addresses(self):
+        """
+        One or more bootstrap addresses could not be retrieved.
+
+        The first 30 seconds we will attempt to resolve the addresses once every second.  If we did
+        not succeed after 30 seconds will will retry once every 30 seconds until we succeed.
+        """
+        if __debug__: dprint("unable to resolve all bootstrap addresses", level="warning")
+        for counter in count(1):
+            yield 1.0 if counter < 30 else 30.0
+            if __debug__: dprint("attempt #", counter, level="warning")
+            addresses = get_bootstrap_addresses()
+            for address in addresses:
+                if address is None:
+                    break
+            else:
+                if __debug__: dprint("resolved all bootstrap addresses")
+                self._bootstrap_addresses = addresses
+                break
 
     @property
     def working_directory(self):
@@ -1600,7 +1630,7 @@ class Dispersy(Singleton):
             # update bloom filters
             meta.community.free_sync_range(free_sync_range)
 
-    def yield_online_candidates(self, community, limit, clusters=(), batch=100):
+    def yield_online_candidates(self, community, limit, clusters=(), batch=100, bootstrap=False):
         """
         Returns a generator that yields at most LIMIT unique Candicate objects representing nodes
         that are likely to be online.
@@ -1619,9 +1649,9 @@ class Dispersy(Singleton):
         assert isinstance(clusters, (tuple, list))
         assert not filter(lambda x: not isinstance(x, int), clusters)
         assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
-        return islice(self._yield_online_candidates(community, clusters, batch), limit)
+        return islice(self._yield_online_candidates(community, clusters, batch, bootstrap), limit)
 
-    def _yield_online_candidates(self, community, clusters, batch):
+    def _yield_online_candidates(self, community, clusters, batch, bootstrap):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
@@ -1629,6 +1659,7 @@ class Dispersy(Singleton):
         assert isinstance(clusters, (tuple, list))
         assert not filter(lambda x: not isinstance(x, int), clusters)
         assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        assert isinstance(bootstrap, bool)
 
         def get_observation(observation_score, host, port, age, incoming_time, outgoing_time, external_time):
             candidate = Candidate(str(host), int(port), incoming_time, outgoing_time, external_time)
@@ -1680,13 +1711,17 @@ class Dispersy(Singleton):
                 break
 
             for score, candidate in sorted(candidates, key=sorting_key, reverse=True):
+                # skip bootstrap peers when BOOTSTRAP is False
+                if not bootstrap and candidate.address in self._bootstrap_addresses:
+                    continue
+
                 # TODO: we should perform the unique check before creating the candidate object
                 if not candidate.address in unique:
                     unique.add(candidate.address)
                     if __debug__: dprint("Yield ", candidate.host, ":", candidate.port, " with score ", score)
                     yield candidate
 
-    def yield_subjective_candidates(self, community, limit, cluster, batch=100):
+    def yield_subjective_candidates(self, community, limit, cluster, batch=100, bootstrap=False):
         """
         Returns a generator that yields at most LIMIT unique Candidate objects ordered by most
         likely to least likely to be online and who we believe have our public key in their
@@ -1702,17 +1737,19 @@ class Dispersy(Singleton):
         assert isinstance(cluster, int)
         assert cluster in community.subjective_set_clusters
         assert isinstance(batch, int)
+        assert isinstance(bootstrap, bool)
         return islice(self._yield_subjective_candidates(community, cluster, batch), limit)
 
-    def _yield_subjective_candidates(self, community, cluster, batch):
+    def _yield_subjective_candidates(self, community, cluster, batch, bootstrap):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(cluster, int)
         assert cluster in community.subjective_set_clusters
         assert isinstance(batch, int)
+        assert isinstance(bootstrap, bool)
 
-        for candidate in self._yield_online_candidates(community, [cluster], batch):
+        for candidate in self._yield_online_candidates(community, [cluster], batch, bootstrap):
             # we need to check the members associated to these candidates and see if they are
             # interested in this cluster
             for member in candidate.members:
@@ -3609,6 +3646,23 @@ class Dispersy(Singleton):
                 if requests:
                     self.store_update_forward(requests, False, False, True)
                 yield community.dispersy_candidate_request_interval
+
+    # def _periodically_connectability(self):
+    #     # unknown
+    #     # public
+    #     # full cone
+    #     # restricted cone
+    #     # port restricted cone
+    #     # symetric
+    #     my_internal_address = self._socket.get_address()
+    #     while True:
+    #         dprint("internal: ", my_internal_address, "; external: ", self._my_external_address, box=1)
+
+    #         for i, _ in enumerate(self._database.execute(u"SELECT STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', outgoing_time) AS outgoing_age FROM candidate WHERE incoming_age < 300 AND incoming_age > outgoing_age")):
+    #             dprint("incoming before outgoing")
+    #             break
+
+    #         yield 5.0
 
     def _periodically_cleanup_database(self):
         # cleannup candidate tables

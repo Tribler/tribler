@@ -4,9 +4,10 @@ _trackers = [(u"dispersy1.tribler.org", 6421)]
 
 def get_bootstrap_addresses():
     """
-    Returns a list with (id-address, port) tuples.
+    Returns a list with all known bootstrap peers.
 
-    The returned list can be empty, this can be caused by malfunctioning DNS.
+    Each bootstrap peer gives either None or a (ip-address, port) tuple.  None values can be caused
+    by malfunctioning DNS.
     """
     def get_address(host, port):
         try:
@@ -14,4 +15,4 @@ def get_bootstrap_addresses():
         except:
             return None
 
-    return [address for address in (get_address(host, port) for host, port in _trackers)]
+    return [get_address(host, port) for host, port in _trackers]
