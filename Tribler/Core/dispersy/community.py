@@ -537,7 +537,7 @@ class Community(object):
 
         - The UDP header is 8 bytes
 
-        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, user,
+        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, member,
           global-time)
 
         - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
@@ -669,7 +669,7 @@ class Community(object):
 
         - The UDP header is 8 bytes
 
-        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, user,
+        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, member,
           global-time)
 
         - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
@@ -781,7 +781,7 @@ class Community(object):
 
         - The UDP header is 8 bytes
 
-        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, user,
+        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, member,
           global-time)
 
         - The signature is usually 60 bytes.  This depends on what public/private key was choosen.

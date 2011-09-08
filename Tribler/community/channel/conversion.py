@@ -349,11 +349,11 @@ class ChannelConversion(BinaryConversion):
         if global_time and mid:
             try:
                 packet_id, packet, message_name = self._dispersy_database.execute(u"""
-                    SELECT sync.id, sync.packet, name.value
+                    SELECT sync.id, sync.packet, meta_message.name
                     FROM sync
-                    JOIN user ON (user.id = sync.user)
-                    JOIN name ON (name.id = sync.name)
-                    WHERE sync.community = ? AND sync.global_time = ? AND user.mid = ?""",
+                    JOIN member ON (member.id = sync.member)
+                    JOIN meta_message ON (meta_message.id = sync.meta_message)
+                    WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
                                                           (self._community.database_id, global_time, buffer(mid))).next()
             except StopIteration:
                 raise DropPacket("Missing previous message")
