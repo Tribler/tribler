@@ -2923,7 +2923,7 @@ class Dispersy(Singleton):
                                                   (payload.member.database_id, payload.message.database_id, payload.missing_low, payload.missing_high - payload.missing_low)):
                 packet = str(packet)
 
-                if __debug__: dprint("Syncing ", len(packet), " bytes from sync_full to " , address[0], ":", address[1])
+                if __debug__: dprint("Syncing ", len(packet), " bytes from sync_full to " , message.address[0], ":", message.address[1])
                 packets.append(packet)
 
                 byte_limit -= len(packet)
@@ -2932,7 +2932,7 @@ class Dispersy(Singleton):
                     break
 
             if packets:
-                self._send([address], packets, u"-sequence")
+                self._send([message.address], packets, u"-sequence")
 
     def on_missing_proof(self, messages):
         community = messages[0].community
