@@ -486,7 +486,7 @@ class BinaryConversion(Conversion):
                 message_id = data[offset]
                 offset += 1
                 if not message_id in self._decode_message_map:
-                    raise DropPacket("Unknown message id")
+                    raise DropPacket("Unknown message id [%d]" % ord(message_id))
                 message = self._decode_message_map[message_id][0]
 
                 if not isinstance(message.resolution, (LinearResolution, DynamicResolution)):
@@ -586,7 +586,7 @@ class BinaryConversion(Conversion):
                 message_id = data[offset]
                 offset += 1
                 if not message_id in self._decode_message_map:
-                    raise DropPacket("Unknown message id")
+                    raise DropPacket("Unknown message id [%d]" % ord(message_id))
                 message = self._decode_message_map[message_id][0]
 
                 if not isinstance(message.resolution, LinearResolution):
@@ -726,10 +726,10 @@ class BinaryConversion(Conversion):
         while len(data) >= offset + 3:
             meta_id, policy_type, policy_index = unpack_from("!ccB", data, offset)
             if not meta_id in self._decode_message_map:
-                raise DropPacket("Unknown meta id")
+                raise DropPacket("Unknown meta id [%d]" % ord(meta_id))
             meta = self._decode_message_map[meta_id][0]
             if not isinstance(meta.resolution, DynamicResolution):
-                raise DropPacket("Invalid meta id")
+                raise DropPacket("Invalid meta id [%d]" % ord(meta_id))
 
             # currently only supporting resolution policy changes
             if not policy_type == "r":

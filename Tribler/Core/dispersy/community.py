@@ -36,7 +36,7 @@ if __debug__:
     from dprint import dprint
 
 class SyncRange(object):
-    def __init__(self, time_low, bits, error_rate, redundancy=3):
+    def __init__(self, time_low, bits, error_rate, redundancy):
         assert isinstance(time_low, (int, long))
         assert time_low > 0
         assert isinstance(bits, (int, long))
@@ -337,7 +337,7 @@ class Community(object):
         assert self._time_high == 1
 
         # ensure that at least one bloom filter exists
-        sync_range = SyncRange(1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+        sync_range = SyncRange(1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
         self._sync_ranges.insert(0, sync_range)
 
         current_global_time, global_time = self._dispersy.database.execute(u"SELECT MIN(global_time), MAX(global_time) FROM sync WHERE community = ?", (self.database_id,)).next()
@@ -353,7 +353,7 @@ class Community(object):
                 packets.append(str(packet))
             else:
                 if len(packets) > sync_range.space_remaining:
-                    sync_range = SyncRange(current_global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+                    sync_range = SyncRange(current_global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
                     self._sync_ranges.insert(0, sync_range)
 
                 map(sync_range.add, packets)
@@ -364,7 +364,7 @@ class Community(object):
 
         if packets:
             if len(packets) > sync_range.space_remaining:
-                sync_range = SyncRange(global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+                sync_range = SyncRange(global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
                 self._sync_ranges.insert(0, sync_range)
 
             map(sync_range.add, packets)
@@ -639,6 +639,18 @@ class Community(object):
         @rtype: float
         """
         return 0.01
+
+    @property
+    def dispersy_sync_bloom_filter_redundancy(self):
+        """
+        The number of bloom filters, each with a unique prefix, that are used to represent one sync
+        range.
+
+        The effective error rate for a sync range then becomes redundancy * error_rate.
+
+        @rtype: int
+        """
+        return 3
 
     @property
     def dispersy_sync_bloom_filter_bits(self):
@@ -943,7 +955,7 @@ class Community(object):
                         if message.distribution.global_time > self._time_high:
                             assert last_time_low == last_time_low if last_time_low else self._time_high
                             assert index == 0
-                            sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+                            sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
                             self._sync_ranges.insert(0, sync_range)
                             if __debug__: dprint("new ", sync_range.bloom_filters[0].capacity, " capacity filter created for range [", sync_range.time_low, ":inf]")
 
@@ -1003,7 +1015,7 @@ class Community(object):
                                 assert sync_range.time_low <= global_time < time_middle
 
                         # create and fill range [time_middle:last_time_low-1]
-                        new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+                        new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
                         self._sync_ranges.insert(index, new_sync_range)
                         map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
                         if __debug__:

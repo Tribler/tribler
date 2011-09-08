@@ -533,8 +533,9 @@ class Dispersy(Singleton):
                     # todo: get some other mechanism to obtain the class from classification
                     from community import Community
 
-                    master_public_key = str(master_public_key)
+                    # master_public_key may be None
                     if master_public_key:
+                        master_public_key = str(master_public_key)
                         master = Member.get_instance(str(master_public_key))
                     else:
                         master = Member.get_instance(cid, public_key_available=False)
@@ -2918,7 +2919,7 @@ class Dispersy(Singleton):
 
             packets = []
             payload = message.payload
-            for packet, in self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? LIMIT ? OFFSET ?"
+            for packet, in self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? LIMIT ? OFFSET ?",
                                                   (payload.member.database_id, payload.message.database_id, payload.missing_low, payload.missing_high - payload.missing_low)):
                 packet = str(packet)
 

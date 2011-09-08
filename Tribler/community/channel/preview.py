@@ -25,6 +25,9 @@ class PreviewChannelCommunity(ChannelCommunity):
                      u"dispersy-missing-proof",
                      u"dispersy-revoke",
 
+                     # TODO remove
+                     u"dispersy-dynamic-settings",
+
                      u"channel",
                      u"torrent",
                      u"playlist",

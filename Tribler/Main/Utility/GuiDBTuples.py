@@ -84,8 +84,8 @@ class Torrent(Helper):
         self.length = length
         self.category_id = category_id
         self.status_id = status_id
-        self.num_seeders = num_seeders
-        self.num_leechers = num_leechers
+        self.num_seeders = num_seeders or 0
+        self.num_leechers = num_leechers or 0
         
         self._channel_id = channel_id
         self._channel_permid = channel_permid
