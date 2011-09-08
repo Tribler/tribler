@@ -255,7 +255,7 @@ class ChannelCommunity(Community):
         
         for meta in self.get_meta_messages():
             if isinstance(meta.resolution, DynamicResolution):
-                policy, _ = self._timeline.get_resolution_policy(meta, self.global_time)
+                policy, _ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
             else:
                 policy = meta.resolution
             
@@ -481,7 +481,7 @@ class ChannelCommunity(Community):
             reply_after_global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"comment")
-        current_policy = self._timeline.get_resolution_policy(meta, self.global_time)
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),

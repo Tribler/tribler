@@ -430,13 +430,15 @@ class Community(object):
         try:
             authorize = self.get_meta_message(u"dispersy-authorize")
             revoke = self.get_meta_message(u"dispersy-revoke")
+            dynamic_settings = self.get_meta_message(u"dispersy-dynamic-settings")
 
         except KeyError:
-            if __debug__: dprint("unable to load permissions from database [could not obtain 'dispersy-authorize' or 'dispersy-revoke']", level="warning")
+            if __debug__: dprint("unable to load permissions from database [could not obtain 'dispersy-authorize' or 'dispersy-revoke' or 'dispersy-dynamic-settings']", level="warning")
 
         else:
-            mapping = {authorize.database_id:authorize.handle_callback, revoke.database_id:revoke.handle_callback}
-            for meta_message_id, packet in self._dispersy.database.execute(u"SELECT meta_message, packet FROM sync WHERE community = ? AND meta_message IN (?, ?) ORDER BY global_time, packet", (self.database_id, authorize.database_id, revoke.database_id)):
+            mapping = {authorize.database_id:authorize.handle_callback, revoke.database_id:revoke.handle_callback, dynamic_settings.database_id:dynamic_settings.handle_callback}
+            # for meta_message_id, packet in self._dispersy.database.execute(u"SELECT meta_message, packet FROM sync WHERE meta_message IN (?, ?, ?) ORDER BY global_time, packet", (authorize.database_id, revoke.database_id, dynamic_settings.database_id)):
+            for meta_message_id, packet in list(self._dispersy.database.execute(u"SELECT meta_message, packet FROM sync WHERE meta_message IN (?, ?, ?) ORDER BY global_time, packet", (authorize.database_id, revoke.database_id, dynamic_settings.database_id))):
                 packet = str(packet)
                 # TODO: when a packet conversion fails we must drop something, and preferably check
                 # all messages in the database again...
