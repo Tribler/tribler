@@ -3452,8 +3452,9 @@ class Dispersy(Singleton):
         return message
 
     def on_dynamic_settings(self, messages):
-        timeline = messages[0].community._timeline
-        global_time = messages[0].community.global_time
+        community = messages[0].community
+        timeline = community._timeline
+        global_time = community.global_time
         changes = {}
 
         for message in messages:
@@ -3481,7 +3482,7 @@ class Dispersy(Singleton):
 
             for packet_id, packet, undone in list(execute(u"SELECT id, packet, undone FROM sync WHERE meta_message = ? AND global_time BETWEEN ? AND ?",
                                                           (meta.database_id, range_[0], range_[1]))):
-                message = self.convert_packet_to_message(str(packet))
+                message = self.convert_packet_to_message(str(packet), community)
                 if message:
                     message.packet_id = packet_id
                     allowed, _ = timeline.check(message)

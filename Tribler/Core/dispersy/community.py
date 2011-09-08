@@ -232,7 +232,7 @@ class Community(object):
         @rtype: Community
         """
         assert isinstance(master, Member)
-        if __debug__: dprint("loading ", cls.get_classification(), " ", master.mid.encode("HEX"), stack=1)
+        if __debug__: dprint("loading ", cls.get_classification(), " ", master.mid.encode("HEX"))
         community = cls(master, *args, **kargs)
 
         # tell dispersy that there is a new community
