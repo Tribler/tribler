@@ -116,7 +116,7 @@ class WalktestCommunity(Community):
 
         # create introduction responses
         meta = self._meta_messages[u"introduction-response"]
-        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(destination, candidate)) for message, candidate in zip(messages, candidates)]
+        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate)) for message, candidate in zip(messages, candidates)]
         self._dispersy.store_update_forward(responses, False, False, True)
 
         # create puncture requests
