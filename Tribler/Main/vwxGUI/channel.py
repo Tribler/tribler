@@ -199,8 +199,9 @@ class SelectedChannelList(GenericSearchList):
         
         if channel.isDispersy():
             def state_call(delayedResult):
-                state, self.iamModerator = delayedResult.get()
-            
+                state, iamModerator = delayedResult.get()
+                
+                self.iamModerator = iamModerator or state >= ChannelCommunity.CHANNEL_OPEN
                 self.SetVote(channel.my_vote)
                 self.SetChannelState(state)
                 
@@ -682,13 +683,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
         #overview page intro
-        overviewpage = wx.Panel(self.notebook)
-        overviewpage.SetBackgroundColour(LIST_DESELECTED)
+        self.overviewpage = wx.Panel(self.notebook)
+        self.overviewpage.SetBackgroundColour(LIST_DESELECTED)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddSpacer((-1, 10))
         header =  "Welcome to the management interface for this channel. You can access this because you have the rights to modify it."
-        self._add_header(overviewpage, vSizer, header, spacer = 10)
+        self._add_header(self.overviewpage, vSizer, header, spacer = 10)
         
         text  = "Channels can be used to spread torrents to other Tribler users. "
         text += "If a channel provides other Tribler users with original or popular content, then they might mark your channel as one of their favorites. "
@@ -698,11 +699,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
         text += "Two of them, periodically importing .torrents from an rss feed and manually adding .torrent files, are available from the 'Manage' tab.\n"
         text += "The third option is available from the torrentview after completely downloading a torrent and allows you to add a torrent to your channel with a single click."
         
-        overviewtext = wx.StaticText(overviewpage, -1, text)
+        overviewtext = wx.StaticText(self.overviewpage, -1, text)
         vSizer.Add(overviewtext, 0, wx.EXPAND|wx.ALL, 10)
         
         text = "Currently your channel is not created. Please fill in  a name and description and click the create button to start spreading your torrents."
-        self.createText = wx.StaticText(overviewpage, -1, text)
+        self.createText = wx.StaticText(self.overviewpage, -1, text)
         self.createText.Hide()
         vSizer.Add(self.createText, 0, wx.EXPAND|wx.ALL, 10)
         
@@ -710,22 +711,21 @@ class ManageChannel(XRCPanel, AbstractDetails):
         gridSizer.AddGrowableCol(1)
         gridSizer.AddGrowableRow(1)
         
-        self.name = wx.TextCtrl(overviewpage)
+        self.name = wx.TextCtrl(self.overviewpage)
         self.name.SetMaxLength(40)
         
-        self.description = wx.TextCtrl(overviewpage, style = wx.TE_MULTILINE)
+        self.description = wx.TextCtrl(self.overviewpage, style = wx.TE_MULTILINE)
         self.description.SetMaxLength(2000)
         
-        self._add_row(overviewpage, gridSizer, "Name", self.name)
-        self._add_row(overviewpage, gridSizer, 'Description', self.description)
+        self._add_row(self.overviewpage, gridSizer, "Name", self.name)
+        self._add_row(self.overviewpage, gridSizer, 'Description', self.description)
         vSizer.Add(gridSizer, 0, wx.EXPAND|wx.RIGHT, 10)
         
-        self.saveButton = wx.Button(overviewpage, -1, 'Save Changes')
+        self.saveButton = wx.Button(self.overviewpage, -1, 'Save Changes')
         self.saveButton.Bind(wx.EVT_BUTTON, self.Save)
         vSizer.Add(self.saveButton, 0, wx.ALIGN_RIGHT|wx.ALL, 10)
         
-        overviewpage.SetSizer(vSizer)
-        self.notebook.AddPage(overviewpage, "Overview")
+        self.overviewpage.SetSizer(vSizer)
         
         #Open2Edit settings
         self.settingspage = wx.Panel(self.notebook)
@@ -888,12 +888,16 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 self.saveButton.SetLabel('Save Changes')
                 
                 if iamModerator:
+                    self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+                    
                     self.statebox.SetSelection(channel_state)
                     self.AddPage(self.notebook, self.settingspage, "Settings", 1)
                 else:
+                    self.RemovePage(self.notebook, "Overview")
                     self.RemovePage(self.notebook, "Settings")
                     
                 if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
+                    self.fileslist.ShowFooter(iamModerator)
                     self.AddPage(self.notebook, self.fileslist, "Manage torrents", 2)
                 else:
                     self.RemovePage(self.notebook, "Manage torrents")

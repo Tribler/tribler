@@ -549,6 +549,9 @@ class List(XRCPanel):
                     manager.refreshDirty()
                     
             self.list.Layout()
+            
+    def ShowFooter(self, show = True):
+        self.footer.Show(show)
         
     def __check_thread(self):
         if __debug__ and currentThread().getName() != "MainThread":
@@ -935,14 +938,15 @@ class SearchList(GenericSearchList):
             title += ' for "%s"'%self.keywords
         self.header.SetTitle(title)
         
-        title = ''
         if self.total_channels != None:
-            if self.total_channels == 0:
+            if not self.total_channels:
                 title = 'No matching channels'
             elif self.total_channels == 1:
                 title = 'Additionally, got 1 channel'
             else:
                 title = 'Additionally, got %d channels'%self.total_channels
+        else:
+            title = 'Searching'
         if self.keywords != None:
             title += ' for "%s"'%self.keywords
         self.footer.SetLabel(title, self.total_channels)
