@@ -90,7 +90,7 @@ def main():
 
     def start():
         # start Dispersy
-        dispersy = Dispersy.get_instance(callback, opt.statedir)
+        dispersy = Dispersy.get_instance(callback, unicode(opt.statedir))
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         # load the script parser
