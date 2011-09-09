@@ -626,7 +626,7 @@ class Dispersy(Singleton):
         assert len(voter_address) == 2
         assert isinstance(voter_address[0], str)
         assert isinstance(voter_address[1], int)
-        if __debug__: dprint("received claim that ", address[0], ":", address[1], " is my external address")
+        if __debug__: dprint("received claim that ", address[0], ":", address[1], " is my external address (valid:", self._is_valid_external_address(address), ")")
         if self._is_valid_external_address(address):
             if not address in self._external_address_votes:
                 self._external_address_votes[address] = set()
@@ -1952,7 +1952,7 @@ class Dispersy(Singleton):
 
             if not self._is_valid_external_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
-                if __debug__: dprint("aborted sending ", sum(len(packet) for packet in packets), " bytes in ", len(packets), " packets (invalid external address) to ", address[0], ":", address[1], level="error")
+                if __debug__: dprint("aborted sending ", len(packets), "x ", key, "(", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1], " (invalid external address)", level="error")
                 continue
 
             for packet in packets:

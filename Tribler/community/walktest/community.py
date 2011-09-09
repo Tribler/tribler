@@ -50,21 +50,21 @@ class WalktestCommunity(Community):
         # allow all
         return messages
 
-    def yield_candidates(self, count):
+    def yield_candidates(self, count, blacklist=[]):
         assert self._bootstrap_addresses, "must have bootstrap peers"
+
+        # remove own address (should do this when our own external address changes)
+        if self._dispersy.external_address in self._candidates:
+            del self._candidates[self._dispersy.external_address]
 
         # remove old candidates
         deadline = time() - 60.0
         for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.stamp < deadline]:
             del self._candidates[candidate.address]
 
-        # # remove invalid candidates
-        # for candidate in [candidate for candidate in self._candidates.itervalues() if self._dispersy._is_valid_external_address(candidate.address)]:
-        #     del self._candidates[candidate.address]
-
         # get all candidates that either participated in a our walk or that stumbled upon us
-        walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk]
-        stumbles = [candidate for candidate in self._candidates.itervalues() if candidate.is_stumble]
+        walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk and candidate.address not in blacklist]
+        stumbles = [candidate for candidate in self._candidates.itervalues() if candidate.is_stumble and candidate.address not in blacklist]
 
         # yield candidates
         for _ in xrange(count):
@@ -79,9 +79,7 @@ class WalktestCommunity(Community):
                 yield choice(stumbles).address
                 continue
 
-            a = choice(self._bootstrap_addresses)
-            dprint("choice: ", a, "; mine: ", self._dispersy.external_address, force=1)
-            yield a
+            yield choice(self._bootstrap_addresses)
 
     def introduction_response_timeout(self, message):
         if message is None:
@@ -103,7 +101,7 @@ class WalktestCommunity(Community):
 
     def on_introduction_request(self, messages):
         # get candidates BEFORE updating our local view
-        candidates = list(self.yield_candidates(len(messages)))
+        candidates = list(self.yield_candidates(len(messages), [message.address for message in messages]))
 
         # update local view
         for message in messages:
@@ -126,7 +124,7 @@ class WalktestCommunity(Community):
 
     def on_introduction_response(self, messages):
         # get candidates BEFORE updating our local view
-        candidate_it = self.yield_candidates(len(messages))
+        candidate_it = self.yield_candidates(len(messages), [message.address for message in messages])
 
         # update local view
         for message in messages:
@@ -138,7 +136,7 @@ class WalktestCommunity(Community):
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
         # probabilistically continue with the walk or choose a different path
-        self.create_introduction_requests((message.address if random() < 0.8 else candidate_it.next()) for message in messages)
+        self.create_introduction_requests((message.payload.introduction_address if random() < 0.8 else candidate_it.next()) for message in messages)
 
     def on_puncture_request(self, messages):
         # update local view
