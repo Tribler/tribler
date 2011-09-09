@@ -9,6 +9,7 @@ from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager,\
     SMALL_ICON_MAX_DIM
+from Tribler.community.channel.community import ChannelCommunity
 
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
@@ -76,24 +77,22 @@ class Helper(object):
         return key in self.__slots__
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel_id', '_channel_permid', '_channel_name', '_channel_posvotes', '_channel_negvotes', 'torrent_db', 'ds')
-    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel_id, channel_permid, channel_name, subscriptions, neg_votes):
+    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds')
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
         self.name = name
         self.length = length
         self.category_id = category_id
         self.status_id = status_id
+        
         self.num_seeders = num_seeders or 0
         self.num_leechers = num_leechers or 0
         
-        self._channel_id = channel_id
-        self._channel_permid = channel_permid
-        self._channel_name = channel_name
-        self._channel_posvotes = subscriptions
-        self._channel_negvotes = neg_votes
-        
+        self._channel = channel
+             
         self.torrent_db = None
+        self.channelcast_db = None
         self.ds = None
    
     @cacheProperty
@@ -110,28 +109,18 @@ class Torrent(Helper):
             self._torrent_id = self.torrent_db.getTorrentID(self.infohash)
         return self._torrent_id
     
-    @property
-    def channel_id(self):
-        return self._channel_id
+    @cacheProperty
+    def channel(self):
+        if self._channel is not None:
+            return self._channel
+        return self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
     
-    @property
-    def channel_permid(self):
-        return self._channel_permid
-    
-    @property
-    def channel_name(self):
-        return self._channel_name
-    
-    @property
-    def channel_posvotes(self):
-        return self._channel_posvotes
-    
-    @property
-    def channel_negvotes(self):
-        return self._channel_negvotes
+    def updateChannel(self, c):
+        self._channel = c
+        del self._cache['channel']
     
     def hasChannel(self):
-        return self.channel_permid != ''
+        return self.channel
     
     @property
     def state(self):
@@ -148,7 +137,12 @@ class Torrent(Helper):
 class RemoteTorrent(Torrent):
     __slots__ = ('query_permids')
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, query_permids, channel_id, channel_permid, channel_name, subscriptions, neg_votes):
-        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel_id, channel_permid, channel_name, subscriptions, neg_votes)
+        if channel_name != "":
+            c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes)
+        else:
+            c = False
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, c)
+        
         self.query_permids = query_permids
 
 class CollectedTorrent(Helper):
@@ -164,19 +158,26 @@ class CollectedTorrent(Helper):
         self.creation_date = torrentdef.get_creation_date()
         self.files = torrentdef.get_files_as_unicode_with_length()
         self.last_check = -1
-        
+
     def __getattr__(self, name):
-        if hasattr(self.torrent, name):
+        try:
+            Helper.__getattr__(self, name)
+        except:
             return getattr(self.torrent, name)
-        elif hasattr(self, name):
-            return getattr(self, name)
+    
+    def __setattr__(self, name, value):
+        try:
+            Helper.__setattr__(self, name, value)
+        except:
+            setattr(self.torrent, name, value)
     
     @cacheProperty
     def swarminfo(self):
         swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
+        
         if swarminfo:
-            self.num_seeders = swarminfo[1] or 0
-            self.num_leechers = swarminfo[2] or 0
+            self.torrent.num_seeders = swarminfo[1] or 0
+            self.torrent.num_leechers = swarminfo[2] or 0
             self.last_check = swarminfo[4] or -1
         return swarminfo
     
@@ -222,49 +223,18 @@ class NotCollectedTorrent(CollectedTorrent):
         self.last_check = -1
         
 class LibraryTorrent(Torrent):
-    __slots__ = ('progress', 'channelcast_db')
+    __slots__ = ('progress')
     
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, progress):
-        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, 0, '', '', 0, 0)
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, None)
         self.progress = progress
-        
-    @cache
-    def _get_channel(self):
-        channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
-        if channel:
-            self._channel_id, self._channel_permid, self._channel_name, self._channel_posvotes, self._channel_negvotes = channel
     
-    @property
-    def channel_id(self):
-        self._get_channel()
-        return self._channel_id
-    
-    @property
-    def channel_permid(self):
-        self._get_channel()
-        return self._channel_permid
-    
-    @property
-    def channel_name(self):
-        self._get_channel()
-        return self._channel_name
-    
-    @property
-    def channel_posvotes(self):
-        self._get_channel()
-        return self._channel_posvotes
-    
-    @property
-    def channel_negvotes(self):
-        self._get_channel()
-        return self._channel_negvotes
-
 class ChannelTorrent(Torrent):
-    __slots__ = ('channeltorrent_id', 'channel_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted')
-    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, channel_id, chant_name, colt_name, description, time_stamp, inserted):
-        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '', '', 0, 0)
+    __slots__ = ('channeltorrent_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted')
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, chant_name, colt_name, description, time_stamp, inserted, channel):
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel)
+        
         self.channeltorrent_id = channeltorrent_id
-        self.channel_id = channel_id
         self.colt_name = colt_name
         self.chant_name = chant_name
         self.description = description
@@ -280,33 +250,50 @@ class ChannelTorrent(Torrent):
         pass
     
 class Channel(Helper):
-    __slots__ = ('id','dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified')
-    def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified):
+    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'searchManager')
+    def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
         self.id = id
         self.dispersy_cid = dispersy_cid
+        
         self.name = name[:40]
-        self.description = description
+        self.description = description[:1024]
+        
         self.nr_torrents = nr_torrents
         self.nr_favorites = nr_favorites
         self.nr_spam = nr_spam
         self.my_vote = my_vote
         self.modified = modified
+        self.my_channel = my_channel
+        
+        self.searchManager = None
     
-    @cache
     def isDispersy(self):
         return self.dispersy_cid != '-1'
     
-    @cache
     def isFavorite(self):
         return self.my_vote == 2
     
-    @cache
     def isSpam(self):
         return self.my_vote == -1
     
-    @cache
+    def isMyChannel(self):
+        return self.my_channel
+    
     def isEmpty(self):
         return self.nr_torrents == 0
+    
+    @cache
+    def getState(self):
+        return self.searchManager.getChannelState(self.id)
+
+class RemoteChannel(Channel):
+    __slots__ = ('permid')
+    def __init__(self, id, permid, name, subscriptions, neg_votes):
+        Channel.__init__(self, id, -1, name, '', 0, subscriptions, neg_votes, 0, 0, False)
+        self.permid = permid
+        
+    def getState(self):
+        return ChannelCommunity.CHANNEL_CLOSED, False
         
 class Comment(Helper):
     __slots__ = ('id', 'dispersy_id', 'playlist_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'time_stamp', 'get_nickname', 'get_mugshot')

@@ -60,7 +60,7 @@ class ChannelManager():
         self.list.dirty = False
         
         nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
-        total_items, nrfiltered, torrentList  = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.id)
+        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
         self._on_data(total_items, nrfiltered, torrentList, playlists)
     
     @forceWxThread  
@@ -87,7 +87,7 @@ class ChannelManager():
         
     def _refresh_partial(self, infohashes):
         for infohash in infohashes:
-            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelId, cargs=(infohash,), wargs=(self.list.id, infohash))
+            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannel, cargs=(infohash,), wargs=(self.list.channel, infohash))
         
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -189,6 +189,7 @@ class SelectedChannelList(GenericSearchList):
         self.Freeze()
         self.SetId(channel.id)
         self.SetTitle(channel.name, channel.description)
+        self.iamModerator = self.my_channel
         
         nr_torrents = channel.nr_torrents
         if not channel.isFavorite() and not self.my_channel:
@@ -204,7 +205,9 @@ class SelectedChannelList(GenericSearchList):
                 self.SetChannelState(state)
                 
             startWorker(state_call, self.channelsearch_manager.getChannelState, wargs = (channel.id, ))
+            
         else:
+            self.SetVote(channel.my_vote)
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED)
         self.Thaw()
 
@@ -212,13 +215,12 @@ class SelectedChannelList(GenericSearchList):
         self.id = id
         if id > 0:
             self.my_channel = self.GetManager().my_channel_id == id
-            self.iamModerator = self.my_channel
         
             manager = self.commentList.GetManager()
-            manager.SetIds(channel_id = id)
+            manager.SetIds(channel = self.channel)
             
             manager = self.activityList.GetManager()
-            manager.SetIds(channel_id = id)
+            manager.SetIds(channel = self.channel)
             
     def SetVote(self, vote):
         self.footer.SetStates(vote == -1, vote == 2, self.iamModerator)
@@ -377,7 +379,7 @@ class SelectedChannelList(GenericSearchList):
         dialog.Destroy()
     
     def OnManage(self, event):
-        self.guiutility.showManageChannel(self.id)
+        self.guiutility.showManageChannel(self.channel)
     
     def OnBack(self, event):
         self.guiutility.GoBack(self.id)
@@ -424,6 +426,13 @@ class SelectedChannelList(GenericSearchList):
                 torDetails = panel.GetExpandedPanel()
                 if torDetails:
                     torDetails.OnModificationCreated(channel_id)
+    
+    def OnMarkingCreated(self, channeltorrent_id):
+        panel = self.list.GetExpandedItem()
+        if panel:
+            torDetails = panel.GetExpandedPanel()
+            if torDetails:
+                torDetails.OnMarkingCreated(channeltorrent_id)
                     
     def OnMarkTorrent(self, infohash, type):
         self.channelsearch_manager.markTorrent(self.id, infohash, type)
@@ -502,17 +511,18 @@ class Playlist(SelectedChannelList):
         self.header.SetStyle(description)
         self.Layout()
     
-    def Set(self, data):
-        self.SetTitle(data['name'], data['description'])
+    def Set(self, playlist):
+        #TODO: convert playlist to guituple
+        self.SetTitle(playlist.name, playlist.description)
         
         manager = self.GetManager()
-        manager.SetPlaylistId(data['id'])
+        manager.SetPlaylistId(playlist.id)
 
         manager = self.commentList.GetManager()
-        manager.SetIds(channel_id = data['channel_id'], playlist_id = data['id'])
+        manager.SetIds(channel = playlist.channel, playlist_id = playlist.id)
         
         manager = self.activityList.GetManager()
-        manager.SetIds(channel_id = data['channel_id'], playlist_id = data['id'])
+        manager.SetIds(channel = playlist.channel, playlist_id = playlist.id)
     
 class PlaylistItem(ListItem):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
@@ -561,7 +571,7 @@ class ManageChannelFilesManager():
     def _refresh(self):
         def db_call():
             self.list.dirty = False
-            return self.channelsearch_manager.getTorrentsFromChannelId(self.list.id, filterTorrents = False)
+            return self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
         
         startWorker(self._on_data, db_call)
         
@@ -569,9 +579,10 @@ class ManageChannelFilesManager():
         total_items, nrfiltered, torrentList = delayedResult.get()
         self.list.SetData(torrentList)
     
-    def SetChannelId(self, channel_id):
-        if channel_id !=  self.list.id:
-            self.list.id = channel_id
+    def SetChannel(self, channel):
+        if channel.id !=  self.list.id:
+            self.list.id = channel.id
+            self.list.channel = channel
             self.list.dirty = True
     
     def RemoveItems(self, infohashes):
@@ -621,13 +632,14 @@ class ManageChannelPlaylistsManager():
         _, playlistList = delayedResult.get()
         self.list.SetData(playlistList)
     
-    def SetChannelId(self, channel_id):
-        if channel_id != self.list.id:
-            self.list.id = channel_id
+    def SetChannel(self, channel):
+        if channel.id != self.list.id:
+            self.list.id = channel.id
+            self.list.channel = channel
             self.list.dirty = True
     
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannelId, wargs = (self.list.id,), wkwargs = {'filterTorrents' : False})
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.list.channel,), wkwargs = {'filterTorrents' : False})
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
         
@@ -848,20 +860,18 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.BuildRssPanel(self.managepage, self.gridSizer)
         self.managepage.Layout()
     
-    def SetChannelId(self, channel_id):
-        self.channel_id = channel_id
-        self.fileslist.GetManager().SetChannelId(channel_id)
-        self.playlistlist.GetManager().SetChannelId(channel_id)
+    def SetChannel(self, channel):
+        self.fileslist.GetManager().SetChannel(channel)
+        self.playlistlist.GetManager().SetChannel(channel)
         
-        if channel_id:
+        if channel:
+            self.channel_id = channel.id
             def db_call():
-                channel = self.channelsearch_manager.getChannel(channel_id)
-                channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel_id)
-                
-                return channel, channel_state, iamModerator
+                channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
+                return channel_state, iamModerator
             
             def update_panel(delayedResult):
-                channel, channel_state, iamModerator = delayedResult.get() 
+                channel_state, iamModerator = delayedResult.get() 
                 
                 name = channel.name
                 self.name.SetValue(name)
@@ -914,10 +924,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.createText.Show()
             self.saveButton.SetLabel('Create Channel')
         self.RebuildRssPanel()
-        
-    def SetMyChannelId(self, channel_id):
+    
+    @forceDBThread
+    def SetMyChannel(self, channel_id):
         if not self.channel_id:
-            self.SetChannelId(channel_id)
+            channel = self.channelsearch_manager.getChannel(channel_id)
+            self.SetChannel(channel)
     
     def GetPage(self, notebook, title):
         for i in range(notebook.GetPageCount()):
@@ -1422,14 +1434,14 @@ class CommentManager:
         self.list = list
         self.list.id = 0
         
-        self.channel_id = None
+        self.channel = None
         self.playlist_id = None
         self.channeltorrent_id = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
-    def SetIds(self, channel_id = None, playlist_id = None, channeltorrent_id = None):
-        if channel_id != self.channel_id:
-            self.channel_id = channel_id
+    def SetIds(self, channel = None, playlist_id = None, channeltorrent_id = None):
+        if self.channel is None or channel.id != self.channel.id:
+            self.channel = channel
             self.list.dirty = True
             
             self.list.header.SetTitle('Comments for this channel')
@@ -1458,7 +1470,7 @@ class CommentManager:
             elif self.channeltorrent_id:
                 return self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id)
             else:
-                return self.channelsearch_manager.getCommentsFromChannelId(self.channel_id)
+                return self.channelsearch_manager.getCommentsFromChannel(self.channel)
         
         startWorker(self.list.SetDelayedData, db_callback)    
        
@@ -1469,7 +1481,7 @@ class CommentManager:
             elif self.channeltorrent_id:
                 return len(self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent_id))
             else:
-                return len(self.channelsearch_manager.getCommentsFromChannelId(self.channel_id))
+                return len(self.channelsearch_manager.getCommentsFromChannel(self.channel))
         
         total_items = startWorker(None, db_callback, jobID = "getNrComments")
         total_items = total_items.get()
@@ -1484,11 +1496,11 @@ class CommentManager:
         
         def db_callback():
             if self.playlist_id:
-                self.channelsearch_manager.createComment(comment, self.channel_id, reply_after, playlist_id = self.playlist_id)
+                self.channelsearch_manager.createComment(comment, self.channel.id, reply_after, playlist_id = self.playlist_id)
             elif self.channeltorrent_id:
-                self.channelsearch_manager.createComment(comment, self.channel_id, reply_after, channeltorrent_id = self.channeltorrent_id)
+                self.channelsearch_manager.createComment(comment, self.channel.id, reply_after, channeltorrent_id = self.channeltorrent_id)
             else:
-                self.channelsearch_manager.createComment(comment, self.channel_id, reply_after)
+                self.channelsearch_manager.createComment(comment, self.channel.id, reply_after)
         startWorker(None, db_callback)
 
 class CommentList(List):
@@ -1546,13 +1558,13 @@ class ActivityManager:
         self.list = list
         self.list.id = 0
         
-        self.channel_id = None
+        self.channel = None
         self.playlist_id = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
-    def SetIds(self, channel_id = None, playlist_id = None):
-        if channel_id != self.channel_id:
-            self.channel_id = channel_id
+    def SetIds(self, channel = None, playlist_id = None):
+        if self.channel is None or channel.id != self.channel.id:
+            self.channel = channel
             self.list.dirty = True
             
             self.list.header.SetTitle('Recent activity in this Channel')
@@ -1576,10 +1588,10 @@ class ActivityManager:
                 nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist_id, limit = 10)
                 recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist_id, limit = 10)
             else:
-                commentList = self.channelsearch_manager.getCommentsFromChannelId(self.channel_id, limit = 10)
-                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannelId(self.channel_id, limit = 10)
-                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannelId(self.channel_id, limit = 10)
-                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannelId(self.channel_id, limit = 10)
+                commentList = self.channelsearch_manager.getCommentsFromChannel(self.channel, limit = 10)
+                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.channel, limit = 10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromChannel(self.channel, limit = 10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit = 10)
                 
             return commentList, torrentList, recentTorrentList, recentModifications
         startWorker(self._on_data, db_callback)

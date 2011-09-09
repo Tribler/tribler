@@ -1314,7 +1314,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               modified              integer         DEFAULT (strftime('%s','now')),
               inserted              integer         DEFAULT (strftime('%s','now')),
               UNIQUE (torrent_id, channel_id),
-              UNIQUE (dispersy_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
@@ -1432,7 +1431,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               dispersy_id           integer,
               vote                  integer,
               time_stamp            integer,
-              UNIQUE (dispersy_id),
               PRIMARY KEY (channel_id, voter_id)
             );
             CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
@@ -1825,6 +1823,35 @@ class SQLiteCacheDB(SQLiteCacheDBV5):
         if self.__single != None:
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
+        
+class SQLiteNoCacheDB(SQLiteCacheDB):
+    
+    def __init__(self, *args, **kwargs):
+        SQLiteCacheDB.__init__(self, *args, **kwargs)
+        self._execute("BEGIN")
+    
+    def commit(self):
+        self._execute("COMMIT")
+        self._execute("BEGIN")
+        
+    def executemany(self, sql, args, commit=True):
+        self._transaction(sql, args)
+        
+        if commit:
+            self.commit()
+    
+    def cache_transaction(self, sql, args=None):
+        self._transaction(sql, args)
+    
+    def transaction(self, sql=None, args=None):
+        self._transaction(sql, args)
+            
+    def _transaction(self, sql, args=None):
+        if sql:
+            try:
+                self._execute(sql, args)
+            except Exception,e:
+                self.commit_retry_if_busy_or_rollback(e,0,sql=sql)
     
 if __name__ == '__main__':
     configure_dir = sys.argv[1]

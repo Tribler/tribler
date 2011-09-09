@@ -27,6 +27,8 @@ from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
@@ -127,6 +129,7 @@ class TorrentDetails(AbstractDetails):
         self.doMark = self.guiutility.frame.selectedchannellist.OnMarkTorrent
         self.doSave = self.guiutility.frame.selectedchannellist.OnSaveTorrent
         self.canEdit = False
+        self.canComment = False
         
         self.isEditable = {}
         
@@ -172,8 +175,11 @@ class TorrentDetails(AbstractDetails):
             self.torrent = torrent
             ds = self.torrent.ds
             
-            if self.torrent.get('channeltorrent_id', False):
-                self.canEdit = True 
+            if self.torrent.hasChannel():
+                state, iamModerator = self.torrent.channel.getState()
+                
+                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN or iamModerator
+                self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
         
             self.Freeze()
             self.messagePanel.Show(False)
@@ -205,7 +211,7 @@ class TorrentDetails(AbstractDetails):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         
         #Create torrent overview
-        overview, torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details')
+        self.overview, self.torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details')
         categories = self.torrent.categories
         if isinstance(categories, list):
             category = ', '.join(categories)
@@ -242,29 +248,19 @@ class TorrentDetails(AbstractDetails):
             overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
 
         for column in overviewColumnsOrder:
-            _, value = self._add_row(overview, vSizer, column, overviewColumns[column])
+            _, value = self._add_row(self.overview, vSizer, column, overviewColumns[column])
             if column == "Status":
                 self.status = value
     
-        torrentSizer.Add(vSizer, 1, wx.EXPAND)
+        self.torrentSizer.Add(vSizer, 1, wx.EXPAND)
         self.UpdateStatus()
 
-        overview.SetupScrolling(rate_y = 5)
+        self.overview.SetupScrolling(rate_y = 5)
             
-        if self.torrent.get('channeltorrent_id', False):
-            markings = startWorker(None, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
-            markings = markings.get()
-            
-            if len(markings) > 0:
-                torrentSizer.Add(wx.StaticLine(overview, -1, style = wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-                
-                msg = 'This torrent is marked as:'
-                for marktype, nr in markings:
-                    msg += ' %s (%d)'%(marktype, nr)
-                self._add_row(overview, torrentSizer, None, msg, 10)
-        
-        #Create edit tab
         if self.canEdit:
+            self.UpdateMarkings()
+        
+            #Create edit tab
             edit, editSizer = self._create_tab(self.notebook, 'Edit', 'Modify Details')
             
             vSizer = wx.FlexGridSizer(0, 2, 3, 3)
@@ -285,25 +281,26 @@ class TorrentDetails(AbstractDetails):
             editSizer.Add(saveButton, 0, wx.ALIGN_RIGHT)
         
         #Create torrent overview
-        if self.torrent.get('channeltorrent_id', False):
+        if self.canComment:
             from channel import CommentList
             self.commentList = CommentList(self.notebook, canReply = True, quickPost = True)
             commentManager = self.commentList.GetManager()
-            commentManager.SetIds(self.torrent.channel_id, channeltorrent_id = self.torrent.channeltorrent_id)
-            
-            from channel import ModificationList
-            self.modificationList = ModificationList(self.notebook)
-            modificationManager = self.modificationList.GetManager()
-            modificationManager.SetId(self.torrent.channeltorrent_id)
-            
-            self.notebook.AddPage(self.commentList, 'Comments')
-            self.notebook.AddPage(self.modificationList, 'Modifications')
+            commentManager.SetIds(self.torrent.channel, channeltorrent_id = self.torrent.channeltorrent_id)
             
             def updateTitle(nrcomments):
                 for i in range(self.notebook.GetPageCount()):
                     if self.notebook.GetPageText(i).startswith('Comments'):
                         self.notebook.SetPageText(i, "Comments(%d)"%nrcomments)
             self.commentList.SetNrResults = updateTitle
+
+            self.notebook.AddPage(self.commentList, 'Comments')
+            commentManager.refresh()
+        
+        if self.canEdit:
+            from channel import ModificationList
+            self.modificationList = ModificationList(self.notebook)
+            modificationManager = self.modificationList.GetManager()
+            modificationManager.SetId(self.torrent.channeltorrent_id)
             
             def updateTitle(nrmodifications):
                 for i in range(self.notebook.GetPageCount()):
@@ -311,7 +308,7 @@ class TorrentDetails(AbstractDetails):
                         self.notebook.SetPageText(i, "Modifications(%d)"%nrmodifications)
             self.modificationList.SetNrResults = updateTitle
             
-            commentManager.refresh()
+            self.notebook.AddPage(self.modificationList, 'Modifications')
             modificationManager.refresh()
         
         #Create filelist
@@ -327,6 +324,7 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             if isinstance(self, LibraryDetails):
                 self.listCtrl.InsertColumn(2, 'Status', wx.LIST_FORMAT_RIGHT)
+                
             self.listCtrl.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
             self.listCtrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFilesSelected)
             self.listCtrl.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFilesSelected)
@@ -571,13 +569,14 @@ class TorrentDetails(AbstractDetails):
         self.buttonSizer.AddStretchSpacer()
         
         if not self.noChannel:
-            if self.torrent.channel_permid:
-                if self.torrent.channel_permid == bin2str(self.guiutility.utility.session.get_permid()):
+            if self.torrent.hasChannel():
+                if self.torrent.channel.isMyChannel():
                     label = "This torrent is part of your Channel."
                     tooltip = "Open your Channel."
+                    
                 else:
-                    label = "Click to see more from %s's Channel."%self.torrent.channel_name
-                    tooltip = "Click to go to %s's Channel."%self.torrent.channel_name
+                    label = "Click to see more from %s's Channel."%self.torrent.channel.name
+                    tooltip = "Click to go to %s's Channel."%self.torrent.channel.name
 
                 self.channeltext = LinkStaticText(self.buttonPanel, label)
                 self.channeltext.SetToolTipString(tooltip)
@@ -586,10 +585,10 @@ class TorrentDetails(AbstractDetails):
                 self.channeltext.target = 'channel'
                 self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
                 
-                #this is not a 'local' known channel, update it 
-                if not self.torrent.channel_id and 'query_permids' in self.torrent:
+                #this is not a 'local' known channel, update it
+                if isinstance(self.torrent.channel, RemoteChannel) and 'query_permids' in self.torrent:
                     channelcast = BuddyCastFactory.getInstance().channelcast_core
-                    channelcast.updateAChannel(self.torrent.channel_permid, self.torrent.query_permids)
+                    channelcast.updateAChannel(self.torrent.channel.permid, self.torrent.query_permids)
         
         elif self.canEdit:
             wrong = LinkStaticText(self.buttonPanel, 'Have an opinion? Signal it to other users:')
@@ -658,16 +657,16 @@ class TorrentDetails(AbstractDetails):
         sizer.AddStretchSpacer()
         
         if not self.compact and not self.noChannel:
-            #if no attached channel, or not from my channel
-            if not self.torrent.hasChannel() or self.torrent.channel_permid != bin2str(self.guiutility.utility.session.get_permid()):
+            #if not attached channel, or not from my channel
+            if not self.torrent.hasChannel() or not self.torrent.channel.isMyChannel():
                 header = wx.StaticText(parent, -1, "Did you enjoy this torrent?")
                 _set_font(header, fontweight = wx.FONTWEIGHT_BOLD)
                 header.SetMinSize((1,-1))
                 sizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
                 
                 if self.torrent.hasChannel():
-                    channeltext = LinkStaticText(parent, "Click to see more from %s's Channel."%self.torrent.channel_name)
-                    channeltext.SetToolTipString("Click to go to %s's Channel."%self.torrent.channel_name)
+                    channeltext = LinkStaticText(parent, "Click to see more from %s's Channel."%self.torrent.channel.name)
+                    channeltext.SetToolTipString("Click to go to %s's Channel."%self.torrent.channel.name)
                     channeltext.target = 'channel'
                     channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                     sizer.Add(channeltext, 0, wx.ALL|wx.EXPAND, 3)
@@ -741,6 +740,7 @@ class TorrentDetails(AbstractDetails):
         if title.startswith('Comments'):
             self.commentList.Show()
             self.commentList.SetFocus()
+            
         elif title.startswith('Modifications'):
             self.modificationList.Show()
             self.modificationList.SetFocus()
@@ -757,12 +757,12 @@ class TorrentDetails(AbstractDetails):
         event.Skip()
         
     def OnCommentCreated(self, channeltorrent_id):
-        if self.torrent.get('ChannelTorrents.id', False) == channeltorrent_id:
+        if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
             manager = self.commentList.GetManager()
             manager.refresh()
             
     def OnModificationCreated(self, channeltorrent_id):
-        if self.torrent.get('ChannelTorrents.id', False) == channeltorrent_id:
+        if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
             manager = self.modificationList.GetManager()
             manager.refresh()
                         
@@ -949,11 +949,11 @@ class TorrentDetails(AbstractDetails):
             self.guiutility.ShowPage('my_files', self.torrent.infohash)
             
         else:
-            if not self.torrent.channel_id:
+            if isinstance(self.torrent.channel, RemoteChannel):
                 #When torrent was loaded this channel was not know, is it now?
-                self.guiutility.showChannelFromPermid(self.torrent.channel_permid)
+                self.guiutility.showChannelFromPermid(self.torrent.channel.permid)
             else:
-                self.guiutility.showChannelFromId(self.torrent.channel_id)
+                self.guiutility.showChannelFromId(self.torrent.channel.id)
                 
     def OnMark(self, event):
         markWindow = wx.PopupTransientWindow(self)
@@ -977,9 +977,8 @@ class TorrentDetails(AbstractDetails):
             if selected != wx.NOT_FOUND:
                 type = markChoices.GetString(selected)
                 
-                if self.torrent.get('ChannelTorrents.id', False):
-                    self.doMark(self.torrent.infohash, type)
-                    markWindow.Dismiss()
+                self.doMark(self.torrent.infohash, type)
+                markWindow.Dismiss()
                 
         button = wx.Button(markWindow, -1, "Mark Now")
         button.Bind(wx.EVT_BUTTON, DoMark)
@@ -1039,6 +1038,33 @@ class TorrentDetails(AbstractDetails):
                     self.status.SetLabel("%s seeders, %s leechers"%(self.torrent.num_seeders, self.torrent.num_leechers))
                 else:
                     self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent.num_seeders, self.torrent.num_leechers ,updated))
+    
+    def OnMarkingCreated(self, channeltorrent_id):
+        if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
+            self.UpdateMarkings()
+    
+    def UpdateMarkings(self):
+        startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
+     
+    def ShowMarkings(self, delayedResult):
+        markings = delayedResult.get()
+        if len(markings) > 0:
+            msg = 'This torrent is marked as:'
+            for marktype, nr in markings:
+                msg += ' %s (%d)'%(marktype, nr)
+            
+            #see if we are updating
+            children = list(self.torrentSizer.GetChildren())
+            staticline = children[-2].GetWindow()
+            
+            if not isinstance(staticline, wx.StaticLine):
+                self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+                self._add_row(self.overview, self.torrentSizer, None, msg, 10)
+            else:
+                statictext = children[-1].GetWindow()
+                statictext.SetLabel(msg)
+                
+            self.torrentSizer.Layout()
            
     def OnRefresh(self, dslist):
         found = False

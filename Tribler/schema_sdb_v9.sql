@@ -450,7 +450,6 @@ CREATE TABLE IF NOT EXISTS ChannelTorrents (
   modified                  integer         DEFAULT (strftime('%s','now')),
   inserted                  integer         DEFAULT (strftime('%s','now')),
   UNIQUE (torrent_id, channel_id),
-  UNIQUE (dispersy_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
@@ -566,7 +565,6 @@ CREATE TABLE IF NOT EXISTS ChannelVotes (
   dispersy_id           integer,
   vote                  integer,
   time_stamp            integer,
-  UNIQUE (dispersy_id),
   PRIMARY KEY (channel_id, voter_id)
 );
 CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);

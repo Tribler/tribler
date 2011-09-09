@@ -5,7 +5,8 @@
 # for any function you add to database. 
 # Please reuse the functions in sqlitecachedb as much as possible
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, safenamedtuple
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, safenamedtuple,\
+    SQLiteNoCacheDB
 from copy import deepcopy,copy
 from traceback import print_exc, print_stack
 from time import time
@@ -3141,7 +3142,7 @@ class ChannelCastDBHandler(object):
     def __init__(self):
         ChannelCastDBHandler.__single = self
         try:
-            self.__db = SQLiteCacheDB.getInstance()
+            self.__db = SQLiteNoCacheDB.getInstance()
             
             self.peer_db = PeerDBHandler.getInstance()
             self.votecast_db = VoteCastDBHandler.getInstance()
@@ -3161,7 +3162,9 @@ class ChannelCastDBHandler(object):
         self.my_dispersy_cid = None
         if DEBUG:
             print >> sys.stderr, "Channels: my channel is", self._channel_id
-        
+    
+    def commit(self):
+        self._db.commit()
 
     def get_db(self):
         if not currentThread().getName().startswith('Dispersy'):
@@ -3534,8 +3537,9 @@ class ChannelCastDBHandler(object):
                     sql = "DELETE FROM TorrentMarkings WHERE channeltorrent_id = ? AND peer_id IS NULL"
                     self._db.execute_write(sql, (channeltorrent_id, ), commit = False)
                     
-        sql = "INSERT INTO TorrentMarkings (dispersy_id, global_time, channeltorrent_id, peer_id, type, time_stamp) VALUES (?,?,?,?,?)"
+        sql = "INSERT INTO TorrentMarkings (dispersy_id, global_time, channeltorrent_id, peer_id, type, time_stamp) VALUES (?,?,?,?,?,?)"
         self._db.execute_write(sql, (dispersy_id, global_time, channeltorrent_id, peer_id, type, timestamp), commit = self.shouldCommit)
+        self.notifier.notify(NTFY_MARKINGS, NTFY_INSERT, channeltorrent_id)
 
     def on_remove_mark_torrent(self, channel_id, dispersy_id):
         sql = "DELETE FROM TorrentMarkings WHERE dispersy_id = ?"
@@ -3588,12 +3592,12 @@ class ChannelCastDBHandler(object):
     
     def getNamesPermidForChannels(self, channel_ids = None):
         if channel_ids:
-            channel_ids = " AND Channels.id IN ('" + "' ,'".join(map(str, channel_ids)) + "') "
+            channel_ids = " WHERE Channels.id IN (" + " ,".join(map(str, channel_ids)) + ") "
         else:
             channel_ids = ''
 
         names = {}
-        sql = 'select id, Channels.name, permid from Channels, Peer WHERE Channels.peer_id = Peer.peer_id'+channel_ids
+        sql = 'SELECT id, Channels.name, permid FROM Channels LEFT JOIN Peer ON Channels.peer_id = Peer.peer_id'+channel_ids
         records = self._db.fetchall(sql)
         for channel_id, name, permid in records:
             names[channel_id] = (name, permid)
@@ -3809,6 +3813,11 @@ class ChannelCastDBHandler(object):
         channels = self._getChannels(sql, (channel_id,))
         if len(channels) > 0:
             return channels[0]
+        
+    def getChannels(self, channel_ids):
+        channel_ids = "','".join(channel_ids)
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id IN ('" + channel_ids + "')"
+        return self._getChannels(sql)
     
     def getChannelFromPermid(self, channel_permid):
         sql = "Select C.id, C.name, C.description, C.dispersy_cid, C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam FROM Channels as C, Peer WHERE Channels.peer_id = Peer.peer_id AND Peer.peer_id = ?"
@@ -3865,25 +3874,25 @@ class ChannelCastDBHandler(object):
                 
         def channel_sort(a, b):
             #first compare local vote, spam -> return -1
-            if a[6] == -1:
+            if a[7] == -1:
                 return 1
-            if b[6] == -1:
+            if b[7] == -1:
                 return -1
             
             #then compare nr_favorites
-            if a[4] < b[4]:
+            if a[5] < b[5]:
                 return 1
-            if a[4] > b[4]:
+            if a[5] > b[5]:
                 return -1
             
             #then compare latest update
-            if a[7] < b[7]:
+            if a[8] < b[8]:
                 return 1
-            if a[7] > b[7]:
+            if a[8] > b[8]:
                 return -1
             
             #finally compare nr_torrents
-            return cmp(a[3], b[3])
+            return cmp(a[4], b[4])
         
         if cmpF == None:
             cmpF = channel_sort

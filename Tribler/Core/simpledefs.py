@@ -57,6 +57,7 @@ NTFY_TORRENTS = 'torrents'
 NTFY_PLAYLISTS = 'playlists'
 NTFY_COMMENTS = 'comments'
 NTFY_MODIFICATIONS = 'modifications'
+NTFY_MARKINGS = 'markings'
 NTFY_PREFERENCES = 'preferences'
 NTFY_SUPERPEERS = 'superpeers' # use NTFY_PEERS !!
 NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!

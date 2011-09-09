@@ -883,14 +883,15 @@ class SearchList(GenericSearchList):
         #indentify popular associated channels
         channel_hits = {}
         for hit in data:
-            if 'channel_permid' in hit:
-                if hit.get('channel_posvotes', 0) > 0:
-                    if hit.get('channel_permid') not in channel_hits:
-                        channel_hits[hit.get('channel_permid')] = [0, hit.get('channel_name'), hit.get('channel_id'), hit.get('channel_permid')]
-                    channel_hits[hit.get('channel_permid')][0] += 1
+            if hit.get('channel'):
+                channel = hit.get('channel')
+                if channel.nr_favorites > 0:
+                    if channel.id not in channel_hits:
+                        channel_hits[channel.id] = [0, channel]
+                    channel_hits[channel.id][0] += 1
         
         def channel_occur(a, b):
-            return cmp(a[0], b[0])            
+            return cmp(a[0], b[0])
         
         channels = channel_hits.values()
         channels.sort(channel_occur, reverse = True)
@@ -1390,26 +1391,38 @@ class ChannelList(List):
         if self.total_results:
             if self.title == 'Popular Channels':
                 self.header.SetSubTitle("Showing the %d most popular channels" % self.total_results)
+                
             elif self.title == 'Your Favorites':
                 self.header.SetSubTitle("You marked %d channels as a favorite" % self.total_results)
+                
             elif self.title == 'Updated Channels':
                 self.header.SetSubTitle("Showing the %d latest updated channels" % self.total_results)
+                
             elif self.title == 'New Channels':
                 self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)"% self.total_results)
+                
             else:
                 if self.total_results == 1:
                     self.header.SetSubTitle("Discovered %d channel" % self.total_results)
                 else:
                     self.header.SetSubTitle("Discovered %d channels" % self.total_results)
         else:
-            self.header.SetSubTitle('')
+            if self.title == 'New Channels':
+                self.header.SetSubTitle('No new channels discovered (not marked as a favorite by anyone and updated within the last 2 months)')
+            else:
+                self.header.SetSubTitle('')
         
         if self.title == 'Updated Channels':
             self.header.ShowSortedBy(1)
+            
         elif self.title == 'New Channels':
             self.header.ShowSortedBy(1)
+            
         elif self.title.startswith('Search results'):
             self.header.ShowSortedBy(3)
+            
+        else:
+            self.header.ShowSortedBy(2)
         
         self.header.Refresh()
 

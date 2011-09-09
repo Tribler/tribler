@@ -8,6 +8,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler import LIBRARYNAME
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler,\
     UserEventLogDBHandler
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 
 class SearchSideBar(wx.Panel):
     
@@ -166,14 +167,15 @@ class SearchSideBar(wx.Panel):
         #channels should be a list, of occurrences, name, permid
         self.Freeze()
 
-        self.nochannels.Show(len(self.channels) == 0)
+        self.nochannels.Show(len(channels) == 0)
         for i in range(len(self.channels)):
             if i < len(channels):
-                tooltip = "Click to go to %s's Channel."%channels[i][1]
+                tooltip = "Click to go to %s's Channel."%channels[i][1].name
                 
-                self.channels[i].SetLabel(channels[i][1])
+                self.channels[i].SetLabel(channels[i][1].name)
                 self.channels[i].SetToolTipString(tooltip)
-                self.channels[i].channel_permid = channels[i][2]
+                self.channels[i].channel = channels[i][1]
+                
             else:
                 self.channels[i].SetLabel('')
                 self.channels[i].SetToolTipString('')
@@ -314,13 +316,13 @@ class SearchSideBar(wx.Panel):
         channel_name = label.GetLabel()
         
         if channel_name != '':
-            channel_occur, channel_name, channel_id, channel_permid = label.channel
+            channel = label.channel
             
-            if not channel_id:
+            if isinstance(channel, RemoteChannel):
                 #When torrent was loaded this channel was not know, is it now?
-                self.guiutility.showChannelFromPermid(channel_permid)
+                self.guiutility.showChannelFromPermid(channel.permid)
             else:
-                self.guiutility.showChannelFromId(channel_id)
+                self.guiutility.showChannel(channel)
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)

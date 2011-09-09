@@ -69,7 +69,7 @@ class GUIUtility:
         self.params = params
         self.frame = None
 
-       # videoplayer
+        # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
         self.useExternalVideo = False
 
@@ -428,8 +428,8 @@ class GUIUtility:
         self.ShowPage('channels')
     
     @forceWxThread
-    def showManageChannel(self, channel_id):
-        self.frame.managechannel.SetChannelId(channel_id)
+    def showManageChannel(self, channel):
+        self.frame.managechannel.SetChannel(channel)
         self.ShowPage('managechannel')
     
     @forceWxThread
