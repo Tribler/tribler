@@ -588,7 +588,7 @@ class AbstractListBody():
         
         #Determine scrollrate
         if self.rate is None:
-            nritems = len(self.vSizer.GetChildren()) / 3
+            nritems = len(self.vSizer.GetChildren()) / 2
             if nritems > 1:
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
