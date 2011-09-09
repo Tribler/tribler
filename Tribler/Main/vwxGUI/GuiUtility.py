@@ -196,6 +196,7 @@ class GUIUtility:
                     self.ShowPlayer(False)
             
             self.guiPage = page
+            self.self.frame.top_bg._selectPage(page)
             
             self.frame.Layout()
             self.frame.Thaw()

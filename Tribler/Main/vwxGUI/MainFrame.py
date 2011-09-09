@@ -258,7 +258,6 @@ class MainFrame(wx.Frame):
             else:
                 torrentfilename = self.params[0]
                 self.startDownload(torrentfilename,cmdline=True)
-            self.guiUtility.standardLibraryOverview(refresh=True)
 
     def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
