@@ -39,6 +39,6 @@ class Candidate(object):
         self._stamp = time()
         self._puncture_requests += 1
 
-    def inc_punctutes(self):
+    def inc_punctures(self):
         self._stamp = time()
         self._punctures += 1
