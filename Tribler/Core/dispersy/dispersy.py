@@ -1932,7 +1932,7 @@ class Dispersy(Singleton):
         assert isinstance(addresses, (tuple, list, set)), type(addresses)
         assert isinstance(packets, (tuple, list, set)), type(packets)
         assert isinstance(key, unicode), type(key)
-        
+
         bytes_send = sum(len(packet) for packet in packets)
         self._statistics.increment_total_up(bytes_send)
 

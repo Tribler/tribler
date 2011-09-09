@@ -58,6 +58,10 @@ class WalktestCommunity(Community):
         for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.stamp < deadline]:
             del self._candidates[candidate.address]
 
+        # remove invalid candidates
+        for candidate in [candidate for candidate in self._candidates.itervalues() if self._dispersy._is_valid_external_address(candidate.address)]:
+            del self._candidates[candidate.address]
+
         # get all candidates that either participated in a our walk or that stumbled upon us
         walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk]
         stumbles = [candidate for candidate in self._candidates.itervalues() if candidate.is_stumble]
