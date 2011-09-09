@@ -36,6 +36,8 @@ class Database(Singleton):
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
 
+        self._commit_callbacks = []
+
         #
         # PRAGMA synchronous = 0 | OFF | 1 | NORMAL | 2 | FULL;
         #
@@ -241,7 +243,13 @@ class Database(Singleton):
 
     def commit(self):
         if __debug__: dprint("COMMIT")
-        return self._connection.commit()
+        result = self._connection.commit()
+        for callback in self._commit_callbacks:
+            try:
+                callback()
+            except:
+                if __debug__: dprint(exception=True, stack=True)
+        return result
 
     # def _on_rollback(self):
     #     if __debug__: dprint("ROLLBACK", level="warning")
@@ -264,6 +272,14 @@ class Database(Singleton):
         @type database_version: unicode
         """
         raise NotImplementedError()
+
+    def attach_commit_callback(self, func):
+        assert not func in self._commit_callbacks
+        self._commit_callbacks.append(func)
+
+    def detach_commit_callback(self, func):
+        assert func in self._commit_callbacks
+        self.remove(func)
 
 if __debug__:
     if __name__ == "__main__":
