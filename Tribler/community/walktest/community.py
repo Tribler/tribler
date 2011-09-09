@@ -89,7 +89,7 @@ class WalktestCommunity(Community):
 
     def create_introduction_requests(self, destinations):
         meta = self._meta_messages[u"introduction-request"]
-        messages = [meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(self._dispersy.external_address,)) for destination in destinations]
+        messages = [meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(destination,)) for destination in destinations]
         self._dispersy.store_update_forward(messages, False, False, True)
 
         # wait for instroduction-response
@@ -116,7 +116,7 @@ class WalktestCommunity(Community):
 
         # create introduction responses
         meta = self._meta_messages[u"introduction-response"]
-        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(self._dispersy.external_address, candidate)) for message, candidate in zip(messages, candidates)]
+        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(destination, candidate)) for message, candidate in zip(messages, candidates)]
         self._dispersy.store_update_forward(responses, False, False, True)
 
         # create puncture requests
