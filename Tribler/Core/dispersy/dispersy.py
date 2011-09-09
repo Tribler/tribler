@@ -1958,7 +1958,7 @@ class Dispersy(Singleton):
                 assert isinstance(packet, str)
                 self._socket.send(address, packet)
             self._statistics.outgoing(address, key, sum(len(packet) for packet in packets), len(packets))
-            if __debug__: dprint(len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
+            if __debug__: dprint("out... ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
             self._database.execute(u"UPDATE candidate SET outgoing_time = DATETIME('now') WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
