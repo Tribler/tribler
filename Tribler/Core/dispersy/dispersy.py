@@ -1382,6 +1382,7 @@ class Dispersy(Singleton):
             return 0
 
         # store to disk and update locally
+        if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages")
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
 

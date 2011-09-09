@@ -183,9 +183,6 @@ class Community(object):
         execute(u"INSERT INTO community(master, member, classification) VALUES(?, ?, ?)",
                 (master.database_id, my_member.database_id, cls.get_classification()))
 
-        if __debug__:
-            dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
-
         # new community instance
         community = cls.load_community(master, *args, **kargs)
 

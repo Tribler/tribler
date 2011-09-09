@@ -133,6 +133,10 @@ def main():
                 from Tribler.community.allchannel.script import AllChannelScenarioScript
                 script.add("allchannel-scenario", AllChannelScenarioScript, script_kargs, include_with_all=False)
 
+            if not opt.disable_walktest_script:
+                from Tribler.community.walktest.script import ScenarioScript
+                script.add("walktest-scenario", ScenarioScript, include_with_all=False)
+
             # if not opt.disable_barter_script:
             #     from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
             #     script.add("barter", BarterScript)
@@ -155,6 +159,7 @@ def main():
     command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
     command_line_parser.add_option("--disable-simple-dispersy-test-script", action="store_true", help="Include simple-dispersy-test scripts", default=False)
     command_line_parser.add_option("--disable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
+    command_line_parser.add_option("--disable-walktest-script", action="store_true", help="Include walktest scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
 
