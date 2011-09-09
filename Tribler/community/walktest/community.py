@@ -137,7 +137,7 @@ class WalktestCommunity(Community):
             else:
                 self._candidates[message.address] = Candidate(message.address, puncture_requests=1)
 
-        meta = self._meta_messages[u"puncture-request"]
+        meta = self._meta_messages[u"puncture"]
         messages = [meta.impl(distribution=(self.global_time,), destination=(message.payload.address,)) for message in messages]
         self._dispersy.store_update_forward(messages, False, False, True)
 
