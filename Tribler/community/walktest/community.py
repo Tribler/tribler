@@ -114,15 +114,16 @@ class WalktestCommunity(Community):
 
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
-        # create introduction responses
-        meta = self._meta_messages[u"introduction-response"]
-        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate)) for message, candidate in zip(messages, candidates)]
-        self._dispersy.store_update_forward(responses, False, False, True)
+        if candidates:
+            # create introduction responses
+            meta = self._meta_messages[u"introduction-response"]
+            responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate)) for message, candidate in zip(messages, candidates)]
+            self._dispersy.store_update_forward(responses, False, False, True)
 
-        # create puncture requests
-        meta = self._meta_messages[u"puncture-request"]
-        requests = [meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(message.address,)) for message, candidate in zip(messages, candidates)]
-        self._dispersy.store_update_forward(requests, False, False, True)
+            # create puncture requests
+            meta = self._meta_messages[u"puncture-request"]
+            requests = [meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(message.address,)) for message, candidate in zip(messages, candidates)]
+            self._dispersy.store_update_forward(requests, False, False, True)
 
     def on_introduction_response(self, messages):
         # get candidates BEFORE updating our local view
