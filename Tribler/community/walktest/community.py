@@ -89,14 +89,15 @@ class WalktestCommunity(Community):
     def create_introduction_requests(self, destinations):
         meta = self._meta_messages[u"introduction-request"]
         messages = [meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(destination,)) for destination in destinations]
-        self._dispersy.store_update_forward(messages, False, False, True)
+        if messages:
+            self._dispersy.store_update_forward(messages, False, False, True)
 
-        # wait for instroduction-response
-        meta = self._meta_messages[u"introduction-response"]
-        footprint = meta.generate_footprint()
-        timeout = meta.delay + 1.0 # TODO why 1.0 margin
-        for _ in xrange(len(messages)):
-            self._dispersy.await_message(meta.generate_footprint(), self.introduction_response_timeout, timeout=timeout)
+            # wait for instroduction-response
+            meta = self._meta_messages[u"introduction-response"]
+            footprint = meta.generate_footprint()
+            timeout = meta.delay + 1.0 # TODO why 1.0 margin
+            for _ in xrange(len(messages)):
+                self._dispersy.await_message(meta.generate_footprint(), self.introduction_response_timeout, timeout=timeout)
 
         return messages
 
