@@ -79,7 +79,9 @@ class WalktestCommunity(Community):
                 yield choice(stumbles).address
                 continue
 
-            yield choice(self._bootstrap_addresses)
+            a = choice(self._bootstrap_addresses)
+            dprint("choice: ", a, "; mine: ", self._dispersy.external_address, force=1)
+            yield a
 
     def introduction_response_timeout(self, message):
         if message is None:
