@@ -478,6 +478,29 @@ class IntGrouping(SimpleExactKeyGrouping):
         return key
 
 
+class CategoryGrouping(SimpleExactKeyGrouping):
+    """
+    The CategoryGrouping algorithm groups hits from the same category together.
+    """
+    
+    def general_description(self):
+        #return u'Similarly ???'  # Naming of groups needs to be rethought.
+        return None 
+    
+    def description_for(self, hitsgroup):
+        return u'Category: %s' % hitsgroup.simkey
+    
+    def key(self, hit, context_state):
+        cat = hit['category']
+        if isinstance(cat, list):
+            if cat:
+                key = cat[0]
+            else:
+                key = 'unknown'
+        else:
+            key = cat
+        return key.lower()
+
 
 class LevGrouping(GroupingAlgorithm):
     """
@@ -884,14 +907,15 @@ class Bundler:
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
     
     # DO NOT CHANGE THE ORDER, STORED IN DB
-    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC = range(5)
-    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping()]
+    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC, ALG_CATEGORY = range(6)
+    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping(), None, None, CategoryGrouping()]
     
     # Tag these instances with their code:
     for i, algorithm in enumerate(algorithms):
-        algorithm.ALG_CODE = i
+        if algorithm is not None:
+            algorithm.ALG_CODE = i
     
-    PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC'.split()
+    PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC ALG_CATEGORY'.split()
     
     # ALG_MAGIC CONSTANTS
     MIN_LEVTRIE_WIDTH = 50
