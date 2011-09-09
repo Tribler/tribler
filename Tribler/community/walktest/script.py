@@ -22,8 +22,8 @@ class ScenarioScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
-        self.caller(self.t1)
-        self.caller(self.t2)
+        # self.caller(self.t1)
+        # self.caller(self.t2)
         self.caller(self.walk)
 
     def t1(self):

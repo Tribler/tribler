@@ -165,7 +165,6 @@ class Statistics(object):
         assert isinstance(key, (str, unicode))
         assert isinstance(bytes, (int, long))
         assert isinstance(count, (int, long))
-        if __debug__: dprint("out... ", address[0], ":", address[1], " -> ", count, "x ", key)
         subdict = self._outgoing.setdefault(address, {})
         a, b = subdict.get(key, (0, 0))
         subdict[key] = (a+count, b+bytes)

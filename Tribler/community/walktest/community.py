@@ -58,9 +58,9 @@ class WalktestCommunity(Community):
         for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.stamp < deadline]:
             del self._candidates[candidate.address]
 
-        # remove invalid candidates
-        for candidate in [candidate for candidate in self._candidates.itervalues() if self._dispersy._is_valid_external_address(candidate.address)]:
-            del self._candidates[candidate.address]
+        # # remove invalid candidates
+        # for candidate in [candidate for candidate in self._candidates.itervalues() if self._dispersy._is_valid_external_address(candidate.address)]:
+        #     del self._candidates[candidate.address]
 
         # get all candidates that either participated in a our walk or that stumbled upon us
         walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk]
@@ -94,7 +94,7 @@ class WalktestCommunity(Community):
         meta = self._meta_messages[u"introduction-response"]
         footprint = meta.generate_footprint()
         timeout = meta.delay + 1.0 # TODO why 1.0 margin
-        for _ in destinations:
+        for _ in xrange(len(messages)):
             self._dispersy.await_message(meta.generate_footprint(), self.introduction_response_timeout, timeout=timeout)
 
         return messages
