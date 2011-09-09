@@ -110,6 +110,7 @@ class WalktestCommunity(Community):
             else:
                 self._candidates[message.address] = Candidate(message.address, introduction_requests=1)
 
+            dprint("EXTERNAL ADDRESS ", message.payload.public_address, force=1)
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
         # create introduction responses
@@ -133,6 +134,7 @@ class WalktestCommunity(Community):
             else:
                 self._candidates[message.address] = Candidate(message.address, introduction_responses=1)
 
+            dprint("EXTERNAL ADDRESS ", message.payload.public_address, force=1)
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
         # probabilistically continue with the walk or choose a different path
