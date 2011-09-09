@@ -83,14 +83,15 @@ class WalktestCommunity(Community):
 
     def create_introduction_requests(self, destinations):
         meta = self._meta_messages[u"introduction-request"]
-        messages = [meta.impl(distribution=(self.global_time,), destination=(destination,)) for destination in destinations]
+        messages = [meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(self._dispersy.external_address,)) for destination in destinations]
         self._dispersy.store_update_forward(messages, False, False, True)
 
         # wait for instroduction-response
         meta = self._meta_messages[u"introduction-response"]
         footprint = meta.generate_footprint()
         timeout = meta.delay + 1.0 # TODO why 1.0 margin
-        self._dispersy.await_message(meta.generate_footprint(), self.introduction_response_timeout, timeout=timeout)
+        for _ in destinations:
+            self._dispersy.await_message(meta.generate_footprint(), self.introduction_response_timeout, timeout=timeout)
 
         return messages
 
@@ -105,9 +106,11 @@ class WalktestCommunity(Community):
             else:
                 self._candidates[message.address] = Candidate(message.address, introduction_requests=1)
 
+            self._dispersy.external_address_vote(message.payload.public_address, message.address)
+
         # create introduction responses
         meta = self._meta_messages[u"introduction-response"]
-        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(candidate,)) for message, candidate in zip(messages, candidates)]
+        responses = [meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(self._dispersy.external_address, candidate)) for message, candidate in zip(messages, candidates)]
         self._dispersy.store_update_forward(responses, False, False, True)
 
         # create puncture requests
@@ -126,6 +129,8 @@ class WalktestCommunity(Community):
             else:
                 self._candidates[message.address] = Candidate(message.address, introduction_responses=1)
 
+            self._dispersy.external_address_vote(message.payload.public_address, message.address)
+
         # probabilistically continue with the walk or choose a different path
         self.create_introduction_requests((message.address if random() < 0.8 else candidate_it.next()) for message in messages)
 
@@ -138,7 +143,7 @@ class WalktestCommunity(Community):
                 self._candidates[message.address] = Candidate(message.address, puncture_requests=1)
 
         meta = self._meta_messages[u"puncture"]
-        messages = [meta.impl(distribution=(self.global_time,), destination=(message.payload.address,)) for message in messages]
+        messages = [meta.impl(distribution=(self.global_time,), destination=(message.payload.walker_address,)) for message in messages]
         self._dispersy.store_update_forward(messages, False, False, True)
 
     def on_puncture(self, messages):

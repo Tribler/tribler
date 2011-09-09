@@ -15,15 +15,15 @@ from Tribler.Core.dispersy.script import ScriptBase
 class DebugNode(Node):
     def create_introduction_request(self, destination, global_time):
         meta = self._community.get_meta_message(u"introduction-request")
-        return meta.impl(destination=(destination,), distribution=(global_time,))
+        return meta.impl(destination=(destination,), distribution=(global_time,), payload=(destination,))
 
 class ScenarioScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
-        # self.caller(self.t1)
-        # self.caller(self.t2)
+        self.caller(self.t1)
+        self.caller(self.t2)
         self.caller(self.walk)
 
     def t1(self):
