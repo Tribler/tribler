@@ -626,6 +626,7 @@ class Dispersy(Singleton):
         assert len(voter_address) == 2
         assert isinstance(voter_address[0], str)
         assert isinstance(voter_address[1], int)
+        if __debug__: dprint("received claim that ", address[0], ":", address[1], " is my external address")
         if self._is_valid_external_address(address):
             if not address in self._external_address_votes:
                 self._external_address_votes[address] = set()
