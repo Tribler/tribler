@@ -425,8 +425,34 @@ class GroupingAlgorithm(object):
             """
             raise NotImplementedError('__setitem__')
 
+
+class SimpleExactKeyGrouping(GroupingAlgorithm):
+    """
+    The SimpleExactKeyGrouping is an abstract base class for algorithms
+    that perform exact grouping based on a single key. For these algorithms,
+    the simkey of a key is simply the key itself and the Index structure is
+    therefore isomorphic to a dict.
+    """
     
-class IntGrouping(GroupingAlgorithm):
+    def simkey(self, key, context_state):
+        return key
+    
+    class Index(GroupingAlgorithm.Index):
+        """
+        The Index datastructure is isomorphic to a dict.
+        """
+        __slots__ = ['mapTo']
+        def __init__(self):
+            self.mapTo = {}
+        def __contains__(self, key):
+            return key in self.mapTo
+        def __getitem__(self, key):
+            return self.mapTo[key]
+        def __setitem__(self, simkey, group):
+            self.mapTo[simkey] = group
+    
+    
+class IntGrouping(SimpleExactKeyGrouping):
     """
     The IntGrouping algorithm groups similarly numbered hits together.
     
@@ -450,23 +476,8 @@ class IntGrouping(GroupingAlgorithm):
         if key == ():
             key = hit['infohash']
         return key
-    
-    def simkey(self, key, context_state):
-        return key
-    
-    class Index(GroupingAlgorithm.Index):
-        """
-        The IntGrouping's index datastructure is isomorphic to a dict.
-        """
-        __slots__ = ['mapTo']
-        def __init__(self):
-            self.mapTo = {}
-        def __contains__(self, key):
-            return key in self.mapTo
-        def __getitem__(self, key):
-            return self.mapTo[key]
-        def __setitem__(self, simkey, group):
-            self.mapTo[simkey] = group
+
+
 
 class LevGrouping(GroupingAlgorithm):
     """
