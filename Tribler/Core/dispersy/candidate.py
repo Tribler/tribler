@@ -7,19 +7,18 @@ class Candidate(object):
     """
     A wrapper around the candidate table in the dispersy database.
     """
-    _datetime_format = "%Y-%m-%d %H:%M:%S"
 
-    def __init__(self, host, port, incoming_time, outgoing_time, external_time):
+    def __init__(self, host, port, incoming_age, outgoing_age, external_age):
         assert isinstance(host, str)
         assert isinstance(port, int)
-        assert isinstance(incoming_time, unicode)
-        assert isinstance(outgoing_time, unicode)
-        assert isinstance(external_time, unicode)
+        assert isinstance(incoming_age, int)
+        assert isinstance(outgoing_age, int)
+        assert isinstance(external_age, int)
         self._host = host
         self._port = port
-        self._incoming_time = incoming_time
-        self._outgoing_time = outgoing_time
-        self._external_time = external_time
+        self._incoming_age = incoming_age
+        self._outgoing_age = outgoing_age
+        self._external_age = external_age
 
     @property
     def address(self):
@@ -34,16 +33,16 @@ class Candidate(object):
         return self._port
 
     @property
-    def incoming_time(self):
-        return datetime.strptime(self._incoming_time, self._datetime_format)
+    def incoming_age(self):
+        return self._incoming_age
 
     @property
-    def outgoing_time(self):
-        return datetime.strptime(self._outgoing_time, self._datetime_format)
+    def outgoing_age(self):
+        return self._outgoing_age
 
     @property
-    def external_time(self):
-        return datetime.strptime(self._external_time, self._datetime_format)
+    def external_age(self):
+        return self._external_age
 
     @property
     def members(self):

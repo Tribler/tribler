@@ -22,11 +22,13 @@ class DebugNode(Node):
         assert isinstance(message_name, unicode)
         assert isinstance(text, str)
         assert isinstance(global_time, (int, long))
+        assert isinstance(resolution, tuple)
+        assert isinstance(destination, tuple)
         meta = self._community.get_meta_message(message_name)
         return meta.impl(authentication=(self._my_member,),
-                         resolution=tuple(resolution),
+                         resolution=resolution,
                          distribution=(global_time,),
-                         destination=tuple(destination),
+                         destination=destination,
                          payload=(text,))
 
     def _create_sequence_text_message(self, message_name, text, global_time, sequence_number):

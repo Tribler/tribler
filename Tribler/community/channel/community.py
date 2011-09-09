@@ -729,7 +729,7 @@ class ChannelCommunity(Community):
             
             accepted, proof = self._timeline.check(message)
             if not accepted:
-                raise DelayMessageByProof(message)
+                yield DelayMessageByProof(message)
             yield message
     
     def _disp_on_playlist_torrent(self, messages):
@@ -780,7 +780,7 @@ class ChannelCommunity(Community):
             
             accepted, proof = self._timeline.check(message)
             if not accepted:
-                raise DelayMessageByProof(message)
+                yield DelayMessageByProof(message)
             yield message
             
     def _disp_on_warning(self, messages):
@@ -832,7 +832,7 @@ class ChannelCommunity(Community):
             
             accepted, proof = self._timeline.check(message)
             if not accepted:
-                raise DelayMessageByProof(message)
+                yield DelayMessageByProof(message)
             yield message
     
     def _disp_on_mark_torrent(self, messages):

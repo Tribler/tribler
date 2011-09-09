@@ -1040,7 +1040,7 @@ class BinaryConversion(Conversion):
     def _decode_subjective_destination(self, placeholder):
         meta = placeholder.meta
         # we want to know if the sender occurs in our subjective bloom filter
-        subjective_set = meta.community.get_subjective_set(meta.community.my_member, meta.destination.cluster)
+        subjective_set = self._community.get_subjective_set(self._community.my_member, meta.destination.cluster)
         assert subjective_set, "We must always have subjective sets for ourself"
         return meta.destination.implement(placeholder.authentication.member.public_key in subjective_set)
 

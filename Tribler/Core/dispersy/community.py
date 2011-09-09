@@ -477,39 +477,12 @@ class Community(object):
         return 60.0
 
     @property
-    def dispersy_candidate_age_range(self):
-        """
-        The valid age range, in seconds, that an entry in the candidate table must be in order to be
-        forwarded in a dispersy-candidate-request or dispersy-candidate-response message.
-        @rtype: (float, float)
-        """
-        return (0.0, 300.0)
-
-    @property
     def dispersy_candidate_request_member_count(self):
         """
         The number of members that a dispersy-candidate-request message is sent to each interval.
         @rtype: int
         """
         return 3
-
-    @property
-    def dispersy_candidate_request_destination_diff_range(self):
-        """
-        The difference between last-incoming and last-outgoing time, for the selection of a
-        destination node, when sending a dispersy-candidate-request message.
-        @rtype: (float, float)
-        """
-        return (10.0, 30.0)
-
-    @property
-    def dispersy_candidate_request_destination_age_range(self):
-        """
-        The difference between the last-incoming and current time, for the selection of a
-        destination node, when sending a dispersy-candidate-request message.
-        @rtype: (float, float)
-        """
-        return (300.0, 900.0)
 
     @property
     def dispersy_candidate_cleanup_age_threshold(self):
@@ -565,7 +538,7 @@ class Community(object):
 
     @property
     def dispersy_candidate_online_scores(self):
-        return [(10, 10), (30, 7), (60, 4), (120, 2), (300, 1)]
+        return [(10, 0), (30, 4), (50, 10), (70, 4)]
 
     @property
     def dispersy_candidate_direct_observation_score(self):
@@ -575,7 +548,7 @@ class Community(object):
 
         @rtype int
         """
-        return 5
+        return 6
 
     @property
     def dispersy_candidate_indirect_observation_score(self):
@@ -588,7 +561,7 @@ class Community(object):
 
         @rtype int
         """
-        return 5
+        return 4
 
     @property
     def dispersy_candidate_subjective_set_score(self):
@@ -861,6 +834,12 @@ class Community(object):
         """
         self._global_time += 1
         return self._global_time
+
+    def update_global_time(self, global_time):
+        """
+        Increase the local global time if the given GLOBAL_TIME is larger.
+        """
+        self._global_time = max(self._global_time, global_time)
 
     def free_sync_range(self, global_times):
         """
