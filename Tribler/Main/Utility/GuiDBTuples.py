@@ -77,7 +77,7 @@ class Helper(object):
         return key in self.__slots__
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds')
+    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress')
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
@@ -113,7 +113,7 @@ class Torrent(Helper):
     def channel(self):
         if self._channel is not None:
             return self._channel
-        return self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
+        return Channel(*self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash))
     
     def updateChannel(self, c):
         self._channel = c
@@ -223,8 +223,7 @@ class NotCollectedTorrent(CollectedTorrent):
         self.last_check = -1
         
 class LibraryTorrent(Torrent):
-    __slots__ = ('progress')
-    
+    __slots__ = ()
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, progress):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, None)
         self.progress = progress
@@ -250,7 +249,7 @@ class ChannelTorrent(Torrent):
         pass
     
 class Channel(Helper):
-    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'searchManager')
+    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel')
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
         self.id = id
         self.dispersy_cid = dispersy_cid
@@ -264,11 +263,9 @@ class Channel(Helper):
         self.my_vote = my_vote
         self.modified = modified
         self.my_channel = my_channel
-        
-        self.searchManager = None
     
     def isDispersy(self):
-        return self.dispersy_cid != '-1'
+        return isinstance(self.dispersy_cid, basestring) and len(self.dispersy_cid) == 20
     
     def isFavorite(self):
         return self.my_vote == 2
@@ -284,12 +281,18 @@ class Channel(Helper):
     
     @cache
     def getState(self):
-        return self.searchManager.getChannelState(self.id)
+        if self.isDispersy():
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            
+            searchManager = ChannelSearchGridManager.getInstance()
+            return searchManager._disp_get_community_from_cid(self.dispersy_cid)
+        
+        return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
 
 class RemoteChannel(Channel):
     __slots__ = ('permid')
     def __init__(self, id, permid, name, subscriptions, neg_votes):
-        Channel.__init__(self, id, -1, name, '', 0, subscriptions, neg_votes, 0, 0, False)
+        Channel.__init__(self, id, '-1', name, '', 0, subscriptions, neg_votes, 0, 0, False)
         self.permid = permid
         
     def getState(self):

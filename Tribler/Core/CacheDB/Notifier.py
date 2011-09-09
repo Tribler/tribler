@@ -9,7 +9,7 @@ from Tribler.Core.simpledefs import *
 
 class Notifier:
     
-    SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MARKINGS, NTFY_PREFERENCES, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_RICH_METADATA, NTFY_SUBTITLE_CONTENTS, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_GUI_STARTED, NTFY_DISPERSY]
+    SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MARKINGS, NTFY_PREFERENCES, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_RICH_METADATA, NTFY_SUBTITLE_CONTENTS, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_DISPERSY]
 
     #. . .
     # todo: add all datahandler types+other observables
@@ -40,7 +40,7 @@ class Notifier:
                     with id=='a_search_id' come in
         """
         assert type(changeTypes) == list
-        assert subject in self.SUBJECTS
+        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS'%subject
         
         obs = (func, subject, changeTypes, id)
         self.observerLock.acquire()
@@ -66,7 +66,7 @@ class Notifier:
         Notify all interested observers about an event with threads from the pool
         """
         tasks = []
-        assert subject in self.SUBJECTS
+        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS'%subject
         
         self.observerLock.acquire()
         for ofunc, osubject, ochangeTypes, oid in self.observers:

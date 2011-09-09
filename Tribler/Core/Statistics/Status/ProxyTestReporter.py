@@ -32,25 +32,25 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
         header.appendChild(self.new_element(doc, "timestamp", long(round(time.time()))))
 
         # ProxyService 90s Test_
-        try:
-            from Tribler.Core.Session import Session
-            session = Session.get_instance()
-            if session.lm.overlay_apps.proxy_peer_manager.connectable:
-                    connectable = 1
-            else:
-                    connectable = 0
-            
-            start_time = long(round(session.start_time))
-
-            my_permid = show_permid_short(session.get_permid())
-        except Exception,e:
-            connectable = 0
-            start_time = 0
-            my_permid = 0
-        
-        header.appendChild(self.new_element(doc, "connectable", connectable))
-        header.appendChild(self.new_element(doc, "startuptime", start_time))
-        header.appendChild(self.new_element(doc, "clientpermid", my_permid))
+#        try:
+#            from Tribler.Core.Session import Session
+#            session = Session.get_instance()
+#            if session.lm.overlay_apps.proxy_peer_manager.connectable:
+#                    connectable = 1
+#            else:
+#                    connectable = 0
+#            
+#            start_time = long(round(session.start_time))
+#
+#            my_permid = show_permid_short(session.get_permid())
+#        except Exception,e:
+#            connectable = 0
+#            start_time = 0
+#            my_permid = 0
+#        
+#        header.appendChild(self.new_element(doc, "connectable", connectable))
+#        header.appendChild(self.new_element(doc, "startuptime", start_time))
+#        header.appendChild(self.new_element(doc, "clientpermid", my_permid))
         # _ProxyService 90s Test
         
         version = "cs_v2a"

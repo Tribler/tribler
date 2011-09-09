@@ -756,8 +756,12 @@ class Encoder:
                 print >>sys.stderr,"encoder: admin_close: want new peers in", schedule_refresh_in, "s"
             
             def request_new():
+                #check if we still have no connections...
+                remaining_connections = len(self.connections) + len(self.to_connect)
+                if remaining_connections == 0:
                     self.rerequest.encoder_wants_new_peers()
-                    self.scheduled_request_new_peers = False
+                
+                self.scheduled_request_new_peers = False
             
             if schedule_refresh_in <= 0:
                 request_new()

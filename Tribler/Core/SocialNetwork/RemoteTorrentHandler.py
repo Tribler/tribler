@@ -68,7 +68,7 @@ class RemoteTorrentHandler:
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         
-        self.callbacks[infohash] = usercallback
+        self.callbacks.setdefault(infohash, []).append(usercallback)
         
         requester = None
         
@@ -77,7 +77,7 @@ class RemoteTorrentHandler:
             if i in self.requesters and self.requesters[i].is_being_requested(infohash):
                 requester = self.requesters[i]
                 break
-            
+        
         #if not found, then used/create this requester
         if not requester:
             if prio not in self.requesters:
@@ -86,6 +86,7 @@ class RemoteTorrentHandler:
         
         #make request
         requester.add_source(infohash, permid)
+
         
         if DEBUG:
             print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
@@ -100,10 +101,10 @@ class RemoteTorrentHandler:
             print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.callbacks
         
         if infohash in self.callbacks:
-            usercallback = self.callbacks[infohash]
+            usercallbacks = self.callbacks[infohash]
             del self.callbacks[infohash]
-            
-            if usercallback:
+
+            for usercallback in usercallbacks:
                 remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
                 self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
             

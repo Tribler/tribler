@@ -17,6 +17,7 @@ LIST_HIGHTLIGHT = wx.Colour(255,255,153)
 TRIBLER_RED = wx.Colour(255, 51, 0)
 
 LIST_RADIUS = 7
+LIST_AUTOSIZEHEADER = -2
 
 TORRENT_COLUMNS = ['infohash', 'name', 'length']
 CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.name', 'Torrent.name', 'description', 'time_stamp', 'inserted']

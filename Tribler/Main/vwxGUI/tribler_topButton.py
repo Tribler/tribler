@@ -8,6 +8,7 @@ from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from __init__ import LIST_GREY, LIST_BLUE, TRIBLER_RED, LIST_HIGHTLIGHT
+from wx.lib.stattext import GenStaticText
 
 DEBUG = False
 
@@ -338,10 +339,42 @@ class NativeIcon:
         else:
             background = wx.Brush(background).GetColour().Get()
         
-        icons = self.icons.setdefault(type, {}).setdefault(background, {})
-        if state not in icons:
-            icons[state] = self.__createBitmap(parent, background, type, state)
-        return icons[state]
+        icons = self.icons.setdefault(type, {})
+        if background not in icons:
+            icons.setdefault(background, {})
+            
+            def fixSize(bitmap, width, height):
+                if width != bitmap.GetWidth() or height != bitmap.GetHeight():
+                
+                    bmp = wx.EmptyBitmap(width,height)
+                    dc = wx.MemoryDC(bmp)
+                    dc.SetBackground(wx.Brush(background))
+                    dc.Clear()
+                    
+                    offset_x = (width - bitmap.GetWidth())/2
+                    offset_y = (height - bitmap.GetHeight())/2
+                    
+                    dc.DrawBitmap(bitmap, offset_x, offset_y)
+                    dc.SelectObject(wx.NullBitmap)
+                    del dc
+                    
+                    return bmp
+                return bitmap
+            
+            #create both icons
+            icons[background][0] = self.__createBitmap(parent, background, type, 0)
+            icons[background][1] = self.__createBitmap(parent, background, type, 1)
+            
+            width = max(icons[background][0].GetWidth(), icons[background][1].GetWidth())
+            height = max(icons[background][0].GetHeight(), icons[background][1].GetHeight())
+            
+            icons[background][0] = fixSize(icons[background][0], width, height)
+            icons[background][1] = fixSize(icons[background][1], width, height)
+            
+        
+        if state not in icons[background]:
+            icons[background][state] = self.__createBitmap(parent, background, type, state)
+        return icons[background][state]
     
     def __createBitmap(self, parent, background, type, state):
         if state == 1:
@@ -354,7 +387,7 @@ class NativeIcon:
         
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
         #Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24,24) 
+        bmp = wx.EmptyBitmap(24,24)
         dc = wx.MemoryDC(bmp)
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
@@ -376,72 +409,149 @@ class NativeIcon:
         bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
         return bmp.GetSubBitmap(bb)
 
-class LinkStaticText(wx.Panel):
+class BetterText(wx.StaticText):
+    def __init__(self, *args, **kwargs):
+        wx.StaticText.__init__(self, *args, **kwargs)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackGround)
+    
+    def OnEraseBackGround(self, event):
+        pass
+    
+    def SetLabel(self, text):
+        if text != self.GetLabel():
+            wx.StaticText.SetLabel(self, text)
+ 
+#Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
+class LinkText(GenStaticText):
+    def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0, parentsizer = None):
+        if parentsizer:
+            self.parentsizer = parentsizer
+        else:
+            self.parentsizer = parent
+
+        GenStaticText.__init__(self, parent, -1, label, style = style)
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND)) 
+        
+        self.SetFonts(fonts)
+        self.SetColours(colours)
+        self.Reset()
+        
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+    
+    def SetFonts(self, fonts):
+        self.fonts = []
+        for font in fonts:
+            if font is None:
+                font = self.GetFont()
+            self.fonts.append(font)
+            
+    def SetColours(self, colours):
+        self.colours = []
+        for colour in colours:
+            if colour is None:
+                colour = self.GetForegroundColour()
+            self.colours.append(colour)
+    
+    def Reset(self):
+        self.SetFontColour(self.fonts[0], self.colours[0])
+    
+    def SetFontColour(self, font, colour):
+        needRefresh = False
+        
+        if self.GetFont() != font:
+            self.SetFont(font)
+            
+            needRefresh = True
+        
+        if self.GetForegroundColour() != colour:
+            self.SetForegroundColour(colour)
+                            
+            needRefresh = True
+        
+        if needRefresh:
+            self.Refresh()
+            self.parentsizer.Layout()
+    
+    def OnMouseEvent(self, event):
+        if event.Moving():
+            self.SetFontColour(self.fonts[1], self.colours[1])
+        elif event.LeftUp() or event.LeftDown():            
+            pass
+        else:
+            self.SetFontColour(self.fonts[0], self.colours[0])
+            
+        event.Skip()
+        
+    def SetBackgroundColour(self, colour):
+        GenStaticText.SetBackgroundColour(self, colour)
+        self.Refresh()
+
+class LinkStaticText(wx.BoxSizer):
     def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
-        wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+        wx.BoxSizer.__init__(self, wx.HORIZONTAL)
+        self.parent = parent
+        
         self.icon_type = icon_type
+        self.icon_align = icon_align
         
         if icon:
-            self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon = wx.StaticBitmap(parent, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
-            self.icon = wx.StaticBitmap(self, bitmap = NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, self.GetBackgroundColour(), state=0))
+            self.icon = wx.StaticBitmap(parent, bitmap = NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
             self.icon = None
 
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-
         if self.icon and icon_align == wx.ALIGN_LEFT:
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-        
-        #Niels: text or url needs to be non-empty, we don't use url thus fixing it to 'url' 
-        self.text = wx.HyperlinkCtrl(self, -1, text, 'url') 
-        self.text.SetNormalColour(font_colour)
-        self.text.SetVisitedColour(font_colour)
-
-        font = self.text.GetFont()
-        font.SetPointSize(font.GetPointSize() + font_increment)
-        self.text.SetFont(font)
-        
-        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
+            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
             
+        normalfont = parent.GetFont()
+        normalfont.SetPointSize(normalfont.GetPointSize() + font_increment)
+        
+        selectedfont = parent.GetFont()
+        selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
+        selectedfont.SetUnderlined(True)
+        
+        self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)], parentsizer = self)
+        self.Add(self.text, 1, wx.ALIGN_CENTER_VERTICAL)
+        
         if self.icon and icon_align == wx.ALIGN_RIGHT:
-            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         
         if self.icon and text == '':
             self.icon.Hide()
         
-        self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-       
         if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
             self.SetBackgroundColour(parent.GetBackgroundColour())
         
     def SetToolTipString(self, tip):
-        wx.Panel.SetToolTipString(self, tip)
         self.text.SetToolTipString(tip)
         if self.icon:
             self.icon.SetToolTipString(tip)
         
     def SetLabel(self, text):
-        if self.icon:
-            self.icon.Show(text != '')
+        if text != self.text.GetLabel():
+            if self.icon:
+                self.icon.Show(text != '')
             
-        self.text.SetLabel(text)
-        self.Layout()
+            self.text.SetLabel(text)
+            if self.icon and self.icon_align == wx.ALIGN_RIGHT:
+                self.text.SetMaxSize((self.text.GetBestSize()[0], -1))    
+            
+            self.Layout()
     
     def GetLabel(self):
         return self.text.GetLabel()
     
     def SetFont(self, font):
         self.text.SetFont(font)
-        
-    def GetFont(self):
-        return self.text.GetFont()
     
     def ShowIcon(self, show = True):
         if self.icon and self.icon.IsShown() != show:
             self.icon.Show(show)
+    
     def IsIconShown(self):
         if self.icon:
             return self.icon.IsShown()
@@ -450,46 +560,42 @@ class LinkStaticText(wx.Panel):
     def SetIconToolTipString(self, tip):
         if self.icon:
             self.icon.SetToolTipString(tip)
+            
+    def SetMinSize(self, minsize):
+        self.text.SetMinSize(minsize)
+        self.Layout()
     
     def HighLight(self, timeout = 2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT, blink=True)
-        self.Refresh()
         wx.CallLater(timeout * 1000, self.Revert)
         
     def Revert(self):
         self.SetBackgroundColour(self.originalColor, blink=True)
-        self.Refresh()
     
     def Blink(self):
         self.HighLight(0.15)
         wx.CallLater(300, self.HighLight, 0.15)
         
-    def Bind(self, event, handler, source=None, id=-1, id2=-1):
-        assert event != wx.EVT_LEFT_DOWN, "Please use wx.EVT_LEFT_UP only"
-        wx.Panel.Bind(self, event, handler, source, id, id2)
+    def SetCursor(self, cursor):
+        if self.icon:
+            self.icon.SetCursor(cursor)
         
+    def Bind(self, event, handler, source=None, id=-1, id2=-1):
         def modified_handler(actual_event, handler=handler):
             actual_event.SetEventObject(self)
             handler(actual_event)
             
-        def text_handler(actual_event, handler=handler):
-            mouse_event = wx.MouseEvent(wx.wxEVT_LEFT_UP)
-            mouse_event.SetEventObject(self)
-            handler(mouse_event)
-            
-        if event == wx.EVT_LEFT_UP:
-            self.text.Bind(wx.EVT_HYPERLINK, text_handler, source, id, id2)
+        self.text.Bind(event, modified_handler, source, id, id2)
         if self.icon:
             self.icon.Bind(event, modified_handler, source, id, id2)
             
     def SetBackgroundColour(self, colour, blink = False):
         if not blink:
             self.originalColor = colour
-        wx.Panel.SetBackgroundColour(self, colour)
         self.text.SetBackgroundColour(colour)
         
         if self.icon and self.icon_type:
-            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.GetParent(), self.icon_type, colour, state=0))
+            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.parent, self.icon_type, colour, state=0))
             self.icon.Refresh()
 
 class ProgressStaticText(wx.Panel):
@@ -633,7 +739,7 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         self.SetToolTipString(tooltip)
         
 class SelectableListCtrl(BetterListCtrl):
-    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER, tooltip = True):
+    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         BetterListCtrl.__init__(self, parent, style, tooltip)
         self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
     

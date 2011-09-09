@@ -236,6 +236,11 @@ class TorrentChecking(Thread):
                         'ignored_times': torrent['ignored_times'],
                         'retried_times': torrent['retried_times']
                     }
+                    
+                # Must come after tracker check, such that if tracker dead and DHT still alive, the
+                # status is still set to good
+                if torrent['status'] == 'dead':
+                    self.mldhtchecker.lookup(torrent['infohash'])
             
                 if DEBUG:
                     print >> sys.stderr, "Torrent Checking: new status:", kw

@@ -21,7 +21,9 @@ class TUDelftReporter(LivingLabPeriodicReporter):
         if events:
             events = [{"name":event.get_name(), "time":event.get_time(), "values":event.get_values()} for event in events]
             data = (time(), self.device_id.encode("HEX"), events)
-            self.post(compress(encode(data)))
+            compressed = compress(encode(data))
+            if DEBUG: print >> sys.stderr, "TUDelftReporter: posting", len(compressed), "bytes payload"
+            self.post(compressed)
         else:
             if DEBUG: print >> sys.stderr, "TUDelftReporter: Nothing to report"
 

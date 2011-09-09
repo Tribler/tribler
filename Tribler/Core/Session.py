@@ -21,10 +21,10 @@ from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeCo
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
 
 # ProxyService 90s Test_
-import time
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
+#import time
 # _ProxyService 90s Test
 
 GOTM2CRYPTO=False
@@ -65,7 +65,7 @@ class Session(SessionRuntimeConfig):
         """
         
         # ProxyService 90s Test_
-        self.start_time = time.time()
+#        self.start_time = time.time()
         # _ProxyService 90s Test
         
         if not ignore_singleton:
@@ -224,13 +224,13 @@ class Session(SessionRuntimeConfig):
         self.lm.start()
         
         # ProxyService 90s Test_
-        sscfg = self.get_current_startup_config_copy()
-        if os.path.isfile(os.path.join(sscfg.get_state_dir(),"Proxy90secondsTestV2")):
-            # The 90s test was already executed
-            self.proxytest_state = False
-        else:
-            # The 90s test was not executed yet
-            self.proxytest_state = True
+ #       sscfg = self.get_current_startup_config_copy()
+ #       if os.path.isfile(os.path.join(sscfg.get_state_dir(),"Proxy90secondsTestV2")):
+ #           # The 90s test was already executed
+ #           self.proxytest_state = False
+ #       else:
+ #           # The 90s test was not executed yet
+ #           self.proxytest_state = True
         # _ProxyService 90s Test
 
     #
@@ -1016,11 +1016,11 @@ class Session(SessionRuntimeConfig):
         return my_services
 
     # ProxyService 90s Test_
-    def set_90stest_state(self, state):
-        self.proxytest_state = state
+#    def set_90stest_state(self, state):
+#        self.proxytest_state = state
 
-    def get_90stest_state(self):
-        return self.proxytest_state
+#    def get_90stest_state(self):
+#        return self.proxytest_state
     # _ProxyService 90s Test
 
     #

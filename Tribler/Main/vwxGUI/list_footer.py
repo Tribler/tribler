@@ -3,6 +3,8 @@ import wx
 from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
 from list_details import AbstractDetails
 
+from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
+
 class ListFooter(wx.Panel):
     def __init__(self, parent, radius = LIST_RADIUS):
         wx.Panel.__init__(self, parent)
@@ -77,7 +79,7 @@ class TitleFooter(ListFooter):
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
         
-        self.title = wx.StaticText(self)
+        self.title = StaticText(self)
         hSizer.Add(self.title)
         
         self.scrollBar = hSizer.AddSpacer((0,0))
@@ -113,7 +115,7 @@ class TotalFooter(TitleFooter):
                 option = 0
                 size = (self.columns[i]['width'],-1)
                  
-            label = wx.StaticText(self, i, '', style = self.columns[i].get('footer_style',0)|wx.ST_NO_AUTORESIZE, size = size)
+            label = StaticText(self, i, '', style = self.columns[i].get('footer_style',0)|wx.ST_NO_AUTORESIZE, size = size)
             hSizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
             
             if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
@@ -126,13 +128,11 @@ class TotalFooter(TitleFooter):
     
     def SetTotal(self, column, total):
         str_data = self.columns[column].get('fmt', str)(total)
-        
-        if str_data != self.totals[column].GetLabel():
-            self.totals[column].SetLabel(str_data)
+        self.totals[column].SetLabel(str_data)
                 
 class ChannelResultFooter(ListFooter):
     def GetMidPanel(self, hSizer):
-        self.message = wx.StaticText(self)
+        self.message = StaticText(self)
         font = self.message.GetFont()
         font.SetPointSize(font.GetPointSize()+2)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -172,7 +172,7 @@ class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):
         self.hSizer = hSizer
         
-        self.message = wx.StaticText(self)
+        self.message = StaticText(self)
         self.message.SetMinSize((1,-1))
         font = self.message.GetFont()
         font.SetPointSize(font.GetPointSize()+2)

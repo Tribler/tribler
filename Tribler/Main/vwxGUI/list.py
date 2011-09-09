@@ -61,10 +61,9 @@ class RemoteSearchManager:
             self.list.SetKeywords(keywords)
         
         def db_callback():
-            [total_items, nrfiltered, new_items, selected_bundle_mode, data_files] = self.torrentsearch_manager.getHitsInCategory()
-            [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
+            total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
+            total_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             return data_files, total_items, nrfiltered, new_items, total_channels, selected_bundle_mode
-
         startWorker(self._on_refresh, db_callback)
 
     def _on_refresh(self, delayedResult):
@@ -100,7 +99,7 @@ class RemoteSearchManager:
             
             torrent_details = item.GetExpandedPanel()
             if torrent_details:
-                torrent_details.ShowPanel(1)
+                torrent_details.DownloadStarted()
             
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
@@ -521,7 +520,10 @@ class List(XRCPanel):
         assert self.ready, "List not ready"
         if self.ready:
             self.list.Select(key, raise_event)
-            
+    
+    def SetFilteredResults(self, nr):
+        pass
+
     def ShouldGuiUpdate(self):
         if not self.IsShownOnScreen():
             return False
@@ -689,6 +691,9 @@ class GenericSearchList(SizeList):
         item = event.GetEventObject().item
         self.Select(item.original_data.infohash)
         self.StartDownload(item.original_data)
+        
+        button = event.GetEventObject()
+        button.Enable(False)
     
     def toggleFamilyFilter(self):
         self.guiutility.toggleFamilyFilter()
@@ -756,13 +761,19 @@ class GenericSearchList(SizeList):
                 
                 # check whether the individual hit is in a bundle
                 key = self.infohash2key.get(key, key)
-            
+        
             # Update primary columns with new data
             data = (head.infohash, [head.name, head.length, 0, 0], original_data)
             self.list.RefreshData(key, data)
             
     def SetFilteredResults(self, nr):
         self.header.SetFiltered(nr)
+
+    def OnFilter(self, keyword):
+        def doFilter():
+            self.header.FilterCorrect(self.list.FilterItems(keyword))
+        #Niels: use callafter due to the filteritems method being slow and halting the events
+        wx.CallAfter(doFilter)
         
     def OnExpand(self, item):
         item.button.Hide()
@@ -812,12 +823,10 @@ class SearchList(GenericSearchList):
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
-                   #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
-                   #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
-                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+                   {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -825,7 +834,7 @@ class SearchList(GenericSearchList):
         sizer.Add(self.header, 0, wx.EXPAND)
         
         list = wx.Panel(self)
-        self.subheader = ListHeader(list, self, self.columns, radius = 0)
+        self.subheader = ListHeader(list, self, self.columns, radius = 0, spacers=[7,7])
         self.sidebar = SearchSideBar(self, size=(200,-1))
         self.leftLine = self.sidebar
         self.rightLine = wx.Panel(self, size=(1,-1))
@@ -851,7 +860,6 @@ class SearchList(GenericSearchList):
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
-        #self.header.SetFiltered = self.sidebar.SetFiltered
         self.header.SetFF = self.sidebar.SetFF
         
         self.SetBackgroundColour(self.background)
@@ -872,8 +880,8 @@ class SearchList(GenericSearchList):
     def CreateFooter(self, parent):
         footer = ChannelResultFooter(parent)
         footer.SetEvents(self.OnChannelResults)
-        return footer 
-    
+        return footer
+
     def SetSelectedBundleMode(self, selected_bundle_mode):
         self.sidebar.SetSelectedBundleMode(selected_bundle_mode)
     
@@ -988,7 +996,6 @@ class LibaryList(SizeList):
                    {'type':'method', 'name':'Connections', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateConnections, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
-        
      
         List.__init__(self, columns, LIST_GREY, [7,7], True)
         
@@ -1159,19 +1166,13 @@ class LibaryList(SizeList):
                 totals[4] = totals[4] + item.data[4]
                 
                 nr_connections = str(item.data[2][0] + item.data[2][1])
-                if item.connections.GetLabel() != nr_connections:
-                    item.connections.SetLabel(nr_connections)
-                    item.connections.Refresh()
+                item.connections.SetLabel(nr_connections)
                 
                 down = self.utility.speed_format_new(item.data[3])
-                if item.down.GetLabel() != down:
-                    item.down.SetLabel(down)
-                    item.down.Refresh()
+                item.down.SetLabel(down)
                 
                 up = self.utility.speed_format_new(item.data[4])
-                if item.up.GetLabel() != up:
-                    item.up.SetLabel(up)
-                    item.up.Refresh()
+                item.up.SetLabel(up)
                 
                 if ds:
                     item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))
@@ -1420,10 +1421,10 @@ class ChannelList(List):
             
         elif self.title.startswith('Search results'):
             self.header.ShowSortedBy(3)
-            
+
         else:
             self.header.ShowSortedBy(2)
-        
+
         self.header.Refresh()
 
     def SetMyChannelId(self, channel_id):
@@ -1432,7 +1433,7 @@ class ChannelList(List):
         #to reset icons we have to reset the complete list :(
         self.list.Reset()        
         self.GetManager().refresh()
-   
+
     def Reset(self):
         List.Reset(self)
         

@@ -84,7 +84,7 @@ NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
 NTFY_PROXYDOWNLOADER = "proxydownloader" # the proxydownloader object was created
 NTFY_PROXYDISCOVERY= "proxydiscovery" # a new proxy was discovered
 # ProxyService 90s Test_
-NTFY_GUI_STARTED = "guistarted"
+#NTFY_GUI_STARTED = "guistarted"
 # _ProxyService 90s Test
 NTFY_DISPERSY = 'dispersy'     # an notification regarding dispersy
 

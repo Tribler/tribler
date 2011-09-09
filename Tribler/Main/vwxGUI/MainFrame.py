@@ -251,9 +251,9 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self.startCMDLineTorrent)
         
         # ProxyService 90s Test_
-        from Tribler.Core.Session import Session
-        session = Session.get_instance()
-        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
+#        from Tribler.Core.Session import Session
+#        session = Session.get_instance()
+#        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
         # _ProxyService 90s Test
         
     def startCMDLineTorrent(self):
@@ -263,7 +263,6 @@ class MainFrame(wx.Frame):
             else:
                 torrentfilename = self.params[0]
                 self.startDownload(torrentfilename,cmdline=True)
-            self.guiUtility.standardLibraryOverview(refresh=True)
 
     def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
@@ -320,9 +319,9 @@ class MainFrame(wx.Frame):
                     dscfg.set_dest_dir(destdir)
             
                 # ProxyService 90s Test_
-                if doemode is not None:
-                    dscfg.set_doe_mode(doemode)
-                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
+#                if doemode is not None:
+#                    dscfg.set_doe_mode(doemode)
+#                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
                 # _ProxyService 90s Test
             
                 videofiles = tdef.get_files(exts=videoextdefaults)

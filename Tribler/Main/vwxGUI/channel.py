@@ -124,7 +124,7 @@ class SelectedChannelList(GenericSearchList):
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
                    {'name':'Size', 'width':  '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
-                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+                   {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, borders = False, showChange = True)
         

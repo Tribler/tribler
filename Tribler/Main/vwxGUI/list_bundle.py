@@ -10,15 +10,16 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterText as StaticText
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
 
 DEBUG = False
 
-BUNDLE_FONT_SIZE_DECREMENT = 1 # TODO: on my machine this results in fontsize 7, a bit too small I think? 
+BUNDLE_FONT_SIZE_DECREMENT = 0 
 BUNDLE_FONT_COLOR = (50,50,50)
+BUNDLE_GRID_COLLAPSE = 800
 
 BUNDLE_NUM_COLS = 2
 BUNDLE_NUM_ROWS = 3
@@ -132,16 +133,29 @@ class BundleListItem(ListItem):
                 panel.Layout()
     
     def BackgroundColor(self, color):
-        ListItem.BackgroundColor(self, color)
-        self.bundlepanel.SetBackgroundColour(color)
+        if self.GetBackgroundColour() != color:
+            self.Freeze()
+            
+            ListItem.BackgroundColor(self, color)
+            self.bundlepanel.SetBackgroundColour(color)
+            
+            self.Thaw()
+        
+    def OnChange(self, scrollToTop = False):
+        self.Layout()
+        self.parent_list.OnChange(scrollToTop)
         
     def AddEvents(self, control):
         if isinstance(control, LinkStaticText):
             control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         else:
             ListItem.AddEvents(self, control)
+            
+    def OnEventSize(self, width):
+        ListItem.OnEventSize(self, width)
+        return self.bundlepanel.OnEventSize(width)
 
-class BundlePanel(wx.Panel):
+class BundlePanel(wx.BoxSizer):
     
     COLLAPSED, PARTIAL, FULL = range(3)
     
@@ -157,12 +171,20 @@ class BundlePanel(wx.Panel):
             icons['info'] = wx.Bitmap(os.path.join(base_path, "info.png"), wx.BITMAP_TYPE_ANY)
     
     def __init__(self, parent, parent_list, hits, general_description = None, description = None, font_increment=0):
-        wx.Panel.__init__(self, parent)
+        wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         
         # preload icons
         self.load_icons()
+        
+        self.parent = parent
         self.parent_listitem = parent
         self.parent_list = parent_list
+        
+        listbody_width = parent_list.GetSize()[0] 
+        if listbody_width < BUNDLE_GRID_COLLAPSE:
+            self.num_cols = 1
+        else:
+            self.num_cols = BUNDLE_NUM_COLS
         
         # logging
         self.guiutility = GUIUtility.getInstance()
@@ -177,25 +199,22 @@ class BundlePanel(wx.Panel):
         
         self.SetBackgroundColour(wx.WHITE)
         
-        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 #width of icon + 3px left spacer + 3px right spacer
-        grid_indent = 14 + self.indent
+        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
         
         self.AddHeader()
-        self.AddGrid(grid_indent)
+        self.AddGrid()
         
         self.SetHits(hits)
         self.UpdateHeader(general_description, description)
         
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.AddSpacer((self.indent, -1))
-        sizer.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
-        self.SetSizer(sizer)
+        self.AddSpacer((self.indent, -1))
+        self.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
     
     def AddHeader(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.header = wx.StaticText(self, -1, ' ')
-        self.info_icon = wx.StaticBitmap(self, -1, self.icons['info'])
+        self.header = StaticText(self.parent, -1, ' ')
+        self.info_icon = wx.StaticBitmap(self.parent, -1, self.icons['info'])
 
         sizer.Add(self.header, 0, wx.RIGHT, 7)
         sizer.Add(self.info_icon, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -205,8 +224,8 @@ class BundlePanel(wx.Panel):
         self.SetGeneralDescription(general_description)
         self.SetDescription(description)
     
-    def AddGrid(self, indent):
-        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, BUNDLE_NUM_COLS, 3, 7)
+    def AddGrid(self):
+        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
         self.grid.SetMinSize((1,-1))
@@ -214,9 +233,39 @@ class BundlePanel(wx.Panel):
         for i in xrange(BUNDLE_NUM_ROWS):
             self.grid.AddGrowableRow(i, 1)
         
-        for j in xrange(BUNDLE_NUM_COLS):
+        for j in xrange(self.num_cols):
             self.grid.AddGrowableCol(j, 1)
-        self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, indent)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14 + self.indent)
+        
+    def RebuildGrid(self, new_cols):
+        if self.num_cols != new_cols:
+            self.num_cols = new_cols
+            
+            children = self.grid.GetChildren()
+            children_controls = []
+            for child in children:
+                children_controls.append(child.GetWindow() or child.GetSizer())
+                
+            for child in children_controls:
+                self.grid.Detach(child)
+            
+            self.vsizer.Detach(self.grid)
+            self.grid.Destroy()
+            
+            self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
+            for child in children_controls:
+                self.grid.Add(child, 0, wx.EXPAND)
+                
+            for j in xrange(self.num_cols):
+                self.grid.AddGrowableCol(j, 1)
+                
+            self.vsizer.Add(self.grid, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 14 + self.indent)
+            
+            self.Layout()
+            self.parent_listitem.Layout()
+            
+            return True
+        return False
     
     def UpdateGrid(self, hits):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
@@ -224,7 +273,7 @@ class BundlePanel(wx.Panel):
         if self.nrhits > N:
             items_to_add -= 1
 
-        self.Freeze()
+        self.parent.Freeze()
         children = self.grid.GetChildren()
         didChange = len(children) < min(N, self.nrhits)
         if not didChange:
@@ -234,10 +283,9 @@ class BundlePanel(wx.Panel):
             #total nr items did not change
             for i in range(min(len(children), items_to_add)):
                 link_static_text = children[i].GetWindow()
-                if link_static_text and getattr(link_static_text, 'GetLabel', False):
-                    if hits[i].name != link_static_text.GetLabel():
-                        link_static_text.SetLabel(hits[i].name)
-                        link_static_text.action = hits[i]
+                if link_static_text and getattr(link_static_text, 'SetLabel', False):
+                    link_static_text.SetLabel(hits[i].name)
+                    link_static_text.action = hits[i]
                 else:
                     didChange = True
                     break
@@ -245,11 +293,10 @@ class BundlePanel(wx.Panel):
             if self.nrhits > N:
                 more_caption = '(%s more...)' % (self.nrhits - N + 1)
                 link_static_text = children[i+1].GetWindow()
-                if link_static_text and getattr(link_static_text, 'GetLabel', False):
-                    if link_static_text.GetLabel() != more_caption:
-                        link_static_text.SetLabel(more_caption)
-                        link_static_text.Unbind(wx.EVT_LEFT_UP)
-                        link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
+                if link_static_text and getattr(link_static_text, 'SetLabel', False):
+                    link_static_text.SetLabel(more_caption)
+                    link_static_text.Unbind(wx.EVT_LEFT_UP)
+                    link_static_text.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
                 else:
                     didChange = True
 
@@ -259,7 +306,7 @@ class BundlePanel(wx.Panel):
             for i in range(items_to_add):
                 hit = hits[i] 
     
-                new_text = LinkStaticText(self, hit.name, icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                new_text = LinkStaticText(self.parent, hit.name, icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
                 new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
                 new_text.SetMinSize((1,-1))
                 new_text.action = hit
@@ -268,7 +315,7 @@ class BundlePanel(wx.Panel):
             if self.nrhits > N:
                 caption = '(%s more...)' % (self.nrhits - N + 1)
                 
-                more_label = LinkStaticText(self, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                more_label = LinkStaticText(self.parent, caption, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
                 more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
                 self.grid.Add(more_label, 0, wx.EXPAND)
                 
@@ -277,7 +324,13 @@ class BundlePanel(wx.Panel):
             if self.state != self.COLLAPSED:
                 self.ShowGrid(False)
                     
-        self.Thaw()
+        self.parent.Thaw()
+        
+    def OnEventSize(self, width):
+        if width < BUNDLE_GRID_COLLAPSE:
+            return self.RebuildGrid(1)
+        
+        return self.RebuildGrid(BUNDLE_NUM_COLS)
     
     def ShowGrid(self, show):
         if show:
@@ -297,7 +350,7 @@ class BundlePanel(wx.Panel):
             if len(self.hits) != BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS:
                 max_list -= 1
             
-            self.bundlelist = BundleListView(parent = self, list_item_max = max_list)
+            self.bundlelist = BundleListView(parent = self.parent, list_item_max = max_list)
             self.vsizer.Add(self.bundlelist, 0, wx.EXPAND|wx.BOTTOM, self.indent - 7) #a 7px spacer is already present 
             
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
@@ -309,11 +362,6 @@ class BundlePanel(wx.Panel):
             self.bundlelist.Show(False)
             self.bundlelist.Destroy()
             self.bundlelist = None
-        
-    def OnChange(self, scrollToTop = False):
-        self.Layout()
-        self.parent_listitem.Layout()
-        self.parent_list.OnChange(scrollToTop)
     
     def CollapseExpandedItem(self):
         if self.state != BundlePanel.COLLAPSED:
@@ -379,8 +427,9 @@ class BundlePanel(wx.Panel):
             # Reason for non-persistence (for now) is least-surprise.
             # If the user collapses a bundled listitem, the previously 
             # clicked item is still at the same location.
-            self.hits.remove(action)
-            self.hits.insert(0, action)
+            if action in self.hits:
+                self.hits.remove(action)
+                self.hits.insert(0, action)
         
             self.ChangeState(BundlePanel.PARTIAL)
             self.ExpandHit(action)
@@ -401,18 +450,15 @@ class BundlePanel(wx.Panel):
         self.guiutility.frame.guiserver.add_task(db_callback)
     
     def ExpandAndHideParent(self):
-        listitem = self.GetParent()
+        self.parent.Freeze()
         
-        listitem.Freeze()
-        
-        if not listitem.expanded:
+        if not self.parent_listitem.expanded:
             # Make sure the listitem is marked as expanded
-            listitem.OnClick()
+            self.parent_listitem.OnClick()
         
         # but hide the panel
-        listitem.ShowExpandedPanel(False)
-        
-        listitem.Thaw()
+        self.parent_listitem.ShowExpandedPanel(False)
+        self.parent.Thaw()
     
     #Called from GUI to get expanded torrentdetails panel
     def GetExpandedPanel(self):
@@ -422,14 +468,14 @@ class BundlePanel(wx.Panel):
                 return item.GetExpandedPanel()
             
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, colour)
-        
+        self.parent.Freeze()
         if getattr(self, 'grid', False):
             for sizeritem in self.grid.GetChildren():
-                if sizeritem.IsWindow():
-                    child = sizeritem.GetWindow()
-                    if isinstance(child, wx.Panel):
-                        child.SetBackgroundColour(colour)
+                child = sizeritem.GetWindow() or sizeritem.GetSizer()
+                if child and getattr(child, 'SetBackgroundColour', False): 
+                    child.SetBackgroundColour(colour)
+                        
+        self.parent.Thaw()
     
 class BundleListView(GenericSearchList):
     
@@ -438,9 +484,9 @@ class BundleListView(GenericSearchList):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
-                   {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
+                   {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [3,0], True, showChange = True, parent=parent)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, showChange = True, parent=parent)
     
     def CreateHeader(self, parent):
         # Normally, the column-widths are fixed during this phase
@@ -456,12 +502,14 @@ class BundleListView(GenericSearchList):
     
     def OnExpand(self, item):
         # Keep only one panel open at all times, thus we make sure the parent is closed
-        bundlepanel = self.parent
-        bundlepanel.parent_listitem.ShowExpandedPanel(False)
+        self.parent.ShowExpandedPanel(False)
         
         return TorrentDetails(item, item.original_data, compact = True)
     
     def OnCollapseInternal(self, item):
+        pass
+    
+    def SetFilteredResults(self, nr):
         pass
     
     def OnChange(self, scrollToTop = False):

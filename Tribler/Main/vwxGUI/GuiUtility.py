@@ -226,6 +226,7 @@ class GUIUtility:
                     self.ShowPlayer(False)
             
             self.guiPage = page
+            self.frame.top_bg.selectTab(page)
             
             self.frame.Layout()
             self.frame.Thaw()
@@ -295,18 +296,22 @@ class GUIUtility:
                 
         else:
             wantkeywords = split_into_keywords(input)
+            wantkeywords = [keyword for keyword in wantkeywords if len(keyword) > 1]
             safekeywords = ' '.join(wantkeywords)
+            
             if len(safekeywords)  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
             else:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = wantkeywords
                 if DEBUG:
-                    print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
+                    print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords, time()
                 
-                self.frame.searchlist.Freeze()
+                self.frame.searchlist.Freeze()         
                 self.ShowPage('search_results', safekeywords)
-                self.frame.searchlist.Thaw()
+                
+                #We now have to call thaw, otherwise loading message will not be shown.
+                self.frame.searchlist.Thaw()                
                 
                 #Peform local search
                 self.torrentsearch_manager.setSearchKeywords(wantkeywords)

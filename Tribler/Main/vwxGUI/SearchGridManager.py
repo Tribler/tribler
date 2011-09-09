@@ -36,7 +36,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from collections import namedtuple
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
-    Comment, Modification, Channel
+    Comment, Modification, Channel, RemoteChannel
 import threading
 
 DEBUG = False
@@ -301,7 +301,7 @@ class TorrentManager:
         bundle_mode = self.bundle_mode
         
         if DEBUG:
-            print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:", categorykey, range
+            print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:", categorykey
         
         enabled_category_keys = [key.lower() for key in self.category.getCategoryKeys()]
         enabled_category_ids = set()
@@ -359,22 +359,27 @@ class TorrentManager:
         if DEBUG:
             beginsort = time()
         
-        if sort == 'rameezmetric':
-            self.sort()
-
-        self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
-                                                        self.pref_db, self.mypref_db, self.search_db)
-        
         # boudewijn: now that we have sorted the search results we
         # want to prefetch the top N torrents.
-        self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
+        if new_local_hits or new_remote_hits:
+            if sort == 'rameezmetric':
+                self.sort()
+
+            self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
+                                                        self.pref_db, self.mypref_db, self.search_db)
+            
+            self.hits = self.library_manager.addDownloadStates(self.hits)
+            
+            self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
 
         if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s' % ((time() - begintime), (time() - beginsort))
-        self.hits = self.library_manager.addDownloadStates(self.hits)
-        
+            beginbundle = time()
+
         # Niels: important, we should not change self.hits otherwise prefetching will not work 
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
+
+        if DEBUG:
+            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
         
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
@@ -465,9 +470,7 @@ class TorrentManager:
             
             def create_channel(a):
                 if a['channel_id']:
-                    channel = Channel(a['channel_id'], -1, a['channel_name'], '', 0, a['subscriptions'], a['neg_votes'], 0, 0, a['channel_id'] == self.channelcast_db._channel_id)
-                    channel.searchManager = self.guiUtility.channelsearch_manager
-                    return channel
+                    return Channel(a['channel_id'], -1, a['channel_name'], '', 0, a['subscriptions'], a['neg_votes'], 0, 0, a['channel_id'] == self.channelcast_db._channel_id)
                 return False
             
             def create_torrent(a):
@@ -502,11 +505,15 @@ class TorrentManager:
                                     
                                     #Maybe update channel?
                                     if remoteItem['channel_permid'] != "" and remoteItem['channel_name'] != "":
-                                        this_rating = remoteItem['subscriptions'] - remoteItem['neg_votes']
-                                        current_rating = item.channel.nr_favorites - item.channel.nr_spam
+                                        if item.hasChannel():
+                                            this_rating = remoteItem['subscriptions'] - remoteItem['neg_votes']
+                                            current_rating = item.channel.nr_favorites - item.channel.nr_spam
+                                            updateChannel = this_rating > current_rating
+                                        else:
+                                            updateChannel = True 
                                         
-                                        if this_rating > current_rating:
-                                            item.updateChannel(remoteItem['channel_permid'], remoteItem['channel_name'], remoteItem['subscriptions'], remoteItem['neg_votes'])
+                                        if updateChannel:
+                                            item.updateChannel(RemoteChannel(remoteItem['channel_id'], remoteItem['channel_permid'], remoteItem['channel_name'], remoteItem['subscriptions'], remoteItem['neg_votes']))
                                     
                                     hitsUpdated = True
                                 known = True
@@ -536,7 +543,7 @@ class TorrentManager:
         """
         if self.searchkeywords == kws:
             startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
-        
+       
     def _gotRemoteHits(self, permid, kws, answers):
         refreshGrid = False
         try:
@@ -676,7 +683,7 @@ class TorrentManager:
         
         tot = 0
         for hit in hits:
-            tot += hit.get(normKey, 0)
+            tot += (hit.get(normKey, 0) or 0)
         
         if len(hits) > 0:
             mean = tot/len(hits)
@@ -685,7 +692,7 @@ class TorrentManager:
         
         sum = 0
         for hit in hits:
-            temp = hit.get(normKey,0) - mean
+            temp = (hit.get(normKey, 0) or 0) - mean
             temp = temp * temp
             sum += temp
         
@@ -699,7 +706,7 @@ class TorrentManager:
         return_dict = {}
         for hit in hits:
             if stdDev > 0:
-                return_dict[hit.infohash] = (hit.get(normKey,0) - mean)/ stdDev
+                return_dict[hit.infohash] = ((hit.get(normKey, 0) or 0) - mean)/ stdDev
             else:
                 return_dict[hit.infohash] = 0
         return return_dict
@@ -1024,15 +1031,12 @@ class ChannelSearchGridManager:
         return len(lchannels), self._createChannels(lchannels)
     
     def _createChannel(self, hit):
-        channel = Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
-        channel.searchManager = self
-        return channel
+        return Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
     
     def _createChannels(self, hits):
         channels = []
         for hit in hits:
             channel = Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
-            channel.searchManager = self
             channels.append(channel)
             
         return channels
@@ -1173,8 +1177,10 @@ class ChannelSearchGridManager:
         # 1. get the dispersy identifier from the channel_id
         dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
         dispersy_cid = str(dispersy_cid)
-        
-        # 2. get the community instance from the 20 byte identifier
+
+        return self._disp_get_community_from_cid(dispersy_cid)
+    
+    def _disp_get_community_from_cid(self, dispersy_cid):
         try:
             community = self.dispersy.get_community(dispersy_cid)
         except KeyError:

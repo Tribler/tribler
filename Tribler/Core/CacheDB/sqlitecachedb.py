@@ -1598,6 +1598,34 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             if DEBUG:
                 dbg_ts2 = time()
                 print >>sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2-dbg_ts1)
+                
+        if fromver < 8:
+            if DEBUG:
+                print >> sys.stderr, "STARTING UPGRADE"
+                import time
+                t1 = time.time()
+                
+            from Tribler.Core.Search.SearchManager import split_into_keywords
+            
+            #due to a bug, we have to insert all keywords with a length of 2
+            sql = "SELECT torrent_id, name FROM CollectedTorrent"
+            records = self.fetchall(sql)
+
+            values = []
+            for torrent_id, name in records:
+                keywords = set(split_into_keywords(name))
+                
+                
+                for keyword in keywords:
+                    if len(keyword) == 2:
+                        values.append((keyword, torrent_id))
+            
+            if DEBUG:
+                t2 = time.time()
+            
+            self.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values, commit=True)
+            if DEBUG:
+                print >> sys.stderr, "INSERTING NEW KEYWORDS TOOK", time.time() - t1, "INSERTING took", time.time() - t2
         
         if fromver < 9:
             from Tribler.Core.Session import Session
@@ -1651,7 +1679,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.executemany(insert_channel, to_be_inserted)
             
             to_be_inserted = []
-            
+
             #insert torrents
             for publisher_id, peer_id in permid_peerid.iteritems():
                 torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
@@ -1824,34 +1852,113 @@ class SQLiteCacheDB(SQLiteCacheDBV5):
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
         
-class SQLiteNoCacheDB(SQLiteCacheDB):
+class SQLiteNoCacheDB(SQLiteCacheDBV5):
+    __single = None
+    DEBUG = False
+    @classmethod
+    def getInstance(cls, *args, **kw):
+        # Singleton pattern with double-checking to ensure that it can only create one object
+        if cls.__single is None:
+            cls.lock.acquire()   
+            try:
+                if cls.__single is None:
+                    cls.__single = cls(*args, **kw)
+                    #print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
+            finally:
+                cls.lock.release()
+        return cls.__single
     
-    def __init__(self, *args, **kwargs):
-        SQLiteCacheDB.__init__(self, *args, **kwargs)
-        self._execute("BEGIN")
-    
-    def commit(self):
-        self._execute("COMMIT")
-        self._execute("BEGIN")
+    def __init__(self, *args, **kargs):
+        # always use getInstance() to create this object
+        if self.__single != None:
+            raise RuntimeError, "SQLiteCacheDB is singleton"
+        SQLiteCacheDBBase.__init__(self, *args, **kargs)
         
-    def executemany(self, sql, args, commit=True):
-        self._transaction(sql, args)
+        db = SQLiteCacheDB.getInstance()
+        self.class_variables = db.class_variables
+        self.shouldCommit = False
+
+    def commit(self):
+        if self.shouldCommit:
+            self._execute("COMMIT")
+            self.shouldCommit = False
+    
+    def execute_write(self, sql, args=None, commit=True):
+        if not self.shouldCommit:
+            sql = "BEGIN;"+sql
+            
+        self._execute(sql, args)
         
         if commit:
             self.commit()
+        else:
+            self.shouldCommit = True
+    
+    def executemany(self, sql, args, commit=True):
+        if not self.shouldCommit:
+            self._execute("BEGIN;")
+        
+        self._executemany(sql, args)
+        
+        if commit:
+            self.commit()
+            
+        else:
+            self.shouldCommit = True
     
     def cache_transaction(self, sql, args=None):
-        self._transaction(sql, args)
+        raise DeprecationWarning('Please do not use cache_transaction')
     
     def transaction(self, sql=None, args=None):
-        self._transaction(sql, args)
+        raise DeprecationWarning('Please do not use transaction')
             
     def _transaction(self, sql, args=None):
-        if sql:
-            try:
-                self._execute(sql, args)
-            except Exception,e:
-                self.commit_retry_if_busy_or_rollback(e,0,sql=sql)
+        raise DeprecationWarning('Please do not use _transaction')
+                
+    def _execute(self, sql, args=None):    
+        cur = self.getCursor()
+
+        if SHOW_ALL_EXECUTE or self.show_execute:
+            thread_name = threading.currentThread().getName()
+            print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+            
+        try:
+            if args is None:
+                return cur.execute(sql)
+            else:
+                return cur.execute(sql, args)
+            
+        except Exception, msg:
+            if DEBUG:
+                print_exc()
+                print_stack()
+                print >> sys.stderr, "cachedb: execute error:", Exception, msg 
+                thread_name = threading.currentThread().getName()
+                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+            raise msg
+    
+    def _executemany(self, sql, args=None):    
+        cur = self.getCursor()
+
+        if SHOW_ALL_EXECUTE or self.show_execute:
+            thread_name = threading.currentThread().getName()
+            print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+            
+        try:
+            if args is None:
+                return cur.executemany(sql)
+            else:
+                return cur.executemany(sql, args)
+            
+        except Exception, msg:
+            if DEBUG:
+                print_exc()
+                print_stack()
+                print >> sys.stderr, "cachedb: execute error:", Exception, msg 
+                
+                thread_name = threading.currentThread().getName()
+                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+            raise msg
     
 if __name__ == '__main__':
     configure_dir = sys.argv[1]

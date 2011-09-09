@@ -1559,16 +1559,16 @@ class BuddyCastCore:
                         self.proxy_peer_handler(peer_permid)
                 
                 # ProxyService 90s Test_
-                session = Session.get_instance()
-                if session.get_90stest_state():
-                    # 90s test is active. Going to log BuddyCast messages
-                    from Tribler.Core.Statistics.Status.Status import get_status_holder
-                    if new_peer_data['services'] == 2:
-                        status = get_status_holder("Proxy90secondsTest")
-                        status.create_and_add_event("discovered-active-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
-                    else:
-                        status = get_status_holder("Proxy90secondsTest")
-                        status.create_and_add_event("discovered-inactive-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
+#                session = Session.get_instance()
+#                if session.get_90stest_state():
+#                    # 90s test is active. Going to log BuddyCast messages
+#                    from Tribler.Core.Statistics.Status.Status import get_status_holder
+#                    if new_peer_data['services'] == 2:
+#                        status = get_status_holder("Proxy90secondsTest")
+#                        status.create_and_add_event("discovered-active-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
+#                    else:
+#                        status = get_status_holder("Proxy90secondsTest")
+#                        status.create_and_add_event("discovered-inactive-proxy", [show_permid_short(peer_permid), new_peer_data['ip'], show_permid_short(buddycast_data['permid']), buddycast_data['ip']])
                 # _ProxyService 90s Test
             #
             # _ProxyService

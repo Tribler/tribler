@@ -46,6 +46,9 @@ class TopSearchPanel(bgPanel):
                   
         self.selectTab('search_results')
         self.results.SetValue(True)
+        
+        if getattr(self.searchField, 'ShowDropDown', False):
+            self.searchField.ShowDropDown(False)
     
     def OnResults(self, event):
         self._selectPage('search_results')
@@ -91,9 +94,7 @@ class TopSearchPanel(bgPanel):
     
     def _selectPage(self, page):
         if self.guiUtility.guiPage != page:
-            wx.CallAfter(self.guiUtility.ShowPage, page)
-            
-        self.selectTab(page)
+            self.guiUtility.ShowPage(page)
         
     def selectTab(self, tab):
         self.Freeze()

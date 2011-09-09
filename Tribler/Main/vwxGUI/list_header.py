@@ -1,6 +1,6 @@
 # Written by Niels Zeilemaker
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
-    NativeIcon
+    NativeIcon, LinkText, BetterText as StaticText
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -54,7 +54,7 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, parent_list, columns, radius = LIST_RADIUS):
+    def __init__(self, parent, parent_list, columns, radius = LIST_RADIUS, spacers = [0,0]):
         wx.Panel.__init__(self, parent)
         self.parent_list = parent_list
         self.columnHeaders = []
@@ -68,34 +68,39 @@ class ListHeader(wx.Panel):
         
         self.scrollBar = None
 
-        self.AddComponents(columns)
+        self.AddComponents(columns, spacers)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnResize)
 
-    def AddComponents(self, columns):
+    def AddComponents(self, columns, spacers):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        if self.radius > 0:
-            hSizer.AddSpacer((self.radius,10))
+        if self.radius+spacers[0] > 0:
+            hSizer.AddSpacer((self.radius + spacers[0],10))
             
         self.AddColumns(hSizer, self, columns)
         
-        if self.radius > 0:
-            hSizer.AddSpacer((self.radius,10))
+        if self.radius+spacers[1] > 0:
+            hSizer.AddSpacer((self.radius+spacers[1],10))
         
         self.SetSizer(hSizer)
         
     def AddColumns(self, sizer, parent, columns):
+        selectedfont = self.GetFont()
+        selectedfont.SetUnderlined(True)
+        
         self.columnHeaders = []
         
         if len(columns) > 0:
             down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
             for i in xrange(len(columns)):
                 if columns[i].get('name', '') != '':
-                    label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
-                    label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                    label = LinkText(parent, columns[i]['name'], fonts = [None, selectedfont], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE, parentsizer = sizer)
                     label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
-                    label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                    label.SetBackgroundColour(self.GetBackgroundColour())
+                    label.column = i
+                    label.Bind(wx.EVT_LEFT_UP, self.OnClick)
+                    
                     sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
 
                     if columns[i].get('defaultSorted', False):
@@ -143,7 +148,7 @@ class ListHeader(wx.Panel):
         if isinstance(item, wx.Window):
             if item.GetSize()[0] != width:
                 if getattr(item, 'sortIcon', False):
-                    width -= (item.sortIcon.GetWidth() + 3)
+                    width -= (item.sortIcon.GetSize()[0] + 3)
                 item.SetMinSize((width, -1))
                 changed = True
         elif item.GetSpacer()[0] != width:
@@ -157,53 +162,10 @@ class ListHeader(wx.Panel):
                 self.scrollBar.SetSpacer((right, 0))
                 self.scrollBar.sizer.Layout()
     
-    def OnMouse(self, event):
-        if event.Entering() or event.Moving():
-            label = event.GetEventObject()
-            if not getattr(label, 'selected', False):
-                font = label.GetFont()
-                
-                #Niels: Underline not working on Linux, using italic instead
-                if sys.platform == 'linux2': 
-                    font.SetStyle(wx.ITALIC)
-                else:
-                    font.SetUnderlined(True)
-                label.SetFont(font)
-                
-                label.selected = True
-                
-                for column in self.columnHeaders:
-                    if column != label and isinstance(column, wx.StaticText):
-                        column.selected = False
-                        font = column.GetFont()
-                        if sys.platform == 'linux2':
-                            font.SetStyle(wx.NORMAL)
-                        else:
-                            font.SetUnderlined(False)
-                        column.SetFont(font)
-                
-        elif event.Leaving():
-            label = event.GetEventObject()
-            if getattr(label, 'selected', False):
-                font = label.GetFont()
-                
-                if sys.platform == 'linux2':
-                    font.SetStyle(wx.NORMAL)
-                else:
-                    font.SetUnderlined(False)
-                label.SetFont(font)
-                
-                label.selected = False
-        
-        elif event.LeftUp():
-            self.OnClick(event)
-            
-        event.Skip() #Allow for windows button hovering
-    
     def OnClick(self, event):
-        newColumn = event.Id
+        newColumn = event.GetEventObject().column
         
-        if event.Id == self.sortedColumn:
+        if newColumn == self.sortedColumn:
             newDirection = not self.sortedDirection
             
             if newDirection == self.columns[newColumn].get('sortAsc', False): #back to default, treat as off
@@ -265,6 +227,9 @@ class ListHeader(wx.Panel):
                 else:
                     bitmap.SetBitmap(empty)
                 bitmap.Refresh()
+                
+            if getattr(self.columnHeaders[i], 'SetBackgroundColour', False):
+                self.columnHeaders[i].SetBackgroundColour(colour)
         return wx.Panel.SetBackgroundColour(self, colour)
     
     def OnPaint(self, event):
@@ -285,16 +250,16 @@ class ListHeader(wx.Panel):
         event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius = LIST_RADIUS):
+    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=LIST_RADIUS):
         self.font_increment = font_increment
         self.fontweight = fontweight
         ListHeader.__init__(self, parent, parent_list, columns, radius = radius)
     
-    def AddComponents(self, columns):
+    def AddComponents(self, columns, spacers):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddSpacer((-1, 3))
         
-        self.title = wx.StaticText(self)
+        self.title = StaticText(self)
         font = self.title.GetFont()
         font.SetPointSize(font.GetPointSize() + self.font_increment)
         font.SetWeight(self.fontweight)
@@ -404,7 +369,7 @@ class SearchHeaderHelper():
 
 class SubTitleHeader(TitleHeader):
     def GetSubTitlePanel(self, parent):
-        self.subtitle = wx.StaticText(parent)
+        self.subtitle = StaticText(parent)
         return self.subtitle
 
     def SetSubTitle(self, subtitle):
@@ -484,7 +449,7 @@ class FamilyFilterHeader(TitleHeader):
     def GetSubTitlePanel(self, parent):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.ff = wx.StaticText(parent)
+        self.ff = StaticText(parent)
         self.ffbutton = LinkStaticText(parent, '', None)
         self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
         self._SetLabels()
@@ -499,7 +464,7 @@ class FamilyFilterHeader(TitleHeader):
         
         self._SetLabels()
         
-    def SetFiltered(self, nr):
+    def SetFamilyFiltered(self, nr):
         self.nrfiltered = nr
         self._SetLabels()
     
@@ -549,7 +514,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
 
     def GetSubTitlePanel(self, parent):
         pass
-    
+
     def helpClick(self,event=None):
         title = 'Search within results'
         html = """<p>
@@ -621,7 +586,7 @@ class ChannelHeader(SearchHeader):
         self.descriptionPanel = ImageScrollablePanel(parent)
         self.descriptionPanel.SetBackgroundColour(wx.WHITE)
         
-        self.description = wx.StaticText(self.descriptionPanel)
+        self.description = StaticText(self.descriptionPanel)
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.description, 1, wx.EXPAND|wx.ALL, 3)
         

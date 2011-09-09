@@ -427,8 +427,34 @@ class GroupingAlgorithm(object):
             """
             raise NotImplementedError('__setitem__')
 
+
+class SimpleExactKeyGrouping(GroupingAlgorithm):
+    """
+    The SimpleExactKeyGrouping is an abstract base class for algorithms
+    that perform exact grouping based on a single key. For these algorithms,
+    the simkey of a key is simply the key itself and the Index structure is
+    therefore isomorphic to a dict.
+    """
     
-class IntGrouping(GroupingAlgorithm):
+    def simkey(self, key, context_state):
+        return key
+    
+    class Index(GroupingAlgorithm.Index):
+        """
+        The Index datastructure is isomorphic to a dict.
+        """
+        __slots__ = ['mapTo']
+        def __init__(self):
+            self.mapTo = {}
+        def __contains__(self, key):
+            return key in self.mapTo
+        def __getitem__(self, key):
+            return self.mapTo[key]
+        def __setitem__(self, simkey, group):
+            self.mapTo[simkey] = group
+    
+    
+class IntGrouping(SimpleExactKeyGrouping):
     """
     The IntGrouping algorithm groups similarly numbered hits together.
     
@@ -452,23 +478,31 @@ class IntGrouping(GroupingAlgorithm):
         if key == ():
             key = hit.infohash
         return key
+
+
+class CategoryGrouping(SimpleExactKeyGrouping):
+    """
+    The CategoryGrouping algorithm groups hits from the same category together.
+    """
     
-    def simkey(self, key, context_state):
-        return key
+    def general_description(self):
+        #return u'Similarly ???'  # Naming of groups needs to be rethought.
+        return None 
     
-    class Index(GroupingAlgorithm.Index):
-        """
-        The IntGrouping's index datastructure is isomorphic to a dict.
-        """
-        __slots__ = ['mapTo']
-        def __init__(self):
-            self.mapTo = {}
-        def __contains__(self, key):
-            return key in self.mapTo
-        def __getitem__(self, key):
-            return self.mapTo[key]
-        def __setitem__(self, simkey, group):
-            self.mapTo[simkey] = group
+    def description_for(self, hitsgroup):
+        return u'Category: %s' % hitsgroup.simkey
+    
+    def key(self, hit, context_state):
+        cat = hit['category']
+        if isinstance(cat, list):
+            if cat:
+                key = cat[0]
+            else:
+                key = 'unknown'
+        else:
+            key = cat
+        return key.lower()
+
 
 class LevGrouping(GroupingAlgorithm):
     """
@@ -875,10 +909,15 @@ class Bundler:
     GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
     
     # DO NOT CHANGE THE ORDER, STORED IN DB
-    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC = range(5)
-    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping()]
+    ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC, ALG_CATEGORY = range(6)
+    algorithms = [IntGrouping(), LevGrouping(), SizeGrouping(), None, None, CategoryGrouping()]
     
-    PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC'.split()
+    # Tag these instances with their code:
+    for i, algorithm in enumerate(algorithms):
+        if algorithm is not None:
+            algorithm.ALG_CODE = i
+    
+    PRINTABLE_ALG_CONSTANTS = 'ALG_NUMBERS ALG_NAME ALG_SIZE ALG_OFF ALG_MAGIC ALG_CATEGORY'.split()
     
     # ALG_MAGIC CONSTANTS
     MIN_LEVTRIE_WIDTH = 50
@@ -1016,7 +1055,8 @@ class Bundler:
                 d = dict(key = 'Group%05d' % group.id,
                          bundle = list(group), 
                          bundle_description = algorithm.description_for(group),
-                         bundle_general_description = algorithm.general_description())
+                         bundle_general_description = algorithm.general_description(),
+                         bundle_algorithm = algorithm.ALG_CODE)
                 
                 if group.has_changed():
                     d['bundle_changed'] = True
@@ -1031,6 +1071,7 @@ class Bundler:
             else:
                 res.append(group[0])
         
+        res.extend(suffix)
         return res
     
     def __gc(self):
