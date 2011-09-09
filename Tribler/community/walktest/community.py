@@ -56,6 +56,8 @@ class WalktestCommunity(Community):
         # remove own address (should do this when our own external address changes)
         if self._dispersy.external_address in self._candidates:
             del self._candidates[self._dispersy.external_address]
+        if self._dispersy.external_address in self._bootstrap_addresses:
+            self._bootstrap_addresses.remove(self._dispersy.external_address)
 
         # remove old candidates
         deadline = time() - 60.0
