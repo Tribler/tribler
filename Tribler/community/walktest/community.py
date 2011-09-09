@@ -51,8 +51,6 @@ class WalktestCommunity(Community):
         return messages
 
     def yield_candidates(self, count, blacklist=[]):
-        assert self._bootstrap_addresses, "must have bootstrap peers"
-
         # remove own address (should do this when our own external address changes)
         if self._dispersy.external_address in self._candidates:
             del self._candidates[self._dispersy.external_address]
@@ -81,7 +79,8 @@ class WalktestCommunity(Community):
                 yield choice(stumbles).address
                 continue
 
-            yield choice(self._bootstrap_addresses)
+            if self._bootstrap_addresses:
+                yield choice(self._bootstrap_addresses)
 
     def introduction_response_timeout(self, message):
         if message is None:
