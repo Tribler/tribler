@@ -74,7 +74,7 @@ class ScenarioScript(ScriptBase):
         master = Member.get_instance(master_public_key)
 
         community = WalktestCommunity.join_community(master, self._my_member)
-        community._bootstrap_addresses = [("127.0.0.1", 123)]
+        community._bootstrap_addresses = [("130.161.211.245", 6422)]
         community.start_walk()
 
         total = 60 * 60 * 5
