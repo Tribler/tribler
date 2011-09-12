@@ -440,7 +440,7 @@ class Community(object):
                 # TODO: when a packet conversion fails we must drop something, and preferably check
                 # all messages in the database again...
                 message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-                mapping[meta_message_id]([message])
+                mapping[meta_message_id]([message], initializing=True)
 
     # @property
     def __get_dispersy_auto_load(self):
@@ -1298,8 +1298,8 @@ class Community(object):
     def create_dispersy_dynamic_settings(self, policies, sign_with_master=False, store=True, update=True, forward=True):
         return self._dispersy.create_dynamic_settings(self, policies, sign_with_master, store, update, forward)
 
-    def dispersy_on_dynamic_settings(self, messages):
-        return self._dispersy.on_dynamic_settings(self, messages)
+    def dispersy_on_dynamic_settings(self, messages, initializing=False):
+        return self._dispersy.on_dynamic_settings(self, messages, initializing)
 
     def dispersy_cleanup_community(self, message):
         """

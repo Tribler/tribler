@@ -3107,7 +3107,7 @@ class Dispersy(Singleton):
     #         else:
     #             yield DelayMessageByProof(message)
 
-    def on_authorize(self, messages):
+    def on_authorize(self, messages, initializing=False):
         """
         Process a dispersy-authorize message.
 
@@ -3192,7 +3192,7 @@ class Dispersy(Singleton):
         self.store_update_forward([message], store, update, forward)
         return message
 
-    def on_revoke(self, messages):
+    def on_revoke(self, messages, initializing=False):
         """
         Process a dispersy-revoke message.
 
@@ -3414,8 +3414,9 @@ class Dispersy(Singleton):
         self.store_update_forward([message], store, update, forward)
         return message
 
-    def on_dynamic_settings(self, community, messages):
+    def on_dynamic_settings(self, community, messages, initializing=False):
         assert not filter(lambda x: not community == x.community, messages)
+        assert isinstance(initializing, bool)
         timeline = community._timeline
         global_time = community.global_time
         changes = {}
@@ -3435,40 +3436,41 @@ class Dispersy(Singleton):
                 # apply new policy setting
                 timeline.change_resolution_policy(meta, message.distribution.global_time, policy, message)
 
-        if __debug__: dprint("updating ", len(changes), " ranges")
-        execute = self._database.execute
-        executemany = self._database.executemany
-        for meta, range_ in changes.iteritems():
-            if __debug__: dprint(meta.name, " [", range_[0], ":", "]")
-            undo = []
-            redo = []
+        if not initializing:
+            if __debug__: dprint("updating ", len(changes), " ranges")
+            execute = self._database.execute
+            executemany = self._database.executemany
+            for meta, range_ in changes.iteritems():
+                if __debug__: dprint(meta.name, " [", range_[0], ":", "]")
+                undo = []
+                redo = []
 
-            for packet_id, packet, undone in list(execute(u"SELECT id, packet, undone FROM sync WHERE meta_message = ? AND global_time BETWEEN ? AND ?",
-                                                          (meta.database_id, range_[0], range_[1]))):
-                message = self.convert_packet_to_message(str(packet), community)
-                if message:
-                    message.packet_id = packet_id
-                    allowed, _ = timeline.check(message)
-                    if allowed and undone:
-                        if __debug__: dprint("redo message ", message.name, " at time ", message.distribution.global_time)
-                        redo.append(message)
+                for packet_id, packet, undone in list(execute(u"SELECT id, packet, undone FROM sync WHERE meta_message = ? AND global_time BETWEEN ? AND ?",
+                                                              (meta.database_id, range_[0], range_[1]))):
+                    message = self.convert_packet_to_message(str(packet), community)
+                    if message:
+                        message.packet_id = packet_id
+                        allowed, _ = timeline.check(message)
+                        if allowed and undone:
+                            if __debug__: dprint("redo message ", message.name, " at time ", message.distribution.global_time)
+                            redo.append(message)
 
-                    elif not (allowed or undone):
-                        if __debug__: dprint("undo message ", message.name, " at time ", message.distribution.global_time)
-                        undo.append(message)
+                        elif not (allowed or undone):
+                            if __debug__: dprint("undo message ", message.name, " at time ", message.distribution.global_time)
+                            undo.append(message)
 
-                    elif __debug__:
-                        if __debug__: dprint("no change for message ", message.name, " at time ", message.distribution.global_time)
+                        elif __debug__:
+                            if __debug__: dprint("no change for message ", message.name, " at time ", message.distribution.global_time)
 
-            if undo:
-                executemany(u"UPDATE sync SET undone = 1 WHERE id = ?", ((message.packet_id,) for message in undo))
-                assert self._database.changes == len(undo), (self._database.changes, len(undo))
-                meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
+                if undo:
+                    executemany(u"UPDATE sync SET undone = 1 WHERE id = ?", ((message.packet_id,) for message in undo))
+                    assert self._database.changes == len(undo), (self._database.changes, len(undo))
+                    meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
 
-            if redo:
-                executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
-                assert self._database.changes == len(redo), (self._database.changes, len(redo))
-                meta.handle_callback(redo)
+                if redo:
+                    executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
+                    assert self._database.changes == len(redo), (self._database.changes, len(redo))
+                    meta.handle_callback(redo)
 
     def _generic_timeline_check(self, messages):
         meta = messages[0].meta
