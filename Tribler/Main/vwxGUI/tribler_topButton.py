@@ -579,6 +579,11 @@ class LinkStaticText(wx.BoxSizer):
     def SetCursor(self, cursor):
         if self.icon:
             self.icon.SetCursor(cursor)
+            
+    def ClientToScreen(self, pt):
+        if self.icon and self.icon_align != wx.ALIGN_RIGHT:
+            return self.icon.ClientToScreen(pt)
+        return self.text.ClientToScreen(pt)
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         def modified_handler(actual_event, handler=handler):

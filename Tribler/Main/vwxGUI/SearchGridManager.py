@@ -274,12 +274,11 @@ class TorrentManager:
     def getTorrentByInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict:
-            channel = self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
-            if not channel:
-                channel = 0, '', '', 0, 0
-            
-            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], channel[0], channel[1], channel[2], channel[3], channel[4])
+            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
             t.torrent_db = self.torrent_db
+            t.channelcast_db = self.channelcast_db
+            
+            _ = t.channel
             return t 
     
     def set_gridmgr(self,gridmgr):
