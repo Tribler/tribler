@@ -863,6 +863,11 @@ class ChannelCommunity(Community):
                 collect.append(infohashes[i])
         return collect
     
+    def dispersy_on_dynamic_settings(self, *args, **kwargs):
+        Community.dispersy_on_dynamic_settings(self, *args, **kwargs)
+        if self._channel_id:
+            self._channelcast_db.on_dynamic_settings(self._channel_id)
+    
     #helper functions
     @forceAndReturnDispersyThread
     def _get_latest_channel_message(self):

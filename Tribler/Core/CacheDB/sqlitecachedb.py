@@ -1629,6 +1629,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         
         if fromver < 9:
             from Tribler.Core.Session import Session
+            from time import time
+            
             session = Session.get_instance()
             
             my_permid = session.get_permid()

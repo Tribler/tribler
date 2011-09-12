@@ -996,6 +996,10 @@ class ChannelSearchGridManager:
         community = self._disp_get_community_from_channel_id(channel_id)
         return community.get_channel_mode()
     
+    def getChannelStateByCID(self, dispersy_cid):
+        community = self._disp_get_community_from_cid(dispersy_cid)
+        return community.get_channel_mode()
+    
     def setChannelState(self, channel_id, channel_mode):
         community = self._disp_get_community_from_channel_id(channel_id)
         return community.set_channel_mode(channel_mode)

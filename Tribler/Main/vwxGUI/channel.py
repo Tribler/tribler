@@ -33,7 +33,9 @@ class ChannelManager():
         self.dirtyset.clear()
     
     def refreshDirty(self):
-        if 'COMPLETE_REFRESH' in self.dirtyset:
+        if 'COMPLETE_REFRESH_STATE' in self.dirtyset:
+            self._refresh_list(stateChanged = True)
+        elif 'COMPLETE_REFRESH' in self.dirtyset:
             self._refresh_list()
         else:
             self._refresh_partial(self.dirtyset)
@@ -53,11 +55,13 @@ class ChannelManager():
         self._refresh_list()
     
     @forceDBThread
-    def _refresh_list(self):
+    def _refresh_list(self, stateChanged = False):
         if DEBUG:
             print >> sys.stderr, "SelChannelManager complete refresh"
         
         self.list.dirty = False
+        if stateChanged:
+            startWorker(self.list.SetState, self.list.channel.refreshState)
         
         nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
         total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
@@ -81,7 +85,6 @@ class ChannelManager():
         
         self.list.SetData(playlists, torrents)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
-        
         if DEBUG:    
             print >> sys.stderr, "SelChannelManager complete refresh done"
         
@@ -104,12 +107,15 @@ class ChannelManager():
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
             
-    def channelUpdated(self, id):
+    def channelUpdated(self, id, stateChanged = False):
         if self.list.id == id:
             if self.list.ShouldGuiUpdate():
-                self._refresh_list()
+                self._refresh_list(stateChanged)
             else:
-                self.dirtyset.add('COMPLETE_REFRESH')
+                key = 'COMPLETE_REFRESH'
+                if stateChanged:
+                    key += '_STATE'
+                self.dirtyset.add(key)
                 self.list.dirty = True
 
 class SelectedChannelList(GenericSearchList):
@@ -198,15 +204,7 @@ class SelectedChannelList(GenericSearchList):
         self.SetNrResults(nr_torrents)
         
         if channel.isDispersy():
-            def state_call(delayedResult):
-                state, iamModerator = delayedResult.get()
-                
-                self.iamModerator = iamModerator or state >= ChannelCommunity.CHANNEL_OPEN
-                self.SetVote(channel.my_vote)
-                self.SetChannelState(state)
-                
-            startWorker(state_call, self.channelsearch_manager.getChannelState, wargs = (channel.id, ))
-            
+            startWorker(self.SetState, self.channel.getState)
         else:
             self.SetVote(channel.my_vote)
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED)
@@ -226,6 +224,13 @@ class SelectedChannelList(GenericSearchList):
     def SetVote(self, vote):
         self.footer.SetStates(vote == -1, vote == 2, self.iamModerator)
         self.Layout()
+        
+    def SetState(self, delayedResult):
+        state, iamModerator = delayedResult.get()
+        
+        self.iamModerator = iamModerator or state >= ChannelCommunity.CHANNEL_OPEN
+        self.SetVote(self.channel.my_vote)
+        self.SetChannelState(state)
         
     def SetMyChannelId(self, channel_id):
         self.GetManager().my_channel_id = channel_id
@@ -1062,6 +1067,10 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def SaveSettings(self, event):
         state = self.statebox.GetSelection()
         startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state))
+        
+        button = event.GetEventObject()
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
     
     def playlistCreated(self, channel_id):
         if channel_id == self.channel_id:

@@ -182,7 +182,7 @@ class TorrentDetails(AbstractDetails):
             if self.noChannel and self.torrent.hasChannel():
                 state, iamModerator = self.torrent.channel.getState()
                 
-                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN or iamModerator
+                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
                 self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
         
             self.Freeze()

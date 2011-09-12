@@ -96,6 +96,7 @@ NTFY_CREATE = 'create'         # new data is created, meaning in the case of Cha
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
 NTFY_CONNECTION = 'connection' # connection made or broken
 NTFY_STARTED = 'started'
+NTFY_STATE = 'state'
 
 # object IDs for NTFY_ACTIVITIES subject 
 NTFY_ACT_NONE = 0

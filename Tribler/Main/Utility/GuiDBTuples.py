@@ -252,7 +252,7 @@ class Channel(Helper):
     __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel')
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
         self.id = id
-        self.dispersy_cid = dispersy_cid
+        self.dispersy_cid = str(dispersy_cid)
         
         self.name = name[:40]
         self.description = description[:1024]
@@ -265,7 +265,7 @@ class Channel(Helper):
         self.my_channel = my_channel
     
     def isDispersy(self):
-        return isinstance(self.dispersy_cid, basestring) and len(self.dispersy_cid) == 20
+        return len(self.dispersy_cid) == 20
     
     def isFavorite(self):
         return self.my_vote == 2
@@ -285,9 +285,13 @@ class Channel(Helper):
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
             
             searchManager = ChannelSearchGridManager.getInstance()
-            return searchManager._disp_get_community_from_cid(self.dispersy_cid)
+            return searchManager.getChannelStateByCID(self.dispersy_cid)
         
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
+    
+    def refreshState(self):
+        del self._cache['getState']
+        return self.getState()
 
 class RemoteChannel(Channel):
     __slots__ = ('permid')

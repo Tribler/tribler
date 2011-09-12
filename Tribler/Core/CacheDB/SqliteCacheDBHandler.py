@@ -3553,6 +3553,9 @@ class ChannelCastDBHandler(object):
     def on_remove_mark_torrent(self, channel_id, dispersy_id):
         sql = "DELETE FROM TorrentMarkings WHERE dispersy_id = ?"
         self._db.execute_write(sql, (dispersy_id, ))
+        
+    def on_dynamic_settings(self, channel_id):
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_STATE, channel_id)
     
     def selectTorrentsToCollect(self, channel_id = None):
         if channel_id:

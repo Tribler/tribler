@@ -336,7 +336,7 @@ class ABCApp(wx.App):
         s = self.utility.session
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
@@ -796,7 +796,7 @@ class ABCApp(wx.App):
             manager.channelUpdated(objectID, subject == NTFY_VOTECAST)
             
             manager = self.frame.selectedchannellist.GetManager()
-            manager.channelUpdated(objectID)
+            manager.channelUpdated(objectID, changeType == NTFY_STATE)
             
             if changeType == NTFY_CREATE:
                 
