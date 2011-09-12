@@ -207,7 +207,6 @@ class Category:
         # torrent_dict is the  dict of 
         # a torrent file
         # return value: list of category the torrent belongs to
-        torrent_category = None
 
         files_list = []
         try:                                
@@ -236,6 +235,7 @@ class Category:
             print >> sys.stderr, 'Category: Exception in explicit terms filter in torrent: %s' % display_name
             print_exc()
         
+        torrent_category = None
         # filename_list ready
         strongest_cat = 0.0
         for category in self.category_info:    # for each category
