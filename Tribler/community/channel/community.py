@@ -341,7 +341,7 @@ class ChannelCommunity(Community):
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time()),
+                            distribution=(self.claim_global_time(),),
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
