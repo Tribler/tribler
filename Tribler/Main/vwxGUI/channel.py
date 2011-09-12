@@ -61,7 +61,8 @@ class ChannelManager():
         
         self.list.dirty = False
         if stateChanged:
-            startWorker(self.list.SetState, self.list.channel.refreshState)
+            state, iamModerator = self.list.channel.refreshState()
+            self.list.SetChannelState(state, iamModerator)
         
         nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannelId(self.list.id, PLAYLIST_REQ_COLUMNS)
         total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
@@ -195,19 +196,16 @@ class SelectedChannelList(GenericSearchList):
         self.Freeze()
         self.SetId(channel.id)
         self.SetTitle(channel.name, channel.description)
-        self.iamModerator = self.my_channel
         
         nr_torrents = channel.nr_torrents
         if not channel.isFavorite() and not self.my_channel:
             nr_torrents = min(nr_torrents, 50)
-            
         self.SetNrResults(nr_torrents)
         
         if channel.isDispersy():
             startWorker(self.SetState, self.channel.getState)
         else:
-            self.SetVote(channel.my_vote)
-            self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED)
+            self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
         self.Thaw()
 
     def SetId(self, id):
@@ -220,22 +218,20 @@ class SelectedChannelList(GenericSearchList):
             
             manager = self.activityList.GetManager()
             manager.SetIds(channel = self.channel)
-            
-    def SetVote(self, vote):
-        self.footer.SetStates(vote == -1, vote == 2, self.iamModerator)
+        
+    def SetFooter(self, vote, channelstate, iamModerator):
+        self.footer.SetStates(vote, channelstate, iamModerator)
         self.Layout()
-        
-    def SetState(self, delayedResult):
-        state, iamModerator = delayedResult.get()
-        
-        self.iamModerator = iamModerator or state >= ChannelCommunity.CHANNEL_OPEN
-        self.SetVote(self.channel.my_vote)
-        self.SetChannelState(state)
         
     def SetMyChannelId(self, channel_id):
         self.GetManager().my_channel_id = channel_id
     
-    def SetChannelState(self, state):
+    def SetState(self, delayedResult):
+        state, iamModerator = delayedResult.get()
+        self.SetChannelState(state, iamModerator)
+    
+    @forceWxThread
+    def SetChannelState(self, state, iamModerator):
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.notebook.AddPage(self.commentList, "Comments")
@@ -243,6 +239,8 @@ class SelectedChannelList(GenericSearchList):
         else:
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 self.notebook.RemovePage(i-1)
+
+        self.SetFooter(self.channel.my_vote, state, iamModerator)
         
     def SetTitle(self, title, description):
         if title != self.title:
@@ -741,7 +739,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         header =  "Community Settings"
         self._add_header(self.settingspage, vSizer, header, spacer = 10)
         
-        text  = "Tribler allows you to involve your community."
+        text  = "Tribler allows you to involve your community. "
         text += "You as a channel-owner have the option to define the openness of your community. "
         text += "By choosing a more open setting, other users are allowed to do more.\n\n"
         

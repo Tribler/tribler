@@ -4,6 +4,7 @@ from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
 from list_details import AbstractDetails
 
 from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
+from Tribler.community.channel.community import ChannelCommunity
 
 class ListFooter(wx.Panel):
     def __init__(self, parent, radius = LIST_RADIUS):
@@ -193,64 +194,118 @@ class ChannelFooter(ListFooter):
         self.remove_eventhandler = remove
         self.manage.Bind(wx.EVT_BUTTON, manage)
     
-    def SetStates(self, spam, favorite, manage = None):
+    def SetStates(self, vote, channelstate, iamModerator):
         self.Freeze()
         self.hSizer.Clear()
         
-        explicit_vote = spam or favorite or manage
-        if explicit_vote:
-            self.hSizer.Add(self.message, 1, wx.TOP|wx.BOTTOM|wx.ALIGN_BOTTOM|wx.LEFT, 3)
-            
-            if spam:
-                self.message.SetLabel("You have marked this Channel as Spam.")
-                self.spam.SetLabel('This is not Spam')
-                self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+        explicit_vote = vote != 0
+        preview = not explicit_vote and not iamModerator
+        open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
+        allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
+        
+        self.favorite.Show(False)
+        self.spam.Show(False)
+        self.manage.Show(False)
 
-                self.hSizer.Add(self.spam, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
-                
-            elif favorite:
-                self.message.SetLabel("Thank you for marking this Channel as your Favorite.")
-                self.favorite.SetLabel('Remove Favorite')
-                self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
-                
-                self.hSizer.Add(self.favorite, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
-                
-            else:
-                self.message.SetLabel("You can edit this channel")
-                self.hSizer.Add(self.manage, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
-        else:
-            self.message.SetLabel("You are looking at a preview of this Channel.")
-            self.subtitle.SetLabel("If you want to see more of it, press the 'Mark as Favorite' button.\nTribler will then more aggressively download updates making sure you always have access to the newest content.")
+        
+        #clean up old ortext statictext
+        if not preview and self.ortext and explicit_vote:
+            self.ortext.Destroy()
+            self.ortext = None
+        
+        header = ''
+        msg = ''
+        buttonSizer = None
+        if preview:
+            header = "You are looking at a preview of this Channel."
+            msg = "If you want to see more of it, press the 'Mark as Favorite' button.\nTribler will then more aggressively download updates making sure you always have access to the newest content."
             
             self.spam.SetLabel('Mark as Spam')
             self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
+            self.spam.Show(True)
             
             self.ortext = wx.StaticText(self, -1, 'or')
                 
             self.favorite.SetLabel('Mark as Favorite')
             self.favorite.Bind(wx.EVT_BUTTON, self.favorite_eventhandler)
-            
-            vSizer = wx.BoxSizer(wx.VERTICAL)
-            vSizer.Add(self.message, 0, wx.EXPAND)
-            vSizer.Add(self.subtitle, 0, wx.EXPAND)
+            self.favorite.Show(True)
             
             buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
             buttonSizer.Add(self.spam)
             buttonSizer.Add(self.ortext, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTRE_VERTICAL, 7)
             buttonSizer.Add(self.favorite)
             
-            vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, 10)
-            self.hSizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 10)
+        else:
+            if open2edit:
+                header = "You can now enable community-features for this Channel."
+                msg = "Allowing other users to comment, modify and improve meta-data will increase .\nEdit your channel settings to get started."
+                
+                self.manage.Show(True)
+                buttonSizer = self.manage
+                
+            elif allow2edit:
+                header  = "This is an open community. You can modify, comment and add new content. Feel free to do so."
+                
+                self.manage.Show(True)
+                buttonSizer = self.manage
         
-        self.favorite.Show(favorite or not explicit_vote)
-        self.spam.Show(spam or not explicit_vote)
-        self.manage.Show(manage)
-        self.subtitle.Show(not explicit_vote)
+            if vote == -2:
+                header = ''
+                msg = "You have marked this Channel as Spam."
+                    
+                self.spam.SetLabel('This is not Spam')
+                self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+                self.spam.Show(True)
+                buttonSizer = self.spam
+                    
+            elif vote == 1:
+                if msg == '':
+                    msg = "Thank you for marking this Channel as your Favorite."
+                
+                self.favorite.SetLabel('Remove Favorite')
+                self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
+                self.favorite.Show(True)
+                
+                if buttonSizer:
+                    sizer = wx.BoxSizer(wx.HORIZONTAL)
+                    sizer.Add(buttonSizer)
+                    sizer.Add(self.favorite)
+                else:
+                    buttonSizer = self.favorite
+                
+            else:
+                if msg == '':
+                    msg = "You can edit this channel"
+                
+                self.manage.Show(True)
+                buttonSizer = self.manage
         
-        if self.ortext and explicit_vote:
-            self.ortext.Destroy()
-            self.ortext = None
-        
+        if header != '':
+            self.message.SetLabel(header)
+            self.subtitle.SetLabel(msg)
+            self.subtitle.Show(True)
+            
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            vSizer.Add(self.message, 0, wx.EXPAND)
+            if buttonSizer:
+                if preview:
+                    vSizer.Add(self.subtitle, 0, wx.EXPAND)
+                    vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, 10)
+                else:
+                    sizer = wx.BoxSizer(wx.HORIZONTAL)
+                    sizer.Add(self.subtitle, 1, wx.EXPAND)
+                    sizer.Add(buttonSizer, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
+                    vSizer.Add(sizer, 0, wx.EXPAND)
+            else:
+                vSizer.Add(self.subtitle, 0, wx.EXPAND)
+            
+            self.hSizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 7)
+        else:
+            self.message.SetLabel(msg)
+            self.subtitle.Show(False)
+            self.hSizer.Add(self.message, 1, wx.TOP|wx.BOTTOM|wx.ALIGN_BOTTOM|wx.LEFT, 7)
+            self.hSizer.Add(buttonSizer, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 7)
+                
         self.hSizer.Layout()
         self.Layout()
         self.Thaw()
