@@ -187,7 +187,7 @@ class WalktestCommunity(Community):
                 try:
                     destination = self.yield_candidates(message.address).next()
                 except StopIteration:
-                    destination = messages.payload.introduction_address
+                    destination = message.payload.introduction_address
             self.create_introduction_request(destination)
 
     def on_puncture_request(self, messages):
