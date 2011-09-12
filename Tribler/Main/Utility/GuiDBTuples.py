@@ -117,7 +117,10 @@ class Torrent(Helper):
     
     def updateChannel(self, c):
         self._channel = c
-        del self._cache['channel']
+        try:
+            del self._cache['channel']
+        except:
+            pass
     
     def hasChannel(self):
         return self.channel
@@ -290,7 +293,10 @@ class Channel(Helper):
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
     
     def refreshState(self):
-        del self._cache['getState']
+        try:
+            del self._cache['getState']
+        except:
+            pass
         return self.getState()
 
 class RemoteChannel(Channel):

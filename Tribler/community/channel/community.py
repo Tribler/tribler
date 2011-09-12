@@ -340,7 +340,10 @@ class ChannelCommunity(Community):
 
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+
         message = meta.impl(authentication=(self._my_member,),
+                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
