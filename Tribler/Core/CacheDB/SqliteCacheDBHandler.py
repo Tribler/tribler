@@ -3281,17 +3281,15 @@ class ChannelCastDBHandler(object):
             torrent = torrentlist[i]
             
             length = 0
-            filenames = []
-            for file_name, file_length in torrent[5]:
+            for _, file_length in torrent[5]:
                 length += file_length
-                filenames.append(file_name)
             
             trackers = torrent[6]
             if len(trackers) > 0:
                 tracker = trackers[0]
             else:
                 tracker = ''
-            category_id = category.calculateCategoryNonDict(filenames, torrent[4], tracker, '')
+            category_id = category.calculateCategoryNonDict(torrent[5], torrent[4], tracker, '')
             updates.append((torrent[2], length, category_id))
             
         torrent_ids = self.torrent_db.updateTorrentIDS(updates)
