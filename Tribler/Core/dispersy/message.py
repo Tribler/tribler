@@ -348,6 +348,7 @@ class Message(MetaObject):
             self._footprint = " ".join((meta._name.encode("UTF-8"),
                                         "Community:%s" % meta._community.cid.encode("HEX"),
                                         authentication.footprint,
+                                        resolution.footprint,
                                         distribution.footprint,
                                         destination.footprint,
                                         payload.footprint))
@@ -533,7 +534,7 @@ class Message(MetaObject):
                 authentication_footprint = self._authentication.generate_footprint(*authentication)
                 resolution_footprint = self._resolution.generate_footprint(*resolution)
                 distribution_footprint = self._distribution.generate_footprint(*distribution)
-                destination_footprint = self._distribution.generate_footprint(*destination)
+                destination_footprint = self._destination.generate_footprint(*destination)
                 payload_footprint = self._payload.generate_footprint(*payload)
             except TypeError:
                 dprint("message name:   ", self._name, level="error")
