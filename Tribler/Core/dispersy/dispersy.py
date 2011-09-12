@@ -2947,7 +2947,7 @@ class Dispersy(Singleton):
                   JOIN member ON member.id = sync.member
                   JOIN meta_message ON meta_message.id = sync.meta_message
                   WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ?
-                  ORDER BY meta_message.priority, sync.global_time * meta_message.direction"""
+                  ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction"""
 
         community = messages[0].community
 
