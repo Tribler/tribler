@@ -139,7 +139,7 @@ class WalktestCommunity(Community):
             # obtain own public address
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
-            if candidates:
+            if candidate:
                 # create introduction responses
                 meta = self._meta_messages[u"introduction-response"]
                 response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate))
