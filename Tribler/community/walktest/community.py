@@ -113,7 +113,7 @@ class WalktestCommunity(Community):
         # wait for instroduction-response
         meta_response = self._meta_messages[u"introduction-response"]
         footprint = meta_response.generate_footprint(payload=(identifier,))
-        timeout = meta_response.delay + 1.0 # TODO why 1.0 margin
+        timeout = meta_response.delay + 5.0 # TODO why 5.0 margin
         self._dispersy.await_message(footprint, self.introduction_response_or_timeout, timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
@@ -122,18 +122,14 @@ class WalktestCommunity(Community):
         self._dispersy.store_update_forward([request], False, False, True)
         return request
 
-    def introduction_response_or_timeout(self, message):
-        if message is None:
-            # timeout, start new walk
-            self.start_walk()
+    def on_introduction_request(self, messages):
+        try:
+            # get candidate BEFORE updating our local view
+            candidate = self.yield_candidates([message.address for message in messages]).next()
+        except StopIteration:
+            candidate = None
 
-        else:
-            try:
-                # get candidate BEFORE updating our local view
-                candidate = self.yield_candidates([message.address]).next()
-            except StopIteration:
-                candidate = None
-
+        for message in messages:
             # update local view
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_requests()
@@ -157,10 +153,6 @@ class WalktestCommunity(Community):
                 # send messages
                 self._dispersy.store_update_forward([response, request], False, False, True)
 
-    def on_introduction_request(self, messages):
-        # handled in introduction_response_or_timeout
-        pass
-
     def check_introduction_response(self, messages):
         for message in messages:
             if message.payload.identifier in self._walk:
@@ -169,10 +161,15 @@ class WalktestCommunity(Community):
                 yield DropMessage(message, "unknown response identifier")
 
     def on_introduction_response(self, messages):
-        # get candidates BEFORE updating our local view
-        candidate_it = self.yield_candidates([message.address for message in messages])
+        # handled in introduction_response_or_timeout
+        pass
 
-        for message in messages:
+    def introduction_response_or_timeout(self, message):
+        if message is None:
+            # timeout, start new walk
+            self.start_walk()
+
+        else:
             # update local view
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_responses()
@@ -188,7 +185,10 @@ class WalktestCommunity(Community):
             if random() < 0.8:
                 destination = messages.payload.introduction_address
             else:
-                destination = candidate_it.next()
+                try:
+                    destination = self.yield_candidates(message.address).next()
+                except StopIteration:
+                    destination = messages.payload.introduction_address
             self.create_introduction_request(destination)
 
     def on_puncture_request(self, messages):
