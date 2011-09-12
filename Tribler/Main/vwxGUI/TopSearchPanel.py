@@ -68,11 +68,8 @@ class TopSearchPanel(bgPanel):
         self._selectPage('stats')
     
     def _selectPage(self, page):
-        if self.guiUtility.guiPage != page:
-            wx.CallAfter(self.guiUtility.ShowPage, page)
+        wx.CallAfter(self.guiUtility.ShowPage, page)
             
-        self.selectTab(page)
-        
     def selectTab(self, tab):
         self.Freeze()
         
