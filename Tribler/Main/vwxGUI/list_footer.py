@@ -270,6 +270,7 @@ class ChannelFooter(ListFooter):
                     sizer = wx.BoxSizer(wx.HORIZONTAL)
                     sizer.Add(buttonSizer)
                     sizer.Add(self.favorite)
+                    buttonSizer = sizer
                 else:
                     buttonSizer = self.favorite
                 
