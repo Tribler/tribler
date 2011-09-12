@@ -1205,7 +1205,7 @@ class TorrentDBHandler(BasicDBHandler):
         existing = self._db.fetchall(sql, infohashes)
         
         doesExist = set()
-        for infohash in existing:
+        for infohash,  in existing:
             doesExist.add(str2bin(infohash))
         
         status_id = self._getStatusID("good")

@@ -483,6 +483,8 @@ class ChannelCommunity(Community):
             reply_after_mid = message.authentication.member.mid
             reply_after_global_time = message.distribution.global_time
         
+        text = text[:1024]
+        
         meta = self.get_meta_message(u"comment")
         current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         message = meta.impl(authentication=(self._my_member,),
