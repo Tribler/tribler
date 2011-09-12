@@ -105,8 +105,9 @@ class RemoteTorrentHandler:
             del self.callbacks[infohash]
 
             for usercallback in usercallbacks:
-                remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
-                self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
+                if usercallback:
+                    remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
+                    self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
             
         for requester in self.requesters.values():
             if infohash in requester.sources:
@@ -292,7 +293,7 @@ class MagnetRequester():
         
             #save torrent
             torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name'], include_mypref = False)
-            if torrent.get('torrent_file_name', False) and not os.path.isabs(torrent['torrent_file_name']):
+            if torrent and torrent.get('torrent_file_name', False) and not os.path.isabs(torrent['torrent_file_name']):
                 torrent_filename = os.path.join(self.metadatahandler.torrent_dir, torrent['torrent_file_name'])
             else:
                 torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))

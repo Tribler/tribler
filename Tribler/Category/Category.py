@@ -218,15 +218,22 @@ class Category:
             # single mode
             files_list.append((torrent_dict['info']["name"],torrent_dict['info']['length'] / float(self.__size_change)))
 
+        tracker = torrent_dict.get('announce')
+        if not tracker:
+            tracker = torrent_dict.get('announce-list',[['']])[0][0]
+            
+        comment = torrent_dict.get('comment')
+        return self.calculateCategoryNonDict(files_list, display_name, tracker, comment)
+
+
+    def calculateCategoryNonDict(self, files_list, display_name, tracker, comment):
         # Check xxx
         try:
-            tracker = torrent_dict.get('announce')
-            if not tracker:
-                tracker = torrent_dict.get('announce-list',[['']])[0][0]
-            if self.xxx_filter.isXXXTorrent(files_list, display_name, torrent_dict.get('announce'), torrent_dict.get('comment')):
+            
+            if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
                 return ['xxx']
         except:
-            print >> sys.stderr, 'Category: Exception in explicit terms filter in torrent: %s' % torrent_dict
+            print >> sys.stderr, 'Category: Exception in explicit terms filter in torrent: %s' % display_name
             print_exc()
         
         # filename_list ready

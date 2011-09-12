@@ -24,6 +24,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, User
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
 from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -305,7 +306,7 @@ class NetworkPanel(HomePanel):
             nr_channels = self.channelcastdb.getNrChannels()
             self._UpdateStats(stats, nr_channels)
 
-        self.guiserver.add_task(db_callback, id = "NetworkPanel_UpdateStats")
+        startWorker(None, db_callback, id = "NetworkPanel_UpdateStats")
     
     @forceWxThread
     def _UpdateStats(self, stats, nr_channels):
@@ -356,7 +357,7 @@ class NewTorrentPanel(HomePanel):
             if torrent:
                 self._UpdateStats(torrent)
         
-        self.guiserver.add_task(db_callback, id = "NewTorrentPanel_UpdateStats")
+        startWorker(None, db_callback, id = "NewTorrentPanel_UpdateStats")
     
     @forceWxThread
     def _UpdateStats(self, torrent):
@@ -396,7 +397,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
             self._RefreshList(topTen)
         
-        self.guiserver.add_task(db_callback, id = "PopularTorrentPanel_RefreshList")
+        startWorker(None, db_callback, id = "PopularTorrentPanel_RefreshList")
     
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -436,7 +437,8 @@ class TopContributorsPanel(HomePanel):
         def db_callback():
             topTen = self.barterdb.getTopNPeers(10)
             self._RefreshList(topTen)
-        self.guiserver.add_task(db_callback, id = "TopContributorsPanel_RefreshList")
+            
+        startWorker(None, db_callback, id = "TopContributorsPanel_RefreshList")
     
     @forceWxThread
     def _RefreshList(self, topTen):

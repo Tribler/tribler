@@ -609,6 +609,14 @@ class SQLiteCacheDBBase:
             sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
         self.execute_write(sql, argv.values(), commit)
     
+    def insert_or_ignore(self, table_name, commit=True, **argv):
+        if len(argv) == 1:
+            sql = 'INSERT OR IGNORE INTO %s (%s) VALUES (?);'%(table_name, argv.keys()[0])
+        else:
+            questions = '?,'*len(argv)
+            sql = 'INSERT OR IGNORE INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
+        self.execute_write(sql, argv.values(), commit)
+    
     def insert(self, table_name, commit=True, **argv):
         if len(argv) == 1:
             sql = 'INSERT INTO %s (%s) VALUES (?);'%(table_name, argv.keys()[0])

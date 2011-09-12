@@ -583,7 +583,6 @@ class List(XRCPanel):
         except: #regex incorrect
             self.filter = ''
             self.header.FilterCorrect(False)
-        
     
     def MatchFilter(self, item):
         if self.filter == '':
@@ -600,9 +599,6 @@ class List(XRCPanel):
             return message + ' matching "%s"'%self.filter
         return message
         
-    def SetFilteredResults(self, nr):
-        pass
-    
     def Layout(self):
         self.__check_thread()
         return wx.Panel.Layout(self)
@@ -772,12 +768,6 @@ class GenericSearchList(SizeList):
     def SetFilteredResults(self, nr):
         self.header.SetFiltered(nr)
 
-    def OnFilter(self, keyword):
-        def doFilter():
-            self.header.FilterCorrect(self.list.FilterItems(keyword))
-        #Niels: use callafter due to the filteritems method being slow and halting the events
-        wx.CallAfter(doFilter)
-        
     def OnExpand(self, item):
         item.button.Hide()
         item.button.Refresh()

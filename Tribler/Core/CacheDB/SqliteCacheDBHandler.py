@@ -1169,7 +1169,7 @@ class TorrentDBHandler(BasicDBHandler):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if self._db.getTorrentID(infohash) is None:
-            self._db.insert('Torrent', commit=commit, infohash=bin2str(infohash))
+            self._db.insert_or_ignore('Torrent', commit=commit, infohash=bin2str(infohash))
             
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -1199,20 +1199,19 @@ class TorrentDBHandler(BasicDBHandler):
     
     def updateTorrentIDS(self, torrents):
         parameters = '?,'*len(torrents)
-        sql = "SELECT infohash, length FROM Torrent WHERE infohash IN ("+parameters[:-1]+")"
+        sql = "SELECT infohash FROM CollectedTorrent WHERE infohash IN ("+parameters[:-1]+")"
         
-        infohashes = [bin2str(infohash) for infohash, _ in torrents]
+        infohashes = [bin2str(infohash) for infohash, _, _ in torrents]
         existing = self._db.fetchall(sql, infohashes)
         
         doesExist = set()
-        for infohash, length in existing:
-            if length:
-                doesExist.add(str2bin(infohash))
+        for infohash in existing:
+            doesExist.add(str2bin(infohash))
         
         status_id = self._getStatusID("good")
-        should_update_or_insert = [(bin2str(infohash), length, status_id) for infohash, length in torrents if infohash not in doesExist] 
+        should_update_or_insert = [(bin2str(infohash), length, status_id, category_id) for infohash, length, category_id in torrents if infohash not in doesExist] 
         if len(should_update_or_insert) > 0:
-            sql = "INSERT OR REPLACE INTO Torrent (infohash, length, status_id) VALUES (?,?,?)"
+            sql = "INSERT OR REPLACE INTO Torrent (infohash, length, status_id, category_id) VALUES (?,?,?,?)"
             self._db.executemany(sql, should_update_or_insert)
         
         infohashes = [infohash for infohash, _ in torrents]
@@ -3276,15 +3275,25 @@ class ChannelCastDBHandler(object):
     def on_torrents_from_dispersy(self, torrentlist):
         print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
         
+        category = self.torrent_db.category
         updates = []
         for i in range(len(torrentlist)):
             torrent = torrentlist[i]
             
             length = 0
-            for _, file_length in torrent[5]:
+            filenames = []
+            for file_name, file_length in torrent[5]:
                 length += file_length
-                
-            updates.append((torrent[2], length))
+                filenames.append(file_name)
+            
+            trackers = torrent[6]
+            if len(trackers) > 0:
+                tracker = trackers[0]
+            else:
+                tracker = ''
+            category_id = category.calculateCategoryNonDict(filenames, torrent[4], tracker, '')
+            updates.append((torrent[2], length, category_id))
+            
         torrent_ids = self.torrent_db.updateTorrentIDS(updates)
         updated_channels = {}
         
