@@ -51,8 +51,8 @@ class WalktestCommunity(Community):
         return 0.0
 
     def initiate_meta_messages(self):
-        return [Message(self, u"introduction-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_introduction_request, self.on_introduction_request, delay=1.0),
-                Message(self, u"introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.generic_check, self.on_introduction_response, delay=1.0),
+        return [Message(self, u"introduction-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.generic_check, self.on_introduction_request, delay=1.0),
+                Message(self, u"introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=1.0),
                 Message(self, u"puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self.generic_check, self.on_puncture_request, delay=1.0),
                 Message(self, u"puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self.generic_check, self.on_puncture, delay=1.0)]
 
@@ -107,8 +107,6 @@ class WalktestCommunity(Community):
                 self._walk.add(identifier)
                 break
 
-        dprint("walk identifier size: ", len(self._walk))
-
         meta_request = self._meta_messages[u"introduction-request"]
         request = meta_request.impl(distribution=(self.global_time,), destination=(destination,), payload=(destination, identifier))
 
@@ -159,16 +157,16 @@ class WalktestCommunity(Community):
                 # send messages
                 self._dispersy.store_update_forward([response, request], False, False, True)
 
-    def check_introduction_request(self, messages):
+    def on_introduction_request(self, messages):
+        # handled in introduction_response_or_timeout
+        pass
+
+    def check_introduction_response(self, messages):
         for message in messages:
             if message.payload.identifier in self._walk:
                 yield message
             else:
-                yield DropMessage("unknown response identifier")
-
-    def on_introduction_request(self, messages):
-        # handled in introduction_response_or_timeout
-        pass
+                yield DropMessage(message, "unknown response identifier")
 
     def on_introduction_response(self, messages):
         # get candidates BEFORE updating our local view
