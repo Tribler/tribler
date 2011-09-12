@@ -13,23 +13,25 @@ class Conversion(BinaryConversion):
         self.define_meta_message(chr(4), community.get_meta_message(u"puncture"), self._encode_puncture, self._decode_puncture)
 
     def _encode_introduction_request(self, message):
-        return inet_aton(message.payload.public_address[0]), pack("!H", message.payload.public_address[1])
+        return inet_aton(message.payload.public_address[0]), pack("!HH", message.payload.public_address[1], message.payload.identifier)
 
     def _decode_introduction_request(self, placeholder, offset, data):
-        if len(data) < offset + 6:
+        if len(data) < offset + 8:
             raise DropPacket("Insufficient packet size")
 
-        public_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-        offset += 6
+        host = inet_ntoa(data[offset:offset+4])
+        port, identifier = unpack_from("!HH", data, offset+4)
+        offset += 8
 
-        return offset, placeholder.meta.payload.implement(public_address)
+        return offset, placeholder.meta.payload.implement((host, port), identifier)
 
     def _encode_introduction_response(self, message):
         return inet_aton(message.payload.public_address[0]), pack("!H", message.payload.public_address[1]),\
-               inet_aton(message.payload.introduction_address[0]), pack("!H", message.payload.introduction_address[1])
+               inet_aton(message.payload.introduction_address[0]), pack("!H", message.payload.introduction_address[1]),\
+               pack("!H", message.payload.identifier)
 
     def _decode_introduction_response(self, placeholder, offset, data):
-        if len(data) < offset + 12:
+        if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
         public_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
@@ -38,7 +40,10 @@ class Conversion(BinaryConversion):
         introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
 
-        return offset, placeholder.meta.payload.implement(public_address, introduction_address)
+        identifier, = unpack_from("!H", data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(public_address, introduction_address, identifier)
 
     def _encode_puncture_request(self, message):
         return inet_aton(message.payload.walker_address[0]), pack("!H", message.payload.walker_address[1])

@@ -72,7 +72,7 @@ def _encode(l, value):
     if type(value) in _encode_mapping:
         _encode_mapping[type(value)](l, value)
     else:
-        raise ValueError("Can not encode {0}".format(type(value)))
+        raise ValueError("Can not encode %s" % type(value))
 
 def log(filename, _message, **kargs):
     assert isinstance(_message, str)

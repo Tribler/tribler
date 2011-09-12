@@ -522,32 +522,52 @@ class Message(MetaObject):
     def delay(self):
         return self._delay
 
-    def generate_footprint(self, authentication=(), distribution=(), destination=(), payload=()):
-        assert isinstance(authentication, tuple)
-        assert isinstance(distribution, tuple)
-        assert isinstance(destination, tuple)
-        assert isinstance(payload, tuple)
+    def generate_footprint(self, authentication=(), resolution=(), distribution=(), destination=(), payload=()):
+        if __debug__:
+            assert isinstance(authentication, tuple), type(authentication)
+            assert isinstance(resolution, tuple), type(resolution)
+            assert isinstance(distribution, tuple), type(distribution)
+            assert isinstance(destination, tuple), type(destination)
+            assert isinstance(payload, tuple), type(payload)
+            try:
+                authentication_footprint = self._authentication.generate_footprint(*authentication)
+                resolution_footprint = self._resolution.generate_footprint(*resolution)
+                distribution_footprint = self._distribution.generate_footprint(*distribution)
+                destination_footprint = self._distribution.generate_footprint(*destination)
+                payload_footprint = self._payload.generate_footprint(*payload)
+            except TypeError:
+                dprint("message name:   ", self._name, level="error")
+                dprint("authentication: ", self._authentication.__class__.__name__, level="error")
+                dprint("resolution:     ", self._resolution.__class__.__name__, level="error")
+                dprint("distribution:   ", self._distribution.__class__.__name__, level="error")
+                dprint("destination:    ", self._destination.__class__.__name__, level="error")
+                dprint("payload:        ", self._payload.__class__.__name__, level="error")
+                raise
+            else:
+                return " ".join((self._name.encode("UTF-8"), "Community:%s" % self._community.cid.encode("HEX"), authentication_footprint, resolution_footprint, distribution_footprint, destination_footprint, payload_footprint))
+
         return " ".join((self._name.encode("UTF-8"),
-                        "Community:%s" % self._community.cid.encode("HEX"),
-                        self._authentication.generate_footprint(*authentication),
-                        self._distribution.generate_footprint(*distribution),
-                        self._destination.generate_footprint(*destination),
-                        self._payload.generate_footprint(*payload)))
+                         "Community:%s" % self._community.cid.encode("HEX"),
+                         self._authentication.generate_footprint(*authentication),
+                         self._resolution.generate_footprint(*resolution),
+                         self._distribution.generate_footprint(*distribution),
+                         self._destination.generate_footprint(*destination),
+                         self._payload.generate_footprint(*payload)))
 
     def impl(self, authentication=(), resolution=(), distribution=(), destination=(), payload=(), *args, **kargs):
         if __debug__:
-            assert isinstance(authentication, tuple)
-            assert isinstance(resolution, tuple)
-            assert isinstance(distribution, tuple)
-            assert isinstance(destination, tuple)
-            assert isinstance(payload, tuple)
+            assert isinstance(authentication, tuple), type(authentication)
+            assert isinstance(resolution, tuple), type(resolution)
+            assert isinstance(distribution, tuple), type(distribution)
+            assert isinstance(destination, tuple), type(destination)
+            assert isinstance(payload, tuple), type(payload)
             try:
                 authentication_impl = self._authentication.Implementation(self._authentication, *authentication)
                 resolution_impl = self._resolution.Implementation(self._resolution, *resolution)
                 distribution_impl = self._distribution.Implementation(self._distribution, *distribution)
                 destination_impl = self._destination.Implementation(self._destination, *destination)
                 payload_impl = self._payload.Implementation(self._payload, *payload)
-            except TypeError, exception:
+            except TypeError:
                 dprint("message name:   ", self._name, level="error")
                 dprint("authentication: ", self._authentication.__class__.__name__, ".Implementation", level="error")
                 dprint("resolution:     ", self._resolution.__class__.__name__, ".Implementation", level="error")
