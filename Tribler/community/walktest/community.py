@@ -123,13 +123,13 @@ class WalktestCommunity(Community):
         return request
 
     def on_introduction_request(self, messages):
-        try:
-            # get candidate BEFORE updating our local view
-            candidate = self.yield_candidates([message.address for message in messages]).next()
-        except StopIteration:
-            candidate = None
-
         for message in messages:
+            try:
+                # get candidate BEFORE updating our local view
+                candidate = self.yield_candidates([message.address]).next()
+            except StopIteration:
+                candidate = None
+
             # update local view
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_requests()
