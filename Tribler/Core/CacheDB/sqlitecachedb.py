@@ -817,7 +817,7 @@ class SQLiteCacheDBBase:
                 where=u'peer_id=%d'%peer_id
                 self.update('Peer', where, commit=commit, **argv)
         else:
-            self.insert('Peer', permid=bin2str(permid), commit=commit, **argv)
+            self.insert_or_ignore('Peer', permid=bin2str(permid), commit=commit, **argv)
         return peer_existed
                 
     def deletePeer(self, permid=None, peer_id=None, force=True, commit=True):

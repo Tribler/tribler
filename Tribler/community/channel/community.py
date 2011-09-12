@@ -340,11 +340,12 @@ class ChannelCommunity(Community):
 
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
-
+        
+        gt = self.claim_global_time()
+        current_policy,_ = self._timeline.get_resolution_policy(meta, gt)
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(self.claim_global_time(),),
+                            distribution=(gt,),
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
@@ -355,7 +356,7 @@ class ChannelCommunity(Community):
         messages = []
         
         meta = self.get_meta_message(u"torrent")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
         for infohash, timestamp, name, files, trackers in torrentlist:
             message = meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),

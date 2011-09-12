@@ -101,13 +101,12 @@ class RemoteTorrentHandler:
             print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.callbacks
         
         if infohash in self.callbacks:
-            usercallbacks = self.callbacks[infohash]
-            del self.callbacks[infohash]
-
+            usercallbacks = self.callbacks[infohash][:]
+            
             for usercallback in usercallbacks:
-                if usercallback:
-                    remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
-                    self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
+                remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
+                self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
+            del self.callbacks[infohash]
             
         for requester in self.requesters.values():
             if infohash in requester.sources:
