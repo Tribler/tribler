@@ -1214,7 +1214,8 @@ class TorrentDBHandler(BasicDBHandler):
             sql = "INSERT OR REPLACE INTO Torrent (infohash, length, status_id, category_id) VALUES (?,?,?,?)"
             self._db.executemany(sql, should_update_or_insert)
         
-        infohashes = [infohash for infohash, _ in torrents]
+        infohashes = [infohash for infohash, _, _ in torrents]
+        
         return self._db.getTorrentIDS(infohashes)
         
     def _getStatusID(self, status):
