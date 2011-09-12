@@ -182,7 +182,7 @@ class WalktestCommunity(Community):
 
             # probabilistically continue with the walk or choose a different path
             if random() < 0.8:
-                destination = messages.payload.introduction_address
+                destination = message.payload.introduction_address
             else:
                 try:
                     destination = self.yield_candidates(message.address).next()
