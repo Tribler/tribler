@@ -178,7 +178,7 @@ class WalktestCommunity(Community):
             # obtain own public address
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
-            if __debug__: log("walktest.log", "on_introduction_response", public_address=self._dispersy.external_address, sources=[message.address for message in messages])
+            if __debug__: log("walktest.log", "on_introduction_response", public_address=self._dispersy.external_address, source=message.address)
 
             # probabilistically continue with the walk or choose a different path
             if random() < 0.8:
