@@ -142,7 +142,7 @@ class WalktestCommunity(Community):
             if candidate:
                 # create introduction responses
                 meta = self._meta_messages[u"introduction-response"]
-                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate))
+                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate, message.payload.identifier))
 
                 # create puncture requests
                 meta = self._meta_messages[u"puncture-request"]
