@@ -249,7 +249,7 @@ class ChannelFooter(ListFooter):
                 self.manage.Show(True)
                 buttonSizer = self.manage
         
-            if vote == -2:
+            if vote == -1:
                 header = ''
                 msg = "You have marked this Channel as Spam."
                     
@@ -258,7 +258,7 @@ class ChannelFooter(ListFooter):
                 self.spam.Show(True)
                 buttonSizer = self.spam
                     
-            elif vote == 1:
+            elif vote == 2:
                 if msg == '':
                     msg = "Thank you for marking this Channel as your Favorite."
                 

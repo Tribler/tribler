@@ -110,7 +110,7 @@ class TorrentDetails(AbstractDetails):
         self.vod_log = None
 
         self.compact = compact
-        self.saveSpace = parent.GetSize()[0] < self.SAVESPACE_THRESHOLD 
+        self.saveSpace = compact or parent.GetSize()[0] < self.SAVESPACE_THRESHOLD 
         
         self.isReady = False
         self.noChannel = noChannel
@@ -171,7 +171,7 @@ class TorrentDetails(AbstractDetails):
     
 
     @forceWxThread
-    def showTorrent(self, torrent):
+    def showTorrent(self, torrent, showTab = None):
         try:
             if DEBUG:
                 print >> sys.stderr, "TorrentDetails: finished loading", self.torrent.name
@@ -190,6 +190,12 @@ class TorrentDetails(AbstractDetails):
         
             self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
             self._addTabs(ds)
+            
+            if showTab:
+                for i in range(self.notebook.GetPageCount()):
+                    if self.notebook.GetPageText(i) == showTab:
+                        self.notebook.SetSelection(i)
+                        break
         
             self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
             self.details.Add(self.notebook, 65, wx.EXPAND)
@@ -1204,13 +1210,16 @@ class TorrentDetails(AbstractDetails):
                     page.SetupScrolling()
                     
     def OnEventSize(self, width):
+        if self.compact:
+            return
+        
         if width < self.SAVESPACE_THRESHOLD:
             if not self.saveSpace:
                 self.saveSpace = True
                 self.state = -1
             
                 self.details.Clear(deleteWindows = True)
-                self.showTorrent(self.torrent)
+                self.showTorrent(self.torrent, "Files")
             
         elif self.saveSpace:
             self.saveSpace = False
