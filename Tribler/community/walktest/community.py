@@ -35,7 +35,7 @@ class WalktestCommunity(Community):
 
         except StopIteration:
             if __debug__: dprint("no candidate to start walk.  retry in N seconds")
-            self._dispersy.callback(self.start_walk, delay=10.0)
+            self._dispersy.callback.register(self.start_walk, delay=10.0)
 
         else:
             self.create_introduction_request(candidate)
