@@ -64,8 +64,8 @@ def documentation(documented_func):
         return func
     return helper
 
-def runtime_duration_warning(threshold=1.0):
-    assert isinstance(threshold, float)
+def runtime_duration_warning(threshold):
+    assert isinstance(threshold, float), type(threshold)
     def helper(func):
         if __debug__:
             def runtime_duration_warning_helper(*args, **kargs):
