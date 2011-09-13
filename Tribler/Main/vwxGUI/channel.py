@@ -1433,7 +1433,7 @@ class CommentItem(AvantarItem):
     
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         #check if we are part of a torrent
-        manager = parent_list.GetManager()
+        manager = parent_list.parent_list.GetManager()
         if manager.channeltorrent:
             self.inTorrent = True
         else:
@@ -1512,7 +1512,7 @@ class CommentManager:
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
     def SetIds(self, channel = None, playlist = None, channeltorrent = None):
-        if self.channel != self.channel:
+        if channel != self.channel:
             self.channel = channel
             self.list.dirty = True
             
@@ -1540,7 +1540,7 @@ class CommentManager:
         if self.playlist:
             comments = self.channelsearch_manager.getCommentsFromPlayListId(self.playlist.id)
         elif self.channeltorrent:
-            comments = self.channelsearch_manager.getCommentsFromChannelTorrentId(self.channeltorrent)
+            comments = self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
         else:
             comments = self.channelsearch_manager.getCommentsFromChannel(self.channel)
             
@@ -1556,8 +1556,8 @@ class CommentManager:
         
         if self.playlist:
             self.channelsearch_manager.createComment(comment, self.channel.id, reply_after, playlist_id = self.playlist.id)
-        elif self.channeltorrent_id:
-            self.channelsearch_manager.createComment(comment, self.channel.id, reply_after, channeltorrent_id = self.channeltorrent.id)
+        elif self.channeltorrent:
+            self.channelsearch_manager.createComment(comment, self.channel.id, reply_after, channeltorrent_id = self.channeltorrent.channeltorrent_id)
         else:
             self.channelsearch_manager.createComment(comment, self.channel.id, reply_after)
 

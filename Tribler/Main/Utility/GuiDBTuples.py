@@ -369,7 +369,7 @@ class Comment(Helper):
         from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
         
         searchManager = ChannelSearchGridManager.getInstance()
-        return searchManager.getTorrentFromChannelTorrentId(self.channeltorrent_id)
+        return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
 class Playlist(Helper):
     __slots__ = ('id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')

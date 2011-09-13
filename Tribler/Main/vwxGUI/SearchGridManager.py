@@ -1132,7 +1132,7 @@ class ChannelSearchGridManager:
         return self._createComments(hits, channel = playlist.channel, playlist = playlist)
             
     def getCommentsFromChannelTorrent(self, channel_torrent, limit = None):
-        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent.id, COMMENT_REQ_COLUMNS, limit)
+        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent.channeltorrent_id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits, channel=channel_torrent.channel, channel_torrent=channel_torrent)
         
     def _createComments(self, hits, channel = None, playlist = None, channel_torrent = None):
