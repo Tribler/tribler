@@ -4064,6 +4064,7 @@ class DispersyUndoScript(ScriptBase):
         node.give_messages(messages)
 
         yield community.get_meta_message(u"full-sync-text").delay + community.get_meta_message(u"dispersy-undo").delay
+        yield 1.0
 
         # check that they are in the database and ARE undone
         for message in messages:

@@ -3555,7 +3555,11 @@ class Dispersy(Singleton):
                     for message in messages:
                         dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high if message.payload.time_high else "inf", "] (", community.get_classification(), ")")
                 self.store_update_forward(messages, False, False, True)
-                yield community.dispersy_sync_interval
+
+                desync = (yield community.dispersy_sync_interval)
+                while desync > 0.1:
+                    if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    desync = (yield desync)
 
     def _periodically_create_candidate_request(self, community):
         try:
@@ -3584,7 +3588,11 @@ class Dispersy(Singleton):
                             in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count)]
                 if requests:
                     self.store_update_forward(requests, False, False, True)
-                yield community.dispersy_candidate_request_interval
+
+                desync = (yield community.dispersy_candidate_request_interval)
+                while desync > 0.1:
+                    if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    desync = (yield desync)
 
     # def _periodically_connectability(self):
     #     # unknown
@@ -3606,7 +3614,10 @@ class Dispersy(Singleton):
     def _periodically_cleanup_database(self):
         # cleannup candidate tables
         while True:
-            yield 120.0
+            desync = (yield 120.0)
+            while desync > 0.1:
+                if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                desync = (yield desync)
 
             for community in self._communities.itervalues():
                 self._database.execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) > ?",
@@ -3620,6 +3631,10 @@ class Dispersy(Singleton):
         while True:
             try:
                 yield 300.0
+                while desync > 0.1:
+                    if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    desync = (yield desync)
+
                 # flush changes to disk every 5 minutes
                 self._database.commit()
             except GeneratorExit:

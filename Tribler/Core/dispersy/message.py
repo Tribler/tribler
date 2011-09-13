@@ -75,6 +75,7 @@ class DelayPacketByMissingMessage(DelayPacket):
         # the footprint that will trigger the delayed packet
         footprint = "".join(("Community:", community.cid.encode("HEX"),
                              "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
+                             "\s", "Resolution",
                              "\s", "(Relay|Direct|Sync|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+"))
 
         # the request message that asks for the message that will trigger the delayed packet
@@ -196,6 +197,7 @@ class DelayMessageBySequence(DelayMessage):
         footprint = "".join((delayed.name.encode("UTF-8"),
                              " Community:", delayed.community.cid.encode("HEX"),
                              " MemberAuthentication:", delayed.authentication.member.mid.encode("HEX"),
+                             " Resolution",
                              " SyncDistribution:", str(missing_high),
                              " CommunityDestination"))
 
