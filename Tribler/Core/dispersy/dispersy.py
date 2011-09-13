@@ -54,6 +54,7 @@ from bootstrap import get_bootstrap_addresses
 from callback import Callback
 from candidate import Candidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
+from decorator import runtime_duration_warning
 from destination import CommunityDestination, AddressDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
