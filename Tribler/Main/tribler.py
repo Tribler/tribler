@@ -28,6 +28,7 @@ from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 
 import os,sys
 import urllib
+from Tribler.Core.simpledefs import NTFY_MODIFIED
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -119,7 +120,7 @@ class ABCApp(wx.App):
 
         self.old_reputation = 0
         
-        # ProxyService 90s Test_
+        # ProxyService 90s Test_NTFY_PLAYLISTS
 #        self.proxytest_reported = False
         # _ProxyService 90s Test_
 
@@ -336,7 +337,7 @@ class ABCApp(wx.App):
         s = self.utility.session
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE,NTFY_MODIFIED])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
@@ -796,15 +797,14 @@ class ABCApp(wx.App):
             manager.channelUpdated(objectID, subject == NTFY_VOTECAST)
             
             manager = self.frame.selectedchannellist.GetManager()
-            manager.channelUpdated(objectID, changeType == NTFY_STATE)
+            manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = NTFY_MODIFIED)
             
             if changeType == NTFY_CREATE:
-                
                 self.frame.selectedchannellist.SetMyChannelId(objectID)
                 self.frame.channellist.SetMyChannelId(objectID)
                 self.frame.managechannel.SetMyChannel(objectID)
                 
-            self.frame.managechannel.channelUpdated(objectID)
+            self.frame.managechannel.channelUpdated(objectID, modified = NTFY_MODIFIED)
     
     @forceWxThread
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
@@ -820,8 +820,13 @@ class ABCApp(wx.App):
         if self.ready and self.frame.ready:
             if changeType == NTFY_INSERT:
                 self.frame.managechannel.playlistCreated(objectID)
+                
             else:
                 self.frame.managechannel.playlistUpdated(objectID)
+                
+                manager = self.frame.selectedchannellist.GetManager()
+                manager.playlistUpdated(objectID)
+                
     @forceWxThread     
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:

@@ -1341,8 +1341,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
             
             CREATE TABLE IF NOT EXISTS PlaylistTorrents (
+              dispersy_id           integer         NOT NULL,
               playlist_id           integer,
               channeltorrent_id     integer,
+              UNIQUE (dispersy_id),
               PRIMARY KEY (playlist_id, channeltorrent_id),
               FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
               FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE

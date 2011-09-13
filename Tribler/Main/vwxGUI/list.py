@@ -1296,14 +1296,12 @@ class ChannelList(List):
         
         self.select_popular = True
         self.max_votes = 5
-        self.my_id = self.guiutility.channelsearch_manager.channelcast_db._channel_id
         List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
     
     def __favorite_icon(self, item):
         channel = item.original_data
-        if channel.id == self.my_id:
+        if channel.isMyChannel():
             return self.mychannel
-        
         if channel.isFavorite():
             return self.favorite
         if channel.isSpam():
@@ -1422,11 +1420,7 @@ class ChannelList(List):
         self.header.Refresh()
 
     def SetMyChannelId(self, channel_id):
-        self.my_id = channel_id
-
-        #to reset icons we have to reset the complete list :(
-        self.list.Reset()        
-        self.GetManager().refresh()
+        self.GetManager().refresh_partial((channel_id,))
 
     def Reset(self):
         List.Reset(self)

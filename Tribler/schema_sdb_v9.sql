@@ -467,6 +467,7 @@ CREATE TABLE IF NOT EXISTS Playlists (
 );
 CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
 CREATE TABLE IF NOT EXISTS PlaylistTorrents (
+  dispersy_id           integer         NOT NULL,
   playlist_id           integer,
   channeltorrent_id     integer,
   PRIMARY KEY (playlist_id, channeltorrent_id),

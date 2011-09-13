@@ -32,7 +32,7 @@ def forceDispersyThread(func):
                 func(*args, **kwargs)
             _register_task(dispersy_thread)
         else:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -412,18 +412,16 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_remove_torrent_from_dispersy(self._channel_id, dispersy_id)
 
     #create, check or receive playlists
+    @forceDispersyThread
     def create_playlist(self, name, description, infohashes = [], store=True, update=True, forward=True):
-        def dispersy_thread():
-            message = self._disp_create_playlist(name, description)
-            self._disp_create_playlist_torrents(infohashes, message, store, update, forward)
-    
-        self._register_task(dispersy_thread)
+        message = self._disp_create_playlist(name, description)
+        if len(infohashes) > 0:
+            self._disp_create_playlist_torrents(message, infohashes, store, update, forward)
 
+    @forceDispersyThread
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         message = meta.impl(authentication=(self._my_member,),
-                            resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
                             payload=(name, description))
         self._dispersy.store_update_forward([message], store, update, forward)
@@ -712,7 +710,17 @@ class ChannelCommunity(Community):
             
     #create, check or receive playlist_torrent messages
     @forceDispersyThread
-    def _disp_create_playlist_torrents(self, infohashes, playlist_message, store=True, update=True, forward=True):
+    def create_playlist_torrents(self, playlist_id, infohashes, store=True, update=True, forward=True):
+        playlist_packet = self._get_message_from_playlist_id(playlist_id)
+        self._disp_create_playlist_torrents(playlist_packet, infohashes, store, update, forward)
+    
+    def remove_playlist_torrents(self, playlist_id, dispersy_ids):
+        for dispersy_id in dispersy_ids:
+            message = self._get_message_from_dispersy_id(dispersy_id, "playlist_torrent")
+            self._dispersy.create_undo(self, message)
+    
+    @forceDispersyThread
+    def _disp_create_playlist_torrents(self, playlist_packet, infohashes, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist_torrent")
         current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
 
@@ -721,7 +729,7 @@ class ChannelCommunity(Community):
             message = meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),
                                 distribution=(self.claim_global_time(),),
-                                payload=(infohash, playlist_message))
+                                payload=(infohash, playlist_packet))
             messages.append(message)
 
         self._dispersy.store_update_forward(messages, store, update, forward)
@@ -740,14 +748,18 @@ class ChannelCommunity(Community):
     
     def _disp_on_playlist_torrent(self, messages):
         for message in messages:
+            dispersy_id = message.packet_id
             playlist_dispersy_id = message.payload.playlist.packet_id
             
-            self._channelcast_db.on_playlist_torrent(playlist_dispersy_id, message.payload.infohash)
+            self._channelcast_db.on_playlist_torrent(dispersy_id, playlist_dispersy_id, message.payload.infohash)
             
     def _disp_undo_playlist_torrent(self, descriptors):
         for _, _, packet in descriptors:
-            dispersy_id = packet.packet_id
-            self._channelcast_db.on_remove_playlist_torrent(self._channel_id, dispersy_id)
+            message = packet.load_message()
+            infohash = message.payload.infohash
+            playlist_dispersy_id = message.payload.playlist.packet_id
+            
+            self._channelcast_db.on_remove_playlist_torrent(self._channel_id, playlist_dispersy_id, infohash)
             
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
@@ -899,7 +911,7 @@ class ChannelCommunity(Community):
         assert isinstance(playlist_id, (int, long))
         
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db.getPlaylist(playlist_id, ('dispersy_id',)).dispersy_id
+        dispersy_id, _= self._channelcast_db.getPlaylist(playlist_id, ('Playlists.dispersy_id',))
 
         # 2. get the message
         message = self._get_message_from_dispersy_id(dispersy_id, 'playlist')
@@ -939,7 +951,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
         
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataChannel WHERE ChannelMetaData.id = MetaDataChannel.metadata_id AND type_id = ? AND channel_id = ? ORDER BY prev_global_time DESC", (type_id, self._channel_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData WHERE type_id = ? AND channel_id = ? AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) ORDER BY prev_global_time DESC", (type_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
     
     def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_id):

@@ -223,7 +223,7 @@ class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time):
             assert isinstance(modification_type, unicode)
-            assert modification_value
+            assert modification_value is not None
             assert isinstance(modification_on, Packet)
 
             assert not prev_modification_packet or isinstance(prev_modification_packet, Packet)
@@ -274,7 +274,7 @@ class PlaylistTorrentPayload(Payload):
         def __init__(self, meta, infohash, playlist):
             assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
             assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
-            assert isinstance(playlist, Packet)
+            assert isinstance(playlist, Packet), type(playlist)
             super(PlaylistTorrentPayload.Implementation, self).__init__(meta)
             self._infohash = infohash
             self._playlist = playlist

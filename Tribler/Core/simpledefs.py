@@ -97,6 +97,7 @@ NTFY_SEARCH_RESULT = 'search_result'     # new search result
 NTFY_CONNECTION = 'connection' # connection made or broken
 NTFY_STARTED = 'started'
 NTFY_STATE = 'state'
+NTFY_MODIFIED = 'modified'
 
 # object IDs for NTFY_ACTIVITIES subject 
 NTFY_ACT_NONE = 0

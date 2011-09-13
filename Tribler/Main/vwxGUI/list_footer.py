@@ -206,7 +206,6 @@ class ChannelFooter(ListFooter):
         self.favorite.Show(False)
         self.spam.Show(False)
         self.manage.Show(False)
-
         
         #clean up old ortext statictext
         if not preview and self.ortext and explicit_vote:

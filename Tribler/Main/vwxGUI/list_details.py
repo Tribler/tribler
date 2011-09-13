@@ -308,7 +308,7 @@ class TorrentDetails(AbstractDetails):
             from channel import CommentList
             self.commentList = CommentList(self.notebook, canReply = True, quickPost = True)
             commentManager = self.commentList.GetManager()
-            commentManager.SetIds(self.torrent.channel, channeltorrent_id = self.torrent.channeltorrent_id)
+            commentManager.SetIds(self.torrent.channel, channeltorrent = self.torrent)
             
             def updateTitle(nrcomments):
                 for i in range(self.notebook.GetPageCount()):
@@ -1773,7 +1773,7 @@ class MyChannelPlaylist(AbstractDetails):
     def __init__(self, parent, on_manage, playlist = {}):
         self.on_manage = on_manage
         self.playlist = playlist
-        self.torrent_ids = None
+        self.torrent_ids = []
         
         wx.Panel.__init__(self, parent)
         vSizer = wx.BoxSizer(wx.VERTICAL)

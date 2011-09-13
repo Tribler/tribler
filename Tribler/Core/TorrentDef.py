@@ -129,7 +129,7 @@ class TorrentDef(Serializable,Copyable):
         return t
     
     _create = staticmethod(_create)
-
+    
     @staticmethod
     def retrieve_from_magnet(url, callback, timeout=30.0):
         """

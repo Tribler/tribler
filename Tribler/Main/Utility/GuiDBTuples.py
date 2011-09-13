@@ -75,6 +75,14 @@ class Helper(object):
     
     def __contains__(self, key):
         return key in self.__slots__
+    
+    def __eq__(self, other):
+        if other:
+            return self.id == other.id
+        return False
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 class Torrent(Helper):
     __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress')
@@ -136,6 +144,12 @@ class Torrent(Helper):
             
             if self.ds.get_status() == DLSTATUS_STOPPED:
                 return 'stopped'
+            
+    def __eq__(self, other):
+        return self.infohash == other.infohash
+    
+    def __str__(self):
+        return self.name
     
 class RemoteTorrent(Torrent):
     __slots__ = ('query_permids')
@@ -309,17 +323,20 @@ class RemoteChannel(Channel):
         return ChannelCommunity.CHANNEL_CLOSED, False
         
 class Comment(Helper):
-    __slots__ = ('id', 'dispersy_id', 'playlist_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'time_stamp', 'get_nickname', 'get_mugshot')
-    def __init__(self, id, dispersy_id, playlist_id, channeltorrent_id, name, peer_id, comment, time_stamp):
+    __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
+    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, time_stamp, playlist, torrent, channel):
         self.id = id
         self.dispersy_id = dispersy_id
-        self.playlist_id = playlist_id
         self.channeltorrent_id = channeltorrent_id
         
         self._name = name
         self.peer_id = peer_id
         self.comment = comment
         self.time_stamp = time_stamp
+        
+        self.playlist = playlist
+        self._torrent = torrent
+        self.channel = channel
         
     @cacheProperty
     def name(self):
@@ -343,6 +360,27 @@ class Comment(Helper):
         if data is None:
             data = im.get_default('PEER_THUMB',SMALL_ICON_MAX_DIM)
         return data
+    
+    @cacheProperty
+    def torrent(self):
+        if self._torrent is not None:
+            return self._torrent
+
+        from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+        
+        searchManager = ChannelSearchGridManager.getInstance()
+        return searchManager.getTorrentFromChannelTorrentId(self.channeltorrent_id)
+    
+class Playlist(Helper):
+    __slots__ = ('id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')
+    def __init__(self, id, channel_id, name, description, nr_torrents, channel):
+        self.id = id
+        self.channel_id = channel_id
+        self.name = name
+        self.description = description
+        self.nr_torrents = nr_torrents
+        
+        self.channel = channel
                 
 class Modification(Helper):
     __slots__ = ('id', 'type_id', 'value', 'inserted', 'channelcast_db')

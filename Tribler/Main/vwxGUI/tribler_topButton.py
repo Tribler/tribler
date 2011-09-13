@@ -666,7 +666,11 @@ class EditText(wx.TextCtrl):
             
         wx.TextCtrl.__init__(self, parent, -1, text, style = style)
         self.original_text = text
-        
+    
+    def SetValue(self, value):
+        wx.TextCtrl.SetValue(self, value)
+        self.original_text = value
+    
     def IsChanged(self):
         return self.original_text != self.GetValue()
     
