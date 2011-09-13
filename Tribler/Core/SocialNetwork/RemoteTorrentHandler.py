@@ -68,7 +68,8 @@ class RemoteTorrentHandler:
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         
-        self.callbacks.setdefault(infohash, []).append(usercallback)
+        if usercallback:
+            self.callbacks.setdefault(infohash, []).append(usercallback)
         
         requester = None
         
@@ -86,7 +87,6 @@ class RemoteTorrentHandler:
         
         #make request
         requester.add_source(infohash, permid)
-
         
         if DEBUG:
             print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
