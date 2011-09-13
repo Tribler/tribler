@@ -121,7 +121,7 @@ def main():
             if not opt.disable_simple_dispersy_test_script:
                 from Tribler.community.simpledispersytest.script import GenerateMessagesScript, KillCommunityScript
                 script.add("simpledispersytest-generate-messages", GenerateMessagesScript, script_kargs, include_with_all=False)
-                script.add("simpledispersytest-destroy-community", KillCommunityScript, include_with_all=False)
+                script.add("simpledispersytest-destroy-community", KillCommunityScript, script_kargs, include_with_all=False)
 
             # if not opt.disable_allchannel_script:
             #     from Tribler.Community.allchannel.script import AllChannelScript
