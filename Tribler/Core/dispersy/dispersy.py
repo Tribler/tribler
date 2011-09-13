@@ -1165,6 +1165,7 @@ class Dispersy(Singleton):
         """
         return [self.convert_packet_to_message(packet) for packet in packets]
 
+    @runtime_duration_warning
     def on_incoming_packets(self, packets, cache=True):
         """
         Process incoming UDP packets.
@@ -1246,6 +1247,7 @@ class Dispersy(Singleton):
                 dprint("batch size: ", sum(performance), " [", ":".join(map(str, performance)), "] for ", meta.name, " after ", meta.delay, "s")
         return self._on_batch_cache(meta, self._batch_cache.pop(meta))
 
+    @runtime_duration_warning
     def _on_batch_cache(self, meta, batch):
         """
         Start processing a batch of messages.
@@ -1294,6 +1296,7 @@ class Dispersy(Singleton):
         for messages in batches.itervalues():
             self.on_message_batch(list(messages))
 
+    @runtime_duration_warning
     def on_message_batch(self, messages):
         """
         Process one batch of messages.
@@ -1389,11 +1392,15 @@ class Dispersy(Singleton):
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
 
         # tell what happened
-        if __debug__: dprint("handled ", len(messages), "/", debug_count, " %.2fs" %(clock() - debug_begin), " ", meta.name, " messages (after ", meta.delay, "s cache delay, for community ", meta.community.cid.encode("HEX"))
+        if __debug__:
+            debug_end = clock()
+            level = "warning" if debug_end - debug_begin) > 1.0 else "normal"
+            dprint("handled ", len(messages), "/", debug_count, " %.2fs" % (debug_end - debug_begin), " ", meta.name, " messages (after ", meta.delay, "s cache delay, for community ", meta.community.cid.encode("HEX"), level=level)
 
         # return the number of messages that were correctly handled (non delay, duplictes, etc)
         return len(messages)
 
+    @runtime_duration_warning
     def _convert_packets_into_batch(self, packets):
         """
         Convert a list with one or more (address, data) tuples into a list with zero or more
@@ -1463,6 +1470,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint(address[0], ":", address[1], ": drop a ", len(packet), " byte packet (", exception, ")", level="warning")
                 self._statistics.drop("_convert_packets_into_batch:decode_meta_message:%s" % exception, len(packet))
 
+    @runtime_duration_warning
     def _convert_batch_into_messages(self, batch):
         if __debug__:
             from conversion import Conversion
@@ -1511,6 +1519,7 @@ class Dispersy(Singleton):
                     if value - begin_stats[key] > 0.0:
                         dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key)
 
+    @runtime_duration_warning
     def _store(self, messages):
         """
         Store a message in the database.
@@ -1837,6 +1846,7 @@ class Dispersy(Singleton):
         if forward:
             self._forward(messages)
 
+    @runtime_duration_warning
     def _forward(self, messages):
         """
         Queue a sequence of messages to be sent to other members.

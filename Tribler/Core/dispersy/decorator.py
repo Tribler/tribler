@@ -1,3 +1,7 @@
+if __debug__:
+    from time import clock, sleep
+    from dprint import dprint
+
 class Constructor(object):
     """
     Allow a class to have multiple constructors.  The right one will
@@ -58,6 +62,23 @@ def documentation(documented_func):
             prefix = ""
         func.__doc__ = prefix + "\n        @note: This documentation is copied from " + documented_func.__class__.__name__ + "." + documented_func.__name__
         return func
+    return helper
+
+def runtime_duration_warning(threshold=1.0):
+    assert isinstance(threshold, float)
+    def helper(func):
+        if __debug__:
+            def runtime_duration_warning_helper(*args, **kargs):
+                start = clock()
+                try:
+                    return func(*args, **kargs)
+                finally:
+                    end = clock()
+                    if end - start > threshold:
+                        dprint(func, " took ", "%.2fs" % (end - start), level="warning")
+            return runtime_duration_warning_helper
+        else:
+            return func
     return helper
 
 if __debug__:
@@ -158,6 +179,15 @@ if __debug__:
         invalid_args(Bar, [])
 
         print "Constructor test passed"
+
+        @runtime_duration_warning(1.0)
+        def test(delay):
+            sleep(delay)
+
+        test(0.5)
+        test(1.5)
+
+        print "Runtime duration test complete"
 
     if __name__ == "__main__":
         main()
