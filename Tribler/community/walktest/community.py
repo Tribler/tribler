@@ -113,7 +113,7 @@ class WalktestCommunity(Community):
         meta_response = self._meta_messages[u"introduction-response"]
         footprint = meta_response.generate_footprint(payload=(identifier,))
         timeout = meta_response.delay + 5.0 # TODO why 5.0 margin
-        self._dispersy.await_message(footprint, self.introduction_response_or_timeout, timeout=timeout)
+        self._dispersy.await_message(footprint, self.introduction_response_or_timeout, (destination,) timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
         self._dispersy.callback.register(self._walk.remove, (identifier,), delay=timeout+10.0)
@@ -139,7 +139,7 @@ class WalktestCommunity(Community):
             self._dispersy.external_address_vote(message.payload.public_address, message.address)
 
             if candidate:
-                if __debug__: log("walktest.log", "on_introduction_request", sources=message.address, introduction_response=message.address, puncture_request=candidate, candidates=self._candidates.keys())
+                if __debug__: log("walktest.log", "on_introduction_request", source=message.address, introduction_response=message.address, puncture_request=candidate, candidates=self._candidates.keys())
 
                 # create introduction responses
                 meta = self._meta_messages[u"introduction-response"]
@@ -162,9 +162,14 @@ class WalktestCommunity(Community):
         # handled in introduction_response_or_timeout
         pass
 
-    def introduction_response_or_timeout(self, message):
+    def introduction_response_or_timeout(self, message, intermediary_address):
         if message is None:
-            if __debug__: log("walktest.log", "introduction_..._timeout", candidates=self._candidates.keys())
+            # intermediary_address is no longer online
+            if intermediary_address in self._candidates:
+                del self._candidates[intermediary_address]
+
+            if __debug__: log("walktest.log", "introduction_..._timeout", candidates=self._candidates.keys(), intermediary=intermediary_address)
+
             # timeout, start new walk
             self.start_walk()
 

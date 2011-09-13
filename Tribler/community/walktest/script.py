@@ -12,6 +12,8 @@ from Tribler.Core.dispersy.dprint import dprint
 from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
 
+from ldecoder import parse
+
 class DebugNode(Node):
     def create_introduction_request(self, destination, global_time):
         meta = self._community.get_meta_message(u"introduction-request")
@@ -81,3 +83,109 @@ class ScenarioScript(ScriptBase):
         for i in xrange(total):
             dprint(total - i)
             yield 1.0
+
+def main():
+    def ignore(lineno, datetime, message, **kargs):
+        if not message in ["logger"]:
+            print "ignore", message, kargs.keys()
+
+    def check_candidates(datetime, candidates):
+        now_online = set("%s:%d" % candidate for candidate in candidates)
+        if not now_online == current_online:
+            online.append((datetime, now_online))
+
+            current_online.clear()
+            current_online.update(now_online)
+
+    def create_introduction_request(lineno, datetime, message, introduction_request, candidates):
+        check_candidates(datetime, candidates)
+        outgoing["introduction-request"] += 1
+
+        key = "%s:%d" % introduction_request
+        if key in out_intro_req:
+            out_intro_req[key] += 1
+        else:
+            out_intro_req[key] = 1
+
+    def introduction_response_timeout(lineno, datetime, message, candidates):
+        check_candidates(datetime, candidates)
+
+    def introduction_response(lineno, datetime, message, source, introduction_address, candidates):
+        check_candidates(datetime, candidates)
+        incoming["introduction-response"] += 1
+
+        key = " -> ".join(("%s:%d"%source, "%s:%d"%introduction_address))
+        if key in in_intro_res:
+            in_intro_res[key] += 1
+        else:
+            in_intro_res[key] = 1
+
+    def on_puncture_request(lineno, datetime, message, source, puncture, candidates):
+        check_candidates(datetime, candidates)
+        incoming["puncture-request"] += 1
+        outgoing["puncture"] += 1
+
+    def on_puncture(lineno, datetime, message, source, candidates):
+        check_candidates(datetime, candidates)
+        incoming["puncture"] += 1
+
+    def on_introduction_request(lineno, datetime, message, source, introduction_response, puncture_request, candidates):
+        check_candidates(datetime, candidates)
+        incoming["introduction-request"] += 1
+        outgoing["introduction-response"] += 1
+        outgoing["puncture-request"] += 1
+
+    def init(lineno, datetime, message, candidates):
+        assert len(candidates) == 0
+        online.insert(0, (datetime, set()))
+
+    # churn
+    online = []
+    current_online = set()
+
+    # walk
+    out_intro_req = {}
+    in_intro_res = {}
+
+    # counters
+    incoming = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0}
+    outgoing = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0}
+
+    mapping = {"create_introduction_request":create_introduction_request,
+               "introduction_..._timeout":introduction_response_timeout,
+               "introduction_response_...":introduction_response,
+               "on_puncture":on_puncture,
+               "on_introduction_request":on_introduction_request,
+               "on_puncture_request":on_puncture_request,
+               "__init__":init}
+    for lineno, datetime, message, kargs in parse("walktest.log"):
+        mapping.get(message, ignore)(lineno, datetime, message, **kargs)
+
+    for count, key in sorted((count, key) for key, count in out_intro_req.iteritems()):
+        print "outgoing introduction request", "%4d" % count, key
+    print
+
+    for count, key in sorted((count, key) for key, count in in_intro_res.iteritems()):
+        print "incoming introduction response", "%4d" % count, key
+    print
+
+    print "in    out   diff  msg"
+    for key, incoming, outgoing in [(key, incoming[key], outgoing[key]) for key in incoming.iterkeys()]:
+        print "%-5d" % incoming, "%-5d" % outgoing, "%-5d" % abs(incoming - outgoing), key
+    print
+
+    print "diff     count    discovered                 lost"
+    last_datetime, last_candidates = online[0]
+    for datetime, candidates in online[1:]:
+        more = candidates.difference(last_candidates)
+        less = last_candidates.difference(candidates)
+
+        for candidate in more:
+            print datetime - last_datetime, " %-5d" % len(candidates), " +", candidate
+        for candidate in less:
+            print datetime - last_datetime, " %-5d" % len(candidates), "                            -", candidate
+
+        last_datetime, last_candidates = datetime, candidates
+
+if __name__ == "__main__":
+    main()
