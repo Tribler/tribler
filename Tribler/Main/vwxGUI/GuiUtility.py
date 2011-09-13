@@ -119,7 +119,6 @@ class GUIUtility:
                 #Show list
                 self.frame.searchlist.Show()
                 
-                wx.CallAfter(self.frame.searchlist.ScrollToEnd, False)
             else:
                 if sys.platform == 'win32':
                     self.frame.top_bg.Layout()
@@ -132,8 +131,6 @@ class GUIUtility:
                 if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage == 'mychannel':
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
-                    
-                    wx.CallAfter(self.frame.channellist.ScrollToEnd, False)
                     
                 elif selectedcat == 'My Channel' and self.oldpage != 'mychannel':
                     page = 'mychannel'
@@ -157,10 +154,11 @@ class GUIUtility:
                 self.frame.selectedchannellist.Show()
                 self.frame.channelcategories.DeselectAll()
                 
-                wx.CallAfter(self.frame.channelcategories.ScrollToEnd, False)
             else:
                 self.frame.selectedchannellist.Hide()
-                self.frame.selectedchannellist.Reset()
+                if page in ['mychannel', 'channels']:
+                    #destoying is quite costly, schedule after new page is shown
+                    wx.CallAfter(self.frame.selectedchannellist.Reset)
                 
             if page == 'my_files':
                 #Reload content

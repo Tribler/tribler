@@ -1483,8 +1483,7 @@ class MyChannelTabs(wx.Panel):
     def OnChange(self, event):
         page = event.GetSelection()
         if page == 1:
-            self.parent.ShowList()
-            self.parent.ScrollToEnd(False)
+            self.parent.Focus()
         elif page == 2:
             self.manageText.SetMinSize((-1,self.manageText.GetVirtualSize()[1]))
             self.managepage.Layout()

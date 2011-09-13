@@ -542,7 +542,7 @@ class List(XRCPanel):
     def Focus(self):
         assert self.ready, "List not ready"
         if self.ready:
-            self.list.SetFocus()
+            self.list.SetFocusIgnoringChildren()
         
     def HasFocus(self):
         assert self.ready, "List not ready"
@@ -1495,9 +1495,6 @@ class MyChannelList(List):
             return self.list.SetData(data)
         self.list.ShowMessage('You are currently not sharing any torrents in your channel.')
         return 0
-    
-    def ShowList(self):
-        self.list.SetFocus()
     
     def OnExpand(self, item):
         return MyChannelDetails(item, item.original_data, self.GetManager().my_permid)
