@@ -29,24 +29,25 @@ if False:
         return (length, public_key, private_key)
 
     def ec_public_pem_to_public_bin(pem):
-        return ";".join(pem.decode("HEX"))
+        return pem
 
     def ec_private_pem_to_private_bin(pem):
-        return pem.decode("HEX")
+        return pem
 
     def ec_to_private_pem(ec, cipher=None, password=None):
         return ";".join((str(ec[0]), ec[1].encode("HEX"), ec[2].encode("HEX")))
 
     def ec_to_public_pem(ec):
-        return ";".join((str(ec[0]), ec[1].encode("HEX")))
+        return ";".join((str(ec[0]), ec[1].encode("HEX"), ""))
 
     def ec_from_private_pem(pem, password=None):
         length, public_key, private_key = pem.split(";")
         return int(length), public_key.decode("HEX"), private_key.decode("HEX")
 
     def ec_from_public_pem(pem):
-        length, public_key = pem.split(";")
-        return int(length), public_key.decode("HEX")
+        length, public_key, private_key = pem.split(";")
+        assert private_key == ""
+        return int(length), public_key.decode("HEX"), private_key.decode("HEX")
 
     def ec_to_private_bin(ec):
         return ec_to_private_pem(ec)
@@ -62,6 +63,7 @@ if False:
 
     def ec_check_public_bin(string):
         try:
+            print string
             return bool(ec_from_public_bin(string))
         except:
             return False
