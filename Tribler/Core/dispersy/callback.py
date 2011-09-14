@@ -29,7 +29,7 @@ class Delay(Yielder):
         self._delay = delay
 
     def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
-        heappush(requests, (deadline + self._delay), priority, root_id, (call[0], actual_time - deadline), callback)
+        heappush(requests, (deadline + self._delay), priority, root_id, (call[0], "desync"), callback)
 
 class Switch(Yielder):
     def __init__(self, cother):
@@ -60,7 +60,7 @@ class Idle(Yielder):
         self._origional_callback = callback
         generator = self._take_step(actual_time - deadline)
         generator.send(None)
-        heappush(expired, (0, deadline, root_id, (generator, actual_time - deadline), None))
+        heappush(expired, (0, deadline, root_id, (generator, "desync"), None))
 
     def _take_step(self, desync):
         while self._max_delay > 0.0:
@@ -306,15 +306,15 @@ class Callback(object):
 
             if expired:
                 if __debug__:
-                    for deadline, _, _, call, _ in requests:
+                    for counter, (deadline, _, _, call, _) in enumerate(requests):
                         desync = actual_time - deadline
                         level = "error" if desync > 0.0 else "normal"
-                        dprint("queued %.4fs" % desync, " for request ", call[0], level=level)
+                        dprint("%2d" % counter, " queue waiting %.4fs" % desync, " for request ", call[0], level=level)
 
-                    for _, deadline, _, call, _ in expired:
+                    for counter, (_, deadline, _, call, _) in enumerate(expired):
                         desync = actual_time - deadline
                         level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
-                        dprint("desync %.4fs" % desync, " for expired ", call[0], level=level)
+                        dprint("%2d" % counter, " queue desync  %.4fs" % desync, " for expired ", call[0], level=level)
 
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
@@ -329,7 +329,7 @@ class Callback(object):
                             # start next generator iteration
                             if __debug__:
                                 debug_begin = get_timestamp()
-                            result = call[0].send(call[1])
+                            result = call[0].send(actual_time - deadline if call[1] == "desync" else call[1])
                         except StopIteration:
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
@@ -347,7 +347,7 @@ class Callback(object):
                                 # schedule CALL again in RESULT seconds
                                 # equivalent to: yield Delay(SECONDS)
                                 assert result >= 0.0
-                                heappush(requests, (deadline + result, priority, root_id, (call[0], actual_time - deadline), callback))
+                                heappush(requests, (deadline + result, priority, root_id, (call[0], "desync"), callback))
                             elif isinstance(result, Yielder):
                                 # let the Yielder object handle everything
                                 result.handle(self, requests, expired, actual_time, deadline, priority, root_id, call, callback)
@@ -471,10 +471,11 @@ if __debug__:
             for i in xrange(10):
                 sleep(2.0)
                 desync = (yield 1.0)
-                dprint("desync... ", desync, force=1)
+                dprint("desync... ", desync)
                 while desync > 0.1:
-                    dprint("backing off... ", desync, force=1)
+                    dprint("backing off... ", desync)
                     desync = (yield desync)
+                    dprint("next try... ", desync)
 
         c.register(call)
         sleep(21.0)
