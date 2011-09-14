@@ -573,7 +573,7 @@ class Dispersy(Singleton):
                             try:
                                 self._communities[cid] = cls.load_community(master)
                             except:
-                                if __debug__: dprint("unable to auto load a community", exception=True, stack=True, level="warning")
+                                if __debug__: dprint("unable to auto load a community (most likely the community requires a parameter that we do not have at auto-load)", exception=True, level="warning")
 
                                 # disable auto-load for this community (prevent this from happening again)
                                 self._database.execute(u"UPDATE community SET auto_load = 0 WHERE master = ?", (master.database_id,))
