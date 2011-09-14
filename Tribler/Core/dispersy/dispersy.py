@@ -40,20 +40,17 @@ supply.  Aside from the four policies, each meta-message also defines the commun
 of, the name it uses as an internal identifier, and the class that will contain the payload.
 """
 
-from datetime import datetime
 from hashlib import sha1
 from itertools import groupby, islice, count
 from os.path import abspath
 from random import random, shuffle
 from sys import maxint
-from threading import Lock
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
 from callback import Callback
 from candidate import Candidate
-from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from decorator import runtime_duration_warning
 from destination import CommunityDestination, AddressDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
@@ -90,7 +87,7 @@ class DummySocket(object):
     To avoid problems we initialize the Dispersy socket to this dummy object that will do nothing
     but throw away all packets it is supposed to sent.
     """
-    def send(address, data):
+    def send(self, address, data):
         if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data", level="warning")
 
 class Statistics(object):
@@ -2138,7 +2135,6 @@ class Dispersy(Singleton):
             assert isinstance(address, tuple)
             assert isinstance(address[0], str)
             assert isinstance(address[1], int)
-            assert isinstance(footprint, str)
             assert isinstance(member, Member)
             assert isinstance(global_time, (int, long))
             assert callable(response_func)
@@ -2281,6 +2277,9 @@ class Dispersy(Singleton):
          be True, its inclusion is mostly to allow certain debugging scenarios.
         @type store: bool
         """
+        if __debug__:
+            from Tribler.Core.dispersy.community import Community
+        
         assert isinstance(community, Community)
         assert isinstance(address, tuple)
         assert isinstance(address[0], str)
