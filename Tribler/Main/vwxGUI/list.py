@@ -240,7 +240,7 @@ class ChannelManager():
         if 'COMPLETE_REFRESH' in self.dirtyset:
             self._refresh_list()
         else:
-            for infohash in self.dirtyset:
+            for infohash in list(self.dirtyset):
                 data = self.channelsearch_manager.getTorrentFromPublisherId(self.list.publisher_id, infohash)
                 self.list.RefreshData(infohash, data)
                 
