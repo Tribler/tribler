@@ -3684,7 +3684,7 @@ class ChannelCastDBHandler(object):
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
     
-    def getRecentTorrentsFromChannelId(self, channel_id, keys, limit = None):
+    def getRecentReceivedTorrentsFromChannelId(self, channel_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY inserted DESC"
         if limit:
             sql += " LIMIT %d"%limit

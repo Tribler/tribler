@@ -270,6 +270,9 @@ class ListItem(wx.Panel):
             
             #self.Refresh()
             self.Thaw()
+            return True
+        
+        return False
     
     @warnWxThread
     def Deselect(self):
@@ -299,11 +302,11 @@ class ListItem(wx.Panel):
     def OnMouse(self, event):
         if event.Entering():
             event.GetEventObject().selected = True
-            self.ShowSelected()
+            wx.CallAfter(self.ShowSelected)
             
         elif event.Leaving():
             event.GetEventObject().selected = False
-            self.ShowSelected()
+            wx.CallAfter(self.ShowSelected)
             
         elif event.LeftDown():
             event.listitem = self

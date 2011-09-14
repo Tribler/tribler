@@ -306,7 +306,7 @@ class TorrentDetails(AbstractDetails):
         #Create torrent overview
         if self.canComment:
             from channel import CommentList
-            self.commentList = CommentList(self.notebook, canReply = True, quickPost = True)
+            self.commentList = CommentList(self.notebook, self.parent, canReply = True, quickPost = True)
             commentManager = self.commentList.GetManager()
             commentManager.SetIds(self.torrent.channel, channeltorrent = self.torrent)
             
@@ -411,7 +411,7 @@ class TorrentDetails(AbstractDetails):
                     self.listCtrl.SetStringItem(pos, 2, '')
             
             self.listCtrl.setResizeColumn(0)
-            self.listCtrl.SetColumnWidth(0, wx.LIST_AUTOSIZE) #autosize only works after adding rows
+            self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
             self.listCtrl.SetMinSize((1,-1))
             
             if self.saveSpace:

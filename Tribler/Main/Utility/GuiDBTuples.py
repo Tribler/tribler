@@ -323,8 +323,8 @@ class RemoteChannel(Channel):
         return ChannelCommunity.CHANNEL_CLOSED, False
         
 class Comment(Helper):
-    __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
-    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, time_stamp, playlist, torrent, channel):
+    __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
+    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, inserted, time_stamp, playlist, torrent, channel):
         self.id = id
         self.dispersy_id = dispersy_id
         self.channeltorrent_id = channeltorrent_id
@@ -332,6 +332,7 @@ class Comment(Helper):
         self._name = name
         self.peer_id = peer_id
         self.comment = comment
+        self.inserted = inserted
         self.time_stamp = time_stamp
         
         self.playlist = playlist
@@ -381,6 +382,19 @@ class Playlist(Helper):
         self.nr_torrents = nr_torrents
         
         self.channel = channel
+        
+    @cacheProperty
+    def extended_description(self):
+        if self.description:
+            return self.description
+        
+        from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+        
+        #No description, get swarmnames
+        searchManager = ChannelSearchGridManager.getInstance()
+        _,_, torrents =  searchManager.getTorrentsFromPlaylist(self, limit = 3)
+        names = [torrent.name for torrent in torrents]
+        return "Contents: '"+"'    '".join(names)+"'"
                 
 class Modification(Helper):
     __slots__ = ('id', 'type_id', 'value', 'inserted', 'channelcast_db')

@@ -1059,8 +1059,8 @@ class ChannelSearchGridManager:
         hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
     
-    def getRecentTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getRecentTorrentsFromChannelId(channel.id, CHANNEL_REQ_COLUMNS, limit)
+    def getRecentReceivedTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getRecentReceivedTorrentsFromChannelId(channel.id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
 
     def getTorrentsNotInPlaylist(self, channel, filterTorrents = True):
@@ -1091,16 +1091,16 @@ class ChannelSearchGridManager:
             for channel in self.getChannels(fetch_channels):
                 channel_dict[channel.id] = channel
         
-        channels = []
+        torrents = []
         for hit in hits:
-            channel = self._createTorrent(hit, channel_dict.get(hit[0], None))
-            if channel: 
-                channels.append(channel)
+            torrent = self._createTorrent(hit, channel_dict.get(hit[0], None))
+            if torrent: 
+                torrents.append(torrent)
                 
         self.filteredResults = 0
         if filterTorrents:
-            channels = self._applyFF(channels)
-        return len(channels), self.filteredResults, channels
+            torrents = self._applyFF(torrents)
+        return len(torrents), self.filteredResults, torrents
 
     def getTorrentModifications(self, channeltorrent_id):
         data = self.channelcast_db.getTorrentModifications(channeltorrent_id)
@@ -1128,7 +1128,7 @@ class ChannelSearchGridManager:
         return self._createComments(hits, channel = channel)
 
     def getCommentsFromPlayList(self, playlist, limit = None):
-        hits = self.channelcast_db.getCommentsFromPlayListId(playlist.id, COMMENTPLAY_REQ_COLUMNS, limit)
+        hits = self.channelcast_db.getCommentsFromPlayListId(playlist.id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits, channel = playlist.channel, playlist = playlist)
             
     def getCommentsFromChannelTorrent(self, channel_torrent, limit = None):
@@ -1143,6 +1143,9 @@ class ChannelSearchGridManager:
             comment.get_nickname = self.utility.session.get_nickname
             comment.get_mugshot = self.utility.session.get_mugshot
             
+            #touch torrent property to load torrent
+            comment.torrent
+            
             returnList.append(comment)
         return returnList
     
@@ -1155,7 +1158,11 @@ class ChannelSearchGridManager:
         return len(hits), self._createPlaylists(hits, channel=channel)
     
     def _createPlaylist(self, hit, channel = None):
-        return Playlist(*(hit+(channel, )))
+        pl = Playlist(*(hit+(channel, )))
+        
+        #touch extended_description property to possibly load torrents
+        pl.extended_description
+        return pl 
     
     def _createPlaylists(self, hits, channel = None):
         returnList = []
