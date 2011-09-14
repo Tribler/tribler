@@ -94,11 +94,10 @@ class ChannelManager():
     def _refresh_partial(self, ids):
         for id in ids:
             if isinstance(id, str) and len(id) == 20:
-                torrent = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, infohash)
-                self.list.RefreshData(infohash, torrent)
+                data = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
             else:
-                playlist = self.channelsearch_manager.getPlaylist(id, self.list.channel)
-                self.list.RefreshData(id, playlist)
+                data = self.channelsearch_manager.getPlaylist(self.list.channel, id)
+            self.list.RefreshData(id, data)
         
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):

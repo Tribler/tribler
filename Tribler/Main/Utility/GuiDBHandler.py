@@ -125,8 +125,6 @@ class ASyncDelayedResult():
         if self.isFinished.wait(timeout):
             if self.__exception: # exception was raised!
                 self.__exception.originalTraceback = self.__original_traceback
-                
-                print >> sys.stderr, self.__original_traceback
                 raise self.__exception
             return self.__result
         
@@ -141,7 +139,7 @@ def exceptionConsumer(delayedResult, *args, **kwargs):
     try:
         delayedResult.get()
     except Exception, e:
-        print >> sys.stderr, e.__original_traceback
+        print >> sys.stderr, e.originalTraceback
         
 #Modified startWorker to use our single thread
 #group and daemon variables have been removed 

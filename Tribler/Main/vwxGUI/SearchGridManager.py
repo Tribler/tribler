@@ -1146,7 +1146,7 @@ class ChannelSearchGridManager:
             returnList.append(comment)
         return returnList
     
-    def getPlaylist(self, playlist_id, channel):
+    def getPlaylist(self, channel, playlist_id):
         hit = self.channelcast_db.getPlaylist(playlist_id, PLAYLIST_REQ_COLUMNS)
         return self._createPlaylist(hit, channel)
     
