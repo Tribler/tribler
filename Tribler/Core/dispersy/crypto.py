@@ -6,7 +6,7 @@ The crypto module provides a layer between Dispersy and low level crypographic f
 @contact: dispersy@frayja.com
 """
 
-if False:
+if True:
     #
     # disable crypto
     #
@@ -23,7 +23,7 @@ if False:
         assert security in _curves
 
         length = _curves[security]
-        private_key = "".join(chr(random() * 2**8) for _ in xrange(2*length))
+        private_key = "".join(chr(int(random() * 2**8)) for _ in xrange(2*length))
         public_key = private_key[:length]
 
         return (length, public_key, private_key)
@@ -55,10 +55,16 @@ if False:
         return ec_to_public_pem(ec)
 
     def ec_check_private_bin(string):
-        return bool(ec_from_private_bin(string))
+        try:
+            return bool(ec_from_private_bin(string))
+        except:
+            return False
 
     def ec_check_public_bin(string):
-        return bool(ec_from_public_bin(string))
+        try:
+            return bool(ec_from_public_bin(string))
+        except:
+            return False
 
     def ec_from_private_bin(string):
         return ec_from_private_pem(string)
@@ -70,7 +76,7 @@ if False:
         return ec[0]
 
     def ec_sign(ec, digest):
-        return "-" * ec[0]
+        return "".join(chr(int(random() * 2**8)) for _ in xrange(ec[0]))
 
     def ec_verify(ec, digest, signature):
         return True
