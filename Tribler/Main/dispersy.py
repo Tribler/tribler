@@ -29,9 +29,9 @@ def main():
     class DispersySocket(object):
         def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
             while True:
-                if __debug__: dprint("Dispersy listening at ", port)
                 try:
                     self.socket = rawserver.create_udpsocket(port, ip)
+                    if __debug__: dprint("Dispersy listening at ", port)
                 except socket.error, error:
                     port += 1
                     continue

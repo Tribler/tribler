@@ -314,7 +314,7 @@ class Callback(object):
                     for counter, (_, deadline, _, call, _) in enumerate(expired):
                         desync = actual_time - deadline
                         level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
-                        dprint("%2d/%-2d queue desync  %.4fs" % (counter, len(requests), desync), " for expired ", call[0], level=level)
+                        dprint("%2d/%-2d queue desync  %.4fs" % (counter, len(expired), desync), " for expired ", call[0], level=level)
 
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
