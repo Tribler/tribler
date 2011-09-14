@@ -111,8 +111,14 @@ def main():
         else:
             out_intro_req[key] = 1
 
-    def introduction_response_timeout(lineno, datetime, message, candidates):
+    def introduction_response_timeout(lineno, datetime, message, intermediary, candidates):
         check_candidates(datetime, candidates)
+
+        key = "%s:%d" % intermediary
+        if key in in_intro_timeout:
+            in_intro_timeout[key] += 1
+        else:
+            in_intro_timeout[key] = 1
 
     def introduction_response(lineno, datetime, message, source, introduction_address, candidates):
         check_candidates(datetime, candidates)
@@ -150,6 +156,7 @@ def main():
     # walk
     out_intro_req = {}
     in_intro_res = {}
+    in_intro_timeout = {}
 
     # counters
     incoming = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0}
@@ -165,6 +172,7 @@ def main():
     for lineno, datetime, message, kargs in parse("walktest.log"):
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 
+    # walk
     for count, key in sorted((count, key) for key, count in out_intro_req.iteritems()):
         print "outgoing introduction request", "%4d" % count, key
     print
@@ -173,11 +181,17 @@ def main():
         print "incoming introduction response", "%4d" % count, key
     print
 
+    for count, key in sorted((count, key) for key, count in in_intro_timeout.iteritems()):
+        print "incoming introduction timeout", "%4d" % count, key
+    print
+
+    # counters
     print "in    out   diff  msg"
     for key, incoming, outgoing in [(key, incoming[key], outgoing[key]) for key in incoming.iterkeys()]:
         print "%-5d" % incoming, "%-5d" % outgoing, "%-5d" % abs(incoming - outgoing), key
     print
 
+    # churn
     print "diff     count    discovered                 lost"
     last_datetime, last_candidates = online[0]
     for datetime, candidates in online[1:]:
