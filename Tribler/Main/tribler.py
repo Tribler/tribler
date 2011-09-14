@@ -800,7 +800,6 @@ class ABCApp(wx.App):
             manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = NTFY_MODIFIED)
             
             if changeType == NTFY_CREATE:
-                self.frame.selectedchannellist.SetMyChannelId(objectID)
                 self.frame.channellist.SetMyChannelId(objectID)
                 self.frame.managechannel.SetMyChannel(objectID)
                 

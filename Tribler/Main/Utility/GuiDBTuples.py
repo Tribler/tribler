@@ -246,8 +246,8 @@ class LibraryTorrent(Torrent):
         self.progress = progress
     
 class ChannelTorrent(Torrent):
-    __slots__ = ('channeltorrent_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted')
-    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, chant_name, colt_name, description, time_stamp, inserted, channel):
+    __slots__ = ('channeltorrent_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted', 'playlist')
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, chant_name, colt_name, description, time_stamp, inserted, channel, playlist):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel)
         
         self.channeltorrent_id = channeltorrent_id
@@ -256,6 +256,7 @@ class ChannelTorrent(Torrent):
         self.description = description
         self.time_stamp = time_stamp
         self.inserted = inserted
+        self.playlist = playlist
         
     @property
     def name(self):
@@ -324,7 +325,7 @@ class RemoteChannel(Channel):
         
 class Comment(Helper):
     __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
-    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, inserted, time_stamp, playlist, torrent, channel):
+    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, inserted, time_stamp, channel, playlist, torrent):
         self.id = id
         self.dispersy_id = dispersy_id
         self.channeltorrent_id = channeltorrent_id
@@ -366,11 +367,12 @@ class Comment(Helper):
     def torrent(self):
         if self._torrent is not None:
             return self._torrent
-
-        from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
         
-        searchManager = ChannelSearchGridManager.getInstance()
-        return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
+        if self.channeltorrent_id:
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            
+            searchManager = ChannelSearchGridManager.getInstance()
+            return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
 class Playlist(Helper):
     __slots__ = ('id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')

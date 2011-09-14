@@ -800,8 +800,8 @@ class TorrentDetails(AbstractDetails):
             self.parent.parent_list.OnChange()
         event.Skip()
         
-    def OnCommentCreated(self, channeltorrent_id):
-        if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
+    def OnCommentCreated(self, infohash):
+        if self.torrent.infohash == infohash:
             manager = self.commentList.GetManager()
             manager.refresh()
             

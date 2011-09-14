@@ -125,6 +125,7 @@ class ASyncDelayedResult():
         if self.isFinished.wait(timeout):
             if self.__exception: # exception was raised!
                 self.__exception.originalTraceback = self.__original_traceback
+                print >> sys.stderr, self.__original_traceback
                 raise self.__exception
             return self.__result
         

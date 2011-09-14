@@ -312,6 +312,14 @@ class ChannelFooter(ListFooter):
     
     def GetStates(self):
         return (self.spam.GetLabel() == 'This is not Spam', self.favorite.GetLabel() == 'Remove Favorite')
+    
+class PlaylistFooter(ListFooter):
+    
+    def SetStates(self, vote, channelstate, iamModerator):
+        pass
+    
+    def GetStates(self):
+        return True, True
 
 class ManageChannelFilesFooter(ListFooter):
     def __init__(self, parent, removeall, removesel):

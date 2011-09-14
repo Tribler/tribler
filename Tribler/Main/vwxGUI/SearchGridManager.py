@@ -1069,15 +1069,15 @@ class ChannelSearchGridManager:
     
     def getTorrentsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
-        return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel})
+        return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
     
     def getRecentTorrentsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
-        return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel})
+        return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
     
-    def _createTorrent(self, tuple, channel):
+    def _createTorrent(self, tuple, channel, playlist = None):
         if tuple:
-            ct = ChannelTorrent(*tuple[1:]+[channel,])
+            ct = ChannelTorrent(*tuple[1:]+[channel, playlist])
             ct.torrent_db = self.torrent_db
             
             #Only return ChannelTorrent with a name, old not-collected torrents 
@@ -1085,7 +1085,7 @@ class ChannelSearchGridManager:
             if ct.name:
                 return ct
         
-    def _createTorrents(self, hits, filterTorrents, channel_dict = {}):
+    def _createTorrents(self, hits, filterTorrents, channel_dict = {}, playlist = None):
         fetch_channels = set(hit[0] for hit in hits if hit[0] not in channel_dict)
         if len(fetch_channels) > 0:
             for channel in self.getChannels(fetch_channels):
@@ -1093,7 +1093,7 @@ class ChannelSearchGridManager:
         
         torrents = []
         for hit in hits:
-            torrent = self._createTorrent(hit, channel_dict.get(hit[0], None))
+            torrent = self._createTorrent(hit, channel_dict.get(hit[0], None), playlist)
             if torrent: 
                 torrents.append(torrent)
                 
@@ -1261,13 +1261,16 @@ class ChannelSearchGridManager:
             
             self.dispersy.callback.register(dispersy_thread)
     
-    def createComment(self, comment, channel_id, reply_after = None, reply_to = None, playlist_id = None, channeltorrent_id = None):
-        infohash = None
-        if channeltorrent_id:
-            infohash = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, ['infohash'])
+    def createComment(self, comment, channel, reply_after = None, reply_to = None, playlist = None, infohash = None):
+        comment = comment.strip()
+        comment = comment[:1024]
+        
+        playlist_id = None
+        if playlist:
+            playlist_id = playlist.id
         
         def dispersy_thread():
-            community = self._disp_get_community_from_channel_id(channel_id)
+            community = self._disp_get_community_from_channel_id(channel.id)
             community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)
         self.dispersy.callback.register(dispersy_thread)
     

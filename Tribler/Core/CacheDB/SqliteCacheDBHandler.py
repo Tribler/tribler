@@ -3339,13 +3339,13 @@ class ChannelCastDBHandler(object):
     def addOrGetChannelTorrentID(self, channel_id, infohash):
         torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
 
-        sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
-        channeltorrent_id = self._db.fetchone(sql, (torrent_id, ))
+        sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ? AND channel_id = ?"
+        channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
         if not channeltorrent_id:
             insert_torrent = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?);"
             self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, -1), commit = self.shouldCommit)
             
-            channeltorrent_id = self._db.fetchone(sql, (torrent_id, ))
+            channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
         return channeltorrent_id
     
     def hasTorrent(self, channel_id, infohash):
@@ -3437,7 +3437,7 @@ class ChannelCastDBHandler(object):
                 
                 sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
                 self._db.execute_write(sql, (comment_id, channeltorrent_id), commit = self.shouldCommit)
-                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channeltorrent_id)
+                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, infohash)
                 
         #try fo fix loose reply_to and reply_after pointers
         sql =  "UPDATE COMMENTS SET reply_to_id = ? WHERE reply_to_id = ?; UPDATE COMMENTS SET reply_after_id = ? WHERE reply_after_id = ?"
@@ -3754,17 +3754,38 @@ class ChannelCastDBHandler(object):
         return self._db.fetchone(sql, (playlist_id,))
             
     def getCommentsFromChannelId(self, channel_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) + " FROM Comments LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id LEFT JOIN CommentPlaylist On Comments.id = CommentPlaylist.comment_id LEFT JOIN CommentTorrent On Comments.id = CommentTorrent.comment_id WHERE channel_id = ? ORDER BY time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id LEFT JOIN CommentPlaylist ON Comments.id = CommentPlaylist.comment_id LEFT JOIN CommentTorrent ON Comments.id = CommentTorrent.comment_id WHERE channel_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (channel_id, ))
 
     def getCommentsFromPlayListId(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentPlaylist LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentPlaylist.comment_id AND playlist_id = ? ORDER BY time_stamp DESC"
+        playlistKeys = keys[:]
+        if 'CommentTorrent.channeltorrent_id' in playlistKeys:
+            playlistKeys[playlistKeys.index('CommentTorrent.channeltorrent_id')] = '""'
+            
+        sql = "SELECT " + ", ".join(playlistKeys) + " FROM Comments LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id LEFT JOIN CommentPlaylist ON Comments.id = CommentPlaylist.comment_id WHERE playlist_id = ?"
         if limit:
             sql += " LIMIT %d"%limit
-
-        return self._db.fetchall(sql, (playlist_id, ))
+            
+        playlist_comments = self._db.fetchall(sql, (playlist_id, ))    
+        
+        sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentTorrent, PlaylistTorrents LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentTorrent.comment_id AND PlaylistTorrents.channeltorrent_id = CommentTorrent.channeltorrent_id AND playlist_id = ?"
+        if limit:
+            sql += " LIMIT %d"%limit
+        
+        torrent_comments = self._db.fetchall(sql, (playlist_id, ))
+        
+        #merge two lists
+        orderIndex = keys.index('time_stamp')
+        data = [(row[orderIndex], row) for row in playlist_comments]
+        data += [(row[orderIndex], row) for row in torrent_comments]
+        data.sort(reverse = True)
+        
+        if limit:
+            data = data[:limit]
+        data = [item for _, item in data]
+        return data 
     
     def getCommentsFromChannelTorrentId(self, channeltorrent_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) + " FROM Comments, CommentTorrent LEFT JOIN Peer ON Comments.peer_id = Peer.peer_id WHERE Comments.id = CommentTorrent.comment_id AND channeltorrent_id = ? ORDER BY time_stamp DESC"
