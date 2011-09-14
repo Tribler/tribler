@@ -357,8 +357,8 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert ClassTestA.load_communities() == [], "Did you remove the database before running this testcase?"
-        assert ClassTestB.load_communities() == [], "Did you remove the database before running this testcase?"
+        assert [ClassTestA.load_community(master) for master in ClassTestA.get_master_members()] == [], "Did you remove the database before running this testcase?"
+        assert [ClassTestB.load_community(master) for master in ClassTestB.get_master_members()] == [], "Did you remove the database before running this testcase?"
 
         # create master member
         ec = ec_generate_key(u"high")
@@ -393,8 +393,8 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert ClassTestC.load_communities() == []
-        assert ClassTestD.load_communities() == []
+        assert [ClassTestC.load_community(master) for master in ClassTestC.get_master_members()] == [], "Did you remove the database before running this testcase?"
+        assert [ClassTestD.load_community(master) for master in ClassTestD.get_master_members()] == [], "Did you remove the database before running this testcase?"
 
         # create community
         community_c = ClassTestC.create_community(self._my_member)
@@ -420,7 +420,7 @@ class DispersyClassificationScript(ScriptBase):
         """
         class ClassificationLoadNoCommunities(DebugCommunity):
             pass
-        assert ClassificationLoadNoCommunities.load_communities() == []
+        assert [ClassificationLoadNoCommunities.load_community(master) for master in ClassificationLoadNoCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?"
         yield 0.0
 
     def load_one_communities(self):
@@ -432,7 +432,7 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert ClassificationLoadOneCommunities.load_communities() == []
+        assert [ClassificationLoadOneCommunities.load_community(master) for master in ClassificationLoadOneCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?"
 
         # create master member
         ec = ec_generate_key(u"high")
@@ -444,7 +444,7 @@ class DispersyClassificationScript(ScriptBase):
                                         (master.database_id, self._my_member.database_id, ClassificationLoadOneCommunities.get_classification()))
 
         # load one community
-        communities = ClassificationLoadOneCommunities.load_communities()
+        communities = [ClassificationLoadOneCommunities.load_community(master) for master in ClassificationLoadOneCommunities.get_master_members()]
         assert len(communities) == 1
         assert isinstance(communities[0], ClassificationLoadOneCommunities)
 
@@ -461,7 +461,7 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert LoadTwoCommunities.load_communities() == []
+        assert [LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()] == []
 
         # create two master members
         ec = ec_generate_key(u"high")
@@ -478,7 +478,7 @@ class DispersyClassificationScript(ScriptBase):
                                         (master2.database_id, self._my_member.database_id, LoadTwoCommunities.get_classification()))
 
         # load two community
-        communities = LoadTwoCommunities.load_communities()
+        communities = [LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()]
         assert len(communities) == 2, len(communities)
         assert isinstance(communities[0], LoadTwoCommunities)
         assert isinstance(communities[1], LoadTwoCommunities)
@@ -747,7 +747,6 @@ class DispersyTimelineScript(ScriptBase):
         When a community is loaded it must load all available dispersy-authorize and dispersy-revoke
         message from the database.
         """
-        # load_communities will load all communities with the same classification
         class LoadingCommunityTestCommunity(DebugCommunity):
             pass
 
@@ -763,7 +762,7 @@ class DispersyTimelineScript(ScriptBase):
         yield 0.555
 
         # load the same community and see if the same permissions are loaded
-        communities = LoadingCommunityTestCommunity.load_communities()
+        communities = [LoadingCommunityTestCommunity.load_community(master) for master in LoadingCommunityTestCommunity.get_master_members()]
         assert len(communities) == 1
 
         # check if we are still allowed to send the message

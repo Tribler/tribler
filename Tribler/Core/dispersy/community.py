@@ -192,24 +192,14 @@ class Community(object):
         return community
 
     @classmethod
-    def load_communities(cls, *args, **kargs):
-        """
-        Load all joined or created communities of this type.
-
-        Typically the load_communities is called when the main application is launched.  This will
-        ensure that all communities are loaded and attached to Dispersy.
-
-        @return: A list with zero or more Community instances.
-        @rtype: list
-        """
+    def get_master_members(cls):
         def loader(mid, master_public_key):
             if master_public_key:
-                master = Member.get_instance(master_public_key)
+                return Member.get_instance(master_public_key)
             else:
-                master = Member.get_instance(mid, public_key_available=False)
-            return cls.load_community(master, *args, **kargs)
+                return Member.get_instance(mid, public_key_available=False)
 
-        if __debug__: dprint("loading all ", cls.get_classification(), " communities")
+        if __debug__: dprint("retrieving all master members owning ", cls.get_classification(), " communities")
         execute = DispersyDatabase.get_instance().execute
         return [loader(str(mid), str(master_public_key))
                 for mid, master_public_key
@@ -237,24 +227,12 @@ class Community(object):
 
         return community
 
-    @classmethod
-    def unload_communities(cls):
-        """
-        Unload all communities that have the same classification as cls.
-        """
-        if __debug__: dprint("unloading all ", cls.get_classification(), " communities")
-        dispersy = Dispersy.get_instance()
-        classification = cls.get_classification()
-        for community in dispersy.get_communities():
-            if community.get_classification() == classification:
-                community.unload_community()
-
     def __init__(self, master):
         """
         Initialize a community.
 
         Generally a new community is created using create_community.  Or an existing community is
-        loaded using load_communities.  These two methods prepare and call this __init__ method.
+        loaded using load_community.  These two methods prepare and call this __init__ method.
 
         @param master: The master member that identifies the community.
         @type master: Member

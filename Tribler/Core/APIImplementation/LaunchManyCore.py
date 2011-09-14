@@ -9,7 +9,7 @@ import pickle
 import socket
 import binascii
 import time as timemod
-from threading import Event,Thread,enumerate
+from threading import Event,Thread,enumerate as enumerate_threads
 from traceback import print_exc, print_stack
 
 from Tribler.__init__ import LIBRARYNAME
@@ -122,6 +122,7 @@ class TriblerLaunchMany(Thread):
 
             # new database stuff will run on only one thread
             self.database_thread = Callback()
+            self.database_thread.start("Dispersy")
                 
             cachedb.init(config, self.rawserver_fatalerrorfunc)
             
@@ -312,10 +313,8 @@ class TriblerLaunchMany(Thread):
         self.dispersy_thread = None
         self.session.dispersy_member = None
         if config['dispersy']:
-            # Dispersy needs to run on a thread.  We use a RawServer instance.
             self.dispersy_thread = self.database_thread
             self.dispersy_thread.register(self.start_dispersy)
-            self.dispersy_thread.start(name="Dispersy")
 
     def start_dispersy(self):
         class DispersySocket(object):
@@ -371,6 +370,34 @@ class TriblerLaunchMany(Thread):
                             self.sendqueue.extend(sendqueue)
                             self.rawserver.add_task(self.process_sendqueue, 0.1)
 
+        def load_communities():
+            # initial delay
+            desync = (yield 10.0)
+            while desync > 0.1:
+                if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [initial delay]"
+                desync = (yield desync)
+
+            schedule = []
+            schedule.append((HardKilledCommunity, (), {}))
+            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
+            schedule.append((ChannelCommunity, (), {}))
+
+            for cls, args, kargs in schedule:
+                counter = 0
+                for counter, master in enumerate(cls.get_master_members(), 1):
+                    if self.dispersy.has_community(master.mid):
+                        continue
+
+                    cls.load_community(master, *args, **kargs)
+
+                    desync = (yield 1.0)
+                    while desync > 0.1:
+                        if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [loading community]"
+                        desync = (yield desync)
+
+                if __debug__: print >> sys.stderr, "lmc: restored", counter, cls.get_classification(), "communities"
+
+        # start dispersy
         config = self.session.sessconfig
         sqlite_db_path = os.path.join(config['state_dir'], u"sqlite")
         if not os.path.isdir(sqlite_db_path):
@@ -378,6 +405,7 @@ class TriblerLaunchMany(Thread):
         self.dispersy = Dispersy.get_instance(self.dispersy_thread, sqlite_db_path)
         self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
 
+        # use the same member key as that from Tribler
         from Tribler.Core.Overlay.permid import read_keypair
         keypair = read_keypair(self.session.get_permid_keypair_filename())
 
@@ -385,14 +413,8 @@ class TriblerLaunchMany(Thread):
         from Tribler.Core.dispersy.member import Member
         self.session.dispersy_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
-        # load all HardKilledCommunity communities
-        HardKilledCommunity.load_communities()
-
-        # start AllChannelCommunity
-        AllChannelCommunity.load_communities(self.session.dispersy_member)
-
-        # start each ChannelCommunity that we joined
-        communities = ChannelCommunity.load_communities()
+        # load all communities after some time
+        self.dispersy_thread.register(load_communities)
 
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
@@ -745,7 +767,7 @@ class TriblerLaunchMany(Thread):
             
             mainlineDHT.deinit()
             
-            ts = enumerate()
+            ts = enumerate_threads()
             print >>sys.stderr,"tlm: Number of threads still running",len(ts)
             for t in ts:
                 print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t

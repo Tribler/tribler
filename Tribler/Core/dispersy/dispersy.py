@@ -440,11 +440,11 @@ class Dispersy(Singleton):
 
         # periodically send dispery-sync messages
         if __debug__: dprint("start in ", community.dispersy_sync_initial_delay, " every ", community.dispersy_sync_interval, " seconds call _periodically_create_sync")
-        self._callback.register(self._periodically_create_sync, (community,), delay=community.dispersy_sync_initial_delay, id_=self._rawserver_task_id(community, "id:sync"))
+        self._callback.register(self._periodically_create_sync, (community,), id_=self._rawserver_task_id(community, "id:sync"))
 
         # periodically send dispery-candidate-request messages
         if __debug__: dprint("start in ", community.dispersy_candidate_request_initial_delay, " every ", community.dispersy_candidate_request_interval, " seconds call _periodically_create_candidate_request")
-        self._callback.register(self._periodically_create_candidate_request, (community,), delay=community.dispersy_candidate_request_initial_delay, id_=self._rawserver_task_id(community, "id:candidate"))
+        self._callback.register(self._periodically_create_candidate_request, (community,), id_=self._rawserver_task_id(community, "id:candidate"))
 
     def detach_community(self, community):
         """
@@ -573,8 +573,13 @@ class Dispersy(Singleton):
                     # attempt to load this community
                     for cls in recursive_subclasses(Community):
                         if classification == cls.get_classification():
-                            self._communities[cid] = cls.load_community(master)
-                            break
+                            try:
+                                self._communities[cid] = cls.load_community(master)
+                            except:
+                                if __debug__: dprint("unable to auto load a community", exception=True, stack=True, level="warning")
+
+                                # disable auto-load for this community (prevent this from happening again)
+                                self._database.execute(u"UPDATE community SET auto_load = 0 WHERE master = ?", (master.database_id,))
 
                     else:
                         if __debug__: dprint("Failed to obtain class [", classification, "]", level="warning")
@@ -3545,6 +3550,11 @@ class Dispersy(Singleton):
             pass
 
         else:
+            desync = (yield community.dispersy_sync_initial_delay)
+            while desync > 0.1:
+                if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                desync = (yield desync)
+
             while community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
                 messages = [meta.impl(authentication=(community.my_member,),
                                       distribution=(community.global_time,),
@@ -3558,7 +3568,7 @@ class Dispersy(Singleton):
 
                 desync = (yield community.dispersy_sync_interval)
                 while desync > 0.1:
-                    if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)
 
     def _periodically_create_candidate_request(self, community):
@@ -3569,6 +3579,11 @@ class Dispersy(Singleton):
             pass
 
         else:
+            desync = (yield community.dispersy_candidate_request_initial_delay)
+            while desync > 0.1:
+                if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                desync = (yield desync)
+
             while community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
                 minimal_age, maximal_age = community.dispersy_candidate_online_range
                 limit = community.dispersy_candidate_limit
@@ -3591,7 +3606,7 @@ class Dispersy(Singleton):
 
                 desync = (yield community.dispersy_candidate_request_interval)
                 while desync > 0.1:
-                    if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)
 
     # def _periodically_connectability(self):
@@ -3616,7 +3631,7 @@ class Dispersy(Singleton):
         while True:
             desync = (yield 120.0)
             while desync > 0.1:
-                if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                 desync = (yield desync)
 
             for community in self._communities.itervalues():
@@ -3630,9 +3645,9 @@ class Dispersy(Singleton):
         """
         while True:
             try:
-                yield 300.0
+                desync = (yield 300.0)
                 while desync > 0.1:
-                    if __debug__: dprint("bussy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)
 
                 # flush changes to disk every 5 minutes

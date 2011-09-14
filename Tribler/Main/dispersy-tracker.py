@@ -174,11 +174,16 @@ def main():
         dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir))
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
-        # load all HardKilledCommunity communities
-        print "Restored", len(HardKilledCommunity.load_communities()), "hard-killed communities"
+        schedule = []
+        schedule.append((HardKilledCommunity, (), {}))
+        schedule.append((TrackerCommunity, (), {}))
 
-        # load the existing Tracker communities
-        print "Restored", len(TrackerCommunity.load_communities()), "tracker communities"
+        # load
+        for cls, args, kargs in schedule:
+            counter = 0
+            for counter, master in enumerate(cls.get_master_members(), 1):
+                cls.load_community(master, *args, **kargs)
+            print "Restored", counter, cls.get_classification(), "communities"
 
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")

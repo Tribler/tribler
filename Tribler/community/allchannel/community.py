@@ -46,33 +46,21 @@ class AllChannelCommunity(Community):
      - P randomly choosen .torrent files, created by ourselves
     """
     @classmethod
-    def load_communities(cls, my_member, *args, **kargs):
-        """
-        Returns a list with all AllChannelCommunity instances that we are part off.
-
-        Since there is one global AllChannelCommunity, we will return one using a static public
-        master member key.
-        """
-        communities = super(AllChannelCommunity, cls).load_communities(*args, **kargs)
-
-        if not communities:
+    def get_master_members(cls):
             master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
             master = Member.get_instance(master_key)
+            return [master]
 
-            dispersy_database = DispersyDatabase.get_instance()
-            dispersy_database.execute(u"INSERT OR IGNORE INTO community (master, member, classification) VALUES (?, ?, ?)",
-                                      (master.database_id, my_member.database_id, cls.get_classification()))
+    @classmethod
+    def load_community(cls, master, my_member):
 
-            # new community instance
-            community = cls.load_community(master, *args, **kargs)
+        # note that we set auto_load to False.  auto_load is not possible because of the additional
+        # my_member parameter
 
-            # send out my initial dispersy-identity
-            community.create_dispersy_identity()
-
-            # add new community
-            communities.append(community)
-
-        return communities
+        dispersy_database = DispersyDatabase.get_instance()
+        dispersy_database.execute(u"INSERT OR IGNORE INTO community (master, member, classification, auto_load) VALUES (?, ?, ?, 0)",
+                                  (master.database_id, my_member.database_id, cls.get_classification()))
+        return super(AllChannelCommunity, cls).load_community(master)
 
     def __init__(self, master, integrate_with_tribler = True):
         super(AllChannelCommunity, self).__init__(master)

@@ -76,6 +76,7 @@ def runtime_duration_warning(threshold):
                     end = clock()
                     if end - start > threshold:
                         dprint(func, " took ", "%.2fs" % (end - start), level="warning")
+            runtime_duration_warning_helper.__name__ = func.__name__ + "_RDWH"
             return runtime_duration_warning_helper
         else:
             return func
