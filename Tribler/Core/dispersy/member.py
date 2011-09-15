@@ -209,7 +209,7 @@ class Member(Parameterized1Singleton):
         This is binary representation of the public key.
 
         It may be an empty string when the public key is not yet available.  In this case the verify
-        method will always return False and the sign method will raise a RuntimeException.
+        method will always return False and the sign method will raise a RuntimeError.
         """
         return self._public_key
 
@@ -221,7 +221,7 @@ class Member(Parameterized1Singleton):
         This is binary representation of the private key.
 
         It may be an empty string when the private key is not yet available.  In this case the sign
-        method will raise a RuntimeException.
+        method will raise a RuntimeError.
         """
         return self._private_key
 
@@ -325,12 +325,12 @@ class Member(Parameterized1Singleton):
         """
         Returns the signature of DATA, starting at OFFSET up to LENGTH bytes.
 
-        Will raise a RuntimeException when this we do not have the private key.
+        Will raise a RuntimeError when this we do not have the private key.
         """
         if self._private_key:
             return ec_sign(self._ec, sha1(data[offset:length or len(data)]).digest())
         else:
-            raise RuntimeException("unable to sign data without the private key")
+            raise RuntimeError("unable to sign data without the private key")
 
     def __eq__(self, member):
         assert isinstance(member, Member)

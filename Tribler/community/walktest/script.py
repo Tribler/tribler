@@ -226,16 +226,17 @@ def main():
     print
 
     # churn
-    print "diff     count    discovered                 lost"
+    print "time      diff      count    discovered                 lost"
     last_datetime, last_candidates = online[0]
+    first_datetime = last_datetime
     for datetime, candidates in online[1:]:
         more = candidates.difference(last_candidates)
         less = last_candidates.difference(candidates)
 
         for candidate in more:
-            print datetime - last_datetime, " %-5d" % len(candidates), " +", candidate
+            print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
         for candidate in less:
-            print datetime - last_datetime, " %-5d" % len(candidates), "                            -", candidate
+            print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
 
         last_datetime, last_candidates = datetime, candidates
     

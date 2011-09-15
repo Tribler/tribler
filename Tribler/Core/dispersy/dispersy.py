@@ -1,6 +1,3 @@
-# Python 2.5 features
-from __future__ import with_statement
-
 """
 The Distributed Permission System, or Dispersy, is a platform to simplify the design of distributed
 communities.  At the heart of Dispersy lies a simple identity and message handling system where each
@@ -88,7 +85,7 @@ class DummySocket(object):
     but throw away all packets it is supposed to sent.
     """
     def send(self, address, data):
-        if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data", level="warning")
+        if __debug__: dprint("Thrown away ", len(data), " bytes worth of data to ", address[0], ":", address[1], level="warning")
 
 class Statistics(object):
     def __init__(self):
@@ -122,37 +119,37 @@ class Statistics(object):
             self._total_up = 0
             self._total_down = 0
 
-    def drop(self, key, bytes, count=1):
+    def drop(self, key, byte_count, amount=1):
         """
         Called when an incoming packet or message failed a check and was dropped.
         """
         assert isinstance(key, (str, unicode))
-        assert isinstance(bytes, (int, long))
-        assert isinstance(count, (int, long))
+        assert isinstance(byte_count, (int, long))
+        assert isinstance(amount, (int, long))
         a, b = self._drop.get(key, (0, 0))
-        self._drop[key] = (a+count, b+bytes)
+        self._drop[key] = (a+amount, b+byte_count)
 
-    def delay(self, key, bytes, count=1):
+    def delay(self, key, byte_count, amount=1):
         """
         Called when an incoming packet or message was delayed.
         """
         assert isinstance(key, (str, unicode))
-        assert isinstance(bytes, (int, long))
-        assert isinstance(count, (int, long))
+        assert isinstance(byte_count, (int, long))
+        assert isinstance(amount, (int, long))
         a, b = self._delay.get(key, (0, 0))
-        self._delay[key] = (a+count, b+bytes)
+        self._delay[key] = (a+amount, b+byte_count)
 
-    def success(self, key, bytes, count=1):
+    def success(self, key, byte_count, amount=1):
         """
         Called when an incoming message was accepted.
         """
         assert isinstance(key, (str, unicode))
-        assert isinstance(bytes, (int, long))
-        assert isinstance(count, (int, long))
+        assert isinstance(byte_count, (int, long))
+        assert isinstance(amount, (int, long))
         a, b = self._success.get(key, (0, 0))
-        self._success[key] = (a+count, b+bytes)
+        self._success[key] = (a+amount, b+byte_count)
 
-    def outgoing(self, address, key, bytes, count=1):
+    def outgoing(self, address, key, byte_count, amount=1):
         """
         Called when a message send using the _send(...) method
         """
@@ -161,19 +158,19 @@ class Statistics(object):
         assert isinstance(address[0], str)
         assert isinstance(address[1], int)
         assert isinstance(key, (str, unicode))
-        assert isinstance(bytes, (int, long))
-        assert isinstance(count, (int, long))
+        assert isinstance(byte_count, (int, long))
+        assert isinstance(amount, (int, long))
         subdict = self._outgoing.setdefault(address, {})
         a, b = subdict.get(key, (0, 0))
-        subdict[key] = (a+count, b+bytes)
+        subdict[key] = (a+amount, b+byte_count)
 
-    def increment_total_up(self, bytes):
-        assert isinstance(bytes, (int, long))
-        self._total_up += bytes
+    def increment_total_up(self, byte_count):
+        assert isinstance(byte_count, (int, long))
+        self._total_up += byte_count
 
-    def increment_total_down(self, bytes):
-        assert isinstance(bytes, (int, long))
-        self._total_down += bytes
+    def increment_total_down(self, byte_count):
+        assert isinstance(byte_count, (int, long))
+        self._total_down += byte_count
 
 class Dispersy(Singleton):
     """
@@ -196,6 +193,8 @@ class Dispersy(Singleton):
         """
         assert isinstance(callback, Callback)
         assert isinstance(working_directory, unicode)
+
+        super(Dispersy, self).__init__()
 
         # the raw server
         self._callback = callback
@@ -357,6 +356,7 @@ class Dispersy(Singleton):
         @rtype: [Message]
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self._generic_timeline_check, self.on_candidate_request, delay=0.0),
@@ -411,6 +411,7 @@ class Dispersy(Singleton):
         But it is the best we can do at this point.
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(prefix, str)
@@ -429,6 +430,7 @@ class Dispersy(Singleton):
         @type community: Community
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert not community.cid in self._communities
@@ -455,6 +457,7 @@ class Dispersy(Singleton):
         @type community: Community
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert community.cid in self._communities
@@ -485,6 +488,7 @@ class Dispersy(Singleton):
         @type destination: Community class
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(source, (Community, Member))
         assert issubclass(destination, Community)
@@ -558,6 +562,7 @@ class Dispersy(Singleton):
                         return l
 
                     # todo: get some other mechanism to obtain the class from classification
+                    # pylint: disable-msg=W0404
                     from community import Community
 
                     # master_public_key may be None
@@ -572,7 +577,7 @@ class Dispersy(Singleton):
                         if classification == cls.get_classification():
                             try:
                                 self._communities[cid] = cls.load_community(master)
-                            except:
+                            except TypeError:
                                 if __debug__: dprint("unable to auto load a community (most likely the community requires a parameter that we do not have at auto-load)", exception=True, level="warning")
 
                                 # disable auto-load for this community (prevent this from happening again)
@@ -670,8 +675,8 @@ class Dispersy(Singleton):
         """
         # fetch the duplicate binary packet from the database
         try:
-            packet_id, packet = self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                                       (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+            packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
         except StopIteration:
             # we are checking two messages just received in the same batch
             # process the message
@@ -732,9 +737,9 @@ class Dispersy(Singleton):
         """
         assert isinstance(messages, list)
         assert len(messages) > 0
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+        assert all(isinstance(message, Message.Implementation) for message in messages)
+        assert all(message.community == messages[0].community for message in messages)
+        assert all(message.meta == messages[0].meta for message in messages)
 
         # a message is considered unique when (creator, global-time), i.r. (authentication.member,
         # distribution.global_time), is unique.
@@ -847,10 +852,10 @@ class Dispersy(Singleton):
         """
         assert isinstance(messages, list)
         assert len(messages) > 0
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
-        assert not filter(lambda x: not isinstance(x.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), messages)
+        assert all(isinstance(message, Message.Implementation) for message in messages)
+        assert all(message.community == messages[0].community for message in messages)
+        assert all(message.meta == messages[0].meta for message in messages)
+        assert all(isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) for message in messages)
 
         def check_member_and_global_time(unique, times, message):
             """
@@ -948,7 +953,7 @@ class Dispersy(Singleton):
                         # message.authentication.members where the order of signing is not taken
                         # into account.
                         tim = [global_time
-                               for count, global_time
+                               for count_, global_time
                                in self._database.execute(u"""
                                SELECT COUNT(*), sync.global_time
                                FROM sync
@@ -957,7 +962,7 @@ class Dispersy(Singleton):
                                GROUP BY sync.id
                                """ % ", ".join("?" for _ in xrange(len(members))),
                                           (message.community.database_id, message.database_id) + members)
-                               if count == message.authentication.count]
+                               if count_ == message.authentication.count]
                         times[members] = tim
 
                     if message.distribution.global_time in tim and self._check_identical_payload_with_different_signature(message):
@@ -972,7 +977,7 @@ class Dispersy(Singleton):
                         if message.distribution.history_size == 1:
                             assert len(tim) == 1
                             packets = [packet
-                                       for count, packet
+                                       for count_, packet
                                        in self._database.execute(u"""
                                        SELECT COUNT(*), sync.packet
                                        FROM sync
@@ -981,11 +986,11 @@ class Dispersy(Singleton):
                                        GROUP BY sync.id
                                        """ % ", ".join("?" for _ in xrange(len(members))),
                                                                  (message.community.database_id, tim[0], message.database_id) + members)
-                                       if count == message.authentication.count]
+                                       if count_ == message.authentication.count]
 
                             if packets:
                                 assert len(packets) == 1
-                                self._send([message.address], map(str, packets), u"-sequence-")
+                                self._send([message.address], [str(packet) for packet in packets], u"-sequence-")
 
                             else:
                                 # TODO can still fail when packet is in one of the received messages
@@ -1133,6 +1138,7 @@ class Dispersy(Singleton):
         Returns the Message representing the packet or None when no conversion is possible.
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(packet, str)
         assert isinstance(community, (type(None), Community))
@@ -1197,7 +1203,7 @@ class Dispersy(Singleton):
         """
         assert isinstance(packets, (tuple, list))
         assert len(packets) > 0
-        assert not filter(lambda x: not len(x) == 2, packets)
+        assert all(len(packet) == 2 for packet in packets)
         assert isinstance(cache, bool)
 
         bytes_received = sum(len(packet) for _, packet in packets)
@@ -1229,10 +1235,11 @@ class Dispersy(Singleton):
                 # ignore cache, process batch immediately
                 self._on_batch_cache(meta, batch)
 
-        # update candidate table.  We know that some peer (not necessarily
-        # message.authentication.member) exists at this address.
-        self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, incoming_time) VALUES (?, ?, ?, DATETIME('now'))",
-                                   ((meta.community.database_id, unicode(host), port) for host, port in addresses))
+            # update candidate table.  We know that some peer (not
+            # necessarily message.authentication.member) exists at
+            # this address.
+            self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, incoming_time) VALUES (?, ?, ?, DATETIME('now'))",
+                                       ((meta.community.database_id, unicode(host), port) for host, port in addresses))
 
     def _on_batch_cache_timeout(self, meta):
         """
@@ -1245,9 +1252,9 @@ class Dispersy(Singleton):
         assert meta in self._batch_cache
         assert meta in self._debug_batch_cache_performance
         if __debug__:
-            performance = self._debug_batch_cache_performance.pop(meta)
+            performances = self._debug_batch_cache_performance.pop(meta)
             if meta.delay:
-                dprint("batch size: ", sum(performance), " [", ":".join(map(str, performance)), "] for ", meta.name, " after ", meta.delay, "s")
+                dprint("batch size: ", sum(performances), " [", ":".join(str(performance) for performance in performances), "] for ", meta.name, " after ", meta.delay, "s")
         return self._on_batch_cache(meta, self._batch_cache.pop(meta))
 
     @runtime_duration_warning(1.0)
@@ -1281,8 +1288,8 @@ class Dispersy(Singleton):
 
         # convert binary packets into Message.Implementation instances
         messages = list(self._convert_batch_into_messages(batch))
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages), "_convert_batch_into_messages must return only Message.Implementation instances"
-        assert not filter(lambda x: not x.meta == meta, messages), "All Message.Implementation instances must be in the same batch"
+        assert all(isinstance(message, Message.Implementation) for message in messages), "_convert_batch_into_messages must return only Message.Implementation instances"
+        assert all(message.meta == meta for message in messages), "All Message.Implementation instances must be in the same batch"
         if __debug__: dprint(len(messages), " ", meta.name, " messages after conversion")
 
         # handle the incoming messages
@@ -1328,9 +1335,9 @@ class Dispersy(Singleton):
         """
         assert isinstance(messages, list)
         assert len(messages) > 0
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), ("All messages need to have the same meta", messages[0].name, len(messages))
-        assert not filter(lambda x: not x.community == messages[0].community, messages), ("All messages need to be from the same community", messages[0].name, len(messages))
+        assert all(isinstance(message, Message.Implementation) for message in messages)
+        assert all(message.community == messages[0].community for message in messages)
+        assert all(message.meta == messages[0].meta for message in messages)
 
         def _filter_fail(message):
             if isinstance(message, DelayMessage):
@@ -1368,7 +1375,7 @@ class Dispersy(Singleton):
         assert type(meta.distribution) in self._check_distribution_batch_map
         messages = list(self._check_distribution_batch_map[type(meta.distribution)](messages))
         assert len(messages) > 0 # should return at least one item for each message
-        assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
+        assert all(isinstance(message, (Message.Implementation, DropMessage, DelayMessage)) for message in messages)
 
         # handle/remove DropMessage and DelayMessage instances
         messages = [message for message in messages if _filter_fail(message)]
@@ -1379,7 +1386,7 @@ class Dispersy(Singleton):
         # DropMessage, and DelayMessage instances
         messages = list(meta.check_callback(messages))
         assert len(messages) >= 0 # may return zero messages
-        assert not filter(lambda x: not isinstance(x, (Message.Implementation, DropMessage, DelayMessage)), messages)
+        assert all(isinstance(message, (Message.Implementation, DropMessage, DelayMessage)) for message in messages)
 
         # handle/remove DropMessage and DelayMessage instances
         messages = [message for message in messages if _filter_fail(message)]
@@ -1427,7 +1434,7 @@ class Dispersy(Singleton):
         """
         assert isinstance(packets, (tuple, list))
         assert len(packets) > 0
-        assert not filter(lambda x: not len(x) == 2, packets)
+        assert all(len(packet) == 2 for packet in packets)
 
         # unique = set()
         for address, packet in packets:
@@ -1476,11 +1483,12 @@ class Dispersy(Singleton):
     @runtime_duration_warning(1.0)
     def _convert_batch_into_messages(self, batch):
         if __debug__:
+            # pylint: disable-msg=W0404
             from conversion import Conversion
         assert isinstance(batch, (list, set))
         assert len(batch) > 0
-        assert not filter(lambda x: not isinstance(x, tuple), batch)
-        assert not filter(lambda x: not len(x) == 3, batch)
+        assert all(isinstance(x, tuple) for x in batch)
+        assert all(len(x) == 3 for x in batch)
 
         if __debug__:
             begin_stats = Conversion.debug_stats.copy()
@@ -1541,10 +1549,10 @@ class Dispersy(Singleton):
         """
         assert isinstance(messages, list)
         assert len(messages) > 0
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
-        assert not filter(lambda x: not isinstance(x.distribution, SyncDistribution.Implementation), messages)
+        assert all(isinstance(message, Message.Implementation) for message in messages)
+        assert all(message.community == messages[0].community for message in messages)
+        assert all(message.meta == messages[0].meta for message in messages)
+        assert all(isinstance(message.distribution, SyncDistribution.Implementation) for message in messages)
         # ensure no duplicate messages are present, this MUST HAVE been checked before calling this
         # method!
         assert len(messages) == len(set((message.authentication.member.database_id, message.distribution.global_time) for message in messages)), messages[0].name
@@ -1628,7 +1636,6 @@ class Dispersy(Singleton):
                 if __debug__: dprint("deleted ", self._database.changes, " messages ", [id_ for id_, _, _ in items])
 
                 if is_multi_member_authentication:
-                    community_database_id = meta.community.database_id
                     self._database.executemany(u"DELETE FROM reference_member_sync WHERE sync = ?", [(id_,) for id_, _, _ in items])
                     assert len(items) * meta.authentication.count == self._database.changes
 
@@ -1654,23 +1661,25 @@ class Dispersy(Singleton):
          - dispersy_candidate_subjective_set_score
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
         assert isinstance(batch, int)
         assert isinstance(clusters, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, int), clusters)
-        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        assert all(isinstance(cluster, int) for cluster in clusters)
+        assert all(cluster in community.subjective_set_clusters for cluster in clusters)
         return islice(self._yield_online_candidates(community, clusters, batch, bootstrap), limit)
 
     def _yield_online_candidates(self, community, clusters, batch, bootstrap):
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(batch, int)
         assert isinstance(clusters, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, int), clusters)
-        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        assert all(isinstance(cluster, int) for cluster in clusters)
+        assert all(cluster in community.subjective_set_clusters for cluster in clusters)
         assert isinstance(bootstrap, bool)
 
         def get_observation(observation_score, host, port, incoming_age, outgoing_age, external_age):
@@ -1744,6 +1753,7 @@ class Dispersy(Singleton):
         spread this to nodes that are likely to be interested in these messages.
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
@@ -1769,12 +1779,13 @@ class Dispersy(Singleton):
         online.
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
         assert isinstance(clusters, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, int), clusters)
-        assert not filter(lambda x: not x in community.subjective_set_clusters, clusters)
+        assert all(isinstance(cluster, int) for cluster in clusters)
+        assert all(cluster in community.subjective_set_clusters for cluster in clusters)
         assert isinstance(batch, int)
 
         counter = 0
@@ -1827,9 +1838,9 @@ class Dispersy(Singleton):
         """
         assert isinstance(messages, list)
         assert len(messages) > 0
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+        assert all(isinstance(message, Message.Implementation) for message in messages)
+        assert all(message.community == messages[0].community for message in messages)
+        assert all(message.meta == messages[0].meta for message in messages)
         assert isinstance(store, bool)
         assert isinstance(update, bool)
         assert isinstance(forward, bool)
@@ -1876,11 +1887,9 @@ class Dispersy(Singleton):
         """
         assert isinstance(messages, (tuple, list))
         assert len(messages) > 0
-        assert not filter(lambda x: not isinstance(x, Message.Implementation), messages)
-
-        # todo: we can optimize below code given the following two restrictions
-        assert not filter(lambda x: not x.community == messages[0].community, messages), "All messages need to be from the same community"
-        assert not filter(lambda x: not x.meta == messages[0].meta, messages), "All messages need to have the same meta"
+        assert all(isinstance(message, Message.Implementation) for message in messages)
+        assert all(message.community == messages[0].community for message in messages)
+        assert all(message.meta == messages[0].meta for message in messages)
 
         for message in messages:
             if isinstance(message.destination, CommunityDestination.Implementation):
@@ -1964,7 +1973,7 @@ class Dispersy(Singleton):
 
             if not self._is_valid_external_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
-                if __debug__: dprint("aborted sending ", len(packets), "x ", key, "(", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1], " (invalid external address)", level="error")
+                if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1], " (invalid external address)", level="error")
                 continue
 
             for packet in packets:
@@ -2057,13 +2066,12 @@ class Dispersy(Singleton):
         @type packets: [Packet]
         """
         if __debug__:
-            from member import Member
             assert isinstance(member, Member)
             assert not member.must_blacklist, "must not already be blacklisted"
             assert isinstance(packets, list)
             assert len(packets) > 0
-            assert not filter(lambda x: not isinstance(x, Packet), packets)
-            assert not filter(lambda x: not x.meta == packets[0].meta, packets)
+            assert all(isinstance(packet, Packet) for packet in packets)
+            assert all(packet.meta == packets[0].meta for packet in packets)
 
         if __debug__: dprint("proof based on ", len(packets), " packets")
 
@@ -2100,8 +2108,8 @@ class Dispersy(Singleton):
         @type address: (str, int) tuple
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
-            from member import Member
             assert isinstance(community, Community)
             assert isinstance(member, Member)
             assert member.must_blacklist, "must be blacklisted"
@@ -2130,6 +2138,7 @@ class Dispersy(Singleton):
         RESPONSE_FUNC will be called but the message parameter will be None.
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
             assert isinstance(community, Community)
             assert isinstance(address, tuple)
@@ -2278,6 +2287,7 @@ class Dispersy(Singleton):
         @type store: bool
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from Tribler.Core.dispersy.community import Community
         
         assert isinstance(community, Community)
@@ -2285,13 +2295,13 @@ class Dispersy(Singleton):
         assert isinstance(address[0], str)
         assert isinstance(address[1], int)
         assert isinstance(routes, (tuple, list))
-        assert not filter(lambda route: not isinstance(route, tuple), routes)
-        assert not filter(lambda route: not len(route) == 2, routes)
-        assert not filter(lambda route: not isinstance(route[0], tuple), routes)
-        assert not filter(lambda route: not len(route[0]) == 2, routes)
-        assert not filter(lambda route: not isinstance(route[0][0], str), routes)
-        assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
-        assert not filter(lambda route: not isinstance(route[1], float), routes)
+        assert all(isinstance(route, tuple) for route in routes)
+        assert all(len(route) == 2 for route in routes)
+        assert all(isinstance(route[0], tuple) for route in routes)
+        assert all(len(route[0]) == 2 for route in routes)
+        assert all(isinstance(route[0][0], str) for route in routes)
+        assert all(isinstance(route[0][1], (int, long)) for route in routes)
+        assert all(isinstance(route[1], float) for route in  routes)
         assert hasattr(response_func, "__call__")
         assert isinstance(response_args, tuple)
         assert isinstance(timeout, float)
@@ -2337,10 +2347,10 @@ class Dispersy(Singleton):
 
     def _update_routes_from_external_source(self, community, routes):
         assert isinstance(routes, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, tuple), routes)
-        assert not filter(lambda x: not len(x) == 2, routes)
-        assert not filter(lambda x: not isinstance(x[0], tuple), routes), "(host, ip) tuple"
-        assert not filter(lambda x: not isinstance(x[1], float), routes), "age in seconds"
+        assert all(isinstance(route, tuple) for route in routes)
+        assert all(len(route) == 2 for route in routes)
+        assert all(isinstance(route[0], tuple) for route in routes), "(host, ip) tuple"
+        assert all(isinstance(route[1], float) for route in routes), "age in seconds"
 
         self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, external_time) VALUES (?, ?, ?, DATETIME('now', ?))",
                                    ((community.database_id, unicode(address[0]), address[1], u"-%d seconds" % age) for address, age in routes if self._is_valid_external_address(address)))
@@ -2446,6 +2456,7 @@ class Dispersy(Singleton):
         @type store: bool
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(store, bool)
@@ -2554,12 +2565,12 @@ class Dispersy(Singleton):
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
-            from member import Member
         assert isinstance(community, Community)
         assert isinstance(cluster, int)
         assert isinstance(members, (tuple, list))
-        assert not filter(lambda member: not isinstance(member, Member), members)
+        assert all(isinstance(member, Member) for member in members)
         assert isinstance(reset, bool)
         assert isinstance(store, bool)
         assert isinstance(update, bool)
@@ -2572,7 +2583,8 @@ class Dispersy(Singleton):
             subjective_set = BloomFilter(community.dispersy_subjective_set_error_rate, community.dispersy_subjective_set_bits)
         if reset:
             subjective_set.clear()
-        map(subjective_set.add, (member.public_key for member in members))
+        for member in members:
+            subjective_set.add(member.public_key)
 
         # implement the message
         meta = community.get_meta_message(u"dispersy-subjective-set")
@@ -2602,7 +2614,6 @@ class Dispersy(Singleton):
         @type messages: [Message.Implementation]
         """
         community = messages[0].community
-        subjective_set_message_id = community.get_meta_message(u"dispersy-subjective-set").database_id
 
         for message in messages:
             packets = []
@@ -2689,6 +2700,7 @@ class Dispersy(Singleton):
         @type store: bool
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(message, Message.Implementation)
@@ -3086,8 +3098,8 @@ class Dispersy(Singleton):
         @type store: bool
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
-            from member import Member
             assert isinstance(community, Community)
             assert isinstance(permission_triplets, (tuple, list))
             for triplet in permission_triplets:
@@ -3187,8 +3199,8 @@ class Dispersy(Singleton):
         @type store: bool
         """
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
-            from member import Member
             assert isinstance(community, Community)
             assert isinstance(permission_triplets, (tuple, list))
             for triplet in permission_triplets:
@@ -3230,6 +3242,7 @@ class Dispersy(Singleton):
 
     def create_undo(self, community, message, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
             assert isinstance(community, Community)
             assert isinstance(message, Message.Implementation)
@@ -3318,7 +3331,6 @@ class Dispersy(Singleton):
 
                 if member == community.my_member:
                     if __debug__: dprint("fatal error.  apparently we are malicious", level="error")
-                    pass
 
                 yield DropMessage(message, "trying to undo a message that has already been undone")
                 continue
@@ -3342,6 +3354,7 @@ class Dispersy(Singleton):
 
     def create_destroy_community(self, community, degree, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(degree, unicode)
@@ -3364,6 +3377,7 @@ class Dispersy(Singleton):
 
     def on_destroy_community(self, messages):
         if __debug__:
+            # pylint: disable-msg=W0404
             from community import Community
 
         for message in messages:
@@ -3430,7 +3444,7 @@ class Dispersy(Singleton):
         return message
 
     def on_dynamic_settings(self, community, messages, initializing=False):
-        assert not filter(lambda x: not community == x.community, messages)
+        assert all(community == message.community for message in messages)
         assert isinstance(initializing, bool)
         timeline = community._timeline
         global_time = community.global_time
@@ -3545,7 +3559,7 @@ class Dispersy(Singleton):
         try:
             meta = community.get_meta_message(u"dispersy-sync")
 
-        except:
+        except KeyError:
             pass
 
         else:
@@ -3574,7 +3588,7 @@ class Dispersy(Singleton):
         try:
             meta = community.get_meta_message(u"dispersy-candidate-request")
 
-        except:
+        except KeyError:
             pass
 
         else:
@@ -3713,8 +3727,8 @@ class Dispersy(Singleton):
                                                         "dispersy_missing_sequence_response_limit"))
 
             if sync_ranges:
-                community_info["sync_ranges"] = [{"time_low":range.time_low, "space_freed":range.space_freed, "space_remaining":range.space_remaining, "capacity":range.capacity}
-                                                 for range
+                community_info["sync_ranges"] = [{"time_low":range_.time_low, "space_freed":range_.space_freed, "space_remaining":range_.space_remaining, "capacity":range_.capacity}
+                                                 for range_
                                                  in community._sync_ranges]
 
             if database_sync:

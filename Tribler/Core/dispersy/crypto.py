@@ -6,7 +6,7 @@ The crypto module provides a layer between Dispersy and low level crypographic f
 @contact: dispersy@frayja.com
 """
 
-if False:
+if True:
     #
     # disable crypto
     #
@@ -89,7 +89,6 @@ else:
 
     from hashlib import sha1, sha224, sha256, sha512, md5
     from math import ceil
-    from random import randint
     from struct import pack
     import M2Crypto
 
