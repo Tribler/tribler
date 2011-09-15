@@ -78,8 +78,11 @@ class WalktestCommunity(Community):
         walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk and candidate.address not in blacklist]
         stumbles = [candidate for candidate in self._candidates.itervalues() if candidate.is_stumble and candidate.address not in blacklist]
 
+        # apply blacklist to the bootstrap addresses
+        bootstrap_addresses = [address for address in self._bootstrap_addresses if not address in blacklist]
+        
         # yield candidates, if available
-        if self._bootstrap_addresses or walks or stumbles:
+        if bootstrap_addresses or walks or stumbles:
             while True:
                 r = random()
                 assert 0 <= r <= 1
@@ -92,8 +95,8 @@ class WalktestCommunity(Community):
                     yield choice(stumbles).address
                     continue
 
-                if self._bootstrap_addresses:
-                    yield choice(self._bootstrap_addresses)
+                if bootstrap_addresses:
+                    yield choice(bootstrap_addresses)
                     continue
 
     def create_introduction_request(self, destination):
@@ -151,13 +154,23 @@ class WalktestCommunity(Community):
                 request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(message.address,))
                 self._dispersy.store_update_forward([request], False, False, True)
 
+            else:
+                candidate = ("0.0.0.0", 0)
+                meta = self._meta_messages[u"introduction-response"]
+                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, candidate, message.payload.identifier))
+                self._dispersy.store_update_forward([response], False, False, True)
+            
     def check_introduction_response(self, messages):
         for message in messages:
-            if message.payload.identifier in self._walk:
-                yield message
-            else:
-                if __debug__: log("walktest.log", "check_introduction_response", public_address=self._dispersy.external_address, candidates=self._candidates.keys())
+            if message.payload.introduction_address == message.address:
+                if __debug__: log("walktest.log", "check_introduction_response", public_address=self._dispersy.external_address, source=message.address, introduction_address=message.payload.introduction_address, candidates=self._candidates.keys())
+                yield DropMessage(message, "invalid introduction address")
+
+            if not message.payload.identifier in self._walk:
+                if __debug__: log("walktest.log", "check_introduction_response", public_address=self._dispersy.external_address, source=message.address, introduction_address=message.payload.introduction_address, candidates=self._candidates.keys())
                 yield DropMessage(message, "unknown response identifier")
+
+            yield message
 
     def on_introduction_response(self, messages):
         # handled in introduction_response_or_timeout
@@ -188,13 +201,17 @@ class WalktestCommunity(Community):
             if __debug__: log("walktest.log", "introduction_response_...", public_address=self._dispersy.external_address, source=message.address, introduction_address=message.payload.introduction_address, candidates=self._candidates.keys())
 
             # probabilistically continue with the walk or choose a different path
-            if random() < 0.8:
-                destination = message.payload.introduction_address
-            else:
+            if message.payload.introduction_address == ("0.0.0.0", 0) or random() < 0.2:
                 try:
                     destination = self.yield_candidates(message.address).next()
                 except StopIteration:
-                    destination = message.payload.introduction_address
+                    if message.payload.introduction_address == ("0.0.0.0", 0):
+                        # no other candidates.  try again in a few seconds
+                        self._dispersy.callback.register(self.start_walk, delay=5.0)
+                    else:
+                        destination = message.payload.introduction_address
+            else:
+                destination = message.payload.introduction_address
             self.create_introduction_request(destination)
 
     def on_puncture_request(self, messages):

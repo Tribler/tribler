@@ -106,13 +106,12 @@ def main():
 
             current_online.clear()
             current_online.update(now_online)
-            all_addresses.update(now_online)
 
     def create_introduction_request(lineno, datetime, message, introduction_request, candidates, public_address):
         check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         outgoing["introduction-request"] += 1
-
+        
         key = "%s:%d" % introduction_request
         if key in out_intro_req:
             out_intro_req[key] += 1
@@ -133,6 +132,7 @@ def main():
         check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         incoming["introduction-response"] += 1
+        all_addresses.add(source)
 
         key = " -> ".join(("%s:%d"%source, "%s:%d"%introduction_address))
         if key in in_intro_res:
@@ -145,11 +145,13 @@ def main():
         check_candidates(datetime, candidates)
         incoming["puncture-request"] += 1
         outgoing["puncture"] += 1
+        all_addresses.add(source)
 
     def on_puncture(lineno, datetime, message, source, candidates, public_address):
         check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         incoming["puncture"] += 1
+        all_addresses.add(source)
 
     def on_introduction_request(lineno, datetime, message, source, introduction_response, puncture_request, candidates, public_address):
         check_public_address(datetime, public_address)
@@ -157,7 +159,14 @@ def main():
         incoming["introduction-request"] += 1
         outgoing["introduction-response"] += 1
         outgoing["puncture-request"] += 1
+        all_addresses.add(source)
 
+    def on_introduction_response(lineno, datetime, message, source, candidates, public_address):
+        check_public_address(datetime, public_address)
+        check_candidates(datetime, candidates)
+        incoming["introduction-response-unused"] += 1
+        all_addresses.add(source)
+        
     def init(lineno, datetime, message, candidates):
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
@@ -176,8 +185,8 @@ def main():
     in_intro_timeout = {}
 
     # counters
-    incoming = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0}
-    outgoing = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0}
+    incoming = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0, "introduction-response-unused":0}
+    outgoing = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0, "introduction-response-unused":0}
 
     mapping = {"create_introduction_request":create_introduction_request,
                "introduction_..._timeout":introduction_response_timeout,
@@ -185,7 +194,8 @@ def main():
                "on_puncture":on_puncture,
                "on_introduction_request":on_introduction_request,
                "on_puncture_request":on_puncture_request,
-               "__init__":init}
+               "__init__":init,
+               "on_introduction_response":on_introduction_response}
     for lineno, datetime, message, kargs in parse("walktest.log"):
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 

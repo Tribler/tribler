@@ -19,6 +19,7 @@ class Conversion(BinaryConversion):
         if len(data) < offset + 8:
             raise DropPacket("Insufficient packet size")
 
+        # public address
         host = inet_ntoa(data[offset:offset+4])
         port, identifier = unpack_from("!HH", data, offset+4)
         offset += 8
@@ -39,7 +40,7 @@ class Conversion(BinaryConversion):
 
         introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
-
+        
         identifier, = unpack_from("!H", data, offset)
         offset += 2
 
