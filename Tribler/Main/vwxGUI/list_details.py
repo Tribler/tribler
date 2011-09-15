@@ -6,6 +6,7 @@ import time
 import re
 import shutil
 from datetime import date, datetime
+from threading import currentThread
 
 from Tribler.Core.API import *
 from Tribler.Core.osutils import startfile
@@ -25,6 +26,7 @@ from list_header import ListHeader
 from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
+
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
@@ -83,6 +85,7 @@ class TorrentDetails(wx.Panel):
             pass
     
     def _showRequestType(self, requesttype):
+        self.__check_thread()
         try:
             self.messagePanel.SetLabel("Loading details, please wait.\nThe torrentfile is requested %s."%requesttype)
             
@@ -102,6 +105,7 @@ class TorrentDetails(wx.Panel):
             pass
         
     def _showTorrent(self, torrent, information):
+        self.__check_thread()
         try:
             if DEBUG:
                 print >> sys.stderr, "TorrentDetails: finished loading", self.torrent['name']
@@ -133,6 +137,7 @@ class TorrentDetails(wx.Panel):
             pass
     
     def _timeout(self):
+        self.__check_thread()
         try:
             if not self.isReady:
                 if DEBUG:
@@ -146,6 +151,8 @@ class TorrentDetails(wx.Panel):
             pass
     
     def _create_tab(self, tabname, header = None):
+        self.__check_thread()
+        
         panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook, style = wx.VSCROLL)
         panel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
         self.notebook.AddPage(panel, tabname)
@@ -164,6 +171,8 @@ class TorrentDetails(wx.Panel):
         return panel, vSizer
         
     def _add_row(self, parent, sizer, name, value, spacer = 10):
+        self.__check_thread()
+        
         if name:
             name = StaticText(parent, -1, name)
             font = name.GetFont()
@@ -186,6 +195,8 @@ class TorrentDetails(wx.Panel):
         return name, value
 
     def _addTabs(self, ds):
+        self.__check_thread()
+        
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
     
         #Create torrent overview
@@ -402,6 +413,8 @@ class TorrentDetails(wx.Panel):
                 trackerPanel.SetupScrolling(rate_y = 5)
     
     def _addButtonPanel(self, parent, sizer):
+        self.__check_thread()
+        
         if not self.compact:
             self.buttonPanel = wx.Panel(parent)
             self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
@@ -411,6 +424,8 @@ class TorrentDetails(wx.Panel):
             sizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
     
     def DownloadStarted(self):
+        self.__check_thread()
+        
         self.ShowPanel(1)
         
         #Switch to Files tab if in compact mode
@@ -421,6 +436,8 @@ class TorrentDetails(wx.Panel):
                     break
         
     def ShowPanel(self, type = None):
+        self.__check_thread()
+        
         if getattr(self, 'buttonSizer', False):
             if type is None:
                 type = 0
@@ -468,6 +485,8 @@ class TorrentDetails(wx.Panel):
             wx.CallAfter(self.ShowPanel, type)
 
     def _ShowTorrentDetails(self):
+        self.__check_thread()
+        
         header = StaticText(self.buttonPanel, -1, "Liking what you see?")
         header.SetMinSize((1,-1))
         font = header.GetFont()
@@ -553,6 +572,8 @@ class TorrentDetails(wx.Panel):
             self.guiutility.frame.guiserver.add_task(loadChannel, id = "TorrentDetails_loadChannel")
     
     def _ShowDownloadProgress(self):
+        self.__check_thread()
+        
         #Header
         self.downloadText = StaticText(self.buttonPanel, -1, "You are downloading this torrent")
         font = self.downloadText.GetFont()
@@ -620,6 +641,8 @@ class TorrentDetails(wx.Panel):
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
     
     def _ShowDone(self):
+        self.__check_thread()
+        
         header = StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
         header.SetMinSize((1,-1))
         font = header.GetFont()
@@ -916,6 +939,8 @@ class TorrentDetails(wx.Panel):
             pass
     
     def ShowStatus(self):
+        self.__check_thread()
+        
         try:
             if self.isReady:
                 diff = time() - self.torrent['last_check']
@@ -934,6 +959,8 @@ class TorrentDetails(wx.Panel):
             pass
            
     def OnRefresh(self, dslist):
+        self.__check_thread()
+        
         found = False
         
         for ds in dslist:
@@ -948,6 +975,8 @@ class TorrentDetails(wx.Panel):
             self.ShowPanel()
             
     def _Refresh(self, ds):
+        self.__check_thread()
+        
         self.torrent['ds'] = ds
         if ds:
             self.torrent['progress'] = int(ds.get_progress() * 100)
@@ -990,6 +1019,8 @@ class TorrentDetails(wx.Panel):
             self.ShowPanel(2)
             
     def Layout(self):
+        self.__check_thread()
+        
         wx.Panel.Layout(self)
         
         if self.isReady:
@@ -1005,6 +1036,11 @@ class TorrentDetails(wx.Panel):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']
         self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
+        
+    def __check_thread(self):
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+            print_stack()
 
 class LibraryDetails(TorrentDetails):
     def __init__(self, *args, **kwargs):
