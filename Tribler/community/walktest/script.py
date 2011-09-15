@@ -194,6 +194,7 @@ def main():
         print "no public address?"
     for datetime, public_address in public_addresses:
         print "public address ", datetime, public_address
+    print
 
     # walk
     for count, key in sorted((count, key) for key, count in out_intro_req.iteritems()):

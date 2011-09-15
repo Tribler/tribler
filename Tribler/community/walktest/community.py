@@ -156,11 +156,13 @@ class WalktestCommunity(Community):
             if message.payload.identifier in self._walk:
                 yield message
             else:
+                if __debug__: log("walktest.log", "check_introduction_response", public_address=self._dispersy.external_address, candidates=self._candidates.keys())
                 yield DropMessage(message, "unknown response identifier")
 
     def on_introduction_response(self, messages):
         # handled in introduction_response_or_timeout
-        pass
+        for message in messages:
+            if __debug__: log("walktest.log", "on_introduction_response", public_address=self._dispersy.external_address, source=message.address, candidates=self._candidates.keys())
 
     def introduction_response_or_timeout(self, message, intermediary_address):
         if message is None:
