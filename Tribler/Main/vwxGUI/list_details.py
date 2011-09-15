@@ -464,18 +464,18 @@ class TorrentDetails(wx.Panel):
                 self.buttonSizer.DeleteWindows()
                 self.buttonSizer.Clear()
             
-                in_progress = finished = False
-            
                 if type == 2:
                     self.torrent['progress'] = 100
                     self._ShowDone()
+                    
                 elif type == 1:
                     self._ShowDownloadProgress()
+                    
                 else:
                     self._ShowTorrentDetails()
                 
                 if getattr(self.parent, 'button', False):
-                    self.parent.button.Enable(not finished and not in_progress)
+                    self.parent.button.Enable(type == 0)
             
                 self.buttonPanel.Show()
                 self.buttonPanel.Layout()
