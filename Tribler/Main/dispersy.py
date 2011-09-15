@@ -31,7 +31,7 @@ def main():
             while True:
                 try:
                     self.socket = rawserver.create_udpsocket(port, ip)
-                    if __debug__: dprint("Dispersy listening at ", port)
+                    if __debug__: dprint("Dispersy listening at ", port, force=True)
                 except socket.error, error:
                     port += 1
                     continue
