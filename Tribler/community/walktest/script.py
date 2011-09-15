@@ -100,6 +100,7 @@ def main():
 
             current_online.clear()
             current_online.update(now_online)
+            all_addresses.update(now_online)
 
     def create_introduction_request(lineno, datetime, message, introduction_request, candidates):
         check_candidates(datetime, candidates)
@@ -152,6 +153,7 @@ def main():
     # churn
     online = []
     current_online = set()
+    all_addresses = set()
 
     # walk
     out_intro_req = {}
@@ -204,6 +206,8 @@ def main():
             print datetime - last_datetime, " %-5d" % len(candidates), "                            -", candidate
 
         last_datetime, last_candidates = datetime, candidates
+    
+    print len(all_addresses), "distinct addresses"
 
 if __name__ == "__main__":
     main()
