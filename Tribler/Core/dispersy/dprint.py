@@ -97,7 +97,7 @@ _dprint_settings = {
 # chain-list contains lists in the form: [function, target]. Where
 # target can be accept/True, drop/False, continue/None, or
 # jump/callable.
-_filters = {"ENTRY":[True, []]}
+_filters = {"ENTRY":[False, []]}
 _filter_entry = _filters["ENTRY"]
 _filter_policy_map = {"accept":True, "drop":False, "return":None}
 _filter_reverse_policy_map = {True:"accept", False:"drop", None:"return"}
