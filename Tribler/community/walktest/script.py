@@ -93,6 +93,12 @@ def main():
         if not message in ["logger"]:
             print "ignore", message, kargs.keys()
 
+    def check_public_address(datetime, public_address):
+        if not public_addresses:
+            public_addresses.append((datetime, public_address))
+        elif not public_addresses[-1][1] == public_address:
+            public_addresses.append((datetime, public_address))
+
     def check_candidates(datetime, candidates):
         now_online = set("%s:%d" % candidate for candidate in candidates)
         if not now_online == current_online:
@@ -102,7 +108,8 @@ def main():
             current_online.update(now_online)
             all_addresses.update(now_online)
 
-    def create_introduction_request(lineno, datetime, message, introduction_request, candidates):
+    def create_introduction_request(lineno, datetime, message, introduction_request, candidates, public_address):
+        check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         outgoing["introduction-request"] += 1
 
@@ -112,7 +119,8 @@ def main():
         else:
             out_intro_req[key] = 1
 
-    def introduction_response_timeout(lineno, datetime, message, intermediary, candidates):
+    def introduction_response_timeout(lineno, datetime, message, intermediary, candidates, public_address):
+        check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
 
         key = "%s:%d" % intermediary
@@ -121,7 +129,8 @@ def main():
         else:
             in_intro_timeout[key] = 1
 
-    def introduction_response(lineno, datetime, message, source, introduction_address, candidates):
+    def introduction_response(lineno, datetime, message, source, introduction_address, candidates, public_address):
+        check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         incoming["introduction-response"] += 1
 
@@ -131,16 +140,19 @@ def main():
         else:
             in_intro_res[key] = 1
 
-    def on_puncture_request(lineno, datetime, message, source, puncture, candidates):
+    def on_puncture_request(lineno, datetime, message, source, puncture, candidates, public_address):
+        check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         incoming["puncture-request"] += 1
         outgoing["puncture"] += 1
 
-    def on_puncture(lineno, datetime, message, source, candidates):
+    def on_puncture(lineno, datetime, message, source, candidates, public_address):
+        check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         incoming["puncture"] += 1
 
-    def on_introduction_request(lineno, datetime, message, source, introduction_response, puncture_request, candidates):
+    def on_introduction_request(lineno, datetime, message, source, introduction_response, puncture_request, candidates, public_address):
+        check_public_address(datetime, public_address)
         check_candidates(datetime, candidates)
         incoming["introduction-request"] += 1
         outgoing["introduction-response"] += 1
@@ -149,6 +161,9 @@ def main():
     def init(lineno, datetime, message, candidates):
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
+
+    # public address
+    public_addresses = []
 
     # churn
     online = []
@@ -173,6 +188,12 @@ def main():
                "__init__":init}
     for lineno, datetime, message, kargs in parse("walktest.log"):
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
+
+    # public addresses
+    if not public_addresses:
+        print "no public address?"
+    for datetime, public_address in public_addresses:
+        print "public address ", datetime, public_address
 
     # walk
     for count, key in sorted((count, key) for key, count in out_intro_req.iteritems()):
