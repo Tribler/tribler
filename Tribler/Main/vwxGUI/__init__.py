@@ -20,7 +20,7 @@ LIST_RADIUS = 7
 LIST_AUTOSIZEHEADER = -2
 
 TORRENT_COLUMNS = ['infohash', 'name', 'length']
-CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.name', 'Torrent.name', 'description', 'time_stamp', 'inserted']
+CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.dispersy_id', 'ChannelTorrents.name', 'Torrent.name', 'description', 'time_stamp', 'inserted']
 PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
 
 COMMENT_REQ_COLUMNS = ['id', 'Comments.dispersy_id', 'CommentTorrent.channeltorrent_id', 'name', 'Peer.peer_id', 'comment', 'inserted', 'time_stamp']

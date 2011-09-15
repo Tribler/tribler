@@ -170,12 +170,19 @@ class TorrentFeedThread(Thread):
             filename = self.getfilename()
             f = open(filename,"rb")
             for line in f.readlines():
-                for key in ['active', 'inactive']:
-                    if line.startswith(key):
-                        url = line[len(key)+1:-2] # remove \r\n
+                #Niels 15-09-2011: modified to accomodate possible channel_id after url
+                parts = line.split()
+                if len(parts) > 1:
+                    key = parts[0]
+                    url = parts[1]
+                    
+                    if key in ['active', 'inactive']:
                         if DEBUG:
                             print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
-                        self.addURL(url,dowrite=False,status=key)
+                        self.addURL(url, dowrite=False, status=key)
+                else:
+                    print >> sys.stderr,"subscrip: Ignoring line", line
+                
             f.close()        
         except:
             if DEBUG:

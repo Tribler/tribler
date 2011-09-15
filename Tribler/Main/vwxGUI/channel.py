@@ -15,6 +15,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
+from Tribler.Main.Utility.Rss.rssparser import RssParser
 
 DEBUG = False
 
@@ -625,27 +626,17 @@ class ManageChannelFilesManager():
         self.list.SetData(torrentList)
     
     def SetChannel(self, channel):
-        if channel.id !=  self.list.id:
+        if channel != self.list.channel:
             self.list.id = channel.id
             self.list.channel = channel
             self.list.dirty = True
     
     def RemoveItems(self, infohashes):
-        """
         for infohash in infohashes:
-            self.channelsearch_manager.deleteOwnTorrent(infohash)
-        self.list.Reset()
-        self.refresh()
-        """
-        pass
-        
+            self.channelsearch_manager.removeTorrent(self.list.channel, infohash)
+                
     def RemoveAllItems(self):
-        """
-        self.channelsearch_manager.deleteTorrentsFromPublisherId(self.channelsearch_manager.channelcast_db.my_permid)
-        self.list.Reset()
-        self.refresh()
-        """
-        pass
+        self.channelsearch_manager.removeAllTorrents(self.list.channel)
         
 class ManageChannelPlaylistsManager():
     
@@ -673,7 +664,7 @@ class ManageChannelPlaylistsManager():
         startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.list.channel, playlist_id), cargs = (playlist_id,))
     
     def SetChannel(self, channel):
-        if channel.id != self.list.id:
+        if channel != self.list.channel:
             self.list.id = channel.id
             self.list.channel = channel
             self.list.dirty = True
@@ -704,10 +695,12 @@ class ManageChannelPlaylistsManager():
 class ManageChannel(XRCPanel, AbstractDetails):
 
     def _PostInit(self):
+        self.channel = None
         self.channel_id = 0
+        
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
-        self.torrentfeed = TorrentFeedThread.getInstance()
+        self.torrentfeed = RssParser.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         
         self.SetBackgroundColour(LIST_BLUE)
@@ -840,7 +833,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self._add_subheader(parent, sizer, "Current rss-feeds:","(which are periodically checked)")
         
         rssSizer = wx.BoxSizer(wx.VERTICAL)
-        urls = self.torrentfeed.getUrls("active")
+        
+        if self.channel:
+            urls = self.torrentfeed.getUrls(self.channel.id)
+        else:
+            urls = []
+            
         if len(urls) > 0:
             rssPanel = wx.lib.scrolledpanel.ScrolledPanel(parent)
             rssPanel.SetBackgroundColour(LIST_DESELECTED)
@@ -907,6 +905,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.playlistlist.GetManager().SetChannel(channel)
         
         if channel:
+            self.channel = channel
             self.channel_id = channel.id
             def db_call():
                 channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
@@ -946,6 +945,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 
                 if iamModerator:
                     self.AddPage(self.notebook, self.playlistlist, "Manage playlists", 3)
+                    
+                    self.RebuildRssPanel()
                     self.AddPage(self.notebook, self.managepage, "Manage", 4)
                 else:
                     self.RemovePage(self.notebook, "Manage playlists")
@@ -954,6 +955,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
             startWorker(update_panel, db_call)
             
         else:
+            self.channel = None
+            self.channel_id = 0
+            
             self.name.SetValue('')
             self.name.originalValue = ''
             
@@ -962,24 +966,19 @@ class ManageChannel(XRCPanel, AbstractDetails):
             
             self.header.SetName('Create your own channel')
             self.header.SetNrTorrents(0, 0)
-            
-            #disable all other tabs
-            for i in range(1, self.notebook.GetPageCount()):
-                self.notebook.RemovePage(i)
                 
             self.createText.Show()
             self.saveButton.SetLabel('Create Channel')
-        self.RebuildRssPanel()
+            
+            self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+            #disable all other tabs
+            for i in range(1, self.notebook.GetPageCount()):
+                self.notebook.RemovePage(i)
     
     @forceDBThread        
     def SetChannelId(self, channel_id):
         channel = self.channelsearch_manager.getChannel(channel_id)
         self.SetChannel(channel)
-    
-    def SetMyChannel(self, channel_id):
-        #See if we need to refresh?
-        if self.channel_id == channel_id:
-            self.SetChannelId(channel_id)
     
     def GetPage(self, notebook, title):
         for i in range(notebook.GetPageCount()):
@@ -1019,7 +1018,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         item = event.GetEventObject()
         url = item.url.GetValue().strip()
         if len(url) > 0:
-            self.torrentfeed.addURL(url)
+            self.torrentfeed.addURL(url, self.channel_id)
             self.RebuildRssPanel()
             
             self.uelog.addEvent(message="MyChannel: rssfeed added", type = 2)
@@ -1027,13 +1026,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def OnDeleteRss(self, event):
         item = event.GetEventObject()
         
-        self.torrentfeed.deleteURL(item.url)
+        self.torrentfeed.deleteURL(item.url, self.channel_id)
         self.RebuildRssPanel()
         
         self.uelog.addEvent(message="MyChannel: rssfeed removed", type = 2)
     
     def OnRefreshRss(self, event):
-        self.torrentfeed.refresh()
+        self.torrentfeed.doRefresh()
         
         button = event.GetEventObject()
         button.Enable(False)
@@ -1068,21 +1067,15 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.uelog.addEvent(message="MyChannel: manual import directory", type = 2)
     
     def _import_torrents(self, files):
-        nr_imported = 0
-        for file in files:
-            if file.endswith(".torrent"):
-                self.torrentfeed.addFile(file)
-                nr_imported += 1
+        tdefs = [TorrentDef.load(file) for file in files if file.endswith(".torrent")]
+        self.channelsearch_manager.createTorrentsFromDefs(self.channel_id, tdefs)
+        nr_imported = len(tdefs)
         
         if nr_imported > 0:
             if nr_imported == 1:
                 self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
             else:
                 self.guiutility.frame.top_bg.Notify('Added %d torrents to your Channel'%nr_imported, wx.ART_INFORMATION)
-    
-    def OnRssItem(self, rss_url, infohash, torrent_data):
-        manager = self.fileslist.GetManager()
-        manager.refresh_list()
     
     def Show(self, show=True):
         if not show:
@@ -1108,6 +1101,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.name.Saved()
         self.description.Saved()
         
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
+            wx.CallLater(5000, button.Enable, True)
+        
     def SaveSettings(self, event):
         state = self.statebox.GetSelection()
         startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state))
@@ -1125,16 +1123,20 @@ class ManageChannel(XRCPanel, AbstractDetails):
         manager = self.playlistlist.GetManager()
         manager.playlistUpdated(playlist_id)
         
-    def channelUpdated(self, channel_id, modified = False):
+    def channelUpdated(self, channel_id, created = False, modified = False):
         if channel_id == self.channel_id:
             manager = self.fileslist.GetManager()
             manager.refresh_list()
             
             if modified:
                 self.SetChannelId(channel_id)
+                
+        elif not self.channel_id and created:
+            self.SetChannelId(channel_id)
             
 class ManageChannelFilesList(List):
     def __init__(self, parent):
+        self.channel = None
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}]
    
@@ -1173,12 +1175,13 @@ class ManageChannelFilesList(List):
     def OnRemoveSelected(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure you want to remove all selected torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
-            infohashes = [key for key,item in self.list.GetExpandedItems()]
+            infohashes = [key for key,_ in self.list.GetExpandedItems()]
             self.manager.RemoveItems(infohashes)
         dlg.Destroy()
         
 class ManageChannelPlaylistList(ManageChannelFilesList):
     def __init__(self, parent):
+        self.channel = None
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}]
         
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)

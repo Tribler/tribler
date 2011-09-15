@@ -28,7 +28,8 @@ from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 
 import os,sys
 import urllib
-from Tribler.Core.simpledefs import NTFY_MODIFIED
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -61,8 +62,10 @@ from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *
+from Tribler.Main.Utility.Rss.rssparser import RssParser
 
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
@@ -71,6 +74,7 @@ from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
+from Tribler.Core.simpledefs import NTFY_MODIFIED
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.Statistics.Status.Status import get_status_holder
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
@@ -79,7 +83,6 @@ from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import SimpleServer
 
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -297,11 +300,6 @@ class ABCApp(wx.App):
             
             wx.CallAfter(self.PostInit2)
             
-            # start the torrent feed thread
-            self.torrentfeed = TorrentFeedThread.getInstance()
-            self.torrentfeed.register(self.utility.session)
-            self.torrentfeed.start()             
-
             # 08/02/10 Boudewijn: Working from home though console
             # doesn't allow me to press close.  The statement below
             # gracefully closes Tribler after 120 seconds.
@@ -345,6 +343,17 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
+        
+        # initialize the torrent feed thread
+        channelcast = ChannelCastDBHandler.getInstance()
+        def db_thread():
+            my_channel = channelcast.getMyChannelId()
+            if my_channel:
+                torrentfeed = RssParser.getInstance()
+                torrentfeed.register(self.utility.session, my_channel)
+                torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                
+        startWorker(None, db_thread)
 
     # ProxyService 90s Test_
 #    def start_90s_dl(self, subject, changeType, objectID, *args):
@@ -797,13 +806,16 @@ class ABCApp(wx.App):
             manager.channelUpdated(objectID, subject == NTFY_VOTECAST)
             
             manager = self.frame.selectedchannellist.GetManager()
-            manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = NTFY_MODIFIED)
+            manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = changeType == NTFY_MODIFIED)
             
             if changeType == NTFY_CREATE:
                 self.frame.channellist.SetMyChannelId(objectID)
-                self.frame.managechannel.SetMyChannel(objectID)
                 
-            self.frame.managechannel.channelUpdated(objectID, modified = NTFY_MODIFIED)
+                torrentfeed = RssParser.getInstance()
+                torrentfeed.register(self.utility.session, objectID)
+                torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                
+            self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
     
     @forceWxThread
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
@@ -819,7 +831,6 @@ class ABCApp(wx.App):
         if self.ready and self.frame.ready:
             if changeType == NTFY_INSERT:
                 self.frame.managechannel.playlistCreated(objectID)
-                
             else:
                 self.frame.managechannel.playlistUpdated(objectID)
                 

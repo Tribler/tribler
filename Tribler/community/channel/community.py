@@ -18,19 +18,27 @@ from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
 from traceback import print_stack
 import sys
+from Tribler.Core.dispersy.dispersy import Dispersy
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
 from lencoder import log
 
+
 _register_task = None
+def register_task(*args, **kwargs):
+    global _register_task
+    
+    if not _register_task:
+        _register_task = Dispersy.get_instance().callback.register
+    return _register_task(*args, **kwargs)
 
 def forceDispersyThread(func):
     def invoke_func(*args,**kwargs):
         if not currentThread().getName()== 'Dispersy':
             def dispersy_thread():
                 func(*args, **kwargs)
-            _register_task(dispersy_thread)
+            register_task(dispersy_thread)
         else:
             return func(*args, **kwargs)
             
@@ -50,7 +58,7 @@ def forceAndReturnDispersyThread(func):
                 finally:
                     event.set()
                 
-            _register_task(dispersy_thread)
+            register_task(dispersy_thread)
             
             if event.wait(100):
                 return result
@@ -74,9 +82,6 @@ class ChannelCommunity(Community):
         self._last_sync_space_remaining = 0
         
         super(ChannelCommunity, self).__init__(master)
-
-        global _register_task
-        _register_task = self._dispersy.callback.register
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
@@ -410,6 +415,11 @@ class ChannelCommunity(Community):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
             self._channelcast_db.on_remove_torrent_from_dispersy(self._channel_id, dispersy_id)
+            
+    def remove_torrents(self, dispersy_ids):
+        for dispersy_id in dispersy_ids:
+            message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
+            self._dispersy.create_undo(self, message)
 
     #create, check or receive playlists
     @forceDispersyThread
@@ -578,6 +588,8 @@ class ChannelCommunity(Community):
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
             type = unicode(type)
+            value = value[:1024]
+            
             self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
         
     def _disp_create_modification(self, modification_type, modifcation_value, modification_on, latest_modification, store=True, update=True, forward=True):

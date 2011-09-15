@@ -246,11 +246,12 @@ class LibraryTorrent(Torrent):
         self.progress = progress
     
 class ChannelTorrent(Torrent):
-    __slots__ = ('channeltorrent_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted', 'playlist')
-    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, chant_name, colt_name, description, time_stamp, inserted, channel, playlist):
+    __slots__ = ('channeltorrent_id', 'dispersy_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted', 'playlist')
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, dispersy_id, chant_name, colt_name, description, time_stamp, inserted, channel, playlist):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel)
         
         self.channeltorrent_id = channeltorrent_id
+        self.dispersy_id = dispersy_id
         self.colt_name = colt_name
         self.chant_name = chant_name
         self.description = description

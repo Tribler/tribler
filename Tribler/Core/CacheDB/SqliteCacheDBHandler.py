@@ -3139,17 +3139,19 @@ class ChannelCastDBHandler(object):
             print_exc()
             print >> sys.stderr, "Channels: could not make a connection to table"
         
+        self._channel_id = None
+        self.shouldCommit = True
+        self.my_dispersy_cid = None
+        
         def db_call():
             self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
             self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
             
-            self._channel_id = self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
+            self._channel_id = self.getMyChannelId()
+            if DEBUG:
+                print >> sys.stderr, "Channels: my channel is", self._channel_id
+            
         startWorker(None, db_call)
-
-        self.shouldCommit = True
-        self.my_dispersy_cid = None
-        if DEBUG:
-            print >> sys.stderr, "Channels: my channel is", self._channel_id
     
     def commit(self):
         self._db.commit()
@@ -3220,29 +3222,7 @@ class ChannelCastDBHandler(object):
             self._db.execute_write(update_channel, (modification_value, long(time()), channel_id), commit = self.shouldCommit)
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_MODIFIED, channel_id)
-    
-    #dispersy adding, modifying and receiving torrents
-    def addOwnTorrentDef(self, torrentdef, store = True, update = True, forward = True):
-        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
-        
-        hasTorrent = startWorker(None, self.hasTorrent, wargs = (self._channel_id, torrentdef.get_infohash()))
-        hasTorrent = hasTorrent.get()
-        
-        if not hasTorrent:
-            def dispersy_thread():
-                cid = self._get_my_dispersy_cid()
-                if cid:
-                    print >> sys.stderr, "Channels: addnewtorrent"
-                    
-                    community = dispersy.get_community(cid)
-                    community._disp_create_torrent_from_torrentdef(torrentdef, long(time()))
-                
-            from Tribler.Core.dispersy.dispersy import Dispersy
-            dispersy = Dispersy.get_instance()
-            dispersy.callback.register(dispersy_thread)
-        else:
-            print >> sys.stderr, "Torrent allready in channel or not in Torrents table"
-        
+      
     def deleteTorrent(self, channel_id, torrent_id):
         #TODO, connect with dispersy, decrement nr_torrents!
         raise NotImplementedError()
@@ -3322,7 +3302,7 @@ class ChannelCastDBHandler(object):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
             
     def on_remove_torrent_from_dispersy(self, channel_id, dispersy_id):
-        sql = "DELETE FROM ChannelTorrents WHERE channel_id = ? and dipsersy_id = ?"
+        sql = "DELETE FROM ChannelTorrents WHERE channel_id = ? and dispersy_id = ?"
         self._db.execute_write(sql, (channel_id, dispersy_id), commit = self.shouldCommit)
 
     def on_torrent_modification_from_dispersy(self, channeltorrent_id, modification_type, modification_value):
@@ -3395,13 +3375,13 @@ class ChannelCastDBHandler(object):
             torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
             self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, timestamp), commit = False)
         
-        
         for channel_id in max_update.keys():        
             if channel_id in latest_update:
+                new_time = latest_update[channel_id][0]
                 new_name = latest_update[channel_id][1][:40]
-                self._db.execute_write(update_name, (new_name, int(time()), self.getNrTorrentsInChannel(channel_id), channel_id), commit = False)
+                self._db.execute_write(update_name, (new_name, long(new_time), self.getNrTorrentsInChannel(channel_id), channel_id), commit = False)
             else:
-                self._db.execute_write(update_channel, (int(time()), self.getNrTorrentsInChannel(channel_id), channel_id), commit = False)
+                self._db.execute_write(update_channel, (long(time()), self.getNrTorrentsInChannel(channel_id), channel_id), commit = False)
         
         if self.shouldCommit:
             self._db.commit()
@@ -3920,6 +3900,11 @@ class ChannelCastDBHandler(object):
 
     def getMySubscribersCount(self):
         return self.getSubscribersCount(self._channel_id)
+    
+    def getMyChannelId(self):
+        if self._channel_id:
+            return self._channel_id
+        return self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
 
     def getSubscribersCount(self, channel_id):
         """returns the number of subscribers in integer format"""

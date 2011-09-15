@@ -18,7 +18,6 @@ from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.__init__ import LIBRARYNAME
 
 from __init__ import *

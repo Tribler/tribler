@@ -13,7 +13,6 @@ from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
@@ -1043,8 +1042,9 @@ class TorrentDetails(AbstractDetails):
         torrent_dir = self.guiutility.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, self.torrent.torrent_file_name)
         
-        torrentfeed = TorrentFeedThread.getInstance()
-        torrentfeed.addFile(torrent_filename)
+        tdef = TorrentDef.load(torrent_filename)
+        self.guiutility.channelsearch_manager.createTorrentFromDef(0, tdef)
+        
         self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
         self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
 

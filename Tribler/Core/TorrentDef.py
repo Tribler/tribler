@@ -105,7 +105,7 @@ class TorrentDef(Serializable,Copyable):
         
     def _create(metainfo): # TODO: replace with constructor
         # raises ValueErrors if not good
-        validTorrentFile(metainfo) 
+        validTorrentFile(metainfo)
         
         t = TorrentDef()
         t.metainfo = metainfo
