@@ -63,7 +63,6 @@ if False:
 
     def ec_check_public_bin(string):
         try:
-            print string
             return bool(ec_from_public_bin(string))
         except:
             return False
