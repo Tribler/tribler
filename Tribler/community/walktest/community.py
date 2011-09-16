@@ -165,7 +165,7 @@ class WalktestCommunity(Community):
                 # TODO remove this code... only for debugging
                 meta = self._meta_messages[u"puncture"]
                 puncture = meta.impl(distribution=(self.global_time,), destination=(message.address,))
-                self._dispersy.store_update_forward(puncture, False, False, True)
+                self._dispersy.store_update_forward([puncture], False, False, True)
 
                 
                 # create introduction responses
@@ -264,7 +264,7 @@ class WalktestCommunity(Community):
                 
             meta = self._meta_messages[u"puncture"]
             puncture = meta.impl(distribution=(self.global_time,), destination=(destination,))
-            self._dispersy.store_update_forward(puncture, False, False, True)
+            self._dispersy.store_update_forward([puncture], False, False, True)
 
             if __debug__:
                 log("walktest.log", "on_puncture_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
