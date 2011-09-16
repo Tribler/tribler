@@ -188,11 +188,13 @@ def main():
 
     def in_introduction_request(lineno, datetime, message, source, destination_address, source_internal_address, source_external_address, advice, identifier):
         incoming["introduction-request"] += 1
-        incoming["introduction-request-with-advice"] += 1
+        if advice:
+            incoming["introduction-request-with-advice"] += 1
         
     def out_introduction_request(lineno, datetime, message, destination_address, source_internal_address, source_external_address, advice, identifier):
         outgoing["introduction-request"] += 1
-        outgoing["introduction-request-with-advice"] += 1
+        if advice:
+            outgoing["introduction-request-with-advice"] += 1
 
     def in_introduction_response(lineno, datetime, message, source, destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier):
         incoming["introduction-response"] += 1
@@ -233,8 +235,10 @@ def main():
     in_intro_timeout = {}
 
     # counters
-    incoming = {"introduction-request":0, "introduction-request-with-advice":0, "introduction-response":0, "puncture-request":0, "puncture":0}
-    outgoing = {"introduction-request":0, "introduction-request-with-advice":0, "introduction-response":0, "puncture-request":0, "puncture":0}
+    # messages = {"introduction-request":52, "introduction-request-with-advice":52, "introduction-response":63, "puncture-request":43, "puncture":31}
+    messages = {"introduction-request":1500, "introduction-request-with-advice":1500, "introduction-response":1500, "puncture-request":1500, "puncture":31}
+    incoming = dict((key, 0) for key in messages)
+    outgoing = dict((key, 0) for key in messages)
 
     mapping = {"__init__":init,
                "in-introduction-request":in_introduction_request,
@@ -248,6 +252,7 @@ def main():
                "introduction-response-timeout":introduction_response_timeout,
                }
     for lineno, datetime, message, kargs in parse("walktest.log"):
+        last_datetime = datetime
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 
     if online:
@@ -277,12 +282,6 @@ def main():
         print sum(in_intro_timeout.itervalues()), "timeouts /", outgoing["introduction-request"], "requests"
         print
 
-    # counters
-    print "in    out   diff  msg"
-    for key, incoming, outgoing in [(key, incoming[key], outgoing[key]) for key in incoming.iterkeys()]:
-        print "%-5d" % incoming, "%-5d" % outgoing, "%-5d" % abs(incoming - outgoing), key
-    print
-
     # churn
     print "time      diff      count    discovered                 lost"
     if not online:
@@ -301,7 +300,30 @@ def main():
             last_datetime, last_candidates = datetime, candidates
         print
 
+    duration = last_datetime - first_datetime
+    assert duration.days == 0
+    seconds = duration.seconds
+    print "duration", duration, "->", seconds, "seconds"
     print len(all_addresses), "distinct addresses"
+    print
+
+    # counters
+    factor, total_in, total_out = 1.0 / 1024 / 1024, 0, 0
+    print "   in mbytes    b/s     out mbytes    b/s     diff    msg"
+    for key, incoming, outgoing in [(key, incoming[key], outgoing[key]) for key in incoming.iterkeys()]:
+        size_in = incoming * messages[key]
+        speed_in = 1.0 * size_in / seconds
+        total_in += size_in
+        size_out = outgoing * messages[key]
+        speed_out = 1.0 * size_out / seconds
+        total_out += size_out
+        print "%5d %6.3f %6.1f" % (incoming, size_in * factor, speed_in), \
+            "  %5d %6.3f %6.1f" % (outgoing, size_out * factor, speed_out), \
+            "  %5d" % abs(incoming - outgoing), \
+            "   ", key
+    print "      %6.3f %6.1f" % (total_in * factor, 1.0 * total_in / seconds), \
+        "        %6.3f %6.1f" % (total_out * factor, 1.0 * total_out / seconds)
+    print
 
 if __name__ == "__main__":
     main()

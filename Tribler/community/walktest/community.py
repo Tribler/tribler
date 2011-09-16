@@ -261,6 +261,7 @@ class WalktestCommunity(Community):
                 self.start_walk()
 
     def on_puncture_request(self, messages):
+        punctures = []
         for message in messages:
             # # update local view
             # if message.address in self._candidates:
@@ -272,13 +273,14 @@ class WalktestCommunity(Community):
             destination = message.payload.internal_walker_address if message.payload.external_walker_address[0] == self._dispersy.external_address[0] else message.payload.external_walker_address
                 
             meta = self._meta_messages[u"puncture"]
-            puncture = meta.impl(distribution=(self.global_time,), destination=(destination,))
-            self._dispersy.store_update_forward([puncture], False, False, True)
+            punctures.append(meta.impl(distribution=(self.global_time,), destination=(destination,)))
 
             if __debug__:
                 log("walktest.log", "on_puncture_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
                 log("walktest.log", "in-puncture-request", source=message.address, internal_walker_address=message.payload.internal_walker_address, external_walker_address=message.payload.external_walker_address)
                 log("walktest.log", "out-puncture", destination=destination)
+
+        self._dispersy.store_update_forward(punctures, False, False, True)
 
     def on_puncture(self, messages):
         # update local view
