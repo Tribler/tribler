@@ -26,7 +26,7 @@ class WalktestCommunity(Community):
         self._candidates = {}
         self._walk = set()
 
-        if __debug__: log("walktest.log", "__init__", candidates=self._candidates.keys())
+        if __debug__: log("walktest.log", "__init__", candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
 
     def start_walk(self):
         try:
@@ -73,7 +73,7 @@ class WalktestCommunity(Community):
         # remove old candidates
         deadline = time() - 60.0
         for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.stamp < deadline]:
-            del self._candidates[candidate.address]
+            del self._candidates[candidate.external_address]
 
         # get all candidates that either participated in a our walk or that stumbled upon us
         walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk and candidate.internal_address not in blacklist and candidate.external_address not in blacklist]
@@ -117,7 +117,7 @@ class WalktestCommunity(Community):
         advice = random() < 0.8 or len(self._candidates) < 5
 
         if __debug__:
-            log("walktest.log", "create_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
+            log("walktest.log", "create_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
             log("walktest.log", "out-introduction-request", destination_address=destination, source_internal_address=source_internal_address, advice=advice, identifier=identifier)
 
         meta_request = self._meta_messages[u"introduction-request"]
@@ -156,7 +156,7 @@ class WalktestCommunity(Community):
             self._dispersy.external_address_vote(message.payload.destination_address, message.address)
             
             if __debug__:
-                log("walktest.log", "on_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
+                log("walktest.log", "on_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
                 log("walktest.log", "in-introduction-request", source=message.address, destination_address=message.payload.destination_address, source_internal_address=message.payload.source_internal_address, advice=message.payload.advice, identifier=message.payload.identifier)
                         
             if external_candidate_address:
@@ -186,7 +186,7 @@ class WalktestCommunity(Community):
 
     def check_introduction_response(self, messages):
         for message in messages:
-            if __debug__: log("walktest.log", "check_introduction_response", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
+            if __debug__: log("walktest.log", "check_introduction_response", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
 
             if message.payload.external_introduction_address == message.address:
                 yield DropMessage(message, "invalid external introduction address [introducing herself]")
@@ -209,7 +209,7 @@ class WalktestCommunity(Community):
     def on_introduction_response(self, messages):
         # handled in introduction_response_or_timeout
         for _ in messages:
-            if __debug__: log("walktest.log", "on_introduction_response", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
+            if __debug__: log("walktest.log", "on_introduction_response", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
 
     def introduction_response_or_timeout(self, message, intermediary_address, advice):
         if message is None:
@@ -259,7 +259,7 @@ class WalktestCommunity(Community):
             self._dispersy.store_update_forward(puncture, False, False, True)
 
             if __debug__:
-                log("walktest.log", "on_puncture_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
+                log("walktest.log", "on_puncture_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
                 log("walktest.log", "in-puncture-request", source=message.address, internal_walker_address=message.payload.internal_walker_address, external_walker_address=message.payload.external_walker_address)
                 log("walktest.log", "out-puncture", destination=destination)
 
@@ -272,5 +272,5 @@ class WalktestCommunity(Community):
                 self._candidates[message.address] = Candidate(message.address, message.address, punctures=1)
 
             if __debug__:
-                log("walktest.log", "on_puncture", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
+                log("walktest.log", "on_puncture", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
                 log("walktest.log", "in-puncture", source=message.address)
