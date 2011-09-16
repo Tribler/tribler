@@ -211,7 +211,14 @@ def main():
 
     def out_puncture(lineno, datetime, message, destination):
         outgoing["puncture"] += 1
-        
+
+    def introduction_response_timeout(lineno, datetime, message, intermediary, advice): 
+        key = "%s:%d" % intermediary
+        if key in in_intro_timeout:
+            in_intro_timeout[key] += 1
+        else:
+            in_intro_timeout[key] = 1
+       
     # public address
     public_addresses = []
 
@@ -261,6 +268,8 @@ def main():
         print "incoming introduction response", "%4d" % count, key
     print
 
+    if not in_intro_timeout:
+        print "no timeouts"
     for count, key in sorted((count, key) for key, count in in_intro_timeout.iteritems()):
         print "incoming introduction timeout", "%4d" % count, key
     print
@@ -277,7 +286,7 @@ def main():
         print "-none-"
     else:
         last_datetime, last_candidates = online[0]
-        for datetime, candidates in online[1:]:
+        for datetime, candidates in online:
             more = candidates.difference(last_candidates)
             less = last_candidates.difference(candidates)
 
