@@ -229,14 +229,11 @@ class WalktestCommunity(Community):
             self.start_walk()
 
         else:
-            # update local view
-            if message.address in self._candidates:
-                self._candidates[message.address].inc_introduction_responses()
-            else:
-                # TODO maybe we need the internal addresses here so
-                # the node can update our cache when he makes a new
-                # choice
-                self._candidates[message.address] = Candidate(message.address, message.address, introduction_responses=1)
+            # # update local view
+            # if message.address in self._candidates:
+            #     self._candidates[message.address].inc_introduction_responses()
+            # else:
+            #     self._candidates[message.address] = Candidate(message.address, message.address, introduction_responses=1)
 
             # obtain own public address
             self._dispersy.external_address_vote(message.payload.destination_address, message.address)
@@ -253,12 +250,12 @@ class WalktestCommunity(Community):
                 self.start_walk()
 
     def on_puncture_request(self, messages):
-        # update local view
         for message in messages:
-            if message.address in self._candidates:
-                self._candidates[message.address].inc_puncture_requests()
-            else:
-                self._candidates[message.address] = Candidate(message.address, message.address, puncture_requests=1)
+            # # update local view
+            # if message.address in self._candidates:
+            #     self._candidates[message.address].inc_puncture_requests()
+            # else:
+            #     self._candidates[message.address] = Candidate(message.address, message.address, puncture_requests=1)
 
             # determine if we are in the same LAN as the walker node
             destination = message.payload.internal_walker_address if message.payload.external_walker_address[0] == self._dispersy.external_address[0] else message.payload.external_walker_address
@@ -275,10 +272,10 @@ class WalktestCommunity(Community):
     def on_puncture(self, messages):
         # update local view
         for message in messages:
-            if message.address in self._candidates:
-                self._candidates[message.address].inc_punctures()
-            else:
-                self._candidates[message.address] = Candidate(message.address, message.address, punctures=1)
+            # if message.address in self._candidates:
+            #     self._candidates[message.address].inc_punctures()
+            # else:
+            #     self._candidates[message.address] = Candidate(message.address, message.address, punctures=1)
 
             if __debug__:
                 log("walktest.log", "on_puncture", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])

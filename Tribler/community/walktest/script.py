@@ -90,87 +90,126 @@ class ScenarioScript(ScriptBase):
 
 def main():
     def ignore(lineno, datetime, message, **kargs):
-        if not message in ["logger"]:
-            print "ignore", message, kargs.keys()
+        # if not message in ["logger"]:
+        #     print "ignore", message, kargs.keys()
 
-    def check_public_address(datetime, public_address):
+        if "candidates" in kargs:
+            check_candidates(datetime, kargs["candidates"])
+
+        if "internal_address" in kargs and "external_address" in kargs:
+            check_my_addresses(datetime, kargs["internal_address"], kargs["external_address"])
+
+    def check_my_addresses(datetime, internal_address, external_address):
         if not public_addresses:
-            public_addresses.append((datetime, public_address))
-        elif not public_addresses[-1][1] == public_address:
-            public_addresses.append((datetime, public_address))
+            public_addresses.append((datetime, internal_address, external_address))
+
+        elif not public_addresses[-1][1] == internal_address or not public_addresses[-1][2] == external_address:
+            public_addresses.append((datetime, internal_address, external_address))
 
     def check_candidates(datetime, candidates):
-        now_online = set("%s:%d" % candidate for candidate in candidates)
+        def to_string(candidate):
+            if candidate[0] == candidate[1]:
+                return "%s:%d" % candidate[0]
+            else:
+                return "%s:%d (%s:%d)" % (candidate[0][0], candidate[0][1], candidate[1][0], candidate[1][1])
+        
+        now_online = set(to_string(candidate) for candidate in candidates)
         if not now_online == current_online:
             online.append((datetime, now_online))
 
             current_online.clear()
             current_online.update(now_online)
 
-    def create_introduction_request(lineno, datetime, message, introduction_request, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
-        outgoing["introduction-request"] += 1
+        all_addresses.update(now_online)
+
+    # def create_introduction_request(lineno, datetime, message, introduction_request, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
+    #     outgoing["introduction-request"] += 1
         
-        key = "%s:%d" % introduction_request
-        if key in out_intro_req:
-            out_intro_req[key] += 1
-        else:
-            out_intro_req[key] = 1
+    #     key = "%s:%d" % introduction_request
+    #     if key in out_intro_req:
+    #         out_intro_req[key] += 1
+    #     else:
+    #         out_intro_req[key] = 1
 
-    def introduction_response_timeout(lineno, datetime, message, intermediary, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
+    # def introduction_response_timeout(lineno, datetime, message, intermediary, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
 
-        key = "%s:%d" % intermediary
-        if key in in_intro_timeout:
-            in_intro_timeout[key] += 1
-        else:
-            in_intro_timeout[key] = 1
+    #     key = "%s:%d" % intermediary
+    #     if key in in_intro_timeout:
+    #         in_intro_timeout[key] += 1
+    #     else:
+    #         in_intro_timeout[key] = 1
 
-    def introduction_response(lineno, datetime, message, source, introduction_address, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
-        incoming["introduction-response"] += 1
-        all_addresses.add(source)
+    # def introduction_response(lineno, datetime, message, source, introduction_address, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
+    #     incoming["introduction-response"] += 1
+    #     all_addresses.add(source)
 
-        key = " -> ".join(("%s:%d"%source, "%s:%d"%introduction_address))
-        if key in in_intro_res:
-            in_intro_res[key] += 1
-        else:
-            in_intro_res[key] = 1
+    #     key = " -> ".join(("%s:%d"%source, "%s:%d"%introduction_address))
+    #     if key in in_intro_res:
+    #         in_intro_res[key] += 1
+    #     else:
+    #         in_intro_res[key] = 1
 
-    def on_puncture_request(lineno, datetime, message, source, puncture, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
-        incoming["puncture-request"] += 1
-        outgoing["puncture"] += 1
-        all_addresses.add(source)
+    # def on_puncture_request(lineno, datetime, message, source, puncture, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
+    #     incoming["puncture-request"] += 1
+    #     outgoing["puncture"] += 1
+    #     all_addresses.add(source)
 
-    def on_puncture(lineno, datetime, message, source, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
-        incoming["puncture"] += 1
-        all_addresses.add(source)
+    # def on_puncture(lineno, datetime, message, source, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
+    #     incoming["puncture"] += 1
+    #     all_addresses.add(source)
 
-    def on_introduction_request(lineno, datetime, message, source, introduction_response, puncture_request, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
-        incoming["introduction-request"] += 1
-        outgoing["introduction-response"] += 1
-        outgoing["puncture-request"] += 1
-        all_addresses.add(source)
+    # def on_introduction_request(lineno, datetime, message, source, introduction_response, puncture_request, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
+    #     incoming["introduction-request"] += 1
+    #     outgoing["introduction-response"] += 1
+    #     outgoing["puncture-request"] += 1
+    #     all_addresses.add(source)
 
-    def on_introduction_response(lineno, datetime, message, source, candidates, public_address):
-        check_public_address(datetime, public_address)
-        check_candidates(datetime, candidates)
-        incoming["introduction-response-unused"] += 1
-        all_addresses.add(source)
+    # def on_introduction_response(lineno, datetime, message, source, candidates, public_address):
+    #     check_public_address(datetime, public_address)
+    #     check_candidates(datetime, candidates)
+    #     incoming["introduction-response-unused"] += 1
+    #     all_addresses.add(source)
         
     def init(lineno, datetime, message, candidates):
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
 
+    def in_introduction_request(lineno, datetime, message, destination_address, source_internal_address, source_external_address, advice, identifier):
+        incoming["introduction-request"] += 1
+
+    def out_introduction_request(lineno, datetime, message, destination_address, source_internal_address, source_external_address, advice, identifier):
+        outgoing["introduction-request"] += 1
+
+    def in_introduction_response(lineno, datetime, message, source, destination_address, internal_introduction_address, external_introduction_address, identifier):
+        incoming["introduction-response"] += 1
+
+    def out_introduction_response(lineno, datetime, message, destination_address, internal_introduction_address, external_introduction_address, identifier):
+        outgoing["introduction-response"] += 1
+        
+    def in_puncture_request(lineno, datetime, message, source, internal_walker_address, external_walker_address):
+        incoming["puncture-request"] += 1
+
+    def out_puncture_request(lineno, datetime, message, destination, incoming_walker_address, external_walker_address):
+        outgoing["puncture-request"] += 1
+
+    def in_puncture(lineno, datetime, message, source):
+        incoming["puncture"] += 1
+
+    def out_puncture(lineno, datetime, message, destination):
+        outgoing["puncture"] += 1
+        
     # public address
     public_addresses = []
 
@@ -188,22 +227,24 @@ def main():
     incoming = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0, "introduction-response-unused":0}
     outgoing = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0, "introduction-response-unused":0}
 
-    mapping = {"create_introduction_request":create_introduction_request,
-               "introduction_..._timeout":introduction_response_timeout,
-               "introduction_response_...":introduction_response,
-               "on_puncture":on_puncture,
-               "on_introduction_request":on_introduction_request,
-               "on_puncture_request":on_puncture_request,
-               "__init__":init,
-               "on_introduction_response":on_introduction_response}
+    mapping = {"__init__":init,
+               "in-introduction-request":in_introduction_request,
+               "in-introduction-response":in_introduction_response,
+               "in-puncture-request":in_puncture_request,
+               "in-puncture":in_puncture,
+               "out-introduction-response":out_introduction_response,
+               "out-introduction-request":out_introduction_request,
+               "out-puncture-request":out_puncture_request,
+               "out-puncture":out_puncture,
+               }
     for lineno, datetime, message, kargs in parse("walktest.log"):
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 
     # public addresses
     if not public_addresses:
         print "no public address?"
-    for datetime, public_address in public_addresses:
-        print "public address ", datetime, public_address
+    for datetime, internal_address, external_address in public_addresses:
+        print "public address ", datetime, internal_address, external_address
     print
 
     # walk
@@ -227,19 +268,23 @@ def main():
 
     # churn
     print "time      diff      count    discovered                 lost"
-    last_datetime, last_candidates = online[0]
-    first_datetime = last_datetime
-    for datetime, candidates in online[1:]:
-        more = candidates.difference(last_candidates)
-        less = last_candidates.difference(candidates)
+    if not online:
+        print "-none-"
+    else:
+        last_datetime, last_candidates = online[0]
+        first_datetime = last_datetime
+        for datetime, candidates in online[1:]:
+            more = candidates.difference(last_candidates)
+            less = last_candidates.difference(candidates)
 
-        for candidate in more:
-            print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
-        for candidate in less:
-            print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
+            for candidate in more:
+                print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
+            for candidate in less:
+                print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
 
-        last_datetime, last_candidates = datetime, candidates
-    
+            last_datetime, last_candidates = datetime, candidates
+        print
+
     print len(all_addresses), "distinct addresses"
 
 if __name__ == "__main__":
