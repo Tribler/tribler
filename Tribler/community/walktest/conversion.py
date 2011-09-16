@@ -42,8 +42,11 @@ class Conversion(BinaryConversion):
             pack("!H", payload.identifier)
 
     def _decode_introduction_response(self, placeholder, offset, data):
-        if len(data) < offset + 14:
+        if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
+
+        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
 
         internal_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
@@ -54,7 +57,7 @@ class Conversion(BinaryConversion):
         identifier, = unpack_from("!H", data, offset)
         offset += 2
 
-        return offset, placeholder.meta.payload.implement(public_address, internal_introduction_address, external_introduction_address, identifier)
+        return offset, placeholder.meta.payload.implement(destination_address, internal_introduction_address, external_introduction_address, identifier)
 
     def _encode_puncture_request(self, message):
         payload = message.payload
