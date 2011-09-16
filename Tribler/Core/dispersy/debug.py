@@ -32,6 +32,14 @@ class Node(object):
     def socket(self):
         return self._socket
 
+    @property
+    def internal_address(self):
+        return self._socket.getsockname()
+    
+    @property
+    def external_address(self):
+        return self._socket.getsockname()
+    
     def init_socket(self):
         assert self._socket is None
         port = Node._socket_range[0] + Node._socket_counter % (Node._socket_range[1] - Node._socket_range[0])

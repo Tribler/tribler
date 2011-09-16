@@ -15,9 +15,9 @@ from Tribler.Core.dispersy.script import ScriptBase
 from ldecoder import parse
 
 class DebugNode(Node):
-    def create_introduction_request(self, destination, global_time):
+    def create_introduction_request(self, destination, source_internal, advice, identifier, global_time):
         meta = self._community.get_meta_message(u"introduction-request")
-        return meta.impl(destination=(destination,), distribution=(global_time,), payload=(destination,))
+        return meta.impl(destination=(destination,), distribution=(global_time,), payload=(destination, source_internal, advice, identifier,))
 
 class ScenarioScript(ScriptBase):
     def run(self):
@@ -40,7 +40,7 @@ class ScenarioScript(ScriptBase):
         node.init_my_member(candidate=False)
 
         global_time = 10
-        message = node.give_message(node.create_introduction_request(address, global_time), cache=True)
+        node.give_message(node.create_introduction_request(address, node.internal_address, True, 42, global_time), cache=True)
         yield community.get_meta_message(u"introduction-request").delay
         yield 1.0
 
@@ -60,7 +60,7 @@ class ScenarioScript(ScriptBase):
         node.init_my_member(candidate=False)
 
         global_time = 10
-        message = node.give_message(node.create_introduction_request(address, global_time), cache=True)
+        node.give_message(node.create_introduction_request(address, node.internal_address, True, 42, global_time), cache=True)
         yield community.get_meta_message(u"introduction-request").delay
         yield 1.0
 

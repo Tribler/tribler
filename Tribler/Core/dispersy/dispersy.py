@@ -70,6 +70,8 @@ from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
 
+from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
+
 if __debug__:
     from dprint import dprint
     from time import clock
@@ -210,12 +212,14 @@ class Dispersy(Singleton):
         # our data storage
         self._database = DispersyDatabase.get_instance(working_directory)
 
-        # our external address
+        # our internal and external addresses
+        self._my_internal_address = (get_my_wan_ip(), 0)
+
         try:
             host, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_external_ip' LIMIT 1").next()
             host = str(host)
         except StopIteration:
-            host = "0.0.0.0"
+            host = self._my_internal_address[0]
 
         try:
             port, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_external_port' LIMIT 1").next()
@@ -247,9 +251,6 @@ class Dispersy(Singleton):
         self._check_distribution_batch_map = {DirectDistribution:self._check_direct_distribution_batch,
                                               FullSyncDistribution:self._check_full_sync_distribution_batch,
                                               LastSyncDistribution:self._check_last_sync_distribution_batch}
-
-        # # check connectability periodically
-        # self._callback.register(self._periodically_connectability)
 
         # cleanup the database periodically
         self._callback.register(self._periodically_cleanup_database)
@@ -302,11 +303,18 @@ class Dispersy(Singleton):
         @param socket: The socket object.
         @type socket: Object with a send(address, data) method
         """
+        port = socket.get_address()[1]
         self._socket = socket
-        self.external_address_vote(socket.get_address(), ("", -1))
+        if __debug__: dprint("update internal address ", self._my_internal_address[0], ":", self._my_internal_address[1], " -> ", self._my_internal_address[0], ":", port, force=True)
+        self._my_internal_address = (self._my_internal_address[0], port)
+        self.external_address_vote(self._my_internal_address, ("", -1))
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
 
+    @property
+    def internal_address(self):
+        return self._my_internal_address
+    
     @property
     def external_address(self):
         """
@@ -641,7 +649,7 @@ class Dispersy(Singleton):
 
             # change when new vote count equal or higher than old address vote count
             if self._my_external_address != address and len(self._external_address_votes[address]) >= len(self._external_address_votes[self._my_external_address]):
-                if __debug__: dprint("Update my external address: ", self._my_external_address, " -> ", address)
+                if __debug__: dprint("update external address ", self._my_external_address[0], ":", self._my_external_address[1], " -> ", address[0], ":", address[1], force=True)
                 self._my_external_address = address
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_external_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_external_port', ?)", (address[1],))
@@ -2324,6 +2332,27 @@ class Dispersy(Singleton):
         self.store_update_forward([request], store, False, forward)
         return request
 
+    def _is_valid_internal_address(self, address):
+        if address[0] == "":
+            return False
+
+        if address[1] <= 0:
+            return False
+
+        if address[0].endswith(".0"):
+            return False
+
+        if address[0].endswith(".255"):
+            return False
+
+        if address == self._my_internal_address:
+            return False
+
+        if address == ("127.0.0.1", self._my_internal_address[1]):
+            return False
+
+        return True
+    
     def _is_valid_external_address(self, address):
         if address[0] == "":
             return False
@@ -2335,6 +2364,12 @@ class Dispersy(Singleton):
             return False
 
         if address[0].endswith(".255"):
+            return False
+
+        if address[0].startswith("10."):
+            return False
+
+        if address[0].startswith("192."):
             return False
 
         if address == self._my_external_address:
@@ -3621,23 +3656,6 @@ class Dispersy(Singleton):
                 while desync > 0.1:
                     if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)
-
-    # def _periodically_connectability(self):
-    #     # unknown
-    #     # public
-    #     # full cone
-    #     # restricted cone
-    #     # port restricted cone
-    #     # symetric
-    #     my_internal_address = self._socket.get_address()
-    #     while True:
-    #         dprint("internal: ", my_internal_address, "; external: ", self._my_external_address, box=1)
-
-    #         for i, _ in enumerate(self._database.execute(u"SELECT STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', outgoing_time) AS outgoing_age FROM candidate WHERE incoming_age < 300 AND incoming_age > outgoing_age")):
-    #             dprint("incoming before outgoing")
-    #             break
-
-    #         yield 5.0
 
     def _periodically_cleanup_database(self):
         # cleannup candidate tables

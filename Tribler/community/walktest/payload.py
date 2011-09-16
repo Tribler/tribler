@@ -12,27 +12,45 @@ if __debug__:
 
 class IntroductionRequestPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, public_address, identifier):
+        def __init__(self, meta, destination_address, source_internal_address, advice, identifier):
             """
             Create the payload for an introduction-request message.
 
-            PUBLIC_ADDRESS is the address where this introduction-response was sent to.  Effectively
-            this should be the public, or external, address that other can use to contact the
-            receiver of this message.
+            DESTINATION_ADDRESS is the address of the receiver.  Effectively this should be the
+            external address that others can use to contact the receiver.
 
-            IDENTIFIER is a number that should be given in the response aswell.  This number allows
-            us to distinguish between multiple incoming introduction-response messages.
+            SOURCE_INTERNAL_ADDRESS is the internal address of the sender.  Nodes that are behind
+            the same NAT or firewall can use this address to connect with each other.
+
+            ADVICE is a boolean value.  When True the receiver will introduce the sender to a new
+            node.  This introduction will be facilitated by the receiver sending a puncture-request
+            to the new node.
+            
+            IDENTIFIER is a number that must be given in the associated introduction-response.  This
+            number allows to distinguish between multiple introduction-response messages.
             """
-            assert is_address(public_address)
+            assert is_address(destination_address)
+            assert is_address(source_internal_address)
+            assert isinstance(advice, bool)
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(IntroductionRequestPayload.Implementation, self).__init__(meta)
-            self._public_address = public_address
+            self._destination_address = destination_address
+            self._source_internal_address = source_internal_address
+            self._advice = advice
             self._identifier = identifier
 
         @property
-        def public_address(self):
-            return self._public_address
+        def destination_address(self):
+            return self._destination_address
+
+        @property
+        def source_internal_address(self):
+            return self._source_internal_address
+
+        @property
+        def advice(self):
+            return self._advice
 
         @property
         def identifier(self):
@@ -40,29 +58,38 @@ class IntroductionRequestPayload(Payload):
 
 class IntroductionResponsePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, public_address, introduction_address, identifier):
+        def __init__(self, meta, destination_address, internal_introduction_address, external_introduction_address, identifier):
             """
             Create the payload for an introduction-response message.
 
-            PUBLIC_ADDRESS is the address where this introduction-response was sent to.  Effectively
-            this should be the public, or external, address that other can use to contact the
-            receiver of this message.
+            DESTINATION_ADDRESS is the address of the receiver.  Effectively this should be the
+            external address that others can use to contact the receiver.
 
-            INTRODUCTION_ADDRESS is the address of a node that we advise you to contact.  The sender
-            of the introduction-response has also sent a puncture-request message to
-            INTRODUCTION_ADDRESS asking it to puncture a hole in its own NAT using a puncture
-            message.
+            INTERNAL_INTRODUCTION_ADDRESS is the internal address of the node that the sender
+            advises the receiver to contact.  This address is zero when the associated request did
+            not want advice.
+            
+            EXTERNAL_INTRODUCTION_ADDRESS is the external address of the node that the sender
+            advises the receiver to contact.  This address is zero when the associated request did
+            not want advice.
+            
+            IDENTIFIER is a number that was given in the associated introduction-request.  This
+            number allows to distinguish between multiple introduction-response messages.
 
-            IDENTIFIER is a number that was given in the request.  This number allows us to match
-            the request to this specific response.
+            When the associated request wanted advice the sender will also sent a puncture-request
+            message to either the internal_introduction_address or the external_introduction_address
+            (depending on their positions).  The introduced node must sent a puncture message to the
+            receiver to punch a hole in its NAT.
             """
-            assert is_address(public_address)
-            assert is_address(introduction_address)
+            assert is_address(destination_address)
+            assert is_address(internal_introduction_address)
+            assert is_address(external_introduction_address)
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(IntroductionResponsePayload.Implementation, self).__init__(meta)
-            self._public_address = public_address
-            self._introduction_address = introduction_address
+            self._destination_address = destination_address
+            self._internal_introduction_address = internal_introduction_address
+            self._external_introduction_address = external_introduction_address
             self._identifier = identifier
 
         @property
@@ -70,12 +97,16 @@ class IntroductionResponsePayload(Payload):
             return "IntroductionResponsePayload:%d" % self._identifier
 
         @property
-        def public_address(self):
-            return self._public_address
+        def destination_address(self):
+            return self._destination_address
 
         @property
-        def introduction_address(self):
-            return self._introduction_address
+        def internal_introduction_address(self):
+            return self._internal_introduction_address
+
+        @property
+        def external_introduction_address(self):
+            return self._external_introduction_address
 
         @property
         def identifier(self):
@@ -88,20 +119,31 @@ class IntroductionResponsePayload(Payload):
 
 class PunctureRequestPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, walker_address):
+        def __init__(self, meta, internal_walker_address, external_walker_address):
             """
             Create the payload for a puncture-request payload.
 
-            WALKER_ADDRESS is the address that the sender wants us to contact.  This contact attempt
-            should puncture a hole in our NAT to allow the node at WALKER_ADDRESS to connect to us.
+            INTERNAL_WALKER_ADDRESS is the internal address of the node that the sender wants us to
+            contact.  This contact attempt should punch a hole in our NAT to allow the node to
+            connect to us.
+
+            EXTERNAL_WALKER_ADDRESS is the external address of the node that the sender wants us to
+            contact.  This contact attempt should punch a hole in our NAT to allow the node to
+            connect to us.
             """
-            assert is_address(walker_address)
+            assert is_address(internal_walker_address)
+            assert is_address(external_walker_address)
             super(PunctureRequestPayload.Implementation, self).__init__(meta)
-            self._walker_address = walker_address
+            self._internal_walker_address = internal_walker_address
+            self._external_walker_address = external_walker_address
 
         @property
-        def walker_address(self):
-            return self._walker_address
+        def internal_walker_address(self):
+            return self._internal_walker_address
+
+        @property
+        def external_walker_address(self):
+            return self._external_walker_address
 
 class PuncturePayload(Payload):
     class Implementation(Payload.Implementation):
