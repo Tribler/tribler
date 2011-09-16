@@ -41,15 +41,23 @@ class Conversion(BinaryConversion):
     def _encode_introduction_response(self, message):
         payload = message.payload
         return inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]), \
+            inet_aton(payload.source_internal_address[0]), pack("!H", payload.source_internal_address[1]), \
+            inet_aton(payload.source_external_address[0]), pack("!H", payload.source_external_address[1]), \
             inet_aton(payload.internal_introduction_address[0]), pack("!H", payload.internal_introduction_address[1]), \
             inet_aton(payload.external_introduction_address[0]), pack("!H", payload.external_introduction_address[1]), \
             pack("!H", payload.identifier)
 
     def _decode_introduction_response(self, placeholder, offset, data):
-        if len(data) < offset + 20:
+        if len(data) < offset + 32:
             raise DropPacket("Insufficient packet size")
 
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_internal_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_external_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
 
         internal_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
@@ -61,7 +69,7 @@ class Conversion(BinaryConversion):
         identifier, = unpack_from("!H", data, offset)
         offset += 2
 
-        return offset, placeholder.meta.payload.implement(destination_address, internal_introduction_address, external_introduction_address, identifier)
+        return offset, placeholder.meta.payload.implement(destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier)
 
     def _encode_puncture_request(self, message):
         payload = message.payload
