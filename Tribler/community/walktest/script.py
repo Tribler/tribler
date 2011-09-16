@@ -194,10 +194,10 @@ def main():
         outgoing["introduction-request"] += 1
         outgoing["introduction-request-with-advice"] += 1
 
-    def in_introduction_response(lineno, datetime, message, source, destination_address, internal_introduction_address, external_introduction_address, identifier):
+    def in_introduction_response(lineno, datetime, message, source, destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier):
         incoming["introduction-response"] += 1
 
-    def out_introduction_response(lineno, datetime, message, destination_address, internal_introduction_address, external_introduction_address, identifier):
+    def out_introduction_response(lineno, datetime, message, destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier):
         outgoing["introduction-response"] += 1
         
     def in_puncture_request(lineno, datetime, message, source, internal_walker_address, external_walker_address):
