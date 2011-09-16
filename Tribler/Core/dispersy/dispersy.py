@@ -1431,7 +1431,7 @@ class Dispersy(Singleton):
         # binary packet from multiple nodes.  While this is usually not a problem, packets are usually
         # signed and hence unique, in rare cases this may result in invalid drops.
 
-        Packets from invalid sources are removed.  The _is_valid_external_address is used to
+        Packets from invalid sources are removed.  The is_valid_destination_address is used to
         determine valid addresses.
 
         Packets associated with an unknown community are removed.  Packets from a known community
@@ -1459,7 +1459,7 @@ class Dispersy(Singleton):
             #     continue
 
             # is it from an external source
-            if not self._is_valid_external_address(address):
+            if not self.is_valid_remote_address(address):
                 if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", address[0], ":", address[1], level="warning")
                 self._statistics.drop("_convert_packets_into_batch:invalid source", len(packet))
                 continue
@@ -1935,7 +1935,7 @@ class Dispersy(Singleton):
             elif isinstance(message.destination, MemberDestination.Implementation):
                 if __debug__:
                     for member in message.destination.members:
-                        if not self._is_valid_external_address(member.address):
+                        if not self.is_valid_remote_address(member.address):
                             dprint("unable to send ", message.name, " to member (", member.address, ")", level="error")
                     dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
                 self._send([member.address for member in message.destination.members], [message.packet], message.name)
@@ -1979,7 +1979,7 @@ class Dispersy(Singleton):
             assert isinstance(address[0], str), address
             assert isinstance(address[1], int), address
 
-            if not self._is_valid_external_address(address):
+            if not self.is_valid_remote_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
                 if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1], " (invalid external address)", level="error")
                 continue
@@ -2380,6 +2380,9 @@ class Dispersy(Singleton):
 
         return True
 
+    def is_valid_remote_address(self, address):
+        return self._is_valid_external_address(address) or self._is_valid_internal_address(address)
+    
     def _update_routes_from_external_source(self, community, routes):
         assert isinstance(routes, (tuple, list))
         assert all(isinstance(route, tuple) for route in routes)
@@ -2388,11 +2391,11 @@ class Dispersy(Singleton):
         assert all(isinstance(route[1], float) for route in routes), "age in seconds"
 
         self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, external_time) VALUES (?, ?, ?, DATETIME('now', ?))",
-                                   ((community.database_id, unicode(address[0]), address[1], u"-%d seconds" % age) for address, age in routes if self._is_valid_external_address(address)))
+                                   ((community.database_id, unicode(address[0]), address[1], u"-%d seconds" % age) for address, age in routes if self.is_valid_remote_address(address)))
 
         if __debug__:
             for address, age in routes:
-                if self._is_valid_external_address(address):
+                if self.is_valid_remote_address(address):
                     dprint("updated candidate ", address[0], ":", address[1], " age ", age, " seconds")
                 else:
                     level = "normal" if address == self.external_address else "warning"

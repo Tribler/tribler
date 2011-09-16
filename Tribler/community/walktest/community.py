@@ -242,7 +242,7 @@ class WalktestCommunity(Community):
 
             if __debug__: log("walktest.log", "in-introduction-response", source=message.address, destination_address=message.payload.destination_address, internal_introduction_address=message.payload.internal_introduction_address, external_introduction_address=message.payload.external_introduction_address, identifier=message.payload.identifier)
 
-            if advice and self._dispersy._is_valid_internal_address(message.payload.internal_introduction_address) and self._dispersy._is_valid_external_address(message.payload.external_introduction_address):
+            if advice and self._dispersy._is_valid_internal_address(message.payload.internal_introduction_address) and self._dispersy.is_valid_remote_address(message.payload.external_introduction_address):
                 # we asked for, and received, an introduction
 
                 # determine if we are in the same LAN as the introduced node
