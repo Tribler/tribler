@@ -113,7 +113,7 @@ class WalktestCommunity(Community):
                 self._walk.add(identifier)
                 break
 
-        advice = random() < 0.8 or len(self._candidates) < 5
+        advice = random() < 0.8 or len(self._candidates) <= 1
 
         if __debug__:
             log("walktest.log", "create_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
