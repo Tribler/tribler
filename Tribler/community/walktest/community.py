@@ -72,9 +72,8 @@ class WalktestCommunity(Community):
 
         # remove old candidates
         deadline = time() - 60.0
-        for key, candidate in self._candidates.iteritems():
-            if candidate.stamp < deadline:
-                del self._candidates[key]
+        for key in [key for key, candidate in self._candidates.iteritems() if candidate.stamp < deadline]:
+            del self._candidates[key]
 
         # get all candidates that either participated in a our walk or that stumbled upon us
         walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk and candidate.internal_address not in blacklist and candidate.external_address not in blacklist]
