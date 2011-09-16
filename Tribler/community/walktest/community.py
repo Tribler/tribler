@@ -168,7 +168,7 @@ class WalktestCommunity(Community):
             if external_candidate_address:
                 # create introduction responses
                 meta = self._meta_messages[u"introduction-response"]
-                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, internal_candidate_address, external_candidate_address, message.payload.identifier))
+                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, self._dispersy.internal_address, self._dispersy.external_address, internal_candidate_address, external_candidate_address, message.payload.identifier))
                 self._dispersy.store_update_forward([response], False, False, True)
 
                 # create puncture requests
@@ -178,19 +178,24 @@ class WalktestCommunity(Community):
                 self._dispersy.store_update_forward([request], False, False, True)
 
                 if __debug__:
-                    log("walktest.log", "out-introduction-response", destination_address=message.address, internal_introduction_address=internal_candidate_address, external_introduction_address=external_candidate_address, identifier=message.payload.identifier)
+                    log("walktest.log", "out-introduction-response", destination_address=message.address, source_internal_address=self._dispersy.internal_address, source_external_address=self._dispersy.external_address, internal_introduction_address=internal_candidate_address, external_introduction_address=external_candidate_address, identifier=message.payload.identifier)
                     log("walktest.log", "out-puncture-request", destination=destination, internal_walker_address=message.payload.source_internal_address, external_walker_address=message.payload.source_external_address)
                 
             else:
                 none = ("0.0.0.0", 0)
                 meta = self._meta_messages[u"introduction-response"]
-                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, none, none, message.payload.identifier))
+                response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, self._dispersy.internal_address, self._dispersy.external_address, none, none, message.payload.identifier))
                 self._dispersy.store_update_forward([response], False, False, True)
 
                 if __debug__:
-                    log("walktest.log", "out-introduction-response", destination_address=message.address, internal_introduction_address=none, external_introduction_address=none, identifier=message.payload.identifier)
+                    log("walktest.log", "out-introduction-response", destination_address=message.address, source_internal_address=self._dispersy.internal_address, source_external_address=self._dispersy.external_address, internal_introduction_address=none, external_introduction_address=none, identifier=message.payload.identifier)
 
     def check_introduction_response(self, messages):
+        if __debug__:
+            for message in messages:
+                if not (message.address == message.payload.source_internal_address or message.address == message.payload.source_external_address):
+                    dprint(message.address, message.payload.source_internal_address, message.payload.source_external_address, glue="  ", force=1)
+
         for message in messages:
             if __debug__: log("walktest.log", "check_introduction_response", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
 
@@ -229,16 +234,16 @@ class WalktestCommunity(Community):
             self.start_walk()
 
         else:
-            # # update local view
-            # if message.address in self._candidates:
-            #     self._candidates[message.address].inc_introduction_responses()
-            # else:
-            #     self._candidates[message.address] = Candidate(message.address, message.address, introduction_responses=1)
+            # update local view
+            if message.address in self._candidates:
+                self._candidates[message.address].inc_introduction_responses(message.payload.source_internal_address, message.payload.source_external_address)
+            else:
+                self._candidates[message.address] = Candidate(message.payload.source_internal_address, message.payload.source_external_address, introduction_responses=1)
 
             # obtain own public address
             self._dispersy.external_address_vote(message.payload.destination_address, message.address)
 
-            if __debug__: log("walktest.log", "in-introduction-response", source=message.address, destination_address=message.payload.destination_address, internal_introduction_address=message.payload.internal_introduction_address, external_introduction_address=message.payload.external_introduction_address, identifier=message.payload.identifier)
+            if __debug__: log("walktest.log", "in-introduction-response", source=message.address, destination_address=message.payload.destination_address, source_internal_address=message.payload.source_internal_address, source_external_address=message.payload.source_external_address, internal_introduction_address=message.payload.internal_introduction_address, external_introduction_address=message.payload.external_introduction_address, identifier=message.payload.identifier)
 
             if advice and self._dispersy._is_valid_internal_address(message.payload.internal_introduction_address) and self._dispersy.is_valid_remote_address(message.payload.external_introduction_address):
                 # we asked for, and received, an introduction

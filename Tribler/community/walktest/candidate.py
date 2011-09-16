@@ -52,7 +52,17 @@ class Candidate(object):
         self._stamp = time()
         self._introduction_requests += 1
 
-    def inc_introduction_responses(self):
+    def inc_introduction_responses(self, internal_address, external_address):
+        assert isinstance(internal_address, tuple)
+        assert len(internal_address) == 2
+        assert isinstance(internal_address[0], str)
+        assert isinstance(internal_address[1], int)
+        assert isinstance(external_address, tuple)
+        assert len(external_address) == 2
+        assert isinstance(external_address[0], str)
+        assert isinstance(external_address[1], int)
+        self._internal_address = internal_address
+        self._external_address = external_address
         self._stamp = time()
         self._introduction_responses += 1
 

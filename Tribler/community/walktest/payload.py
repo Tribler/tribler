@@ -67,12 +67,18 @@ class IntroductionRequestPayload(Payload):
 
 class IntroductionResponsePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, destination_address, internal_introduction_address, external_introduction_address, identifier):
+        def __init__(self, meta, destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier):
             """
             Create the payload for an introduction-response message.
 
             DESTINATION_ADDRESS is the address of the receiver.  Effectively this should be the
             external address that others can use to contact the receiver.
+
+            SOURCE_INTERNAL_ADDRESS is the internal address of the sender.  Nodes in the same LAN
+            should use this address to communicate.
+
+            SOURCE_EXTERNAL_ADDRESS is the external address of the sender.  Nodes not in the same
+            LAN should use this address to communicate.
 
             INTERNAL_INTRODUCTION_ADDRESS is the internal address of the node that the sender
             advises the receiver to contact.  This address is zero when the associated request did
@@ -91,12 +97,16 @@ class IntroductionResponsePayload(Payload):
             receiver to punch a hole in its NAT.
             """
             assert is_address(destination_address)
+            assert is_address(source_internal_address)
+            assert is_address(source_external_address)
             assert is_address(internal_introduction_address)
             assert is_address(external_introduction_address)
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(IntroductionResponsePayload.Implementation, self).__init__(meta)
             self._destination_address = destination_address
+            self._source_internal_address = source_internal_address
+            self._source_external_address = source_external_address
             self._internal_introduction_address = internal_introduction_address
             self._external_introduction_address = external_introduction_address
             self._identifier = identifier
@@ -108,6 +118,14 @@ class IntroductionResponsePayload(Payload):
         @property
         def destination_address(self):
             return self._destination_address
+
+        @property
+        def source_internal_address(self):
+            return self._source_internal_address
+
+        @property
+        def source_external_address(self):
+            return self._source_external_address
 
         @property
         def internal_introduction_address(self):
