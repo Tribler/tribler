@@ -37,7 +37,7 @@ class WalktestCommunity(Community):
             self._dispersy.callback.register(self.start_walk, delay=10.0)
 
         else:
-            destination = internal_candidate_address if external_candidate_address == self._dispersy.external_address else external_candidate_address
+            destination = internal_candidate_address if external_candidate_address[0] == self._dispersy.external_address[0] else external_candidate_address
             self.create_introduction_request(destination)
 
     @property
@@ -175,7 +175,7 @@ class WalktestCommunity(Community):
                 responses.append(meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, self._dispersy.internal_address, self._dispersy.external_address, internal_candidate_address, external_candidate_address, message.payload.identifier)))
 
                 # create puncture requests
-                destination = internal_candidate_address if external_candidate_address == self._dispersy.external_address else external_candidate_address
+                destination = internal_candidate_address if external_candidate_address[0] == self._dispersy.external_address[0] else external_candidate_address
                 meta = self._meta_messages[u"puncture-request"]
                 requests.append(meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(message.payload.source_internal_address, message.payload.source_external_address)))
 
