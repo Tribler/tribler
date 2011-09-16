@@ -271,9 +271,11 @@ def main():
 
     if not in_intro_timeout:
         print "no timeouts"
-    for count, key in sorted((count, key) for key, count in in_intro_timeout.iteritems()):
-        print "incoming introduction timeout", "%4d" % count, key
-    print
+    else:
+        for count, key in sorted((count, key) for key, count in in_intro_timeout.iteritems()):
+            print "incoming introduction timeout", "%4d" % count, key
+        print sum(in_intro_timeout.itervalues()), "timeouts /", outgoing["introduction-request"], "requests"
+        print
 
     # counters
     print "in    out   diff  msg"
