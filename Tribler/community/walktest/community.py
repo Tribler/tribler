@@ -137,6 +137,7 @@ class WalktestCommunity(Community):
     def check_introduction_request(self, messages):
         for message in messages:
             if not (message.address == message.payload.source_internal_address or message.address == message.payload.source_external_address):
+                if __debug__: dprint(message.address, message.payload.source_internal_address, message.payload.source_external_address, join="  ", force=1)
                 yield DropMessage(message, "invalid source address [must be received from either the internal or external address]")
 
             else:
