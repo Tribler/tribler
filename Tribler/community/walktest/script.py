@@ -245,6 +245,7 @@ def main():
                "out-introduction-request":out_introduction_request,
                "out-puncture-request":out_puncture_request,
                "out-puncture":out_puncture,
+               "introduction-response-timeout":introduction_response_timeout,
                }
     for lineno, datetime, message, kargs in parse("walktest.log"):
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
