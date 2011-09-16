@@ -368,7 +368,8 @@ class ListItem(wx.Panel):
     def OnEventSize(self, width):
         if self.expanded and self.expandedPanel:
             if getattr(self.expandedPanel, 'OnEventSize', False):
-                self.expandedPanel.OnEventSize(width)
+                return self.expandedPanel.OnEventSize(width)
+        return False
         
     def __str__( self ):
         return "ListItem" + " ".join(map(str, self.data))

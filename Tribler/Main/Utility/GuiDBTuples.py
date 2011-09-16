@@ -121,7 +121,11 @@ class Torrent(Helper):
     def channel(self):
         if self._channel is not None:
             return self._channel
-        return Channel(*self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash))
+        
+        channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
+        if channel:
+            return Channel(*channel)
+        return False
     
     def updateChannel(self, c):
         self._channel = c

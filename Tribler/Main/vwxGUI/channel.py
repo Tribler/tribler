@@ -163,6 +163,11 @@ class SelectedChannelList(GenericSearchList):
         self.notebook = wx.Notebook(self, style = wx.NB_LEFT|wx.NO_BORDER)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
+        if self.background == LIST_GREY:
+            notebookcolour = self.notebook.GetThemeBackgroundColour()
+            if notebookcolour.IsOk():
+                self.background = notebookcolour
+        
         list = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -248,9 +253,15 @@ class SelectedChannelList(GenericSearchList):
     def SetChannelState(self, state, iamModerator):
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
+                self.commentList.Show(True)
+                self.activityList.Show(True)
+                
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
         else:
+            self.commentList.Show(False)
+            self.activityList.Show(False)
+            
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 self.notebook.RemovePage(i-1)
 

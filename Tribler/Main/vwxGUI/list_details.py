@@ -12,7 +12,8 @@ from Tribler.Core.osutils import startfile
 from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread,\
+    warnWxThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
@@ -32,13 +33,15 @@ VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa
 DEBUG = False
 
 class AbstractDetails(wx.Panel):
+    
+    @warnWxThread
     def _create_tab(self, notebook, tabname, header = None, spacer = 3):
         panel = wx.lib.scrolledpanel.ScrolledPanel(notebook)
-        themeColour = self.notebook.GetThemeBackgroundColour()
+        themeColour = notebook.GetThemeBackgroundColour()
         if themeColour.IsOk():
             panel.SetBackgroundColour(themeColour)
         
-        self.notebook.AddPage(panel, tabname)
+        notebook.AddPage(panel, tabname)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         panel.SetSizer(vSizer)
@@ -49,13 +52,15 @@ class AbstractDetails(wx.Panel):
         
         return panel, vSizer
 
+    @warnWxThread
     def _add_header(self, panel, sizer, header, spacer = 3):
         header = wx.StaticText(panel, -1, header)
         _set_font(header, fontweight = wx.FONTWEIGHT_BOLD)
 
         sizer.Add(header, 0, wx.LEFT|wx.BOTTOM, spacer)
         return header
-        
+    
+    @warnWxThread    
     def _add_row(self, parent, sizer, name, value, spacer = 10):
         if name:
             name = wx.StaticText(parent, -1, name)
@@ -74,6 +79,7 @@ class AbstractDetails(wx.Panel):
         
         return name, value
 
+    @warnWxThread
     def _add_subheader(self, parent, sizer, title, subtitle):
         title = wx.StaticText(parent, -1, title)
         _set_font(title, fontweight = wx.FONTWEIGHT_BOLD)
@@ -188,14 +194,8 @@ class TorrentDetails(AbstractDetails):
             self.messagePanel.Show(False)
         
             self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-            self._addTabs(ds)
+            self._addTabs(ds, showTab)
             
-            if showTab:
-                for i in range(self.notebook.GetPageCount()):
-                    if self.notebook.GetPageText(i) == showTab:
-                        self.notebook.SetSelection(i)
-                        break
-        
             self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
             self.details.Add(self.notebook, 65, wx.EXPAND)
         
@@ -216,6 +216,7 @@ class TorrentDetails(AbstractDetails):
         except wx.PyDeadObjectError:
             pass
     
+    @forceWxThread
     def _timeout(self):
         try:
             if not self.isReady:
@@ -229,7 +230,8 @@ class TorrentDetails(AbstractDetails):
         except wx.PyDeadObjectError:
             pass
     
-    def _addTabs(self, ds):
+    @warnWxThread
+    def _addTabs(self, ds, showTab = None):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         
         #Create torrent overview
@@ -337,7 +339,9 @@ class TorrentDetails(AbstractDetails):
         if len(self.torrent.files) > 0:
             if self.saveSpace:
                 parent = wx.Panel(self.notebook)
-                parent.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
+                themeColour = self.notebook.GetThemeBackgroundColour()
+                if themeColour.IsOk():
+                    parent.SetBackgroundColour(themeColour)
             else:
                 parent = self.notebook    
             
@@ -418,7 +422,10 @@ class TorrentDetails(AbstractDetails):
                 hSizer.Add(self.listCtrl, 6, wx.EXPAND)
                 
                 self.buttonPanel = wx.Panel(parent)
-                self.buttonPanel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
+                themeColour = self.notebook.GetThemeBackgroundColour()
+                if themeColour.IsOk():
+                    self.buttonPanel.SetBackgroundColour(themeColour)
+                
                 self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
                 self.buttonPanel.SetSizer(self.buttonSizer)
                 
@@ -512,6 +519,13 @@ class TorrentDetails(AbstractDetails):
                     self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
     
+        if showTab:
+            for i in range(self.notebook.GetPageCount()):
+                if self.notebook.GetPageText(i) == showTab:
+                    self.notebook.SetSelection(i)
+                    break
+    
+    @warnWxThread
     def _addButtonPanel(self, parent, sizer):
         if not self.saveSpace:
             self.buttonPanel = wx.Panel(parent)
@@ -519,8 +533,9 @@ class TorrentDetails(AbstractDetails):
             self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
             self.buttonPanel.SetSizer(self.buttonSizer)
             
-            sizer.Add(self.buttonPanel, 35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+            sizer.Add(self.buttonPanel, 35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)     
     
+    @warnWxThread
     def DownloadStarted(self):
         self.ShowPanel(TorrentDetails.INCOMPLETE)
         
@@ -530,31 +545,32 @@ class TorrentDetails(AbstractDetails):
                 if self.notebook.GetPageText(i) == 'Files':
                     self.notebook.ChangeSelection(i)
                     break
-        
+    
+    @warnWxThread
     def ShowPanel(self, newState = None):
         if getattr(self, 'buttonSizer', False):
-            self.buttonPanel.Freeze()
-            self.buttonSizer.ShowItems(False)
-            self.buttonSizer.DeleteWindows()
-            self.buttonSizer.Clear()
-            
-            #add title
-            self.title = wx.StaticText(self.buttonPanel)
-            self.title.SetMinSize((1,-1))
-            
-            if self.saveSpace:
-                _set_font(self.title, size_increment = 0, fontweight = wx.FONTWEIGHT_BOLD)
-            else:
-                _set_font(self.title, size_increment = 1, fontweight = wx.FONTWEIGHT_BOLD)
-            self.buttonSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)
-            
             if newState is None:
                 newState  = self._GetState()
                 
-            self._SetTitle(newState)
-                
             if self.state != newState:
                 self.state = newState
+                
+                self.buttonPanel.Freeze()
+                self.buttonSizer.ShowItems(False)
+                self.buttonSizer.DeleteWindows()
+                self.buttonSizer.Clear()
+                
+                #add title
+                self.title = wx.StaticText(self.buttonPanel)
+                self.title.SetMinSize((1,-1))
+                
+                if self.saveSpace:
+                    _set_font(self.title, size_increment = 0, fontweight = wx.FONTWEIGHT_BOLD)
+                else:
+                    _set_font(self.title, size_increment = 1, fontweight = wx.FONTWEIGHT_BOLD)
+                self.buttonSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)
+                
+                self._SetTitle(newState)
                 
                 if newState in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
                     self.torrent.progress = 100
@@ -568,13 +584,14 @@ class TorrentDetails(AbstractDetails):
 
                 if getattr(self.parent, 'button', False):
                     self.parent.button.Enable(newState == TorrentDetails.INACTIVE)
-
-            self.Layout()
-            self.buttonPanel.Thaw()
+                
+                self.buttonPanel.Thaw()
+                self.Layout()
         else:
             #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
             wx.CallAfter(self.ShowPanel, newState)
 
+    @warnWxThread
     def _ShowTorrentDetails(self):
         if not self.compact:
             subtitle = StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
@@ -635,6 +652,7 @@ class TorrentDetails(AbstractDetails):
             wrong.Bind(wx.EVT_LEFT_UP, self.OnMark)
             self.buttonSizer.Add(wrong, 0, wx.ALL|wx.EXPAND, 3)
     
+    @warnWxThread
     def _ShowDownloadProgress(self):
         if not self.compact and not isinstance(self, LibraryDetails):
             library = LinkStaticText(self.buttonPanel, "Open library")
@@ -677,13 +695,15 @@ class TorrentDetails(AbstractDetails):
             
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
     
+    @warnWxThread
     def _ShowDone(self):
         self.buttonSizer.AddStretchSpacer()
         self._AddDoneAd(self.buttonPanel, self.buttonSizer)
         
         if getattr(self, 'subtitleChoice', None):
             self.subtitleChoice.Enable(True)
-            
+    
+    @warnWxThread      
     def _AddDoneAd(self, parent, sizer):
         play = wx.Button(parent, -1, "Play")
         play.SetToolTipString('Start playing this torrent.')
@@ -741,7 +761,8 @@ class TorrentDetails(AbstractDetails):
                 sizer.Add(channeltext, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
 
         parent.Layout()
-        
+    
+    @warnWxThread
     def _AddVodAd(self, parent, sizer):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -768,6 +789,7 @@ class TorrentDetails(AbstractDetails):
                     
             return os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
     
+    @warnWxThread
     def OnEdit(self, doEdit):
         if len(self.isEditable) > 0:
             for editable in self.isEditable.values():
@@ -776,7 +798,9 @@ class TorrentDetails(AbstractDetails):
         self.notebook.SetMinSize((-1, self.notebook.GetBestSize()[1]))
         self.parent.parent_list.OnChange()
     
+    @warnWxThread
     def OnChange(self, event):
+        print >> sys.stderr, "OnChange"
         page = event.GetSelection()
         
         title = self.notebook.GetPageText(page)
@@ -798,7 +822,7 @@ class TorrentDetails(AbstractDetails):
             self.notebook.SetMinSize((-1, newHeight))
             self.parent.parent_list.OnChange()
         event.Skip()
-        
+    
     def OnCommentCreated(self, infohash):
         if self.torrent.infohash == infohash:
             manager = self.commentList.GetManager()
@@ -821,6 +845,7 @@ class TorrentDetails(AbstractDetails):
         for editable in self.isEditable.values():
             editable.Saved()
     
+    @warnWxThread
     def OnExplore(self, event):
         path = self._GetPath()
         if path:
@@ -829,7 +854,8 @@ class TorrentDetails(AbstractDetails):
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
-                
+    
+    @warnWxThread
     def OnDownload(self, event):
         nrSelected = self.listCtrl.GetSelectedItemCount()
         if nrSelected > 0 and nrSelected < self.listCtrl.GetItemCount():
@@ -845,7 +871,8 @@ class TorrentDetails(AbstractDetails):
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
-        
+    
+    @warnWxThread
     def OnPlay(self, event):
         play = event.GetEventObject()
         playable_files = self.torrent.videofiles
@@ -885,6 +912,7 @@ class TorrentDetails(AbstractDetails):
             play.Enable(False)
             wx.CallLater(5000, play.Enable, True)
     
+    @warnWxThread
     def OnDoubleClick(self, event):
         selected = self.listCtrl.GetFirstSelected()
         playable_files = self.torrent.videofiles
@@ -898,7 +926,8 @@ class TorrentDetails(AbstractDetails):
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
                     startfile(file)
-                    
+    
+    @warnWxThread   
     def OnFilesSelected(self, event):
         if wx.Platform !="__WXMAC__":
             if getattr(self, 'downloadButton', False):
@@ -913,6 +942,7 @@ class TorrentDetails(AbstractDetails):
                     self.downloadButton.SetLabel(label)
                     self.buttonPanel.Layout()
     
+    @warnWxThread
     def _ToggleSubtitleChoice(self, showChoice = None):
         if not showChoice:
             showChoice = not self.subtitleChoice.IsShown()
@@ -920,7 +950,8 @@ class TorrentDetails(AbstractDetails):
         self.subtitleChoice.Show(showChoice)
         self.requestingSub.Show(not showChoice)
         self.requestingSub.sizer.Layout()
-                   
+    
+    @warnWxThread
     def OnSubtitle(self, event):
         selected = self.subtitleChoice.GetSelection()
         nrItems =self.subtitleChoice.GetCount()
@@ -950,13 +981,15 @@ class TorrentDetails(AbstractDetails):
                 file = self._GetPath(self.subtitleChoice.items[selected][0])
                 self.uelog.addEvent(message="Subtitles: user choose a internal subtitle", type = 2)
                 self.SetSubtitle(file)
-    
+                
+    @warnWxThread
     def OnRetrieveSubtitle(self, subtitleinfo):
         self.SetSubtitle(subtitleinfo.getPath())
         self.uelog.addEvent(message="Subtitles: user retrieved a subtitle", type = 2)
         self.requestingSub.SetLabel('Got subtitle from peers')
         wx.CallLater(3000, self._ToggleSubtitleChoice, True)
-            
+    
+    @warnWxThread
     def OnSubtitleBrowse(self, event):
         wildcard = "*" + ";*".join(VLC_SUPPORTED_SUBTITLES)
         wildcard = "Subtitles (%s) | %s"%(wildcard, wildcard)
@@ -971,7 +1004,7 @@ class TorrentDetails(AbstractDetails):
             self.subtitleChoice.SetSelection(0)
             
         dlg.Destroy()
-        
+       
     def SetSubtitle(self, file):
         _, ext = os.path.splitext(file)
         if ext.lower() in VLC_SUPPORTED_SUBTITLES:
@@ -987,6 +1020,7 @@ class TorrentDetails(AbstractDetails):
             if os.path.isfile(filename):
                 os.remove(filename)
     
+    @warnWxThread
     def OnClick(self, event):
         label = event.GetEventObject()
         if label.target == 'my_files':
@@ -999,7 +1033,8 @@ class TorrentDetails(AbstractDetails):
                 self.guiutility.showChannelFromPermid(self.torrent.channel.permid)
             else:
                 self.guiutility.showChannelFromId(self.torrent.channel.id)
-                
+    
+    @warnWxThread   
     def OnMark(self, event):
         markWindow = wx.PopupTransientWindow(self)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1038,6 +1073,7 @@ class TorrentDetails(AbstractDetails):
         markWindow.Position(pos, (0, sz[1]))
         markWindow.Popup()
     
+    @warnWxThread
     def OnMyChannel(self, event):
         torrent_dir = self.guiutility.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, self.torrent.torrent_file_name)
@@ -1058,7 +1094,7 @@ class TorrentDetails(AbstractDetails):
             self.ShowStatus()
 
         self.guiutility.frame.guiserver.add_task(self._UpdateStatus, id = "TorrentDetails_updateStatus")
-        
+    
     def _UpdateStatus(self):
         try:        
             swarmInfo = self.torrent.swarminfo
@@ -1089,6 +1125,7 @@ class TorrentDetails(AbstractDetails):
                     else:
                         self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent.num_seeders, self.torrent.num_leechers ,updated))
     
+    
     def OnMarkingCreated(self, channeltorrent_id):
         if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
             self.UpdateMarkings()
@@ -1097,6 +1134,7 @@ class TorrentDetails(AbstractDetails):
         if self.torrent.get('channeltorrent_id', False):
             startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
      
+    @warnWxThread
     def ShowMarkings(self, delayedResult):
         markings = delayedResult.get()
         if len(markings) > 0:
@@ -1130,6 +1168,7 @@ class TorrentDetails(AbstractDetails):
         if not found:
             self._Refresh(None)
 
+    @warnWxThread
     def _Refresh(self, ds):
         self.torrent.ds = ds
 
@@ -1177,6 +1216,7 @@ class TorrentDetails(AbstractDetails):
             state = TorrentDetails.INACTIVE
         return state
     
+    @warnWxThread
     def _SetTitle(self, state):
         if state == TorrentDetails.FINISHED or state == TorrentDetails.FINISHED_INACTIVE:
             label = 'This torrent has finished downloading.'
@@ -1211,23 +1251,27 @@ class TorrentDetails(AbstractDetails):
                     
     def OnEventSize(self, width):
         if self.compact:
-            return
+            return False
         
         if width < self.SAVESPACE_THRESHOLD:
             if not self.saveSpace:
                 self.saveSpace = True
                 self.state = -1
-            
+                
                 self.details.Clear(deleteWindows = True)
                 self.showTorrent(self.torrent, "Files")
+                return True
             
-        elif self.saveSpace:
+        if self.saveSpace:
             self.saveSpace = False
             self.state = -1
 
             self.details.Clear(deleteWindows = True)
             self.showTorrent(self.torrent)
-                
+            return True
+        
+        return False
+                            
     def __del__(self):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']

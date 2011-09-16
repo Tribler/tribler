@@ -122,19 +122,19 @@ class ASyncDelayedResult():
         self.isFinished.set()
     
     def get(self, timeout = 100):
-        if self.isFinished.wait(timeout):
+        if self.wait(timeout):
             if self.__exception: # exception was raised!
                 self.__exception.originalTraceback = self.__original_traceback
                 print >> sys.stderr, self.__original_traceback
                 raise self.__exception
+            
             return self.__result
-        
         else:
             print_stack()
-            print >> sys.stderr, "TIMEOUT on get", self.__jobID
+            print >> sys.stderr, "TIMEOUT on get", self.__jobID, timeout 
             
     def wait(self, timeout = None):
-        return self.isFinished.wait(timeout)
+        return self.isFinished.wait(timeout) or self.isFinished.isSet()
 
 def exceptionConsumer(delayedResult, *args, **kwargs):
     try:

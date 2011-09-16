@@ -17,6 +17,7 @@ from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
+from time import time
 
 DEBUG = False
 
