@@ -166,7 +166,6 @@ class WalktestCommunity(Community):
                 self._dispersy.store_update_forward([response], False, False, True)
 
                 # create puncture requests
-                dprint(external_candidate_address, " == ", self._dispersy.external_address, external_candidate_address == self._dispersy.external_address, force=1)
                 destination = internal_candidate_address if external_candidate_address == self._dispersy.external_address else external_candidate_address
                 meta = self._meta_messages[u"puncture-request"]
                 request = meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(message.payload.source_internal_address, message.address))
