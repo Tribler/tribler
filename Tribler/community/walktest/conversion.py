@@ -16,10 +16,11 @@ class Conversion(BinaryConversion):
         payload = message.payload
         return inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]), \
             inet_aton(payload.source_internal_address[0]), pack("!H", payload.source_internal_address[1]), \
+            inet_aton(payload.source_external_address[0]), pack("!H", payload.source_external_address[1]), \
             pack("!BH", int(payload.advice), payload.identifier)
 
     def _decode_introduction_request(self, placeholder, offset, data):
-        if len(data) < offset + 15:
+        if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
@@ -28,11 +29,14 @@ class Conversion(BinaryConversion):
         source_internal_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
 
+        source_external_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+        
         advice, identifier = unpack_from("!BH", data, offset)
         advice = bool(advice)
         offset += 3
 
-        return offset, placeholder.meta.payload.implement(destination_address, source_internal_address, advice, identifier)
+        return offset, placeholder.meta.payload.implement(destination_address, source_internal_address, source_external_address, advice, identifier)
 
     def _encode_introduction_response(self, message):
         payload = message.payload

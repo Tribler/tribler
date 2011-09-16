@@ -12,16 +12,19 @@ if __debug__:
 
 class IntroductionRequestPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, destination_address, source_internal_address, advice, identifier):
+        def __init__(self, meta, destination_address, source_internal_address, source_external_address, advice, identifier):
             """
             Create the payload for an introduction-request message.
 
             DESTINATION_ADDRESS is the address of the receiver.  Effectively this should be the
             external address that others can use to contact the receiver.
 
-            SOURCE_INTERNAL_ADDRESS is the internal address of the sender.  Nodes that are behind
-            the same NAT or firewall can use this address to connect with each other.
+            SOURCE_INTERNAL_ADDRESS is the internal address of the sender.  Nodes in the same LAN
+            should use this address to communicate.
 
+            SOURCE_EXTERNAL_ADDRESS is the external address of the sender.  Nodes not in the same
+            LAN should use this address to communicate.
+            
             ADVICE is a boolean value.  When True the receiver will introduce the sender to a new
             node.  This introduction will be facilitated by the receiver sending a puncture-request
             to the new node.
@@ -31,12 +34,14 @@ class IntroductionRequestPayload(Payload):
             """
             assert is_address(destination_address)
             assert is_address(source_internal_address)
+            assert is_address(source_external_address)
             assert isinstance(advice, bool)
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(IntroductionRequestPayload.Implementation, self).__init__(meta)
             self._destination_address = destination_address
             self._source_internal_address = source_internal_address
+            self._source_external_address = source_external_address
             self._advice = advice
             self._identifier = identifier
 
@@ -48,6 +53,10 @@ class IntroductionRequestPayload(Payload):
         def source_internal_address(self):
             return self._source_internal_address
 
+        @property
+        def source_external_address(self):
+            return self._source_external_address
+        
         @property
         def advice(self):
             return self._advice
