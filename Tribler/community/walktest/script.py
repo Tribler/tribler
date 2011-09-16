@@ -111,7 +111,7 @@ def main():
             if candidate[0] == candidate[1]:
                 return "%s:%d" % candidate[0]
             else:
-                return "%s:%d (%s:%d)" % (candidate[0][0], candidate[0][1], candidate[1][0], candidate[1][1])
+                return "%s:%d (%s:%d)" % (candidate[1][0], candidate[1][1], candidate[0][0], candidate[0][1])
         
         now_online = set(to_string(candidate) for candidate in candidates)
         if not now_online == current_online:
@@ -186,11 +186,13 @@ def main():
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
 
-    def in_introduction_request(lineno, datetime, message, destination_address, source_internal_address, source_external_address, advice, identifier):
+    def in_introduction_request(lineno, datetime, message, source, destination_address, source_internal_address, source_external_address, advice, identifier):
         incoming["introduction-request"] += 1
-
+        incoming["introduction-request-with-advice"] += 1
+        
     def out_introduction_request(lineno, datetime, message, destination_address, source_internal_address, source_external_address, advice, identifier):
         outgoing["introduction-request"] += 1
+        outgoing["introduction-request-with-advice"] += 1
 
     def in_introduction_response(lineno, datetime, message, source, destination_address, internal_introduction_address, external_introduction_address, identifier):
         incoming["introduction-response"] += 1
@@ -201,7 +203,7 @@ def main():
     def in_puncture_request(lineno, datetime, message, source, internal_walker_address, external_walker_address):
         incoming["puncture-request"] += 1
 
-    def out_puncture_request(lineno, datetime, message, destination, incoming_walker_address, external_walker_address):
+    def out_puncture_request(lineno, datetime, message, destination, internal_walker_address, external_walker_address):
         outgoing["puncture-request"] += 1
 
     def in_puncture(lineno, datetime, message, source):
@@ -224,8 +226,8 @@ def main():
     in_intro_timeout = {}
 
     # counters
-    incoming = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0, "introduction-response-unused":0}
-    outgoing = {"introduction-request":0, "introduction-response":0, "puncture-request":0, "puncture":0, "introduction-response-unused":0}
+    incoming = {"introduction-request":0, "introduction-request-with-advice":0, "introduction-response":0, "puncture-request":0, "puncture":0}
+    outgoing = {"introduction-request":0, "introduction-request-with-advice":0, "introduction-response":0, "puncture-request":0, "puncture":0}
 
     mapping = {"__init__":init,
                "in-introduction-request":in_introduction_request,
