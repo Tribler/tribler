@@ -307,8 +307,8 @@ class Callback(object):
             if expired:
                 if __debug__:
                     for counter, (deadline, _, _, call, _) in enumerate(requests):
-                        desync = actual_time - deadline
-                        level = "error" if desync > 0.0 else "normal"
+                        desync = deadline - actual_time
+                        level = "error" if desync < 0.0 else "normal"
                         dprint("%2d/%-2d queue waiting %.4fs" % (counter, len(requests), desync), " for request ", call[0], level=level)
 
                     for counter, (_, deadline, _, call, _) in enumerate(expired):
