@@ -242,12 +242,15 @@ def main():
     for lineno, datetime, message, kargs in parse("walktest.log"):
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 
+    if online:
+        first_datetime = online[0][0]
+
     # public addresses
-    if not public_addresses:
-        print "no public address?"
-    for datetime, internal_address, external_address in public_addresses:
-        print "public address ", datetime, internal_address, external_address
-    print
+    if public_addresses and online:
+        last_datetime = public_addresses[0][0]
+        for datetime, internal_address, external_address in public_addresses:
+            print datetime - first_datetime, " ", datetime - last_datetime, "  internal %s:%d" % internal_address, " external %s:%d" % external_address
+        print
 
     # walk
     for count, key in sorted((count, key) for key, count in out_intro_req.iteritems()):
@@ -274,7 +277,6 @@ def main():
         print "-none-"
     else:
         last_datetime, last_candidates = online[0]
-        first_datetime = last_datetime
         for datetime, candidates in online[1:]:
             more = candidates.difference(last_candidates)
             less = last_candidates.difference(candidates)
