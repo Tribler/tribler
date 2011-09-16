@@ -160,6 +160,14 @@ class WalktestCommunity(Community):
                 log("walktest.log", "in-introduction-request", source=message.address, destination_address=message.payload.destination_address, source_internal_address=message.payload.source_internal_address, advice=message.payload.advice, identifier=message.payload.identifier)
                         
             if external_candidate_address:
+
+
+                # TODO remove this code... only for debugging
+                meta = self._meta_messages[u"puncture"]
+                puncture = meta.impl(distribution=(self.global_time,), destination=(message.address,))
+                self._dispersy.store_update_forward(puncture, False, False, True)
+
+                
                 # create introduction responses
                 meta = self._meta_messages[u"introduction-response"]
                 response = meta.impl(distribution=(self.global_time,), destination=(message.address,), payload=(message.address, internal_candidate_address, external_candidate_address, message.payload.identifier))
