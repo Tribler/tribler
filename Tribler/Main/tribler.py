@@ -298,6 +298,8 @@ class ABCApp(wx.App):
             self.frame.Show(True)
             self.splash.Destroy()
             
+            self.torrentfeed = RssParser.getInstance()
+            
             wx.CallAfter(self.PostInit2)
             
             # 08/02/10 Boudewijn: Working from home though console
@@ -349,9 +351,8 @@ class ABCApp(wx.App):
         def db_thread():
             my_channel = channelcast.getMyChannelId()
             if my_channel:
-                torrentfeed = RssParser.getInstance()
-                torrentfeed.register(self.utility.session, my_channel)
-                torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                self.torrentfeed.register(self.utility.session, my_channel)
+                self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
                 
         startWorker(None, db_thread)
 

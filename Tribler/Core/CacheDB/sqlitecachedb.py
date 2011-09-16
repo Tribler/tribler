@@ -1407,6 +1407,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               value                 text            NOT NULL,
               prev_modification     integer,
               prev_global_time      integer,
+              time_stamp            integer         NOT NULL,
               inserted              integer         DEFAULT (strftime('%s','now')),
               UNIQUE (dispersy_id),
               FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE

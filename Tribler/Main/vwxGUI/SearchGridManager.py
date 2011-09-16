@@ -1105,7 +1105,7 @@ class ChannelSearchGridManager:
         return len(torrents), self.filteredResults, torrents
 
     def getTorrentModifications(self, channeltorrent_id):
-        data = self.channelcast_db.getTorrentModifications(channeltorrent_id)
+        data = self.channelcast_db.getTorrentModifications(channeltorrent_id, MODIFICATION_REQ_COLUMNS)
         return self._createModifications(data)
     
     def getRecentModificationsFromChannel(self, channel, filterTorrents = True, limit = None):

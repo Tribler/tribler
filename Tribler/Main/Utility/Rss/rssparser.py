@@ -175,7 +175,11 @@ class RssParser(Thread):
             self.urls_changed.wait(RSS_RELOAD_FREQUENCY)
             
         else:
-            print >> sys.stderr, "RssParser, not registered unable to run"
+            print >> sys.stderr, "RssParser, not registered unable to run or exiting"
+        
+    def shutdown(self):
+        self.isRegistered = False
+        self.urls_changed.set()
         
     def _refresh(self):
         channel_url = None

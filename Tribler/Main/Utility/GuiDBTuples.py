@@ -404,11 +404,12 @@ class Playlist(Helper):
         return "Contents: '"+"'    '".join(names)+"'"
                 
 class Modification(Helper):
-    __slots__ = ('id', 'type_id', 'value', 'inserted', 'channelcast_db')
-    def __init__(self, id, type_id, value, inserted):
+    __slots__ = ('id', 'type_id', 'value', 'time_stamp', 'inserted', 'channelcast_db')
+    def __init__(self, id, type_id, value, time_stamp, inserted):
         self.id = id
         self.type_id = type_id
         self.value = value
+        self.time_stamp = time_stamp
         self.inserted = inserted
         
     @cacheProperty

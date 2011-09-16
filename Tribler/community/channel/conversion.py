@@ -276,6 +276,7 @@ class ChannelConversion(BinaryConversion):
         modification_on = message.payload.modification_on.load_message()
         dict = {"modification-type":message.payload.modification_type,
                 "modification-value":message.payload.modification_value,
+                "timestamp":message.payload.timestamp,
                 "modification-on-mid":modification_on.authentication.member.mid,
                 "modification-on-global-time":modification_on.distribution.global_time}
         
@@ -300,6 +301,10 @@ class ChannelConversion(BinaryConversion):
         if not "modification-value" in dic:
             raise DropPacket("Missing 'modification-value'")
         modification_value = dic["modification-value"]
+        
+        if not "timestamp" in dic:
+            raise DropPacket("Missing 'timestamp'")
+        timestamp = dic["timestamp"]
         
         if not "modification-on-mid" in dic:
             raise DropPacket("Missing 'modification-on-mid'")
@@ -330,7 +335,7 @@ class ChannelConversion(BinaryConversion):
         except:
             prev_modification_packet = None
 
-        return offset, placeholder.meta.payload.implement(modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time)
+        return offset, placeholder.meta.payload.implement(modification_type, modification_value, timestamp, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time)
 
     def _encode_playlist_torrent(self, message):
         playlist = message.payload.playlist.load_message()

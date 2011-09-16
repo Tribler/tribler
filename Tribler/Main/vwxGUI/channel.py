@@ -2,7 +2,7 @@
 import wx
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
-from Tribler.Main.vwxGUI.tribler_topButton import _set_font
+from Tribler.Main.vwxGUI.tribler_topButton import _set_font, MaxBetterText
 from Tribler.Core.API import *
 
 from list import *
@@ -1415,32 +1415,12 @@ class AvantarItem(ListItem):
         header = wx.StaticText(self, -1, self.header)
         _set_font(header, -1, wx.FONTWEIGHT_BOLD)
         
-        #as body can be indefinitely large, we limit the string here
-        def find_nth(haystack, needle, n):
-            start = haystack.find(needle)
-            while start >= 0 and n > 1:
-                start = haystack.find(needle, start+len(needle))
-                n -= 1
-            return start
-        
-        #find 6th line or break at 600 characters
-        breakAt = find_nth(self.body, '\n', 6)
-        if breakAt != -1:
-            breakAt = min(breakAt, 600)
-        else:
-            breakAt = 600
-            
-        self.desc = wx.StaticText(self, -1, self.body[:breakAt], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+        self.desc = MaxBetterText(self, self.body)
         self.desc.SetMinSize((1, -1))
+        
         vSizer.Add(header, 0, wx.EXPAND)
         vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
         vSizer.Add(self.desc, 0, wx.EXPAND)
-        
-        if len(self.body) > breakAt:
-            self.expand = wx.Button(self, -1, "Click to view full item", style = wx.BU_EXACTFIT)
-            self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
-            
-            vSizer.Add(self.expand, 0, wx.ALIGN_RIGHT)
         
         titleRow.Add(vSizer, 1)
         
@@ -1457,10 +1437,8 @@ class AvantarItem(ListItem):
         
         if self.additionalButton and changed:
             self.additionalButton.Show(color == self.list_selected)
-    
-    def OnFull(self, event):
-        self.desc.SetLabel(self.body)
-        self.expand.Show(False)
+            
+    def OnChange(self):
         self.parent_list.OnChange()
         
 class CommentItem(AvantarItem):
@@ -1553,6 +1531,18 @@ class ModificationActivityItem(AvantarItem):
 
         self.header = "Discovered a modification %s"%(format_time(modification.inserted).lower())
         self.body = "Modified %s in '%s'"%(modification.name, modification.value)
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+class ModificationItem(AvantarItem):
+        
+    def AddComponents(self, leftSpacer, rightSpacer):
+        modification = self.original_data
+
+        self.header = "%s modified %s"%(modification.name.capitalize(), format_time(modification.time_stamp).lower())
+        self.body = modification.value
         
         im = IconsManager.getInstance()
         self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
@@ -1802,28 +1792,10 @@ class ModificationList(List):
     
     def SetData(self, data):
         List.SetData(self, data)
-        data = [(modification.id, [modification.name, modification.value, format_time(modification.inserted)], modification, ModificationItem) for modification in data]
+        data = [(modification.id, (), modification, ModificationItem) for modification in data]
         
         if len(data) > 0:
             self.list.SetData(data)
         else:
             self.list.ShowMessage('No modifications are found.')
         self.SetNrResults(len(data))
-    
-class ModificationItem(ListItem):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
-        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
-        
-    def AddComponents(self, leftSpacer, rightSpacer):
-        titleRow = wx.BoxSizer(wx.HORIZONTAL)
-        if leftSpacer > 0:
-            titleRow.AddSpacer((leftSpacer, -1))
-        
-        titleRow.Add(wx.StaticText(self, -1, "Modified %s in '%s'"%(self.data[0], self.data[1])))
-
-        if rightSpacer > 0:
-            titleRow.AddSpacer((rightSpacer, -1))
-        self.vSizer.Add(titleRow, 0, wx.EXPAND|wx.TOP, 3)
-        self.hSizer.AddSpacer((40, -1))
-        self.hSizer.Add(wx.StaticText(self, -1, self.data[2]), 0, wx.BOTTOM, 3)
-        self.AddEvents(self)

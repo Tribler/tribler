@@ -1395,8 +1395,7 @@ class TorrentDBHandler(BasicDBHandler):
             
         if commit:
             self.commit()
-            # to.do: update the torrent panel's number of seeders/leechers 
-        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
@@ -1478,6 +1477,11 @@ class TorrentDBHandler(BasicDBHandler):
             if tier > 0:
                 sql += " AND announce_tier<=%d"%tier
             return self._db.fetchall(sql)
+        
+    def getTorrentsFromTracker(self, tracker, max_last_check, limit):
+        sql = "SELECT infohash FROM TorrentTracker, Torrent WHERE Torrent.torrent_id = TorrentTracker.torrent_id AND tracker = ? AND last_check < ? ORDER BY RANDOM() LIMIT ?"
+        infohashes = self._db.fetchall(sql, (tracker, max_last_check, limit))
+        return [str2bin(infohash) for infohash, in infohashes]
     
     def getSwarmInfoByInfohash(self, infohash):
         sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id = tr.torrent_id AND t.infohash  = ?"
@@ -2065,15 +2069,19 @@ class TorrentDBHandler(BasicDBHandler):
         
         if res:
             torrent_file_name = res[3]
-            torrent_dir = self.getTorrentDir()
-            torrent_path = os.path.join(torrent_dir, torrent_file_name)
+            if torrent_file_name:
+                torrent_dir = self.getTorrentDir()
+                torrent_path = os.path.join(torrent_dir, torrent_file_name)
+            else:
+                torrent_path = None
             
             res = {'torrent_id':res[0], 
                    'ignored_times':res[1], 
                    'retried_times':res[2], 
                    'torrent_path':torrent_path,
                    'infohash':str2bin(res[4]),
-                   'status':self.id2status[res[5]]
+                   'status':self.id2status[res[5]],
+                   'last_check':res[8]
                   }
             return res
 
@@ -3472,9 +3480,9 @@ class ChannelCastDBHandler(object):
             
             self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
         
-    def on_metadata_from_dispersy(self, type, channeltorrent_id, playlist_id, channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time):
-        sql = "INSERT OR REPLACE INTO ChannelMetaData (dispersy_id, channel_id, type_id, value, prev_modification, prev_global_time) VALUES (?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
-        metadata_id = self._db.fetchone(sql, (dispersy_id, channel_id, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time))
+    def on_metadata_from_dispersy(self, type, channeltorrent_id, playlist_id, channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time):
+        sql = "INSERT OR REPLACE INTO ChannelMetaData (dispersy_id, channel_id, type_id, value, time_stamp, prev_modification, prev_global_time) VALUES (?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        metadata_id = self._db.fetchone(sql, (dispersy_id, channel_id, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time))
         
         if channeltorrent_id:
             sql = "INSERT INTO MetaDataTorrent (metadata_id, channeltorrent_id) VALUES (?,?)"
@@ -3920,8 +3928,8 @@ class ChannelCastDBHandler(object):
         sql = "SELECT type, count(*) FROM TorrentMarkings WHERE channeltorrent_id = ? GROUP BY type"
         return self._db.fetchall(sql, (channeltorrent_id,))
     
-    def getTorrentModifications(self, channeltorrent_id):
-        sql = "SELECT id, type_id, value, inserted FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY prev_global_time DESC"
+    def getTorrentModifications(self, channeltorrent_id, keys):
+        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY prev_global_time DESC"
         return self._db.fetchall(sql, (channeltorrent_id,))
 
     def getMostPopularChannelFromTorrent(self, infohash):

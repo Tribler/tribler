@@ -19,7 +19,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
+    MaxBetterText
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -37,6 +38,11 @@ class AbstractDetails(wx.Panel):
     @warnWxThread
     def _create_tab(self, notebook, tabname, header = None, spacer = 3):
         panel = wx.lib.scrolledpanel.ScrolledPanel(notebook)
+        def OnChange():
+            panel.Layout()
+            panel.SetupScrolling(rate_y = 5)
+        panel.OnChange = OnChange
+        
         themeColour = notebook.GetThemeBackgroundColour()
         if themeColour.IsOk():
             panel.SetBackgroundColour(themeColour)
@@ -62,22 +68,23 @@ class AbstractDetails(wx.Panel):
     
     @warnWxThread    
     def _add_row(self, parent, sizer, name, value, spacer = 10):
+        nametext = name
         if name:
-            name = wx.StaticText(parent, -1, name)
-            _set_font(name, fontweight = wx.FONTWEIGHT_BOLD)
+            nametext = wx.StaticText(parent, -1, name)
+            _set_font(nametext, fontweight = wx.FONTWEIGHT_BOLD)
 
-            sizer.Add(name, 0, wx.LEFT, spacer)
+            sizer.Add(nametext, 0, wx.LEFT, spacer)
         
         if value:
             if isinstance(value, basestring):
                 try:
-                    value = wx.StaticText(parent, -1, unicode(value))
+                    value = MaxBetterText(parent, unicode(value), maxLines = 3, name = name)
                 except:
-                    value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
+                    value = MaxBetterText(parent, value.decode('utf-8','ignore'), maxLines = 3, name = name)
                 value.SetMinSize((1,-1))
             sizer.Add(value, 0, wx.EXPAND|wx.LEFT, spacer)
         
-        return name, value
+        return nametext, value
 
     @warnWxThread
     def _add_subheader(self, parent, sizer, title, subtitle):
@@ -269,7 +276,12 @@ class TorrentDetails(AbstractDetails):
         else:
             vSizer = wx.FlexGridSizer(0, 2, 3, 3)
             vSizer.AddGrowableCol(1)
-            overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
+            
+            if self.canEdit:
+                overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
+            else:
+                del overviewColumns['Description']
+                overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
 
         for column in overviewColumnsOrder:
             _, value = self._add_row(self.overview, vSizer, column, overviewColumns[column])
@@ -295,6 +307,7 @@ class TorrentDetails(AbstractDetails):
             
             self._add_row(edit, vSizer, "Name", self.isEditable['name'])
             self._add_row(edit, vSizer, "Description",self.isEditable['description'])
+            vSizer.AddGrowableRow(1)
             editSizer.Add(vSizer, 0, wx.EXPAND)
             
             def save(event):

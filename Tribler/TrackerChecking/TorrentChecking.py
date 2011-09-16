@@ -29,13 +29,17 @@ from os import path
 import Queue
 
 from Tribler.Core.BitTornado.bencode import bdecode
-from Tribler.TrackerChecking.TrackerChecking import trackerChecking
+from Tribler.TrackerChecking.TrackerChecking import trackerChecking,\
+    multiTrackerChecking
 
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from traceback import print_exc
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 
 DEBUG = False
@@ -61,8 +65,10 @@ class TorrentChecking(Thread):
         self.interval = interval
         self.queue = Queue.Queue()
         
+        
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         self.torrentdb = TorrentDBHandler.getInstance()
+        self.notifier = Notifier.getInstance()
         
         self.sleepEvent = threading.Event()
         
@@ -192,38 +198,43 @@ class TorrentChecking(Thread):
                     print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
                 
             if torrent:
+                notify = []
+                
                 if fromQueue and torrent['ignored_times'] > 0:
                     #ignoring this torrent
                     if DEBUG:
                         print >> sys.stderr, 'Torrent Checking: ignoring torrent:', torrent
                         
                     kw = { 'ignored_times': torrent['ignored_times'] -1 }
-                    self.torrentdb.updateTracker(torrent['infohash'], kw)
                     
                 else:
+                    
                     # read the torrent from disk / use other sources to specify trackers
                     torrent = self.readTrackers(torrent)
-                    
                     if self.hasTrackers(torrent):
                         if DEBUG:
                             print >> sys.stderr, "Torrent Checking: tracker checking", torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
                             trackerStart = time()
                                
-                        trackerChecking(torrent)
+                        multidict = multiTrackerChecking(torrent, self.GetInfoHashesForTracker)
                         didTrackerCheck = True
-                        
                         if DEBUG:
                             print >> sys.stderr, "Torrent Checking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
-                            
+                        
+                        for key, values in multidict.iteritems():
+                            if key != torrent['infohash']:
+                                seeder, leecher = values
+                                
+                                if seeder > 0 or leecher > 0:
+                                    #store result
+                                    curkw = {'seeder':seeder, 'leecher':leecher, 'ignored_times': 0, 'last_check_time': long(time()), 'status':'good'}
+                                    self.torrentdb.updateTorrent(key, commit = False, **curkw)
+                                    notify.append(key)
+                    
                     if not didTrackerCheck:
                         torrent["seeder"] = -2
                         torrent["leecher"] = -2
-                    
-                    # Check DHT    
-                    # Must come after tracker check, such that if tracker dead and DHT still alive, the
-                    # status is still set to good
-                    self.mldhtchecker.lookup(torrent['infohash'])
-                    
+                        
                     # Update torrent with new status
                     self.updateTorrentInfo(torrent)
 
@@ -246,6 +257,10 @@ class TorrentChecking(Thread):
                     print >> sys.stderr, "Torrent Checking: new status:", kw
             
                 self.torrentdb.updateTorrent(torrent['infohash'], **kw)
+                
+                #notify after commit
+                for infohash in notify:
+                    self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
             
             if fromQueue:
                 self.queue.task_done()
@@ -269,6 +284,7 @@ class TorrentChecking(Thread):
     def updateTorrentInfo(self,torrent):
         if torrent["status"] == "good":
             torrent["ignored_times"] = 0
+            
         elif torrent["status"] == "unknown":
             if torrent["retried_times"] > self.retryThreshold:    # set to dead
                 torrent["ignored_times"] = 0
@@ -276,6 +292,7 @@ class TorrentChecking(Thread):
             else:
                 torrent["retried_times"] += 1 
                 torrent["ignored_times"] = torrent["retried_times"]
+                
         elif torrent["status"] == "dead": # dead
             if torrent["retried_times"] < self.retryThreshold:
                 torrent["retried_times"] += 1 
@@ -292,7 +309,10 @@ class TorrentChecking(Thread):
             emptyAnnounce = torrent["info"].get("announce", "") == ""
             
         return not emptyAnnounceList or not emptyAnnounce
-
+    
+    def GetInfoHashesForTracker(self, tracker):
+        max_last_check = int(time()) - 4*60*60
+        return self.torrentdb.getTorrentsFromTracker(tracker, max_last_check, 10)
 
 if __name__ == '__main__':
     from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, str2bin

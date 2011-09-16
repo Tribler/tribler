@@ -19,6 +19,7 @@ from threading import currentThread, Event
 from traceback import print_stack
 import sys
 from Tribler.Core.dispersy.dispersy import Dispersy
+from time import time
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -562,7 +563,8 @@ class ChannelCommunity(Community):
             
         for type, value in modifications.iteritems():
             type = unicode(type)
-            self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
+            timestamp = long(time())
+            self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
     
     @forceDispersyThread
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
@@ -575,7 +577,8 @@ class ChannelCommunity(Community):
         modification_on_message = self._get_message_from_playlist_id(playlist_id)
         for type, value in modifications.iteritems():
             type = unicode(type)
-            self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
+            timestamp = long(time())
+            self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
     
     @forceDispersyThread
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
@@ -589,10 +592,10 @@ class ChannelCommunity(Community):
         for type, value in modifications.iteritems():
             type = unicode(type)
             value = value[:1024]
-            
-            self._disp_create_modification(type, value, modification_on_message, latest_modifications[type], store, update, forward)
+            timestamp = long(time())
+            self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
         
-    def _disp_create_modification(self, modification_type, modifcation_value, modification_on, latest_modification, store=True, update=True, forward=True):
+    def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on, latest_modification, store=True, update=True, forward=True):
         latest_modification_mid = None
         latest_modification_global_time = None
         if latest_modification:
@@ -605,7 +608,7 @@ class ChannelCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
-                            payload=(modification_type, modifcation_value, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
+                            payload=(modification_type, modifcation_value, timestamp, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -633,6 +636,7 @@ class ChannelCommunity(Community):
             modification_type = message.payload.modification_type
             modification_type_id = self._modification_types[modification_type]
             modification_value = message.payload.modification_value
+            timestamp = message.payload.timestamp
             
             if message.payload.prev_modification_packet:
                 prev_modification_id = message.payload.prev_modification_packet.packet_id
@@ -649,7 +653,7 @@ class ChannelCommunity(Community):
                 playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
             
             #always store metadata
-            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrent_id, playlist_id, self._channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, prev_modification_id, prev_modification_global_time)
+            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrent_id, playlist_id, self._channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time)
             
             #see if this is new information, if so call on_X_from_dispersy to update local 'cached' information
             if message_name ==  u"torrent":

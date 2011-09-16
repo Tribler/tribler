@@ -221,7 +221,7 @@ class MarkTorrentPayload(Payload):
 
 class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, modification_type, modification_value, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time):
+        def __init__(self, meta, modification_type, modification_value, timestamp, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time):
             assert isinstance(modification_type, unicode)
             assert modification_value is not None
             assert isinstance(modification_on, Packet)
@@ -234,6 +234,8 @@ class ModificationPayload(Payload):
             super(ModificationPayload.Implementation, self).__init__(meta)
             self._modification_type = modification_type
             self._modification_value = modification_value
+            self._timestamp = timestamp
+            
             self._modification_on = modification_on
             
             self._prev_modification_packet = prev_modification_packet
@@ -247,6 +249,10 @@ class ModificationPayload(Payload):
         @property        
         def modification_value(self):
             return self._modification_value
+        
+        @property
+        def timestamp(self):
+            return self._timestamp
 
         @property
         def modification_on(self):

@@ -420,7 +420,70 @@ class BetterText(wx.StaticText):
     def SetLabel(self, text):
         if text != self.GetLabel():
             wx.StaticText.SetLabel(self, text)
- 
+            
+class MaxBetterText(wx.BoxSizer):
+    
+    def __init__(self, parent, label, maxLines = 6, maxCharacters = 600, name = None):
+        wx.BoxSizer.__init__(self, wx.VERTICAL)
+        
+        self.fullLabel = ''
+        self.expand = None
+        self.parent = parent
+        self.maxLines = maxLines
+        self.maxCharacters = maxCharacters
+        self.name = name or 'item'
+        self.name = self.name.lower()
+        
+        self.label = BetterText(parent, -1, '')
+        self.Add(self.label, 0, wx.EXPAND)
+        
+        self.SetLabel(label)
+    
+    def SetLabel(self, label):
+        if self.fullLabel != label:
+            self.fullLabel = label
+            self.shortLabel = self._limitLabel(label)
+        
+            self.label.SetLabel(self.shortLabel)
+            
+            if len(self.shortLabel) < len(self.fullLabel):
+                if not self.expand:
+                    self.expand = wx.Button(self.parent, -1, "Click to view full "+self.name, style = wx.BU_EXACTFIT)
+                    self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
+            
+                    self.Add(self.expand, 0, wx.ALIGN_RIGHT)
+                    
+    def OnFull(self, event):
+        if self.expand.GetLabel().startswith('Click to view full'):
+            self.label.SetLabel(self.fullLabel)
+            self.expand.SetLabel('Click to collapse '+self.name)
+        else:
+            self.label.SetLabel(self.shortLabel)
+            self.expand.SetLabel('Click to view full '+self.name)
+        
+        self.parent.OnChange()
+                
+    def SetMinSize(self, minsize):
+        self.label.SetMinSize(minsize)
+        self.Layout()
+    
+    def find_nth(self, haystack, needle, n):
+        start = haystack.find(needle)
+        while start >= 0 and n > 1:
+            start = haystack.find(needle, start+len(needle))
+            n -= 1
+        return start
+    
+    def _limitLabel(self, label):
+        #find 6th line or break at 600 characters
+        breakAt = self.find_nth(label, '\n', self.maxLines)
+        if breakAt != -1:
+            breakAt = min(breakAt, self.maxCharacters)
+        else:
+            breakAt = self.maxCharacters
+        
+        return label[:breakAt]
+        
 #Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
 class LinkText(GenStaticText):
     def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0, parentsizer = None):
