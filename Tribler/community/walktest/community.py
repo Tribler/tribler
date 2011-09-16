@@ -114,7 +114,7 @@ class WalktestCommunity(Community):
                 break
 
         source_internal_address = self._dispersy.internal_address
-        advice = random() < 0.8
+        advice = random() < 0.8 or len(self._candidates) < 5
 
         if __debug__:
             log("walktest.log", "create_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=self._candidates.keys())
