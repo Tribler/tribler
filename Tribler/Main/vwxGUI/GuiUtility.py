@@ -153,7 +153,7 @@ class GUIUtility:
             if page == 'channels':
                 selectedcat = self.frame.channelcategories.GetSelectedCategory()
                 if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage[:-1] == 'mychannel':
-                    self.frame.channelselector.Show()
+                    self.frame.channelselector.ShowItems(True)
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
 
@@ -166,7 +166,7 @@ class GUIUtility:
                     
             elif self.guiPage == 'channels':
                 self.frame.channellist.Show(False)
-                self.frame.channelselector.Show(False)
+                self.frame.channelselector.ShowItems(False)
             
             if page == 'mychannel':
                 self.frame.channelcategories.Quicktip('This is your channel, other Tribler users can find this channel by searching for your username')

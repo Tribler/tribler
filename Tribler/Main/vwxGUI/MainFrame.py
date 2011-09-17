@@ -20,6 +20,13 @@ import os,sys
 import signal
 import commands
 import pickle
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
+from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
+    ChannelCategoriesList, LibraryList
+from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
+    ManageChannel
+from wx.html import HtmlWindow
 
 try:
     import wxversion
@@ -116,28 +123,8 @@ class FileDropTarget(wx.FileDropTarget):
                 dlg.Destroy()
         return True
 
-# Custom class loaded by XRC
 class MainFrame(wx.Frame):
-    def __init__(self, *args):
-        self.ready = False
-        
-        if len(args) == 0:
-            pre = wx.PreFrame()
-            # the Create step is done by XRC.
-            self.PostCreate(pre)
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-        else:
-            wx.Frame.__init__(self, args[0], args[1], args[2], args[3])
-            self._PostInit()
-        self.wxapp = None
-        
-    def OnCreate(self, event):
-        self.Unbind(wx.EVT_WINDOW_CREATE)
-        wx.CallAfter(self._PostInit)
-        event.Skip()
-        return True
-    
-    def _PostInit(self):
+    def __init__(self, parent, internalvideo, progress):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -148,44 +135,122 @@ class MainFrame(wx.Frame):
         self.shutdown_and_upgrade_notes = None
         
         self.guiserver = GUITaskQueue.getInstance()
+        
         title = self.utility.lang.get('title') + \
                 " " + \
                 self.utility.lang.get('version')
         
         # Get window size and position from config file
         size, position = self.getWindowSettings()
-        style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
-        
-        self.SetSize(size)
-        self.SetPosition(position)
-        self.SetTitle(title)
-        tt = self.GetToolTip()
-        if tt is not None:
-            tt.SetTip('')
+        style = wx.DEFAULT_DIALOG_STYLE|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.RESIZE_BORDER|wx.NO_FULL_REPAINT_ON_RESIZE|wx.CLIP_CHILDREN
             
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, position, size, style)
+        self.Freeze()
+        self.SetDoubleBuffered(True)
+        self.SetBackgroundColour(wx.WHITE)
+            
+        #Create all components        
+        progress('Creating panels')
+        self.top_bg = TopSearchPanel(self)
+        self.home = Home(self)
+        self.stats = Stats(self)
+        self.stats.Hide()
+        
+        #build channelselector panel
+        self.channelselector = wx.BoxSizer(wx.VERTICAL)
+        self.channelcategories = ChannelCategoriesList(self)
+        quicktip = HtmlWindow(self)
+        quicktip.SetBorders(2)
+        self.channelcategories.SetQuicktip(quicktip)
+
+        self.channelselector.Add(self.channelcategories, 0, wx.EXPAND)
+        self.channelselector.Add(quicktip, 1, wx.EXPAND)
+        self.channelselector.AddStretchSpacer()
+        self.channelselector.ShowItems(False)
+        
+        self.searchlist = SearchList(self)
+        self.searchlist.Hide()
+        self.channellist = ChannelList(self)
+        self.channellist.Hide()
+        self.selectedchannellist = SelectedChannelList(self)
+        self.selectedchannellist.Hide()
+        self.playlist = Playlist(self)
+        self.playlist.Hide()
+        self.managechannel = ManageChannel(self)
+        self.managechannel.Hide()
+        self.librarylist = LibraryList(self)
+        self.librarylist.Hide()
+        
+        if internalvideo:
+            self.videoparentpanel = wx.Panel(self)
+            self.videoparentpanel.Hide()
+        else:
+            self.videoparentpanel = None
+        
+        progress('Positioning')
+        #position all elements            
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.top_bg, 0, wx.EXPAND)
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.home, 1, wx.EXPAND|wx.ALL, 20)
+        hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
+        hSizer.Add(self.channelselector, 0, wx.EXPAND|wx.RIGHT, 5)
+        hSizer.Add(self.channellist, 1, wx.EXPAND)
+        hSizer.Add(self.selectedchannellist, 1, wx.EXPAND)
+        hSizer.Add(self.playlist, 1, wx.EXPAND)
+        hSizer.Add(self.managechannel, 1, wx.EXPAND)
+        hSizer.Add(self.searchlist, 1, wx.EXPAND)
+        hSizer.Add(self.librarylist, 1, wx.EXPAND)
+        
+        if self.videoparentpanel:
+            hSizer.Add(self.videoparentpanel, 0, wx.LEFT, 5)
+        
+        vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
+        self.SetSizer(vSizer)
+        
+        #set sizes
+        self.top_bg.SetMinSize((-1,70))
+        self.channelselector.SetMinSize((110,-1))
+        quicktip.SetMinSize((-1,300))
+        
+        if self.videoparentpanel:
+            self.videoparentpanel.SetSize((320,500))
+        
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
+        
+        
+        self.channelcategories.Select(1, False)
+        def preload_data():
+            self.guiUtility.showChannelCategory('Popular', False)
+            self.guiUtility.showLibrary(False)
+            
+        wx.CallLater(1500, preload_data)
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
             self.SetDropTarget(dragdroplist)
 
-        self.tbicon = None
-
         try:
             self.SetIcon(self.utility.icon)
         except:
             pass
+        
+        self.tbicon = None        
+        try:
+            self.tbicon = ABCTaskBarIcon(self)
+        except:
+            print_exc()
 
         # Don't update GUI as often when iconized
         self.GUIupdate = True
-        self.oldframe = None
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
-        
+
+        progress('Binding events')        
         # Menu Events 
         ############################
-
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
         # leaving here for the time being:
@@ -194,7 +259,9 @@ class MainFrame(wx.Frame):
         # change
         self.Bind(wx.EVT_QUERY_END_SESSION, self.OnCloseWindow)
         self.Bind(wx.EVT_END_SESSION, self.OnCloseWindow)
-        
+        self.Bind(wx.EVT_ICONIZE, self.onIconify)
+        self.Bind(wx.EVT_SIZE, self.onSize)
+        self.Bind(wx.EVT_MAXIMIZE, self.onSize)
         
         findId = wx.NewId()
         quitId = wx.NewId()
@@ -212,19 +279,10 @@ class MainFrame(wx.Frame):
             accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
             accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
-        
-        try:
-            self.tbicon = ABCTaskBarIcon(self)
-        except:
-            print_exc()
-        self.Bind(wx.EVT_ICONIZE, self.onIconify)
-        self.Bind(wx.EVT_SIZE, self.onSize)
-        self.Bind(wx.EVT_MAXIMIZE, self.onSize)
 
         # Init video player
         sys.stdout.write('GUI Complete.\n')
-
-        self.Show(True)
+        self.Thaw()
         self.ready = True
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb

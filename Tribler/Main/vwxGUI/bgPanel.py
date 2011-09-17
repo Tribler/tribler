@@ -1,6 +1,7 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
 # see LICENSE.txt for license information
 import wx, os, sys
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
 
@@ -11,36 +12,16 @@ class ImagePanelBasic(wx.Panel):
     
     __bitmapCache = {}
 
-    def __init__(self, tile, *args, **kw):
+    def __init__(self, parent, tile, name):
+        wx.Panel.__init__(self, parent, name = name)
         self.backgroundColour = wx.WHITE
         
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         self.guiUtility = GUIUtility.getInstance()
-        self.xpos = self.ypos = 0
+        self.parent = parent
         self.tile = tile
-        self.bitmap = None
+        self.xpos = self.ypos = 0
         
-        if len(args) == 0: 
-            pre = wx.PrePanel() 
-            # the Create step is done by XRC. 
-            self.PostCreate(pre) 
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
-        else:
-            wx.Panel.__init__(self, *args, **kw) 
-            self._PostInit()
-            
-        
-    def OnCreate(self, event):
-        self.Unbind(wx.EVT_WINDOW_CREATE)
-        wx.CallAfter(self._PostInit)
-        event.Skip()
-        return True
-    
-    def _PostInit(self):
-        # Do all init here
-        
-        if self.bitmap is None:
-            self.loadBitmap()
+        self.loadBitmap()
             
         wx.EVT_PAINT(self, self.OnPaint)
         self.Refresh()
@@ -94,12 +75,12 @@ class ImagePanelBasic(wx.Panel):
             dc.Clear()
         
 class bgPanel(ImagePanelBasic):
-    def __init__(self, *args, **kw):
+    def __init__(self, parent, name):
         tile = True     
-        ImagePanelBasic.__init__(self, tile, *args, **kw)
+        ImagePanelBasic.__init__(self, parent, tile, name)
 
 class ImagePanel(ImagePanelBasic):
-    def __init__(self, *args, **kw):
+    def __init__(self, parent, name):
         tile = False
-        ImagePanelBasic.__init__(self, tile, *args, **kw)
+        ImagePanelBasic.__init__(self, parent, tile, name)
     

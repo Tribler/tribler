@@ -145,7 +145,7 @@ class ChannelSearchManager:
         self.dirtyset.clear()
     
     def do_or_schedule_refresh(self, force_refresh = False):
-        if self.list.ready and (self.list.ShouldGuiUpdate() or force_refresh):
+        if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
             self.refresh()
         else:
             self.dirtyset.add('COMPLETE_REFRESH')
@@ -233,7 +233,7 @@ class ChannelSearchManager:
             self.list.DeselectAll()
            
     def channelUpdated(self, id, votecast = False):
-        if self.list.ready:
+        if self.list.isReady:
             #only update when shown
             if self.list.IsShownOnScreen():
                 if self.list.InList(id):
@@ -261,30 +261,13 @@ class ChannelSearchManager:
 class XRCPanel(wx.Panel):
     def __init__(self, parent = None):
         self.parent = parent
-        self.ready = False
+        self.isReady = False
         
-        if parent:
-            wx.Panel.__init__(self, parent)
-            self._PostInit()
+        wx.Panel.__init__(self, parent)
+        self._PostInit()
+        
+        self.isReady = True
             
-        else:
-            pre = wx.PrePanel()
-            # the Create step is done by XRC. 
-            self.PostCreate(pre)
-            if sys.platform == 'linux2': 
-                self.Bind(wx.EVT_SIZE, self.OnCreate)
-            else:
-                self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-    
-    def OnCreate(self, event):
-        if sys.platform == 'linux2': 
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
-        
-        wx.CallAfter(self._PostInit)
-        event.Skip()
-    
     def _PostInit(self):
         pass
 
@@ -361,7 +344,6 @@ class List(XRCPanel):
         self.Layout()
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
-        self.ready = True
     
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns)
@@ -375,7 +357,7 @@ class List(XRCPanel):
         return ListFooter(parent)
     
     def OnSize(self, event):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
 
         if self.header and self.footer:
             diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
@@ -386,15 +368,15 @@ class List(XRCPanel):
         event.Skip()
         
     def OnSort(self, column, reverse):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             self.list.OnSort(column, reverse)
     
     def Reset(self):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
 
-        if self.ready:
+        if self.isReady:
             self.rawfilter = ''
             self.filter = ''
             
@@ -413,11 +395,11 @@ class List(XRCPanel):
             self.Layout()
             
     def OnExpand(self, item):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
     
     def OnCollapse(self, item, panel):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
         
         self.OnCollapseInternal(item)
@@ -431,54 +413,54 @@ class List(XRCPanel):
         pass
     
     def SetDelayedData(self, delayedResult):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
         self.SetData(delayedResult.get())
     
     def SetData(self, data):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
         
     def RefreshDelayedData(self, delayedResult, key):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
         self.RefreshData(key, delayedResult.get())
     
     def RefreshData(self, key, data):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
         
     def SetNrResults(self, nr):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.__check_thread()
         
     def InList(self, key):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             return self.list.InList(key)
     
     def GetItem(self, key):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             return self.list.GetItem(key)
         
     def GetItems(self):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             return self.list.items
         
     def GetExpandedItem(self):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             return self.list.GetExpandedItem()
     
     def Focus(self):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             self.list.SetFocus()
         
     def HasFocus(self):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         focussed = wx.Window.FindFocus()
         return focussed == self.list
         
@@ -502,22 +484,22 @@ class List(XRCPanel):
             self.footer.SetBackgroundColour(colour)
         
     def ScrollToEnd(self, scroll_to_end):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             self.list.ScrollToEnd(scroll_to_end)
     
     def ScrollToId(self, id):
-        assert self.ready, "List not ready"
+        assert self.isReady, "List not ready"
         self.list.ScrollToId(id)
     
     def DeselectAll(self):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert self.isReady, "List not ready"
+        if self.isReady:
             self.list.DeselectAll()
         
     def Select(self, key, raise_event = True):
-        assert self.ready, "List not ready"
-        if self.ready:
+        assert getattr(self, 'list', False), "List not ready"
+        if self.isReady:
             self.list.Select(key, raise_event)
     
     def SetFilteredResults(self, nr):
@@ -529,11 +511,11 @@ class List(XRCPanel):
         return self.guiutility.ShouldGuiUpdate()
 
     def ShowLoading(self):
-        if self.ready:
+        if self.isReady:
             self.list.ShowLoading()
             
     def OnLoadAll(self):
-        if self.ready:
+        if self.isReady:
             self.list.OnLoadAll()
         
     def Show(self, show = True):
@@ -859,7 +841,6 @@ class SearchList(GenericSearchList):
         self.Layout()
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
-        self.ready = True
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -977,8 +958,8 @@ class SearchList(GenericSearchList):
         self.footer.SetSpacerRight(diff)
         event.Skip()
 
-class LibaryList(SizeList):
-    def __init__(self):
+class LibraryList(SizeList):
+    def __init__(self, parent):
         self.user_download_choice = UserDownloadChoice.get_singleton()
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
@@ -990,11 +971,7 @@ class LibaryList(SizeList):
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
      
-        List.__init__(self, columns, LIST_GREY, [7,7], True)
-        
-    def _PostInit(self):
-        List._PostInit(self)
-        wx.CallAfter(self.guiutility.showLibrary, False)
+        List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1128,7 +1105,7 @@ class LibaryList(SizeList):
         dlg.Destroy()
             
     def RefreshItems(self, dslist):
-        if self.ready and self.ShouldGuiUpdate():
+        if self.isReady and self.ShouldGuiUpdate():
             totals = {2:0, 3:0, 4:0}
             
             nr_seeding = 0
@@ -1276,7 +1253,7 @@ class LibaryList(SizeList):
         return message
 
 class ChannelList(List):
-    def __init__(self):
+    def __init__(self, parent):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         
@@ -1295,7 +1272,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.max_votes = 5
-        List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
+        List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True, parent = parent)
     
     def __favorite_icon(self, item):
         channel = item.original_data
@@ -1428,12 +1405,12 @@ class ChannelList(List):
         self.title = None
 
 class ChannelCategoriesList(List):
-    def __init__(self):
+    def __init__(self, parent):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         columns = [{'width': wx.LIST_AUTOSIZE}]
     
-        List.__init__(self, columns, LIST_GREY, [7,7], True)
+        List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
     
     def CreateHeader(self, parent):
         title = TitleHeader(parent, self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
@@ -1447,9 +1424,6 @@ class ChannelCategoriesList(List):
         List._PostInit(self)
         self.list.SetData([(1,['Popular'],None), (2,['New'],None), (6, ['Updated'], None), (3,['Favorites'],None), (4,['All'],None), (5,['My Channel'],None)])
         self.SetMinSize((-1, self.GetBestSize()[1]))
-        
-        self.Select(1, False)
-        wx.CallAfter(self.guiutility.showChannelCategory, 'Popular', False)
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All','Updated']:
@@ -1469,6 +1443,8 @@ class ChannelCategoriesList(List):
 
     def SetQuicktip(self, quicktip):
         self.quicktip = quicktip
+        self.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as a favrotie.')
+        
     def Quicktip(self, html):
         html = '<font size=\'2\'><b>Quick Tip:</b> ' + html + '</font>' 
         self.quicktip.SetPage(html)

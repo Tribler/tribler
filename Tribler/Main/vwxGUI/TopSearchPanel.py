@@ -16,18 +16,20 @@ from traceback import print_exc
 DEBUG = False
 
 class TopSearchPanel(bgPanel):
-    def __init__(self, *args, **kwds):
+    def __init__(self, parent):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
             
-        bgPanel.__init__(self, *args, **kwds)
+        bgPanel.__init__(self, parent, 'top_search')
+        
         self.init_ready = False
-        self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
         
         self.uelog = UserEventLogDBHandler.getInstance()
         self.nbdb = NetworkBuzzDBHandler.getInstance()
+        
+        self._PostInit()
     
     def OnAutoComplete(self):
         self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type = 2)  
@@ -127,7 +129,8 @@ class TopSearchPanel(bgPanel):
 
     def SearchFocus(self):
         if self.home.GetValue():
-            self.guiUtility.frame.home.SearchFocus()
+            if getattr(self.parent, 'home', False):
+                self.parent.home.SearchFocus()
         else:
             self.searchField.SetFocus()
             self.searchField.SelectAll()
@@ -141,7 +144,6 @@ class TopSearchPanel(bgPanel):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnCreate"
         
-        bgPanel._PostInit(self)
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         
         if sys.platform == 'darwin':
@@ -189,6 +191,7 @@ class TopSearchPanel(bgPanel):
         
         self.init_ready = True
         self.Bind(wx.EVT_SIZE, self.OnResize)
+        
     def __do_layout(self):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         

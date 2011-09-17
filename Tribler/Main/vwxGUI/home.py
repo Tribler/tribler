@@ -31,11 +31,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 # _ProxyService 90s Test
 
 class Home(XRCPanel):
-    def __init__(self):
-        self.isReady = False
-        
-        XRCPanel.__init__(self)
-    
+
     def _PostInit(self):
         self.guiutility = GUIUtility.getInstance()
         
@@ -52,12 +48,10 @@ class Home(XRCPanel):
         text.SetFont(font)
         
         textSizer = wx.FlexGridSizer(2, 2, 3, 7)
-                
-                
         if sys.platform == 'darwin': # mac
             self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            self.searchBox = TextCtrlAutoComplete(self, entrycallback = self.guiutility.frame.top_bg.complete, selectcallback = self.guiutility.frame.top_bg.OnAutoComplete)
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback = self.parent.top_bg.complete, selectcallback = self.parent.top_bg.OnAutoComplete)
             
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
@@ -102,7 +96,6 @@ class Home(XRCPanel):
         
         self.SetSizer(vSizer)
         self.Layout()
-        self.isReady = True
         
         self.SearchFocus()
         
@@ -124,17 +117,7 @@ class Home(XRCPanel):
             self.searchBox.SetFocus()
             self.searchBox.SelectAll()
         
-class Stats(wx.Panel):
-    def __init__(self):
-        self.ready = False
-        pre = wx.PrePanel()
-        # the Create step is done by XRC. 
-        self.PostCreate(pre)
-    
-    def Show(self, show = True):
-        if not self.ready:
-            self._PostInit()
-        wx.Panel.Show(self, show)
+class Stats(XRCPanel):
     
     def _PostInit(self):
         self.SetBackgroundColour(wx.WHITE)
@@ -164,7 +147,6 @@ class Stats(wx.Panel):
         
         self.SetSizer(vSizer)
         self.Layout()
-        self.ready = True
         
         self.Bind(wx.EVT_KEY_UP, self.onKey)
         if sys.platform.startswith('win'):
@@ -172,7 +154,7 @@ class Stats(wx.Panel):
             self.Bind(wx.EVT_MOUSE_EVENTS, self.onMouse)
     
     def onActivity(self, msg):
-        if self.ready:
+        if self.isReady:
             self.activity.onActivity(msg)
         
     def onKey(self, event):

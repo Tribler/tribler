@@ -137,7 +137,7 @@ class ChannelManager():
                 self.list.dirty = True
 
 class SelectedChannelList(GenericSearchList):
-    def __init__(self):
+    def __init__(self, parent):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.channelsearch_manager = self.guiutility.channelsearch_manager 
@@ -150,7 +150,7 @@ class SelectedChannelList(GenericSearchList):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
-        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, borders = False, showChange = True)
+        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, borders = False, showChange = True, parent = parent)
         
     def _PostInit(self):
         self.uelog = UserEventLogDBHandler.getInstance()
@@ -198,7 +198,6 @@ class SelectedChannelList(GenericSearchList):
         self.Layout()
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
-        self.ready = True
         
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns, radius = 0)
@@ -533,8 +532,6 @@ class PlaylistManager():
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
 
 class Playlist(SelectedChannelList):
-    def __init__(self):
-        SelectedChannelList.__init__(self)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -837,8 +834,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
         boxSizer.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
         self.SetSizer(boxSizer)
         self.Layout()
-        
-        self.ready = True
     
     def BuildRssPanel(self, parent, sizer):
         self._add_subheader(parent, sizer, "Current rss-feeds:","(which are periodically checked)")

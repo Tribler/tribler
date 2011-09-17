@@ -30,6 +30,7 @@ import os,sys
 import urllib
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -107,11 +108,12 @@ ALLOW_MULTIPLE = False
 # Main ABC application class that contains ABCFrame Object
 #
 ##############################################################
-class ABCApp(wx.App):
-    def __init__(self, redirectstderrout, params, single_instance_checker, installdir):
+class ABCApp():
+    def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
+        
         self.state_dir = None
         self.error = None
         self.last_update = 0
@@ -123,73 +125,21 @@ class ABCApp(wx.App):
 
         self.old_reputation = 0
         
-        # ProxyService 90s Test_NTFY_PLAYLISTS
-#        self.proxytest_reported = False
-        # _ProxyService 90s Test_
-
         try:
-            import sys
-            self.pre_stdout, self.pre_stderr = sys.stdout, sys.stderr
-
-            ubuntu = False
-            if sys.platform == "linux2":
-                f = open("/etc/issue","rb")
-                data = f.read(100)
-                f.close()
-                if data.find("Ubuntu 8.10") != -1:
-                    ubuntu = True
-                if data.find("Ubuntu 9.04") != -1:
-                    ubuntu = True
-                    
-            print >>sys.stderr,"tribler: Activating workaround for Ubuntu?",ubuntu
-            
-            if not redirectstderrout and ubuntu:
-                # On Ubuntu 8.10 not redirecting output causes the program to quit
-                wx.App.__init__(self, redirect=True)
-            else:
-                wx.App.__init__(self, redirectstderrout)
-            
-        except Exception as e:
-            # boudewijn: wx messes around with streams
-            import sys
-            sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
-            print_exc()
-            # boudewijn: we need to flush, otherwise exception is not
-            # always shown
-            sys.stderr.flush()
-        
-    def OnInit(self):
-        try:
-            bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
-            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
-            wx.Yield()
-            
-            
-            import sys
-            sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
+            bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.png'),wx.BITMAP_TYPE_ANY)
+            self.splash = GaugeSplash(bm)
+            self.splash.setTicks(10)
+            self.splash.Show()
 
             self.utility = Utility(self.installdir,Session.get_default_state_dir())
             self.utility.app = self
-
-            #self.postinitstarted = False
-            """
-            Hanging self.OnIdle to the onidle event doesnot work under linux (ubuntu). The images in xrc files
-            will not load in any but the filespanel.
-            """
-            #self.Bind(wx.EVT_IDLE, self.OnIdle)
-            
-            
-        
-            # Set locale to determine localisation
-            #locale.setlocale(locale.LC_ALL, '')
 
             sys.stderr.write('Client Starting Up.\n')
             sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
             
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
-            self.PostInit()    
-            return True
-            
+            self.PostInit()
+                
         except Exception,e:
             print_exc()
             self.error = e
@@ -228,34 +178,23 @@ class ABCApp(wx.App):
             # Read and create GUI from .xrc files
             #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            self.startAPI()
+            
+            self.splash.tick('Starting API')
+            self.startAPI(self.splash.tick)
             self.guiUtility.register()
+            
+            internal_frame = False
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
+                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
+                if not self.guiUtility.useExternalVideo:
+                    internal_frame = True
            
-            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
-            self.frame = self.res.LoadFrame(None, "MyFrame")
-            self.frame.SetDoubleBuffered(True) 
+            self.frame = MainFrame(None, internal_frame, self.splash.tick)
+            self.frame.set_wxapp(self)
             self.guiUtility.frame = self.frame
 
-            self.frame.set_wxapp(self)
-            self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
-            self.frame.home = xrc.XRCCTRL(self.frame,"home")
-            self.frame.stats = xrc.XRCCTRL(self.frame,"stats")
-            self.frame.searchlist = xrc.XRCCTRL(self.frame, "searchlist")
-            self.frame.channellist = xrc.XRCCTRL(self.frame, "channellist")
-            self.frame.selectedchannellist = xrc.XRCCTRL(self.frame, "selchannellist")
-            self.frame.playlist = xrc.XRCCTRL(self.frame, "playlist")
-            self.frame.managechannel = xrc.XRCCTRL(self.frame, "managechannel")
-            self.frame.channelselector = xrc.XRCCTRL(self.frame, "channelSelector")
-            self.frame.channelcategories = xrc.XRCCTRL(self.frame, "channelcategories")
-            self.frame.channelcategories.SetQuicktip(xrc.XRCCTRL(self.frame, "quicktip"))
-            self.frame.librarylist = xrc.XRCCTRL(self.frame, "librarylist")
-
-            # videopanel
-                
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
-            # or sys.platform == 'darwin'
             self.frame.videoframe = None
-            self.frame.videoparentpanel = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
                 vlcwrap = self.videoplayer.get_vlcwrap()
             
@@ -264,8 +203,6 @@ class ABCApp(wx.App):
                     self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
                     self.videoplayer.set_videoframe(self.frame.videoframe)
                 else:
-                    self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
-                    
                     self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
                     self.videoplayer.set_videoframe(self.frame.videoframe)
                 
@@ -275,9 +212,6 @@ class ABCApp(wx.App):
             else:
                 self.frame.top_bg.Layout()
           
-            self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
-            self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
-
             # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
             try:
@@ -295,8 +229,8 @@ class ABCApp(wx.App):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
             
-            self.frame.Show(True)
             self.splash.Destroy()
+            self.frame.Show(True)
             
             self.torrentfeed = RssParser.getInstance()
             
@@ -433,7 +367,7 @@ class ABCApp(wx.App):
 #        return False
     # _ProxyService 90s Test
 
-    def startAPI(self):
+    def startAPI(self, progress):
         
         # Start Tribler Session
         state_dir = Session.get_default_state_dir()
@@ -494,9 +428,11 @@ class ABCApp(wx.App):
             install_dir = install_dir[:install_dir.find('library.zip') - 1]
             self.sconfig.set_install_dir(install_dir)
         
+        progress('Creating session')
         s = Session(self.sconfig)
         self.utility.session = s
 
+        progress('Loading userdownloadchoice')
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.get_state_dir())
 
@@ -506,7 +442,7 @@ class ABCApp(wx.App):
         port = s.get_listen_port()
         self.guiUtility.set_port_number(port)
 
-
+        progress('Loading downloadconfig')
         # Load the default DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(s)
         try:
@@ -526,6 +462,7 @@ class ABCApp(wx.App):
         # see loadSessionCheckpoint
 
         # Create global rate limiter
+        progress('Setting up ratelimiters')
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
         self.rateadjustcount = 0
 
@@ -578,6 +515,7 @@ class ABCApp(wx.App):
         #
         self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         
+        progress('Starting repexer')
         # RePEX: Start scheduler and logger
         from Tribler.Core.DecentralizedTracking.repex import RePEXScheduler, RePEXLogger
         #RePEXLogger.getInstance().start() #no more need for logging
@@ -1112,10 +1050,9 @@ def run(params = None):
             #os.chdir(installdir)
     
             # Launch first abc single instance
-            app = ABCApp(False, params, single_instance_checker, installdir)
-            configpath = app.getConfigPath()
-
-            # Arno, 2010-06-18: Logging to ULANC disabled for Tribler Main
+            app = wx.PySimpleApp(redirect = False)
+            abc = ABCApp(params, single_instance_checker, installdir)
+            app.MainLoop()
             
             # Setup the statistic reporter while waiting for proper integration
             status = get_status_holder("LivingLab")
@@ -1130,8 +1067,6 @@ def run(params = None):
 #            status = get_status_holder("Proxy90secondsTest")
 #            status.add_reporter(ProxyTestPeriodicReporter("Proxy90secondsTest", 300, "id01"))
             # _ProxyService 90s Test
-
-            app.MainLoop()
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(1)
