@@ -56,14 +56,15 @@ class TriblerLaunchMany(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
+        self.initComplete = False
         
     def register(self,session,sesslock):
         self.session = session
         self.sesslock = sesslock
         
-        self.downloads = {} 
+        self.downloads = {}
         config = session.sessconfig # Should be safe at startup
-
+        
         self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
         self.upnp_ext_ip = None
         self.dialback_ext_ip = None
@@ -81,7 +82,7 @@ class TriblerLaunchMany(Thread):
         self.upnp_thread = None
         self.upnp_type = config['upnp_nat_access']
         self.nat_detect = config['nat_detect']
-
+        
         self.rawserver = RawServer(self.sessdoneflag,
                                    config['timeout_check_interval'],
                                    config['timeout'],
@@ -89,13 +90,13 @@ class TriblerLaunchMany(Thread):
                                    failfunc = self.rawserver_fatalerrorfunc,
                                    errorfunc = self.rawserver_nonfatalerrorfunc)
         self.rawserver.add_task(self.rawserver_keepalive,1)
-
+        
         self.listen_port = self.rawserver.find_and_bind(0, 
                     config['minport'], config['maxport'], config['bind'], 
                     reuse = True,
                     ipv6_socket_style = config['ipv6_binds_v4'], 
                     randomizer = config['random_port'])
-        
+       
         if DEBUG:
             print >>sys.stderr,"tlm: Got listen port", self.listen_port
         
@@ -110,12 +111,12 @@ class TriblerLaunchMany(Thread):
             from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
             from Tribler.Category.Category import Category
             
-           # 13-04-2010, Andrea: rich metadata (subtitle) db
+            # 13-04-2010, Andrea: rich metadata (subtitle) db
             from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
             
             # init cache db
             if config['nickname'] == '__default_name__':
-                config['nickname']  = socket.gethostname()
+                config['nickname'] = socket.gethostname()
                 
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
@@ -198,7 +199,10 @@ class TriblerLaunchMany(Thread):
             self.mm = None
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             self.richmetadataDbHandler = None
-
+        
+    def init(self):
+        config = self.session.sessconfig # Should be safe at startup
+        
         if config['overlay']:
             from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
@@ -273,7 +277,6 @@ class TriblerLaunchMany(Thread):
             self.httphandler = DummyHTTPHandler()
         self.multihandler.set_httphandler(self.httphandler)
 
-
         if config['mainline_dht']:
             #import logging
             # Arno,The equivalent of DEBUG=False for kadtracker
@@ -283,7 +286,6 @@ class TriblerLaunchMany(Thread):
             # Start up KTH mainline DHT
             #TODO: Can I get the local IP number?
             mainlineDHT.init(('127.0.0.1', self.listen_port), config['state_dir'])
-               
         
         # add task for tracker checking
         if config['torrent_checking']:
@@ -418,6 +420,8 @@ class TriblerLaunchMany(Thread):
 
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+        
+        self.initComplete = True
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
@@ -821,6 +825,9 @@ class TriblerLaunchMany(Thread):
             return ip
 
     def run(self):
+        if not self.initComplete:
+            self.init()
+        
         if PROFILE:
             fname = "profile-%s" % self.getName()
             import cProfile
