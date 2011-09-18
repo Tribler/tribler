@@ -33,7 +33,7 @@ class TorrentPayload(Payload):
             assert isinstance(name, unicode)
             assert isinstance(files, tuple)
             for path, length in files:
-                assert isinstance(path, unicode)
+                assert isinstance(path, str)
                 assert isinstance(length, (int, long))
                 
             assert isinstance(trackers, tuple)

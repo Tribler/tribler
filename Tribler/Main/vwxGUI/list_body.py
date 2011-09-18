@@ -8,7 +8,8 @@ from traceback import print_stack
 from time import time
 import re
 
-from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as StaticText
+from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as StaticText,\
+    _set_font
 
 from __init__ import *
 from Tribler.Main.vwxGUI.GuiUtility import warnWxThread
@@ -406,11 +407,14 @@ class AbstractListBody():
         self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
+        self.headerText = StaticText(self.messagePanel)
+        _set_font(self.headerText, fontweight=wx.FONTWEIGHT_BOLD)
         self.messageText = StaticText(self.messagePanel)
         self.loadNext = wx.Button(self.messagePanel)
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()
         
+        messageVSizer.Add(self.headerText)
         messageVSizer.Add(self.messageText)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
         
@@ -616,10 +620,16 @@ class AbstractListBody():
             self.Scroll(-1, sy)
     
     @warnWxThread
-    def ShowMessage(self, message):
+    def ShowMessage(self, message, header = None):
         if not self.messagePanel.IsShown():
             self.Freeze()
             
+            if header:
+                self.headerText.SetLabel(header)
+                self.headerText.Show()
+            else:
+                self.headerText.Hide()
+                
             self.messageText.SetLabel(message)
             self.loadNext.Hide()
             self.vSizer.ShowItems(False)

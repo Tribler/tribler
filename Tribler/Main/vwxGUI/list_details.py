@@ -813,7 +813,6 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread
     def OnChange(self, event):
-        print >> sys.stderr, "OnChange"
         page = event.GetSelection()
         
         title = self.notebook.GetPageText(page)

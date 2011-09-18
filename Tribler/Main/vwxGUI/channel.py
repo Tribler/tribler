@@ -295,9 +295,9 @@ class SelectedChannelList(GenericSearchList):
             
             self.SetNrResults(len(data))
         else:
-            message =  'No torrents or playlists found.\n'
-            message += 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
-            self.list.ShowMessage(message)
+            header =  'No torrents or playlists found.'
+            message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
+            self.list.ShowMessage(message, header = header)
             
             self.SetNrResults(0)
     

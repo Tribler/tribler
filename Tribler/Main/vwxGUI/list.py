@@ -722,11 +722,11 @@ class GenericSearchList(SizeList):
             
             self.list.SetData(list_data)
         else:
-            message =  'No torrents matching your query are found. \n'
-            message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
+            header =  'No torrents matching your query are found.'
+            message = 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
             if self.guiutility.getFamilyFilter():
                 message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
-            self.list.ShowMessage(message)
+            self.list.ShowMessage(message, header = header)
 
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
@@ -1202,10 +1202,10 @@ class LibraryList(SizeList):
             data = [(file.infohash, [file.name, [0,0], None, None, None], file) for file in data]
             self.list.SetData(data)
         else:
-            message = "Currently not downloading any torrents.\n"
-            message += "Torrents can be found using our integrated search, inside a channel.\n\n"
-            message += "Additionally you could drag and drop any torrent file downloaded from an external source."
-            self.list.ShowMessage(message)
+            header = "Currently not downloading any torrents."
+            message = "Torrents can be found using our integrated search or using channels.\n"
+            message += "Additionally you could add any torrent file downloaded from an external source by using the '+ Add' button or dropping it here."
+            self.list.ShowMessage(message, header = header)
 
     def Show(self, show = True):
         List.Show(self, show)

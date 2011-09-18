@@ -1277,7 +1277,7 @@ class ChannelSearchGridManager:
         if not self.channelcast_db.hasTorrent(channel_id, tdef.infohash):
             community = self._disp_get_community_from_channel_id(channel_id)
             
-            files = tdef.get_files_as_unicode_with_length()
+            files = tdef.get_files()
             community._disp_create_torrent(tdef.infohash, long(time()), unicode(tdef.get_name()), tuple(files), tdef.get_trackers_as_single_tuple(), forward = forward)
             
         if 'description' in extraInfo:
