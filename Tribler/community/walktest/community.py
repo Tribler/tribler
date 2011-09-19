@@ -124,7 +124,7 @@ class WalktestCommunity(Community):
         # wait for introduction-response
         meta_response = self._meta_messages[u"introduction-response"]
         footprint = meta_response.generate_footprint(payload=(identifier,))
-        timeout = meta_response.delay + 5.0 # TODO why 5.0 margin
+        timeout = meta_request.delay + meta_response.delay + 5.0 # TODO why 5.0 margin
         self._dispersy.await_message(footprint, self.introduction_response_or_timeout, response_args=(destination, advice), timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
