@@ -238,7 +238,7 @@ def main(filename):
 
     # counters
     # messages = {"introduction-request":52, "introduction-request-with-advice":52, "introduction-response":63, "puncture-request":43, "puncture":31}
-    messages = {"introduction-request":1500, "introduction-request-with-advice":1500, "introduction-response":1500, "puncture-request":1500, "puncture":31}
+    messages = {"introduction-request":1500, "introduction-request-with-advice":1500, "introduction-response":63, "puncture-request":43, "puncture":31}
     incoming = dict((key, 0) for key in messages)
     outgoing = dict((key, 0) for key in messages)
 
