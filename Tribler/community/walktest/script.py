@@ -4,6 +4,8 @@ Example file
 python Tribler/Main/dispersy.py --script simpledispersytest-generate-messages
 """
 
+import sys
+
 from community import WalktestCommunity
 
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -88,7 +90,7 @@ class ScenarioScript(ScriptBase):
             dprint(total - i)
             yield 1.0
 
-def main():
+def main(filename):
     def ignore(lineno, datetime, message, **kargs):
         # if not message in ["logger"]:
         #     print "ignore", message, kargs.keys()
@@ -251,7 +253,7 @@ def main():
                "out-puncture":out_puncture,
                "introduction-response-timeout":introduction_response_timeout,
                }
-    for lineno, datetime, message, kargs in parse("walktest.log"):
+    for lineno, datetime, message, kargs in parse(filename):
         last_datetime = datetime
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 
@@ -326,4 +328,5 @@ def main():
     print
 
 if __name__ == "__main__":
-    main()
+    filename = sys.argv[1] if len(sys.argv) == 2 else "walktest.log"
+    main(filename)
