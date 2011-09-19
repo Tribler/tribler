@@ -145,6 +145,11 @@ class MainFrame(wx.Frame):
         style = wx.DEFAULT_DIALOG_STYLE|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.RESIZE_BORDER|wx.NO_FULL_REPAINT_ON_RESIZE|wx.CLIP_CHILDREN
             
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, position, size, style)
+        if sys.platform == 'linux2':
+            font = self.GetFont()
+            font.SetPointSize(9)
+            self.SetFont(font)
+        
         self.Freeze()
         self.SetDoubleBuffered(True)
         self.SetBackgroundColour(wx.WHITE)
