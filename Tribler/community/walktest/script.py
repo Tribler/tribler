@@ -306,6 +306,7 @@ def main(filename):
     assert duration.days == 0
     seconds = duration.seconds
     print "duration", duration, "->", seconds, "seconds"
+    print "inverval", outgoing["introduction-request"], "requests -> ", 1.0 * seconds / outgoing["introduction-request"], "r/s"
     print len(all_addresses), "distinct addresses"
     print
 
