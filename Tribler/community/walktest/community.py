@@ -252,7 +252,7 @@ class WalktestCommunity(Community):
 
                 # determine if we are in the same LAN as the introduced node
                 destination = message.payload.internal_introduction_address if message.payload.external_introduction_address[0] == self._dispersy.external_address[0] else message.payload.external_introduction_address
-                self._dispersy.callback.register(create_introduction_request, (destination,), delay=1.0)
+                self._dispersy.callback.register(self.create_introduction_request, (destination,), delay=1.0)
             else:
                 self.start_walk()
 
