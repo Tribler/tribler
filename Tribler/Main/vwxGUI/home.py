@@ -175,17 +175,34 @@ class Stats(wx.Panel):
         
     def onKey(self, event):
         if event.ControlDown() and event.GetKeyCode() == 73: #ctrl + i
-            import wx.lib.inspection
-            wx.lib.inspection.InspectionTool().Show()
+            self._showInspectionTool()
         else:
             event.Skip()
     
     def onMouse(self, event):
         if all([event.RightUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]): 
-            import wx.lib.inspection
-            wx.lib.inspection.InspectionTool().Show()
+            self._showInspectionTool()
         else:
             event.Skip()
+    
+    def _showInspectionTool(self):
+        import wx.lib.inspection
+        itool = wx.lib.inspection.InspectionTool()
+        itool.Show()
+        try:
+            frame = itool._frame
+            
+            import Tribler
+            frame.locals['Tribler'] = Tribler
+            
+            from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+            overlay = SecureOverlay.getInstance()
+            frame.locals['overlay'] = overlay
+        
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        
                 
         
 class HomePanel(wx.Panel):
