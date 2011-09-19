@@ -69,6 +69,10 @@ class WalktestCommunity(Community):
             del self._candidates[self._dispersy.external_address]
         if self._dispersy.external_address in self._bootstrap_addresses:
             self._bootstrap_addresses.remove(self._dispersy.external_address)
+        # bootstrap peers may not be candidates (can occur when self._bootstrap_addresses changes)
+        for bootstrap_address in self._bootstrap_addresses:
+            if bootstrap_address in self._candidates:
+                del self._candidates[bootstrap_address]
 
         # remove old candidates
         deadline = time() - 60.0
@@ -78,10 +82,10 @@ class WalktestCommunity(Community):
         # get all candidates that either participated in a our walk or that stumbled upon us
         walks = [candidate for candidate in self._candidates.itervalues() if candidate.is_walk and candidate.internal_address not in blacklist and candidate.external_address not in blacklist]
         stumbles = [candidate for candidate in self._candidates.itervalues() if candidate.is_stumble and candidate.internal_address not in blacklist and candidate.external_address not in blacklist]
-
+        
         # apply blacklist to the bootstrap addresses
         bootstrap_addresses = [address for address in self._bootstrap_addresses if not address in blacklist]
-        
+
         # yield candidates, if available
         if bootstrap_addresses or walks or stumbles:
             while True:
@@ -113,9 +117,9 @@ class WalktestCommunity(Community):
                 self._walk.add(identifier)
                 break
 
-        advice = random() < 0.8 or len(self._candidates) <= 1
+        advice = random() < 0.5 or len(self._candidates) <= 5
 
-        # log("walktest.log", "create_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
+        log("walktest.log", "create_introduction_request", internal_address=self._dispersy.internal_address, external_address=self._dispersy.external_address, candidates=[(x.internal_address, x.external_address) for x in self._candidates.itervalues()])
         log("walktest.log", "out-introduction-request", destination_address=destination, source_internal_address=self._dispersy.internal_address, source_external_address=self._dispersy.external_address, advice=advice, identifier=identifier)
 
         meta_request = self._meta_messages[u"introduction-request"]
@@ -148,7 +152,7 @@ class WalktestCommunity(Community):
             # update local view
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_requests(message.payload.source_internal_address, message.payload.source_external_address)
-            else:
+            elif not message.address in self._bootstrap_addresses:
                 self._candidates[message.address] = Candidate(message.payload.source_internal_address, message.payload.source_external_address, introduction_requests=1)
 
             # obtain own public address
@@ -240,7 +244,7 @@ class WalktestCommunity(Community):
             # update local view
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_responses(message.payload.source_internal_address, message.payload.source_external_address)
-            else:
+            elif not message.address in self._bootstrap_addresses:
                 self._candidates[message.address] = Candidate(message.payload.source_internal_address, message.payload.source_external_address, introduction_responses=1)
 
             # obtain own public address
