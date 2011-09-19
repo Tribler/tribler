@@ -2,7 +2,6 @@ from hashlib import sha1
 from time import time
 
 from conversion import AllChannelConversion
-from payload import ChannelCastPayload, VoteCastPayload, ChannelSearchRequestPayload, ChannelSearchResponsePayload
 
 # from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 # from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -22,7 +21,7 @@ from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.allchannel.payload import ChannelCastRequestPayload,\
-    ChannelSearchPayload
+    ChannelCastPayload, VoteCastPayload, ChannelSearchPayload, ChannelSearchResponsePayload
 from traceback import print_exc
 
 if __debug__:
