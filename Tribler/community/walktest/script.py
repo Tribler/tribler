@@ -253,12 +253,17 @@ def main(filename):
                "out-puncture":out_puncture,
                "introduction-response-timeout":introduction_response_timeout,
                }
+
+    first_datetime = None
     for lineno, datetime, message, kargs in parse(filename):
+        if first_datetime is None:
+            first_datetime = datetime
         last_datetime = datetime
         mapping.get(message, ignore)(lineno, datetime, message, **kargs)
 
-    if online:
-        first_datetime = online[0][0]
+    duration = last_datetime - first_datetime
+    assert duration.days == 0
+    seconds = duration.seconds
 
     # public addresses
     if public_addresses and online:
@@ -302,9 +307,6 @@ def main(filename):
             last_datetime, last_candidates = datetime, candidates
         print
 
-    duration = last_datetime - first_datetime
-    assert duration.days == 0
-    seconds = duration.seconds
     print "duration", duration, "->", seconds, "seconds"
     print "inverval", outgoing["introduction-request"], "requests -> ", 1.0 * seconds / outgoing["introduction-request"], "r/s"
     print len(all_addresses), "distinct addresses"
