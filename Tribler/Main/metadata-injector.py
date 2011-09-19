@@ -46,12 +46,6 @@ def main():
     if opt.port: sscfg.set_listen_port(opt.port)
     if opt.nickname: sscfg.set_nickname(opt.nickname)
     
-    # set_moderationcast_promote_own() will ensure your moderations on
-    # the RSS feed items are sent to any peer you connect to on the
-    # overlay.
-
-    # Agressively promote own moderations:
-    sscfg.set_moderationcast_promote_own(True)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
