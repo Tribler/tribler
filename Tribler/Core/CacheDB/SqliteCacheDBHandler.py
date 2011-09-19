@@ -3230,15 +3230,6 @@ class ChannelCastDBHandler(object):
             self._db.execute_write(update_channel, (modification_value, long(time()), channel_id), commit = self.shouldCommit)
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_MODIFIED, channel_id)
-      
-    def deleteTorrent(self, channel_id, torrent_id):
-        #TODO, connect with dispersy, decrement nr_torrents!
-        raise NotImplementedError()
-    
-        """
-        sql = 'Delete From ChannelCast where infohash=? and publisher_id=?'
-        self._db.execute_write(sql,(bin2str(infohash),bin2str(self.my_permid),))
-        """
         
     def on_torrents_from_dispersy(self, torrentlist):
         print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
@@ -3788,17 +3779,17 @@ class ChannelCastDBHandler(object):
         keywords = [keyword for keyword in keywords if len(keyword) > 1]
         
         if len(keywords) > 0:
-            sql = "SELECT distinct id, name FROM Channels WHERE" + (" name like '%?%' and"*len(keywords))
+            sql = "SELECT distinct id, dispersy_cid, name FROM Channels WHERE" + (" name like '%?%' and"*len(keywords))
             sql = sql[:-3]
                    
             channels = self._db.fetchall(sql)
             select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrents, CollectedTorrent WHERE Torrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY time_stamp DESC LIMIT 20"
             
             results = []
-            for channel_id, name in channels:
+            for channel_id, dispersy_cid, name in channels:
                 torrents = self._db.fetchall(select_torrents, (channel_id, ))
                 for infohash, ChTname, CoTname, time_stamp in torrents:
-                    results.append((channel_id, name, infohash, ChTname or CoTname, time_stamp))
+                    results.append((channel_id, dispersy_cid, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []
 

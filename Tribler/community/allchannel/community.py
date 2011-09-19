@@ -21,7 +21,8 @@ from Tribler.Core.dispersy.resolution import PublicResolution
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
-from Tribler.community.allchannel.payload import ChannelCastRequestPayload
+from Tribler.community.allchannel.payload import ChannelCastRequestPayload,\
+    ChannelSearchPayload
 from traceback import print_exc
 
 if __debug__:
@@ -85,10 +86,10 @@ class AllChannelCommunity(Community):
         self._blocklist = {}
 
     def initiate_meta_messages(self):
-        # Message(self, u"torrent-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentRequestPayload()),
-        # Message(self, u"torrent-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), TorrentResponsePayload()),
-        return [Message(self, u"channelcast", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
-                Message(self, u"channelcast-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
+        return [Message(self, u"channelcast", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
+                Message(self, u"channelcast-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
+                Message(self, u"channelsearch", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchPayload(), self.check_channelsearch, self.on_channelsearch),
+                Message(self, u"channelsearch-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelSearchResponsePayload(), self.check_channelsearch_response, self.on_channelsearch_response),
                 Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast)
                 ]
 
@@ -167,7 +168,7 @@ class AllChannelCommunity(Community):
 
     def check_channelcast(self, messages):
         log("dispersy.log", "checking-channelcast")
-        # no timeline check because NoAuthentication policy is used
+        # no timeline check because PublicResolution policy is used
         return messages
 
     def on_channelcast(self, messages):
@@ -206,7 +207,7 @@ class AllChannelCommunity(Community):
         self._dispersy._send([address], [message.packet])
     
     def check_channelcast_request(self, messages):
-        # no timeline check because NoAuthentication policy is used
+        # no timeline check because PublicResolution policy is used
         return messages
 
     def on_channelcast_request(self, messages):
@@ -226,6 +227,49 @@ class AllChannelCommunity(Community):
             
             self._dispersy._send([message.address], requested_packets)
     
+    def create_channelsearch(self, keywords):
+        meta = self.get_meta_message(u"channelsearch")
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(keywords))
+        
+        #self._dispersy.store_update_forward([message], store, update, forward)
+    
+    def check_channelsearch(self, messages):
+        #no timeline check because PublicResolution policy is used
+        return messages
+
+    def on_channelsearch(self, messages):
+        for message in messages:
+            keywords = message.payload.keywords
+            query = " ".join(keywords)
+            
+            results = self._channelcast_db.searchChannels(query)
+            
+            if len(results) > 0:
+                responsedict = {}
+                for channel_id, dispersy_cid, name, infohash, torname, time_stamp in results:
+                    infohashes = responsedict.setdefault(dispersy_cid, set())
+                    infohashes.add(infohash)
+                self.create_channelsearch_response(responsedict, message.address)
+    
+    def create_channelsearch_response(self, torrents, address):
+        #create channelsearch-response message
+        meta = self.get_meta_message(u"channelsearch-response")
+        message = meta.impl(distribution=(self.global_time,), payload=(torrents,))
+        self._dispersy._send([address], [message.packet])
+    
+    def check_channelsearch_response(self, messages):
+        #no timeline check because PublicResolution policy is used
+        return messages
+        
+    def on_channelsearch_response(self, messages):
+        for message in messages:
+            #request missing torrents
+            self.on_channelcast_request(message)
+            
+            #show results in gui
+                
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         self._register_task(self._disp_create_votecast, (vote, timestamp, store, update, forward))
 

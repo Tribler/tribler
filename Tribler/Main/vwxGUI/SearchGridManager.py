@@ -1414,12 +1414,12 @@ class ChannelSearchGridManager:
         self.hits = {}
         for hit in hits:
             if hit[0] not in self.hits:
-                self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(hit[0]), {}]
+                self.hits[hit[0]] = [hit[2], self.votecastdb.getEffectiveVote(hit[0]), {}]
             
             #Extend torrent dict for this channel
             torrents = self.hits[hit[0]][2]
-            if hit[2] not in torrents:
-                torrents[hit[2]] = (hit[3], hit[4])
+            if hit[3] not in torrents:
+                torrents[hit[3]] = (hit[4], hit[5])
         return True
         
     def gotRemoteHits(self, permid, kws, answers):
