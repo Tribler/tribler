@@ -320,7 +320,7 @@ class TriblerLaunchMany(Thread):
                     if __debug__: print >>sys.stderr, "Dispersy listening at", port
                     try:
                         self.socket = rawserver.create_udpsocket(port, ip)
-                    except socket.error as error:
+                    except socket.error, error:
                         port += 1
                         continue
                     break

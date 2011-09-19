@@ -137,10 +137,6 @@ class SimpleDispersyTestCommunity(Community):
             else:
                 yield DelayMessageByProof(message)
 
-    def on_last_1_subjective_sync(self, messages):
-        if __debug__: dprint(self._cid.encode("HEX"))
-        self._status.create_and_add_event("on_last_1_subjective_sync^" + self._cid.encode("HEX"), [(message.address, message.distribution.global_time, message.payload.text) for message in messages])
-
     def _periodically_info(self):
         while True:
             self._status.create_and_add_event("info^" + self._cid.encode("HEX"), [self._dispersy.info(attributes=False)])

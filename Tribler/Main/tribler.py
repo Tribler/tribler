@@ -145,7 +145,7 @@ class ABCApp(wx.App):
             else:
                 wx.App.__init__(self, redirectstderrout)
             
-        except Exception as e:
+        except Exception, e:
             # boudewijn: wx messes around with streams
             import sys
             sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
