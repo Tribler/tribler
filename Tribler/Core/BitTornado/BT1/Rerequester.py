@@ -311,8 +311,9 @@ class Rerequester:
                 for t in range(len(self.trackerlist)):
                     for tr in range(len(self.trackerlist[t])):
                         tracker  = self.trackerlist[t][tr]
-                        # Arno: no udp support yet
-                        if tracker.startswith( 'udp:' ):
+                        #Arno: no udp support yet
+                        #Niels: only http(s) support
+                        if not tracker.startswith('http'):
                             if DEBUG:
                                 print >>sys.stderr,"Rerequester: Ignoring tracker",tracker
                             continue
