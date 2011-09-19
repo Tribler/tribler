@@ -172,16 +172,15 @@ class ABCApp():
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
 
-            notification_init( self.utility )
+            notification_init(self.utility)
             
-            #
-            # Read and create GUI from .xrc files
-            #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
             
             self.splash.tick('Starting API')
             self.startAPI(self.splash.tick)
             self.guiUtility.register()
+            
+            channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
             
             internal_frame = False
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
@@ -189,7 +188,7 @@ class ABCApp():
                 if not self.guiUtility.useExternalVideo:
                     internal_frame = True
            
-            self.frame = MainFrame(None, internal_frame, self.splash.tick)
+            self.frame = MainFrame(None, channel_only, internal_frame, self.splash.tick)
             self.frame.set_wxapp(self)
             self.guiUtility.frame = self.frame
 
@@ -742,26 +741,29 @@ class ABCApp():
     @forceWxThread
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
-            manager = self.frame.channellist.GetManager()
-            manager.channelUpdated(objectID, subject == NTFY_VOTECAST)
+            if self.frame.channellist:
+                manager = self.frame.channellist.GetManager()
+                manager.channelUpdated(objectID, subject == NTFY_VOTECAST)
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = changeType == NTFY_MODIFIED)
             
             if changeType == NTFY_CREATE:
-                self.frame.channellist.SetMyChannelId(objectID)
+                if self.frame.channellist:
+                    self.frame.channellist.SetMyChannelId(objectID)
                 
                 torrentfeed = RssParser.getInstance()
                 torrentfeed.register(self.utility.session, objectID)
                 torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                
+            
             self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
     
     @forceWxThread
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
-            manager = self.frame.searchlist.GetManager()
-            manager.torrentUpdated(objectID)
+            if self.frame.searchlist:
+                manager = self.frame.searchlist.GetManager()
+                manager.torrentUpdated(objectID)
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.torrentUpdated(objectID)

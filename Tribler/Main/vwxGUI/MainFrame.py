@@ -124,7 +124,7 @@ class FileDropTarget(wx.FileDropTarget):
         return True
 
 class MainFrame(wx.Frame):
-    def __init__(self, parent, internalvideo, progress):
+    def __init__(self, parent, channelonly, internalvideo, progress):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -157,29 +157,39 @@ class MainFrame(wx.Frame):
             
         #Create all components        
         progress('Creating panels')
-        self.top_bg = TopSearchPanel(self)
-        self.home = Home(self)
+        self.top_bg = TopSearchPanel(self, channelonly)
+        
+        if not channelonly:
+            self.home = Home(self)
+        
+            #build channelselector panel
+            self.channelselector = wx.BoxSizer(wx.VERTICAL)
+            self.channelcategories = ChannelCategoriesList(self)
+            quicktip = HtmlWindow(self)
+            quicktip.SetBorders(2)
+            self.channelcategories.SetQuicktip(quicktip)
+
+            self.channelselector.Add(self.channelcategories, 0, wx.EXPAND)
+            self.channelselector.Add(quicktip, 1, wx.EXPAND)
+            self.channelselector.AddStretchSpacer()
+            self.channelselector.ShowItems(False)
+        
+            self.searchlist = SearchList(self)
+            self.searchlist.Hide()
+            
+            self.channellist = ChannelList(self)
+            self.channellist.Hide()
+        else:
+            self.home = None
+            self.channelselector = None
+            self.channelcategories = None
+            self.searchlist = None
+            self.channellist = None
+        
         self.stats = Stats(self)
         self.stats.Hide()
-        
-        #build channelselector panel
-        self.channelselector = wx.BoxSizer(wx.VERTICAL)
-        self.channelcategories = ChannelCategoriesList(self)
-        quicktip = HtmlWindow(self)
-        quicktip.SetBorders(2)
-        self.channelcategories.SetQuicktip(quicktip)
-
-        self.channelselector.Add(self.channelcategories, 0, wx.EXPAND)
-        self.channelselector.Add(quicktip, 1, wx.EXPAND)
-        self.channelselector.AddStretchSpacer()
-        self.channelselector.ShowItems(False)
-        
-        self.searchlist = SearchList(self)
-        self.searchlist.Hide()
-        self.channellist = ChannelList(self)
-        self.channellist.Hide()
         self.selectedchannellist = SelectedChannelList(self)
-        self.selectedchannellist.Hide()
+        self.selectedchannellist.Show(channelonly)
         self.playlist = Playlist(self)
         self.playlist.Hide()
         self.managechannel = ManageChannel(self)
@@ -199,14 +209,16 @@ class MainFrame(wx.Frame):
         vSizer.Add(self.top_bg, 0, wx.EXPAND)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.home, 1, wx.EXPAND|wx.ALL, 20)
-        hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
-        hSizer.Add(self.channelselector, 0, wx.EXPAND|wx.RIGHT, 5)
-        hSizer.Add(self.channellist, 1, wx.EXPAND)
+        if not channelonly:
+            hSizer.Add(self.home, 1, wx.EXPAND|wx.ALL, 20)
+            hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
+            hSizer.Add(self.channelselector, 0, wx.EXPAND|wx.RIGHT, 5)
+            hSizer.Add(self.channellist, 1, wx.EXPAND)
+            hSizer.Add(self.searchlist, 1, wx.EXPAND)
+            
         hSizer.Add(self.selectedchannellist, 1, wx.EXPAND)
         hSizer.Add(self.playlist, 1, wx.EXPAND)
         hSizer.Add(self.managechannel, 1, wx.EXPAND)
-        hSizer.Add(self.searchlist, 1, wx.EXPAND)
         hSizer.Add(self.librarylist, 1, wx.EXPAND)
         
         if self.videoparentpanel:
@@ -217,8 +229,9 @@ class MainFrame(wx.Frame):
         
         #set sizes
         self.top_bg.SetMinSize((-1,70))
-        self.channelselector.SetMinSize((110,-1))
-        quicktip.SetMinSize((-1,300))
+        if not channelonly:
+            self.channelselector.SetMinSize((110,-1))
+            quicktip.SetMinSize((-1,300))
         
         if self.videoparentpanel:
             self.videoparentpanel.SetSize((320,500))
@@ -226,10 +239,12 @@ class MainFrame(wx.Frame):
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
         
+        if not channelonly:
+            self.channelcategories.Select(1, False)
         
-        self.channelcategories.Select(1, False)
         def preload_data():
-            self.guiUtility.showChannelCategory('Popular', False)
+            if not channelonly:
+                self.guiUtility.showChannelCategory('Popular', False)
             self.guiUtility.showLibrary(False)
             
         wx.CallLater(1500, preload_data)
@@ -237,7 +252,6 @@ class MainFrame(wx.Frame):
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
             self.SetDropTarget(dragdroplist)
-
         try:
             self.SetIcon(self.utility.icon)
         except:
@@ -309,10 +323,13 @@ class MainFrame(wx.Frame):
 #                print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
 #                i += 1
         
-        self.checkVersion()
+        
+        def post():
+            self.checkVersion()
+            self.startCMDLineTorrent()
 
         # If the user passed a torrentfile on the cmdline, load it.
-        wx.CallAfter(self.startCMDLineTorrent)
+        wx.CallAfter(post)
         
         # ProxyService 90s Test_
 #        from Tribler.Core.Session import Session

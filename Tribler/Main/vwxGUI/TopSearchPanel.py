@@ -16,7 +16,7 @@ from traceback import print_exc
 DEBUG = False
 
 class TopSearchPanel(bgPanel):
-    def __init__(self, parent):
+    def __init__(self, parent, channelonly):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
             
@@ -25,6 +25,7 @@ class TopSearchPanel(bgPanel):
         self.init_ready = False
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
+        self.channelonly = channelonly
         
         self.uelog = UserEventLogDBHandler.getInstance()
         self.nbdb = NetworkBuzzDBHandler.getInstance()
@@ -101,18 +102,22 @@ class TopSearchPanel(bgPanel):
     def selectTab(self, tab):
         self.Freeze()
         
-        self.home.SetValue(tab == 'home')
-        self.results.SetValue(tab == 'search_results')
+        if not self.channelonly:
+            self.home.SetValue(tab == 'home')
+            self.results.SetValue(tab == 'search_results')
+            
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
         
-        
         if tab != 'settings': #if settings is clicked do nothing
-            self.searchSizer.ShowItems(tab != 'home')
+            if not self.channelonly:
+                self.searchSizer.ShowItems(tab != 'home')
+                
             if tab != 'home': #if !home is clicked, show bitmap
                 if not self.bitmap:
                     self.setBitmap(self.loaded_bitmap)
+                    
             else: #if home is clicked, hide bitmap
                 self.loaded_bitmap = self.bitmap
                 self.setBitmap(None)
@@ -128,12 +133,13 @@ class TopSearchPanel(bgPanel):
         return []
 
     def SearchFocus(self):
-        if self.home.GetValue():
-            if getattr(self.parent, 'home', False):
-                self.parent.home.SearchFocus()
-        else:
-            self.searchField.SetFocus()
-            self.searchField.SelectAll()
+        if not self.channelonly:
+            if self.home.GetValue():
+                if getattr(self.parent, 'home', False):
+                    self.parent.home.SearchFocus()
+            else:
+                self.searchField.SetFocus()
+                self.searchField.SelectAll()
 
     def Bitmap(self, path, type):
         namelist = path.split("/")
@@ -146,17 +152,18 @@ class TopSearchPanel(bgPanel):
         
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         
-        if sys.platform == 'darwin':
-            self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-            self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
-        else:
-            self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
-        self.searchField.SetMinSize((400, -1))
-        self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
-        
-        self.go = tribler_topButton(self,-1,name = 'Search_new')
-        self.go.SetMinSize((50, 24))
-        self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
+        if not self.channelonly:
+            if sys.platform == 'darwin':
+                self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
+                self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
+            else:
+                self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
+            self.searchField.SetMinSize((400, -1))
+            self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+            
+            self.go = tribler_topButton(self,-1,name = 'Search_new')
+            self.go.SetMinSize((50, 24))
+            self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
         
         def createToggle(label, event):
             button = wx.ToggleButton(self, -1, label)
@@ -166,28 +173,36 @@ class TopSearchPanel(bgPanel):
         self.channels = createToggle('Channels', self.OnChannels)
         self.settings = createToggle('Settings', self.OnSettings)
         self.my_files = createToggle('Library', self.OnLibrary)
-        self.results = createToggle('Results', self.OnResults)
-        self.results.Disable()
+        if not self.channelonly:
+            self.results = createToggle('Results', self.OnResults)
+            self.results.Disable()
         
-        self.home = createToggle('Home', self.OnHome)
+            self.home = createToggle('Home', self.OnHome)
         
+        self.files_friends = None
         if sys.platform == 'win32':
-            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
+            if not self.channelonly:
+                self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
-        else:    
-            self.files_friends = wx.StaticText(self, -1, "Search Files or Channels") 
+        else:
+            if not self.channelonly:    
+                self.files_friends = wx.StaticText(self, -1, "Search Files or Channels")
+                if sys.platform == 'linux2':
+                    self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+                elif sys.platform == 'darwin': # mac
+                    self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
+                     
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
             
-            if sys.platform == 'linux2':
-                self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-            elif sys.platform == 'darwin': # mac
-                self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
         self.tribler_logo2.Bind(wx.EVT_LEFT_UP, self.OnStats)
         
         self.__do_layout()
         self.Layout()
         
-        self.selectTab('home')
+        if self.channelonly:
+            self.selectTab('channels')
+        else:
+            self.selectTab('home')
         
         self.init_ready = True
         self.Bind(wx.EVT_SIZE, self.OnResize)
@@ -195,23 +210,24 @@ class TopSearchPanel(bgPanel):
     def __do_layout(self):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        #Add searchbox etc.
-        self.searchSizer = wx.BoxSizer(wx.VERTICAL)
-
-        #Search for files or channels label
-        self.searchSizer.Add(self.files_friends, 0, wx.TOP, 20) 
-        if sys.platform == 'win32': #platform specific spacer
-            self.searchSizer.AddSpacer((0, 6))
-        else:
-            self.searchSizer.AddSpacer((0, 3))
-        
-        searchBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        searchBoxSizer.Add(self.searchField, 1, wx.TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 1) #add searchbox
-        searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5) #add searchbutton
-        self.searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
-        
-        #finished searchSizer, add to mainSizer
-        mainSizer.Add(self.searchSizer, 0, wx.LEFT, 10)
+        if not self.channelonly:
+            #Add searchbox etc.
+            self.searchSizer = wx.BoxSizer(wx.VERTICAL)
+    
+            #Search for files or channels label
+            self.searchSizer.Add(self.files_friends, 0, wx.TOP, 20) 
+            if sys.platform == 'win32': #platform specific spacer
+                self.searchSizer.AddSpacer((0, 6))
+            else:
+                self.searchSizer.AddSpacer((0, 3))
+            
+            searchBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+            searchBoxSizer.Add(self.searchField, 1, wx.TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 1) #add searchbox
+            searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5) #add searchbutton
+            self.searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
+            
+            #finished searchSizer, add to mainSizer
+            mainSizer.Add(self.searchSizer, 0, wx.LEFT, 10)
         
         #niels: add strechingspacer, all controls added before 
         #this spacer will be aligned to the left of the screen
@@ -223,8 +239,9 @@ class TopSearchPanel(bgPanel):
         
         #add buttons horizontally
         buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonBoxSizer.Add(self.home, 0, wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.results, 0, wx.RIGHT, 5)
+        if not self.channelonly:
+            buttonBoxSizer.Add(self.home, 0, wx.RIGHT, 5)
+            buttonBoxSizer.Add(self.results, 0, wx.RIGHT, 5)
         buttonBoxSizer.Add(self.channels, 0, wx.RIGHT, 5)
         buttonBoxSizer.Add(self.settings, 0, wx.RIGHT, 5)
         buttonBoxSizer.Add(self.my_files)

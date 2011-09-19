@@ -3,9 +3,6 @@ from time import time
 
 from conversion import AllChannelConversion
 
-# from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
-# from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-
 from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.community import Community
