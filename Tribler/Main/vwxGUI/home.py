@@ -62,6 +62,7 @@ class Home(XRCPanel):
             self.searchBox.SetMinSize((450, self.searchBox.GetTextExtent('T')[1] + 5))
         else:
             self.searchBox.SetMinSize((450, -1))
+        self.searchBox.SetFocus()
         
         textSizer.Add(text, 0, wx.EXPAND|wx.RIGHT, 7)
         scalingSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -490,8 +491,8 @@ class BuzzPanel(HomePanel):
         self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
         
         self.GetBuzzFromDB()  
-        self.refresh = 1
-        self.OnRefreshTimer()
+        self.refresh = 5
+        self.OnRefreshTimer(force = True)
         
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
@@ -534,10 +535,10 @@ class BuzzPanel(HomePanel):
             random.shuffle(buzz[i])
             self.buzz_cache[i] = buzz[i]
     
-    def OnRefreshTimer(self, event = None):
+    def OnRefreshTimer(self, event = None, force = False):
         self.refresh -= 1
-        if self.refresh <= 0:
-            if self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate():
+        if self.refresh <= 0 or force:
+            if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force:
                 # simple caching
                 # (does not check for possible duplicates within display_size-window!)
                 if any(len(row) < 10 for row in self.buzz_cache):

@@ -90,3 +90,5 @@ class GaugeSplash(wx.Frame):
             import sys
             print >> sys.stderr, "MAX ticks == ", self.count
         
+        self.gauge.SetValue(self.gauge.GetRange())
+        wx.Yield()        

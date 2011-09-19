@@ -231,7 +231,7 @@ class ABCApp():
             
             self.splash.Destroy()
             self.frame.Show(True)
-            
+           
             self.torrentfeed = RssParser.getInstance()
             
             wx.CallAfter(self.PostInit2)
@@ -264,6 +264,7 @@ class ABCApp():
         return True
 
     def PostInit2(self):
+        self.frame.Raise()
         self.startWithRightView()
         self.loadSessionCheckpoint()
         self.set_reputation()
@@ -1052,6 +1053,8 @@ def run(params = None):
             # Launch first abc single instance
             app = wx.PySimpleApp(redirect = False)
             abc = ABCApp(params, single_instance_checker, installdir)
+            app.SetTopWindow(abc.frame)
+            
             app.MainLoop()
             
             # Setup the statistic reporter while waiting for proper integration
