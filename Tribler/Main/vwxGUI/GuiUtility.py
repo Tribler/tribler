@@ -268,6 +268,9 @@ class GUIUtility:
                 
                 self.frame.searchlist.Freeze()
                 
+                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
+                self.channelsearch_manager.setSearchKeywords(wantkeywords)
+                
                 self.frame.searchlist.Reset()
                 self.ShowPage('search_results')
                 
@@ -275,10 +278,7 @@ class GUIUtility:
                 self.frame.searchlist.Thaw()                
                 
                 #Peform local search
-                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
-                
-                self.channelsearch_manager.setSearchKeywords(wantkeywords)
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 self.torrentsearch_manager.refreshGrid()
                 

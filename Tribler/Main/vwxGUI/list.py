@@ -1430,7 +1430,7 @@ class SelectedChannelList(GenericSearchList):
     def OnBack(self, event):
         self.guiutility.GoBack()
         
-    def StartDownload(self, torrent):
+    def StartDownload(self, torrent, files = None):
         states = self.footer.GetStates()
         if not states[1]:
             nrdownloaded = self.channelsearch_manager.getNrTorrentsDownloaded(self.publisher_id) + 1
@@ -1451,7 +1451,7 @@ class SelectedChannelList(GenericSearchList):
                         self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)
                 self.guiutility.frame.guiserver.add_task(db_callback)
                 
-        GenericSearchList.StartDownload(self, torrent)
+        GenericSearchList.StartDownload(self, torrent, files)
         
 class MyChannelList(List):
     def __init__(self):
