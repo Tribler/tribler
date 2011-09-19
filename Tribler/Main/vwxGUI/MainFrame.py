@@ -147,8 +147,9 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, position, size, style)
         if sys.platform == 'linux2':
             font = self.GetFont()
-            font.SetPointSize(9)
-            self.SetFont(font)
+            if font.GetPointSize() > 9:
+                font.SetPointSize(9)
+                self.SetFont(font)
         
         self.Freeze()
         self.SetDoubleBuffered(True)
