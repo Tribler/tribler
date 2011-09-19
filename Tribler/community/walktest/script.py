@@ -323,7 +323,7 @@ def main(filename):
             "  %5d %6.3f %6.1f" % (outgoing, size_out * factor, speed_out), \
             "  %5d" % abs(incoming - outgoing), \
             "   ", key
-    print "      %6.3f %6.1f" % (total_in * factor, 1.0 * total_in / seconds), \
+    print "===  %6.3f %6.1f" % (total_in * factor, 1.0 * total_in / seconds), \
         "        %6.3f %6.1f" % (total_out * factor, 1.0 * total_out / seconds)
     print
 
