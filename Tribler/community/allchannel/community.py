@@ -221,7 +221,7 @@ class AllChannelCommunity(Community):
                     community = self._dispersy.get_community(cid, True)
                 except KeyError:
                     if __debug__: dprint("join_community ", cid.encode("HEX"))
-                    community = PreviewChannelCommunity.join_community(cid, "", self._my_member)
+                    community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
                 
                 for infohash in torrents:
                     tormessage = community._get_message_from_torrent_infohash(infohash)
@@ -286,7 +286,7 @@ class AllChannelCommunity(Community):
         import sys
         print >> sys.stderr, "GOT Search-RESPONSE"
         #request missing torrents
-        self.on_channelcast_request(messages)
+        self.on_channelcast(messages)
         
         for message in messages:
             #show results in gui
