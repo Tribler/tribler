@@ -3232,7 +3232,6 @@ class ChannelCastDBHandler(object):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_MODIFIED, channel_id)
         
     def on_torrents_from_dispersy(self, torrentlist):
-        print >> sys.stderr, "Channels: on_torrents_from_dispersy", len(torrentlist)
         for i in range(len(torrentlist)):
             torrent = torrentlist[i]
             
@@ -3838,9 +3837,12 @@ class ChannelCastDBHandler(object):
         return self._getChannels(sql)
     
     def getChannelsByCID(self, channel_cids):
-        channel_cids = "','".join(map(buffer,channel_cids))
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN ('" + channel_cids + "')"
-        return self._getChannels(sql)
+        parameters = '?,'*len(channel_cids)
+        parameters = parameters[:-1]
+        
+        channel_cids = map(buffer, channel_cids)
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN ('" + parameters + "')"
+        return self._getChannels(sql, channel_cids)
     
     def getChannelFromPermid(self, channel_permid):
         sql = "Select C.id, C.name, C.description, C.dispersy_cid, C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam FROM Channels as C, Peer WHERE Channels.peer_id = Peer.peer_id AND Peer.peer_id = ?"
