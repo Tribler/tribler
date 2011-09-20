@@ -68,7 +68,7 @@ class ChannelSearchPayload(Payload):
         def keywords(self):
             return self._keywords
         
-class ChannelSearchResponsePayload(ChannelCastPayload):
+class ChannelSearchResponsePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, keywords, torrents):
             if __debug__:
@@ -82,7 +82,7 @@ class ChannelSearchResponsePayload(ChannelCastPayload):
                     assert not filter(lambda x: not len(x) == 20, infohashes)
                     assert len(infohashes) > 0
             
-            super(ChannelCastPayload.Implementation, self).__init__(meta)
+            super(ChannelSearchResponsePayload.Implementation, self).__init__(meta)
             self._keywords = keywords
             self._torrents = torrents
 

@@ -3773,7 +3773,7 @@ class ChannelCastDBHandler(object):
         
         return self._db.fetchall(sql, (channeltorrent_id, ))
         
-    def searchChannelsTorrent(self, keywords, limitChannels = None, limitTorrents = None):
+    def searchChannelsTorrent(self, keywords, limitChannels = None, limitTorrents = None, dispersyOnly = False):
         # search channels based on keywords
         keywords = split_into_keywords(keywords)
         keywords = [keyword for keyword in keywords if len(keyword) > 1]
@@ -3782,20 +3782,26 @@ class ChannelCastDBHandler(object):
             sql = "SELECT distinct id, dispersy_cid, name FROM Channels WHERE"
             for keyword in keywords:
                 sql += " name like '%"+keyword+"%' and"
-            sql = sql[:-3]
+                
+            if dispersyOnly:
+                sql += " dispersy_cid != '-1'"
+            else:
+                sql = sql[:-3]
             
             if limitChannels:
                 sql += " LIMIT %d"%limitChannels
                    
             channels = self._db.fetchall(sql)
-            select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrent, CollectedTorrent WHERE Torrent.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY num_seeders DESC LIMIT ?"
+            select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY num_seeders DESC LIMIT ?"
             
             limitTorrents = limitTorrents or 20
             
             results = []
             for channel_id, dispersy_cid, name in channels:
+                dispersy_cid = str(dispersy_cid)
                 torrents = self._db.fetchall(select_torrents, (channel_id, limitTorrents))
                 for infohash, ChTname, CoTname, time_stamp in torrents:
+                    infohash = str2bin(infohash)
                     results.append((channel_id, dispersy_cid, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []

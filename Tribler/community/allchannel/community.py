@@ -256,7 +256,7 @@ class AllChannelCommunity(Community):
             
             print >> sys.stderr, "RECEIVED channelsearch query = ",query
             
-            results = self._channelcast_db.searchChannelsTorrent(query, 7, 7)
+            results = self._channelcast_db.searchChannelsTorrent(query, 7, 7, dispersyOnly = True)
             if len(results) > 0:
                 print >> sys.stderr, "RECEIVED channelsearch %d results"%len(results)
                 responsedict = {}
@@ -275,7 +275,7 @@ class AllChannelCommunity(Community):
                             distribution=(self.global_time,), payload=(keywords, torrents))
         
         import sys
-        print >> sys.stderr, "SENDING RESPONSE TO"+address
+        print >> sys.stderr, "SENDING RESPONSE TO %s"%address[0]
         self._dispersy._send([address], [message.packet])
     
     def check_channelsearch_response(self, messages):
