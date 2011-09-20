@@ -44,9 +44,9 @@ class AllChannelCommunity(Community):
     """
     @classmethod
     def get_master_members(cls):
-            master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
-            master = Member.get_instance(master_key)
-            return [master]
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403b2c94642d3a2228c2f274dcac5ddebc1b36da58282931b960ac19b0c1238bc8d5a17dfeee037ef3c320785fea6531f9bd498000643a7740bc182fae15e0461b158dcb9b19bcd6903f4acc09dc99392ed3077eca599d014118336abb372a9e6de24f83501797edc25e8f4cce8072780b56db6637844b394c90fc866090e28bdc0060831f26b32d946a25699d1e8a89b".decode("HEX")
+        master = Member.get_instance(master_key)
+        return [master]
 
     @classmethod
     def load_community(cls, master, my_member):
@@ -55,9 +55,12 @@ class AllChannelCommunity(Community):
         # my_member parameter
 
         dispersy_database = DispersyDatabase.get_instance()
-        dispersy_database.execute(u"INSERT OR IGNORE INTO community (master, member, classification, auto_load) VALUES (?, ?, ?, 0)",
-                                  (master.database_id, my_member.database_id, cls.get_classification()))
-        return super(AllChannelCommunity, cls).load_community(master)
+        try:
+            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
+        except StopIteration:
+            return cls.join_community(master, my_member, my_member)
+        else:
+            return super(AllChannelCommunity, cls).load_community(master)
 
     def __init__(self, master, integrate_with_tribler = True):
         super(AllChannelCommunity, self).__init__(master)
