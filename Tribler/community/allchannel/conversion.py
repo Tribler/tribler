@@ -13,7 +13,9 @@ class AllChannelConversion(BinaryConversion):
         super(AllChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
         self.define_meta_message(chr(2), community.get_meta_message(u"channelcast-request"), self._encode_channelcast, self._decode_channelcast)
-        self.define_meta_message(chr(3), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
+        self.define_meta_message(chr(3), community.get_meta_message(u"channelsearch"), self._encode_channelsearch, self._decode_channelsearch)
+        self.define_meta_message(chr(4), community.get_meta_message(u"channelsearch-response"), self._encode_channelsearch_response, self._decode_channelsearch_response)
+        self.define_meta_message(chr(5), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
 
         self._address = ("", -1)
 
@@ -38,7 +40,52 @@ class AllChannelConversion(BinaryConversion):
                 if not (isinstance(infohash, str) and len(infohash) == 20):
                     raise DropPacket("Invalid 'infohash' type or value")
         return offset, placeholder.meta.payload.implement(payload)
+    
+    def _encode_channelsearch(self, message):
+        packet = encode(message.payload.keywords)
+        return packet,
+        
+    def _decode_channelsearch(self, placeholder, offset, data):
+        try:
+            offset, payload = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the channelcast-payload")
+        
+        if not isinstance(payload, list):
+            raise DropPacket("Invalid payload type")
+        
+        for keyword in payload:
+            if not isinstance(keyword, str):
+                raise DropPacket("Invalid 'keyword' type")
+        return offset, placeholder.meta.payload.implement(payload)
+
+    def _encode_channelsearch_response(self, message):
+        packet = encode((message.payload.keywords, message.payload.torrents))
+        return packet,
+    
+    def _decode_channelsearch_response(self, placeholder, offset, data):
+        try:
+            offset, payload = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the channelcast-payload")
+        
+        if not isinstance(payload, tuple):
+            raise DropPacket("Invalid payload type")
+        
+        keywords, torrents = payload
+        for keyword in keywords:
+            if not isinstance(keyword, str):
+                raise DropPacket("Invalid 'keyword' type")
             
+        for cid, infohashes in torrents.iteritems():
+            if not (isinstance(cid, str) and len(cid) == 20):
+                raise DropPacket("Invalid 'cid' type or value")
+            
+            for infohash in infohashes:        
+                if not (isinstance(infohash, str) and len(infohash) == 20):
+                    raise DropPacket("Invalid 'infohash' type or value")
+            
+        return offset, placeholder.meta.payload.implement(keywords, torrents)
     
     def _encode_votecast(self, message):
         return pack('!20shl', message.payload.cid, message.payload.vote, message.payload.timestamp),

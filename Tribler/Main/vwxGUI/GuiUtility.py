@@ -152,7 +152,7 @@ class GUIUtility:
             
             if page == 'channels':
                 selectedcat = self.frame.channelcategories.GetSelectedCategory()
-                if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage[:-1] == 'mychannel':
+                if selectedcat in ['Popular','New','Favorites','All', 'Updated', 'Search'] or self.oldpage[:-1] == 'mychannel':
                     self.frame.channelselector.ShowItems(True)
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
@@ -251,7 +251,7 @@ class GUIUtility:
         
         if topage == 'channels':
             category = self.frame.channellist.GetManager().category
-            categories = ['Popular','New','Favorites','All','My Channel', 'Updated']
+            categories = ['Popular','New','Favorites','All','My Channel', 'Updated', 'Search']
             if category in categories:
                 category = categories.index(category) + 1
                 self.frame.channelcategories.Select(category, False)
@@ -400,32 +400,16 @@ class GUIUtility:
     def showChannelResults(self, data_channel):
         self.frame.top_bg.selectTab('channels')
         self.frame.channelcategories.DeselectAll()
-
-        data = []
-        for channel_id, channel_data in data_channel.iteritems():
-            channel = self.channelsearch_manager.getChannel(channel_id)
-            if channel:
-                data.append(channel)
-
-            else: #channel not found in local database (no torrents downloaded yet)
-                channel_name = channel_data[0]
-                nr_favorites = channel_data[1]
-                nr_torrents = len(channel_data[2])
-                nr_spam = 0
-                vote = 0
-
-                if nr_torrents > 0:
-                    max_timestamp = max(value[1] for _, value in channel_data[2].iteritems())
-                else:
-                    max_timestamp = -1
-                data.append([channel_id, channel_name, max_timestamp, nr_favorites, nr_torrents, nr_spam, vote])
-
-        def subscribe_latestupdate_sort(b, a):
-            val = cmp(a[4], b[4])
+        self.frame.channelcategories.searchSelected = True
+        
+        def subscribe_latestupdate_sort(a, b):
+            val = cmp(a.modified, b.modified)
             if val == 0:
-                val = cmp(a[3], b[3])
+                return cmp(a.name, b.name)
             return val
-        data.sort(subscribe_latestupdate_sort)
+        
+        data = data_channel.values()
+        data.sort(subscribe_latestupdate_sort, reverse = True)
         
         manager = self.frame.channellist.GetManager()
         manager.SetCategory('searchresults')

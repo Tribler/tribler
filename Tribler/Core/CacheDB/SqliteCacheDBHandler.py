@@ -3773,25 +3773,39 @@ class ChannelCastDBHandler(object):
         
         return self._db.fetchall(sql, (channeltorrent_id, ))
         
-    def searchChannels(self, keywords):
+    def searchChannelsTorrent(self, keywords, limitChannels = None, limitTorrents = None):
         # search channels based on keywords
         keywords = split_into_keywords(keywords)
         keywords = [keyword for keyword in keywords if len(keyword) > 1]
         
         if len(keywords) > 0:
-            sql = "SELECT distinct id, dispersy_cid, name FROM Channels WHERE" + (" name like '%?%' and"*len(keywords))
+            sql = "SELECT distinct id, dispersy_cid, name FROM Channels WHERE"
+            for keyword in keywords:
+                sql += " name like '%"+keyword+"%' and"
             sql = sql[:-3]
+            
+            if limitChannels:
+                sql += " LIMIT %d"%limitChannels
                    
             channels = self._db.fetchall(sql)
-            select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrents, CollectedTorrent WHERE Torrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY time_stamp DESC LIMIT 20"
+            select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrents, CollectedTorrent WHERE Torrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY num_seeders DESC LIMIT ?"
+            
+            limitTorrents = limitTorrents or 20
             
             results = []
             for channel_id, dispersy_cid, name in channels:
-                torrents = self._db.fetchall(select_torrents, (channel_id, ))
+                torrents = self._db.fetchall(select_torrents, (channel_id, limitTorrents))
                 for infohash, ChTname, CoTname, time_stamp in torrents:
                     results.append((channel_id, dispersy_cid, name, infohash, ChTname or CoTname, time_stamp))
             return results
         return []
+    
+    def searchChannels(self, keywords):
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE"
+        for keyword in keywords:
+            sql += " name like '%"+keyword+"%' and"
+        sql = sql[:-3]
+        return self._getChannels(sql)
 
     def getChannelNames(self, permids):
         names = {}

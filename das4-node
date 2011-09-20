@@ -2,7 +2,6 @@
 
 source /etc/bashrc
 
-module load python/2.6.6
 module load prun
 
 #echo $SGE_TASK_ID $SGE_TASK_FIRST $SGE_TASK_LAST $SGE_TASK_STEPSIZE

@@ -105,11 +105,13 @@ class Torrent(Helper):
    
     @cacheProperty
     def categories(self):
-        return [self.torrent_db.id2category[self.category_id]]
+        if self.category_id:
+            return [self.torrent_db.id2category[self.category_id]]
     
     @cacheProperty
     def status(self):
-        return self.torrent_db.id2status[self.status_id]
+        if self.status_id:
+            return self.torrent_db.id2status[self.status_id]
     
     @cacheProperty
     def torrent_id(self):
@@ -157,7 +159,7 @@ class Torrent(Helper):
     
 class RemoteTorrent(Torrent):
     __slots__ = ('query_permids')
-    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, query_permids, channel_id, channel_permid, channel_name, subscriptions, neg_votes):
+    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = [], channel_id = -1, channel_permid = -1, channel_name = '', subscriptions = 0, neg_votes = 0):
         if channel_name != "":
             c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes)
         else:
@@ -320,13 +322,24 @@ class Channel(Helper):
         return self.getState()
 
 class RemoteChannel(Channel):
-    __slots__ = ('permid')
+    __slots__ = ('permid', 'torrents')
     def __init__(self, id, permid, name, subscriptions, neg_votes):
         Channel.__init__(self, id, '-1', name, '', 0, subscriptions, neg_votes, 0, 0, False)
         self.permid = permid
         
     def getState(self):
         return ChannelCommunity.CHANNEL_CLOSED, False
+    
+    def addTorrent(self, torrent):
+        torrents = getattr(self, 'torrent', set())
+        torrents.add(torrent)
+        self.torrents = torrents
+        
+    def getTorrent(self, infohash):
+        torrents = getattr(self, 'torrent', set())
+        for torrent in torrents:
+            if torrent.infohash == infohash:
+                return torrent
         
 class Comment(Helper):
     __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')

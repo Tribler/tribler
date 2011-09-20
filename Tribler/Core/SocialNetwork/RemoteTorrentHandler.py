@@ -69,7 +69,7 @@ class RemoteTorrentHandler:
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         
         if usercallback:
-            self.callbacks.setdefault(infohash, []).append(usercallback)
+            self.callbacks.setdefault(infohash, set()).add(usercallback)
         
         requester = None
         
@@ -101,7 +101,7 @@ class RemoteTorrentHandler:
             print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.callbacks
         
         if infohash in self.callbacks:
-            usercallbacks = self.callbacks[infohash][:]
+            usercallbacks = self.callbacks[infohash].copy()
             
             for usercallback in usercallbacks:
                 remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)

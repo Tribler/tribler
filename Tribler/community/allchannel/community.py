@@ -80,6 +80,7 @@ class AllChannelCommunity(Community):
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
         
         self._blocklist = {}
+        self._searchCallbacks = {}
 
     def initiate_meta_messages(self):
         return [Message(self, u"channelcast", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), AddressDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
@@ -96,7 +97,7 @@ class AllChannelCommunity(Community):
     def dispersy_sync_interval(self):
         return 5.0
 
-    def create_channelcast(self, forward=True):
+    def create_channelcast(self):
         try:
             now = time()
             
@@ -138,7 +139,8 @@ class AllChannelCommunity(Community):
                             
                         if len(torrents) > 0:
                             meta = self.get_meta_message(u"channelcast")
-                            message = meta.impl(distribution=(self.global_time,), payload=(torrents,))
+                            message = meta.impl(authentication=(self._my_member,),
+                                                distribution=(self.global_time,), payload=(torrents,))
                             
                             self._dispersy._send([candidate.address], [message.packet])
                             
@@ -199,7 +201,8 @@ class AllChannelCommunity(Community):
         
         #create channelcast request message
         meta = self.get_meta_message(u"channelcast-request")
-        message = meta.impl(distribution=(self.global_time,), payload=(toCollect,))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.global_time,), payload=(toCollect,))
         self._dispersy._send([address], [message.packet])
     
     def check_channelcast_request(self, messages):
@@ -223,13 +226,19 @@ class AllChannelCommunity(Community):
             
             self._dispersy._send([message.address], requested_packets)
     
-    def create_channelsearch(self, keywords):
+    def create_channelsearch(self, keywords, callback):
+        #clear searchcallbacks if new search
+        query = " ".join(keywords)
+        if query not in self._searchCallbacks:
+            self._searchCallbacks.clear()
+        self._searchCallbacks.setdefault(query, set()).add(callback)
+        
         meta = self.get_meta_message(u"channelsearch")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
-                            payload=(keywords))
+                            payload=(keywords, ))
         
-        #self._dispersy.store_update_forward([message], store, update, forward)
+        self._dispersy.store_update_forward([message], store = False, update = False, forward = True)
     
     def check_channelsearch(self, messages):
         #no timeline check because PublicResolution policy is used
@@ -240,19 +249,20 @@ class AllChannelCommunity(Community):
             keywords = message.payload.keywords
             query = " ".join(keywords)
             
-            results = self._channelcast_db.searchChannels(query)
-            
+            results = self._channelcast_db.searchChannelsTorrent(query, 7, 7)
             if len(results) > 0:
                 responsedict = {}
                 for channel_id, dispersy_cid, name, infohash, torname, time_stamp in results:
                     infohashes = responsedict.setdefault(dispersy_cid, set())
                     infohashes.add(infohash)
-                self.create_channelsearch_response(responsedict, message.address)
+                    
+                self.create_channelsearch_response(keywords, responsedict, message.address)
     
-    def create_channelsearch_response(self, torrents, address):
+    def create_channelsearch_response(self, keywords, torrents, address):
         #create channelsearch-response message
         meta = self.get_meta_message(u"channelsearch-response")
-        message = meta.impl(distribution=(self.global_time,), payload=(torrents,))
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.global_time,), payload=(keywords, torrents))
         self._dispersy._send([address], [message.packet])
     
     def check_channelsearch_response(self, messages):
@@ -265,6 +275,12 @@ class AllChannelCommunity(Community):
             self.on_channelcast_request(message)
             
             #show results in gui
+            keywords = message.payload.keywords
+            query = " ".join(keywords)
+            if query in self._searchCallbacks:
+                torrents = message.payload.torrents
+                for callback in self._searchCallbacks[query]:
+                    callback(keywords, torrents)
                 
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         self._register_task(self._disp_create_votecast, (vote, timestamp, store, update, forward))

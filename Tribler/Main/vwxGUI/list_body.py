@@ -507,11 +507,12 @@ class AbstractListBody():
             self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
     
     def SetFilter(self, filter, filterMessage, highlight):
-        self.filter = filter
         self.filterMessage = filterMessage
         
-        self.Scroll(-1, 0)
-        self.SetData(highlight = highlight)
+        if filter != self.filter:
+            self.filter = filter
+            self.Scroll(-1, 0)
+            self.SetData(highlight = highlight)
     
     @warnWxThread
     def OnExpand(self, item, raise_event = False):
@@ -621,30 +622,31 @@ class AbstractListBody():
     
     @warnWxThread
     def ShowMessage(self, message, header = None):
-        if not self.messagePanel.IsShown():
-            self.Freeze()
-            
-            if header:
-                self.headerText.SetLabel(header)
-                self.headerText.Show()
-            else:
-                self.headerText.Hide()
-                
-            self.messageText.SetLabel(message)
-            self.loadNext.Hide()
-            self.vSizer.ShowItems(False)
-            self.vSizer.Clear()
-    
-            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-            self.messagePanel.Layout()
-            self.messagePanel.Show()
-            
-            self.OnChange()
-            self.Thaw()
+        if DEBUG:
+            print >> sys.stderr, "ListBody: ShowMessage", message
+
+        self.Freeze()
+        
+        if header:
+            self.headerText.SetLabel(header)
+            self.headerText.Show()
         else:
-            self.messageText.SetLabel(message)
-            self.messagePanel.Layout()
-    
+            self.headerText.Hide()
+            
+        self.messageText.SetLabel(message)
+        self.loadNext.Hide()
+        self.vSizer.ShowItems(False)
+        self.vSizer.Clear()
+
+        self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+        self.messagePanel.Layout()
+        
+        if not self.messagePanel.IsShown():
+            self.messagePanel.Show()
+        
+        self.OnChange()
+        self.Thaw()
+
     @warnWxThread
     def ShowLoading(self):
         self.ShowMessage('Loading, please wait.')
@@ -672,7 +674,10 @@ class AbstractListBody():
     @warnWxThread
     def SetData(self, data = None, highlight = True):
         if DEBUG:
-            print >> sys.stderr, "ListBody: new data", time()
+            nr_items = 0
+            if data:
+                nr_items = len(data)
+            print >> sys.stderr, "ListBody: new data", time(), nr_items
         
         if data == None:
             data = self.raw_data
@@ -719,9 +724,6 @@ class AbstractListBody():
         if not data:
             data = []
         
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
-        
         self.highlightSet = set()
         if len(self.items) == 0:
             #new data
@@ -737,6 +739,9 @@ class AbstractListBody():
         self.done = False
         
         if len(data) > 0:
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
+            
             self.CreateItems(nr_items_to_create = 3 * LIST_ITEM_BATCH_SIZE)
             
             #Try to yield
@@ -756,9 +761,12 @@ class AbstractListBody():
         self.Thaw()
     
     def OnIdle(self, event):
-        if not self.done and self.data:
-            self.CreateItems()
-            
+        if not self.done:
+            if len(self.data) > 0:
+                self.CreateItems()
+            else:
+                self.done = True
+                
             #idle event also paints search animation, use request more to show this update
             event.RequestMore(not self.done)
             if self.done:
@@ -782,76 +790,77 @@ class AbstractListBody():
         
         initial_nr_items_to_add = nr_items_to_add    
         done = True
-        t1 = time()
-
-        self.Freeze()
         
-        #Check if we need to clear vSizer
-        self.messagePanel.Show(False)
-        self.loadNext.Show(False)
-        self.vSizer.Remove(self.messagePanel)
-        
-        if self.filter:
-            message = self.filterMessage() + '.'
-        else:
-            message = ''
-        
-        revertList = []
-        #Add created/cached items
-        for curdata in self.data:
-            if len(curdata) > 3:
-                key, item_data, original_data, create_method = curdata
-            else:
-                key, item_data, original_data = curdata
-                create_method = ListItem
+        if len(self.data) > 0:
+            t1 = time()
+            self.Freeze()
             
-            if nr_items_to_add > 0 and nr_items_to_create > 0:
-                if key not in self.items:
-                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
-                    nr_items_to_create -= 1
+            #Check if we need to clear vSizer
+            self.messagePanel.Show(False)
+            self.loadNext.Show(False)
+            self.vSizer.Remove(self.messagePanel)
+            
+            if self.filter:
+                message = self.filterMessage() + '.'
+            else:
+                message = ''
+            
+            revertList = []
+            #Add created/cached items
+            for curdata in self.data:
+                if len(curdata) > 3:
+                    key, item_data, original_data, create_method = curdata
+                else:
+                    key, item_data, original_data = curdata
+                    create_method = ListItem
                 
-                item = self.items[key]
-                sizer = self.vSizer.GetItem(item)
-                if not sizer:
-                    self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
-                    item.Show()
+                if nr_items_to_add > 0 and nr_items_to_create > 0:
+                    if key not in self.items:
+                        self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
+                        nr_items_to_create -= 1
                     
-                    if key in self.highlightSet:
-                        self.highlightSet.remove(key)
+                    item = self.items[key]
+                    sizer = self.vSizer.GetItem(item)
+                    if not sizer:
+                        self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
+                        item.Show()
                         
-                        if item.Highlight(revert = False):
-                            revertList.append(key)
-                                            
-                nr_items_to_add -= 1
-            else:
-                done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
-
-                if done:
-                    if message != '':
-                        message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
-                    else:
-                        message = 'Only showing the first %d of %d items in this list.'%(len(self.vSizer.GetChildren()), len(self.data))
-                        if self.hasFilter:
-                            message +='\nSearch within results to reduce the number of items, or click the button below.'
-                        
-                    remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
-                    self.loadNext.SetLabel("Show next %d items"%remainingItems)
-                    self.loadNext.Enable()
-                    self.loadNext.Show()
-                break
-       
-        if len(message) > 12:
-            self.messageText.SetLabel(message)
+                        if key in self.highlightSet:
+                            self.highlightSet.remove(key)
+                            
+                            if item.Highlight(revert = False):
+                                revertList.append(key)
+                                                
+                    nr_items_to_add -= 1
+                else:
+                    done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
+    
+                    if done:
+                        if message != '':
+                            message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
+                        else:
+                            message = 'Only showing the first %d of %d items in this list.'%(len(self.vSizer.GetChildren()), len(self.data))
+                            if self.hasFilter:
+                                message +='\nSearch within results to reduce the number of items, or click the button below.'
+                            
+                        remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
+                        self.loadNext.SetLabel("Show next %d items"%remainingItems)
+                        self.loadNext.Enable()
+                        self.loadNext.Show()
+                    break
+           
+            if len(message) > 12:
+                self.messageText.SetLabel(message)
+                
+                self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+                self.messagePanel.Layout()
+                self.messagePanel.Show()
+                
+            self.OnChange()
+            self.Thaw()
             
-            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-            self.messagePanel.Layout()
-            self.messagePanel.Show()
-            
-        self.OnChange()
-        self.Thaw()
-        
-        if len(revertList) > 0:
-            wx.CallLater(1000, self.Revert, revertList)
+            if len(revertList) > 0:
+                wx.CallLater(1000, self.Revert, revertList)
         
         self.done = done
         if DEBUG:

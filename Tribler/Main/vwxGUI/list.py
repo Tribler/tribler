@@ -61,14 +61,16 @@ class RemoteSearchManager:
         
         def db_callback():
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
-            total_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
-            return data_files, total_items, nrfiltered, new_items, total_channels, selected_bundle_mode
+            total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
+            return data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
         startWorker(self._on_refresh, db_callback)
 
     def _on_refresh(self, delayedResult):
-        data_files, total_items, nrfiltered, new_items, total_channels, selected_bundle_mode = delayedResult.get()
-               
-        self.list.SetNrResults(total_items, total_channels)
+        data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
+        
+        if new_items or new_channels:
+            self.list.SetNrResults(total_items, total_channels)
+            
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
         self.list.SetSelectedBundleMode(selected_bundle_mode)
         
@@ -80,7 +82,7 @@ class RemoteSearchManager:
         
     def refresh_channel(self):
         def db_callback():
-            [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
+            [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return total_channels
         
         startWorker(self._on_refresh_channel, db_callback)
@@ -689,7 +691,6 @@ class GenericSearchList(SizeList):
         from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now
         
         List.SetData(self, data)
-        
         if len(data) > 0:
             list_data = []
             for file in data:
@@ -721,6 +722,7 @@ class GenericSearchList(SizeList):
                 list_data.append((key, item_data, original_data, create_method))
             
             self.list.SetData(list_data)
+            
         else:
             header =  'No torrents matching your query are found.'
             message = 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
@@ -1408,6 +1410,7 @@ class ChannelCategoriesList(List):
     def __init__(self, parent):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
+        self.searchSelected = False
         columns = [{'width': wx.LIST_AUTOSIZE}]
     
         List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
@@ -1427,7 +1430,8 @@ class ChannelCategoriesList(List):
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All','Updated']:
-            wx.CallAfter(self.guiutility.showChannelCategory, item.data[0])
+            self.guiutility.showChannelCategory(item.data[0])
+            self.searchSelected = False
             
         elif item.data[0] == 'My Channel':
             self.guiutility.ShowPage('mychannel')
@@ -1438,7 +1442,12 @@ class ChannelCategoriesList(List):
     def GetSelectedCategory(self):
         category = self.list.GetExpandedItem()
         if category:
+            self.searchSelected = False
             return category.data[0]
+        
+        if self.searchSelected:
+            return 'Search'
+        
         return ''
 
     def SetQuicktip(self, quicktip):

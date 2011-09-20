@@ -192,10 +192,6 @@ class ChannelCastCore:
 
                 # make everything into "string" format, if "binary"
                 hit = (v['channel_id'],v['publisher_name'],v['infohash'],v['torrentname'],v['time_stamp'])
-                # 29/06/11 boudewijn: note that k contains the signature (whatever that is) and NOT
-                # the infohash.  this makes this result incompatible with
-                # SearchGridManager.getRemoteHits().  Hence these hits are NOT propagated there
-                # anymore.
                 dictOfAdditions[k] = hit
 
             self._updateChannelcastDB(query_permid, query, hits, dictOfAdditions.values())

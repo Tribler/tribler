@@ -154,6 +154,7 @@ class TorrentDetails(AbstractDetails):
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
         if filename:
             self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
+            
         else:
             #Load/collect torrent using guitaskqueue
             startWorker(None, self.loadTorrent, jobID = "TorrentDetails_loadTorrent")
@@ -180,46 +181,41 @@ class TorrentDetails(AbstractDetails):
             self.parent.parent_list.OnChange()
         except wx.PyDeadObjectError:
             pass
-    
 
     @forceWxThread
     def showTorrent(self, torrent, showTab = None):
         try:
-            if DEBUG:
-                print >> sys.stderr, "TorrentDetails: finished loading", self.torrent.name
-            
-            self.torrent = torrent
-            ds = self.torrent.ds
-            
-            if self.noChannel and self.torrent.hasChannel():
-                state, iamModerator = self.torrent.channel.getState()
+            if not self.isReady:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentDetails: finished loading", self.torrent.name
                 
-                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
-                self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
-        
-            self.Freeze()
-            self.messagePanel.Show(False)
-        
-            self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-            self._addTabs(ds, showTab)
-            
-            self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
-            self.details.Add(self.notebook, 65, wx.EXPAND)
-        
-            self._addButtonPanel(self, self.details)
-            self.ShowPanel()
-            
-            page0 = self.notebook.GetPage(0)
-            bestHeight = page0.GetBestVirtualSize()[1]
-            page0.SetMinSize((-1, bestHeight))
+                self.torrent = torrent
+                ds = self.torrent.ds
+                
+                if self.noChannel and self.torrent.hasChannel():
+                    state, iamModerator = self.torrent.channel.getState()
                     
-            self.parent.parent_list.OnChange()
-            self.Thaw()
-
-            self.isReady = True
-            self._Refresh(ds)
-        
-            self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
+                    self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
+                    self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+            
+                self.Freeze()
+                self.messagePanel.Show(False)
+            
+                self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+                self._addTabs(ds, showTab)
+                
+                self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
+                self.details.Add(self.notebook, 65, wx.EXPAND)
+            
+                self._addButtonPanel(self, self.details)
+                self._Refresh(ds)
+                        
+                self.Thaw()
+    
+                self.parent.parent_list.OnChange()
+                self.isReady = True
+            
+                self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
         except wx.PyDeadObjectError:
             pass
     
@@ -242,7 +238,23 @@ class TorrentDetails(AbstractDetails):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         
         #Create torrent overview
-        self.overview, self.torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details')
+        #self.overview, self.torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details')
+        
+        self.overview = wx.Panel(self.notebook)
+        def OnChange():
+            print >> sys.stderr, self.overview.GetBestSize()
+            
+            self.Layout()
+            self.parent.parent_list.OnChange()
+            
+        self.overview.OnChange = OnChange
+        
+        self.torrentSizer = wx.BoxSizer(wx.VERTICAL)
+        self.overview.SetSizer(self.torrentSizer)
+        
+        self._add_header(self.overview, self.torrentSizer, 'Torrent Details')
+        self.notebook.AddPage(self.overview, "Details")
+        
         categories = self.torrent.categories
         if isinstance(categories, list):
             category = ', '.join(categories)
@@ -291,8 +303,6 @@ class TorrentDetails(AbstractDetails):
         self.torrentSizer.Add(vSizer, 1, wx.EXPAND)
         self.UpdateStatus()
 
-        self.overview.SetupScrolling(rate_y = 5)
-            
         if self.canEdit:
             self.UpdateMarkings()
         
@@ -301,14 +311,14 @@ class TorrentDetails(AbstractDetails):
             
             vSizer = wx.FlexGridSizer(0, 2, 3, 3)
             vSizer.AddGrowableCol(1)
+            vSizer.AddGrowableRow(1)
             
             self.isEditable['name'] = EditText(edit, self.torrent.name)
             self.isEditable['description'] = EditText(edit, self.torrent.description or '', True)
             
             self._add_row(edit, vSizer, "Name", self.isEditable['name'])
             self._add_row(edit, vSizer, "Description",self.isEditable['description'])
-            vSizer.AddGrowableRow(1)
-            editSizer.Add(vSizer, 0, wx.EXPAND)
+            editSizer.Add(vSizer, 1, wx.EXPAND)
             
             def save(event):
                 self.doSave(self)
@@ -823,16 +833,7 @@ class TorrentDetails(AbstractDetails):
         elif title.startswith('Modifications'):
             self.modificationList.Show()
             self.modificationList.SetFocus()
-        
-        minHeight = self.notebook.GetMinHeight()
-        if title.startswith('Comments'):
-            newHeight = 300
-        else:
-            newHeight = self.notebook.GetBestSize()[1]
-        
-        if minHeight != newHeight:
-            self.notebook.SetMinSize((-1, newHeight))
-            self.parent.parent_list.OnChange()
+
         event.Skip()
     
     def OnCommentCreated(self, infohash):
@@ -1098,32 +1099,26 @@ class TorrentDetails(AbstractDetails):
 
     def RefreshData(self, data):
         if self.isReady:
+            
+            del self.torrent.swarminfo
             self.UpdateStatus()
    
     def UpdateStatus(self):
-        swarminfo = self.torrent.swarminfo
-        if swarminfo:
-            self.ShowStatus()
-
-        self.guiutility.frame.guiserver.add_task(self._UpdateStatus, id = "TorrentDetails_updateStatus")
-    
-    def _UpdateStatus(self):
-        try:        
-            swarmInfo = self.torrent.swarminfo
-            if swarmInfo:
-                diff = time() - self.torrent.last_check
-            else:
-                diff = 1801
+        #touch swarminfo property        
+        swarmInfo = self.torrent.swarminfo
+        self.ShowStatus()
         
-            self.ShowStatus()
-            if diff > 1800:
-                TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
-        except wx.PyDeadObjectError:
-            pass
+        if swarmInfo:
+            diff = time() - self.torrent.last_check
+        else:
+            diff = 1801
+            
+        if diff > 1800:
+            TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
     
     @forceWxThread
     def ShowStatus(self):
-        if self.isReady:
+        if getattr(self, 'status', False):
             diff = time() - self.torrent.last_check
             if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
                 self.status.SetLabel("Unknown")
@@ -1271,6 +1266,7 @@ class TorrentDetails(AbstractDetails):
                 self.state = -1
                 
                 self.details.Clear(deleteWindows = True)
+                self.isReady = False
                 self.showTorrent(self.torrent, "Files")
                 return True
             
@@ -1279,6 +1275,7 @@ class TorrentDetails(AbstractDetails):
             self.state = -1
 
             self.details.Clear(deleteWindows = True)
+            self.isReady = False
             self.showTorrent(self.torrent)
             return True
         

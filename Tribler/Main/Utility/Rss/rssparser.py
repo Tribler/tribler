@@ -12,6 +12,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from traceback import print_exc
 import time
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+import re
 
 URLHIST_TIMEOUT = 7*24*3600.0   # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30*60    # reload a rss source every n seconds
@@ -221,6 +222,7 @@ class RssParser(Thread):
     def readUrl(self, url, urls_already_seen):
         newItems = []
         
+        feedparser._HTMLSanitizer.acceptable_elements = ['p','br']
         d = feedparser.parse(url)
         for entry in d.entries:
             title = entry.title
@@ -239,6 +241,10 @@ class RssParser(Thread):
                 pass
             
             description = entry.summary
+            if description:
+                description = re.sub("<.*?>", "\n", description)
+                description = re.sub("\n+", "\n", description)
+            
             try:
                 thumbnail = entry.media_thumbnail[0]['url']
             except:

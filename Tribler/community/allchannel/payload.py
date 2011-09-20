@@ -58,7 +58,7 @@ class ChannelSearchPayload(Payload):
             if __debug__:
                 assert isinstance(keywords, list), 'keywords should be list'
                 for keyword in keywords:
-                    assert isinstance(keyword, str)
+                    assert isinstance(keyword, unicode), '%s is type %s'%(keyword, type(keyword))
                     assert len(keyword) > 0
             
             super(ChannelSearchPayload.Implementation, self).__init__(meta)
@@ -69,7 +69,30 @@ class ChannelSearchPayload(Payload):
             return self._keywords
         
 class ChannelSearchResponsePayload(ChannelCastPayload):
-    pass
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, keywords, torrents):
+            if __debug__:
+                assert isinstance(keywords, list), 'keywords should be list'
+                assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
+                for cid, infohashes in torrents.iteritems():
+                    assert isinstance(cid, str)
+                    assert len(cid) == 20
+                    assert isinstance(infohashes, set)
+                    assert not filter(lambda x: not isinstance(x, str), infohashes)
+                    assert not filter(lambda x: not len(x) == 20, infohashes)
+                    assert len(infohashes) > 0
+            
+            super(ChannelCastPayload.Implementation, self).__init__(meta)
+            self._keywords = keywords
+            self._torrents = torrents
+
+        @property
+        def keywords(self):
+            return self._keywords
+
+        @property
+        def torrents(self):
+            return self._torrents
         
 class VoteCastPayload(Payload):
     """

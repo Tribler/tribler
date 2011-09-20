@@ -46,7 +46,7 @@ def single_no_thread(torrent, multiscrapeCallback = None):
                 trackers.extend(announces[:10])
     
 
-    trackers = [tracker for tracker in trackers if tracker.startswith('http:')]
+    trackers = [tracker for tracker in trackers if tracker.startswith('http')]
     for announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
         
