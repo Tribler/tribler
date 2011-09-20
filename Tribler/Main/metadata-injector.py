@@ -35,8 +35,8 @@ def main():
     opt, args = command_line_parser.parse_args()
 
     if not (opt.rss):
-        print "Usage: python Tribler/Main/metadata-injector.py --help"
-        print "Example: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja"
+        command_line_parser.print_help()
+        print "\nExample: python Tribler/Main/metadata-injector.py --rss=http://frayja.com/rss.php --nickname=frayja"
         sys.exit()
 
     print "Press Ctrl-C to stop the metadata-injector"
@@ -59,30 +59,20 @@ def main():
     print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())    
 
     if opt.rss:
-        
-        moderation_cast_db = session.open_dbhandler(NTFY_MODERATIONCAST)
         torrent_feed_thread = TorrentFeedThread.getInstance()
+        
         def on_torrent_callback(rss_url, infohash, torrent_data):
             """
-            A torrent file is discovered through rss. Create a new
-            moderation.
+            A torrent file is discovered through rss. Add it to our channel.
             """
-            if "info" in torrent_data and "name" in torrent_data["info"]:
-                print >>sys.stderr, "Creating moderation for %s" % torrent_data["info"]["name"]
-            else:
-                print >>sys.stderr, "Creating moderation"
-
-            moderation = {}
-            moderation['infohash'] = bin2str(infohash)
-            torrenthash = sha.sha(bencode(data)).digest()
-            moderation['torrenthash'] = bin2str(torrenthash)
-
-            moderation_cast_db.addOwnModeration(moderation)
-
-        torrent_feed_thread.register(session,120,1)
+            torrentdef = TorrentDef.load_from_dict(torrent_data)
+            print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
+            torrent_feed_thread.channelcast_db.addOwnTorrent(torrentdef)
+            
+        torrent_feed_thread.register(session) 
         for rss in opt.rss.split(";"):
             print >>sys.stderr, "Adding RSS: %s" % rss
-            torrent_feed_thread.addURL(rss, on_torrent_callback=on_torrent_callback)
+            torrent_feed_thread.addURL(rss, callback=on_torrent_callback)
 
         torrent_feed_thread.start()
 
