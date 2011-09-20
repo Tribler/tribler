@@ -285,10 +285,10 @@ class AllChannelCommunity(Community):
     def on_channelsearch_response(self, messages):
         import sys
         print >> sys.stderr, "GOT Search-RESPONSE"
+        #request missing torrents
+        self.on_channelcast_request(messages)
+        
         for message in messages:
-            #request missing torrents
-            self.on_channelcast_request(message)
-            
             #show results in gui
             keywords = message.payload.keywords
             query = " ".join(keywords)
