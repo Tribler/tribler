@@ -1808,7 +1808,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 if os.path.isfile(torrent_file_name):    
                                     torrentdef = TorrentDef.load(torrent_file_name)
                                     
-                                    files = torrentdef.get_files()
+                                    files = torrentdef.get_files_with_length()
                                     to_be_inserted.append((infohash, timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple()))
                             
                             if len(to_be_inserted) > 0:

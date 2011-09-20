@@ -1278,7 +1278,7 @@ class ChannelSearchGridManager:
         if not self.channelcast_db.hasTorrent(channel_id, tdef.infohash):
             community = self._disp_get_community_from_channel_id(channel_id)
             
-            files = tdef.get_files()
+            files = tdef.get_files_with_length()
             community._disp_create_torrent(tdef.infohash, long(time()), unicode(tdef.get_name()), tuple(files), tdef.get_trackers_as_single_tuple(), forward = forward)
             
             if 'description' in extraInfo:
@@ -1474,7 +1474,7 @@ class ChannelSearchGridManager:
                 self.remoteLock.acquire()
                 
                 for channel in dispersyChannels:
-                    self.remoteHits.append(channel)
+                    self.remoteHits.append((channel, -1))
             finally:
                 self.remoteLock.release()
     
