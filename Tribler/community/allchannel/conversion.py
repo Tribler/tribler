@@ -55,7 +55,7 @@ class AllChannelConversion(BinaryConversion):
             raise DropPacket("Invalid payload type")
         
         for keyword in payload:
-            if not isinstance(keyword, str):
+            if not isinstance(keyword, unicode):
                 raise DropPacket("Invalid 'keyword' type")
         return offset, placeholder.meta.payload.implement(payload)
 
