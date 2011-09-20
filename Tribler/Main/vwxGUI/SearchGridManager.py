@@ -985,6 +985,10 @@ class ChannelSearchGridManager:
         channels = self.channelcast_db.getChannels(channel_ids)
         return self._createChannels(channels)
     
+    def getChannelsByCID(self, channel_cids):
+        channels = self.channelcast_db.getChannelsByCID(channel_cids)
+        return self._createChannels(channels)
+    
     def getChannelState(self, channel_id):
         community = self._disp_get_community_from_channel_id(channel_id)
         return community.get_channel_mode()
@@ -1400,9 +1404,12 @@ class ChannelSearchGridManager:
             
             if len(self.remoteHits) > 0:
                 for remoteItem, permid in self.remoteHits:
-                    channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
+                    if not isinstance(remoteItem, Channel):
+                        channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
+                        remoteItem = RemoteChannel(channel_id, -1, channel_name, 0, 0)
+                        
                     if not channel_id in self.hits:
-                        self.hits[channel_id] = RemoteChannel(channel_id, -1, channel_name, 0, 0)
+                        self.hits[channel_id] = remoteItem
                         hitsUpdated = True
                     
                     channel = self.hits[channel_id]
@@ -1417,7 +1424,6 @@ class ChannelSearchGridManager:
                             
                         channel.nr_torrents = len(channel.torrents) 
                         channel.modified = max(channel.modified, timestamp)
-
         finally:
             self.remoteLock.release()
 
@@ -1462,7 +1468,15 @@ class ChannelSearchGridManager:
     
     def gotDispersyRemoteHits(self, kws, answers):
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(None, kws, answers))
+            channel_cids = answers.keys()
+            dispersyChannels = self.getChannelsByCID(channel_cids)
+            try:
+                self.remoteLock.acquire()
+                
+                for channel in dispersyChannels:
+                    self.remoteHits.append(channel)
+            finally:
+                self.remoteLock.release()
     
     def _gotRemoteHits(self, permid, kws, answers):
         # @param permid: the peer who returned the answer to the query
@@ -1485,9 +1499,6 @@ class ChannelSearchGridManager:
             
             elif DEBUG:
                 print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
-                
-        except:
-            print_exc()
         
         finally:
             nr_hits = len(self.remoteHits)

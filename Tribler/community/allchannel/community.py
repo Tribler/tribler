@@ -412,23 +412,6 @@ class ChannelCastDBStub():
             if message:
                 message.packet_id = packet_id
                 yield message.community.cid, message
-        # for cid, packet, packet_id in results:
-        #     cid = str(cid)
-        #     packet = str(packet)
-            
-        #     try:
-        #         community = self._dispersy.get_community(cid)
-        #         message = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
-        #         message.packet_id = packet_id
-                
-        #         messages.append((cid, message))
-                
-        #     except ValueError, v:
-        #         #raise RuntimeError("Unable to decode packet")
-        #         import sys
-        #         print >> sys.stderr, "Unable to decode packet", cid, packet
-        #         raise
-        # return messages
     
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}

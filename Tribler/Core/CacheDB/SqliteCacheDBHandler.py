@@ -3837,6 +3837,11 @@ class ChannelCastDBHandler(object):
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id IN ('" + channel_ids + "')"
         return self._getChannels(sql)
     
+    def getChannelsByCID(self, channel_cids):
+        channel_cids = "','".join(map(str,channel_cids))
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN ('" + channel_cids + "')"
+        return self._getChannels(sql)
+    
     def getChannelFromPermid(self, channel_permid):
         sql = "Select C.id, C.name, C.description, C.dispersy_cid, C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam FROM Channels as C, Peer WHERE Channels.peer_id = Peer.peer_id AND Peer.peer_id = ?"
         channels = self._getChannels(sql, (channel_permid,))
