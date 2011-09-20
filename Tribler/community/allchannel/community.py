@@ -235,7 +235,7 @@ class AllChannelCommunity(Community):
         
         meta = self.get_meta_message(u"channelsearch")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
+                            distribution=(self.global_time,),
                             payload=(keywords, ))
         
         self._dispersy.store_update_forward([message], store = False, update = False, forward = True)
@@ -245,24 +245,34 @@ class AllChannelCommunity(Community):
         return messages
 
     def on_channelsearch(self, messages):
+        import sys
+        print >> sys.stderr, "RECEIVED channelsearch"
         for message in messages:
             keywords = message.payload.keywords
             query = " ".join(keywords)
             
+            print >> sys.stderr, "RECEIVED channelsearch query = ",query
+            
             results = self._channelcast_db.searchChannelsTorrent(query, 7, 7)
             if len(results) > 0:
+                print >> sys.stderr, "RECEIVED channelsearch %d results"%len(results)
                 responsedict = {}
                 for channel_id, dispersy_cid, name, infohash, torname, time_stamp in results:
                     infohashes = responsedict.setdefault(dispersy_cid, set())
                     infohashes.add(infohash)
                     
                 self.create_channelsearch_response(keywords, responsedict, message.address)
+            else:
+                print >> sys.stderr, "RECEIVED channelsearch no_results"
     
     def create_channelsearch_response(self, keywords, torrents, address):
         #create channelsearch-response message
         meta = self.get_meta_message(u"channelsearch-response")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(keywords, torrents))
+        
+        import sys
+        print >> sys.stderr, "SENDING RESPONSE TO"+address
         self._dispersy._send([address], [message.packet])
     
     def check_channelsearch_response(self, messages):
@@ -270,6 +280,8 @@ class AllChannelCommunity(Community):
         return messages
         
     def on_channelsearch_response(self, messages):
+        import sys
+        print >> sys.stderr, "GOT Search-RESPONSE"
         for message in messages:
             #request missing torrents
             self.on_channelcast_request(message)
@@ -277,6 +289,8 @@ class AllChannelCommunity(Community):
             #show results in gui
             keywords = message.payload.keywords
             query = " ".join(keywords)
+            
+            print >> sys.stderr, "GOT Search-RESPONSE query = "+query
             if query in self._searchCallbacks:
                 torrents = message.payload.torrents
                 for callback in self._searchCallbacks[query]:

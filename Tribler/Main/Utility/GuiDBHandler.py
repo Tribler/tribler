@@ -68,6 +68,8 @@ class GUIDBProducer():
             
             if DEBUG:
                 print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
+                
+        wrapper.__name__ = name
         
         if not self.onSameThread():
             self.database_thread.register(wrapper, delay=delay, id_=name)

@@ -154,7 +154,7 @@ class ChannelSearchManager:
             self.list.dirty = True
             
     def refreshDirty(self):
-        if 'COMPLETE_REFRESH' in self.dirtyset:
+        if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > 5:
             self.refresh()
         else:
             self.refresh_partial(self.dirtyset)
