@@ -285,13 +285,13 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
+        self.__check_thread()
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
         
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
-        
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
@@ -913,6 +913,11 @@ class MainFrame(wx.Frame):
             self.stats.onActivity(text)
         except wx.PyDeadObjectError:
             pass
+        
+    def __check_thread(self):
+        if __debug__ and currentThread().getName() != "MainThread":
+            print  >> sys.stderr,"MainFrame: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+            print_stack()
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
