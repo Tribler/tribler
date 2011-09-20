@@ -3788,7 +3788,7 @@ class ChannelCastDBHandler(object):
                 sql += " LIMIT %d"%limitChannels
                    
             channels = self._db.fetchall(sql)
-            select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrents, CollectedTorrent WHERE Torrents.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY num_seeders DESC LIMIT ?"
+            select_torrents = "SELECT infohash, ChannelTorrents.name, Torrent.name, time_stamp from Torrent, CollectedTorrent WHERE Torrent.torrent_id = CollectedTorrent.torrent_id AND channel_id = ? ORDER BY num_seeders DESC LIMIT ?"
             
             limitTorrents = limitTorrents or 20
             

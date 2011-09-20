@@ -74,7 +74,7 @@ class AllChannelConversion(BinaryConversion):
         
         keywords, torrents = payload
         for keyword in keywords:
-            if not isinstance(keyword, str):
+            if not isinstance(keyword, unicode):
                 raise DropPacket("Invalid 'keyword' type")
             
         for cid, infohashes in torrents.iteritems():
