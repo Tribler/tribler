@@ -3841,7 +3841,7 @@ class ChannelCastDBHandler(object):
         parameters = parameters[:-1]
         
         channel_cids = map(buffer, channel_cids)
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN ('" + parameters + "')"
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN (" + parameters + ")"
         return self._getChannels(sql, channel_cids)
     
     def getChannelFromPermid(self, channel_permid):
