@@ -147,7 +147,7 @@ class TorrentFeedThread(Thread):
         elif callback: #replace callback
             for tup in self.feeds:
                 if tup[0].feed_url == url:
-                   tup[2] = callback
+                    tup[2] = callback
         self.lock.release()
 
     def addCallback(self, callback):
