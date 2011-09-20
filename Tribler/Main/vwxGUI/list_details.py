@@ -242,12 +242,15 @@ class TorrentDetails(AbstractDetails):
         
         self.overview = wx.Panel(self.notebook)
         def OnChange():
-            print >> sys.stderr, self.overview.GetBestSize()
-            
-            self.Layout()
-            self.parent.parent_list.OnChange()
-            
-        self.overview.OnChange = OnChange
+            self.overview.Layout()
+
+            def resize():
+                best = self.overview.GetBestSize()[1]
+                notebook = self.notebook.CalcSizeFromPage((1, best))[1]
+                self.notebook.SetMinSize((-1, notebook))
+                self.parent.parent_list.OnChange()
+            wx.CallAfter(resize)
+        self.overview.OnChange = OnChange 
         
         self.torrentSizer = wx.BoxSizer(wx.VERTICAL)
         self.overview.SetSizer(self.torrentSizer)
@@ -1245,7 +1248,7 @@ class TorrentDetails(AbstractDetails):
             self.title.Refresh()
     
     def Layout(self):
-        wx.Panel.Layout(self)
+        returnValue = wx.Panel.Layout(self)
         
         if self.isReady:
             #force setupscrolling for scrollpages, if constructed while not shown this is required.
@@ -1255,6 +1258,8 @@ class TorrentDetails(AbstractDetails):
                 
                 if getattr(page, 'SetupScrolling', False):
                     page.SetupScrolling()
+                    
+        return returnValue
                     
     def OnEventSize(self, width):
         if self.compact:

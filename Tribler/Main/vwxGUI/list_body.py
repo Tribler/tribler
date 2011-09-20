@@ -393,7 +393,7 @@ class AbstractListBody():
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.listpanel = wx.Panel(self)
+        self.listpanel = wx.Panel(self, name="LIST")
         
         #vertical sizer containing all items
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -762,7 +762,7 @@ class AbstractListBody():
     
     def OnIdle(self, event):
         if not self.done:
-            if len(self.data) > 0:
+            if self.data and len(self.data) > 0:
                 self.CreateItems()
             else:
                 self.done = True
