@@ -3838,7 +3838,7 @@ class ChannelCastDBHandler(object):
         return self._getChannels(sql)
     
     def getChannelsByCID(self, channel_cids):
-        channel_cids = "','".join(map(str,channel_cids))
+        channel_cids = "','".join(map(buffer,channel_cids))
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN ('" + channel_cids + "')"
         return self._getChannels(sql)
     
