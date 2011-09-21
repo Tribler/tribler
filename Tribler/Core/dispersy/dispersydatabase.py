@@ -41,15 +41,6 @@ CREATE TABLE community(
  auto_load BOOL DEFAULT 1,                      -- when 1 this community is loaded whenever a packet for it is received
  UNIQUE(master));
 
-CREATE TABLE candidate(
- community INTEGER REFERENCES community(id),
- host TEXT,                                             -- IP address
- port INTEGER,                                          -- port number
- incoming_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when received data
- outgoing_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when data send
- external_time TEXT DEFAULT '2010-01-01 00:00:00',      -- time when we heared about this address from 3rd party
- UNIQUE(community, host, port));
-
 CREATE TABLE meta_message(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  community INTEGER REFERENCES community(id),
@@ -82,7 +73,7 @@ CREATE TABLE malicious_proof(
  packet BLOB);
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '4');
+INSERT INTO option(key, value) VALUES('database_version', '5');
 """
 
 class DispersyDatabase(Database):
@@ -249,6 +240,14 @@ UPDATE option SET value = '4' WHERE key = 'database_version';
 
             # upgrade from version 4 to version 5
             if database_version < 5:
-                # there is no version 5 yet...
-                # self.executescript(u"""UPDATE option SET value = '5' WHERE key = 'database_version';""")
+                self.executescript(u"""
+DROP TABLE candidate;
+UPDATE option SET value = '5' WHERE key = 'database_version';
+""")
+
+            # upgrade from version 5 to version 6
+            if database_version < 6:
+                # there is no version 6 yet...
+                # self.executescript(u"""UPDATE option SET value = '6' WHERE key = 'database_version';""")
                 pass
+            

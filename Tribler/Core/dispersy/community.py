@@ -1,6 +1,3 @@
-# Python 2.5 features
-from __future__ import with_statement
-
 """
 the community module provides the Community baseclass that should be used when a new Community is
 implemented.  It provides a simplified interface between the Dispersy instance and a running
@@ -16,24 +13,21 @@ from itertools import count
 from math import sqrt
 from random import gauss, choice
 
-from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from cache import CacheDict
 from conversion import BinaryConversion, DefaultConversion
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from decorator import documentation
-from destination import CommunityDestination, AddressDestination, SubjectiveDestination
+from destination import SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
-from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
-from encoding import encode
 from member import Member
-from message import Message, DropMessage
 from resolution import LinearResolution, DynamicResolution
 from timeline import Timeline
 
 if __debug__:
     from dprint import dprint
+    from math import ceil
 
 class SyncRange(object):
     def __init__(self, time_low, bits, error_rate, redundancy):
@@ -120,8 +114,6 @@ class Community(object):
 
         database = DispersyDatabase.get_instance()
         database.execute(u"INSERT INTO community (master, member, classification) VALUES(?, ?, ?)", (master.database_id, my_member.database_id, cls.get_classification()))
-        database_id = database.last_insert_rowid
-        database.execute(u"INSERT INTO candidate (community, host, port) SELECT ?, host, port FROM candidate WHERE community = 0", (database_id,))
 
         # new community instance
         community = cls.load_community(master, *args, **kargs)
@@ -225,6 +217,9 @@ class Community(object):
         # tell dispersy that there is a new community
         community._dispersy.attach_community(community)
 
+        # start the peer selection strategy (must be called after attach)
+        community.dispersy_start_walk()
+        
         return community
 
     def __init__(self, master):
@@ -271,10 +266,8 @@ class Community(object):
         self._sync_ranges = []
         self._initialize_sync_ranges()
         if __debug__:
-            if u"dispersy-sync" in self._meta_messages:
-                from math import ceil
-                b = BloomFilter(self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_bits)
-                dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
+            b = BloomFilter(self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_bits)
+            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
 
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
         self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs
@@ -296,15 +289,20 @@ class Community(object):
         # obtain dispersy meta messages
         for meta_message in self._dispersy.initiate_meta_messages(self):
             assert meta_message.name not in self._meta_messages
-            assert self.dispersy_sync_interval <= 0.0 or meta_message.delay < self.dispersy_sync_interval, "when sync is enabled the interval should be greater than the message delay.  otherwise you are likely to receive duplicate packets"
             self._meta_messages[meta_message.name] = meta_message
 
         # obtain community meta messages
         for meta_message in self.initiate_meta_messages():
             assert meta_message.name not in self._meta_messages
-            assert self.dispersy_sync_interval <= 0.0 or meta_message.delay < self.dispersy_sync_interval, "when sync is enabled the interval should be greater than the message delay.  otherwise you are likely to receive duplicate packets"
             self._meta_messages[meta_message.name] = meta_message
 
+        if __debug__:
+            from distribution import SyncDistribution
+            sync_delay = self._meta_messages[u"dispersy-introduction-request"].delay
+            for meta_message in self._meta_messages.itervalues():
+                if isinstance(meta_message.distribution, SyncDistribution):
+                    assert meta_message.delay < sync_delay, (meta_message.name, "when sync is enabled the interval should be greater than the message delay.  otherwise you are likely to receive duplicate packets")
+        
     def _initialize_sync_ranges(self):
         assert isinstance(self._sync_ranges, list)
         assert len(self._sync_ranges) == 0
@@ -441,132 +439,6 @@ class Community(object):
     dispersy_auto_load = property(__get_dispersy_auto_load, __set_dispersy_auto_load)
 
     @property
-    def dispersy_candidate_request_initial_delay(self):
-        return 0.1
-
-    @property
-    def dispersy_candidate_request_interval(self):
-        """
-        The interval between sending dispersy-candidate-request messages.
-        """
-        return 60.0
-
-    @property
-    def dispersy_candidate_request_member_count(self):
-        """
-        The number of members that a dispersy-candidate-request message is sent to each interval.
-        @rtype: int
-        """
-        return 3
-
-    @property
-    def dispersy_candidate_cleanup_age_threshold(self):
-        """
-        Once an entry in the candidate table becomes older than the threshold, the entry is deleted
-        from the database.
-        @rtype: float
-        """
-        # 24 hours ~ 86400.0 seconds
-        return 86400.0
-
-    @property
-    def dispersy_candidate_limit(self):
-        """
-        The number of candidates to place in a dispersy-candidate request and response.
-
-        We want one dispersy-candidate-request/response message to fit within a single MTU.  There
-        are several numbers that need to be taken into account.
-
-        - A typical MTU is 1500 bytes
-
-        - A typical IP header is 20 bytes
-
-        - The maximum IP header is 60 bytes (this includes information for VPN, tunnels, etc.)
-
-        - The UDP header is 8 bytes
-
-        - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, member,
-          global-time)
-
-        - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
-          The current value is: self._my_member.signature_length
-
-        - The dispersy-candidate-request/response message payload is 6 + 6 + 2 = 14 bytes (contains
-          my-external-address, their-external-address, our-conversion-version)
-
-        - Each candidate in the payload requires 4 + 2 + 2 bytes (host, port, age)
-        """
-        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 14) // 8
-
-    @property
-    def dispersy_candidate_online_range(self):
-        """
-        The range -in seconds from the last time we received a packet from an address- that we
-        define a candidate to be online.
-
-        For instance: the range (0, 300) will mark addresses, from where we received a packet
-        withing the last 300 seconds, to be online.
-
-        @rtype: (int, int)
-        """
-        return (0, 300)
-
-    @property
-    def dispersy_candidate_online_scores(self):
-        return [(10, 0), (30, 4), (50, 10), (70, 4)]
-
-    @property
-    def dispersy_candidate_direct_observation_score(self):
-        """
-        Candidates that we have directly observed to exist are given this score in the candidate
-        selection algorithm.
-
-        @rtype int
-        """
-        return 6
-
-    @property
-    def dispersy_candidate_indirect_observation_score(self):
-        """
-        Candidates that we have indirectly observed to exist are given this score in the candidate
-        selection algorithm.
-
-        Note that using indirect observation increases the diversity of the candidate selection at
-        the cost of possibly using candidates that have been obtained from malicious nodes.
-
-        @rtype int
-        """
-        return 4
-
-    @property
-    def dispersy_candidate_subjective_set_score(self):
-        """
-        @rtype (int, int)
-        """
-        return 10
-
-    @property
-    def dispersy_candidate_probabilistic_factor(self):
-        """
-        The range of the random factor that the score of each candidate is multiplied with.
-
-        @rtype (float, float)
-        """
-        return (1.0, 3.0)
-
-    @property
-    def dispersy_sync_initial_delay(self):
-        return 10.0
-
-    @property
-    def dispersy_sync_interval(self):
-        """
-        The interval between sending dispersy-sync messages.
-        @rtype: float
-        """
-        return 30.0
-
-    @property
     def dispersy_sync_bloom_filter_error_rate(self):
         """
         The error rate that is allowed within the sync bloom filter.
@@ -607,8 +479,8 @@ class Community(object):
         """
         The size in bits of this bloom filter.
 
-        We want one dispersy-sync message to fit within a single MTU.  There are several numbers
-        that need to be taken into account.
+        The sync bloom filter is part of the dispersy-introduction-request message and hence must
+        fit within a single MTU.  There are several numbers that need to be taken into account.
 
         - A typical MTU is 1500 bytes
 
@@ -620,41 +492,27 @@ class Community(object):
         - The dispersy header is 2 + 20 + 1 + 20 + 8 = 51 bytes (version, cid, type, member,
           global-time)
 
-        - The signature is usually 60 bytes.  This depends on what public/private key was choosen.
+        - The signature is usually 60 bytes.  This depends on what public/private key was chosen.
           The current value is: self._my_member.signature_length
-
-        - The dispersy-sync message uses 16 bytes to indicate the sync range and 4 bytes for the
-          num_slices, bits_per_slice, and the prefix
+          
+        - The other payload is 6 + 6 + 6 + 1 + 2 = 21 (destination-address, source-lan-address,
+          source-wan-address, advice, identifier)
+        
+        - The sync payload uses 16 bytes to indicate the sync range and 4 bytes for the num_slices,
+          bits_per_slice, and the prefix
         """
-        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 16 - 4) * 8
+        return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 21 - 16 - 4) * 8
 
-    @property
-    def dispersy_sync_bloom_filters(self):
+    def dispersy_claim_sync_bloom_filter(self, identifier):
         """
-        The bloom filters that should be sent this interval.
+        The bloom filter that should be sent this interval.
 
-        The list that is returned must contain (time_low, time_high, bloom_filter) tuples.  For the
-        most recent bloom filter it is good practice to send 0 (zero) instead of time_high, this
-        will ensure that messages newer than time_high are also retrieved.
+        Returns a (time_low, time_high, bloom_filter) tuple.  For the most recent bloom filter it is
+        good practice to send 0 (zero) instead of time_high, this will ensure that messages newer
+        than time_high are also retrieved.
 
         Bloom filters at index 0 indicates the most recent bloom filter range, while a higher number
         indicates an older range.
-
-        It sounds reasonable to ensure that the more recent ranges are returned more frequently.
-        Several strategied can be used:
-
-         1. Always return index 0 and pick another index at random.
-
-         2. Always return index 0 and pick another index using a gaussian probability distribution
-            favoring the more recent ranges.
-
-         3. Use a gaussion probability distribution favoring the more recent ranges.
-
-        The default is option 3.  However, each community is free to implement this how they see
-        fit.
-
-        @note: The returned indexes need to exist.
-        @rtype [(time_low, time_high, bloom_filter)]
         """
         size = len(self._sync_ranges)
         index = int(abs(gauss(0, sqrt(size))))
@@ -663,23 +521,11 @@ class Community(object):
 
         if index == 0:
             sync_range = self._sync_ranges[index]
-            return [(sync_range.time_low, 0, choice(sync_range.bloom_filters))]
+            return sync_range.time_low, 0, choice(sync_range.bloom_filters)
 
         else:
             newer_range, sync_range = self._sync_ranges[index - 1:index + 1]
-            return [(sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters))]
-
-    @property
-    def dispersy_sync_member_count(self):
-        """
-        The number of members that are selected each time a dispersy-sync message is send.
-
-        Any value higher than 1 has a chance to result in duplicate incoming packets, as multiple
-        recipients can provide the same missing data.
-
-        @rtype: int
-        """
-        return 1
+            return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
 
     @property
     def dispersy_sync_response_limit(self):
@@ -788,12 +634,6 @@ class Community(object):
         """
         return self._subjective_set_clusters
 
-    def unload_community(self):
-        """
-        Unload a single community.
-        """
-        self._dispersy.detach_community(self)
-
     @property
     def global_time(self):
         """
@@ -801,6 +641,15 @@ class Community(object):
         @rtype: int or long
         """
         return max(1, self._global_time)
+
+    def unload_community(self):
+        """
+        Unload a single community.
+        """
+        self._dispersy.detach_community(self)
+
+    def dispersy_start_walk(self):
+        return self._dispersy.start_walk(self)
 
     def claim_global_time(self):
         """
@@ -1188,7 +1037,7 @@ class Community(object):
         if verified:
             # TODO we should not just trust this information, a member can put any address in their
             # dispersy-identity message.  The database should contain a column with a 'verified'
-            # flag.  This flag is only set when a handshake was successfull.
+            # flag.  This flag is only set when a handshake was successful.
             sql = u"SELECT DISTINCT member.public_key FROM identity JOIN member ON member.id = identity.member WHERE identity.host = ? AND identity.port = ? -- AND verified = 1"
         else:
             sql = u"SELECT DISTINCT member.public_key FROM identity JOIN member ON member.id = identity.member WHERE identity.host = ? AND identity.port = ?"
@@ -1394,12 +1243,10 @@ class HardKilledCommunity(Community):
         # remove all messages that we no longer need
         meta_messages = self._meta_messages
         self._meta_messages = {}
-        for name in [u"dispersy-candidate-request",     # we still receive this message
-                     u"dispersy-candidate-response",    # we still send this message
-                     u"dispersy-identity",              # we still receive this message for new peers who send us
-                                                        # candidate requests
-                     u"dispersy-missing-identity",      # we still send this to obtain identity messages
-                     u"dispersy-sync"]:                 # we still need to spread the destroy-community message
+        for name in [u"dispersy-introduction-request",
+                     u"dispersy-introduction-response",
+                     u"dispersy-identity",
+                     u"dispersy-missing-identity"]:
             self._meta_messages[name] = meta_messages[name]
 
     @property

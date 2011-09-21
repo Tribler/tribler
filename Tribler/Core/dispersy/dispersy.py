@@ -19,10 +19,10 @@ different policies, and each policy defines how a specific part of the message s
 
  - Resolution defines how the permission system should resolve conflicts between messages.
 
- - Distribution defines if the message is send once or if it should be gossipped around.  In the
+ - Distribution defines if the message is send once or if it should be gossiped around.  In the
    latter case, it can also define how many messages should be kept in the network.
 
- - Destination defines to whom the message should be send or gossipped.
+ - Destination defines to whom the message should be send or gossiped.
 
 To ensure that every node handles a messages in the same way, i.e. has the same policies associated
 to each message, a message exists in two stages.  The meta-message and the implemented-message
@@ -39,9 +39,10 @@ of, the name it uses as an internal identifier, and the class that will contain 
 
 from hashlib import sha1
 from itertools import groupby, islice, count
+from lencoder import log
 from os.path import abspath
-from random import random, shuffle
-from sys import maxint
+from random import random, choice
+from time import time
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -53,19 +54,18 @@ from destination import CommunityDestination, AddressDestination, MemberDestinat
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
 from member import Member
-from message import Packet, Message
-from message import DropPacket, DelayPacket
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
+from message import DropPacket, DelayPacket
+from message import Packet, Message
 from payload import AuthorizePayload, RevokePayload, UndoPayload
-from payload import CandidateRequestPayload, CandidateResponsePayload
 from payload import DestroyCommunityPayload
 from payload import DynamicSettingsPayload
 from payload import IdentityPayload, MissingIdentityPayload
+from payload import IntroductionRequestPayload, IntroductionResponsePayload, PunctureRequestPayload, PuncturePayload
 from payload import MissingMessagePayload
 from payload import MissingSequencePayload, MissingProofPayload
 from payload import SignatureRequestPayload, SignatureResponsePayload
 from payload import SubjectiveSetPayload, MissingSubjectiveSetPayload
-from payload import SyncPayload
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
@@ -212,32 +212,41 @@ class Dispersy(Singleton):
         # our data storage
         self._database = DispersyDatabase.get_instance(working_directory)
 
-        # our internal and external addresses
-        self._my_internal_address = (get_my_wan_ip(), 0)
+        # peer selection candidates.  address:Candidate pairs (where
+        # address is obtained from socket.recv_from)
+        self._candidates = {}
 
+        # random numbers in the rangs [0:2**16) that are used to match
+        # outgoing introduction-request to introduction-response
+        self._walk_identifiers = set()
+        
+        # our LAN and WAN addresses
+        self._lan_address = (get_my_wan_ip(), 0)
+        
         try:
-            host, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_external_ip' LIMIT 1").next()
+            host, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_wan_ip' LIMIT 1").next()
             host = str(host)
         except StopIteration:
-            host = self._my_internal_address[0]
+            host = self._lan_address[0]
 
         try:
-            port, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_external_port' LIMIT 1").next()
+            port, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_wan_port' LIMIT 1").next()
         except StopIteration:
-            port = 0
+            port = self._lan_address[1]
 
-        if __debug__: dprint("my external address is ", host, ":", port)
-        self._my_external_address = (host, port)
-        self._external_address_votes = {self._my_external_address:set()}
-        self.external_address_vote(self._my_external_address, ("", -1))
-
+        self._wan_address = (host, port)
+        self._wan_address_votes = {self._wan_address:set()}
+        self.wan_address_vote(self._wan_address, ("", -1))
+        if __debug__:
+            dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1])
+            dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1])
+        
         # bootstrap peers
-        self._bootstrap_addresses = get_bootstrap_addresses()
-        for peer in self._bootstrap_addresses:
-            if peer is None:
-                self._callback.register(self._retry_bootstrap_addresses)
-                self._bootstrap_addresses = [peer for peer in self._bootstrap_addresses if peer]
-                break
+        bootstrap_addresses = get_bootstrap_addresses()
+        self._bootstrap_candidates = dict((address, Candidate(self, address, address)) for address in bootstrap_addresses if address)
+        assert isinstance(self._bootstrap_candidates, dict)
+        if not all(bootstrap_addresses):
+            self._callback.register(self._retry_bootstrap_candidates)
 
         # all available communities.  cid:Community pairs.
         self._communities = {}
@@ -261,7 +270,7 @@ class Dispersy(Singleton):
         # statistics...
         self._statistics = Statistics()
 
-    def _retry_bootstrap_addresses(self):
+    def _retry_bootstrap_candidates(self):
         """
         One or more bootstrap addresses could not be retrieved.
 
@@ -278,7 +287,7 @@ class Dispersy(Singleton):
                     break
             else:
                 if __debug__: dprint("resolved all bootstrap addresses")
-                self._bootstrap_addresses = addresses
+                self._bootstrap_candidates = dict((address, Candidate(self, address, address)) for address in addresses if address)
                 break
 
     @property
@@ -305,33 +314,41 @@ class Dispersy(Singleton):
         """
         port = socket.get_address()[1]
         self._socket = socket
-        if __debug__: dprint("update internal address ", self._my_internal_address[0], ":", self._my_internal_address[1], " -> ", self._my_internal_address[0], ":", port, force=True)
-        self._my_internal_address = (self._my_internal_address[0], port)
-        self.external_address_vote(self._my_internal_address, ("", -1))
+        if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port)
+        self._lan_address = (self._lan_address[0], port)
+        self.wan_address_vote(self._lan_address, ("", -1))
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
 
     @property
-    def internal_address(self):
-        return self._my_internal_address
-    
-    @property
-    def external_address(self):
+    def lan_address(self):
         """
-        The external address where we believe that we can be found.
+        The LAN address where we believe people who are inside our LAN can find us.
 
-        Our external address is determined by majority voting.  Each time when we receive a message
-        that contains anothers opinion about our external address, we take this into account.  The
-        address with the most votes wins.
-
-        Votes can be added by calling the external_address_vote(...) method.
-
-        Usually these votes are received through dispersy-candidate-request and
-        dispersy-candidate-response messages.
+        Our LAN address is determined by the default gateway of our
+        system and our port.
 
         @rtype: (str, int)
         """
-        return self._my_external_address
+        return self._lan_address
+    
+    @property
+    def wan_address(self):
+        """
+        The wan address where we believe that we can be found from outside our LAN.
+
+        Our wan address is determined by majority voting.  Each time when we receive a message
+        that contains an opinion about our wan address, we take this into account.  The
+        address with the most votes wins.
+
+        Votes can be added by calling the wan_address_vote(...) method.
+
+        Usually these votes are received through dispersy-introduction-request and
+        dispersy-introduction-response messages.
+
+        @rtype: (str, int)
+        """
+        return self._wan_address
 
     @property
     def callback(self):
@@ -367,10 +384,11 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-candidate-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateRequestPayload(), self._generic_timeline_check, self.on_candidate_request, delay=0.0),
-                Message(community, u"dispersy-candidate-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), CandidateResponsePayload(), self._generic_timeline_check, self.on_candidate_response, delay=2.5),
+        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=5.0),
+                Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
+                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
+                Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, self.on_puncture, delay=0.0),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
-                Message(community, u"dispersy-sync", MemberAuthentication(), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=community.dispersy_sync_member_count), SyncPayload(), self.check_sync, self.on_sync, delay=0.0),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
                 Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, priority=504, delay=1.0),
@@ -408,23 +426,6 @@ class Dispersy(Singleton):
                 # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last, delay=0.0),
                 ]
 
-    @staticmethod
-    def _rawserver_task_id(community, prefix):
-        """
-        Periodically sending sync and candidate messages requires a rawserver tast to be identified
-        per community.  To ensure that each community is uniquely idntified we use both the
-        community id and the memory address id(community).
-
-        This may still give problems when detaching and attaching (i.e. because of a reclassify).
-        But it is the best we can do at this point.
-        """
-        if __debug__:
-            # pylint: disable-msg=W0404
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(prefix, str)
-        return "-".join((prefix, str(id(community)), community.cid.encode("HEX")))
-
     def attach_community(self, community):
         """
         Add a community to the Dispersy instance.
@@ -445,14 +446,6 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
 
-        # periodically send dispery-sync messages
-        if __debug__: dprint("start in ", community.dispersy_sync_initial_delay, " every ", community.dispersy_sync_interval, " seconds call _periodically_create_sync")
-        self._callback.register(self._periodically_create_sync, (community,), id_=self._rawserver_task_id(community, "id:sync"))
-
-        # periodically send dispery-candidate-request messages
-        if __debug__: dprint("start in ", community.dispersy_candidate_request_initial_delay, " every ", community.dispersy_candidate_request_interval, " seconds call _periodically_create_candidate_request")
-        self._callback.register(self._periodically_create_candidate_request, (community,), id_=self._rawserver_task_id(community, "id:candidate"))
-
     def detach_community(self, community):
         """
         Remove an attached community from the Dispersy instance.
@@ -470,8 +463,6 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         assert community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
-        self._callback.unregister(self._rawserver_task_id(community, "id:sync"))
-        self._callback.unregister(self._rawserver_task_id(community, "id:candidate"))
         del self._communities[community.cid]
 
     def reclassify_community(self, source, destination):
@@ -617,18 +608,18 @@ class Dispersy(Singleton):
         else:
             return community.get_conversion(packet[:22]).decode_message(("", -1), packet)
 
-    def external_address_vote(self, address, voter_address):
+    def wan_address_vote(self, address, voter_address):
         """
-        Add one vote and possibly re-determine our external address.
+        Add one vote and possibly re-determine our wan address.
 
-        Our external address is determined by majority voting.  Each time when we receive a message
-        that contains anothers opinion about our external address, we take this into account.  The
+        Our wan address is determined by majority voting.  Each time when we receive a message
+        that contains anothers opinion about our wan address, we take this into account.  The
         address with the most votes wins.
 
         Usually these votes are received through dispersy-candidate-request and
         dispersy-candidate-response messages.
 
-        @param address: The external address that the voter believes us to have.
+        @param address: The wan address that the voter believes us to have.
         @type address: (str, int)
 
         @param voter_address: The address of the voter.
@@ -642,19 +633,20 @@ class Dispersy(Singleton):
         assert len(voter_address) == 2
         assert isinstance(voter_address[0], str)
         assert isinstance(voter_address[1], int)
-        if self._is_valid_external_address(address):
-            if not address in self._external_address_votes:
-                self._external_address_votes[address] = set()
-            self._external_address_votes[address].add(voter_address)
+        if self._is_valid_wan_address(address):
+            if not address in self._wan_address_votes:
+                self._wan_address_votes[address] = set()
+            self._wan_address_votes[address].add(voter_address)
 
             # change when new vote count equal or higher than old address vote count
-            if self._my_external_address != address and len(self._external_address_votes[address]) >= len(self._external_address_votes[self._my_external_address]):
-                if __debug__: dprint("update external address ", self._my_external_address[0], ":", self._my_external_address[1], " -> ", address[0], ":", address[1], force=True)
-                self._my_external_address = address
-                self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_external_ip', ?)", (unicode(address[0]),))
-                self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_external_port', ?)", (address[1],))
+            if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
+                if __debug__: dprint("update wan address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1])
+                self._wan_address = address
+                self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
+                self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
 
-                # notify all communities that our external address has changed.
+                # notify all communities that our wan address has changed.
+                # TODO the wan address should no longer be in the identity message... remove below code
                 for community in self._communities.itervalues():
                     community.create_dispersy_identity()
 
@@ -1243,12 +1235,6 @@ class Dispersy(Singleton):
                 # ignore cache, process batch immediately
                 self._on_batch_cache(meta, batch)
 
-            # update candidate table.  We know that some peer (not
-            # necessarily message.authentication.member) exists at
-            # this address.
-            self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, incoming_time) VALUES (?, ?, ?, DATETIME('now'))",
-                                       ((meta.community.database_id, unicode(host), port) for host, port in addresses))
-
     def _on_batch_cache_timeout(self, meta):
         """
         Start processing a batch of messages once the cache timeout occurs.
@@ -1401,6 +1387,29 @@ class Dispersy(Singleton):
         if not messages:
             return 0
 
+        # update candidate local view
+        key = lambda message: message.address
+        if meta.name == "dispersy-introduction-request":
+            for message in messages:
+                if message.address in self._candidates:
+                    self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
+                elif not message.address in self._bootstrap_candidates:
+                    self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
+                self.wan_address_vote(message.payload.destination_address, message.address)
+
+        elif meta.name == "dispersy-introduction-response":
+            for message in messages:
+                if message.address in self._candidates:
+                    self._candidates[message.address].inc_introduction_responses(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
+                elif not message.address in self._bootstrap_candidates:
+                    self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
+                self.wan_address_vote(message.payload.destination_address, message.address)
+
+        else:
+            for address, _ in groupby(sorted(messages, key=key), key=key):
+                if address in self._candidates:
+                    self._candidates[address].inc_any(meta.community)
+            
         # store to disk and update locally
         if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages")
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
@@ -1458,7 +1467,7 @@ class Dispersy(Singleton):
             #     self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
             #     continue
 
-            # is it from an external source
+            # is it from a remote source
             if not self.is_valid_remote_address(address):
                 if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", address[0], ":", address[1], level="warning")
                 self._statistics.drop("_convert_packets_into_batch:invalid source", len(packet))
@@ -1657,120 +1666,30 @@ class Dispersy(Singleton):
             # update bloom filters
             meta.community.free_sync_range(free_sync_range)
 
-    def yield_online_candidates(self, community, limit, clusters=(), batch=100, bootstrap=False):
+    def _yield_candidates(self, community, blacklist):
         """
-        Returns a generator that yields at most LIMIT Candicate objects representing nodes that are
-        likely to be online.
-
-        The following community properties affect the candidate choices:
-         - dispersy_candidate_online_scores
-         - dispersy_candidate_direct_observation_score
-         - dispersy_candidate_indirect_observation_score
-         - dispersy_candidate_subjective_set_score
+        BLACKLIST must contain addresses obtained from
+        socket.recv_from(), not the lan or wan addresses.
         """
-        if __debug__:
-            # pylint: disable-msg=W0404
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(limit, int)
-        assert isinstance(batch, int)
-        assert isinstance(clusters, (tuple, list))
-        assert all(isinstance(cluster, int) for cluster in clusters)
-        assert all(cluster in community.subjective_set_clusters for cluster in clusters)
-        return islice(self._yield_online_candidates(community, clusters, batch, bootstrap), limit)
+        assert not self._lan_address in self._candidates, "our address may not be a candidate"
+        assert not self._wan_address in self._candidates, "our address may not be a candidate"
+        assert not self._lan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
+        assert not self._wan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
 
-    def _yield_online_candidates(self, community, clusters, batch, bootstrap):
-        if __debug__:
-            # pylint: disable-msg=W0404
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(batch, int)
-        assert isinstance(clusters, (tuple, list))
-        assert all(isinstance(cluster, int) for cluster in clusters)
-        assert all(cluster in community.subjective_set_clusters for cluster in clusters)
-        assert isinstance(bootstrap, bool)
+        # remove old candidates
+        deadline = time() - 60.0
+        for key in [key for key, candidate in self._candidates.iteritems() if candidate.timestamp < deadline]:
+            del self._candidates[key]
+            
+        # get all viable candidates
+        return (candidate for sock_address, candidate in self._candidates.iteritems() if not sock_address in blacklist and candidate.in_community(community))
 
-        def get_observation(observation_score, host, port, incoming_age, outgoing_age, external_age):
-            candidate = Candidate(str(host), int(port), incoming_age, outgoing_age, external_age)
+    def yield_candidates(self, community, limit, blacklist=()):
+        return islice(self._yield_candidates(community, blacklist), limit)
 
-            # add direct observation score
-            total_score = observation_score
-
-            # add recently online score
-            for high, score in online_scores:
-                if incoming_age <= high:
-                    total_score += score
-                    break
-
-            # add subjective set score (i.e. am I interested in HER data?)
-            if subjective_sets:
-                for member in candidate.members:
-                    for subjective_set in subjective_sets:
-                        if member.public_key in subjective_set:
-                            total_score += subjective_set_score
-                            break
-
-            score = total_score * (probabilistic_factor_min + (probabilistic_factor_max - probabilistic_factor_min) * random())
-            if __debug__: dprint("SCORE ", total_score, " -> ", score, " for ", host, ":", port)
-            return score, candidate
-
-        direct_observation_sql = u"SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time) AS outgoing_age, STRFTIME('%s', 'now') - STRFTIME('%s', external_time) AS external_age FROM candidate WHERE community = ? AND incoming_age BETWEEN ? AND ? ORDER BY incoming_age ASC LIMIT ? OFFSET ?"
-        indirect_observation_sql = u"SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS incoming_age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time) AS outgoing_age, STRFTIME('%s', 'now') - STRFTIME('%s', external_time) AS external_age FROM candidate WHERE community = ? AND incoming_age NOT BETWEEN ? AND ? AND external_age BETWEEN ? AND ? ORDER BY external_age ASC LIMIT ? OFFSET ?"
-
-        subjective_sets = [community.get_subjective_set(community.my_member, cluster) for cluster in clusters]
-        incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
-        online_scores = community.dispersy_candidate_online_scores
-        direct_observation_score = community.dispersy_candidate_direct_observation_score
-        indirect_observation_score = community.dispersy_candidate_indirect_observation_score
-        subjective_set_score = community.dispersy_candidate_subjective_set_score
-        probabilistic_factor_min, probabilistic_factor_max = community.dispersy_candidate_probabilistic_factor
-
-        sorting_key = lambda tup: tup[0]
-
-        for offset in xrange(0, maxint, batch):
-            # cache all items returned from the select statement, otherwise the cursur will be
-            # re-used whenever another query is performed by the caller
-            candidates = []
-            candidates.extend(get_observation(direct_observation_score, *tup) for tup in list(self._database.execute(direct_observation_sql, (community.database_id, incoming_time_low, incoming_time_high, batch, offset))))
-            candidates.extend(get_observation(indirect_observation_score, *tup) for tup in list(self._database.execute(indirect_observation_sql, (community.database_id, incoming_time_low, incoming_time_high, incoming_time_low, incoming_time_high, batch, offset))))
-
-            if __debug__: dprint("there are ", len(candidates), " candidates in this batch")
-            if not candidates:
-                break
-
-            # the sql queries should result in unique candidates
-            if __debug__:
-                unique = set(candidate.address for _, candidate in candidates)
-                assert len(unique) == len(candidates), (len(unique), len(candidates))
-
-            for score, candidate in sorted(candidates, key=sorting_key, reverse=True):
-                # skip bootstrap peers when BOOTSTRAP is False
-                if not bootstrap and candidate.address in self._bootstrap_addresses:
-                    continue
-
-                if __debug__: dprint("Yield ", candidate.host, ":", candidate.port, " with score ", score)
-                yield candidate
-
-    def yield_subjective_candidates(self, community, limit, cluster, batch=100, bootstrap=False):
-        """
-        Returns a generator that yields at most LIMIT unique Candidate objects ordered by most
-        likely to least likely to be online and who we believe have our public key in their
-        subjective set.
-
-        Usefull when we create a messages that uses the SubjectiveDestination policy and we want to
-        spread this to nodes that are likely to be interested in these messages.
-        """
-        if __debug__:
-            # pylint: disable-msg=W0404
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(limit, int)
-        assert isinstance(cluster, int)
-        assert cluster in community.subjective_set_clusters
-        assert isinstance(batch, int)
-        assert isinstance(bootstrap, bool)
-
-        for candidate in islice(self._yield_online_candidates(community, [cluster], batch, bootstrap), limit):
+    def yield_subjective_candidates(self, community, limit, cluster, blacklist=()):
+        counter = 0
+        for candidate in self._yield_candidates(community, blacklist):
             # we need to check the members associated to these candidates and see if they are
             # interested in this cluster
             for member in candidate.members:
@@ -1780,32 +1699,202 @@ class Dispersy(Singleton):
                 if subjective_set and community.my_member.public_key in subjective_set:
                     yield candidate
 
-    def yield_mixed_candidates(self, community, limit, clusters=(), batch=100):
-        """
-        Returns a generator that yields LIMIT unique Candidate objects where the selection is a
-        mixed between peers that are most likely to be online and peers that are less likely to be
-        online.
-        """
-        if __debug__:
-            # pylint: disable-msg=W0404
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(limit, int)
-        assert isinstance(clusters, (tuple, list))
-        assert all(isinstance(cluster, int) for cluster in clusters)
-        assert all(cluster in community.subjective_set_clusters for cluster in clusters)
-        assert isinstance(batch, int)
+                    counter += 1
+                    if counter == limit:
+                        break
+   
+    def yield_walk_candidates(self, community, blacklist=()):
+        assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
+        assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
-        counter = 0
-        for counter, candidate in enumerate(islice(self._yield_online_candidates(community, clusters, batch, True), limit)):
-            yield candidate
+        candidates = list(self._yield_candidates(community, blacklist))
+        walks = [candidate for candidate in candidates if candidate.is_walk]
+        stumbles = [candidate for candidate in candidates if candidate.is_stumble]
 
-        if counter + 1 < limit:
-            # at this point we do not have sufficient nodes that were online recently.  as an
-            # alternative we will add the addresses of dispersy routers that should always be online
-            shuffle(self._bootstrap_addresses)
-            for address in self._bootstrap_addresses:
-                yield Candidate(address[0], address[1], 0, 0, 0)
+        if walks and stumbles:
+            walk_threshold = 0.49
+            stumble_threshold = 0.98
+        elif walks:
+            walk_threshold = 0.98
+            stumble_threshold = -1.0
+        elif stumbles:
+            walk_threshold = -1.0
+            stumble_threshold = 0.98
+        else:
+            walk_threshold = stumble_threshold = -1.0
+            
+        if walks or stumbles or self._bootstrap_candidates:
+            while True:
+                r = random()
+
+                if r <= walk_threshold:
+                    yield choice(walks)
+
+                elif r <= stumble_threshold:
+                    yield choice(stumbles)
+
+                elif self._bootstrap_candidates:
+                    yield choice(self._bootstrap_candidates.values())
+
+    def start_walk(self, community):
+        if community.cid in self._communities:
+            try:
+                candidate = self.yield_walk_candidates(community).next()
+
+            except StopIteration:
+                if __debug__: dprint("no candidate to start walk.  retry in N seconds", level="error")
+                self._callback.register(self.start_walk, delay=1.0)
+
+            else:
+                self.create_introduction_request(community, candidate.address)
+            
+    def create_introduction_request(self, community, destination):
+        assert isinstance(destination, tuple)
+        assert len(destination) == 2
+        assert isinstance(destination[0], str)
+        assert isinstance(destination[1], int)
+
+        # claim unique walk identifier
+        while True:
+            identifier = int(random() * 2**16)
+            if not identifier in self._walk_identifiers:
+                self._walk_identifiers.add(identifier)
+                break
+
+        # decide if the requested node should introduce us to someone else
+        advice = random() < 0.5 or len(self._candidates) <= 5
+
+        log("walktest.log", "create_introduction_request", lan_address=self._lan_address, wan_address=self._wan_address, candidates=[(x.lan_address, x.wan_address) for x in self._candidates.itervalues()])
+        log("walktest.log", "out-introduction-request", destination_address=destination, source_lan_address=self._lan_address, source_wan_address=self._wan_address, advice=advice, identifier=identifier)
+
+        time_low, time_high, bloom_filter = community.dispersy_claim_sync_bloom_filter(identifier)
+        
+        meta_request = community.get_meta_message(u"dispersy-introduction-request")
+        request = meta_request.impl(authentication=(community.my_member,),
+                                    distribution=(community.global_time,),
+                                    destination=(destination,),
+                                    payload=(destination, self._lan_address, self._wan_address, advice, identifier, time_low, time_high, bloom_filter))
+
+        # wait for introduction-response
+        meta_response = community.get_meta_message(u"dispersy-introduction-response")
+        footprint = meta_response.generate_footprint(payload=(identifier,))
+        # TODO why 5.0 margin
+        timeout = meta_request.delay + meta_response.delay + 5.0 
+        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination, advice), timeout=timeout)
+
+        # release walk identifier some seconds after timeout expires
+        self._callback.register(self._walk_identifiers.remove, (identifier,), delay=timeout+10.0)
+
+        self.store_update_forward([request], False, False, True)
+        return request
+    
+    def on_introduction_request(self, messages):
+        community = messages[0].community
+        responses = []
+        requests = []
+
+        for message in messages:
+            # get introduction candidate (if requested)
+            if message.payload.advice:
+                try:
+                    candidate = self.yield_walk_candidates(community, [message.address]).next()
+                except StopIteration:
+                    candidate = None
+            else:
+                candidate = None
+
+            log("walktest.log", "in-introduction-request", source=message.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, advice=message.payload.advice, identifier=message.payload.identifier)
+
+            if candidate:
+                # create introduction responses
+                meta = community.get_meta_message(u"dispersy-introduction-response")
+                responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
+
+                # create puncture requests
+                destination = candidate.lan_address if candidate.wan_address[0] == self._wan_address[0] else candidate.wan_address
+                meta = community.get_meta_message(u"dispersy-puncture-request")
+                requests.append(meta.impl(distribution=(community.global_time,), destination=(destination,), payload=(message.payload.source_lan_address, message.payload.source_wan_address)))
+
+                log("walktest.log", "out-introduction-response", destination_address=message.address, source_lan_address=self._lan_address, source_wan_address=self._wan_address, lan_introduction_address=candidate.lan_address, wan_introduction_address=candidate.wan_address, identifier=message.payload.identifier)
+                log("walktest.log", "out-puncture-request", destination=destination, lan_walker_address=message.payload.source_lan_address, wan_walker_address=message.payload.source_wan_address)
+                
+            else:
+                none = ("0.0.0.0", 0)
+                meta = community.get_meta_message(u"dispersy-introduction-response")
+                responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, none, none, message.payload.identifier)))
+
+                log("walktest.log", "out-introduction-response", destination_address=message.address, source_lan_address=self._lan_address, source_wan_address=self._wan_address, lan_introduction_address=none, wan_introduction_address=none, identifier=message.payload.identifier)
+
+        if responses:
+            self.store_update_forward(responses, False, False, True)
+        if requests:
+            self.store_update_forward(requests, False, False, True)
+
+    def check_introduction_response(self, messages):
+        for message in messages:
+            if message.payload.wan_introduction_address == message.address:
+                yield DropMessage(message, "invalid WAN introduction address [introducing herself]")
+
+            elif message.payload.lan_introduction_address == message.address:
+                yield DropMessage(message, "invalid LAN introduction address [introducing herself]")
+
+            elif message.payload.wan_introduction_address in (self._lan_address, self._wan_address):
+                yield DropMessage(message, "invalid WAN introduction address [introducing myself]")
+
+            elif message.payload.lan_introduction_address in (self._lan_address, self._wan_address):
+                yield DropMessage(message, "invalid LAN introduction address [introducing myself]")
+                
+            elif not message.payload.identifier in self._walk_identifiers:
+                yield DropMessage(message, "invalid response identifier")
+
+            else:
+                yield message
+
+    def on_introduction_response(self, messages):
+        # handled in introduction_response_or_timeout
+        pass
+                
+    def introduction_response_or_timeout(self, message, community, intermediary_address, advice):
+        if message is None:
+            # intermediary_address is no longer online
+            if intermediary_address in self._candidates:
+                del self._candidates[intermediary_address]
+
+            log("walktest.log", "introduction-response-timeout", intermediary=intermediary_address, advice=advice)
+
+            # timeout, start new walk
+            community.dispersy_start_walk()
+
+        else:
+            log("walktest.log", "in-introduction-response", source=message.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, lan_introduction_address=message.payload.lan_introduction_address, wan_introduction_address=message.payload.wan_introduction_address, identifier=message.payload.identifier)
+
+            if advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
+                # we asked for, and received, an introduction
+
+                # determine if we are in the same LAN as the introduced node
+                destination = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
+                self._callback.register(self.create_introduction_request, (destination,), delay=1.0)
+
+            else:
+                community.dispersy_start_walk()
+
+    def on_puncture_request(self, messages):
+        community = messages[0].community
+        punctures = []
+        for message in messages:
+            # determine if we are in the same LAN as the walker node
+            destination = message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address
+            meta = community.get_meta_message(u"dispersy-puncture")
+            punctures.append(meta.impl(distribution=(community.global_time,), destination=(destination,)))
+
+            log("walktest.log", "in-puncture-request", source=message.address, lan_walker_address=message.payload.lan_walker_address, wan_walker_address=message.payload.wan_walker_address)
+            log("walktest.log", "out-puncture", destination=destination)
+
+        self.store_update_forward(punctures, False, False, True)
+
+    def on_puncture(self, messages):
+        for message in messages:
+            log("walktest.log", "in-puncture", source=message.address)
 
     def store_update_forward(self, messages, store, update, forward):
         """
@@ -1818,7 +1907,7 @@ class Dispersy(Singleton):
         database commit not after the (1) store operation but after the (2) update operation.  This
         will ensure that any database changes from handling the message are also synced to disk.  It
         is important to note that the sync will occur before the (3) forward operation to ensure
-        that no external nodes will obtain data that we have not safely synced ourselves.
+        that no remote nodes will obtain data that we have not safely synced ourselves.
 
         For performance reasons messages are processed in batches, where each batch contains only
         messages from the same community and the same meta message instance.  This method, or more
@@ -1902,9 +1991,7 @@ class Dispersy(Singleton):
         for message in messages:
             if isinstance(message.destination, CommunityDestination.Implementation):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
-                    addresses = [candidate.address
-                                 for candidate
-                                 in self.yield_online_candidates(message.community, message.destination.node_count, message.community.subjective_set_clusters)]
+                    addresses = [candidate.address for candidate in self.yield_candidates(message.community, message.destination.node_count)]
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
@@ -1916,9 +2003,7 @@ class Dispersy(Singleton):
 
             elif isinstance(message.destination, SubjectiveDestination.Implementation):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
-                    addresses = [candidate.address
-                                 for candidate
-                                 in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
+                    addresses = [candidate.address for candidate in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
@@ -1973,7 +2058,7 @@ class Dispersy(Singleton):
                 # this is a programming bug.
                 dprint("no packets given (wanted to send to ", len(addresses), " addresses)", level="error", stack=True)
 
-        # update candidate table and send packets
+        # send packets
         for address in addresses:
             assert isinstance(address, tuple), address
             assert isinstance(address[0], str), address
@@ -1981,7 +2066,7 @@ class Dispersy(Singleton):
 
             if not self.is_valid_remote_address(address):
                 # this is a programming bug.  apparently an invalid address is being used
-                if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1], " (invalid external address)", level="error")
+                if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1], " (invalid remote address)", level="error")
                 continue
 
             for packet in packets:
@@ -1989,7 +2074,6 @@ class Dispersy(Singleton):
                 self._socket.send(address, packet)
             self._statistics.outgoing(address, key, sum(len(packet) for packet in packets), len(packets))
             if __debug__: dprint("out... ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
-            self._database.execute(u"UPDATE candidate SET outgoing_time = DATETIME('now') WHERE host = ? AND port = ?", (unicode(address[0]), address[1]))
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
@@ -2252,87 +2336,7 @@ class Dispersy(Singleton):
     #     for address, responses in groupby(responses):
     #         self._send([address], [packet for _, packet in responses])
 
-    def create_candidate_request(self, community, address, routes, response_func=None, response_args=(), timeout=10.0, max_responses=1, store=True, forward=True):
-        """
-        Create a dispersy-candidate-request message.
-
-        The dispersy-candidate-request and -response messages are used to keep track of the address
-        where a member can be found.  It is also used to check if the member is still alive because
-        it triggers a response message.  Finally, it is used to spread addresses of other members
-        aswell.
-
-        The optional response_func is used to obtain a callback for this specific request.  The
-        parameters response_func, response_args, timeout, and max_responses are all related to this
-        callback and are explained in the await_message method.
-
-        @param community: The community for wich the dispersy-candidate-request message will be
-         created.
-        @type community: Community
-
-        @param address: The destination address.
-        @type address: (string, int)
-
-        @param response_func: The method called when a message matches footprint.
-        @type response_func: callable
-
-        @param response_args: Optional arguments to added when calling response_func.
-        @type response_args: tuple
-
-        @param timeout: Number of seconds until a timeout occurs.
-        @type timeout: float
-
-        @param max_responses: Maximal number of messages to match until the Trigger is removed.
-        @type max_responses: int
-
-        @param store: When True the messages are stored (as defined by their message distribution
-         policy) in the local dispersy database.  This parameter should (almost always) be True, its
-         inclusion is mostly to allow certain debugging scenarios.
-        @type store: bool
-
-        @param forward: When True the messages are forwarded (as defined by their message
-         destination policy) to other nodes in the community.  This parameter should (almost always)
-         be True, its inclusion is mostly to allow certain debugging scenarios.
-        @type store: bool
-        """
-        if __debug__:
-            # pylint: disable-msg=W0404
-            from Tribler.Core.dispersy.community import Community
-        
-        assert isinstance(community, Community)
-        assert isinstance(address, tuple)
-        assert isinstance(address[0], str)
-        assert isinstance(address[1], int)
-        assert isinstance(routes, (tuple, list))
-        assert all(isinstance(route, tuple) for route in routes)
-        assert all(len(route) == 2 for route in routes)
-        assert all(isinstance(route[0], tuple) for route in routes)
-        assert all(len(route[0]) == 2 for route in routes)
-        assert all(isinstance(route[0][0], str) for route in routes)
-        assert all(isinstance(route[0][1], (int, long)) for route in routes)
-        assert all(isinstance(route[1], float) for route in  routes)
-        assert hasattr(response_func, "__call__")
-        assert isinstance(response_args, tuple)
-        assert isinstance(timeout, float)
-        assert timeout > 0.0
-        assert isinstance(max_responses, (int, long))
-        assert max_responses > 0
-        assert isinstance(store, bool)
-        assert isinstance(forward, bool)
-        meta = community.get_meta_message(u"dispersy-candidate-request")
-        request = meta.impl(authentication=(community.my_member,),
-                            distribution=(meta.community.global_time,),
-                            destination=(address,),
-                            payload=(self._my_external_address, address, community.get_conversion(), routes))
-
-        if response_func:
-            meta = community.get_meta_message(u"dispersy-candidate-response")
-            footprint = meta.generate_footprint(payload=(sha1(request.packet).digest(),))
-            self.await_message(footprint, response_func, response_args, timeout, max_responses)
-
-        self.store_update_forward([request], store, False, forward)
-        return request
-
-    def _is_valid_internal_address(self, address):
+    def _is_valid_lan_address(self, address):
         if address[0] == "":
             return False
 
@@ -2345,15 +2349,15 @@ class Dispersy(Singleton):
         if address[0].endswith(".255"):
             return False
 
-        if address == self._my_internal_address:
+        if address == self._lan_address:
             return False
 
-        if address == ("127.0.0.1", self._my_internal_address[1]):
+        if address == ("127.0.0.1", self._lan_address[1]):
             return False
 
         return True
     
-    def _is_valid_external_address(self, address):
+    def _is_valid_wan_address(self, address):
         if address[0] == "":
             return False
 
@@ -2372,108 +2376,17 @@ class Dispersy(Singleton):
         if address[0].startswith("192."):
             return False
 
-        if address == self._my_external_address:
+        if address == self._wan_address:
             return False
 
-        if address == ("127.0.0.1", self._my_external_address[1]):
+        if address == ("127.0.0.1", self._wan_address[1]):
             return False
 
         return True
 
     def is_valid_remote_address(self, address):
-        return self._is_valid_external_address(address) or self._is_valid_internal_address(address)
+        return self._is_valid_lan_address(address) or self._is_valid_wan_address(address)
     
-    def _update_routes_from_external_source(self, community, routes):
-        assert isinstance(routes, (tuple, list))
-        assert all(isinstance(route, tuple) for route in routes)
-        assert all(len(route) == 2 for route in routes)
-        assert all(isinstance(route[0], tuple) for route in routes), "(host, ip) tuple"
-        assert all(isinstance(route[1], float) for route in routes), "age in seconds"
-
-        self._database.executemany(u"INSERT OR REPLACE INTO candidate (community, host, port, external_time) VALUES (?, ?, ?, DATETIME('now', ?))",
-                                   ((community.database_id, unicode(address[0]), address[1], u"-%d seconds" % age) for address, age in routes if self.is_valid_remote_address(address)))
-
-        if __debug__:
-            for address, age in routes:
-                if self.is_valid_remote_address(address):
-                    dprint("updated candidate ", address[0], ":", address[1], " age ", age, " seconds")
-                else:
-                    level = "normal" if address == self.external_address else "warning"
-                    dprint("dropping invalid route ", address[0], ":", address[1], level=level)
-
-    def on_candidate_request(self, messages):
-        """
-        We received a dispersy-candidate-request message.
-
-        This message contains the external address that the sender believes it has
-        (message.payload.source_address), and our external address
-        (message.payload.destination_address).
-
-        We should send a dispersy-candidate-response message back.  Allowing us to inform them of
-        their external address.
-
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-sync message.
-        @type message: Message.Implementation
-        """
-        community = messages[0].community
-        meta = community.get_meta_message(u"dispersy-candidate-response")
-        minimal_age, maximal_age = community.dispersy_candidate_online_range
-        sql = u"""SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS age
-            FROM candidate
-            WHERE community = ? AND age BETWEEN ? AND ?
-            ORDER BY age
-            LIMIT 30"""
-        routes = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age))]
-        responses = []
-
-        for message in messages:
-            assert message.name == u"dispersy-candidate-request"
-            if __debug__: dprint(message)
-
-            if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
-            self.external_address_vote(message.payload.destination_address, message.address)
-            routes.extend(message.payload.routes)
-
-            responses.append(meta.impl(authentication=(community.my_member,),
-                                       distribution=(community.global_time,),
-                                       destination=(message.address,),
-                                       payload=(sha1(message.packet).digest(), self._my_external_address, message.address, meta.community.get_conversion().version, routes)))
-
-        # add routes in our candidate table
-        self._update_routes_from_external_source(community, routes)
-
-        # send response
-        self.store_update_forward(responses, False, False, True)
-
-    def on_candidate_response(self, messages):
-        """
-        We received dispersy-candidate-response messages.
-
-        This message contains the external address that the sender believes it has
-        (message.payload.source_address), and our external address
-        (message.payload.destination_address).
-
-        We need to be carefull with this message.  It is very much possible that the
-        destination_address is invalid.  Furthermore, currently anyone is free to send this message,
-        making it very easy to generate any number of members to override simple security schemes
-        that use counting.
-
-        @param messages: The dispersy-candidate-response messages.
-        @type messages: [Message.Implementation]
-        """
-        community = messages[0].community
-        routes = []
-        for message in messages:
-            if __debug__: dprint("Our external address may be: ", message.payload.destination_address)
-            self.external_address_vote(message.payload.destination_address, message.address)
-            routes.extend(message.payload.routes)
-
-        # add routes in our candidate table
-        self._update_routes_from_external_source(community, routes)
-
     def create_identity(self, community, store=True, update=True):
         """
         Create a dispersy-identity message.
@@ -2501,21 +2414,13 @@ class Dispersy(Singleton):
         meta = community.get_meta_message(u"dispersy-identity")
         message = meta.impl(authentication=(community.my_member,),
                             distribution=(community.claim_global_time(),),
-                            payload=(self._my_external_address,))
+                            payload=(self._wan_address,))
         self.store_update_forward([message], store, update, False)
         return message
 
     def on_identity(self, messages):
         """
         We received a dispersy-identity message.
-
-        @see: create_identity
-
-        @param address: The sender address.
-        @type address: (string, int)
-
-        @param message: The dispersy-identity message.
-        @type message: Message.Implementation
         """
         for message in messages:
             assert message.name == u"dispersy-identity"
@@ -2537,7 +2442,7 @@ class Dispersy(Singleton):
 
             # update the in-memory member instance
             message.authentication.member.update()
-
+            
     # def create_identity_request(self, community, mid, addresses, forward=True):
     #     """
     #     Create a dispersy-identity-request message.
@@ -3013,7 +2918,7 @@ class Dispersy(Singleton):
                   JOIN meta_message ON meta_message.id = sync.meta_message
                   WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ?
                   ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction"""
-
+        
         community = messages[0].community
 
         # obtain all available messages for this community
@@ -3021,15 +2926,11 @@ class Dispersy(Singleton):
         if __debug__: dprint(", ".join(meta_message.name for meta_message in community.get_meta_messages()))
 
         for message in messages:
-            assert message.name == u"dispersy-sync", "this method is called in batches, i.e. community and meta message grouped together"
+            assert message.name == u"dispersy-introduction-request", "this method is called in batches, i.e. community and meta message grouped together"
             assert message.community == community, "this method is called in batches, i.e. community and meta message grouped together"
 
-            allowed, _ = community._timeline.check(message)
-            if not allowed:
-                yield DelayMessageByProof(message)
-                continue
-
             # obtain all subjective sets for the sender of the dispersy-sync message
+            assert isinstance(message.authentication, MemberAuthentication.Implementation)
             subjective_sets = community.get_subjective_sets(message.authentication.member)
 
             # we limit the response by byte_limit bytes
@@ -3086,10 +2987,6 @@ class Dispersy(Singleton):
 
             else:
                 if __debug__: dprint("did not find anything to sync, ignoring dispersy-sync message")
-
-    def on_sync(self, messages):
-        # everything has already been done in check_sync.
-        pass
 
     def create_authorize(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         """
@@ -3177,7 +3074,7 @@ class Dispersy(Singleton):
         Process a dispersy-authorize message.
 
         This method is called to process a dispersy-authorize message.  This message is either
-        received from an external source or locally generated.
+        received from a remote source or locally generated.
 
         When the message is locally generated the address will be set to ('', -1).
 
@@ -3465,10 +3362,7 @@ class Dispersy(Singleton):
                 # that are still referenced
                 self._database.execute(u"DELETE FROM reference_member_sync WHERE NOT EXISTS (SELECT * FROM sync WHERE community = ? AND sync.id = reference_member_sync.sync)", (community.database_id,))
 
-                # 3. cleanup the candidate table.  we need nothing here anymore
-                self._database.execute(u"DELETE FROM candidate WHERE community = ?", (community.database_id,))
-
-                # 4. cleanup the malicious_proof table.  we need nothing here anymore
+                # 3. cleanup the malicious_proof table.  we need nothing here anymore
                 self._database.execute(u"DELETE FROM malicious_proof WHERE community = ?", (community.database_id,))
 
             self.reclassify_community(community, new_classification)
@@ -3572,94 +3466,6 @@ class Dispersy(Singleton):
                                                   (community.master_member.database_id, meta.database_id)).next()
         return sequence_number + 1
 
-    def _periodically_create_sync(self, community):
-        """
-        Periodically disperse the latest bloom filters for this community.
-
-        Every N seconds one or more dispersy-sync message will be send for community.  This may
-        result in members detecting that we are missing messages and them sending them to us.
-
-        Note that there are several magic numbers involved:
-
-         1. The frequency of calling _periodically_create_sync.  This is determined by
-            self.dispersy_sync_interval.  This defaults to 20.0 (currently).
-
-         2. Each interval up to L bloom filters are selected and sent in seperate dispersy-sync
-            messages.  This is determined by the self.dispersy_sync_bloom_count.  This defaults to 2
-            (currently).
-
-         3. Each interval each dispersy-sync message is sent to up to C different members.  This is
-            determined by the self.dispersy_sync_member_count.  This defaults to 10 (currently).
-
-         4. How many bytes -at most- are sent back in response to a received dispersy-sync message.
-            This is determined by the self.dispersy_sync_response_limit.  This defaults to 5KB.
-        """
-        try:
-            meta = community.get_meta_message(u"dispersy-sync")
-
-        except KeyError:
-            pass
-
-        else:
-            desync = (yield community.dispersy_sync_initial_delay)
-            while desync > 0.1:
-                if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                desync = (yield desync)
-
-            while community.dispersy_sync_initial_delay > 0.0 and community.dispersy_sync_interval > 0.0:
-                messages = [meta.impl(authentication=(community.my_member,),
-                                      distribution=(community.global_time,),
-                                      payload=(time_low, time_high, bloom_filter))
-                            for time_low, time_high, bloom_filter
-                            in community.dispersy_sync_bloom_filters]
-                if __debug__:
-                    for message in messages:
-                        dprint("requesting sync in range [", message.payload.time_low, ":", message.payload.time_high if message.payload.time_high else "inf", "] (", community.get_classification(), ")")
-                self.store_update_forward(messages, False, False, True)
-
-                desync = (yield community.dispersy_sync_interval)
-                while desync > 0.1:
-                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                    desync = (yield desync)
-
-    def _periodically_create_candidate_request(self, community):
-        try:
-            meta = community.get_meta_message(u"dispersy-candidate-request")
-
-        except KeyError:
-            pass
-
-        else:
-            desync = (yield community.dispersy_candidate_request_initial_delay)
-            while desync > 0.1:
-                if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                desync = (yield desync)
-
-            while community.dispersy_candidate_request_initial_delay > 0.0 and community.dispersy_candidate_request_interval > 0.0:
-                minimal_age, maximal_age = community.dispersy_candidate_online_range
-                limit = community.dispersy_candidate_limit
-                sql = u"""SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) AS age
-                    FROM candidate
-                    WHERE community = ? AND age BETWEEN ? AND ?
-                    ORDER BY age
-                    LIMIT ?"""
-                candidates = [((str(host), port), float(age)) for host, port, age in self._database.execute(sql, (community.database_id, minimal_age, maximal_age, limit))]
-
-                authentication_impl = meta.authentication.implement(community.my_member)
-                resolution_impl = meta.resolution.implement()
-                distribution_impl = meta.distribution.implement(community.global_time)
-                conversion_version = community.get_conversion().version
-                requests = [meta.implement(authentication_impl, resolution_impl, distribution_impl, meta.destination.implement(candidate.address), meta.payload.implement(self._my_external_address, candidate.address, conversion_version, candidates))
-                            for candidate
-                            in self.yield_mixed_candidates(community, community.dispersy_candidate_request_member_count)]
-                if requests:
-                    self.store_update_forward(requests, False, False, True)
-
-                desync = (yield community.dispersy_candidate_request_interval)
-                while desync > 0.1:
-                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                    desync = (yield desync)
-
     def _periodically_cleanup_database(self):
         # cleannup candidate tables
         while True:
@@ -3712,9 +3518,10 @@ class Dispersy(Singleton):
         #      making the two unique messages different from a bloom filter perspective.  we now
         #      replace one message with the other thoughout the system.
         # 1.4: added info["statistics"]["outgoing"] containing all calls to _send(...)
-        # 1.5: replaced some dispersy_candidaye_... attributes and added a dump of the candidates
+        # 1.5: replaced some dispersy_candidate_... attributes and added a dump of the candidates
+        # 1.6: new random walk candidates and my LAN and WAN addresses
 
-        info = {"version":1.5, "class":"Dispersy"}
+        info = {"version":1.5, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
         if statistics:
             info["statistics"] = self._statistics.reset()
@@ -3756,18 +3563,7 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                incoming_time_low, incoming_time_high = community.dispersy_candidate_online_range
-                sql = u"""
-SELECT host, port, STRFTIME('%s', 'now') - STRFTIME('%s', incoming_time) AS age, STRFTIME('%s', 'now') - STRFTIME('%s', outgoing_time), STRFTIME('%%s', 'now') - STRFTIME('%s', external_time)
-FROM candidate
-WHERE community = ? AND age BETWEEN ? AND ?
-"""
-
-                online = [(str(host), port, incoming_age, outgoing_age, external_age)
-                          for host, port, incoming_age, outgoing_age, external_age
-                          in self._database.execute(sql, (community.database_id, incoming_time_low, incoming_time_high))]
-                total, = self._database.execute(u"SELECT COUNT(1) FROM candidate WHERE community = ?", (community.database_id,)).next()
-                community_info["candidates"] = {"online":online, "total":total}
+                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
 
         if __debug__: dprint(info, pprint=True)
         return info

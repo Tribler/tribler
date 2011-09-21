@@ -8,7 +8,7 @@ from distribution import DirectDistribution, LastSyncDistribution, FullSyncDistr
 from dprint import dprint
 from member import Member
 from message import Message
-from payload import MissingSequencePayload, SyncPayload, SignatureResponsePayload, CandidateRequestPayload, IdentityPayload
+from payload import MissingSequencePayload, SignatureResponsePayload, IdentityPayload
 from resolution import PublicResolution, LinearResolution
 
 class DebugOnlyMember(Member):
@@ -33,11 +33,11 @@ class Node(object):
         return self._socket
 
     @property
-    def internal_address(self):
+    def lan_address(self):
         return self._socket.getsockname()
     
     @property
-    def external_address(self):
+    def wan_address(self):
         return self._socket.getsockname()
     
     def init_socket(self):
@@ -82,17 +82,15 @@ class Node(object):
             # update identity information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            source_address = self._socket.getsockname()
-            message = self.create_dispersy_identity_message(source_address, 2)
+            message = self.create_dispersy_identity_message(self.wan_address, 2)
             self.give_message(message)
 
         if candidate:
             # update candidate information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            source_address = self._socket.getsockname()
             destination_address = self._community._dispersy.socket.get_address()
-            message = self.create_dispersy_candidate_request_message(source_address, destination_address, self._community.get_conversion().version, [], 1)
+            message = self.create_dispersy_introduction_request_message(destination_address, self.lan_address, self.wan_address, False, 0, 1, 1, [], 1)
             self.give_message(message)
 
     @property
@@ -250,49 +248,6 @@ class Node(object):
                          distribution=(global_time, sequence_number),
                          payload=(message.authentication.member, message.distribution.global_time, message))
 
-    def create_dispersy_candidate_request_message(self, source_address, destination_address, source_default_conversion, routes, global_time):
-        assert isinstance(source_address, tuple)
-        assert len(source_address) == 2
-        assert isinstance(source_address[0], str)
-        assert isinstance(source_address[1], int)
-        assert isinstance(destination_address, tuple)
-        assert len(destination_address) == 2
-        assert isinstance(destination_address[0], str)
-        assert isinstance(destination_address[1], int)
-        assert isinstance(source_default_conversion, tuple)
-        assert len(source_default_conversion) == 2
-        assert isinstance(source_default_conversion[0], str)
-        assert len(source_default_conversion[0]) == 1
-        assert isinstance(source_default_conversion[1], str)
-        assert len(source_default_conversion[1]) == 1
-        assert isinstance(routes, (tuple, list))
-        assert not filter(lambda route: not isinstance(route, tuple), routes)
-        assert not filter(lambda route: not len(route) == 2, routes)
-        assert not filter(lambda route: not isinstance(route[0], tuple), routes)
-        assert not filter(lambda route: not len(route[0]) == 2, routes)
-        assert not filter(lambda route: not isinstance(route[0][0], str), routes)
-        assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
-        assert not filter(lambda route: not isinstance(route[1], float), routes)
-        assert isinstance(global_time, (int, long))
-        meta = self._community.get_meta_message(u"dispersy-candidate-request")
-        return meta.impl(authentication=(self._my_member,),
-                         distribution=(global_time,),
-                         destination=(destination_address,),
-                         payload=(source_address, destination_address, source_default_conversion, routes))
-
-    def create_dispersy_sync_message(self, time_low, time_high, bloom_packets, global_time):
-        assert isinstance(time_low, (int, long))
-        assert isinstance(time_high, (int, long))
-        assert isinstance(bloom_packets, list)
-        assert not filter(lambda x: not isinstance(x, str), bloom_packets)
-        assert isinstance(global_time, (int, long))
-        bloom_filter = BloomFilter(700, 0.001, prefix="x")
-        map(bloom_filter.add, bloom_packets)
-        meta = self._community.get_meta_message(u"dispersy-sync")
-        return meta.impl(authentication=(self._my_member,),
-                         distribution=(global_time,),
-                         payload=(time_low, time_high, bloom_filter))
-
     def create_dispersy_missing_sequence_message(self, missing_member, missing_message_meta, missing_low, missing_high, global_time, destination_address):
         assert isinstance(missing_member, Member)
         assert isinstance(missing_message_meta, Message)
@@ -363,3 +318,19 @@ class Node(object):
         assert global_time > 0
         meta = self._community.get_meta_message(u"dispersy-missing-proof")
         return meta.impl(distribution=(global_time,), payload=(member, global_time))
+    
+    def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, identifier, time_low, time_high, bloom_packets, global_time):
+        # TODO assert other arguments
+        assert isinstance(time_low, (int, long))
+        assert isinstance(time_high, (int, long))
+        assert isinstance(bloom_packets, list)
+        assert not filter(lambda x: not isinstance(x, str), bloom_packets)
+        assert isinstance(global_time, (int, long))
+        bloom_filter = BloomFilter(700, 0.001, prefix="x")
+        map(bloom_filter.add, bloom_packets)
+        meta = self._community.get_meta_message(u"dispersy-introduction-request")
+        return meta.impl(authentication=(self._my_member,),
+                         destination=(destination,),
+                         distribution=(global_time,),
+                         payload=(destination, source_lan, source_wan, advice, identifier, time_low, time_high, bloom_filter))
+    

@@ -870,268 +870,6 @@ class DispersyTimelineScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-class DispersyCandidateScript(ScriptBase):
-    def run(self):
-        ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
-
-        self.caller(self.stats)
-
-        self.caller(self.get_unknown_members_from_address)
-        self.caller(self.get_known_members_from_address)
-
-        self.caller(self.incoming_candidate_request)
-        self.caller(self.outgoing_candidate_response)
-        self.caller(self.outgoing_candidate_request)
-
-    def stats(self):
-        """
-        Output some statistics based on candidate selection properties.
-        """
-        def direct_indirect_score(classes):
-            for c, s in classes.iteritems():
-                yield "%s-direct" % c, s + community.dispersy_candidate_direct_observation_score
-                yield "%s-indirect" % c, s + community.dispersy_candidate_indirect_observation_score
-
-        def online_score(classes):
-            for c, s in classes.iteritems():
-                for age, score in community.dispersy_candidate_online_scores:
-                    yield "%s-%d" % (c, age), s + score
-
-        def candidate_score(classes):
-            for c, s in classes.iteritems():
-                yield "%s-inset" % c, s + community.dispersy_candidate_subjective_set_score
-                yield c, s
-
-        def probability(classes):
-            low, high = community.dispersy_candidate_probabilistic_factor
-            for c, s in classes.iteritems():
-                yield (s * low, s * high), c
-
-        community = DebugCommunity.create_community(self._my_member)
-
-        classes = {"":0}
-        classes = dict(direct_indirect_score(classes))
-        classes = dict(online_score(classes))
-        classes = dict(candidate_score(classes))
-        scores = list(probability(classes))
-
-        lows = []
-        highs = []
-        names = []
-        for (low, high), name in sorted(scores):
-            lows.append(low)
-            highs.append(high)
-            names.append(name)
-            dprint("%5d:%-5d" % (low, high), " <- ", name)
-
-        # # R script
-        # h = open("candidate-stats.R", "w+")
-        # h.write("postscript(\"candidate-stats.eps\")\n")
-        # h.write("lows <- c(%s)\n" % ",".join(map(str, lows)))
-        # h.write("highs <- c(%s)\n" % ",".join(map(str, highs)))
-        # h.write("names <- c(\"%s\")\n" % "\",\"".join(names))
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-
-    def get_unknown_members_from_address(self):
-        """
-        Once we have a dispersy-identity we could obtain a member from the member's address.  Hence,
-        when the dispersy-identity is unknown, no members should be returned.
-        """
-        community = DebugCommunity.create_community(self._my_member)
-        assert community.get_members_from_address(("0.1.2.3", 4)) == []
-        yield 0.555
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def get_known_members_from_address(self):
-        """
-        Once we have a dispersy-identity we could obtain a member from the member's address.
-
-        TODO At some point we will need to verify the addresses in the dispersy-identity messages.
-        """
-        community = DebugCommunity.create_community(self._my_member)
-
-        # create node
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member(candidate=False)
-        yield 0.555
-
-        assert node.my_member in community.get_members_from_address(node.socket.getsockname())
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def incoming_candidate_request(self):
-        """
-        Sending a dispersy-candidate-request from NODE to SELF.
-
-        - Test that SELF stores the routes in its database.
-        - TODO: Test that duplicate routes are updated (timestamp)
-        """
-        community = DebugCommunity.create_community(self._my_member)
-        conversion_version = community.get_conversion().version
-        address = self._dispersy.socket.get_address()
-
-        # create node
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member(candidate=False)
-        yield 0.555
-
-        # send a dispersy-candidate-request message
-        routes = [(("123.123.123.123", 123), 60.0),
-                  (("124.124.124.124", 124), 120.0)]
-        node.give_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, routes, 10))
-        yield 0.555
-
-        # routes must be placed in the database
-        items = [((str(host), port), float(age)) for host, port, age in self._dispersy_database.execute(u"SELECT host, port, STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', external_time) AS age FROM candidate WHERE community = ?", (community.database_id,))]
-        dprint(items)
-        for route in routes:
-            off_by_one_second = (route[0], route[1]+1)
-            off_by_two_second = (route[0], route[1]+2)
-            off_by_three_second = (route[0], route[1]+3)
-            assert route in items or \
-                   off_by_one_second in items or \
-                   off_by_two_second in items or \
-                   off_by_three_second in items, items
-
-# Traceback (most recent call last):
-#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/dispersy/callback.py", line 273, in _loop
-#     result = call.next()
-#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/dispersy/script.py", line 821, in incoming_candidate_request
-#     off_by_three_second in items, items
-# AssertionError: [(('127.0.0.1', 8084), 48417011.0), (('130.161.211.245', 6421), 48417011.0)]
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def outgoing_candidate_response(self):
-        """
-        Sending a dispersy-candidate-request from NODE to SELF must result in a
-        dispersy-candidate-response from SELF to NODE.
-
-        - Test that some routes in SELF database are part of the response.
-        """
-        community = DebugCommunity.create_community(self._my_member)
-        conversion_version = community.get_conversion().version
-        address = self._dispersy.socket.get_address()
-
-        # create node
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member(candidate=False)
-        yield 0.555
-
-        routes = [(u"1.2.3.4", 5),
-                  (u"2.3.4.5", 6)]
-
-        # put some routes in the database that we expect back
-        with self._dispersy_database as database:
-            for host, port in routes:
-                database.execute(u"INSERT INTO candidate (community, host, port, incoming_time, outgoing_time) VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))", (community.database_id, host, port))
-
-        # send a dispersy-candidate-request message
-        node.give_message(node.create_dispersy_candidate_request_message(node.socket.getsockname(), address, conversion_version, [], 10))
-        yield 0.555
-
-        # catch dispersy-candidate-response message
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-response"])
-        dprint(message.payload.routes, lines=1)
-        for route in routes:
-            assert (route, 0.0) in message.payload.routes, (route, message.payload.routes)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def outgoing_candidate_request(self):
-        """
-        SELF must send a dispersy-candidate-request every community.dispersy_candidate_request_interval
-        seconds.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_candidate_request_initial_delay(self):
-                return 5.0
-
-            @property
-            def dispersy_candidate_request_interval(self):
-                return 7.0
-
-            @property
-            def dispersy_candidate_request_member_count(self):
-                return 10
-
-            @property
-            def dispersy_candidate_request_destination_diff_range(self):
-                return (0.0, 30.0)
-
-            @property
-            def dispersy_candidate_request_destination_age_range(self):
-                return (0.0, 30.0)
-
-        community = TestCommunity.create_community(self._my_member)
-        conversion_version = community.get_conversion().version
-        address = self._dispersy.socket.get_address()
-
-        # create node
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member(candidate=False)
-
-        # wait initial delay
-        for counter in range(int(community.dispersy_candidate_request_initial_delay)):
-            dprint("waiting... ", community.dispersy_candidate_request_initial_delay - counter)
-            # do NOT receive dispersy-candidate-request
-            try:
-                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
-            except:
-                pass
-            else:
-                assert False
-
-            # wait interval
-            yield 1.0
-        yield 0.555
-
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
-
-        # wait interval
-        for counter in range(int(community.dispersy_candidate_request_interval)):
-            dprint("waiting... ", community.dispersy_candidate_request_interval - counter)
-            # do NOT receive dispersy-candidate-request
-            try:
-                _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
-            except:
-                pass
-            else:
-                assert False
-
-            # wait interval
-            yield 1.0
-        yield 0.555
-
-        # receive dispersy-candidate-request from 2nd interval
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-candidate-request"])
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -1152,7 +890,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-
+        
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert len(times) == 0, times
@@ -1172,9 +910,6 @@ class DispersyDestroyCommunityScript(ScriptBase):
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-destroy-community"])
         assert not message.payload.is_soft_kill
         assert message.payload.is_hard_kill
-
-        # the candidate table must be empty
-        assert not list(self._dispersy_database.execute(u"SELECT * FROM candidate WHERE community = ?", (community.database_id,)))
 
         # the malicious_proof table must be empty
         assert not list(self._dispersy_database.execute(u"SELECT * FROM malicious_proof WHERE community = ?", (community.database_id,)))
@@ -2304,7 +2039,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_in_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages ASC
-        node.give_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, min(global_times), max(global_times), [], max(global_times)))
         yield 0.1
 
         for global_time in global_times:
@@ -2336,7 +2071,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_out_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages DESC
-        node.give_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, min(global_times), max(global_times), [], max(global_times)))
         yield 0.1
 
         for global_time in reversed(global_times):
@@ -2439,7 +2174,7 @@ class DispersySyncScript(ScriptBase):
         # lists = []
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
-            node.give_message(node.create_dispersy_sync_message(min(global_times), 0, [], max(global_times)))
+            node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, min(global_times), 0, [], max(global_times)))
             yield 0.1
 
             received_times = get_messages_back()
@@ -3318,8 +3053,8 @@ class DispersySubjectiveSetScript(ScriptBase):
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
         assert times == [global_time]
 
-        # a dispersy-sync message MUST return the message that was just sent
-        node.give_message(node.create_dispersy_sync_message(10, 0, [], 20))
+        # a sync MUST return the message that was just sent
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, 10, 0, [], 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert message.distribution.global_time == global_time
@@ -3357,7 +3092,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert times == [global_time]
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
-        node.give_message(node.create_dispersy_sync_message(10, 0, [], 20))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, 10, 0, [], 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         assert message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name)
@@ -4102,7 +3837,7 @@ class DispersyCryptoScript(ScriptBase):
 
         # create dispersy-identity message
         global_time = 10
-        message = node.create_dispersy_identity_message(node.socket.getsockname(), global_time)
+        message = node.create_dispersy_identity_message(node.wan_address, global_time)
 
         # replace the valid public-key with an invalid one
         public_key = node.my_member.public_key

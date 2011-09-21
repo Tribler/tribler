@@ -3,6 +3,19 @@ from hashlib import sha1
 
 from meta import MetaObject
 
+if __debug__:
+    from bloomfilter import BloomFilter
+
+    def is_address(address):
+        assert isinstance(address, tuple), type(address)
+        assert len(address) == 2, len(address)
+        assert isinstance(address[0], str), type(address[0])
+        assert address[0], address[0]
+        assert isinstance(address[1], int), type(address[1])
+        assert address[1] >= 0, address[1]
+        return True
+
+
 class Payload(MetaObject):
     class Implementation(MetaObject.Implementation):
         @property
@@ -22,6 +35,201 @@ class Payload(MetaObject):
 
     def __str__(self):
         return "<{0.__class__.__name__}>".format(self)
+
+class IntroductionRequestPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, identifier, time_low, time_high, bloom_filter):
+            """
+            Create the payload for an introduction-request message.
+
+            DESTINATION_ADDRESS is the address of the receiver.  Effectively this should be the
+            wan address that others can use to contact the receiver.
+
+            SOURCE_LAN_ADDRESS is the lan address of the sender.  Nodes in the same LAN
+            should use this address to communicate.
+
+            SOURCE_WAN_ADDRESS is the wan address of the sender.  Nodes not in the same
+            LAN should use this address to communicate.
+            
+            ADVICE is a boolean value.  When True the receiver will introduce the sender to a new
+            node.  This introduction will be facilitated by the receiver sending a puncture-request
+            to the new node.
+            
+            IDENTIFIER is a number that must be given in the associated introduction-response.  This
+            number allows to distinguish between multiple introduction-response messages.
+
+            TIME_LOW and TIME_HIGH give the global time range that the sync bloomfilter covers.
+
+            BLOOM_FILTER is a BloomFilter object containing all packets that the sender has in the
+            given sync range.
+            """
+            assert is_address(destination_address)
+            assert is_address(source_lan_address)
+            assert is_address(source_wan_address)
+            assert isinstance(advice, bool)
+            assert isinstance(identifier, int)
+            assert 0 <= identifier < 2**16
+            assert isinstance(time_low, (int, long))
+            assert 0 < time_low
+            assert isinstance(time_high, (int, long))
+            assert time_high == 0 or time_low <= time_high
+            assert isinstance(bloom_filter, BloomFilter)
+            super(IntroductionRequestPayload.Implementation, self).__init__(meta)
+            self._destination_address = destination_address
+            self._source_lan_address = source_lan_address
+            self._source_wan_address = source_wan_address
+            self._advice = advice
+            self._identifier = identifier
+            self._time_low = time_low
+            self._time_high = time_high
+            self._bloom_filter = bloom_filter
+
+        @property
+        def destination_address(self):
+            return self._destination_address
+
+        @property
+        def source_lan_address(self):
+            return self._source_lan_address
+
+        @property
+        def source_wan_address(self):
+            return self._source_wan_address
+        
+        @property
+        def advice(self):
+            return self._advice
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def time_low(self):
+            return self._time_low
+
+        @property
+        def time_high(self):
+            return self._time_high
+
+        @property
+        def has_time_high(self):
+            return self._time_high > 0
+
+        @property
+        def bloom_filter(self):
+            return self._bloom_filter
+
+class IntroductionResponsePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
+            """
+            Create the payload for an introduction-response message.
+
+            DESTINATION_ADDRESS is the address of the receiver.  Effectively this should be the
+            wan address that others can use to contact the receiver.
+
+            SOURCE_LAN_ADDRESS is the lan address of the sender.  Nodes in the same LAN
+            should use this address to communicate.
+
+            SOURCE_WAN_ADDRESS is the wan address of the sender.  Nodes not in the same
+            LAN should use this address to communicate.
+
+            LAN_INTRODUCTION_ADDRESS is the lan address of the node that the sender
+            advises the receiver to contact.  This address is zero when the associated request did
+            not want advice.
+            
+            WAN_INTRODUCTION_ADDRESS is the wan address of the node that the sender
+            advises the receiver to contact.  This address is zero when the associated request did
+            not want advice.
+            
+            IDENTIFIER is a number that was given in the associated introduction-request.  This
+            number allows to distinguish between multiple introduction-response messages.
+
+            When the associated request wanted advice the sender will also sent a puncture-request
+            message to either the lan_introduction_address or the wan_introduction_address
+            (depending on their positions).  The introduced node must sent a puncture message to the
+            receiver to punch a hole in its NAT.
+            """
+            assert is_address(destination_address)
+            assert is_address(source_lan_address)
+            assert is_address(source_wan_address)
+            assert is_address(lan_introduction_address)
+            assert is_address(wan_introduction_address)
+            assert isinstance(identifier, int)
+            assert 0 <= identifier < 2**16
+            super(IntroductionResponsePayload.Implementation, self).__init__(meta)
+            self._destination_address = destination_address
+            self._source_lan_address = source_lan_address
+            self._source_wan_address = source_wan_address
+            self._lan_introduction_address = lan_introduction_address
+            self._wan_introduction_address = wan_introduction_address
+            self._identifier = identifier
+
+        @property
+        def footprint(self):
+            return "IntroductionResponsePayload:%d" % self._identifier
+
+        @property
+        def destination_address(self):
+            return self._destination_address
+
+        @property
+        def source_lan_address(self):
+            return self._source_lan_address
+
+        @property
+        def source_wan_address(self):
+            return self._source_wan_address
+
+        @property
+        def lan_introduction_address(self):
+            return self._lan_introduction_address
+
+        @property
+        def wan_introduction_address(self):
+            return self._wan_introduction_address
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+    def generate_footprint(self, identifier):
+        assert isinstance(identifier, int)
+        assert 0 <= identifier < 2**16
+        return "IntroductionResponsePayload:%d" % identifier
+
+class PunctureRequestPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, lan_walker_address, wan_walker_address):
+            """
+            Create the payload for a puncture-request payload.
+
+            LAN_WALKER_ADDRESS is the lan address of the node that the sender wants us to
+            contact.  This contact attempt should punch a hole in our NAT to allow the node to
+            connect to us.
+
+            WAN_WALKER_ADDRESS is the wan address of the node that the sender wants us to
+            contact.  This contact attempt should punch a hole in our NAT to allow the node to
+            connect to us.
+            """
+            assert is_address(lan_walker_address)
+            assert is_address(wan_walker_address)
+            super(PunctureRequestPayload.Implementation, self).__init__(meta)
+            self._lan_walker_address = lan_walker_address
+            self._wan_walker_address = wan_walker_address
+
+        @property
+        def lan_walker_address(self):
+            return self._lan_walker_address
+
+        @property
+        def wan_walker_address(self):
+            return self._wan_walker_address
+
+class PuncturePayload(Payload):
+    class Implementation(Payload.Implementation):
+        pass
 
 class AuthorizePayload(Payload):
     class Implementation(Payload.Implementation):
@@ -156,90 +364,6 @@ class MissingSequencePayload(Payload):
         def missing_high(self):
             return self._missing_high
 
-class CandidatePayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, source_address, destination_address, source_default_conversion, routes):
-            assert isinstance(source_address, tuple)
-            assert len(source_address) == 2
-            assert isinstance(source_address[0], str)
-            assert isinstance(source_address[1], int)
-            assert isinstance(destination_address, tuple)
-            assert len(destination_address) == 2
-            assert isinstance(destination_address[0], str)
-            assert isinstance(destination_address[1], int)
-            assert isinstance(source_default_conversion, tuple)
-            assert len(source_default_conversion) == 2
-            assert isinstance(source_default_conversion[0], str)
-            assert len(source_default_conversion[0]) == 1
-            assert isinstance(source_default_conversion[1], str)
-            assert len(source_default_conversion[1]) == 1
-            assert isinstance(routes, (tuple, list))
-            assert not filter(lambda route: not isinstance(route, tuple), routes)
-            assert not filter(lambda route: not len(route) == 2, routes)
-            assert not filter(lambda route: not isinstance(route[0], tuple), routes)
-            assert not filter(lambda route: not len(route[0]) == 2, routes)
-            assert not filter(lambda route: not isinstance(route[0][0], str), routes)
-            assert not filter(lambda route: not isinstance(route[0][1], (int, long)), routes)
-            assert not filter(lambda route: not isinstance(route[1], float), routes)
-            super(CandidatePayload.Implementation, self).__init__(meta)
-            self._source_address = source_address
-            self._destination_address = destination_address
-            self._source_default_conversion = source_default_conversion
-            self._routes = routes
-
-        @property
-        def source_address(self):
-            return self._source_address
-
-        @property
-        def destination_address(self):
-            return self._destination_address
-
-        @property
-        def source_default_conversion(self):
-            return self._source_default_conversion
-
-        @property
-        def routes(self):
-            return self._routes
-        #     now = time()
-        #     return [(address, age + now - stamp) for stamp, address, age in self._routes]
-
-        # def add_route(self, address, age):
-        #     assert isinstance(address, tuple)
-        #     assert len(address) == 2
-        #     assert isinstance(address[0], str)
-        #     assert isinstance(address[1], int)
-        #     assert isinstance(age, float)
-        #     assert age >= 0.0
-        #     assert len(self._routes) < 50
-        #     self._routes.append(time(), address, age)
-
-class CandidateRequestPayload(CandidatePayload):
-    class Implementation(CandidatePayload.Implementation):
-        pass
-
-class CandidateResponsePayload(CandidatePayload):
-    class Implementation(CandidatePayload.Implementation):
-        def __init__(self, meta, request_identifier, source_address, destination_address, source_default_conversion, routes):
-            assert isinstance(request_identifier, str)
-            assert len(request_identifier) == 20
-            super(CandidateResponsePayload.Implementation, self).__init__(meta, source_address, destination_address, source_default_conversion, routes)
-            self._request_identifier = request_identifier
-
-        @property
-        def request_identifier(self):
-            return self._request_identifier
-
-        @property
-        def footprint(self):
-            return "CandidateResponsePayload:" + self._request_identifier.encode("HEX")
-
-    def generate_footprint(self, request_identifier):
-        assert isinstance(request_identifier, str)
-        assert len(request_identifier) == 20
-        return "CandidateResponsePayload:" + request_identifier.encode("HEX")
-
 class SignatureRequestPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, message):
@@ -279,10 +403,7 @@ class SignatureResponsePayload(Payload):
 class IdentityPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, address):
-            assert isinstance(address, tuple)
-            assert len(address) == 2
-            assert isinstance(address[0], str)
-            assert isinstance(address[1], int)
+            assert is_address(address)
             super(IdentityPayload.Implementation, self).__init__(meta)
             self._address = address
 
@@ -301,37 +422,6 @@ class MissingIdentityPayload(Payload):
         @property
         def mid(self):
             return self._mid
-
-class SyncPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, time_low, time_high, bloom_filter):
-            if __debug__:
-                from bloomfilter import BloomFilter
-            assert isinstance(time_low, (int, long))
-            assert 0 < time_low
-            assert isinstance(time_high, (int, long))
-            assert time_high == 0 or time_low <= time_high
-            assert isinstance(bloom_filter, BloomFilter)
-            super(SyncPayload.Implementation, self).__init__(meta)
-            self._time_low = time_low
-            self._time_high = time_high
-            self._bloom_filter = bloom_filter
-
-        @property
-        def time_low(self):
-            return self._time_low
-
-        @property
-        def time_high(self):
-            return self._time_high
-
-        @property
-        def has_time_high(self):
-            return self._time_high > 0
-
-        @property
-        def bloom_filter(self):
-            return self._bloom_filter
 
 class DestroyCommunityPayload(Payload):
     class Implementation(Payload.Implementation):

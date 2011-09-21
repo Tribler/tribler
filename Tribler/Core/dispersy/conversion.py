@@ -161,11 +161,8 @@ class BinaryConversion(Conversion):
             debug_non_available = []
 
         define(254, u"dispersy-missing-sequence", self._encode_missing_sequence, self._decode_missing_sequence)
-        define(253, u"dispersy-sync", self._encode_sync, self._decode_sync)
         define(252, u"dispersy-signature-request", self._encode_signature_request, self._decode_signature_request)
         define(251, u"dispersy-signature-response", self._encode_signature_response, self._decode_signature_response)
-        define(250, u"dispersy-candidate-request", self._encode_candidate_request, self._decode_candidate_request)
-        define(249, u"dispersy-candidate-response", self._encode_candidate_response, self._decode_candidate_response)
         define(248, u"dispersy-identity", self._encode_identity, self._decode_identity)
         define(247, u"dispersy-missing-identity", self._encode_missing_identity, self._decode_missing_identity)
         define(244, u"dispersy-destroy-community", self._encode_destroy_community, self._decode_destroy_community)
@@ -177,6 +174,10 @@ class BinaryConversion(Conversion):
         define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
         define(237, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
         define(236, u"dispersy-dynamic-settings", self._encode_dynamic_settings, self._decode_dynamic_settings)
+        define(235, u"dispersy-introduction-request", self._encode_introduction_request, self._decode_introduction_request)
+        define(234, u"dispersy-introduction-response", self._encode_introduction_response, self._decode_introduction_response)
+        define(233, u"dispersy-puncture-request", self._encode_puncture_request, self._decode_puncture_request)
+        define(232, u"dispersy-puncture", self._encode_puncture, self._decode_puncture)
 
         if __debug__:
             if debug_non_available:
@@ -274,38 +275,6 @@ class BinaryConversion(Conversion):
 
         return offset, placeholder.meta.payload.implement(member, global_times)
 
-    def _encode_sync(self, message):
-        payload = message.payload
-        assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
-        assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
-        assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
-        return pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), payload.bloom_filter.prefix, payload.bloom_filter.bytes
-
-    def _decode_sync(self, placeholder, offset, data):
-        if len(data) < offset + 20:
-            raise DropPacket("Insufficient packet size")
-
-        time_low, time_high, num_slices, bits_per_slice = unpack_from("!QQBH", data, offset)
-        offset += 19
-        if not time_low > 0:
-            raise DropPacket("Invalid time_low value")
-        if not (time_high == 0 or time_low <= time_high):
-            raise DropPacket("Invalid time_high value")
-        if not num_slices > 0:
-            raise DropPacket("Invalid num_slices value")
-        if not bits_per_slice > 0:
-            raise DropPacket("Invalid bits_per_slice value")
-
-        prefix = data[offset]
-        offset += 1
-
-        if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
-            raise DropPacket("Invalid number of bytes available")
-        bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
-        offset += num_slices * bits_per_slice
-
-        return offset, placeholder.meta.payload.implement(time_low, time_high, bloom_filter)
-
     def _encode_signature_request(self, message):
         return self.encode_message(message.payload.message),
 
@@ -317,63 +286,6 @@ class BinaryConversion(Conversion):
 
     def _decode_signature_response(self, placeholder, offset, data):
         return len(data), placeholder.meta.payload.implement(data[offset:offset+20], data[offset+20:])
-
-    def _encode_candidate_request(self, message):
-        bytes = [inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
-                 inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
-                 message.payload.source_default_conversion[0], message.payload.source_default_conversion[1]]
-        for address, age in message.payload.routes:
-            bytes.extend((inet_aton(address[0]), pack("!HH", address[1], int(min(2**16-1, age)))))
-        return bytes
-
-    def _decode_candidate_request(self, placeholder, offset, data):
-        if len(data) < offset + 14:
-            raise DropPacket("Insufficient packet size")
-
-        source_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-        offset += 6
-        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-        offset += 6
-        source_default_conversion = (data[offset], data[offset+1])
-        offset += 2
-
-        routes = []
-        while len(data) >= offset + 8:
-            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HH", data, offset+4))
-            offset += 8
-            routes.append(((host, port), float(age)))
-
-        return offset, placeholder.meta.payload.implement(source_address, destination_address, source_default_conversion, routes)
-
-    def _encode_candidate_response(self, message):
-        bytes = [message.payload.request_identifier,
-                 inet_aton(message.payload.source_address[0]), pack("!H", message.payload.source_address[1]),
-                 inet_aton(message.payload.destination_address[0]), pack("!H", message.payload.destination_address[1]),
-                 message.payload.source_default_conversion[0], message.payload.source_default_conversion[1]]
-        for address, age in message.payload.routes:
-            bytes.extend((inet_aton(address[0]), pack("!HH", address[1], int(min(2**16-1, age)))))
-        return bytes
-
-    def _decode_candidate_response(self, placeholder, offset, data):
-        if len(data) < offset + 32:
-            raise DropPacket("Insufficient packet size")
-
-        request_identifier = data[offset:offset+20]
-        offset += 20
-        source_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-        offset += 6
-        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-        offset += 6
-        source_default_conversion = (data[offset], data[offset+1])
-        offset += 2
-
-        routes = []
-        while len(data) >= offset + 8:
-            host, (port, age) = (inet_ntoa(data[offset:offset+4]), unpack_from("!HH", data, offset+4))
-            offset += 8
-            routes.append(((host, port), float(age)))
-
-        return offset, placeholder.meta.payload.implement(request_identifier, source_address, destination_address, source_default_conversion, routes)
 
     def _encode_identity(self, message):
         return inet_aton(message.payload.address[0]), pack("!H", message.payload.address[1])
@@ -684,7 +596,6 @@ class BinaryConversion(Conversion):
 
         return offset, placeholder.meta.payload.implement(placeholder.authentication.member, global_time, packet)
 
-
     def _encode_missing_proof(self, message):
         payload = message.payload
         return pack("!QH", payload.global_time, len(payload.member.public_key)), payload.member.public_key
@@ -743,6 +654,112 @@ class BinaryConversion(Conversion):
             policies.append((meta, policy))
 
         return offset, placeholder.meta.payload.implement(policies)
+
+    def _encode_introduction_request(self, message):
+        payload = message.payload
+        assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
+        assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+        assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
+        return inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]), \
+            inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]), \
+            inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
+            pack("!BH", int(payload.advice), payload.identifier), \
+            pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), \
+            payload.bloom_filter.prefix, payload.bloom_filter.bytes
+
+    def _decode_introduction_request(self, placeholder, offset, data):
+        if len(data) < offset + 41:
+            raise DropPacket("Insufficient packet size")
+
+        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_lan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+        
+        advice, identifier = unpack_from("!BH", data, offset)
+        advice = bool(advice)
+        offset += 3
+
+        time_low, time_high, num_slices, bits_per_slice = unpack_from("!QQBH", data, offset)
+        offset += 19
+        if not time_low > 0:
+            raise DropPacket("Invalid time_low value")
+        if not (time_high == 0 or time_low <= time_high):
+            raise DropPacket("Invalid time_high value")
+        if not num_slices > 0:
+            raise DropPacket("Invalid num_slices value")
+        if not bits_per_slice > 0:
+            raise DropPacket("Invalid bits_per_slice value")
+
+        prefix = data[offset]
+        offset += 1
+
+        if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
+            raise DropPacket("Invalid number of bytes available")
+        bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
+        offset += num_slices * bits_per_slice
+        
+        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, advice, identifier, time_low, time_high, bloom_filter)
+
+    def _encode_introduction_response(self, message):
+        payload = message.payload
+        return inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]), \
+            inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]), \
+            inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
+            inet_aton(payload.lan_introduction_address[0]), pack("!H", payload.lan_introduction_address[1]), \
+            inet_aton(payload.wan_introduction_address[0]), pack("!H", payload.wan_introduction_address[1]), \
+            pack("!H", payload.identifier)
+
+    def _decode_introduction_response(self, placeholder, offset, data):
+        if len(data) < offset + 32:
+            raise DropPacket("Insufficient packet size")
+
+        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_lan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        lan_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        wan_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+        
+        identifier, = unpack_from("!H", data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier)
+
+    def _encode_puncture_request(self, message):
+        payload = message.payload
+        return inet_aton(payload.lan_walker_address[0]), pack("!H", payload.lan_walker_address[1]), \
+            inet_aton(payload.wan_walker_address[0]), pack("!H", payload.wan_walker_address[1])
+
+    def _decode_puncture_request(self, placeholder, offset, data):
+        if len(data) < offset + 12:
+            raise DropPacket("Insufficient packet size")
+
+        lan_walker_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        wan_walker_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        return offset, placeholder.meta.payload.implement(lan_walker_address, wan_walker_address)
+
+    def _encode_puncture(self, message):
+        return ()
+
+    def _decode_puncture(self, placeholder, offset, data):
+        return offset, placeholder.meta.payload.implement()
 
     #
     # Encoding
