@@ -128,7 +128,7 @@ class GUIUtility:
             
             if page == 'channels':
                 selectedcat = self.frame.channelcategories.GetSelectedCategory()
-                if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage == 'mychannel':
+                if selectedcat in ['Popular','New','Favorites','All', 'Updated', 'Search'] or self.oldpage == 'mychannel':
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
                     
@@ -336,6 +336,7 @@ class GUIUtility:
     def showChannelResults(self, data_channel):
         self.frame.top_bg.selectTab('channels')
         self.frame.channelcategories.DeselectAll()
+        self.frame.channelcategories.searchSelected = True
         
         data = []
         for permid in data_channel.keys():

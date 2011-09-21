@@ -1517,6 +1517,7 @@ class ChannelCategoriesList(List):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         columns = [{'width': wx.LIST_AUTOSIZE}]
+        self.searchSelected = False
     
         List.__init__(self, columns, LIST_GREY, [7,7], True)
     
@@ -1539,6 +1540,7 @@ class ChannelCategoriesList(List):
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All','Updated']:
             wx.CallAfter(self.guiutility.showChannelCategory, item.data[0])
+            self.searchSelected = False
             
         elif item.data[0] == 'My Channel':
             self.guiutility.ShowPage('mychannel')
@@ -1550,6 +1552,10 @@ class ChannelCategoriesList(List):
         category = self.list.GetExpandedItem()
         if category:
             return category.data[0]
+        
+        if self.searchSelected:
+            return 'Search'
+    
         return ''
 
     def SetQuicktip(self, quicktip):

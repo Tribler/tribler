@@ -172,17 +172,20 @@ class TorrentManager:
         elif torrent_filename[0]:
             #torrent is being requested from peers, using callback this function will be called again
             return torrent_filename[1]
+        
         else:
             #torrent not found
-            str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
-            dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
-                                wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
+            def showdialog():
+                str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
+                dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
+                                    wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
+                result = dlg.ShowModal()
+                dlg.Destroy()
             
-            if result == wx.ID_YES:
-                infohash = torrent['infohash']
-                self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
+                if result == wx.ID_YES:
+                    infohash = torrent['infohash']
+                    self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
+            wx.CallAfter(showdialog)
     
     def isTorrentPlayable(self, torrent, default=(False, [], []), callback=None):
         """
