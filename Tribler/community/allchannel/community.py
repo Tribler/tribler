@@ -114,7 +114,7 @@ class AllChannelCommunity(Community):
             
             if len(normalTorrents) > 0:
                 #loop through all candidates to see if we can find a non-blocked address
-                for candidate in self._dispersy.yield_online_candidates(self, 100):
+                for candidate in self._dispersy.yield_random_candidates(self, 100):
                     if not candidate.address in self._blocklist:
                         log("dispersy.log", "trying-to-send-channelcast")
                         
