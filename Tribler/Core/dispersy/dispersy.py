@@ -310,9 +310,12 @@ class Dispersy(Singleton):
         @type socket: Object with a send(address, data) method
         """
         port = socket.get_address()[1]
-        self._socket = socket
         if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port)
+        self._socket = socket
         self._lan_address = (self._lan_address[0], port)
+        # our address may not be a bootstrap address
+        if self._lan_address in self._bootstrap_candidates:
+            del self._bootstrap_candidates[self._lan_address]
         self.wan_address_vote(self._lan_address, ("", -1))
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
@@ -642,6 +645,10 @@ class Dispersy(Singleton):
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
 
+                # our address may not be a bootstrap address
+                if self._wan_address in self._bootstrap_candidates:
+                    del self._bootstrap_candidates[self._wan_address]
+                
                 # notify all communities that our wan address has changed.
                 # TODO the wan address should no longer be in the identity message... remove below code
                 for community in self._communities.itervalues():
