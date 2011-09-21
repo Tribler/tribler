@@ -187,7 +187,7 @@ class Community(object):
     def get_master_members(cls):
         def loader(mid, master_public_key):
             assert isinstance(mid, buffer)
-            assert master_public_key is None ot isinstance(master_public_key, buffer)
+            assert master_public_key is None or isinstance(master_public_key, buffer)
             if master_public_key:
                 return Member.get_instance(str(master_public_key))
             else:
