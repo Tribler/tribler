@@ -102,7 +102,7 @@ class TrackerDispersy(Dispersy):
 
         # get my_member, the key pair that we will use when we join a new community
         keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
-        self._my_member = Member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        self._my_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
