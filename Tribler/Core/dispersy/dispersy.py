@@ -1755,6 +1755,7 @@ class Dispersy(Singleton):
                 self._callback.register(self.start_walk, (community,), delay=1.0)
 
             else:
+                assert community.my_member.private_key
                 self.create_introduction_request(community, candidate.address)
             
     def create_introduction_request(self, community, destination):
@@ -1872,7 +1873,7 @@ class Dispersy(Singleton):
             # log("walktest.log", "introduction-response-timeout", intermediary=intermediary_address, advice=advice)
 
             # timeout, start new walk
-            community.dispersy_start_walk(community)
+            community.dispersy_start_walk()
 
         else:
             # log("walktest.log", "in-introduction-response", source=message.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, lan_introduction_address=message.payload.lan_introduction_address, wan_introduction_address=message.payload.wan_introduction_address, identifier=message.payload.identifier)
@@ -1885,7 +1886,7 @@ class Dispersy(Singleton):
                 self._callback.register(self.create_introduction_request, (destination,), delay=1.0)
 
             else:
-                community.dispersy_start_walk(community)
+                community.dispersy_start_walk()
 
     def on_puncture_request(self, messages):
         community = messages[0].community
