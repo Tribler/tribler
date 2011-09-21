@@ -1,6 +1,6 @@
 from socket import gethostbyname
 
-_trackers = [(u"dispersy1.tribler.org", 6421)]
+_trackers = [(u"dispersy2.tribler.org", 6422)]
 
 def get_bootstrap_addresses():
     """
