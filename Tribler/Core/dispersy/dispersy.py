@@ -261,9 +261,6 @@ class Dispersy(Singleton):
                                               FullSyncDistribution:self._check_full_sync_distribution_batch,
                                               LastSyncDistribution:self._check_last_sync_distribution_batch}
 
-        # cleanup the database periodically
-        self._callback.register(self._periodically_cleanup_database)
-
         # commit changes to the database periodically
         self._callback.register(self._watchdog)
 
@@ -3471,18 +3468,6 @@ class Dispersy(Singleton):
         sequence_number, = self._database.execute(u"SELECT COUNT(1) FROM sync WHERE member = ? AND sync.meta_message = ?",
                                                   (community.master_member.database_id, meta.database_id)).next()
         return sequence_number + 1
-
-    def _periodically_cleanup_database(self):
-        # cleannup candidate tables
-        while True:
-            desync = (yield 120.0)
-            while desync > 0.1:
-                if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                desync = (yield desync)
-
-            for community in self._communities.itervalues():
-                self._database.execute(u"DELETE FROM candidate WHERE community = ? AND STRFTIME('%s', DATETIME('now')) - STRFTIME('%s', incoming_time) > ?",
-                                       (community.database_id, community.dispersy_candidate_cleanup_age_threshold))
 
     def _watchdog(self):
         """
