@@ -106,7 +106,7 @@ class TrackerDispersy(Dispersy):
         try:
             return super(TrackerDispersy, self).get_community(cid, load, auto_load)
         except KeyError:
-            self._communities[cid] = TrackerCommunity.join_community(Member.get_instance(cid, has_private_member=False), self._my_member)
+            self._communities[cid] = TrackerCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
             return self._communities[cid]
 
 class DispersySocket(object):
