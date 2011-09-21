@@ -46,8 +46,10 @@ class TrackerCommunity(Community):
         # remove all messages that we should not be using
         meta_messages = self._meta_messages
         self._meta_messages = {}
-        for name in [u"dispersy-candidate-request",
-                     u"dispersy-candidate-response",
+        for name in [u"dispersy-introduction-request",
+                     u"dispersy-introduction-response",
+                     u"dispersy-puncture-request",
+                     u"dispersy-puncture",
                      u"dispersy-identity",
                      u"dispersy-missing-identity"]:
             self._meta_messages[name] = meta_messages[name]
