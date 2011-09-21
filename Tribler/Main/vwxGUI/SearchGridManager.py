@@ -135,6 +135,7 @@ class TorrentManager:
         torrent['query_torrent_was_requested'] = True
         if not 'query_permids' in torrent or len(torrent['query_permids']) == 0:
             self.guiUtility.utility.session.download_torrentfile(torrent['infohash'], callback, prio)
+            
         else:
             for permid in torrent['query_permids']:
                 self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
@@ -143,6 +144,7 @@ class TorrentManager:
     
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
         callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode, selectedFiles)
+        callback.__name__ = "downloadTorrent_callback"
         torrent_filename = self.getTorrent(torrent, callback)
         
         if isinstance(torrent_filename, basestring):
@@ -169,10 +171,10 @@ class TorrentManager:
                     print >>sys.stderr,'standardDetails: download: download started'
                
                 torrent['myDownloadHistory'] = True
+                
         elif torrent_filename[0]:
             #torrent is being requested from peers, using callback this function will be called again
             return torrent_filename[1]
-        
         else:
             #torrent not found
             def showdialog():
@@ -205,6 +207,7 @@ class TorrentManager:
         If it is playable the boolean is true and the list returned consists of the playable files within the actual torrent. 
         """
         torrent_callback = lambda infohash, metadata, filename: self.isTorrentPlayable(torrent, default, callback)
+        torrent_callback.__name__ = "isTorrentPlayable_callback"
         torrent_filename = self.getTorrent(torrent, torrent_callback)
         
         if isinstance(torrent_filename, basestring):
@@ -225,6 +228,7 @@ class TorrentManager:
                 callback(torrent, (playable, files, allfiles))
             else:
                 return torrent, (playable, files, allfiles)
+            
         elif not torrent_filename[0]:
             if DEBUG:
                 print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
