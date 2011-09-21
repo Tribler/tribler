@@ -92,7 +92,7 @@ class tribler_topButton(wx.Panel):
             self.state = self.state ^ tribler_topButton.ENABLED
         self.Refresh()
         
-    def IsEnabled(self):
+    def getEnabled(self):
         return self.state & tribler_topButton.ENABLED
     
     def mouseAction(self, event):
@@ -216,7 +216,7 @@ class tribler_topButton(wx.Panel):
                 w, h = self.GetClientSize()
                 dc.DrawRectangle(0, 0, w, h)
             
-            if not self.IsEnabled():
+            if not self.getEnabled():
                 return
     
             bitmap = self.GetBitmap()

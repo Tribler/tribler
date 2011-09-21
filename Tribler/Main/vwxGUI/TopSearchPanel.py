@@ -30,12 +30,16 @@ class TopSearchPanel(bgPanel):
         self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type = 2)  
     
     def OnSearchKeyDown(self, event = None):
-        if DEBUG:
-            print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
+        if self.go.IsEnabled():
+            if DEBUG:
+                print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
+            
+            if getattr(self.searchField, 'ShowDropDown', False):
+                self.searchField.ShowDropDown(False)
+            self.guiUtility.dosearch()
         
-        if getattr(self.searchField, 'ShowDropDown', False):
-            self.searchField.ShowDropDown(False)
-        self.guiUtility.dosearch()
+            self.go.Enable(False)
+            wx.CallLater(2500, self.go.Enable, True)
     
     def StartSearch(self):
         if not self.results.IsEnabled():
