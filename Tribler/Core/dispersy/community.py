@@ -186,14 +186,16 @@ class Community(object):
     @classmethod
     def get_master_members(cls):
         def loader(mid, master_public_key):
+            assert isinstance(mid, buffer)
+            assert master_public_key is None ot isinstance(master_public_key, buffer)
             if master_public_key:
-                return Member.get_instance(master_public_key)
+                return Member.get_instance(str(master_public_key))
             else:
-                return Member.get_instance(mid, public_key_available=False)
+                return Member.get_instance(str(mid), public_key_available=False)
 
         if __debug__: dprint("retrieving all master members owning ", cls.get_classification(), " communities")
         execute = DispersyDatabase.get_instance().execute
-        return [loader(str(mid), str(master_public_key))
+        return [loader(mid, master_public_key)
                 for mid, master_public_key
                 in list(execute(u"SELECT m.mid, m.public_key FROM community AS c JOIN member AS m ON m.id = c.master WHERE c.classification = ?", (cls.get_classification(),)))]
 
