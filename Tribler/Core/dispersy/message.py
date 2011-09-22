@@ -143,7 +143,7 @@ class DelayMessageByProof(DelayMessage):
             from message import Message
         assert isinstance(delayed, Message.Implementation)
         # the footprint that will trigger the delayed packet
-        footprint = "".join(("dispersy-authorize",
+        footprint = "".join(("(dispersy-authorize|dispersy-dynamic-settings)",
                              " Community:", delayed.community.cid.encode("HEX")))
 
         # the request message that asks for the message that will trigger the delayed packet
