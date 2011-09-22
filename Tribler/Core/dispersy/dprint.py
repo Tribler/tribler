@@ -265,7 +265,6 @@ def filter_add_by_level(chain, target, exact=None, min=None, max=None, jump=None
             return min <= settings["level"] <= max
     else:
         def match(args, settings):
-            print "match", exact, "==", settings["level"]
             return exact == settings["level"]
     match.__name__ = "by_level(%s, %s, %s)" % (exact, min, max)
     filter_add(chain, match, target, jump=jump, position=position)
@@ -685,7 +684,7 @@ def dprint(*args, **kargs):
     # ensure that kargs contains only known options
     for key in kargs:
         if not key in _dprint_settings:
-            raise ValueError("Unknown options: %s" % key)
+            raise ValueError("Unknown option: %s" % key)
 
     # merge default dprint settings with kargs
     # todo: it might be faster to clone _dprint_settings and call update(kargs) on it
