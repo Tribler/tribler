@@ -4,22 +4,20 @@
 Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
 
-import hashlib
 import os
 import errno
 import socket
 import sys
-import time
 import traceback
 import threading
 import optparse
 
 from Tribler.Core.Overlay.permid import read_keypair
 from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.callback import Callback
-from Tribler.Core.dispersy.community import Community, HardKilledCommunity
+from Tribler.Core.dispersy.community import SyncRange, Community, HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
-from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.conversion import BinaryConversion
@@ -34,6 +32,22 @@ else:
 
 class BinaryTrackerConversion(BinaryConversion):
     pass
+
+class TrackerSyncRange(SyncRange):
+    def __init__(self):
+        self.time_low = 1
+        self.space_freed = 0
+        self.bloom_filters = [BloomFilter("\xff", 0)]
+        self.space_remaining = self.capacity = 2 ** 64 - 1
+
+    def add(self, packet):
+        pass
+
+    def free(self):
+        pass
+
+    def clear(self):
+        pass
 
 class TrackerCommunity(Community):
     """
@@ -54,23 +68,19 @@ class TrackerCommunity(Community):
                      u"dispersy-missing-identity"]:
             self._meta_messages[name] = meta_messages[name]
 
-    @property
-    def dispersy_sync_initial_delay(self):
-        # we should not sync ever as we will receive messages that we
-        # do not understand
-        return 0.0
-
-    @property
-    def dispersy_candidate_request_interval(self):
-        # as a tracker we mostly rely on incoming candidate requests
-        return 300.0
-
     def initiate_meta_messages(self):
         return []
 
     def initiate_conversions(self):
         return [BinaryTrackerConversion(self, "\x00")]
 
+    def _initialize_sync_ranges(self):
+        self._sync_ranges.insert(0, TrackerSyncRange())
+    
+    def dispersy_claim_sync_bloom_filter(self, identifier):
+        # the tracker doesn't want any data... so our bloom filter must be full
+        return 1, 1, self._sync_ranges[0].bloom_filters[0]
+    
     def get_conversion(self, prefix=None):
         if not prefix in self._conversions:
 
@@ -117,7 +127,7 @@ class DispersySocket(object):
             try:
                 self.socket = rawserver.create_udpsocket(port, ip)
                 if __debug__: dprint("Dispersy listening at ", port, force=True)
-            except socket.error, error:
+            except socket.error:
                 port += 1
                 continue
             break
@@ -195,7 +205,7 @@ def main():
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
 
     # parse command-line arguments
-    opt, args = command_line_parser.parse_args()
+    opt, _ = command_line_parser.parse_args()
     print "Press Ctrl-C to stop Dispersy"
 
     # start threads
