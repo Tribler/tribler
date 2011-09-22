@@ -117,10 +117,13 @@ class Home(XRCPanel):
         if self.isReady:
             self.searchBox.SetFocus()
             self.searchBox.SelectAll()
-        
+            
 class Stats(XRCPanel):
-    
-    def _PostInit(self):
+    def __init__(self, parent = None):
+        XRCPanel.__init__(self, parent)
+        self.isReady = False
+        
+    def _DoInit(self):
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
@@ -153,6 +156,8 @@ class Stats(XRCPanel):
         if sys.platform.startswith('win'):
             # on Windows, the panel doesn't respond to keypresses
             self.Bind(wx.EVT_MOUSE_EVENTS, self.onMouse)
+        
+        self.isReady = True
     
     def onActivity(self, msg):
         if self.isReady:
@@ -171,7 +176,13 @@ class Stats(XRCPanel):
             wx.lib.inspection.InspectionTool().Show()
         else:
             event.Skip()
+            
+    def Show(self, show = True):
+        if show:
+            if not self.isReady:
+                self._DoInit()
                 
+        XRCPanel.Show(self, show)
         
 class HomePanel(wx.Panel):
     def __init__(self, parent, title, background):
@@ -439,7 +450,6 @@ class TopContributorsPanel(HomePanel):
         
     def OnDoubleClick(self, event):
         pass
-    
 
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):

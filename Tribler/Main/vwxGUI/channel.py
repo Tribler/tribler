@@ -260,6 +260,7 @@ class SelectedChannelList(GenericSearchList):
     
     @forceWxThread
     def SetChannelState(self, state, iamModerator):
+        self.iamModerator = iamModerator
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.commentList.Show(True)
@@ -300,7 +301,11 @@ class SelectedChannelList(GenericSearchList):
         
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents], playlist, PlaylistItem) for playlist in playlists]
-            data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent) for torrent in torrents]
+            
+            if self.channel.getState == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
+                data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent, DragItem) for torrent in torrents]
+            else:
+                data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent) for torrent in torrents]
             self.list.SetData(data)
             
             self.SetNrResults(len(data))
@@ -331,7 +336,10 @@ class SelectedChannelList(GenericSearchList):
         
         if data:
             if isinstance(data, Torrent):
-                data = (data.infohash,[data.name, data.time_stamp, data.length, 0, 0], data)
+                if self.channel.getState == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
+                    data = (data.infohash,[data.name, data.time_stamp, data.length, 0, 0], data, DragItem)
+                else:
+                    data = (data.infohash,[data.name, data.time_stamp, data.length, 0, 0], data)
             else:
                 data = (data.id,[data.name, data.extended_description, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
@@ -375,6 +383,17 @@ class SelectedChannelList(GenericSearchList):
         if len(changes)>0:
             self.channelsearch_manager.modifyTorrent(self.id, panel.torrent.channeltorrent_id, changes)
             panel.Saved()
+            
+    def AddTorrent(self, playlist, torrent):
+        def disp_call():
+            self.channelsearch_manager.addPlaylistTorrent(playlist, torrent)
+        
+        def done_call(delayedResult):
+            delayedResult.get()
+            manager = self.GetManager()
+            manager._refresh_list()
+            
+        startWorker(done_call, disp_call)
             
     def OnRemoveVote(self, event):
         #Set self.id to None to prevent updating twice
@@ -443,6 +462,14 @@ class SelectedChannelList(GenericSearchList):
             self.activityList.SetFocus()
         event.Skip()
         
+    def OnDrag(self, dragitem):
+        torrent = dragitem.original_data
+        
+        tdo = TorrentDO(torrent)
+        tds = wx.DropSource(dragitem)
+        tds.SetData(tdo)
+        tds.DoDragDrop(True)
+        
     def OnCommentCreated(self, channel_id):
         if channel_id == self.id:
             manager = self.commentList.GetManager()
@@ -504,6 +531,49 @@ class SelectedChannelList(GenericSearchList):
         else:
             self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
         dial.Destroy()
+        
+class DragItem(ListItem):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
+        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+
+    def AddEvents(self, control):
+        if getattr(control, 'GetWindow', False): #convert sizeritems
+            control = control.GetWindow() or control.GetSizer()
+        
+        if getattr(control, 'Bind', False):
+            control.Bind(wx.EVT_MOTION, self.OnDrag)
+            
+        ListItem.AddEvents(self, control)
+        
+    def OnDrag(self, event):
+        #event.LeftDown does not work
+        mouse = wx.GetMouseState()
+        if mouse.LeftDown():
+            self.parent_list.parent_list.OnDrag(self)
+        
+class TorrentDO(wx.CustomDataObject):
+    def __init__(self, data):
+        wx.CustomDataObject.__init__(self, wx.CustomDataFormat("TORRENT"))
+        self.setObject(data)
+
+    def setObject(self, obj):
+        self.SetData(pickle.dumps(obj))
+
+    def getObject(self):
+        return pickle.loads(self.GetData())
+    
+class TorrentDT(wx.PyDropTarget):
+    def __init__(self, playlist, callback):
+        wx.PyDropTarget.__init__(self)
+        self.playlist = playlist
+        self.callback = callback
+        
+        self.cdo = TorrentDO(None)
+        self.SetDataObject(self.cdo)
+  
+    def OnData(self, x, y, data):
+        if self.GetData():
+            self.callback(self.playlist, self.cdo.getObject())
 
 class PlaylistManager():
     def __init__(self, list):
@@ -583,6 +653,8 @@ class Playlist(SelectedChannelList):
 class PlaylistItem(ListItem):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+        
+        self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
         
     def AddComponents(self, leftSpacer, rightSpacer):
         titleRow = wx.BoxSizer(wx.HORIZONTAL)

@@ -83,6 +83,16 @@ class Helper(object):
     
     def __ne__(self, other):
         return not self.__eq__(other)
+    
+    def __getstate__(self):
+        statedict = {}
+        for key in self.__slots__:
+            statedict[key] = getattr(self, key, None)
+        return statedict
+    
+    def __setstate__(self, statedict):
+        for key, value in statedict.iteritems():
+            setattr(self, key, value)
 
 class Torrent(Helper):
     __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress')
@@ -156,6 +166,13 @@ class Torrent(Helper):
     
     def __str__(self):
         return self.name
+    
+    def __getstate__(self):
+        statedict = {}
+        for key in Torrent.__slots__:
+            if key not in ['ds', 'channelcast_db', 'torrent_db']:
+                statedict[key] = getattr(self, key, None)
+        return statedict
     
 class RemoteTorrent(Torrent):
     __slots__ = ('query_permids')
@@ -272,6 +289,12 @@ class ChannelTorrent(Torrent):
     @name.setter
     def name(self, name):
         pass
+    
+    def __getstate__(self):
+        statedict = Torrent.__getstate__(self)
+        for key in self.__slots__:
+            statedict[key] = getattr(self, key, None)
+        return statedict
     
 class Channel(Helper):
     __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel')

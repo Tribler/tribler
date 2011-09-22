@@ -1259,6 +1259,11 @@ class ChannelSearchGridManager:
             
             if len(to_be_removed) > 0:
                 community.remove_playlist_torrents(playlist_id, to_be_removed)
+               
+    @forceDispersyThread 
+    def addPlaylistTorrent(self, playlist, torrent):
+        community = self._disp_get_community_from_channel_id(playlist.channel.id)
+        community.create_playlist_torrents(playlist.id, [torrent.infohash])
     
     @forceDispersyThread
     def createTorrent(self, channel, torrent):
