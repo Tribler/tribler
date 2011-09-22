@@ -114,7 +114,7 @@ class TrackerDispersy(Dispersy):
         keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
         self._my_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
-        callback.register(self._cleanup_communities)
+        callback.register(self._unload_communities)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
