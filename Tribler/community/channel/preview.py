@@ -40,12 +40,6 @@ class PreviewChannelCommunity(ChannelCommunity):
                      ]:
             self._meta_messages[name] = meta_messages[name]
 
-    @property
-    def dispersy_sync_initial_delay(self):
-        # we are not joining a community, hence we do not use dispersy-sync
-        return 0.0
-
-    @property
-    def dispersy_candidate_request_initial_delay(self):
-        # we are not joining a community, hence we do not use dispersy-candidate-request
-        return 0.0
+    def dispersy_start_walk(self):
+        # disable walk
+        pass
