@@ -1406,24 +1406,30 @@ class ChannelSearchGridManager:
                 for remoteItem, permid in self.remoteHits:
                     if not isinstance(remoteItem, Channel):
                         channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
-                        remoteItem = RemoteChannel(channel_id, -1, channel_name, 0, 0)
+                        curChannel = RemoteChannel(channel_id, -1, channel_name, 0, 0)
+                    else:
+                        curChannel = remoteItem
                         
-                    if not channel_id in self.hits:
-                        self.hits[channel_id] = remoteItem
+                    if not curChannel.id in self.hits:
+                        self.hits[channel_id] = curChannel
                         hitsUpdated = True
                     
-                    channel = self.hits[channel_id]
-                    if isinstance(channel, RemoteChannel):
-                        torrent = channel.getTorrent(infohash)
-                        if torrent:
-                            torrent.query_permids.append(permid)
-                        else:
-                            torrent = RemoteTorrent(torrent_id = None, infohash = infohash, name = torrent_name, query_permids = [permid])
-                            torrent.updateChannel(channel)
-                            channel.addTorrent(torrent)
-                            
-                        channel.nr_torrents = len(channel.torrents) 
-                        channel.modified = max(channel.modified, timestamp)
+                    #add torrents to remotechannel
+                    if not isinstance(remoteItem, Channel):
+                        channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
+                        
+                        channel = self.hits[channel_id]
+                        if isinstance(channel, RemoteChannel):
+                            torrent = channel.getTorrent(infohash)
+                            if torrent:
+                                torrent.query_permids.append(permid)
+                            else:
+                                torrent = RemoteTorrent(torrent_id = None, infohash = infohash, name = torrent_name, query_permids = [permid])
+                                torrent.updateChannel(channel)
+                                channel.addTorrent(torrent)
+                                
+                            channel.nr_torrents = len(channel.torrents) 
+                            channel.modified = max(channel.modified, timestamp)
         finally:
             self.remoteLock.release()
 
