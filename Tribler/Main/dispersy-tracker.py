@@ -37,7 +37,7 @@ class TrackerSyncRange(SyncRange):
     def __init__(self):
         self.time_low = 1
         self.space_freed = 0
-        self.bloom_filters = [BloomFilter("\xff", 0)]
+        self.bloom_filters = [BloomFilter("\xff", 1, 8)]
         self.space_remaining = self.capacity = 2 ** 64 - 1
 
     def add(self, packet):
