@@ -308,7 +308,7 @@ class Callback(object):
                 if __debug__:
                     debug_desyncs = [deadline - actual_time for _, deadline, _, _, _ in expired]
                     level = "warning" if max(debug_desyncs) > QUEUE_DELAY_FOR_WARNING else "normal"
-                    dprint(len(queued), " non-expired waiting in queue")
+                    dprint(len(requests), " non-expired waiting in queue")
                     dprint(len(expired), " expired waiting in queue (min desync %.4fs" % min(debug_desyncs), ", max desync %.4fs" % max(debug_desyncs), ")", level=level)
                     # for counter, (deadline, _, _, call, _) in enumerate(requests, 1):
                     #     desync = deadline - actual_time
