@@ -126,7 +126,7 @@ class TrackerDispersy(Dispersy):
     def _unload_communities(self):
         def has_candidates(community):
             try:
-                community.yield_candidates().next()
+                self.yield_candidates(community).next()
             except StopIteration:
                 return False
             else:
