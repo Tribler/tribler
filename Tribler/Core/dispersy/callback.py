@@ -306,15 +306,19 @@ class Callback(object):
 
             if expired:
                 if __debug__:
-                    for counter, (deadline, _, _, call, _) in enumerate(requests, 1):
-                        desync = deadline - actual_time
-                        level = "error" if desync < 0.0 else "normal"
-                        dprint("%2d/%-2d queue waiting %.4fs" % (counter, len(requests), desync), " for request ", call[0], level=level)
+                    debug_desyncs = [deadline - actual_time for _, deadline, _, _, _ in expired]
+                    level = "warning" if max(debug_desyncs) > QUEUE_DELAY_FOR_WARNING else "normal"
+                    dprint(len(queued), " non-expired waiting in queue")
+                    dprint(len(expired), " expired waiting in queue (min desync %.4fs" % min(debug_desyncs), ", max desync %.4fs" % max(debug_desyncs), ")", level=level)
+                    # for counter, (deadline, _, _, call, _) in enumerate(requests, 1):
+                    #     desync = deadline - actual_time
+                    #     level = "error" if desync < 0.0 else "normal"
+                    #     dprint("%2d/%-2d queue waiting %.4fs" % (counter, len(requests), desync), " for request ", call[0], level=level)
 
-                    for counter, (_, deadline, _, call, _) in enumerate(expired, 1):
-                        desync = actual_time - deadline
-                        level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
-                        dprint("%2d/%-2d queue desync  %.4fs" % (counter, len(expired), desync), " for expired ", call[0], level=level)
+                    # for counter, (_, deadline, _, call, _) in enumerate(expired, 1):
+                    #     desync = actual_time - deadline
+                    #     level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
+                    #     dprint("%2d/%-2d queue desync  %.4fs" % (counter, len(expired), desync), " for expired ", call[0], level=level)
 
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
