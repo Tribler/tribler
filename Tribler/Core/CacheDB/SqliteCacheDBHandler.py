@@ -3670,12 +3670,15 @@ class ChannelCastDBHandler(object):
         else:
             return self.__fixTorrent(keys, result)
             
-    def getTorrentsFromChannelId(self, channel_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY time_stamp DESC"
+    def getTorrentsFromChannelId(self, channel_id, isDispersy, keys, limit = None):
+        if isDispersy:
+            sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY time_stamp DESC"
+        else:
+            sql = "SELECT " + ", ".join(keys) +" FROM CollectedTorrent as Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? ORDER BY time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
+            
         results = self._db.fetchall(sql, (channel_id,))
-        
         if limit is None:
             #use this possibility to update nrtorrent in channel
             update = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"

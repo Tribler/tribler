@@ -842,12 +842,12 @@ class TorrentDetails(AbstractDetails):
     def OnCommentCreated(self, infohash):
         if self.torrent.infohash == infohash:
             manager = self.commentList.GetManager()
-            manager.refresh()
+            manager.new_comment()
             
     def OnModificationCreated(self, channeltorrent_id):
         if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
             manager = self.modificationList.GetManager()
-            manager.refresh()
+            manager.new_modification()
                         
     def GetChanged(self):
         newValues = {}

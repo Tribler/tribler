@@ -1054,7 +1054,7 @@ class ChannelSearchGridManager:
         return self._createTorrent(data, channel)
     
     def getTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, CHANNEL_REQ_COLUMNS, limit)
+        hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
     
     def getRecentReceivedTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):

@@ -65,14 +65,19 @@ class ChannelManager():
             self.list.SetChannelState(state, iamModerator)
         
         def db_callback():
-            nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
-            total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
-            self._on_data(total_items, nrfiltered, torrentList, playlists)
+            if self.list.channel.isDispersy():
+                nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
+                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
+            else:
+                playlists = []
+                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel)
+                
+            return total_items, nrfiltered, torrentList, playlists
             
-        startWorker(None, db_callback, uId = "ChannelManager_refresh_list")
+        startWorker(self._on_data, db_callback, uId = "ChannelManager_refresh_list")
     
-    @forceWxThread  
-    def _on_data(self, total_items, nrfiltered, torrents, playlists):
+    def _on_data(self, delayedResult):
+        total_items, nrfiltered, torrents, playlists = delayedResult.get()
         
         torrents = self.library_manager.addDownloadStates(torrents)
         total_items += len(playlists)
@@ -122,7 +127,6 @@ class ChannelManager():
         if self.list.id == id:
             if modified:
                 self.reload(id)
-                
             else:
                 if self.list.ShouldGuiUpdate():
                     self._refresh_list(stateChanged)
@@ -442,10 +446,10 @@ class SelectedChannelList(GenericSearchList):
     def OnCommentCreated(self, channel_id):
         if channel_id == self.id:
             manager = self.commentList.GetManager()
-            manager.refresh()
+            manager.new_comment()
             
             manager = self.activityList.GetManager()
-            manager.refresh()
+            manager.new_activity()
             
         else: #maybe channel_id is a infohash
             panel = self.list.GetExpandedItem()
@@ -571,7 +575,7 @@ class Playlist(SelectedChannelList):
         
         if self.InList(key):
             manager = self.commentList.GetManager()
-            manager.refresh()
+            manager.new_comment()
             
     def CreateFooter(self, parent):
         return PlaylistFooter(parent)
@@ -1598,6 +1602,12 @@ class CommentManager:
             comments = self.channelsearch_manager.getCommentsFromChannel(self.channel)
             
         self.list.SetData(comments)
+        
+    def new_comment(self):
+        if self.list.ShouldGuiUpdate():
+            self.refresh()
+        else:
+            self.list.dirty = True
     
     @forceDBThread
     def addComment(self, comment):
@@ -1710,6 +1720,12 @@ class ActivityManager:
             recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit = 10)
                 
         self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications)
+        
+    def new_activity(self):
+        if self.list.ShouldGuiUpdate():
+            self.refresh()
+        else:
+            self.list.dirty = True
 
 class ActivityList(List):
     def __init__(self, parent, parent_list):
@@ -1775,6 +1791,12 @@ class ModificationManager:
             return self.channelsearch_manager.getTorrentModifications(self.channeltorrent_id)
         
         startWorker(self.list.SetDelayedData, db_callback)
+        
+    def new_modification(self):
+        if self.list.ShouldGuiUpdate():
+            self.refresh()
+        else:
+            self.list.dirty = True
         
     def getNrModifications(self):
         data = startWorker(None, self.channelsearch_manager.getTorrentModifications, wargs= (self.channeltorrent_id, ))
