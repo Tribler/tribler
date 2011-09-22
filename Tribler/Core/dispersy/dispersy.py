@@ -1404,7 +1404,7 @@ class Dispersy(Singleton):
         elif meta.name == "dispersy-introduction-response":
             for message in messages:
                 if message.address in self._candidates:
-                    self._candidates[message.address].inc_introduction_responses(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
+                    self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
                 elif not message.address in self._bootstrap_candidates:
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
