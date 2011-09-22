@@ -107,12 +107,14 @@ class TrackerDispersy(Dispersy):
         kargs["singleton_placeholder"] = Dispersy
         return super(TrackerDispersy, cls).get_instance(*args, **kargs)
 
-    def __init__(self, rawserver, statedir):
-        super(TrackerDispersy, self).__init__(rawserver, statedir)
+    def __init__(self, callback, statedir):
+        super(TrackerDispersy, self).__init__(callback, statedir)
 
         # get my_member, the key pair that we will use when we join a new community
         keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
         self._my_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+
+        callback.register(self._cleanup_communities)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
@@ -121,6 +123,20 @@ class TrackerDispersy(Dispersy):
             self._communities[cid] = TrackerCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
             return self._communities[cid]
 
+    def _unload_communities(self):
+        def has_candidates(community):
+            try:
+                community.yield_candidates().next()
+            except StopIteration:
+                return False
+            else:
+                return True
+        
+        while True:
+            yield 60.0
+            for community in [community for community in self._communities.itervalues() if not has_candidates(community)]:
+                community.unload_community()
+        
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
         while True:
@@ -187,8 +203,8 @@ def main():
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
 
         schedule = []
-        schedule.append((HardKilledCommunity, (), {}))
-        schedule.append((TrackerCommunity, (), {}))
+        # schedule.append((HardKilledCommunity, (), {}))
+        # schedule.append((TrackerCommunity, (), {}))
 
         # load
         for cls, args, kargs in schedule:
