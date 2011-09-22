@@ -1415,7 +1415,7 @@ class Dispersy(Singleton):
                     self._candidates[address].inc_any(meta.community)
             
         # store to disk and update locally
-        if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages")
+        if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages from ", ", ".join("%s:%d" % address for address in set(message.address for message in messages)))
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
 
@@ -1426,7 +1426,7 @@ class Dispersy(Singleton):
         if __debug__:
             debug_end = clock()
             level = "warning" if (debug_end - debug_begin) > 1.0 else "normal"
-            dprint("handled ", len(messages), "/", debug_count, " %.2fs" % (debug_end - debug_begin), " ", meta.name, " messages (after ", meta.delay, "s cache delay, for community ", meta.community.cid.encode("HEX"), level=level)
+            dprint("handled ", len(messages), "/", debug_count, " %.2fs" % (debug_end - debug_begin), " ", meta.name, " messages (after ", meta.delay, "s cache delay)", level=level)
 
         # return the number of messages that were correctly handled (non delay, duplictes, etc)
         return len(messages)
@@ -2084,7 +2084,7 @@ class Dispersy(Singleton):
                 assert isinstance(packet, str)
                 self._socket.send(address, packet)
             self._statistics.outgoing(address, key, sum(len(packet) for packet in packets), len(packets))
-            if __debug__: dprint("out... ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
+            if __debug__: dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
@@ -2979,7 +2979,7 @@ class Dispersy(Singleton):
                             if __debug__: dprint("found missing ", packet_meta.name, " not matching requestors subjective set.  not syncing")
                             continue
 
-                    if __debug__:dprint("found missing ", packet_meta.name, " (", len(packet), " bytes)")
+                    if __debug__:dprint("found missing ", packet_meta.name, " (", len(packet), " bytes) ", sha1(packet).digest().encode("HEX"))
 
                     packets.append(packet)
                     byte_limit -= len(packet)
@@ -2988,16 +2988,16 @@ class Dispersy(Singleton):
                             dprint("bandwidth throttle")
                         break
 
-            # let the message be processed, although that will not actually result in any processing
-            # since we choose to already do everything...
-            yield message
-
             if packets:
                 if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
                 self._send([message.address], packets, u"-sync-")
 
             else:
                 if __debug__: dprint("did not find anything to sync, ignoring dispersy-sync message")
+
+            # let the message be processed, although that will not actually result in any processing
+            # since we choose to already do everything...
+            yield message
 
     def create_authorize(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         """

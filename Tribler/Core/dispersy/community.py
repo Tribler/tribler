@@ -751,7 +751,7 @@ class Community(object):
 
         if __debug__: dprint("updating ", len(messages), " messages")
 
-        for message_index, message in zip(count(), sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))):
+        for message in sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet)):
             if __debug__: last_time_low = 0
 
             for index, sync_range in zip(count(), self._sync_ranges):
@@ -804,7 +804,7 @@ class Community(object):
                         # same global time.  we can not split this range, this will result
                         # in an increased chance for false positives
                         if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
-                        assert not filter(lambda x: not x[0] == time_middle, items)
+                        assert all(item[0] == time_middle for item in items)
                         index_middle = 0
 
                     if index_middle > 0:
