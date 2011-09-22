@@ -1883,7 +1883,7 @@ class Dispersy(Singleton):
 
                 # determine if we are in the same LAN as the introduced node
                 destination = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
-                self._callback.register(self.create_introduction_request, (destination,), delay=1.0)
+                self._callback.register(self.create_introduction_request, (community, destination), delay=1.0)
 
             else:
                 community.dispersy_start_walk()
