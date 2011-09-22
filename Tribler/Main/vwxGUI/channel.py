@@ -64,9 +64,12 @@ class ChannelManager():
             state, iamModerator = self.list.channel.refreshState()
             self.list.SetChannelState(state, iamModerator)
         
-        nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
-        total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
-        self._on_data(total_items, nrfiltered, torrentList, playlists)
+        def db_callback():
+            nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
+            total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
+            self._on_data(total_items, nrfiltered, torrentList, playlists)
+            
+        startWorker(None, db_callback, uId = "ChannelManager_refresh_list")
     
     @forceWxThread  
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -97,7 +100,8 @@ class ChannelManager():
             else:
                 data = self.channelsearch_manager.getPlaylist(self.list.channel, id)
             self.list.RefreshData(id, data)
-        
+    
+    @forceWxThread  
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
             item = self.list.GetItem(infohash)
@@ -112,7 +116,8 @@ class ChannelManager():
             else:
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
-            
+    
+             
     def channelUpdated(self, id, stateChanged = False, modified = False):
         if self.list.id == id:
             if modified:
@@ -141,8 +146,9 @@ class SelectedChannelList(GenericSearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.channelsearch_manager = self.guiutility.channelsearch_manager 
-        self.isDispersy = False
+        
         self.title = None
+        self.channel = None
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
@@ -522,7 +528,7 @@ class PlaylistManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist)
             
-        startWorker(self._on_data, db_call)
+        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list")
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrents = delayedResult.get()
@@ -532,6 +538,9 @@ class PlaylistManager():
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
 
 class Playlist(SelectedChannelList):
+    def __init__(self, *args, **kwargs):
+        self.playlist = None
+        SelectedChannelList.__init__(self, *args, **kwargs)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -627,7 +636,7 @@ class ManageChannelFilesManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
         
-        startWorker(self._on_data, db_call)
+        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh")
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -662,11 +671,13 @@ class ManageChannelPlaylistsManager():
         else:
             self.list.dirty = True 
     
-    @forceDBThread
     def _refresh(self):
-        self.list.dirty = False
-        _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
-        self.list.SetData(playlistList)
+        def db_call():
+            self.list.dirty = False
+            _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
+            return playlistList
+        
+        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh")
        
     def _refresh_partial(self, playlist_id):
         startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.list.channel, playlist_id), cargs = (playlist_id,))

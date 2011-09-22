@@ -63,7 +63,8 @@ class RemoteSearchManager:
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             return data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
-        startWorker(self._on_refresh, db_callback)
+        
+        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh")
 
     def _on_refresh(self, delayedResult):
         data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
@@ -85,7 +86,7 @@ class RemoteSearchManager:
             [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return total_channels
         
-        startWorker(self._on_refresh_channel, db_callback)
+        startWorker(self._on_refresh_channel, db_callback, uId = "RemoteSearchManager_refresh_channel")
     
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
@@ -124,7 +125,7 @@ class LocalSearchManager:
     def refresh(self):
         def db_callback():
             return self.library_manager.getHitsInCategory()
-        startWorker(self._on_data, db_callback, jobID = "LocalSearchManager_refresh")
+        startWorker(self._on_data, db_callback, uId = "LocalSearchManager_refresh")
 
     @forceWxThread
     def _on_data(self, delayedReslt):
@@ -199,7 +200,7 @@ class ChannelSearchManager:
                     total_items, data = self.channelsearch_manager.getMySubscriptions()
                 return data, category
             
-            startWorker(self._on_data_delayed, db_callback, jobID = "ChannelSearchManager_refresh")
+            startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh")
 
         else:
             if search_results:

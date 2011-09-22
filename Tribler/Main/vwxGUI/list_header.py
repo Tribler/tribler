@@ -593,21 +593,18 @@ class ChannelHeader(SearchHeader):
         self.descriptionPanel.SetSizer(sizer)
         self.descriptionPanel.Hide()
         
-        self.descriptionPanel.Bind(wx.EVT_SIZE, lambda event: self.SetDescriptionSpacer())
-        self.descriptionPanel.Bind(wx.EVT_SHOW, lambda event: self.SetDescriptionSpacer())
+        self.descriptionPanel.Bind(wx.EVT_SIZE, self.SetHeight)
+        self.descriptionPanel.Bind(wx.EVT_SHOW, self.SetHeight)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.descriptionPanel, 1, wx.EXPAND|wx.LEFT, self.radius + 3)
-        self.descriptionSpacer = hSizer.AddSpacer((self.radius + 3, 0))
-        self.descriptionSpacer.Show(False)
-        #self.descriptionSpacer.sizer = hSizer
+        hSizer.Add(self.descriptionPanel, 1, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, self.radius + 3)
         return hSizer
 
     def Reset(self):
         SearchHeader.Reset(self)
         self.SetStyle(None)
     
-    def SetDescriptionSpacer(self):
+    def SetHeight(self, event):
         if self.descriptionPanel.IsShown():
             dirty = False
             self.descriptionPanel.SetVirtualSizeHints(-1, -1, maxW = self.descriptionPanel.GetClientSize()[0]) #change to allow for scrollbarwidth
@@ -618,22 +615,7 @@ class ChannelHeader(SearchHeader):
             if self.descriptionPanel.GetMinSize()[1] != minHeight:
                 self.descriptionPanel.SetMinSize((-1, minHeight))
                 dirty = True
-            
-            if bestHeight < self.DESCRIPTION_MAX_HEIGTH:
 
-                descriptionSpacer = self.radius + 3
-                if self.descriptionSpacer.GetSize()[0] != descriptionSpacer:
-                    self.descriptionSpacer.SetSpacer((descriptionSpacer, 0))
-                    dirty = True
-                    
-                if not self.descriptionSpacer.IsShown():
-                    self.descriptionSpacer.Show(True)
-                    dirty = True
-                    
-            elif self.descriptionSpacer.IsShown():
-                self.descriptionSpacer.Show(False)
-                dirty = True
-            
             if dirty:
                 self.Layout()
         

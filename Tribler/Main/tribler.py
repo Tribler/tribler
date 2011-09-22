@@ -552,7 +552,10 @@ class ABCApp():
         wx.CallLater(10000, self.set_reputation)
     
     def sesscb_states_callback(self, dslist):
-        wx.CallAfter(self._gui_sesscb_states_callback, dslist)
+        def guiCall():
+            wx.CallAfter(self._gui_sesscb_states_callback, dslist)
+        
+        self.guiserver.add_task(guiCall, id="DownloadStateCallback")
         return(1.0, True)
     
     def _gui_sesscb_states_callback(self, dslist):
@@ -740,6 +743,13 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
+        def guiCall():
+            wx.CallAfter(self.gui_ntfy_channelupdates, subject,changeType, objectID, *args)
+            
+        #wrap in guiserver to prevent multiple refreshes
+        self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
+            
+    def gui_ntfy_channelupdates(self, subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
             if self.frame.channellist:
                 manager = self.frame.channellist.GetManager()

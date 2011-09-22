@@ -397,9 +397,15 @@ class ChannelCommunity(Community):
             if __debug__: dprint(message)
             
             dispersy_id = message.packet_id
-            torrentlist.append((self._channel_id, dispersy_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
-            infohashes.add(message.payload.infohash)
+            authentication_member = message.authentication.member
+            if authentication_member == self._my_member:
+                peer_id = None
+            else:
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
+            
+            torrentlist.append((self._channel_id, dispersy_id, peer_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
+            infohashes.add(message.payload.infohash)
             addresses.add(message.address)
         
         permids = set()
@@ -410,7 +416,7 @@ class ChannelCommunity(Community):
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
         for infohash in infohashes:
             for permid in permids:
-                self._rtorrent_handler.download_torrent(permid, infohash, None ,2)
+                self._rtorrent_handler.download_torrent(permid, infohash, None , 3)
                 
     def _disp_undo_torrent(self, descriptors):
         for _, _, packet in descriptors:
@@ -454,8 +460,13 @@ class ChannelCommunity(Community):
         for message in messages:
             if __debug__: dprint(message)
             dispersy_id = message.packet_id
+            authentication_member = message.authentication.member
+            if authentication_member == self._my_member:
+                peer_id = None
+            else:
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
-            self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, message.payload.name, message.payload.description)
+            self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, peer_id, message.payload.name, message.payload.description)
             
     def _disp_undo_playlist(self, descriptors):
         for _, _, packet in descriptors:
@@ -651,9 +662,15 @@ class ChannelCommunity(Community):
                 
             elif message_name == u"playlist":
                 playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
+                
+            authentication_member = message.authentication.member
+            if authentication_member == self._my_member:
+                peer_id = None
+            else:
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
             #always store metadata
-            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrent_id, playlist_id, self._channel_id, dispersy_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time)
+            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrent_id, playlist_id, self._channel_id, dispersy_id, peer_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time)
             
             #see if this is new information, if so call on_X_from_dispersy to update local 'cached' information
             if message_name ==  u"torrent":
@@ -767,7 +784,13 @@ class ChannelCommunity(Community):
             dispersy_id = message.packet_id
             playlist_dispersy_id = message.payload.playlist.packet_id
             
-            self._channelcast_db.on_playlist_torrent(dispersy_id, playlist_dispersy_id, message.payload.infohash)
+            authentication_member = message.authentication.member
+            if authentication_member == self._my_member:
+                peer_id = None
+            else:
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
+            
+            self._channelcast_db.on_playlist_torrent(dispersy_id, playlist_dispersy_id, peer_id, message.payload.infohash)
             
     def _disp_undo_playlist_torrent(self, descriptors):
         for _, _, packet in descriptors:

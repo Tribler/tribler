@@ -104,7 +104,7 @@ class RemoteTorrentHandler:
             usercallbacks = self.callbacks[infohash].copy()
             
             for usercallback in usercallbacks:
-                remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
+                remote_torrent_usercallback_lambda = lambda usercallback=usercallback:usercallback(infohash,metadata,filename)
                 self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
             del self.callbacks[infohash]
             

@@ -8,7 +8,7 @@ from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedExceptio
 
 import threading
 from Queue import Queue
-from threading import Event
+from threading import Event, Lock
 from thread import get_ident
 from time import time
 import sys
@@ -34,6 +34,9 @@ class GUIDBProducer():
         triblerlaunchmany = session.lm
         self.database_thread = triblerlaunchmany.database_thread
         
+        self.uIds = set()
+        self.uIdsLock = Lock()
+        
     def getInstance(*args, **kw):
         if GUIDBProducer.__single is None:
             GUIDBProducer(*args, **kw)       
@@ -43,11 +46,21 @@ class GUIDBProducer():
     def onSameThread(self):
         return get_ident() == self.database_thread._thread_ident
     
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None):
         """The sender will send the return value of 
-        workerFn(*args, **kwargs) to the main thread. The name is 
-        same as threading.Thread constructor parameters. 
-        If sendReturn is False, then the returnvalue of workerFn() will not be sent. """
+        workerFn(*args, **kwargs) to the main thread.
+        """
+        if uId:
+            try:
+                self.uIdsLock.acquire()
+                if uId in self.uIds:
+                    if DEBUG:
+                        print >> sys.stderr, "Task(%s) already scheduled in queue, ignoring uId = %s"%(name, uId)
+                    return
+                else:
+                    self.uIds.add(uId)
+            finally:    
+                self.uIdsLock.release()
         
         t1 = time()
         def wrapper():
@@ -69,11 +82,17 @@ class GUIDBProducer():
             if DEBUG:
                 print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
                 
+            if uId:
+                try:
+                    self.uIdsLock.acquire()
+                    self.uIds.remove(uId)
+                finally:
+                    self.uIdsLock.release()
+                
         wrapper.__name__ = name
         
-        if not self.onSameThread():
+        if not self.onSameThread() or delay:
             self.database_thread.register(wrapper, delay=delay, id_=name)
-            
         else:
             print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
             wrapper()
@@ -150,7 +169,8 @@ def startWorker(
     consumer, workerFn, 
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
-    jobID=None, delay=0.0):
+    jobID=None, delay=0.0,
+    uId=None):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -160,7 +180,6 @@ def startWorker(
     is used for the Sender and as name for the Producer thread. Returns the 
     delayedResult created, in case caller needs join/etc.
     """
-    
     if not consumer:
         consumer = exceptionConsumer
         
@@ -182,7 +201,7 @@ def startWorker(
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-                name=jobID, delay=delay)
+                name=jobID, delay=delay, uId=uId)
 
     return result
 

@@ -1316,6 +1316,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               dispersy_id           integer,
               torrent_id            integer         NOT NULL,
               channel_id            integer         NOT NULL,
+              peer_id               integer,
               name                  text,
               description           text,
               time_stamp            integer,
@@ -1330,6 +1331,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               id                    integer         PRIMARY KEY ASC,
               channel_id            integer         NOT NULL,
               dispersy_id           integer         NOT NULL,
+              peer_id               integer,              
               playlist_id           integer,
               name                  text            NOT NULL,
               description           text,
@@ -1342,6 +1344,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             CREATE TABLE IF NOT EXISTS PlaylistTorrents (
               dispersy_id           integer         NOT NULL,
+              peer_id               integer,              
               playlist_id           integer,
               channeltorrent_id     integer,
               UNIQUE (dispersy_id),
@@ -1403,6 +1406,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
               channel_id            integer         NOT NULL,
+              peer_id               integer,              
               type_id               integer         NOT NULL,
               value                 text            NOT NULL,
               prev_modification     integer,

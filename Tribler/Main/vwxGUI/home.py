@@ -289,7 +289,7 @@ class NetworkPanel(HomePanel):
             nr_channels = self.channelcastdb.getNrChannels()
             self._UpdateStats(stats, nr_channels)
 
-        startWorker(None, db_callback, jobID ="NetworkPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="NetworkPanel_UpdateStats")
     
     @forceWxThread
     def _UpdateStats(self, stats, nr_channels):
@@ -340,7 +340,7 @@ class NewTorrentPanel(HomePanel):
             if torrent:
                 self._UpdateStats(torrent)
         
-        startWorker(None, db_callback, jobID ="NewTorrentPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="NewTorrentPanel_UpdateStats")
     
     @forceWxThread
     def _UpdateStats(self, torrent):
@@ -380,7 +380,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
             self._RefreshList(topTen)
         
-        startWorker(None, db_callback, jobID ="PopularTorrentPanel_RefreshList")
+        startWorker(None, db_callback, uId ="PopularTorrentPanel_RefreshList")
     
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -421,7 +421,7 @@ class TopContributorsPanel(HomePanel):
             topTen = self.barterdb.getTopNPeers(10)
             self._RefreshList(topTen)
             
-        startWorker(None, db_callback, jobID ="TopContributorsPanel_RefreshList")
+        startWorker(None, db_callback, uId ="TopContributorsPanel_RefreshList")
     
     @forceWxThread
     def _RefreshList(self, topTen):

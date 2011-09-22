@@ -444,6 +444,7 @@ CREATE TABLE IF NOT EXISTS ChannelTorrents (
   dispersy_id               integer,
   torrent_id                integer         NOT NULL,
   channel_id                integer         NOT NULL,
+  peer_id                   integer,
   name                      text,
   description               text,
   time_stamp                integer,
@@ -457,6 +458,7 @@ CREATE TABLE IF NOT EXISTS Playlists (
   id                        integer         PRIMARY KEY ASC,
   channel_id                integer         NOT NULL,
   dispersy_id               integer         NOT NULL,
+  peer_id                   integer,
   playlist_id               integer,
   name                      text            NOT NULL,
   description               text,
@@ -468,6 +470,7 @@ CREATE TABLE IF NOT EXISTS Playlists (
 CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
 CREATE TABLE IF NOT EXISTS PlaylistTorrents (
   dispersy_id           integer         NOT NULL,
+  peer_id               integer,
   playlist_id           integer,
   channeltorrent_id     integer,
   PRIMARY KEY (playlist_id, channeltorrent_id),
@@ -528,6 +531,7 @@ CREATE TABLE IF NOT EXISTS ChannelMetaData (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   channel_id            integer         NOT NULL,
+  peer_id               integer,
   type_id               integer         NOT NULL,
   value                 text            NOT NULL,
   prev_modification     integer,

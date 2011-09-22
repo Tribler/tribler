@@ -93,7 +93,7 @@ class tribler_topButton(wx.Panel):
             self.state = self.state ^ tribler_topButton.ENABLED
         self.Refresh()
         
-    def IsEnabled(self):
+    def getEnabled(self):
         return self.state & tribler_topButton.ENABLED
     
     def mouseAction(self, event):
@@ -217,7 +217,7 @@ class tribler_topButton(wx.Panel):
                 w, h = self.GetClientSize()
                 dc.DrawRectangle(0, 0, w, h)
             
-            if not self.IsEnabled():
+            if not self.getEnabled():
                 return
     
             bitmap = self.GetBitmap()
@@ -754,7 +754,7 @@ class EditStaticText(wx.Panel):
         self.text.SetMinSize((1, -1))
         vSizer.Add(self.text, 0, wx.EXPAND)
         
-        self.edt = EditText(parent, text, multiLine)
+        self.edit = EditText(parent, text, multiLine)
         self.edit.Show(False)
         self.edit.SetMinSize((1, -1))
         vSizer.Add(self.edit, 0, wx.EXPAND)
