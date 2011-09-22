@@ -1356,7 +1356,7 @@ class Dispersy(Singleton):
                 return False
 
             elif isinstance(message, DropMessage):
-                if __debug__: dprint("drop: ", message.dropped.name, " (", message, ") ", sha1(message.packet).digest().encode("HEX"), level="warning")
+                if __debug__: dprint("drop: ", message.dropped.name, " (", message, ")", level="warning")
                 self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
                 return False
 
