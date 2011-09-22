@@ -188,6 +188,11 @@ class ChannelFooter(ListFooter):
         self.favorite = wx.Button(self, -1, 'Mark as Favorite')
         self.ortext = None
         
+        self.subtitle.Show(False)
+        self.favorite.Show(False)
+        self.spam.Show(False)
+        self.manage.Show(False)
+        
     def SetEvents(self, spam, favorite, remove, manage):
         self.spam_eventhandler = spam
         self.favorite_eventhandler = favorite

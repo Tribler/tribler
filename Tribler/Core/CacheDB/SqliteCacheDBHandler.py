@@ -3714,10 +3714,26 @@ class ChannelCastDBHandler(object):
         return self.__fixTorrents(keys, results)
     
     def getRecentModificationsFromPlaylist(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataPlaylist, ChannelMetaData WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND channel_id = ? ORDER BY inserted DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataPlaylist, ChannelMetaData WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND playlist_id = ?"
         if limit:
             sql += " LIMIT %d"%limit
-        return self._db.fetchall(sql, (playlist_id,))
+        playlist_modifications = self._db.fetchall(sql, (playlist_id,))
+        
+        sql = "SELECT " + ", ".join(keys) + " FROM MetaDataTorrent, ChannelMetaData, PlaylistTorrents WHERE MetaDataTorrent.metadata_id = ChannelMetaData.id AND PlaylistTorrents.channeltorrent_id = MetaDataTorrent.channeltorrent_id AND playlist_id = ?"
+        if limit:
+            sql += " LIMIT %d"%limit
+        torrent_modifications = self._db.fetchall(sql, (playlist_id, ))
+        
+        #merge two lists
+        orderIndex = keys.index('time_stamp')
+        data = [(row[orderIndex], row) for row in playlist_modifications]
+        data += [(row[orderIndex], row) for row in torrent_modifications]
+        data.sort(reverse = True)
+        
+        if limit:
+            data = data[:limit]
+        data = [item for _, item in data]
+        return data 
     
     def getTorrentsNotInPlaylist(self, channel_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY time_stamp DESC"

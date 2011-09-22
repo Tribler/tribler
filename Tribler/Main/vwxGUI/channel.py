@@ -626,7 +626,7 @@ class Playlist(SelectedChannelList):
         manager.SetPlaylist(playlist)
     
     def SetTitle(self, title, description):
-        header = "%s's channel \ %s"%(self.channel.name, self.playlist.name) 
+        header = u"%s's channel \u2192 %s"%(self.channel.name, self.playlist.name) 
         
         self.header.SetTitle(header)
         self.header.SetStyle(self.playlist.description)
@@ -1398,8 +1398,8 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         add.Bind(wx.EVT_BUTTON, self.OnAdd)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(remove)
         vSizer.Add(add)
+        vSizer.Add(remove)
         sizer.Add(vSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         
         sizer.Add(dlg.availableList, 1, wx.EXPAND)
