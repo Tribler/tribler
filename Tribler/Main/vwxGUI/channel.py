@@ -684,13 +684,24 @@ class PlaylistItem(ListItem):
         self.AddEvents(self)
         
     def RefreshData(self, data):
-        self.data = data[1]
+        has_changed = False
+        for i in range(3):
+            if data[1][i] != self.data[i]:
+                has_changed = True
+                break
         
-        self.title.SetLabel(self.data[0])
-        self.nrTorrents.SetLabel("%d Torrents"%self.data[2])
-        self.desc.SetLabel(self.data[1])
+        if has_changed:
+            self.Freeze()
+            
+            self.data = data[1]
+            self.title.SetLabel(self.data[0])
+            self.nrTorrents.SetLabel("%d Torrents"%self.data[2])
+            self.desc.SetLabel(self.data[1])
+            
+            self.Highlight()
         
-        self.Layout()
+            self.Layout()
+            self.Thaw()
     
 class ManageChannelFilesManager():
     def __init__(self, list):
