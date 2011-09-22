@@ -37,7 +37,7 @@ class TrackerSyncRange(SyncRange):
     def __init__(self):
         self.time_low = 1
         self.space_freed = 0
-        self.bloom_filters = [BloomFilter("\xff", 1, 8)]
+        self.bloom_filters = [BloomFilter("\xff", 1, 8, prefix="\x00")]
         self.space_remaining = self.capacity = 2 ** 64 - 1
 
     def add(self, packet):
@@ -126,7 +126,7 @@ class TrackerDispersy(Dispersy):
     def _unload_communities(self):
         def has_candidates(community):
             try:
-                self.yield_candidates(community).next()
+                self.yield_candidates(community, 1).next()
             except StopIteration:
                 return False
             else:

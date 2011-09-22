@@ -1694,7 +1694,7 @@ class Dispersy(Singleton):
     def yield_random_candidates(self, community, limit, blacklist=()):
         candidates = list(islice(self._yield_candidates(community, blacklist), limit))
         shuffle(candidates)
-        return candidates
+        return iter(candidates)
 
     def yield_subjective_candidates(self, community, limit, cluster, blacklist=()):
         counter = 0
