@@ -103,16 +103,18 @@ class Timeline(object):
             else:
                 # dynamically set the resolution policy
                 if isinstance(resolution, DynamicResolution):
-                    resolution, proof = self.get_resolution_policy(message, global_time)
+                    resolution, proofs = self.get_resolution_policy(message, global_time)
                     assert isinstance(resolution, (PublicResolution, LinearResolution))
+                    all_proofs.extend(proofs)
                 
                 elif isinstance(resolution, DynamicResolution.Implementation):
-                    local_resolution, proof = self.get_resolution_policy(message, global_time)
+                    local_resolution, proofs = self.get_resolution_policy(message, global_time)
                     assert isinstance(local_resolution, (PublicResolution, LinearResolution))
-
+                    all_proofs.extend(proofs)
+                    
                     if not resolution.policy.meta == local_resolution:
                         if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " (conflicting resolution policy)")
-                        return (False, proof)
+                        return (False, all_proofs)
 
                     resolution = resolution.policy
                     if __debug__: dprint("APPLY time:", global_time, " resolution^", message.name, " -> ", resolution.__class__.__name__)

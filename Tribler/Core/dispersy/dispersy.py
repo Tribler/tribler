@@ -1340,7 +1340,7 @@ class Dispersy(Singleton):
         def _filter_fail(message):
             if isinstance(message, DelayMessage):
                 self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
-                if __debug__: dprint(message.request.address[0], ":", message.request.address[1], ": delay a ", len(message.request.packet), " byte message (", message, ")")
+                if __debug__: dprint(message.request.address[0], ":", message.request.address[1], ": delay a ", len(message.request.packet), " byte message (", message, ")", level="warning")
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerMessage) and trigger.extend(message.pattern, [message.delayed]):
@@ -1356,7 +1356,7 @@ class Dispersy(Singleton):
                 return False
 
             elif isinstance(message, DropMessage):
-                if __debug__: dprint("drop: ", message.dropped.name, " (", message, ")", level="warning")
+                if __debug__: dprint("drop: ", message.dropped.name, " (", message, ") ", sha1(message.packet).digest().encode("HEX"), level="warning")
                 self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
                 return False
 
@@ -1530,7 +1530,7 @@ class Dispersy(Singleton):
                 self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
 
             except DelayPacket, delay:
-                if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(packet), " byte packet (", delay, ")")
+                if __debug__: dprint(address[0], ":", address[1], ": delay a ", len(packet), " byte packet (", delay, ")", level="warning")
                 self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
@@ -2934,7 +2934,6 @@ class Dispersy(Singleton):
 
         # obtain all available messages for this community
         meta_messages = dict((meta_message.database_id, meta_message) for meta_message in community.get_meta_messages())
-        if __debug__: dprint(", ".join(meta_message.name for meta_message in community.get_meta_messages()))
 
         for message in messages:
             assert message.name == u"dispersy-introduction-request", "this method is called in batches, i.e. community and meta message grouped together"
