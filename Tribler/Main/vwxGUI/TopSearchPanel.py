@@ -31,6 +31,11 @@ class TopSearchPanel(bgPanel):
          
         bgPanel.__init__(self, parent, 'top_search')
         
+        if self.channelonly:
+            self.selectTab('channels')
+        else:
+            self.selectTab('home')
+        
     def OnAutoComplete(self):
         self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type = 2)  
     
@@ -114,18 +119,19 @@ class TopSearchPanel(bgPanel):
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
         
-        if not self.channelonly:
-            if tab != 'settings': #if settings is clicked do nothing
+        
+        if tab != 'settings': #if settings is clicked do nothing
+            if not self.channelonly:
                 self.searchSizer.ShowItems(tab != 'home')
+                
+            if tab != 'home': #if !home is clicked, show bitmap
+                if not self.bitmap:
+                    self.setBitmap(self.loaded_bitmap)
                     
-                if tab != 'home': #if !home is clicked, show bitmap
-                    if not self.bitmap:
-                        self.setBitmap(self.loaded_bitmap)
-                        
-                else: #if home is clicked, hide bitmap
-                    self.loaded_bitmap = self.bitmap
-                    self.setBitmap(None)
-                    self.SearchFocus()
+            else: #if home is clicked, hide bitmap
+                self.loaded_bitmap = self.bitmap
+                self.setBitmap(None)
+                self.SearchFocus()
         
         self.Layout()
         self.Thaw()
@@ -180,6 +186,7 @@ class TopSearchPanel(bgPanel):
             self.channels = createToggle('Channel', self.OnChannels)
         self.settings = createToggle('Settings', self.OnSettings)
         self.my_files = createToggle('Library', self.OnLibrary)
+        
         if not self.channelonly:
             self.results = createToggle('Results', self.OnResults)
             self.results.Disable()
@@ -192,12 +199,12 @@ class TopSearchPanel(bgPanel):
                 self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
             else:
                 self.files_friends = wx.StaticText(self, -1, "Search Files or Channels")
+                self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
                 if sys.platform == 'linux2':
                     self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
                 elif sys.platform == 'darwin': # mac
                     self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
-                     
-            self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
+            
             self.tribler_logo2.Bind(wx.EVT_LEFT_UP, self.OnStats)
         
         
@@ -214,11 +221,6 @@ class TopSearchPanel(bgPanel):
         
         self.__do_layout()
         self.Layout()
-        
-        if self.channelonly:
-            self.selectTab('channels')
-        else:
-            self.selectTab('home')
         
         self.Bind(wx.EVT_SIZE, self.OnResize)
         

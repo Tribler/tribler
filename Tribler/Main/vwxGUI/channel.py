@@ -35,8 +35,10 @@ class ChannelManager():
     def refreshDirty(self):
         if 'COMPLETE_REFRESH_STATE' in self.dirtyset:
             self._refresh_list(stateChanged = True)
+            
         elif 'COMPLETE_REFRESH' in self.dirtyset:
             self._refresh_list()
+            
         else:
             self._refresh_partial(list(self.dirtyset))
         self.dirtyset.clear()
@@ -54,17 +56,17 @@ class ChannelManager():
 
         self._refresh_list()
     
-    @forceDBThread
     def _refresh_list(self, stateChanged = False):
         if DEBUG:
             print >> sys.stderr, "SelChannelManager complete refresh"
         
         self.list.dirty = False
-        if stateChanged:
-            state, iamModerator = self.list.channel.refreshState()
-            self.list.SetChannelState(state, iamModerator)
-        
         def db_callback():
+            if stateChanged:
+                state, iamModerator = self.list.channel.refreshState()
+            else:
+                state, iamModerator = None
+            
             if self.list.channel.isDispersy():
                 nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
                 total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
@@ -72,13 +74,19 @@ class ChannelManager():
                 playlists = []
                 total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel)
                 
-            return total_items, nrfiltered, torrentList, playlists
-            
-        startWorker(self._on_data, db_callback, uId = "ChannelManager_refresh_list")
-    
-    def _on_data(self, delayedResult):
-        total_items, nrfiltered, torrents, playlists = delayedResult.get()
+            return total_items, nrfiltered, torrentList, playlists, state, iamModerator
         
+        def do_gui(delayedResult):
+            total_items, nrfiltered, torrentList, playlists, state, iamModerator = delayedResult.get()
+            if state:
+                self.list.SetChannelState(state, iamModerator)
+                
+            self._on_data(total_items, nrfiltered, torrentList, playlists)
+        
+        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list")
+    
+    @forceWxThread
+    def _on_data(self, total_items, nrfiltered, torrents, playlists):
         torrents = self.library_manager.addDownloadStates(torrents)
         total_items += len(playlists)
         
@@ -121,7 +129,6 @@ class ChannelManager():
             else:
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
-    
              
     def channelUpdated(self, id, stateChanged = False, modified = False):
         if self.list.id == id:
@@ -211,10 +218,6 @@ class SelectedChannelList(GenericSearchList):
         
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns, radius = 0)
-    
-    def CreateList(self, parent):
-        list = GenericSearchList.CreateList(self, parent)
-        return list
    
     def CreateFooter(self, parent):
         footer = ChannelFooter(parent)
@@ -249,7 +252,7 @@ class SelectedChannelList(GenericSearchList):
             
             manager = self.activityList.GetManager()
             manager.SetIds(channel = self.channel)
-        
+    
     def SetFooter(self, vote, channelstate, iamModerator):
         self.footer.SetStates(vote, channelstate, iamModerator)
         self.Layout()
@@ -258,7 +261,7 @@ class SelectedChannelList(GenericSearchList):
         state, iamModerator = delayedResult.get()
         self.SetChannelState(state, iamModerator)
     
-    @forceWxThread
+    @warnWxThread
     def SetChannelState(self, state, iamModerator):
         self.iamModerator = iamModerator
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
@@ -276,7 +279,8 @@ class SelectedChannelList(GenericSearchList):
                 self.notebook.RemovePage(i-1)
 
         self.SetFooter(self.channel.my_vote, state, iamModerator)
-        
+    
+    @warnWxThread    
     def SetTitle(self, title, description):
         if title != self.title:
             self.title = title
@@ -285,6 +289,7 @@ class SelectedChannelList(GenericSearchList):
         self.header.SetStyle(description)
         self.Layout()
    
+    @warnWxThread
     def toggleFamilyFilter(self):
         GenericSearchList.toggleFamilyFilter(self)
         manager = self.GetManager()
@@ -317,6 +322,7 @@ class SelectedChannelList(GenericSearchList):
             
             self.SetNrResults(0)
     
+    @warnWxThread
     def SetNrResults(self, nr):
         if self.channel.isFavorite() or self.channel.isMyChannel():
             header = 'Discovered'
@@ -353,11 +359,13 @@ class SelectedChannelList(GenericSearchList):
         manager = self.activityList.GetManager()
         manager.refresh()
     
+    @warnWxThread
     def Reset(self):
         GenericSearchList.Reset(self)
         self.SetId(0)
         self.notebook.ChangeSelection(0)
     
+    @warnWxThread
     def OnExpand(self, item):
         if isinstance(item, PlaylistItem):
             self.guiutility.showPlaylist(item.original_data)
@@ -367,6 +375,7 @@ class SelectedChannelList(GenericSearchList):
         item.button.Refresh()
         return TorrentDetails(item, item.original_data, noChannel = True)
 
+    @warnWxThread
     def OnCollapse(self, item, panel):
         if not isinstance(item, PlaylistItem):
             if panel:
@@ -378,54 +387,54 @@ class SelectedChannelList(GenericSearchList):
                         self.OnSaveTorrent(panel)
                     dlg.Destroy()
             GenericSearchList.OnCollapse(self, item, panel)
-            
+    
+    @warnWxThread
     def OnSaveTorrent(self, panel):
         changes = panel.GetChanged()
         if len(changes)>0:
             self.channelsearch_manager.modifyTorrent(self.id, panel.torrent.channeltorrent_id, changes)
             panel.Saved()
-            
+    
+    @forceDBThread  
     def AddTorrent(self, playlist, torrent):
-        def disp_call():
-            self.channelsearch_manager.addPlaylistTorrent(playlist, torrent)
-        
-        def done_call(delayedResult):
-            delayedResult.get()
+        def gui_call():
             manager = self.GetManager()
             manager._refresh_list()
             
-        startWorker(done_call, disp_call)
-            
+        self.channelsearch_manager.addPlaylistTorrent(playlist, torrent)
+        wx.CallAfter(gui_call)
+    
+    @forceDBThread
     def OnRemoveVote(self, event):
         #Set self.id to None to prevent updating twice
         id = self.id
         self.id = None
         
-        def db_call():
-            self.channelsearch_manager.remove_vote(id)
-            self.GetManager().reload(id)
-            
-        startWorker(None, db_call)
+        self.channelsearch_manager.remove_vote(id)
+        
+        manager = self.GetManager()
+        wx.CallAfter(manager.reload,id)
     
+    @forceDBThread
     def OnFavorite(self, event = None):
         #Set self.id to None to prevent updating twice
         id = self.id
         self.id = None
         
-        def db_call():
-            self.channelsearch_manager.favorite(id)
+        self.channelsearch_manager.favorite(id)
         
-            #Request all items from connected peers
-            if not self.channel.isDispersy():
-                permid = self.channelsearch_manager.getPermidFromChannel(id)
-                channelcast = BuddyCastFactory.getInstance().channelcast_core
-                channelcast.updateAChannel(self.id, permid)
+        #Request all items from connected peers
+        if not self.channel.isDispersy():
+            permid = self.channelsearch_manager.getPermidFromChannel(id)
+            channelcast = BuddyCastFactory.getInstance().channelcast_core
+            channelcast.updateAChannel(self.id, permid)
 
-            self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-            
-            self.GetManager().reload(id)
-        startWorker(None, db_call)
+        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
+        manager = self.GetManager()
+        wx.CallAfter(manager.reload, id)
+    
+    @warnWxThread
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
@@ -435,10 +444,13 @@ class SelectedChannelList(GenericSearchList):
             
             def db_call():
                 self.channelsearch_manager.spam(id)
-                self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2) 
-            
+                self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
+                 
+            def gui_call(delayedResult):
+                delayedResult.get()
                 self.GetManager().reload(id)
-            startWorker(None, db_call)
+                
+            startWorker(gui_call, db_call)
         dialog.Destroy()
     
     def OnManage(self, event):
@@ -446,7 +458,7 @@ class SelectedChannelList(GenericSearchList):
     
     def OnBack(self, event):
         self.guiutility.GoBack(self.id)
-        
+    
     def OnSize(self, event):
         diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
         self.subheader.SetSpacerRight(diff)
@@ -470,7 +482,8 @@ class SelectedChannelList(GenericSearchList):
         tds = wx.DropSource(dragitem)
         tds.SetData(tdo)
         tds.DoDragDrop(True)
-        
+    
+    @warnWxThread    
     def OnCommentCreated(self, channel_id):
         if channel_id == self.id:
             manager = self.commentList.GetManager()
@@ -485,7 +498,8 @@ class SelectedChannelList(GenericSearchList):
                 torDetails = panel.GetExpandedPanel()
                 if torDetails:
                     torDetails.OnCommentCreated(channel_id)
-                    
+    
+    @warnWxThread   
     def OnModificationCreated(self, channel_id):
         if channel_id == self.id:
             manager = self.activityList.GetManager()
@@ -498,16 +512,19 @@ class SelectedChannelList(GenericSearchList):
                 if torDetails:
                     torDetails.OnModificationCreated(channel_id)
     
+    @warnWxThread
     def OnMarkingCreated(self, channeltorrent_id):
         panel = self.list.GetExpandedItem()
         if panel:
             torDetails = panel.GetExpandedPanel()
             if torDetails:
                 torDetails.OnMarkingCreated(channeltorrent_id)
-                    
+    
+    @warnWxThread   
     def OnMarkTorrent(self, infohash, type):
         self.channelsearch_manager.markTorrent(self.id, infohash, type)
-        
+    
+    @warnWxThread
     def Select(self, key, raise_event = True):
         if isinstance(key, Torrent):
             torrent = key
@@ -522,7 +539,8 @@ class SelectedChannelList(GenericSearchList):
         
         self.notebook.ChangeSelection(0)
         self.ScrollToId(key)
-            
+    
+    @forceDBThread
     def StartDownload(self, torrent):
         states = self.footer.GetStates()
         if not states[1]:
