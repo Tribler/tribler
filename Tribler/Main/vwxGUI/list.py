@@ -15,7 +15,7 @@ from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.__init__ import LIBRARYNAME
@@ -47,18 +47,18 @@ class RemoteSearchManager:
    
     def Reset(self):
         self.dirtyset.clear()
+        
+    def SetKeywords(self, keywords):
+        if self.oldkeywords != keywords:
+            self.list.Reset()
+            self.oldkeywords = keywords
    
     def refreshDirty(self):
         self.refresh_partial(self.dirtyset)
         self.dirtyset.clear()   
    
+    @forceWxThread
     def refresh(self):
-        keywords = ' '.join(self.torrentsearch_manager.searchkeywords)
-        if self.oldkeywords != keywords:
-            self.list.Reset()
-            self.oldkeywords = keywords
-            self.list.SetKeywords(keywords)
-        
         def db_callback():
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
@@ -266,10 +266,31 @@ class XRCPanel(wx.Panel):
         self.parent = parent
         self.isReady = False
         
-        wx.Panel.__init__(self, parent)
-        self._PostInit()
+        if parent:
+            wx.Panel.__init__(self, parent)
+            self._PostInit()
+            self.isReady = True
+        else:
+            pre = wx.PrePanel()
+            # the Create step is done by XRC. 
+            self.PostCreate(pre)
+            if sys.platform == 'linux2': 
+                self.Bind(wx.EVT_SIZE, self.OnCreate)
+            else:
+                self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+    
+    def OnCreate(self, event):
+        if sys.platform == 'linux2': 
+            self.Unbind(wx.EVT_SIZE)
+        else:
+            self.Unbind(wx.EVT_WINDOW_CREATE)
         
-        self.isReady = True
+        def doPost():
+            self._PostInit()
+            self.isReady = True
+        
+        wx.CallAfter(doPost)
+        event.Skip()
             
     def _PostInit(self):
         pass
@@ -891,8 +912,9 @@ class SearchList(GenericSearchList):
         self._SetTitles()
         
     def SetKeywords(self, keywords):
-        self.keywords = keywords
+        self.GetManager().SetKeywords(keywords)
         
+        self.keywords = keywords
         self._SetTitles()
         
     def _SetTitles(self):

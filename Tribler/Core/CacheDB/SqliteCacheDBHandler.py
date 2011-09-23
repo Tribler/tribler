@@ -3503,12 +3503,15 @@ class ChannelCastDBHandler(object):
         sql = "DELETE FROM ChannelMetaData WHERE dispersy_id = ? AND channel_id = ?"
         self._db.execute_write(sql, (dispersy_id, channel_id))
         
-    def on_warning(self, channel_id, dispersy_id, peer_id, by_peer_id, cause, message, timestamp):
-        sql = "INSERT OR REPLACE INTO Warnings (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, time_stamp) VALUES (?,?,?,?,?,?,?)"
-        self._db.execute_write(sql, (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, timestamp), commit = self.shouldCommit)
+    def on_moderation(self, channel_id, dispersy_id, peer_id, by_peer_id, cause, message, timestamp, severity):
+        sql = "INSERT OR REPLACE INTO Moderations (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, time_stamp, severity) VALUES (?,?,?,?,?,?,?,?)"
+        self._db.execute_write(sql, (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, timestamp, severity), commit = False)
+        
+        sql = "UPDATE ChannelMetaData SET reverted = 1 WHERE dispersy_id = ?"
+        self._db.execute_write(sql, (cause, ), commit = self.shouldCommit)
     
-    def on_remove_warning(self, channel_id, dispersy_id):
-        sql = "DELETE FROM Warnings WHERE dispersy_id = ? AND channel_id = ?"
+    def on_remove_moderation(self, channel_id, dispersy_id):
+        sql = "DELETE FROM Moderations WHERE dispersy_id = ? AND channel_id = ?"
         self._db.execute_write(sql, (dispersy_id, channel_id))
         
     def on_mark_torrent(self, channel_id, dispersy_id, global_time, peer_id, infohash, type, timestamp):
@@ -3694,7 +3697,13 @@ class ChannelCastDBHandler(object):
         return self.__fixTorrents(keys, results)
     
     def getRecentModificationsFromChannelId(self, channel_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM ChannelMetaData WHERE channel_id = ? ORDER BY inserted DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM ChannelMetaData LEFT JOIN MetaDataTorrent ON ChannelMetaData.id = MetaDataTorrent.metadata_id WHERE channel_id = ? ORDER BY reverted, inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        return self._db.fetchall(sql, (channel_id,))
+    
+    def getRecentModerationsFromChannel(self, channel_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM Moderations WHERE channel_id = ? ORDER BY inserted DESC"
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (channel_id,))
@@ -3714,7 +3723,11 @@ class ChannelCastDBHandler(object):
         return self.__fixTorrents(keys, results)
     
     def getRecentModificationsFromPlaylist(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataPlaylist, ChannelMetaData WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND playlist_id = ?"
+        playlistKeys = keys[:]
+        if 'channeltorrent_id' in playlistKeys:
+            playlistKeys[playlistKeys.index('channeltorrent_id')] = '""'
+            
+        sql = "SELECT " + ", ".join(playlistKeys) +" FROM MetaDataPlaylist, ChannelMetaData WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND playlist_id = ?"
         if limit:
             sql += " LIMIT %d"%limit
         playlist_modifications = self._db.fetchall(sql, (playlist_id,))
@@ -3726,19 +3739,29 @@ class ChannelCastDBHandler(object):
         
         #merge two lists
         orderIndex = keys.index('time_stamp')
-        data = [(row[orderIndex], row) for row in playlist_modifications]
-        data += [(row[orderIndex], row) for row in torrent_modifications]
+        revertIndex = keys.index('reverted')
+        data = [(row[revertIndex], row[orderIndex], row) for row in playlist_modifications]
+        data += [(row[revertIndex], row[orderIndex], row) for row in torrent_modifications]
         data.sort(reverse = True)
         
         if limit:
             data = data[:limit]
-        data = [item for _, item in data]
-        return data 
+        data = [item for _,_, item in data]
+        return data
+    
+    def getRecentModerationsFromPlaylist(self, playlist_id, keys, limit = None):
+        return []
     
     def getTorrentsNotInPlaylist(self, channel_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY time_stamp DESC"
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
+    
+    def getPlaylistsForTorrents(self, torrent_ids, keys):
+        torrent_ids = " ,".join(map(str, torrent_ids))
+        
+        sql = "SELECT channeltorrent_id, " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists, PlaylistTorrents WHERE Playlists.id = PlaylistTorrents.playlist_id AND channeltorrent_id IN ("+torrent_ids+") GROUP BY Playlists.id"
+        return self._db.fetchall(sql)
     
     def __fixTorrent(self, keys, torrent):
         if len(keys) == 1:
@@ -3870,6 +3893,18 @@ class ChannelCastDBHandler(object):
         channels = self._getChannels(sql, (channel_id,))
         if len(channels) > 0:
             return channels[0]
+    
+    def getChannelByCID(self, channel_cid):
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid = ?"
+        channels = self._getChannels(sql, (buffer(channel_cid),))
+        if len(channels) > 0:
+            return channels[0]
+        
+    def getChannelFromPermid(self, channel_permid):
+        sql = "Select C.id, C.name, C.description, C.dispersy_cid, C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam FROM Channels as C, Peer WHERE Channels.peer_id = Peer.peer_id AND Peer.peer_id = ?"
+        channels = self._getChannels(sql, (channel_permid,))
+        if len(channels) > 0:
+            return channels[0]
         
     def getChannels(self, channel_ids):
         channel_ids = "','".join(map(str,channel_ids))
@@ -3884,12 +3919,6 @@ class ChannelCastDBHandler(object):
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE dispersy_cid IN (" + parameters + ")"
         return self._getChannels(sql, channel_cids)
     
-    def getChannelFromPermid(self, channel_permid):
-        sql = "Select C.id, C.name, C.description, C.dispersy_cid, C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam FROM Channels as C, Peer WHERE Channels.peer_id = Peer.peer_id AND Peer.peer_id = ?"
-        channels = self._getChannels(sql, (channel_permid,))
-        if len(channels) > 0:
-            return channels[0]
-
     def getAllChannels(self):
         """ Returns all the channels """
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
@@ -3990,7 +4019,7 @@ class ChannelCastDBHandler(object):
         return self._db.fetchall(sql, (channeltorrent_id,))
     
     def getTorrentModifications(self, channeltorrent_id, keys):
-        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY prev_global_time DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY reverted, prev_global_time DESC"
         return self._db.fetchall(sql, (channeltorrent_id,))
 
     def getMostPopularChannelFromTorrent(self, infohash):

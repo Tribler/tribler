@@ -127,6 +127,7 @@ class MainFrame(wx.Frame):
     def __init__(self, parent, channelonly, internalvideo, progress):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        self.guiUtility.frame = self
         self.utility = self.guiUtility.utility
         self.params = self.guiUtility.params
         self.utility.frame = self
@@ -180,6 +181,7 @@ class MainFrame(wx.Frame):
             self.channellist = ChannelList(self)
             self.channellist.Hide()
         else:
+            self.guiUtility.guiPage = ''
             self.home = None
             self.channelselector = None
             self.channelcategories = None
@@ -189,7 +191,7 @@ class MainFrame(wx.Frame):
         self.stats = Stats(self)
         self.stats.Hide()
         self.selectedchannellist = SelectedChannelList(self)
-        self.selectedchannellist.Show(channelonly)
+        self.selectedchannellist.Show(bool(channelonly))
         self.playlist = Playlist(self)
         self.playlist.Hide()
         self.managechannel = ManageChannel(self)
@@ -228,8 +230,8 @@ class MainFrame(wx.Frame):
         self.SetSizer(vSizer)
         
         #set sizes
-        self.top_bg.SetMinSize((-1,70))
         if not channelonly:
+            self.top_bg.SetMinSize((-1,70))
             self.channelselector.SetMinSize((110,-1))
             quicktip.SetMinSize((-1,300))
         
@@ -248,6 +250,8 @@ class MainFrame(wx.Frame):
             self.guiUtility.showLibrary(False)
             
         wx.CallLater(1500, preload_data)
+        if channelonly:
+            self.guiUtility.showChannelFromDispCid(channelonly)
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
@@ -493,7 +497,7 @@ class MainFrame(wx.Frame):
 
     @forceWxThread
     def show_saved(self):
-        if self.ready and self.librarylist.ready:
+        if self.ready and self.librarylist.isReady:
             self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
             self.librarylist.GetManager().refresh()
 

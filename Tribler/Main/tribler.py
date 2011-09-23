@@ -181,6 +181,10 @@ class ABCApp():
             self.guiUtility.register()
             
             channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
+            if channel_only:
+                f = open(os.path.join(self.installdir, 'joinchannel'), 'rb')
+                channel_only = f.readline()
+                f.close()
             
             internal_frame = False
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
@@ -190,7 +194,6 @@ class ABCApp():
            
             self.frame = MainFrame(None, channel_only, internal_frame, self.splash.tick)
             self.frame.set_wxapp(self)
-            self.guiUtility.frame = self.frame
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
@@ -524,8 +527,10 @@ class ABCApp():
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
-            manager = self.frame.searchlist.GetManager()
-            manager.downloadStarted(objectID)
+            if self.frame.searchlist:
+                manager = self.frame.searchlist.GetManager()
+                manager.downloadStarted(objectID)
+                
             manager = self.frame.selectedchannellist.GetManager()
             manager.downloadStarted(objectID)
 

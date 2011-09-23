@@ -237,15 +237,15 @@ class TorrentDetails(AbstractDetails):
     def _addTabs(self, ds, showTab = None):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         
-        #Create torrent overview
-        #self.overview, self.torrentSizer = self._create_tab(self.notebook, 'Details', 'Torrent Details')
-        
         self.overview = wx.Panel(self.notebook)
         def OnChange():
             self.overview.Layout()
 
             def resize():
                 best = self.overview.GetBestSize()[1]
+                if self.canComment:
+                    best = max(best, 500)
+                
                 notebook = self.notebook.CalcSizeFromPage((1, best))[1]
                 self.notebook.SetMinSize((-1, notebook))
                 self.parent.parent_list.OnChange()
@@ -262,7 +262,7 @@ class TorrentDetails(AbstractDetails):
         if isinstance(categories, list):
             category = ', '.join(categories)
         
-        if self.torrent.get('description', None) == None:
+        if not self.torrent.get('description', ''):
             description = 'No description yet, be the first to add a description.'
         else:
             description = self.torrent.description
@@ -350,7 +350,7 @@ class TorrentDetails(AbstractDetails):
             from channel import ModificationList
             self.modificationList = ModificationList(self.notebook)
             modificationManager = self.modificationList.GetManager()
-            modificationManager.SetId(self.torrent.channeltorrent_id)
+            modificationManager.SetId(self.torrent)
             
             def updateTitle(nrmodifications):
                 for i in range(self.notebook.GetPageCount()):
@@ -1188,7 +1188,8 @@ class TorrentDetails(AbstractDetails):
             self._SetTitle(state)
         
         elif state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
-            self.progressPanel.Update()
+            if not isinstance(self, LibraryDetails):
+                self.progressPanel.Update()
     
     def _GetState(self):
         active = vod = False
@@ -1301,13 +1302,13 @@ class LibraryDetails(TorrentDetails):
         self.old_progress = -1
         TorrentDetails.__init__(self, parent, torrent)
     
-    def _addTabs(self, ds):
+    def _addTabs(self, ds, showTab = None):
         self.overviewPanel, overviewSizer = self._create_tab(self.notebook, 'Overview', 'Transfer Overview')
         self.overviewSizer = wx.BoxSizer(wx.VERTICAL)
         overviewSizer.Add(self.overviewSizer, 1, wx.EXPAND)
         
         #add normal tabs
-        TorrentDetails._addTabs(self, ds)
+        TorrentDetails._addTabs(self, ds, showTab)
         
         #insert peers tab
         peersPanel = wx.Panel(self.notebook)
@@ -1400,10 +1401,6 @@ class LibraryDetails(TorrentDetails):
     
     def OnDelete(self, event):
         self.ondelete(event)
-        
-        button = event.GetEventObject()
-        button.Enable(False)
-        wx.CallLater(5000, button.Enable, True)
     
     def ShowPanel(self, newState = None):
         if newState and newState != self.state:

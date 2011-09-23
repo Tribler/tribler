@@ -2,10 +2,11 @@
 # see LICENSE.txt for license information
 import wx, os, sys
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.list import XRCPanel
 
 DEBUG = False
 
-class ImagePanelBasic(wx.Panel):
+class ImagePanelBasic(XRCPanel):
     """
     Panel with automatic backgroundimage control.
     """
@@ -13,16 +14,18 @@ class ImagePanelBasic(wx.Panel):
     __bitmapCache = {}
 
     def __init__(self, parent, tile, name):
-        wx.Panel.__init__(self, parent, name = name)
-        self.backgroundColour = wx.WHITE
-        
-        self.guiUtility = GUIUtility.getInstance()
         self.parent = parent
         self.tile = tile
+        self.bitmap = None
+        
+        self.backgroundColour = wx.WHITE
+        self.guiUtility = GUIUtility.getInstance()
         self.xpos = self.ypos = 0
         
+        XRCPanel.__init__(self, parent)
+        self.SetName(name)
         self.loadBitmap()
-            
+        
         wx.EVT_PAINT(self, self.OnPaint)
         self.Refresh()
         
@@ -30,8 +33,6 @@ class ImagePanelBasic(wx.Panel):
         self.backgroundColour = colour
 
     def loadBitmap(self, name = None):
-        self.bitmap = None
-        
         # get the image directory
         self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
 
@@ -75,7 +76,7 @@ class ImagePanelBasic(wx.Panel):
             dc.Clear()
         
 class bgPanel(ImagePanelBasic):
-    def __init__(self, parent, name):
+    def __init__(self, parent = None, name = ''):
         tile = True     
         ImagePanelBasic.__init__(self, parent, tile, name)
 

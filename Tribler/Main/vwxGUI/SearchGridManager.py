@@ -37,7 +37,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from collections import namedtuple
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
-    Comment, Modification, Channel, RemoteChannel, Playlist
+    Comment, Modification, Channel, RemoteChannel, Playlist, Moderation
 import threading
 
 DEBUG = False
@@ -652,7 +652,7 @@ class TorrentManager:
             
             if refreshGrid:
                 self.refreshGrid()
-        
+    
     def refreshGrid(self):
         if self.gridmgr is not None:
             self.gridmgr.refresh()
@@ -850,7 +850,7 @@ class LibraryManager:
             videoplayer.play(ds, selectedinfilename)
     
     def deleteTorrent(self, torrent, removecontent = False):
-        self.deleteTorrentDS(torrent.get('ds'), torrent['infohash'], removecontent)
+        self.deleteTorrentDS(torrent.ds, torrent.infohash, removecontent)
     
     def deleteTorrentDS(self, ds, infohash, removecontent = False):
         if not ds is None:
@@ -971,13 +971,24 @@ class ChannelSearchGridManager:
     
     def getChannel(self, channel_id):
         channel = self.channelcast_db.getChannel(channel_id)
+        return self._getChannel(channel)
+    
+    def getChannelByCid(self, channel_cid):
+        channel = self.channelcast_db.getChannelByCID(channel_cid)
+        return self._getChannel(channel)
+    
+    def getChannelByPermid(self, channel_permid):
+        channel = self.channelcast_db.getChannelFromPermid(channel_permid)
+        return self._getChannel(channel)
+    
+    def _getChannel(self, channel):
         if channel:
             channel = self._createChannel(channel)
             
             #check if we need to convert our vote
             if channel.isDispersy() and channel.my_vote != 0:
-                timestamp = self.votecastdb.getTimestamp(channel_id, None)
-                self.do_vote(channel_id, channel.my_vote, timestamp)
+                timestamp = self.votecastdb.getTimestamp(channel.id, None)
+                self.do_vote(channel.id, channel.my_vote, timestamp)
         
         return channel
     
@@ -1078,6 +1089,17 @@ class ChannelSearchGridManager:
         hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
     
+    def populateWithPlaylists(self, torrents):
+        torrentdict = {}
+        for torrent in torrents:
+            torrentdict[torrent.channeltorrent_id] = torrent
+
+        hits = self.channelcast_db.getPlaylistsForTorrents(torrentdict.keys(), PLAYLIST_REQ_COLUMNS)
+        for hit in hits:
+            torrent = torrentdict[hit[0]]
+            playlist = Playlist(*hit[1:]+(torrent.channel,))
+            torrent.playlist = playlist
+    
     def _createTorrent(self, tuple, channel, playlist = None):
         if tuple:
             ct = ChannelTorrent(*tuple[1:]+[channel, playlist])
@@ -1105,15 +1127,15 @@ class ChannelSearchGridManager:
             torrents = self._applyFF(torrents)
         return len(torrents), self.filteredResults, torrents
 
-    def getTorrentModifications(self, channeltorrent_id):
-        data = self.channelcast_db.getTorrentModifications(channeltorrent_id, MODIFICATION_REQ_COLUMNS)
+    def getTorrentModifications(self, torrent):
+        data = self.channelcast_db.getTorrentModifications(torrent.channeltorrent_id, MODIFICATION_REQ_COLUMNS)
         return self._createModifications(data)
     
-    def getRecentModificationsFromChannel(self, channel, filterTorrents = True, limit = None):
+    def getRecentModificationsFromChannel(self, channel, limit = None):
         data = self.channelcast_db.getRecentModificationsFromChannelId(channel.id, MODIFICATION_REQ_COLUMNS, limit)
         return self._createModifications(data)
 
-    def getRecentModificationsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
+    def getRecentModificationsFromPlaylist(self, playlist, limit = None):
         data = self.channelcast_db.getRecentModificationsFromPlaylist(playlist.id, MODIFICATION_REQ_COLUMNS, limit)
         return self._createModifications(data)
 
@@ -1122,6 +1144,26 @@ class ChannelSearchGridManager:
         for hit in hits:
             mod = Modification(*hit)
             mod.channelcast_db = self.channelcast_db
+            
+            #touch torrent property to load torrent
+            mod.torrent
+            
+            returnList.append(mod)
+            
+        return returnList
+    
+    def getRecentModerationsFromChannel(self, channel, limit = None):
+        data = self.channelcast_db.getRecentModerationsFromChannel(channel.id, MODERATION_REQ_COLUMNS, limit)
+        return self._createModerations(data)
+    
+    def _createModerations(self, hits):
+        returnList = []
+        for hit in hits:
+            mod = Moderation(*hit)
+            
+            mod.channelcast_db = self.channelcast_db
+            mod.get_nickname = self.utility.session.get_nickname
+
             returnList.append(mod)
             
         return returnList
@@ -1238,7 +1280,7 @@ class ChannelSearchGridManager:
     
     @forceDispersyThread  
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
-        #detect changes
+        #detect changesmodification
         to_be_created = set(infohashes)
         to_be_removed = set()
         
@@ -1327,13 +1369,13 @@ class ChannelSearchGridManager:
     def createComment(self, comment, channel, reply_after = None, reply_to = None, playlist = None, infohash = None):
         comment = comment.strip()
         comment = comment[:1024]
-        
-        playlist_id = None
-        if playlist:
-            playlist_id = playlist.id
-        
-        community = self._disp_get_community_from_channel_id(channel.id)
-        community.create_comment(comment, int(time()), reply_after, reply_to, playlist_id, infohash)
+        if len(comment) > 0:
+            playlist_id = None
+            if playlist:
+                playlist_id = playlist.id
+            
+            community = self._disp_get_community_from_channel_id(channel.id)
+            community.create_comment(comment, long(time()), reply_after, reply_to, playlist_id, infohash)
     
     @forceDispersyThread
     def modifyChannel(self, channel_id, changes):
@@ -1381,12 +1423,16 @@ class ChannelSearchGridManager:
             self.votecastdb.unsubscribe(channel_id)
     
     @forceDispersyThread
-    def markTorrent(self, channel_id, infohash, type, timestamp = None):
-        if not timestamp:
-            timestamp = int(time())
-        
+    def markTorrent(self, channel_id, infohash, type):
         community = self._disp_get_community_from_channel_id(channel_id)
-        community._disp_create_mark_torrent(infohash, type, timestamp)
+        community._disp_create_mark_torrent(infohash, type, long(time()))
+        
+    @forceDispersyThread
+    def revertModification(self, channel, moderation, text, severity, revert_to):
+        cause = moderation.dispersy_id
+        
+        community = self._disp_get_community_from_channel_id(channel.id)
+        community._disp_create_moderation(text, long(time()), severity, cause)
         
     def getChannelForTorrent(self, infohash):
         return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)

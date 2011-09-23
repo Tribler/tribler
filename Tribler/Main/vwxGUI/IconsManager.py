@@ -24,11 +24,12 @@ class IconsManager:
         self.guiUtility = GUIUtility.getInstance()
         self.guiImagePath = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images')
         
-        self.defaults = {'PEER_THUMB':{}, 'TORRENT':{}, 'TORRENT_NEW':{}, 'MODIFICATION':{}, 'COMMENT':{}}
+        self.defaults = {'PEER_THUMB':{}, 'TORRENT':{}, 'TORRENT_NEW':{}, 'MODIFICATION':{}, 'REVERTED_MODIFICATION': {}, 'COMMENT':{}}
         self.defaults['PEER_THUMB'][ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeer.png'))
         self.defaults['TORRENT'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'file_extension_tor.png'))
         self.defaults['TORRENT_NEW'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'file_extension_tornew.png'))
         self.defaults['MODIFICATION'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'edit_diff.png'))
+        self.defaults['REVERTED_MODIFICATION'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'edit_reverted.png'))
         self.defaults['COMMENT'][SMALL_ICON_MAX_DIM] = wx.Bitmap(os.path.join(self.guiImagePath, 'comments.png'))
         
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)

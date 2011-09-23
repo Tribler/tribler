@@ -1,4 +1,4 @@
-#Niels: getValidArgs nased on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
+#Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import sys
 import os.path
 import functools
@@ -440,14 +440,49 @@ class Playlist(Helper):
         return "Contents: '"+"'    '".join(names)+"'"
                 
 class Modification(Helper):
-    __slots__ = ('id', 'type_id', 'value', 'time_stamp', 'inserted', 'channelcast_db')
-    def __init__(self, id, type_id, value, time_stamp, inserted):
+    __slots__ = ('id', 'dispersy_id', 'type_id', 'value', 'time_stamp', 'inserted', 'reverted', 'channeltorrent_id', 'channelcast_db')
+    def __init__(self, id, dispersy_id, type_id, value, time_stamp, inserted, reverted, channeltorrent_id):
         self.id = id
+        self.dispersy_id = dispersy_id
         self.type_id = type_id
         self.value = value
         self.time_stamp = time_stamp
+        self.reverted = reverted
         self.inserted = inserted
+        self.channeltorrent_id = channeltorrent_id
         
     @cacheProperty
     def name(self):
         return self.channelcast_db.id2modification[self.type_id]
+    
+    @cacheProperty
+    def torrent(self):
+        if self.channeltorrent_id:
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            
+            searchManager = ChannelSearchGridManager.getInstance()
+            return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
+
+class Moderation(Helper):
+    __slots__ = ('id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted', 'channelcast_db', 'get_nickname')
+    def __init__(self, id, channel_id, peer_id, by_peer_id, severity, message, time_stamp, inserted):
+        self.id = id
+        self.channel_id = channel_id
+        self.peer_id = peer_id
+        self.by_peer_id = by_peer_id
+        self.severity = severity
+        self.message = message
+        self.time_stamp = time_stamp
+        self.inserted = inserted
+        
+    @cacheProperty
+    def peer_name(self):
+        if self.peer_id == None:
+            return self.get_nickname()
+        return 'Peer %d'%self.peer_id
+    
+    @cacheProperty
+    def by_peer_name(self):
+        if self.by_peer_id == None:
+            return self.get_nickname()
+        return 'Peer %d'%self.by_peer_id

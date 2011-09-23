@@ -19,19 +19,18 @@ class TopSearchPanel(bgPanel):
     def __init__(self, parent, channelonly):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
-            
-        bgPanel.__init__(self, parent, 'top_search')
         
-        self.init_ready = False
+        self.channelonly = channelonly
+        self.loaded_bitmap = None
+        
+        self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
-        self.channelonly = channelonly
-        
         self.uelog = UserEventLogDBHandler.getInstance()
         self.nbdb = NetworkBuzzDBHandler.getInstance()
+         
+        bgPanel.__init__(self, parent, 'top_search')
         
-        self._PostInit()
-    
     def OnAutoComplete(self):
         self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type = 2)  
     
@@ -115,18 +114,18 @@ class TopSearchPanel(bgPanel):
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
         
-        if tab != 'settings': #if settings is clicked do nothing
-            if not self.channelonly:
+        if not self.channelonly:
+            if tab != 'settings': #if settings is clicked do nothing
                 self.searchSizer.ShowItems(tab != 'home')
-                
-            if tab != 'home': #if !home is clicked, show bitmap
-                if not self.bitmap:
-                    self.setBitmap(self.loaded_bitmap)
                     
-            else: #if home is clicked, hide bitmap
-                self.loaded_bitmap = self.bitmap
-                self.setBitmap(None)
-                self.SearchFocus()
+                if tab != 'home': #if !home is clicked, show bitmap
+                    if not self.bitmap:
+                        self.setBitmap(self.loaded_bitmap)
+                        
+                else: #if home is clicked, hide bitmap
+                    self.loaded_bitmap = self.bitmap
+                    self.setBitmap(None)
+                    self.SearchFocus()
         
         self.Layout()
         self.Thaw()
@@ -175,7 +174,10 @@ class TopSearchPanel(bgPanel):
             button.Bind(wx.EVT_TOGGLEBUTTON, event)
             return button
         
-        self.channels = createToggle('Channels', self.OnChannels)
+        if not self.channelonly:
+            self.channels = createToggle('Channels', self.OnChannels)
+        else:
+            self.channels = createToggle('Channel', self.OnChannels)
         self.settings = createToggle('Settings', self.OnSettings)
         self.my_files = createToggle('Library', self.OnLibrary)
         if not self.channelonly:
@@ -184,13 +186,11 @@ class TopSearchPanel(bgPanel):
         
             self.home = createToggle('Home', self.OnHome)
         
-        self.files_friends = None
-        if sys.platform == 'win32':
-            if not self.channelonly:
+        if not self.channelonly:
+            if sys.platform == 'win32':
                 self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
-            self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
-        else:
-            if not self.channelonly:    
+                self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
+            else:
                 self.files_friends = wx.StaticText(self, -1, "Search Files or Channels")
                 if sys.platform == 'linux2':
                     self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
@@ -198,8 +198,19 @@ class TopSearchPanel(bgPanel):
                     self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
                      
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
-            
-        self.tribler_logo2.Bind(wx.EVT_LEFT_UP, self.OnStats)
+            self.tribler_logo2.Bind(wx.EVT_LEFT_UP, self.OnStats)
+        
+        
+        self.notifyPanel = wx.Panel(self)
+        self.notifyPanel.SetBackgroundColour("yellow")
+        self.notifyIcon = wx.StaticBitmap(self.notifyPanel, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
+        self.notify = wx.StaticText(self.notifyPanel)
+        
+        notifyS = wx.BoxSizer(wx.HORIZONTAL)
+        notifyS.Add(self.notifyIcon, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        notifyS.Add(self.notify, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.notifyPanel.SetSizer(notifyS)
+        self.notifyPanel.Hide()
         
         self.__do_layout()
         self.Layout()
@@ -209,7 +220,6 @@ class TopSearchPanel(bgPanel):
         else:
             self.selectTab('home')
         
-        self.init_ready = True
         self.Bind(wx.EVT_SIZE, self.OnResize)
         
     def __do_layout(self):
@@ -234,43 +244,41 @@ class TopSearchPanel(bgPanel):
             #finished searchSizer, add to mainSizer
             mainSizer.Add(self.searchSizer, 0, wx.LEFT, 10)
         
-        #niels: add strechingspacer, all controls added before 
-        #this spacer will be aligned to the left of the screen
-        #all controls added after, will be to the right
-        mainSizer.AddStretchSpacer()
+            #niels: add strechingspacer, all controls added before 
+            #this spacer will be aligned to the left of the screen
+            #all controls added after, will be to the right
+            mainSizer.AddStretchSpacer()
         
-        #add buttons
-        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        #add buttons horizontally
-        buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        if not self.channelonly:
+            #add buttons
+            self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+            
+            #add buttons horizontally
+            buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
             buttonBoxSizer.Add(self.home, 0, wx.RIGHT, 5)
             buttonBoxSizer.Add(self.results, 0, wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.channels, 0, wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.settings, 0, wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.my_files)
+            buttonBoxSizer.Add(self.channels, 0, wx.RIGHT, 5)
+            buttonBoxSizer.Add(self.settings, 0, wx.RIGHT, 5)
+            buttonBoxSizer.Add(self.my_files)
+            
+            self.buttonSizer.Add(buttonBoxSizer, 0, wx.TOP, 3)
+
+            self.buttonSizer.Add(self.notifyPanel, 0, wx.ALIGN_RIGHT | wx.TOP, 5)
+            mainSizer.Add(self.buttonSizer)
+            
+            mainSizer.AddSpacer((15, 0))
+            
+            mainSizer.Add(self.tribler_logo2, 0, wx.TOP, 3)
+            mainSizer.AddSpacer((10, 0))
+            
+        else:
+            self.buttonSizer = mainSizer
+            mainSizer.AddStretchSpacer()
+            
+            mainSizer.Add(self.notifyPanel, 0, wx.ALL, 5)
+            mainSizer.Add(self.channels, 0, wx.ALL, 5)
+            mainSizer.Add(self.settings, 0, wx.ALL, 5)
+            mainSizer.Add(self.my_files, 0, wx.ALL, 5)
         
-        self.buttonSizer.Add(buttonBoxSizer, 0, wx.TOP, 3)
-        
-        self.notifyPanel = wx.Panel(self)
-        self.notifyPanel.SetBackgroundColour("yellow")
-        self.notifyIcon = wx.StaticBitmap(self.notifyPanel, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
-        self.notify = wx.StaticText(self.notifyPanel)
-        
-        notifyS = wx.BoxSizer(wx.HORIZONTAL)
-        notifyS.Add(self.notifyIcon, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-        notifyS.Add(self.notify, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        self.notifyPanel.SetSizer(notifyS)
-        self.notifyPanel.Hide()
-        
-        self.buttonSizer.Add(self.notifyPanel, 0, wx.ALIGN_RIGHT | wx.TOP, 5)
-        mainSizer.Add(self.buttonSizer)
-        
-        mainSizer.AddSpacer((15, 0))
-        
-        mainSizer.Add(self.tribler_logo2, 0, wx.TOP, 3)
-        mainSizer.AddSpacer((10, 0))
         self.SetSizer(mainSizer)
     
     def OnResize(self, event):

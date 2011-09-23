@@ -423,11 +423,11 @@ class BetterText(wx.StaticText):
             
 class MaxBetterText(wx.BoxSizer):
     
-    def __init__(self, parent, label, maxLines = 6, maxCharacters = 600, name = None):
+    def __init__(self, parent, label, maxLines = 6, maxCharacters = 600, name = None, button = None):
         wx.BoxSizer.__init__(self, wx.VERTICAL)
         
         self.fullLabel = ''
-        self.expand = None
+        self.expand = button
         self.parent = parent
         self.maxLines = maxLines
         self.maxCharacters = maxCharacters
@@ -447,11 +447,17 @@ class MaxBetterText(wx.BoxSizer):
             self.label.SetLabel(self.shortLabel)
             
             if len(self.shortLabel) < len(self.fullLabel):
+                self.hasMore = True
+                
                 if not self.expand:
                     self.expand = wx.Button(self.parent, -1, "Click to view full "+self.name, style = wx.BU_EXACTFIT)
                     self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
-            
                     self.Add(self.expand, 0, wx.ALIGN_RIGHT)
+                else:
+                    self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
+                    self.expand.SetLabel("Click to view full "+self.name)
+            else:
+                self.hasMore = False
                     
     def OnFull(self, event):
         if self.expand.GetLabel().startswith('Click to view full'):

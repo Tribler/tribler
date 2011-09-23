@@ -27,7 +27,7 @@ def forceWxThread(func):
             func(*args, **kwargs)
         else:
             if DEBUG:
-                print >> sys.stderr, "SWITCHING TO GUITHREAD", func.__name__
+                print >> sys.stderr, "SWITCHING TO GUITHREAD %s %s:%s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno)
             wx.CallAfter(func, *args, **kwargs)
             
     invoke_func.__name__ = func.__name__
@@ -37,7 +37,7 @@ def warnWxThread(func):
     def invoke_func(*args,**kwargs):
         if not wx.Thread_IsMain():
             if DEBUG:
-                print >> sys.stderr, "NOT ON GUITHREAD", func.__name__
+                print >> sys.stderr, "NOT ON GUITHREAD %s %s:%s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno)
         
         return func(*args, **kwargs)
     
@@ -49,7 +49,7 @@ def forceDBThread(func):
         if onWorkerThread():
             func(*args, **kwargs)
         else:
-            print >> sys.stderr, "SWITCHING TO DBTHREAD", func.__name__
+            print >> sys.stderr, "SWITCHING TO DBTHREAD %s %s:%s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno)
             startWorker(None, func, wargs=args, wkwargs=kwargs)
             
     invoke_func.__name__ = func.__name__
@@ -115,10 +115,8 @@ class GUIUtility:
     
     def ShowPlayer(self, show):
         if self.frame.videoparentpanel:
-            if show:
-                self.frame.videoparentpanel.Show()
-            else:
-                self.frame.videoparentpanel.Hide()
+            if show != self.frame.videoparentpanel.IsShown():
+                self.frame.videoparentpanel.Show(show)
     
     @forceWxThread
     def ShowPage(self, page, *args):
@@ -131,6 +129,8 @@ class GUIUtility:
             dialog.Destroy()
         
         elif page != self.guiPage:
+            self.frame.top_bg.selectTab(page)
+
             self.oldpage.append(self.guiPage)
             if len(self.oldpage) > 3:
                 self.oldpage.pop(0)
@@ -141,23 +141,20 @@ class GUIUtility:
                 #Show list
                 self.frame.searchlist.Show()
                 
-                wx.CallAfter(self.frame.searchlist.ScrollToEnd, False)
-                if args:
-                    self.frame.searchlist.total_results = None
-                    self.frame.searchlist.SetKeywords(args[0])
-                
             elif self.guiPage == 'search_results':
                 #Hide list
                 self.frame.searchlist.Show(False)
             
             if page == 'channels':
-                selectedcat = self.frame.channelcategories.GetSelectedCategory()
+                if self.frame.channelcategories:
+                    selectedcat = self.frame.channelcategories.GetSelectedCategory()
+                else:
+                    selectedcat = ''
+                    
                 if selectedcat in ['Popular','New','Favorites','All', 'Updated', 'Search'] or self.oldpage[:-1] == 'mychannel':
                     self.frame.channelselector.ShowItems(True)
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
-
-                    wx.CallAfter(self.frame.channellist.ScrollToEnd, False)
 
                 elif selectedcat == 'My Channel' and self.guiPage != 'mychannel':
                     page = 'mychannel'
@@ -187,9 +184,8 @@ class GUIUtility:
 
             elif self.guiPage == 'selectedchannel':
                 self.frame.selectedchannellist.Show(False)
-                if page not in ['playlist','managechannel']:
+                if self.frame.channelcategories and page not in ['playlist','managechannel']:
                     self.frame.selectedchannellist.Reset()
-                wx.CallAfter(self.frame.channelcategories.ScrollToEnd, False)
             
             if page == 'playlist':
                 self.frame.playlist.Show()
@@ -221,26 +217,30 @@ class GUIUtility:
             #show player on these pages
             if not self.useExternalVideo:
                 if page in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results', 'playlist', 'managechannel']:
-                    if self.guiPage not in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results', 'playlist', 'managechannel']:
-                        self.ShowPlayer(True)
+                    self.ShowPlayer(True)
                 else:
                     self.ShowPlayer(False)
             
             self.guiPage = page
-            self.frame.top_bg.selectTab(page)
-            
             self.frame.Layout()
             self.frame.Thaw()
+    
+        #Set focus to page
+        if page == 'search_results':
+            self.frame.searchlist.Focus()
+            
+            if args:
+                self.frame.searchlist.total_results = None
+                self.frame.searchlist.SetKeywords(args[0])
+            
+        elif page == 'channels':
+            self.frame.channellist.Focus()
+        elif page == 'selectedchannel':
+            self.frame.selectedchannellist.Focus()
+        elif page =='my_files':
+            self.frame.librarylist.Focus()
         
-            #Set focus to page
-            if page == 'search_results':
-                self.frame.searchlist.Focus()
-            elif page == 'channels':
-                self.frame.channellist.Focus()
-            elif page == 'selectedchannel':
-                self.frame.selectedchannellist.Focus()
-            elif page =='my_files':
-                self.frame.librarylist.Focus()
+                
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):
@@ -374,23 +374,28 @@ class GUIUtility:
             
         startWorker(None, db_callback)
     
+    def showChannelFromDispCid(self, channel_cid):
+        def db_callback():
+            channel = self.channelsearch_manager.getChannelByCid(channel_cid)
+            self.showChannel(channel)
+            
+        startWorker(None, db_callback)
+        
     def showChannelFromPermid(self, channel_permid):
         def db_callback():
-            channel = self.channelsearch_manager.getChannel(channel_permid)
+            channel = self.channelsearch_manager.getChannelByPermid(channel_permid)
             self.showChannel(channel)
             
         startWorker(None, db_callback)
         
     @forceWxThread
     def showChannel(self, channel):
-        self.frame.top_bg.selectTab('channels')
-       
-        description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]
-        self.frame.channelcategories.Quicktip(random.choice(description_list))
-        
-        manager = self.frame.selectedchannellist.GetManager()
-        manager.refresh(channel)
-        self.ShowPage('selectedchannel')        
+        if channel:
+            self.frame.top_bg.selectTab('channels')
+            
+            manager = self.frame.selectedchannellist.GetManager()
+            manager.refresh(channel)
+            self.ShowPage('selectedchannel')
             
     def showChannels(self):
         self.frame.top_bg.selectTab('channels')

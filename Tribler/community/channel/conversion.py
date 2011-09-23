@@ -3,9 +3,10 @@ from random import sample
 import zlib
 
 from Tribler.Core.dispersy.encoding import encode, decode
-from Tribler.Core.dispersy.message import DropPacket, Packet
+from Tribler.Core.dispersy.message import DropPacket, Packet,\
+    DelayPacketByMissingMessage
 from Tribler.Core.dispersy.conversion import BinaryConversion
-from traceback import print_exc
+from Tribler.Core.dispersy.member import Member
 
 DEBUG = False
 
@@ -19,7 +20,7 @@ class ChannelConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"modification"), self._encode_modification, self._decode_modification)
         self.define_meta_message(chr(6), community.get_meta_message(u"playlist_torrent"), self._encode_playlist_torrent, self._decode_playlist_torrent)
         self.define_meta_message(chr(7), community.get_meta_message(u"missing-channel"), self._encode_missing_channel, self._decode_missing_channel)
-        self.define_meta_message(chr(8), community.get_meta_message(u"warning"), self._encode_warning, self._decode_warning)
+        self.define_meta_message(chr(8), community.get_meta_message(u"moderation"), self._encode_moderation, self._decode_moderation)
         self.define_meta_message(chr(9), community.get_meta_message(u"mark_torrent"), self._encode_mark_torrent, self._decode_mark_torrent)
 
     def _encode_channel(self, message):
@@ -50,7 +51,6 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(placeholder, offset, data)
 
     def _encode_torrent(self, message):
-        import sys
         max_len = self._community.dispersy_sync_bloom_filter_bits/8
         
         files = message.payload.files
@@ -64,18 +64,12 @@ class ChannelConversion(BinaryConversion):
         compressed_msg = create_msg()
         while len(compressed_msg) > max_len:
             if len(trackers) > 10:
-                if DEBUG:
-                    print >> sys.stderr, "TOO BIG, removing", len(trackers) - 10, "trackers", len(compressed_msg), max_len, message.payload.name
-                
                 #only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
                 trackers = trackers[:10]
             else:
                 #reduce files by the amount we are currently to big
                 reduce_by = max_len / (len(compressed_msg)*1.0)
                 nr_files_to_include = int(len(files) * reduce_by)
-                
-                if DEBUG:
-                    print >> sys.stderr, "TOO BIG, removing", len(files) - nr_files_to_include, "files", len(compressed_msg), max_len, message.payload.name
                 files = sample(files, nr_files_to_include)
                 
             compressed_msg = create_msg()
@@ -196,17 +190,16 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'infohash' type or value")
         return offset, placeholder.meta.payload.implement(text, timestamp, reply_to, reply_to_mid, reply_to_global_time, reply_after, reply_after_mid, reply_after_global_time, playlist, infohash)
     
-    def _encode_warning(self, message):
+    def _encode_moderation(self, message):
         dict = {"text":message.payload.text,
-                "timestamp":message.payload.timestamp}
+                "timestamp":message.payload.timestamp,
+                "severity":message.payload.severity}
         
-        packet = message.payload.reply_to_packet
-        if packet:
-            dict["mid"] = message.payload.mid
-            dict["global-time"] = message.payload.global_time
+        dict["cause-mid"] = message.payload.cause_mid
+        dict["cause-global-time"] = message.payload.cause_global_time
         return encode(dict),
 
-    def _decode_warning(self, placeholder, offset, data):
+    def _decode_moderation(self, placeholder, offset, data):
         try:
             offset, dic = decode(data, offset)
         except ValueError:
@@ -223,21 +216,29 @@ class ChannelConversion(BinaryConversion):
         timestamp = dic["timestamp"]
         if not isinstance(timestamp, (int, long)):
             raise DropPacket("Invalid 'timestamp' type or value")
-
-        mid = dic.get("mid", None)
-        if mid and not (isinstance(mid, str) and len(mid) == 20):
-            raise DropPacket("Invalid 'mid' type or value")
         
-        global_time = dic.get("global-time", None)
-        if global_time and not isinstance(global_time, (int, long)):
-            raise DropPacket("Invalid 'global-time' type")
-        try:
-            packet_id, packet, message_name = self._get_message(global_time, mid)
-            packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
-            packet = None
+        if not "severity" in dic:
+            raise DropPacket("Missing 'severity'")
+        severity = dic["severity"]
+        if not isinstance(severity, (int, long)):
+            raise DropPacket("Invalid 'severity' type or value")
 
-        return offset, placeholder.meta.payload.implement(text, timestamp, packet, mid, global_time)
+        cause_mid = dic.get("cause-mid", None)
+        if isinstance(cause_mid, str) and len(cause_mid) == 20:
+            raise DropPacket("Invalid 'cause-mid' type or value")
+        
+        cause_global_time = dic.get("cause-global-time", None)
+        if isinstance(cause_global_time, (int, long)):
+            raise DropPacket("Invalid 'cause-global-time' type")
+        
+        try:
+            packet_id, packet, message_name = self._get_message(cause_mid, cause_global_time)
+            cause_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        except:
+            member = Member.get_instance(cause_mid, public_key_available=False)
+            raise DelayPacketByMissingMessage(self._community, member, [cause_global_time])
+        
+        return offset, placeholder.meta.payload.implement(text, timestamp, severity, cause_packet)
     
     def _encode_mark_torrent(self, message):
         dict = {"infohash":message.payload.infohash,

@@ -512,20 +512,21 @@ CREATE TABLE IF NOT EXISTS CommentTorrent (
 );
 CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
 
-CREATE TABLE IF NOT EXISTS Warnings (
+CREATE TABLE IF NOT EXISTS Moderations (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   channel_id            integer         NOT NULL,
   peer_id               integer,
-  by_peer_id            integer         NOT NULL,
-  severity              integer         NOT NULL DEFAULT (1),
+  severity              integer         NOT NULL DEFAULT (0),
   message               text            NOT NULL,
   cause                 integer         NOT NULL,
+  by_peer_id            integer,
   time_stamp            integer         NOT NULL,
+  inserted              integer         DEFAULT (strftime('%s','now')),
   UNIQUE (dispersy_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS WaChannelIndex ON Warnings(channel_id);
+CREATE INDEX IF NOT EXISTS MoChannelIndex ON Moderations(channel_id);
 
 CREATE TABLE IF NOT EXISTS ChannelMetaData (
   id                    integer         PRIMARY KEY ASC,
@@ -538,6 +539,7 @@ CREATE TABLE IF NOT EXISTS ChannelMetaData (
   prev_global_time      integer,
   time_stamp            integer         NOT NULL,
   inserted              integer         DEFAULT (strftime('%s','now')),
+  reverted              boolean         DEFAULT 0,
   UNIQUE (dispersy_id),
   FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE
 );

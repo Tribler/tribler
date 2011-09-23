@@ -1,7 +1,7 @@
 from random import expovariate, choice, randint
 
 from conversion import ChannelConversion
-from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, WarningPayload, MarkTorrentPayload
+from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
 
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
@@ -20,6 +20,7 @@ from traceback import print_stack
 import sys
 from Tribler.Core.dispersy.dispersy import Dispersy
 from time import time
+from Tribler.community.channel.payload import ModerationPayload
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -61,7 +62,7 @@ def forceAndReturnDispersyThread(func):
                 
             register_task(dispersy_thread)
             
-            if event.wait(100):
+            if event.wait(100) or event.isSet():
                 return result
             
             print_stack()
@@ -129,7 +130,7 @@ class ChannelCommunity(Community):
             disp_on_comment = self._disp_on_comment
             disp_on_modification = self._disp_on_modification
             disp_on_playlist_torrent = self._disp_on_playlist_torrent
-            disp_on_warning = self._disp_on_warning
+            disp_on_moderation = self._disp_on_moderation
             disp_on_mark_torrent = self._disp_on_mark_torrent
 
             disp_undo_torrent = self._disp_undo_torrent
@@ -137,7 +138,7 @@ class ChannelCommunity(Community):
             disp_undo_comment = self._disp_undo_comment
             disp_undo_modification = self._disp_undo_modification
             disp_undo_playlist_torrent = self._disp_undo_playlist_torrent
-            disp_undo_warning = self._disp_undo_warning
+            disp_undo_moderation = self._disp_undo_moderation
             disp_undo_mark_torrent = self._disp_undo_mark_torrent
             
         else:
@@ -162,7 +163,7 @@ class ChannelCommunity(Community):
             disp_on_comment = dummy_function
             disp_on_modification = dummy_function
             disp_on_playlist_torrent = dummy_function
-            disp_on_warning = dummy_function
+            disp_on_moderation = dummy_function
             disp_on_mark_torrent = dummy_function
 
             disp_undo_torrent = dummy_function
@@ -170,7 +171,7 @@ class ChannelCommunity(Community):
             disp_undo_comment = dummy_function
             disp_undo_modification = dummy_function
             disp_undo_playlist_torrent = dummy_function
-            disp_undo_warning = dummy_function
+            disp_undo_moderation = dummy_function
             disp_undo_mark_torrent = dummy_function
         
         return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
@@ -179,7 +180,7 @@ class ChannelCommunity(Community):
                 Message(self, u"comment", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, disp_undo_comment, delay=batch_delay),
                 Message(self, u"modification", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, disp_undo_modification, delay=batch_delay),
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, disp_undo_playlist_torrent, delay=batch_delay),
-                Message(self, u"warning", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), WarningPayload(), self._disp_check_warning, disp_on_warning, disp_undo_warning, delay=batch_delay),
+                Message(self, u"moderation", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModerationPayload(), self._disp_check_moderation, disp_on_moderation, disp_undo_moderation, delay=batch_delay),
                 Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, disp_undo_mark_torrent, delay=batch_delay),
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
@@ -253,7 +254,7 @@ class ChannelCommunity(Community):
         return [DefaultConversion(self), ChannelConversion(self)]
     
     CHANNEL_CLOSED, CHANNEL_SEMI_OPEN, CHANNEL_OPEN, CHANNEL_MODERATOR = range(4)
-    CHANNEL_ALLOWED_MESSAGES = ([], [u"comment", u"mark_torrent"], [u"torrent", u"comment", u"modification", u"playlist_torrent", u"warning", u"mark_torrent"], [u"channel", u"torrent", u"playlist", u"comment", u"modification", u"playlist_torrent", u"warning", u"mark_torrent"])
+    CHANNEL_ALLOWED_MESSAGES = ([], [u"comment", u"mark_torrent"], [u"torrent", u"comment", u"modification", u"playlist_torrent", u"moderation", u"mark_torrent"], [u"channel", u"torrent", u"playlist", u"comment", u"modification", u"playlist_torrent", u"moderation", u"mark_torrent"])
     
     def get_channel_mode(self):
         public = set()
@@ -317,16 +318,12 @@ class ChannelCommunity(Community):
         return message
 
     def _disp_check_channel(self, messages):
-        log("dispersy.log", "only-accepting", keys = self._meta_messages.keys())
-        
         for message in messages:
             accepted, proof = self._timeline.check(message)
             if not accepted:
-                log("dispersy.log", "not-accepted")
                 yield DelayMessageByProof(message)
                 continue
             
-            log("dispersy.log", "accepted")
             yield message
 
     def _disp_on_channel(self, messages):
@@ -705,40 +702,27 @@ class ChannelCommunity(Community):
                 
             elif message_name == u"playlist":
                 playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
+            self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id)
             
-            shouldUpdate = False
             if message_name ==  u"torrent":
                 latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
-                shouldUpdate = latest.packet_id == dispersy_id
-        
+
+                if not latest or latest.packet_id == dispersy_id:
+                    modification_value = latest.payload.modification_value if latest else ''
+                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+    
             elif message_name == u"playlist":
                 latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
-                shouldUpdate = latest.packet_id == dispersy_id
+                
+                if not latest or latest.packet_id == dispersy_id:
+                    modification_value = latest.payload.modification_value if latest else ''
+                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
         
             elif message_name == u"channel":
                 latest = self._get_latest_modification_from_channel_id(modification_type_id)
-                shouldUpdate = latest.packet_id == dispersy_id
-                    
-            self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id)
-            
-            #the remove update was the latest, thus we should load the current latest and update the fields the database
-            if shouldUpdate:
-                if message_name ==  u"torrent":
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                
+                if not latest or latest.packet_id == dispersy_id:
                     modification_value = latest.payload.modification_value if latest else ''
-                    
-                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
-        
-                elif message_name == u"playlist":
-                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
-                    modification_value = latest.payload.modification_value if latest else ''
-                    
-                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
-            
-                elif message_name == u"channel":
-                    latest = self._get_latest_modification_from_channel_id(modification_type_id)
-                    modification_value = latest.payload.modification_value if latest else ''
-                    
                     self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
             
     #create, check or receive playlist_torrent messages
@@ -812,24 +796,22 @@ class ChannelCommunity(Community):
 
             self._dispersy._send([message.address], [channelmessage.packet])
             
-    #check or receive warning messages
+    #check or receive moderation messages
     @forceDispersyThread
-    def _disp_create_warning(self, text, timestamp, cause, store=True, update=True, forward=True):
-        message = cause.load_message()
-        mid = message.authentication.member.mid
-        global_time = message.distribution.global_time
+    def _disp_create_moderation(self, text, timestamp, severity, cause, store=True, update=True, forward=True):
+        causemessage = self._get_message_from_dispersy_id(cause, 'modification')
         
-        meta = self.get_meta_message(u"warning")
+        meta = self.get_meta_message(u"moderation")
         current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
         
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
-                            payload=(text, timestamp, cause, mid, global_time))
+                            payload=(text, timestamp, severity, causemessage))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
-    def _disp_check_warning(self, messages):
+    def _disp_check_moderation(self, messages):
         for message in messages:
             if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
@@ -838,9 +820,10 @@ class ChannelCommunity(Community):
             accepted, proof = self._timeline.check(message)
             if not accepted:
                 yield DelayMessageByProof(message)
+
             yield message
             
-    def _disp_on_warning(self, messages):
+    def _disp_on_moderation(self, messages):
         for message in messages:
             if __debug__: dprint(message)
 
@@ -848,25 +831,37 @@ class ChannelCommunity(Community):
             
             authentication_member = message.authentication.member
             if authentication_member == self._my_member:
-                by_peer_id = None
-            else:
-                by_peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                
-            cause = message.payload.packet.packet_id
-            
-            cause_message = message.payload.packet.load_message()
-            authentication_member = cause_message.authentication.member
-            if authentication_member == self._my_member:
                 peer_id = None
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
-            self._channelcast_db.on_warning(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp)
+            #if cause packet is present, it is enforced by conversion
+            cause = message.payload.causepacket.packet_id
+            cause_message = message.payload.causepacket.load_message()
+            authentication_member = cause_message.authentication.member
+            if authentication_member == self._my_member:
+                by_peer_id = None
+            else:
+                by_peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
+          
+            self._channelcast_db.on_moderation(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp, message.payload.severity)
+
+            #see if this was a torrent
+            modifying_dispersy_id = cause_message.payload.modification_on.packet_id
+            channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
+            if channeltorrent_id:
+                modification_type = cause_message.payload.modification_type
+                modification_type_id = self._modification_types[modification_type]
+                
+                latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                if not latest or latest.packet_id == dispersy_id:
+                    modification_value = latest.payload.modification_value if latest else ''
+                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
     
-    def _disp_undo_warning(self, descriptors):
+    def _disp_undo_moderation(self, descriptors):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
-            self._channelcast_db.on_remove_warning(self._channel_id, dispersy_id)
+            self._channelcast_db.on_remove_moderation(self._channel_id, dispersy_id)
             
     #check or receive torrent_mark messages
     @forceDispersyThread
@@ -980,7 +975,6 @@ class ChannelCommunity(Community):
         # 2. get the message
         message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
         return message
-
     
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long))
@@ -990,7 +984,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
         
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData WHERE type_id = ? AND channel_id = ? AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) ORDER BY prev_global_time DESC", (type_id, self._channel_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData WHERE type_id = ? AND channel_id = ? AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) AND reverted = 0 ORDER BY prev_global_time DESC", (type_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
     
     def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_id):
@@ -998,7 +992,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataTorrent WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id AND type_id = ? AND channeltorrent_id = ? ORDER BY prev_global_time DESC", (type_id, channeltorrent_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataTorrent WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id AND type_id = ? AND channeltorrent_id = ? AND reverted = 0 ORDER BY prev_global_time DESC", (type_id, channeltorrent_id))
         return self._determine_latest_modification(dispersy_ids)
     
     def _get_latest_modification_from_playlist_id(self, playlist_id, type_id):
@@ -1006,7 +1000,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? ORDER BY prev_global_time DESC", (type_id, playlist_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? AND reverted = 0 ORDER BY prev_global_time DESC", (type_id, playlist_id))
         return self._determine_latest_modification(dispersy_ids)
         
     @forceAndReturnDispersyThread

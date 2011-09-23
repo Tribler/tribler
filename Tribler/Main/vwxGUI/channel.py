@@ -302,7 +302,8 @@ class SelectedChannelList(GenericSearchList):
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents], playlist, PlaylistItem) for playlist in playlists]
             
-            if self.channel.getState == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
+            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.getState == ChannelCommunity.CHANNEL_OPEN)
+            if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent, DragItem) for torrent in torrents]
             else:
                 data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent) for torrent in torrents]
@@ -508,6 +509,15 @@ class SelectedChannelList(GenericSearchList):
         self.channelsearch_manager.markTorrent(self.id, infohash, type)
         
     def Select(self, key, raise_event = True):
+        if isinstance(key, Torrent):
+            torrent = key
+            key = torrent.infohash
+            
+            if torrent.playlist:
+                self.guiutility.showPlaylist(torrent.playlist)
+                wx.CallLater(1000, self.guiutility.frame.playlist.Select, key)
+                return
+
         GenericSearchList.Select(self, key, raise_event)
         
         self.notebook.ChangeSelection(0)
@@ -624,6 +634,7 @@ class Playlist(SelectedChannelList):
     def Set(self, playlist):
         manager = self.GetManager()
         manager.SetPlaylist(playlist)
+        self.notebook.SetSelection(0)
     
     def SetTitle(self, title, description):
         header = u"%s's channel \u2192 %s"%(self.channel.name, self.playlist.name) 
@@ -1011,6 +1022,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         if channel:
             self.channel = channel
             self.channel_id = channel.id
+            
             def db_call():
                 channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
                 return channel_state, iamModerator
@@ -1169,6 +1181,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self._import_torrents(full_files)
             
             self.uelog.addEvent(message="MyChannel: manual import directory", type = 2)
+            
+    def CreateJoinChannelFile(self):
+        f = open('joinchannel', 'wb')
+        f.write(self.channel.dispersy_cid)
+        f.close()
     
     def _import_torrents(self, files):
         tdefs = [TorrentDef.load(file) for file in files if file.endswith(".torrent")]
@@ -1493,6 +1510,7 @@ class AvantarItem(ListItem):
         self.body = ''
         self.avantar = None
         self.additionalButton = None
+        self.maxlines = 6
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -1508,17 +1526,27 @@ class AvantarItem(ListItem):
         header = wx.StaticText(self, -1, self.header)
         _set_font(header, -1, wx.FONTWEIGHT_BOLD)
         
-        self.desc = MaxBetterText(self, self.body)
-        self.desc.SetMinSize((1, -1))
-        
         vSizer.Add(header, 0, wx.EXPAND)
-        vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
+        vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.RIGHT, 5)
+        
+        self.moreButton = None
+        if self.additionalButton:
+            self.moreButton = wx.Button(self, style = wx.BU_EXACTFIT)
+            
+        self.desc = MaxBetterText(self, self.body, maxLines = self.maxlines, button = self.moreButton)
+        self.desc.SetMinSize((1, -1))
         vSizer.Add(self.desc, 0, wx.EXPAND)
         
-        titleRow.Add(vSizer, 1)
-        
         if self.additionalButton:
-            titleRow.Add(self.additionalButton, 0, wx.ALIGN_RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            hSizer.Add(self.moreButton, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            hSizer.Add(self.additionalButton, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            
+            self.moreButton.Show(False)
+            self.additionalButton.Show(False)
+            vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT)
+        
+        titleRow.Add(vSizer, 1)
         
         if rightSpacer > 0:
             titleRow.AddSpacer((rightSpacer, -1))
@@ -1529,6 +1557,8 @@ class AvantarItem(ListItem):
         changed = ListItem.BackgroundColor(self, color)
         
         if self.additionalButton and changed:
+            if self.desc.hasMore:
+                self.moreButton.Show(color == self.list_selected)
             self.additionalButton.Show(color == self.list_selected)
             
     def OnChange(self):
@@ -1554,7 +1584,6 @@ class CommentItem(AvantarItem):
             self.header += " in %s"%comment.torrent.name
             self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
             self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
-            self.additionalButton.Show(False)
             
         self.body = comment.comment
         self.avantar = comment.avantar
@@ -1565,17 +1594,22 @@ class CommentItem(AvantarItem):
         if self.original_data.torrent:
             self.parent_list.parent_list.OnShowTorrent(self.original_data.torrent)
         
-class CommentActivityItem(AvantarItem):
+class CommentActivityItem(CommentItem):
         
     def AddComponents(self, leftSpacer, rightSpacer):
         comment = self.original_data
-        self.header = "New comment received %s, posted by %s"%(format_time(comment.time_stamp).lower(), comment.name)
-        self.body = comment.comment
-        self.avantar = comment.avantar
+        self.header = "New comment received, posted %s by %s"%(format_time(comment.time_stamp).lower(), comment.name)
         
+        if not self.inTorrent and comment.torrent:
+            self.header += " in %s"%comment.torrent.name
+            self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+            self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+            
+        self.body = comment.comment
         im = IconsManager.getInstance()
         self.avantar = im.get_default('COMMENT', SMALL_ICON_MAX_DIM)
-        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)  
 
 class NewTorrentActivityItem(AvantarItem):
         
@@ -1587,7 +1621,6 @@ class NewTorrentActivityItem(AvantarItem):
         
         self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
         self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
-        self.additionalButton.Show(False)
         
         im = IconsManager.getInstance()
         self.avantar = im.get_default('TORRENT_NEW', SMALL_ICON_MAX_DIM)
@@ -1607,7 +1640,6 @@ class TorrentActivityItem(AvantarItem):
         
         self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
         self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
-        self.additionalButton.Show(False)
         
         im = IconsManager.getInstance()
         self.avantar = im.get_default('TORRENT', SMALL_ICON_MAX_DIM)
@@ -1625,12 +1657,28 @@ class ModificationActivityItem(AvantarItem):
         self.header = "Discovered a modification %s"%(format_time(modification.inserted).lower())
         self.body = "Modified %s in '%s'"%(modification.name, modification.value)
         
+        if modification.torrent:
+            self.header += " for torrent '%s'"%modification.torrent.name
+            self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+            self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        
         im = IconsManager.getInstance()
         self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+    
+    def ShowTorrent(self, event):
+        if self.original_data:
+            self.parent_list.parent_list.OnShowTorrent(self.original_data.torrent)
         
 class ModificationItem(AvantarItem):
-        
+    
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
+        if isinstance(parent, wx.Dialog):
+            self.noButton = True
+        else:
+            self.noButton = False
+        AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+    
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
@@ -1638,7 +1686,32 @@ class ModificationItem(AvantarItem):
         self.body = modification.value
         
         im = IconsManager.getInstance()
-        self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
+        if modification.reverted:
+            self.header = "---REVERTED--- " + self.header
+            self.avantar = im.get_default('REVERTED_MODIFICATION',SMALL_ICON_MAX_DIM)
+            self.maxlines = 2
+        else:
+            self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
+        
+            if not self.noButton:
+                self.additionalButton = wx.Button(self, -1, 'Revert Modification', style = wx.BU_EXACTFIT)
+                self.additionalButton.Bind(wx.EVT_BUTTON, self.RevertModification)
+        
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+    def RevertModification(self, event):
+        self.parent_list.parent_list.OnRevertModification(self.original_data)
+        
+class ModerationActivityItem(AvantarItem):
+    
+    def AddComponents(self, leftSpacer, rightSpacer):
+        moderation = self.original_data
+
+        self.header = "Discovered a moderation %s"%(format_time(moderation.inserted).lower())
+        self.body = "%s reverted a modification made by %s, reason '%s'"%(moderation.peer_name, moderation.by_peer_name, moderation.message)
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('REVERTED_MODIFICATION',SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
 class CommentManager:
@@ -1760,7 +1833,7 @@ class CommentList(List):
         self.footer.SetComment('')
         
     def OnShowTorrent(self, torrent):
-        self.parent_list.Select(torrent.infohash)
+        self.parent_list.Select(torrent)
 
 class ActivityManager:
     def __init__(self, list):
@@ -1769,6 +1842,7 @@ class ActivityManager:
         
         self.channel = None
         self.playlist = None
+        self.channeltorrent = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
     def SetIds(self, channel = None, playlist = None):
@@ -1796,13 +1870,18 @@ class ActivityManager:
             nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist, limit = 10)
             nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist, limit = 10)
             recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist, limit = 10)
+            recentModerations = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, limit = 10)
+            
         else:
             commentList = self.channelsearch_manager.getCommentsFromChannel(self.channel, limit = 10)
             nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.channel, limit = 10)
             nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentReceivedTorrentsFromChannel(self.channel, limit = 10)
             recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit = 10)
-                
-        self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications)
+            recentModerations = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, limit = 10)
+            
+        self.channelsearch_manager.populateWithPlaylists(torrentList)
+        self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
+        self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations)
         
     def new_activity(self):
         if self.list.ShouldGuiUpdate():
@@ -1828,7 +1907,7 @@ class ActivityList(List):
         return self.manager
     
     @forceWxThread
-    def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications):
+    def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications, recent_moderations):
         List.SetData(self, recent_torrents)
         
         #remove duplicates
@@ -1840,6 +1919,7 @@ class ActivityList(List):
         data += [(torrent.inserted, (torrent.infohash, (), torrent, NewTorrentActivityItem)) for torrent in recent_torrents]
         data += [(torrent.inserted, (torrent.infohash, (), torrent, TorrentActivityItem)) for torrent in recent_received_torrents]
         data += [(modification.inserted, ("MODIFICATION_%d"%modification.id, (), modification, ModificationActivityItem)) for modification in recent_modifications]
+        data += [(modification.inserted, ("MODERATION_%d"%moderation.id, (), moderation, ModerationActivityItem)) for moderation in recent_moderations]
         data.sort(reverse = True)
         
         #removing timestamp
@@ -1850,19 +1930,19 @@ class ActivityList(List):
             self.list.ShowMessage('No recent activity is found.')
             
     def OnShowTorrent(self, torrent):
-        self.parent_list.Select(torrent.infohash)
+        self.parent_list.Select(torrent)
 
 class ModificationManager:
     def __init__(self, list):
         self.list = list
         self.list.id = 0
         
-        self.channeltorrent_id = None
+        self.torrent = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
-    def SetId(self, channeltorrent_id):
-        if channeltorrent_id != self.channeltorrent_id:
-            self.channeltorrent_id = channeltorrent_id
+    def SetId(self, channeltorrent):
+        if channeltorrent != self.torrent:
+            self.torrent = channeltorrent
             self.list.dirty = True
     
     def refreshDirty(self):
@@ -1871,7 +1951,7 @@ class ModificationManager:
     def refresh(self):
         def db_callback():
             self.list.dirty = False
-            return self.channelsearch_manager.getTorrentModifications(self.channeltorrent_id)
+            return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
         startWorker(self.list.SetDelayedData, db_callback)
         
@@ -1880,10 +1960,10 @@ class ModificationManager:
             self.refresh()
         else:
             self.list.dirty = True
-        
-    def getNrModifications(self):
-        data = startWorker(None, self.channelsearch_manager.getTorrentModifications, wargs= (self.channeltorrent_id, ))
-        return len(data.get())  
+    
+    def OnRevertModification(self, modification, reason, warning = False):
+        severity = 1 if warning else 0
+        self.channelsearch_manager.revertModification(self.torrent.channel, modification, reason, severity, None)
 
 class ModificationList(List):
     def __init__(self, parent):
@@ -1910,3 +1990,52 @@ class ModificationList(List):
         else:
             self.list.ShowMessage('No modifications are found.')
         self.SetNrResults(len(data))
+        
+    def OnRevertModification(self, modification):
+        dlg = wx.Dialog(self, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
+        dlg.SetBackgroundColour(wx.WHITE)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected = wx.WHITE), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
+        dlg.OnExpand = lambda a: False
+        dlg.OnChange = vSizer.Layout 
+        
+        why = wx.StaticText(dlg, -1, 'Why do you want to revert this modification?')
+        _set_font(why, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Add(why, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
+        
+        reason = wx.TextCtrl(dlg, -1, style = wx.TE_MULTILINE)
+        vSizer.Add(reason, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
+        
+        def canClose(event):
+            givenReason = reason.GetValue().strip()
+            if givenReason == '':
+                reason.SetBackgroundColour(wx.RED)
+                wx.CallLater(500, reason.SetBackgroundColour, wx.WHITE)
+            else:
+                button = event.GetEventObject()
+                dlg.EndModal(button.GetId())
+        
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        cancel = wx.Button(dlg, wx.ID_CANCEL, '')
+        buttonSizer.Add(cancel)
+        
+        revertAndWarn = wx.Button(dlg, -1, 'Revent and Warn')
+        revertAndWarn.Bind(wx.EVT_BUTTON, canClose)
+        buttonSizer.Add(revertAndWarn)
+
+        revert = wx.Button(dlg, -1, 'Revert')
+        revert.Bind(wx.EVT_BUTTON, canClose)
+        buttonSizer.Add(revert)
+        
+        vSizer.AddStretchSpacer()
+        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.TOP, 7)
+        
+        dlg.SetSizer(vSizer)
+        id = dlg.ShowModal()
+        if id == revertAndWarn.GetId():
+            self.GetManager().OnRevertModification(modification, reason.GetValue(), warning = True)
+        elif id == revert.GetId():
+            self.GetManager().OnRevertModification(modification, reason.GetValue())    
+            
+        dlg.Destroy()        

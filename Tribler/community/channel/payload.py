@@ -152,25 +152,26 @@ class CommentPayload(Payload):
         def infohash(self):
             return self._infohash
         
-class WarningPayload(Payload):
+class ModerationPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, text, timestamp, packet, mid, global_time):
+        def __init__(self, meta, text, timestamp, severity, causepacket):
             
-            assert not packet or isinstance(packet, Packet)
-            assert not mid or isinstance(mid, str), 'mid is a %s'%type(mid)
-            assert not mid or len(mid) == 20, 'mid has length %d'%len(mid)
-            assert not global_time or isinstance(global_time, (int, long)), 'global_time is a %s'%type(global_time)
+            assert isinstance(causepacket, Packet)
             
             assert isinstance(text, unicode)
             assert len(text) < 1024
-            assert isinstance(timestamp, (int, long)) 
+            assert isinstance(timestamp, (int, long))
+            assert isinstance(severity, (int, long)) 
             
-            super(WarningPayload.Implementation, self).__init__(meta)
+            super(ModerationPayload.Implementation, self).__init__(meta)
             self._text = text
             self._timestamp = timestamp
-            self._packet = packet
-            self._mid = mid
-            self._global_time = global_time
+            self._severity = severity
+            self._causepacket = causepacket
+            
+            message = causepacket.load_message()
+            self._mid = message.authentication.member.mid
+            self._global_time = message.distribution.global_time
             
         @property
         def text(self):
@@ -179,17 +180,21 @@ class WarningPayload(Payload):
         @property
         def timestamp(self):
             return self._timestamp
-
-        @property
-        def packet(self):
-            return self._packet
         
         @property
-        def mid(self):
+        def severity(self):
+            return self._severity
+
+        @property
+        def causepacket(self):
+            return self._causepacket
+        
+        @property
+        def cause_mid(self):
             return self._mid
         
         @property
-        def global_time(self):
+        def cause_global_time(self):
             return self._global_time
 
 class MarkTorrentPayload(Payload):

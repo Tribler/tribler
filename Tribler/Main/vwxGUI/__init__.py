@@ -24,7 +24,8 @@ CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'info
 PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
 
 COMMENT_REQ_COLUMNS = ['id', 'Comments.dispersy_id', 'CommentTorrent.channeltorrent_id', 'name', 'Peer.peer_id', 'comment', 'inserted', 'time_stamp']
-MODIFICATION_REQ_COLUMNS = ['id', 'type_id', 'value', 'time_stamp', 'inserted']
+MODIFICATION_REQ_COLUMNS = ['id', 'dispersy_id', 'type_id', 'value', 'time_stamp', 'inserted', 'reverted', 'channeltorrent_id']
+MODERATION_REQ_COLUMNS = ['id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted']
 
 CHANNEL_MAX_NON_FAVORITE = 50
 
