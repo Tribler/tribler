@@ -236,7 +236,7 @@ class Choker:
                 self._rechoke()
 
     def interested(self, connection):
-        if not connection.get_upload().is_choked():
+        if connection.get_upload().is_choked():
             self._rechoke()
 
     def not_interested(self, connection):
