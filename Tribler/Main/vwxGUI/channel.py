@@ -266,9 +266,7 @@ class SelectedChannelList(GenericSearchList):
         self.iamModerator = iamModerator
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
-                self.commentList.Show(True)
-                self.activityList.Show(True)
-                
+                #do not call show, will be called by page changed event
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
         else:
@@ -470,6 +468,7 @@ class SelectedChannelList(GenericSearchList):
         if page == 1:
             self.commentList.Show()
             self.commentList.SetFocus()
+            
         elif page == 2:
             self.activityList.Show()
             self.activityList.SetFocus()

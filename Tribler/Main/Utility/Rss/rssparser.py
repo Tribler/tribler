@@ -59,7 +59,7 @@ class RssParser(Thread):
             self.readfile()
             
             self.isRegistered = True
-        else:
+        elif DEBUG:
             print >> sys.stderr, "RssParser is already registered, ignoring"
         
     def getdir(self):
@@ -159,9 +159,11 @@ class RssParser(Thread):
             self.start()
             
     def getUrls(self, key):
-        return list(self.key_url.get(key, []))
+        return list(self.key_url.get(key, set()))
 
     def doRefresh(self):
+        if DEBUG:
+            print >> sys.stderr, "RssParser: refresh"
         if not self.isAlive():
             self.start()
         else:
@@ -171,12 +173,18 @@ class RssParser(Thread):
         self.urls_changed.wait(60) # Let other Tribler components, in particular, Session startup
         
         while self.isRegistered:
+            if DEBUG:
+                print >> sys.stderr, "RssParser: running"
+            
             self._refresh()
+            self.urls_changed.clear()
             
+            if DEBUG:
+                print >> sys.stderr, "RssParser: finished, waiting", RSS_RELOAD_FREQUENCY
             self.urls_changed.wait(RSS_RELOAD_FREQUENCY)
-            
         else:
-            print >> sys.stderr, "RssParser, not registered unable to run or exiting"
+            if DEBUG:
+                    print >> sys.stderr, "RssParser: not registered unable to run or exiting"
         
     def shutdown(self):
         self.isRegistered = False
@@ -194,6 +202,9 @@ class RssParser(Thread):
             for key, urls in channel_url.iteritems():
                 if key in self.key_callbacks:
                     for url in urls:
+                        if DEBUG:
+                            print >> sys.stderr, "RssParser: getting rss ", url, len(urls)
+                        
                         historyfile = self.gethistfilename(url, key)
                         urls_already_seen = URLHistory(historyfile)
                         urls_already_seen.read()
@@ -205,6 +216,9 @@ class RssParser(Thread):
                                 urls_already_seen.write()
                                 
                                 try:
+                                    if DEBUG:
+                                        print >> sys.stderr, "RssParser: trying ", new_url
+                                    
                                     torrent = TorrentDef.load_from_url(new_url)
                                     torrent.save(self.gettorrentfilename(torrent))
                                     
@@ -213,6 +227,8 @@ class RssParser(Thread):
                                             callback(key, torrent, extraInfo = {'title':title, 'description': description, 'thumbnail': thumbnail})
                                         except:
                                             print_exc()
+                                            
+                                    break
                                 except:
                                     pass
                                 
@@ -220,6 +236,9 @@ class RssParser(Thread):
                                 time.sleep(RSS_CHECK_FREQUENCY)
                                 
     def readUrl(self, url, urls_already_seen):
+        if DEBUG:
+            print >> sys.stderr, "RssParser: reading url", url
+        
         newItems = []
         
         feedparser._HTMLSanitizer.acceptable_elements = ['p','br']

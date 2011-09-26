@@ -3697,7 +3697,7 @@ class ChannelCastDBHandler(object):
         return self.__fixTorrents(keys, results)
     
     def getRecentModificationsFromChannelId(self, channel_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM ChannelMetaData LEFT JOIN MetaDataTorrent ON ChannelMetaData.id = MetaDataTorrent.metadata_id WHERE channel_id = ? ORDER BY reverted, inserted DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM ChannelMetaData LEFT JOIN MetaDataTorrent ON ChannelMetaData.id = MetaDataTorrent.metadata_id WHERE channel_id = ? ORDER BY reverted ASC, inserted DESC"
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (channel_id,))
@@ -3740,8 +3740,8 @@ class ChannelCastDBHandler(object):
         #merge two lists
         orderIndex = keys.index('time_stamp')
         revertIndex = keys.index('reverted')
-        data = [(row[revertIndex], row[orderIndex], row) for row in playlist_modifications]
-        data += [(row[revertIndex], row[orderIndex], row) for row in torrent_modifications]
+        data = [(-row[revertIndex], row[orderIndex], row) for row in playlist_modifications]
+        data += [(-row[revertIndex], row[orderIndex], row) for row in torrent_modifications]
         data.sort(reverse = True)
         
         if limit:
@@ -4019,7 +4019,7 @@ class ChannelCastDBHandler(object):
         return self._db.fetchall(sql, (channeltorrent_id,))
     
     def getTorrentModifications(self, channeltorrent_id, keys):
-        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY reverted, prev_global_time DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM MetaDataTorrent, ChannelMetaData WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY reverted ASC, prev_global_time DESC"
         return self._db.fetchall(sql, (channeltorrent_id,))
 
     def getMostPopularChannelFromTorrent(self, infohash):

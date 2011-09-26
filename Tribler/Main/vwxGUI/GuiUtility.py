@@ -18,6 +18,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
+import inspect
 
 DEBUG = False
 
@@ -27,7 +28,8 @@ def forceWxThread(func):
             func(*args, **kwargs)
         else:
             if DEBUG:
-                print >> sys.stderr, "SWITCHING TO GUITHREAD %s %s:%s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno)
+                caller = inspect.stack()[2][3]
+                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, caller)
             wx.CallAfter(func, *args, **kwargs)
             
     invoke_func.__name__ = func.__name__
@@ -37,7 +39,8 @@ def warnWxThread(func):
     def invoke_func(*args,**kwargs):
         if not wx.Thread_IsMain():
             if DEBUG:
-                print >> sys.stderr, "NOT ON GUITHREAD %s %s:%s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno)
+                caller = inspect.stack()[2][3]
+                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, caller)
         
         return func(*args, **kwargs)
     
@@ -49,7 +52,8 @@ def forceDBThread(func):
         if onWorkerThread():
             func(*args, **kwargs)
         else:
-            print >> sys.stderr, "SWITCHING TO DBTHREAD %s %s:%s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno)
+            caller = inspect.stack()[2][3]
+            print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, caller)
             startWorker(None, func, wargs=args, wkwargs=kwargs)
             
     invoke_func.__name__ = func.__name__

@@ -1,14 +1,11 @@
 #Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import sys
 import os.path
-import functools
-from inspect import getargspec, isfunction, ismethod
-
+from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
-from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager,\
-    SMALL_ICON_MAX_DIM
+from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 
 def getValidArgs(func, argsDict):
