@@ -65,7 +65,7 @@ class ChannelManager():
             if stateChanged:
                 state, iamModerator = self.list.channel.refreshState()
             else:
-                state, iamModerator = None
+                state = iamModerator = None
             
             if self.list.channel.isDispersy():
                 nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
