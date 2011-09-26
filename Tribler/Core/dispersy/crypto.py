@@ -6,7 +6,7 @@ The crypto module provides a layer between Dispersy and low level crypographic f
 @contact: dispersy@frayja.com
 """
 
-if False:
+if True:
     #
     # disable crypto
     #
