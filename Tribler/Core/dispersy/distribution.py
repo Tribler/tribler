@@ -151,7 +151,8 @@ class SyncDistribution(Distribution):
 
         message.community.dispersy.database.execute(u"UPDATE meta_message SET priority = ?, direction = ? WHERE id = ?",
                                                     (self._priority, -1 if self._synchronization_direction == u"DESC" else 1, message.database_id))
-
+        assert message.community.dispersy.database.changes == 1
+        
     def claim_sequence_number(self):
         assert self._enable_sequence_number
         self._current_sequence_number += 1
@@ -196,6 +197,7 @@ class LastSyncDistribution(SyncDistribution):
         self._history_size = history_size
 
     def setup(self, message):
+        super(LastSyncDistribution, self).setup(message)
         # keep the community for later
         self._community = message.community
 

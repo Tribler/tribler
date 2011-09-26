@@ -221,7 +221,7 @@ class Dispersy(Singleton):
         self._walk_identifiers = set()
         
         # our LAN and WAN addresses
-        self._lan_address = (get_my_wan_ip(), 0)
+        self._lan_address = (get_my_wan_ip() or "0.0.0.0", 0)
         
         try:
             host, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_wan_ip' LIMIT 1").next()
