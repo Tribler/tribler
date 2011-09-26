@@ -231,6 +231,13 @@ def main():
     callback.start(name="Dispersy")
     callback.register(start)
 
+    def rawserver_adrenaline():
+        """
+        The rawserver tends to wait for a long time between handling tasks.
+        """
+        rawserver.add_task(rawserver_adrenaline, 0.1)
+    rawserver.add_task(rawserver_adrenaline, 0.1)
+
     def watchdog():
         while True:
             try:
