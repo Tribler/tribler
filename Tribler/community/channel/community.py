@@ -984,7 +984,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
         
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData WHERE type_id = ? AND channel_id = ? AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) AND reverted = 0 ORDER BY prev_global_time DESC", (type_id, self._channel_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData WHERE type_id = ? AND channel_id = ? AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, self._channel_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
     
     def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_id):
@@ -992,7 +992,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataTorrent WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id AND type_id = ? AND channeltorrent_id = ? AND reverted = 0 ORDER BY prev_global_time DESC", (type_id, channeltorrent_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataTorrent WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id AND type_id = ? AND channeltorrent_id = ? AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, channeltorrent_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
     
     def _get_latest_modification_from_playlist_id(self, playlist_id, type_id):
@@ -1000,7 +1000,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? AND reverted = 0 ORDER BY prev_global_time DESC", (type_id, playlist_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, playlist_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
         
     @forceAndReturnDispersyThread

@@ -109,6 +109,7 @@ class TorrentDetails(AbstractDetails):
     INACTIVE = 0
     
     SAVESPACE_THRESHOLD = 800
+    MINCOMMENTHEIGHT = 230
 
     def __init__(self, parent, torrent, compact=False, noChannel=False):
         wx.Panel.__init__(self, parent)
@@ -244,7 +245,7 @@ class TorrentDetails(AbstractDetails):
             def resize():
                 best = self.overview.GetBestSize()[1]
                 if self.canComment:
-                    best = max(best, 500)
+                    best = max(best, self.MINCOMMENTHEIGHT)
                 
                 notebook = self.notebook.CalcSizeFromPage((1, best))[1]
                 self.notebook.SetMinSize((-1, notebook))
@@ -544,6 +545,8 @@ class TorrentDetails(AbstractDetails):
                 for tracker in tracker_list:
                     self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
+        
+        self.overview.OnChange()
     
         if showTab:
             for i in range(self.notebook.GetPageCount()):

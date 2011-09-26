@@ -1103,4 +1103,9 @@ def run(params = None):
     #os._exit(0)
 
 if __name__ == '__main__':
+    import yappi
+
+
+    yappi.start()
     run()
+    yappi.print_stats()

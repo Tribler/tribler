@@ -21,15 +21,17 @@ from time import time
 import inspect
 
 DEBUG = False
+TRHEADING_DEBUG = True
 
 def forceWxThread(func):
     def invoke_func(*args,**kwargs):
         if wx.Thread_IsMain():
             func(*args, **kwargs)
         else:
-            if DEBUG:
-                caller = inspect.stack()[2][3]
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, caller)
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             wx.CallAfter(func, *args, **kwargs)
             
     invoke_func.__name__ = func.__name__
@@ -38,9 +40,10 @@ def forceWxThread(func):
 def warnWxThread(func):
     def invoke_func(*args,**kwargs):
         if not wx.Thread_IsMain():
-            if DEBUG:
-                caller = inspect.stack()[2][3]
-                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, caller)
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
         
         return func(*args, **kwargs)
     
@@ -52,8 +55,10 @@ def forceDBThread(func):
         if onWorkerThread():
             func(*args, **kwargs)
         else:
-            caller = inspect.stack()[2][3]
-            print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, caller)
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             startWorker(None, func, wargs=args, wkwargs=kwargs)
             
     invoke_func.__name__ = func.__name__

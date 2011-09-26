@@ -437,20 +437,28 @@ class Playlist(Helper):
         return "Contents: '"+"'    '".join(names)+"'"
                 
 class Modification(Helper):
-    __slots__ = ('id', 'dispersy_id', 'type_id', 'value', 'time_stamp', 'inserted', 'reverted', 'channeltorrent_id', 'channelcast_db')
-    def __init__(self, id, dispersy_id, type_id, value, time_stamp, inserted, reverted, channeltorrent_id):
+    __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')
+    def __init__(self, id, dispersy_id, peer_id, type_id, value, time_stamp, inserted, channeltorrent_id):
         self.id = id
         self.dispersy_id = dispersy_id
+        self.peer_id = peer_id
         self.type_id = type_id
         self.value = value
         self.time_stamp = time_stamp
-        self.reverted = reverted
         self.inserted = inserted
         self.channeltorrent_id = channeltorrent_id
+        
+        self.moderation = None
         
     @cacheProperty
     def name(self):
         return self.channelcast_db.id2modification[self.type_id]
+    
+    @cacheProperty
+    def peer_name(self):
+        if self.peer_id == None:
+            return self.get_nickname()
+        return 'Peer %d'%self.peer_id
     
     @cacheProperty
     def torrent(self):

@@ -107,12 +107,17 @@ class ChannelManager():
         
     @forceDBThread
     def _refresh_partial(self, ids):
+        id_data = {}
         for id in ids:
             if isinstance(id, str) and len(id) == 20:
-                data = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
+                id_data[id] = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
             else:
-                data = self.channelsearch_manager.getPlaylist(self.list.channel, id)
-            self.list.RefreshData(id, data)
+                id_data[id] = self.channelsearch_manager.getPlaylist(self.list.channel, id)
+        
+        def do_gui(): 
+            for id, data in id_data.iteritems():
+                self.list.RefreshData(id, data)
+        wx.CallAfter(do_gui)
     
     @forceWxThread  
     def downloadStarted(self, infohash):
@@ -201,8 +206,15 @@ class SelectedChannelList(GenericSearchList):
         list.SetSizer(vSizer)
         self.notebook.AddPage(list, "Contents")
         
+        def isTabShown(this):
+            page = self.notebook.GetPage(self.notebook.GetSelection())
+            return page == this
+        
         self.commentList = CommentList(self.notebook, self)
+        self.commentList.IsShownOnScreen = lambda this=self.commentList: isTabShown(this)
+        
         self.activityList = ActivityList(self.notebook, self)
+        self.activityList.IsShownOnScreen = lambda this=self.activityList: isTabShown(this)
         
         sizer.Add(self.notebook, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
         
@@ -266,7 +278,9 @@ class SelectedChannelList(GenericSearchList):
         self.iamModerator = iamModerator
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
-                #do not call show, will be called by page changed event
+                self.commentList.Show(True)
+                self.activityList.Show(True)
+            
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
         else:
@@ -355,7 +369,7 @@ class SelectedChannelList(GenericSearchList):
             panel.UpdateStatus()
         
         manager = self.activityList.GetManager()
-        manager.refresh()
+        manager.do_or_schedule_refresh()
     
     @warnWxThread
     def Reset(self):
@@ -1671,7 +1685,7 @@ class ModificationActivityItem(AvantarItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
-        self.header = "Discovered a modification %s"%(format_time(modification.inserted).lower())
+        self.header = "Discovered a modification by %s at %s"%(modification.peer_name, format_time(modification.inserted).lower())
         self.body = "Modified %s in '%s'"%(modification.name, modification.value)
         
         if modification.torrent:
@@ -1699,15 +1713,16 @@ class ModificationItem(AvantarItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
-        self.header = "%s modified %s"%(modification.name.capitalize(), format_time(modification.time_stamp).lower())
         self.body = modification.value
         
         im = IconsManager.getInstance()
-        if modification.reverted:
-            self.header = "---REVERTED--- " + self.header
+        if modification.moderation:
+            moderation = modification.moderation
+            self.header = "%s modified by %s,\nbut reverted by %s due to: '%s'"%(modification.name.capitalize(), modification.peer_name, moderation.peer_name, moderation.message)
             self.avantar = im.get_default('REVERTED_MODIFICATION',SMALL_ICON_MAX_DIM)
             self.maxlines = 2
         else:
+            self.header = "%s modified by %s at %s"%(modification.name.capitalize(), modification.peer_name, format_time(modification.time_stamp).lower())
             self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
         
             if not self.noButton:
@@ -1760,6 +1775,12 @@ class CommentManager:
             
             self.list.header.SetTitle('Comments for this torrent')
     
+    def do_or_schedule_refresh(self, force_refresh = False):
+        if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
+            self.refresh()
+        else:
+            self.list.dirty = True
+    
     def refreshDirty(self):
         self.refresh()
     
@@ -1777,10 +1798,7 @@ class CommentManager:
         self.list.SetData(comments)
         
     def new_comment(self):
-        if self.list.ShouldGuiUpdate():
-            self.refresh()
-        else:
-            self.list.dirty = True
+        self.do_or_schedule_refresh()
     
     @forceDBThread
     def addComment(self, comment):
@@ -1875,6 +1893,12 @@ class ActivityManager:
             
             self.list.header.SetTitle('Recent activity in this Playlist')
     
+    def do_or_schedule_refresh(self, force_refresh = False):
+        if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
+            self.refresh()
+        else:
+            self.list.dirty = True
+    
     def refreshDirty(self):
         self.refresh()
     
@@ -1901,10 +1925,7 @@ class ActivityManager:
         self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations)
         
     def new_activity(self):
-        if self.list.ShouldGuiUpdate():
-            self.refresh()
-        else:
-            self.list.dirty = True
+        self.do_or_schedule_refresh()
 
 class ActivityList(List):
     def __init__(self, parent, parent_list):

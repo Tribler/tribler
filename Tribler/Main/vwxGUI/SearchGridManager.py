@@ -63,6 +63,7 @@ class TorrentManager:
         # Remote results for current keywords
         self.remoteHits = []
         self.remoteLock = threading.Lock()
+        self.remoteRefresh = False
         
         # Requests for torrents
         self.requestedTorrents = set()
@@ -461,6 +462,7 @@ class TorrentManager:
             return False
 
         self.oldsearchkeywords = self.searchkeywords
+        self.remoteRefresh = False
         if DEBUG:
             print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords
                     
@@ -531,6 +533,7 @@ class TorrentManager:
             raise
         
         finally:
+            self.remoteRefresh = False
             self.remoteLock.release()
         return hitsUpdated
         
@@ -648,6 +651,12 @@ class TorrentManager:
             return False
         
         finally:
+            if refreshGrid:
+                #if already scheduled, dont schedule another
+                if self.remoteRefresh:
+                    refreshGrid = False
+                else:
+                    self.remoteRefresh = True
             self.remoteLock.release()
             
             if refreshGrid:
@@ -1142,9 +1151,17 @@ class ChannelSearchGridManager:
     def _createModifications(self, hits):
         returnList = []
         for hit in hits:
-            mod = Modification(*hit)
+            mod = Modification(*hit[:8])
             mod.channelcast_db = self.channelcast_db
+            mod.get_nickname = self.utility.session.get_nickname
             
+            moderation = hit[8:]
+            if moderation[0] is not None:
+                moderation = Moderation(*moderation)
+                moderation.channelcast_db = self.channelcast_db
+                moderation.get_nickname = self.utility.session.get_nickname
+                
+                mod.moderation = moderation
             #touch torrent property to load torrent
             mod.torrent
             
