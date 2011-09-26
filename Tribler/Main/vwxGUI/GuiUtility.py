@@ -21,7 +21,7 @@ from time import time
 import inspect
 
 DEBUG = False
-TRHEADING_DEBUG = True
+TRHEADING_DEBUG = False
 
 def forceWxThread(func):
     def invoke_func(*args,**kwargs):
