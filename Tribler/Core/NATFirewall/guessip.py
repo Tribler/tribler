@@ -53,15 +53,18 @@ def get_my_wan_ip_win32():
     for line in os.popen(ifcmd).readlines():
         words = line.split()
         if len(words) >= 3:
-            if (words[0] == 'IP' and words[1] == 'Address.') or (words[1] == 'IP' and words[2] == 'Address.'): # Autoconfiguration entry
+            if (words[0] == 'IPv4' and words[1] == 'Address.') or (words[0] == 'IP' and words[1] == 'Address.') or (words[1] == 'IP' and words[2] == 'Address.'): # Autoconfiguration entry
+                ip = words[-1]
+                if ip.endswith('(Preferred)'):
+                    ip = ip[:-len('(Preferred)')]
                 try:
-                    socket.getaddrinfo(words[-1],None,socket.AF_INET)
-                    myip = words[-1]
+                    socket.getaddrinfo(ip,None,socket.AF_INET)
+                    myip = ip
                     if DEBUG:
                         print "ipconfig found IP address",myip
                 except socket.gaierror:
                     if DEBUG:
-                        print "ipconfig ignoring IPv6 address",words[-1]
+                        print "ipconfig ignoring IPv6 address",ip
                     pass
             elif words[0] == 'Default' and words[1] == 'Gateway':
                 if words[-1] == ':':
