@@ -456,11 +456,11 @@ class TorrentManager:
 
     def searchLocalDatabase(self):
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
-        if self.searchkeywords == self.oldsearchkeywords and len(self.hits) > 0:
+        if self.searchkeywords == self.oldsearchkeywords:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
             return False
-
+        
         self.oldsearchkeywords = self.searchkeywords
         self.remoteRefresh = False
         if DEBUG:
@@ -938,6 +938,7 @@ class ChannelSearchGridManager:
         self.hits = {}
         self.remoteHits = []
         self.remoteLock = threading.Lock()
+        self.remoteRefresh = False
         
         self.channelcast_db = None
         self.votecastdb = None
@@ -1459,6 +1460,8 @@ class ChannelSearchGridManager:
     
     def setSearchKeywords(self, wantkeywords):
         self.searchkeywords = wantkeywords
+        
+        self.remoteHits = []
         self.searchDispersy()
         
     def getChannelHits(self):
@@ -1515,12 +1518,13 @@ class ChannelSearchGridManager:
     
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
-        if self.searchkeywords == self.oldsearchkeywords and len(self.hits) > 0:
+        if self.searchkeywords == self.oldsearchkeywords:
             if DEBUG:
                 print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: returning old hit list", len(self.hits)
             return False
         
         self.oldsearchkeywords = self.searchkeywords
+        self.remoteRefresh = False
         if DEBUG:
             print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: Want",self.searchkeywords
      
@@ -1575,12 +1579,19 @@ class ChannelSearchGridManager:
                 print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
         
         finally:
-            nr_hits = len(self.remoteHits)
+            refreshGrid = len(self.remoteHits) > 0
+            
+            if refreshGrid:
+                #if already scheduled, dont schedule another
+                if self.remoteRefresh:
+                    refreshGrid = False
+                else:
+                    self.remoteRefresh = True
+            
             self.remoteLock.release()
             
-            if nr_hits > 0:
+            if refreshGrid:
                 self.refreshGrid()
-        
         
     def refreshGrid(self):
         if self.gridmgr is not None:
