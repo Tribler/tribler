@@ -321,6 +321,9 @@ class Dispersy(Singleton):
         # our address may not be a bootstrap address
         if self._lan_address in self._bootstrap_candidates:
             del self._bootstrap_candidates[self._lan_address]
+        # our address may not be a candidate
+        if self._lan_address in self._candidates:
+            del self._candidates[self._lan_address]
         self.wan_address_vote(self._lan_address, ("", -1))
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
@@ -653,6 +656,10 @@ class Dispersy(Singleton):
                 # our address may not be a bootstrap address
                 if self._wan_address in self._bootstrap_candidates:
                     del self._bootstrap_candidates[self._wan_address]
+
+                # our address may not be a candidate
+                if self._wan_address in self._candidates:
+                    del self._candidates[self._wan_address]
                 
                 # notify all communities that our wan address has changed.
                 # TODO the wan address should no longer be in the identity message... remove below code
@@ -1403,6 +1410,7 @@ class Dispersy(Singleton):
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
                 elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
+                    assert not (message.address == self.lan_address or message.address == self.wan_address)
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
@@ -1411,6 +1419,7 @@ class Dispersy(Singleton):
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
                 elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
+                    assert not (message.address == self.lan_address or message.address == self.wan_address)
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
