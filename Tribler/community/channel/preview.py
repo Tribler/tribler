@@ -24,8 +24,6 @@ class PreviewChannelCommunity(ChannelCommunity):
                      u"dispersy-authorize",
                      u"dispersy-missing-proof",
                      u"dispersy-revoke",
-
-                     # TODO remove
                      u"dispersy-dynamic-settings",
 
                      u"channel",
@@ -34,7 +32,7 @@ class PreviewChannelCommunity(ChannelCommunity):
                      u"comment",
                      u"modification",
                      u"playlist_torrent",
-                     u"warning",
+                     u"moderation",
                      u"mark_torrent",
                      u"missing-channel",
                      ]:
