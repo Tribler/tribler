@@ -25,6 +25,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Core.dispersy.dispersy import Dispersy
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -127,6 +128,8 @@ class Stats(XRCPanel):
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
+        
+        vSizer.Add(DispersyPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
@@ -239,13 +242,6 @@ class NetworkPanel(HomePanel):
         self.UpdateStats()
         
     def CreatePanel(self):
-        def getBoldText(parent, text):
-            statictext = StaticText(parent, -1, text)
-            font = statictext.GetFont()
-            font.SetWeight(wx.FONTWEIGHT_BOLD)
-            statictext.SetFont(font)
-            return statictext
-        
         panel = wx.Panel(self)
         panel.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -320,6 +316,69 @@ class NetworkPanel(HomePanel):
             self.timer.Restart(10000)
         else:
             self.timer = wx.CallLater(10000, self.UpdateStats)
+            
+class DispersyPanel(HomePanel):
+    def __init__(self, parent):
+        self.dispersy = Dispersy.get_instance()
+        HomePanel.__init__(self, parent, 'Dispersy info' , LIST_BLUE)
+        
+        self.SetMinSize((-1, 200))
+        
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
+        self.timer.Start(30000, False)
+        self.UpdateStats()
+        
+    def CreatePanel(self):
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(wx.WHITE)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        gridSizer.AddGrowableCol(1)
+               
+        self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT)
+        vSizer.Add(self.tree, 1, wx.EXPAND)
+        
+        panel.SetSizer(vSizer)
+        return panel
+    
+    def _onTimer(self, event):
+        if self.IsShownOnScreen():
+            self.UpdateStats()
+    
+    def UpdateStats(self):
+        def db_callback():
+            info = self.dispersy.info()
+            self._UpdateStats(info)
+
+        startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats")
+    
+    @forceWxThread
+    def _UpdateStats(self, info):
+        def addValue(parentNode, value):
+            if isinstance(value, dict):
+                addDict(parentNode, value)
+            elif isinstance(value, list):
+                addList(parentNode, value)
+            else:
+                self.tree.AppendItem(parentNode, str(value))
+        
+        def addList(parentNode, nodelist):
+            for key, value in enumerate(nodelist):
+                keyNode = self.tree.AppendItem(parentNode, str(key))
+                addValue(keyNode, value)
+        
+        def addDict(parentNode, nodedict):
+            for key, value in nodedict.iteritems():
+                keyNode = self.tree.AppendItem(parentNode, str(key))
+                addValue(keyNode, value)
+        
+        self.tree.DeleteAllItems()
+        fakeRoot = self.tree.AddRoot('fake')
+        for key, value in info.iteritems():
+            parentNode = self.tree.AppendItem(fakeRoot, key)
+            addValue(parentNode, value)
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
@@ -702,14 +761,7 @@ class BuzzPanel(HomePanel):
 #        
 #        self.UpdateStats()
 #        
-#    def CreatePanel(self):
-#        def getBoldText(parent, text):
-#            statictext = wx.StaticText(parent, -1, text)
-#            font = statictext.GetFont()
-#            font.SetWeight(wx.FONTWEIGHT_BOLD)
-#            statictext.SetFont(font)
-#            return statictext
-#        
+#    def CreatePanel(self):     
 #        panel = wx.Panel(self)
 #        panel.SetBackgroundColour(wx.WHITE)
 #        vSizer = wx.BoxSizer(wx.VERTICAL)
