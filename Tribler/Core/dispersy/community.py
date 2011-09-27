@@ -650,9 +650,6 @@ class Community(object):
         """
         self._dispersy.detach_community(self)
 
-    def dispersy_start_walk(self):
-        return self._dispersy.start_walk(self)
-
     def claim_global_time(self):
         """
         Increments the current global time by one and returns this value.
@@ -1091,6 +1088,26 @@ class Community(object):
             self._conversions[None] = conversion
         self._conversions[conversion.prefix] = conversion
 
+    @documentation(Dispersy.start_walk)
+    def dispersy_start_walk(self):
+        return self._dispersy.start_walk(self)
+
+    @documentation(Dispersy.on_introduction_request)
+    def dispersy_on_introduction_request(self, messages):
+        return self._dispersy.on_introduction_request(messages)
+
+    @documentation(Dispersy.on_introduction_response)
+    def dispersy_on_introduction_response(self, messages):
+        return self._dispersy.on_introduction_response(messages)
+
+    @documentation(Dispersy.on_puncture_request)
+    def dispersy_on_puncture_request(self, messages):
+        return self._dispersy.on_puncture_request(messages)
+
+    @documentation(Dispersy.on_puncture)
+    def dispersy_on_puncture(self, messages):
+        return self._dispersy.on_puncture(messages)
+        
     @documentation(Dispersy.get_message)
     def get_dispersy_message(self, member, global_time):
         return self._dispersy.get_message(self, member, global_time)

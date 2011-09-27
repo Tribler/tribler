@@ -39,7 +39,6 @@ of, the name it uses as an internal identifier, and the class that will contain 
 
 from hashlib import sha1
 from itertools import groupby, islice, count
-# from lencoder import log
 from os.path import abspath
 from random import random, choice, shuffle
 from time import time
@@ -384,10 +383,10 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=5.0),
-                Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
-                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
-                Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, self.on_puncture, delay=0.0),
+        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, community.dispersy_on_introduction_request, delay=5.0),
+                Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, community.dispersy_on_introduction_response, delay=0.0),
+                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, community.dispersy_on_puncture_request, delay=0.0),
+                Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, community.dispersy_on_puncture, delay=0.0),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
@@ -1774,9 +1773,7 @@ class Dispersy(Singleton):
         # decide if the requested node should introduce us to someone else
         advice = random() < 0.5 or len(self._candidates) <= 5
 
-        # log("walktest.log", "create_introduction_request", lan_address=self._lan_address, wan_address=self._wan_address, candidates=[(x.lan_address, x.wan_address) for x in self._candidates.itervalues()])
-        # log("walktest.log", "out-introduction-request", destination_address=destination, source_lan_address=self._lan_address, source_wan_address=self._wan_address, advice=advice, identifier=identifier)
-
+        # obtain sync range
         time_low, time_high, bloom_filter = community.dispersy_claim_sync_bloom_filter(identifier)
         
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
@@ -1813,8 +1810,6 @@ class Dispersy(Singleton):
             else:
                 candidate = None
 
-            # log("walktest.log", "in-introduction-request", source=message.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, advice=message.payload.advice, identifier=message.payload.identifier)
-
             if candidate:
                 # create introduction responses
                 meta = community.get_meta_message(u"dispersy-introduction-response")
@@ -1825,15 +1820,10 @@ class Dispersy(Singleton):
                 meta = community.get_meta_message(u"dispersy-puncture-request")
                 requests.append(meta.impl(distribution=(community.global_time,), destination=(destination,), payload=(message.payload.source_lan_address, message.payload.source_wan_address)))
 
-                # log("walktest.log", "out-introduction-response", destination_address=message.address, source_lan_address=self._lan_address, source_wan_address=self._wan_address, lan_introduction_address=candidate.lan_address, wan_introduction_address=candidate.wan_address, identifier=message.payload.identifier)
-                # log("walktest.log", "out-puncture-request", destination=destination, lan_walker_address=message.payload.source_lan_address, wan_walker_address=message.payload.source_wan_address)
-                
             else:
                 none = ("0.0.0.0", 0)
                 meta = community.get_meta_message(u"dispersy-introduction-response")
                 responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, none, none, message.payload.identifier)))
-
-                # log("walktest.log", "out-introduction-response", destination_address=message.address, source_lan_address=self._lan_address, source_wan_address=self._wan_address, lan_introduction_address=none, wan_introduction_address=none, identifier=message.payload.identifier)
 
         if responses:
             self.store_update_forward(responses, False, False, True)
@@ -1870,14 +1860,10 @@ class Dispersy(Singleton):
             if intermediary_address in self._candidates:
                 del self._candidates[intermediary_address]
 
-            # log("walktest.log", "introduction-response-timeout", intermediary=intermediary_address, advice=advice)
-
             # timeout, start new walk
             community.dispersy_start_walk()
 
         else:
-            # log("walktest.log", "in-introduction-response", source=message.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, lan_introduction_address=message.payload.lan_introduction_address, wan_introduction_address=message.payload.wan_introduction_address, identifier=message.payload.identifier)
-
             if advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
                 # we asked for, and received, an introduction
 
@@ -1897,15 +1883,10 @@ class Dispersy(Singleton):
             meta = community.get_meta_message(u"dispersy-puncture")
             punctures.append(meta.impl(distribution=(community.global_time,), destination=(destination,)))
 
-            # log("walktest.log", "in-puncture-request", source=message.address, lan_walker_address=message.payload.lan_walker_address, wan_walker_address=message.payload.wan_walker_address)
-            # log("walktest.log", "out-puncture", destination=destination)
-
         self.store_update_forward(punctures, False, False, True)
 
     def on_puncture(self, messages):
         pass
-        # for message in messages:
-        #     log("walktest.log", "in-puncture", source=message.address)
 
     def store_update_forward(self, messages, store, update, forward):
         """
