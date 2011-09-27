@@ -41,3 +41,6 @@ class PreviewChannelCommunity(ChannelCommunity):
     def dispersy_start_walk(self):
         # disable walk
         pass
+    
+    def get_channel_mode(self):
+        return ChannelCommunity.CHANNEL_CLOSED, False
