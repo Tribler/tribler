@@ -539,7 +539,6 @@ CREATE TABLE IF NOT EXISTS ChannelMetaData (
   prev_global_time      integer,
   time_stamp            integer         NOT NULL,
   inserted              integer         DEFAULT (strftime('%s','now')),
-  reverted              boolean         DEFAULT 0,
   UNIQUE (dispersy_id),
   FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE
 );

@@ -60,26 +60,31 @@ class RemoteSearchManager:
     @forceWxThread
     def refresh(self):
         def db_callback():
+            keywords = self.oldkeywords
+            
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
-            return data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
+            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
         
-        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh")
+        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords)
 
     def _on_refresh(self, delayedResult):
-        data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
+        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
         
-        if new_items or new_channels:
-            self.list.SetNrResults(total_items, total_channels)
+        if keywords == self.oldkeywords:
+            if new_items or new_channels:
+                self.list.SetNrResults(total_items, total_channels)
+                
+            self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
+            self.list.SetSelectedBundleMode(selected_bundle_mode)
             
-        self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
-        self.list.SetSelectedBundleMode(selected_bundle_mode)
-        
-        if new_items:
-            self.list.SetData(data_files)
-        else:
-            if DEBUG:
-                print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
+            if new_items:
+                self.list.SetData(data_files)
+            else:
+                if DEBUG:
+                    print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
+        elif DEBUG:
+            print >> sys.stderr, "RemoteSearchManager: ignoring old keywords"
         
     def refresh_channel(self):
         def db_callback():
