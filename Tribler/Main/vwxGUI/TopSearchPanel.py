@@ -66,9 +66,7 @@ class TopSearchPanel(bgPanel):
         self._selectPage('search_results')
 
     def OnChannels(self, event):
-        if self.guiUtility.guiPage not in ['channels', 'mychannel']:
-            wx.CallAfter(self.guiUtility.ShowPage, 'channels')
-        self.selectTab('channels')
+        self._selectPage('channels')
    
     def OnSettings(self, event):
         self._selectPage('settings')

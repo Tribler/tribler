@@ -509,7 +509,7 @@ class AbstractListBody():
     def SetFilter(self, filter, filterMessage, highlight):
         self.filterMessage = filterMessage
         
-        if filter != self.filter:
+        if self.filter is not None or filter is not None:
             self.filter = filter
             self.Scroll(-1, 0)
             self.SetData(highlight = highlight)
