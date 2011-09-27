@@ -118,7 +118,7 @@ def get_my_wan_ip_linux():
                 flag = True
             elif words[0] == 'inet':
                 words2 = words[1].split(':') # "inet addr:130.37.192.1" line
-                if len(words2) == 2:
+                if len(words2) == 2 and words2[1] != '127.0.0.1':
                     mywanip = words2[1]
                     break
                 else:
