@@ -59,6 +59,7 @@ class TorrentManager:
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
+        self.hitsLock = threading.Lock()
         
         # Remote results for current keywords
         self.remoteHits = []
@@ -335,48 +336,55 @@ class TorrentManager:
             okGood = torrent.status_id != deadstatus_id
             return okCategory and okGood
         
-        # 1. Local search puts hits in self.hits
-        if DEBUG:
-            beginlocalsearch = time()
-        new_local_hits = self.searchLocalDatabase()
-        
-        if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
-
-        # 2. Filter self.hits on category and status
-        if DEBUG:
-            beginfilterhits = time()
+        try:
+            #locking hits variable
+            self.hitsLock.acquire()
             
-        if new_local_hits:
-            self.hits = filter(torrentFilter, self.hits)
-
-        if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
-        
-        # 3. Add remote hits that may apply.
-        new_remote_hits = self.addStoredRemoteResults()
-
-        if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
-
-        if DEBUG:
-            beginsort = time()
-        
-        # boudewijn: now that we have sorted the search results we
-        # want to prefetch the top N torrents.
-        if new_local_hits or new_remote_hits:
-            if sort == 'rameezmetric':
-                self.sort()
-
-            self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
-                                                        self.pref_db, self.mypref_db, self.search_db)
+            # 1. Local search puts hits in self.hits
+            if DEBUG:
+                beginlocalsearch = time()
+            new_local_hits = self.searchLocalDatabase()
             
-            self.hits = self.library_manager.addDownloadStates(self.hits)
+            if DEBUG:
+                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
+    
+            # 2. Filter self.hits on category and status
+            if DEBUG:
+                beginfilterhits = time()
+                
+            if new_local_hits:
+                self.hits = filter(torrentFilter, self.hits)
+    
+            if DEBUG:
+                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
             
-            self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
-
-        if DEBUG:
-            beginbundle = time()
+            # 3. Add remote hits that may apply.
+            new_remote_hits = self.addStoredRemoteResults()
+    
+            if DEBUG:
+                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
+    
+            if DEBUG:
+                beginsort = time()
+            
+            # boudewijn: now that we have sorted the search results we
+            # want to prefetch the top N torrents.
+            if new_local_hits or new_remote_hits:
+                if sort == 'rameezmetric':
+                    self.sort()
+    
+                self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
+                                                            self.pref_db, self.mypref_db, self.search_db)
+                
+                self.hits = self.library_manager.addDownloadStates(self.hits)
+                
+                self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
+    
+            if DEBUG:
+                beginbundle = time()
+                
+        finally:
+            self.hitsLock.release()
 
         # Niels: important, we should not change self.hits otherwise prefetching will not work 
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
@@ -438,15 +446,26 @@ class TorrentManager:
     
     def setSearchKeywords(self, wantkeywords):
         if wantkeywords != self.searchkeywords:
-            self.bundle_mode = None
-        
-        self.searchkeywords = wantkeywords
-        if DEBUG:
-            print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,";time:%", time()
+            try:
+                self.hitsLock.acquire()
+                self.remoteLock.acquire()
+                
+                
+                self.bundle_mode = None
+                self.searchkeywords = wantkeywords
+                if DEBUG:
+                    print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,";time:%", time()
             
-        self.filteredResults = 0
-        self.remoteHits = []
-        self.oldsearchkeywords = ''
+                self.filteredResults = 0
+                
+                self.hits = []
+                self.remoteHits = []
+                
+                self.oldsearchkeywords = ''
+                self.remoteRefresh = False
+            finally:
+                self.hitsLock.release()
+                self.remoteLock.release()
             
     def setBundleMode(self, bundle_mode):
         if bundle_mode != self.bundle_mode:
@@ -460,9 +479,8 @@ class TorrentManager:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
             return False
-        
         self.oldsearchkeywords = self.searchkeywords
-        self.remoteRefresh = False
+        
         if DEBUG:
             print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords
                     
@@ -546,23 +564,17 @@ class TorrentManager:
         """
         if self.searchkeywords == kws:
             startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
-       
+    
     def _gotRemoteHits(self, permid, kws, answers):
         refreshGrid = False
         try:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
-                
             self.remoteLock.acquire()
             
-            permid_channelid = self.channelcast_db.getPermChannelIdDict()
-            my_votes = self.votecastdb.getMyVotes()
-            
-            # Always store the results, only display when in filesMode
-            # We got some replies. First check if they are for the current query
             if self.searchkeywords == kws:
-                numResults = 0
-                catobj = Category.getInstance()
+                permid_channelid = self.channelcast_db.getPermChannelIdDict()
+                my_votes = self.votecastdb.getMyVotes()
                 
                 for key,value in answers.iteritems():
                     # Convert answer fields as per 
@@ -1459,10 +1471,16 @@ class ChannelSearchGridManager:
         return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
     
     def setSearchKeywords(self, wantkeywords):
-        self.searchkeywords = wantkeywords
+        if wantkeywords != self.searchkeywords:
+            try:
+                self.remoteLock.acquire()
         
-        self.remoteHits = []
-        self.searchDispersy()
+                self.searchkeywords = wantkeywords
+                self.remoteHits = []
+                self.remoteRefresh = False
+                self.searchDispersy()
+            finally:
+                self.remoteLock.release()
         
     def getChannelHits(self):
         hitsUpdated = self.searchLocalDatabase()
@@ -1511,10 +1529,15 @@ class ChannelSearchGridManager:
     
     @forceDispersyThread 
     def searchDispersy(self):
+        sendSearch = False
         for community in self.dispersy.get_communities():
             if isinstance(community, AllChannelCommunity):
                 community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                sendSearch = True
                 break
+            
+        if not sendSearch:
+            print >> sys.stderr, "Could not send search, AllChannelCommunity not found?"
     
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
@@ -1524,7 +1547,7 @@ class ChannelSearchGridManager:
             return False
         
         self.oldsearchkeywords = self.searchkeywords
-        self.remoteRefresh = False
+        
         if DEBUG:
             print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: Want",self.searchkeywords
      

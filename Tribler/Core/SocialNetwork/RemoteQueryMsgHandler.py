@@ -491,7 +491,10 @@ class RemoteQueryMsgHandler:
         elif query.startswith("CHANNEL"):
             for signature,r in d['a'].iteritems():
                 r['publisher_name'] = r['publisher_name'].decode("UTF-8")
-                r['torrentname'] = r['publisher_name'].decode("UTF-8")
+                try:
+                    r['torrentname'] = r['publisher_name'].decode("UTF-8")
+                except:
+                    r['torrentname'] = r['publisher_name']
             
 
     def inc_peer_nqueries(self, permid):
