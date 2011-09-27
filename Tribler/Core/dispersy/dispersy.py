@@ -1419,7 +1419,7 @@ class Dispersy(Singleton):
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
                 elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
-                    assert not (message.address == self.lan_address or message.address == self.wan_address)
+                    assert not (message.address == self.lan_address or message.address == self.wan_address), (message.address, self.lan_address, self.wan_address)
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
