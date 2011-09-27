@@ -98,18 +98,24 @@ class Statistics(object):
         self._total_up = 0
         self._total_down = 0
 
+    def info(self):
+        """
+        Returns all statistics.
+        """
+        return {"drop":self._drop,
+                "delay":self._delay,
+                "success":self._success,
+                "outgoing":self._outgoing,
+                "sequence_number":self._sequence_number,
+                "total_up": self._total_up,
+                "total_down": self._total_down}
+        
     def reset(self):
         """
         Returns, and subsequently removes, all statistics.
         """
         try:
-            return {"drop":self._drop,
-                    "delay":self._delay,
-                    "success":self._success,
-                    "outgoing":self._outgoing,
-                    "sequence_number":self._sequence_number,
-                    "total_up": self._total_up,
-                    "total_down": self._total_down}
+            return self.info()
 
         finally:
             self._drop = {}
@@ -3499,11 +3505,12 @@ class Dispersy(Singleton):
         # 1.4: added info["statistics"]["outgoing"] containing all calls to _send(...)
         # 1.5: replaced some dispersy_candidate_... attributes and added a dump of the candidates
         # 1.6: new random walk candidates and my LAN and WAN addresses
+        # 1.7: removed several community atributes, no longer calling reset on self._statistics
 
-        info = {"version":1.5, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        info = {"version":1.7, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
         if statistics:
-            info["statistics"] = self._statistics.reset()
+            info["statistics"] = self._statistics.info()
             # if __debug__: dprint(info["statistics"], pprint=1)
 
         info["communities"] = []
@@ -3514,22 +3521,8 @@ class Dispersy(Singleton):
             if attributes:
                 community_info["attributes"] = dict((attr, getattr(community, attr))
                                                     for attr
-                                                    in ("dispersy_candidate_request_initial_delay",
-                                                        "dispersy_candidate_request_interval",
-                                                        "dispersy_candidate_request_member_count",
-                                                        "dispersy_candidate_cleanup_age_threshold",
-                                                        "dispersy_candidate_limit",
-                                                        "dispersy_candidate_online_range",
-                                                        "dispersy_candidate_online_scores",
-                                                        "dispersy_candidate_direct_observation_score",
-                                                        "dispersy_candidate_indirect_observation_score",
-                                                        "dispersy_candidate_subjective_set_score",
-                                                        "dispersy_candidate_probabilistic_factor",
-                                                        "dispersy_sync_initial_delay",
-                                                        "dispersy_sync_interval",
-                                                        "dispersy_sync_bloom_filter_error_rate",
+                                                    in ("dispersy_sync_bloom_filter_error_rate",
                                                         "dispersy_sync_bloom_filter_bits",
-                                                        "dispersy_sync_member_count",
                                                         "dispersy_sync_response_limit",
                                                         "dispersy_missing_sequence_response_limit"))
 
