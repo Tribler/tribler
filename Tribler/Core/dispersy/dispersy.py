@@ -1750,7 +1750,7 @@ class Dispersy(Singleton):
                 candidate = self.yield_walk_candidates(community).next()
 
             except StopIteration:
-                if __debug__: dprint("no candidate to start walk.  retry in N seconds", level="error")
+                if __debug__: dprint("no candidate to start walk.  retry in 1.0 seconds", level="error")
                 self._callback.register(self.start_walk, (community,), delay=1.0)
 
             else:

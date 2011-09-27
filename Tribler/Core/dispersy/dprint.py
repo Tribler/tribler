@@ -727,7 +727,7 @@ def dprint(*args, **kargs):
     if kargs["style"] == "short":
         prefix.append("%s:%s %s " % (short_source_file, kargs["source_line"], kargs["source_function"]))
     elif kargs["style"] == "column":
-        prefix.append("%25s:%-4s %-25s | " % (short_source_file[-25:], kargs["source_line"], kargs["source_function"]))
+        prefix.append("%25s:%-4s %-25s | " % (short_source_file[-25:], kargs["source_line"], kargs["source_function"][-25:]))
     else:
         raise ValueError("Invalid/unknown style: \"%s\"" % kargs["style"])
     prefix = " ".join(prefix)
