@@ -87,6 +87,9 @@ class TopSearchPanel(bgPanel):
         
     def _DoPage(self, increment):
         pages = [self.home.GetValue(), self.results.GetValue(), self.channels.GetValue(), self.settings.GetValue(), self.my_files.GetValue()]
+        if not self.results.IsEnabled():
+            pages.pop(1)
+            
         curPage = 0
         for i in range(len(pages)):
             if pages[i]:
@@ -96,10 +99,14 @@ class TopSearchPanel(bgPanel):
         curPage = (curPage + increment) % len(pages)
         if curPage < 0:
             curPage = len(pages) - 1
+            
         if increment > 0:
             pageNames = ['home', 'search_results', 'channels', 'my_files', 'my_files']
         else:
             pageNames = ['home', 'search_results', 'channels', 'channels', 'my_files']
+            
+        if not self.results.IsEnabled():
+            pageNames.remove('search_results')
         self._selectPage(pageNames[curPage])
     
     def _selectPage(self, page):
@@ -113,7 +120,7 @@ class TopSearchPanel(bgPanel):
             self.home.SetValue(tab == 'home')
             self.results.SetValue(tab == 'search_results')
             
-        self.channels.SetValue(tab == 'channels')
+        self.channels.SetValue(tab in ['channels', 'selectedchannel', 'mychannel'])
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
         

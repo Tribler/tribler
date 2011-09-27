@@ -136,6 +136,8 @@ class GUIUtility:
             dialog.Centre()
             dialog.ShowModal()
             dialog.Destroy()
+            
+            self.frame.top_bg.selectTab(page)
         
         elif page != self.guiPage:
             self.frame.top_bg.selectTab(page)

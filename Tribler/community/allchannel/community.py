@@ -159,7 +159,7 @@ class AllChannelCommunity(Community):
                             break
                 else:
                     if DEBUG:
-                        print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message to"
+                        print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
                     
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no data for channelcast"
@@ -252,7 +252,7 @@ class AllChannelCommunity(Community):
         self._dispersy.store_update_forward([message], store = False, update = False, forward = True)
         
         if DEBUG:
-            print >> sys.stderr, "AllChannelCommunity: searching for ",query
+            print >> sys.stderr, "AllChannelCommunity: searching for",query
     
     def check_channelsearch(self, messages):
         #no timeline check because PublicResolution policy is used
@@ -264,7 +264,7 @@ class AllChannelCommunity(Community):
             query = " ".join(keywords)
             
             if DEBUG:
-                print >> sys.stderr, "AllChannelCommunity: got search request for ",query
+                print >> sys.stderr, "AllChannelCommunity: got search request for",query
             
             results = self._channelcast_db.searchChannelsTorrent(query, 7, 7, dispersyOnly = True)
             if len(results) > 0:
