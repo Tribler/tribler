@@ -389,10 +389,10 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, community.dispersy_on_introduction_request, delay=5.0),
-                Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, community.dispersy_on_introduction_response, delay=0.0),
-                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, community.dispersy_on_puncture_request, delay=0.0),
-                Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, community.dispersy_on_puncture, delay=0.0),
+        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=5.0),
+                Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
+                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
+                Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, self.on_puncture, delay=0.0),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
@@ -1402,7 +1402,7 @@ class Dispersy(Singleton):
             for message in messages:
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
-                elif not message.address in self._bootstrap_candidates:
+                elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
@@ -1410,7 +1410,7 @@ class Dispersy(Singleton):
             for message in messages:
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
-                elif not message.address in self._bootstrap_candidates:
+                elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 

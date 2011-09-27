@@ -53,15 +53,15 @@ def main(filename):
         if "candidates" in kargs:
             check_candidates(datetime, kargs["candidates"])
 
-        if "internal_address" in kargs and "external_address" in kargs:
-            check_my_addresses(datetime, kargs["internal_address"], kargs["external_address"])
+        if "internal_address" in kargs and "wan_address" in kargs:
+            check_my_addresses(datetime, kargs["internal_address"], kargs["wan_address"])
 
-    def check_my_addresses(datetime, internal_address, external_address):
+    def check_my_addresses(datetime, lan_address, wan_address):
         if not public_addresses:
-            public_addresses.append((datetime, internal_address, external_address))
+            public_addresses.append((datetime, lan_address, wan_address))
 
-        elif not public_addresses[-1][1] == internal_address or not public_addresses[-1][2] == external_address:
-            public_addresses.append((datetime, internal_address, external_address))
+        elif not public_addresses[-1][1] == lan_address or not public_addresses[-1][2] == wan_address:
+            public_addresses.append((datetime, lan_address, wan_address))
 
     def check_candidates(datetime, candidates):
         def to_string(candidate):
@@ -143,26 +143,26 @@ def main(filename):
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
 
-    def in_introduction_request(lineno, datetime, message, source, destination_address, source_internal_address, source_external_address, advice, identifier):
+    def in_introduction_request(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, advice, identifier):
         incoming["introduction-request"] += 1
         if advice:
             incoming["introduction-request-with-advice"] += 1
         
-    def out_introduction_request(lineno, datetime, message, destination_address, source_internal_address, source_external_address, advice, identifier):
+    def out_introduction_request(lineno, datetime, message, destination_address, source_lan_address, source_wan_address, advice, identifier):
         outgoing["introduction-request"] += 1
         if advice:
             outgoing["introduction-request-with-advice"] += 1
 
-    def in_introduction_response(lineno, datetime, message, source, destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier):
+    def in_introduction_response(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         incoming["introduction-response"] += 1
 
-    def out_introduction_response(lineno, datetime, message, destination_address, source_internal_address, source_external_address, internal_introduction_address, external_introduction_address, identifier):
+    def out_introduction_response(lineno, datetime, message, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         outgoing["introduction-response"] += 1
         
-    def in_puncture_request(lineno, datetime, message, source, internal_walker_address, external_walker_address):
+    def in_puncture_request(lineno, datetime, message, source, lan_walker_address, wan_walker_address):
         incoming["puncture-request"] += 1
 
-    def out_puncture_request(lineno, datetime, message, destination, internal_walker_address, external_walker_address):
+    def out_puncture_request(lineno, datetime, message, destination, lan_walker_address, wan_walker_address):
         outgoing["puncture-request"] += 1
 
     def in_puncture(lineno, datetime, message, source):
@@ -193,7 +193,7 @@ def main(filename):
 
     # counters
     # messages = {"introduction-request":52, "introduction-request-with-advice":52, "introduction-response":63, "puncture-request":43, "puncture":31}
-    messages = {"introduction-request":1500, "introduction-request-with-advice":1500, "introduction-response":63, "puncture-request":43, "puncture":31}
+    messages = {"introduction-request":1432, "introduction-request-with-advice":1432, "introduction-response":63, "puncture-request":43, "puncture":31}
     incoming = dict((key, 0) for key in messages)
     outgoing = dict((key, 0) for key in messages)
 
@@ -223,8 +223,8 @@ def main(filename):
     # public addresses
     if public_addresses and online:
         last_datetime = public_addresses[0][0]
-        for datetime, internal_address, external_address in public_addresses:
-            print datetime - first_datetime, " ", datetime - last_datetime, "  internal %s:%d" % internal_address, " external %s:%d" % external_address
+        for datetime, lan_address, wan_address in public_addresses:
+            print datetime - first_datetime, " ", datetime - last_datetime, "  lan %s:%d" % lan_address, " wan %s:%d" % wan_address
         print
 
     # walk
