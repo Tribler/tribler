@@ -144,6 +144,7 @@ def main(filename):
         online.insert(0, (datetime, set()))
 
     def in_introduction_request(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, advice, identifier):
+        all_addresses.add(source)
         incoming["introduction-request"] += 1
         if advice:
             incoming["introduction-request-with-advice"] += 1
@@ -153,9 +154,22 @@ def main(filename):
         if advice:
             outgoing["introduction-request-with-advice"] += 1
 
+        key = "%s:%d" % destination_address
+        if key in out_intro_req:
+            out_intro_req[key] += 1
+        else:
+            out_intro_req[key] = 1
+            
     def in_introduction_response(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
+        all_addresses.add(source)
         incoming["introduction-response"] += 1
 
+        key = " -> ".join(("%s:%d"%source, "%s:%d"%wan_introduction_address))
+        if key in in_intro_res:
+            in_intro_res[key] += 1
+        else:
+            in_intro_res[key] = 1
+        
     def out_introduction_response(lineno, datetime, message, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         outgoing["introduction-response"] += 1
         
@@ -228,39 +242,41 @@ def main(filename):
         print
 
     # walk
+    print "outgoing introduction request"
+    total = sum(out_intro_req.itervalues())
     for count, key in sorted((count, key) for key, count in out_intro_req.iteritems()):
-        print "outgoing introduction request", "%4d" % count, key
+        print "%4d %22s" % (count, key), "=" * (250 * count / total)
     print
 
-    for count, key in sorted((count, key) for key, count in in_intro_res.iteritems()):
-        print "incoming introduction response", "%4d" % count, key
-    print
+    # for count, key in sorted((count, key) for key, count in in_intro_res.iteritems()):
+    #     print "incoming introduction response", "%4d" % count, key
+    # print
 
-    if not in_intro_timeout:
-        print "no timeouts"
-    else:
-        for count, key in sorted((count, key) for key, count in in_intro_timeout.iteritems()):
-            print "incoming introduction timeout", "%4d" % count, key
-        print sum(in_intro_timeout.itervalues()), "timeouts /", outgoing["introduction-request"], "requests"
-        print
+    # if not in_intro_timeout:
+    #     print "no timeouts"
+    # else:
+    #     for count, key in sorted((count, key) for key, count in in_intro_timeout.iteritems()):
+    #         print "incoming introduction timeout", "%4d" % count, key
+    #     print sum(in_intro_timeout.itervalues()), "timeouts /", outgoing["introduction-request"], "requests"
+    #     print
 
-    # churn
-    print "time      diff      count    discovered                 lost"
-    if not online:
-        print "-none-"
-    else:
-        last_datetime, last_candidates = online[0]
-        for datetime, candidates in online:
-            more = candidates.difference(last_candidates)
-            less = last_candidates.difference(candidates)
+    # # churn
+    # print "time      diff      count    discovered                 lost"
+    # if not online:
+    #     print "-none-"
+    # else:
+    #     last_datetime, last_candidates = online[0]
+    #     for datetime, candidates in online:
+    #         more = candidates.difference(last_candidates)
+    #         less = last_candidates.difference(candidates)
 
-            for candidate in more:
-                print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
-            for candidate in less:
-                print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
+    #         for candidate in more:
+    #             print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
+    #         for candidate in less:
+    #             print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
 
-            last_datetime, last_candidates = datetime, candidates
-        print
+    #         last_datetime, last_candidates = datetime, candidates
+    #     print
 
     print "duration", duration, "->", seconds, "seconds"
     print "inverval", outgoing["introduction-request"], "requests -> ", 1.0 * seconds / outgoing["introduction-request"], "r/s"
