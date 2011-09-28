@@ -1731,9 +1731,15 @@ class Dispersy(Singleton):
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
         candidates = list(self._yield_candidates(community, blacklist))
-        walks = [candidate for candidate in candidates if candidate.is_walk]
-        stumbles = [candidate for candidate in candidates if candidate.is_stumble]
-
+        walks = [candidate for candidate in candidates if candidate.is_walk and not candidate.is_stumble]
+        stumbles = [candidate for candidate in candidates if candidate.is_stumble and not candidate.is_walk]
+        for candidate in candidates:
+            if candidate.is_walk and candidate.is_stumble:
+                if len(walks) < len(stumbles):
+                    walks.append(candidate)
+                else:
+                    stumbles.append(candidate)
+        
         if walks and stumbles:
             walk_threshold = 0.49
             stumble_threshold = 0.98
