@@ -1423,6 +1423,14 @@ class Dispersy(Singleton):
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
+                # TODO possibly remove depending on what we want with addresses and candidates
+                sock_address = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
+                if sock_address in self._candidates:
+                    pass
+                elif self.is_valid_remote_address(sock_address) and not sock_address in self._bootstrap_candidates:
+                    assert not (sock_address == self.lan_address or sock_address == self.wan_address), (sock_address, self.lan_address, self.wan_address)
+                    self._candidates[sock_address] = Candidate(self, message.payload.lan_introduction_address, message.payload.wan_introduction_address, meta.community, is_walk=True)
+                
         else:
             for address, _ in groupby(sorted(messages, key=key), key=key):
                 if address in self._candidates:
