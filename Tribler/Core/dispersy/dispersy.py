@@ -1747,28 +1747,30 @@ class Dispersy(Singleton):
             stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
             introduction = set(candidate for candidate in candidates if candidate.is_introduction)
 
-            A = walks.difference(stumbles, introduction)
-            B = walks.intersection(stumbles, introduction)
-            C = introduction.difference(walks, stumbles)
-            D = stumbles.difference(walks, introduction)
-            E = stumbles.intersection(introduction).difference(walks)
+            A = list(walks.difference(stumbles, introduction))
+            B = list(walks.intersection(stumbles).union(walks.intersection(introduction)))
+            C = list(introduction.difference(walks, stumbles))
+            D = list(stumbles.difference(walks, introduction))
+            E = list(stumbles.intersection(introduction).difference(walks))
 
+            assert any([A, B, C, D, E])
+            
             while True:
                 r = random()
 
-                if r <= 33.0:
+                if r <= .33:
                     if A: yield choice(A)
 
-                elif r <= 66.0:
+                elif r <= .66:
                     if B: yield choice(B)
 
-                elif r <= 77.0:
+                elif r <= .77:
                     if C: yield choice(C)
 
-                elif r <= 88.0:
+                elif r <= .88:
                     if D: yield choice(D)
 
-                elif r <= 99.0:
+                elif r <= .99:
                     if E: yield choice(E)
 
                 elif self._bootstrap_candidates:
