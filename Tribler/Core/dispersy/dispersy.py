@@ -2392,7 +2392,7 @@ class Dispersy(Singleton):
         return True
 
     def is_valid_remote_address(self, address):
-        return self._is_valid_lan_address(address) or self._is_valid_wan_address(address)
+        return self._is_valid_lan_address(address) and self._is_valid_wan_address(address)
     
     def create_identity(self, community, store=True, update=True):
         """
