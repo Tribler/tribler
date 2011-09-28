@@ -1731,40 +1731,49 @@ class Dispersy(Singleton):
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
         candidates = list(self._yield_candidates(community, blacklist))
-        walks = [candidate for candidate in candidates if candidate.is_walk and not candidate.is_stumble]
-        stumbles = [candidate for candidate in candidates if candidate.is_stumble and not candidate.is_walk]
-        for candidate in candidates:
-            if candidate.is_walk and candidate.is_stumble:
-                if len(walks) < len(stumbles):
-                    walks.append(candidate)
-                else:
-                    stumbles.append(candidate)
+        # walks = [candidate for candidate in candidates if candidate.is_walk and not candidate.is_stumble]
+        # stumbles = [candidate for candidate in candidates if candidate.is_stumble and not candidate.is_walk]
+        # for candidate in candidates:
+        #     if candidate.is_walk and candidate.is_stumble:
+        #         if len(walks) < len(stumbles):
+        #             walks.append(candidate)
+        #         else:
+        #             stumbles.append(candidate)
         
-        if walks and stumbles:
-            walk_threshold = 0.49
-            stumble_threshold = 0.98
-        elif walks:
-            walk_threshold = 0.98
-            stumble_threshold = -1.0
-        elif stumbles:
-            walk_threshold = -1.0
-            stumble_threshold = 0.98
-        else:
-            walk_threshold = stumble_threshold = -1.0
+        # if walks and stumbles:
+        #     walk_threshold = 0.49
+        #     stumble_threshold = 0.98
+        # elif walks:
+        #     walk_threshold = 0.98
+        #     stumble_threshold = -1.0
+        # elif stumbles:
+        #     walk_threshold = -1.0
+        #     stumble_threshold = 0.98
+        # else:
+        #     walk_threshold = stumble_threshold = -1.0
             
-        if walks or stumbles or self._bootstrap_candidates:
+        # if walks or stumbles or self._bootstrap_candidates:
+        #     while True:
+        #         r = random()
+
+        #         if r <= walk_threshold:
+        #             yield choice(walks)
+
+        #         elif r <= stumble_threshold:
+        #             yield choice(stumbles)
+
+        #         elif self._bootstrap_candidates:
+        #             yield choice(self._bootstrap_candidates.values())
+
+        if candidates or self._bootstrap_candidates:
             while True:
                 r = random()
-
-                if r <= walk_threshold:
-                    yield choice(walks)
-
-                elif r <= stumble_threshold:
-                    yield choice(stumbles)
+                if candidates and r <= 0.98:
+                    yield choice(candidates)
 
                 elif self._bootstrap_candidates:
                     yield choice(self._bootstrap_candidates.values())
-
+        
     def start_walk(self, community):
         if community.cid in self._communities:
             try:
@@ -1792,7 +1801,8 @@ class Dispersy(Singleton):
                 break
 
         # decide if the requested node should introduce us to someone else
-        advice = random() < 0.5 or len(self._candidates) <= 5
+        # advice = random() < 0.5 or len(self._candidates) <= 5
+        advice = True
 
         # obtain sync range
         time_low, time_high, bloom_filter = community.dispersy_claim_sync_bloom_filter(identifier)
