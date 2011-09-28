@@ -1895,7 +1895,7 @@ class Dispersy(Singleton):
             community.dispersy_start_walk()
 
         else:
-            if advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
+            if False: #advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
                 # we asked for, and received, an introduction
 
                 # determine if we are in the same LAN as the introduced node
