@@ -1524,8 +1524,13 @@ class ChannelSearchGridManager:
 
         if len(self.hits) == 0:
             return [0, hitsUpdated, None]
-        else:        
-            return [len(self.hits),hitsUpdated, self.hits]
+        else:
+            nrNonEmpty = 0
+            for hit in self.hits.itervalues():
+                if not hit.isEmpty():
+                    nrNonEmpty += 1
+            
+            return [nrNonEmpty, hitsUpdated, self.hits]
     
     @forceDispersyThread 
     def searchDispersy(self):
