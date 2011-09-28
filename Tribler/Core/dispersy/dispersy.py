@@ -1747,10 +1747,10 @@ class Dispersy(Singleton):
             stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
             introduction = set(candidate for candidate in candidates if candidate.is_introduction)
 
-            A = list(walks.difference(stumbles, introduction))
+            A = list(walks.difference(stumbles).difference(introduction))
             B = list(walks.intersection(stumbles).union(walks.intersection(introduction)))
-            C = list(introduction.difference(walks, stumbles))
-            D = list(stumbles.difference(walks, introduction))
+            C = list(introduction.difference(walks).difference(stumbles))
+            D = list(stumbles.difference(walks).difference(introduction))
             E = list(stumbles.intersection(introduction).difference(walks))
 
             assert any([A, B, C, D, E])
