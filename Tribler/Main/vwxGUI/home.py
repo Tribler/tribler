@@ -13,7 +13,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl,\
-    TextCtrlAutoComplete, BetterText as StaticText
+    TextCtrlAutoComplete, BetterText as StaticText, _set_font
 from Tribler.Category.Category import Category
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
@@ -192,6 +192,7 @@ class HomePanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         
         self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
         self.guiserver = GUITaskQueue.getInstance()
         self.SetBackgroundColour(background)
      
@@ -260,26 +261,26 @@ class NetworkPanel(HomePanel):
         except:
             pass
         
-        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         gridSizer.AddGrowableCol(1)
         
-        gridSizer.Add(StaticText(panel, -1, 'Number files'), 0, wx.LEFT, 10)
-        gridSizer.Add(self.nrFiles, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(StaticText(panel, -1, 'Total size'), 0, wx.LEFT, 10)
-        gridSizer.Add(self.totalSize, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(StaticText(panel, -1, 'Torrents collected'), 0, wx.LEFT, 10)
-        gridSizer.Add(self.nrTorrents, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(StaticText(panel, -1, 'Torrents in queue'), 0, wx.LEFT, 10)
-        gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(StaticText(panel, -1, 'Channels found'), 0, wx.LEFT, 10)
-        gridSizer.Add(self.nrChannels, 0, wx.EXPAND|wx.LEFT, 10)
-        gridSizer.Add(StaticText(panel, -1, 'Connected peers'), 0, wx.LEFT, 10)
-        gridSizer.Add(self.nrConnected, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(StaticText(panel, -1, 'Number files'))
+        gridSizer.Add(self.nrFiles, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Total size'))
+        gridSizer.Add(self.totalSize, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Torrents collected'))
+        gridSizer.Add(self.nrTorrents, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Torrents in queue'))
+        gridSizer.Add(self.queueSize, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Channels found'))
+        gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Connected peers'))
+        gridSizer.Add(self.nrConnected, 0, wx.EXPAND)
         if self.freeMem:
-            gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'), 0, wx.LEFT, 10)
-            gridSizer.Add(self.freeMem, 0, wx.EXPAND|wx.LEFT, 10)
+            gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'))
+            gridSizer.Add(self.freeMem, 0, wx.EXPAND)
         
-        vSizer.Add(gridSizer, 0, wx.EXPAND)
+        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
         panel.SetSizer(vSizer)
         return panel
     
@@ -319,6 +320,7 @@ class NetworkPanel(HomePanel):
             
 class DispersyPanel(HomePanel):
     def __init__(self, parent):
+        self.buildColumns = False
         self.dispersy = Dispersy.get_instance()
         HomePanel.__init__(self, parent, 'Dispersy info' , LIST_BLUE)
         
@@ -332,16 +334,40 @@ class DispersyPanel(HomePanel):
     def CreatePanel(self):
         panel = wx.Panel(self)
         panel.SetBackgroundColour(wx.WHITE)
-        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
-        gridSizer.AddGrowableCol(1)
+        self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
+        self.gridSizer.AddGrowableCol(1)
+        
+        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
                
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT)
         vSizer.Add(self.tree, 1, wx.EXPAND)
         
         panel.SetSizer(vSizer)
         return panel
+    
+    def CreateColumns(self, info):
+        self.textdict = {}
+        def addColumn(key):
+            strkey = key.replace("_", " ").capitalize()
+            header = StaticText(self.panel, -1, strkey)
+            _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
+            self.gridSizer.Add(header)
+            self.textdict[key] = StaticText(self.panel, -1, '')
+            self.gridSizer.Add(self.textdict[key])
+        
+        for key, value in info.iteritems():
+            if key not in ['communities']:
+                if key == 'statistics':
+                    if 'total_up' in value:
+                        addColumn('total_up')
+                    if 'total_down' in value:
+                        addColumn('total_down')
+                else:
+                    addColumn(key)
+                    
+        self.buildColumns = True
     
     def _onTimer(self, event):
         if self.IsShownOnScreen():
@@ -356,6 +382,10 @@ class DispersyPanel(HomePanel):
     
     @forceWxThread
     def _UpdateStats(self, info):
+        if not self.buildColumns:
+            self.CreateColumns(info)
+            
+        
         def addValue(parentNode, value):
             if isinstance(value, dict):
                 addDict(parentNode, value)
@@ -374,11 +404,28 @@ class DispersyPanel(HomePanel):
                 keyNode = self.tree.AppendItem(parentNode, str(key))
                 addValue(keyNode, value)
         
+        def updateColumn(key, value):
+            if key.find('address') != -1:
+                value = "%s:%d"%value
+            self.textdict[key].SetLabel(str(value))
+        
         self.tree.DeleteAllItems()
         fakeRoot = self.tree.AddRoot('fake')
         for key, value in info.iteritems():
-            parentNode = self.tree.AppendItem(fakeRoot, key)
-            addValue(parentNode, value)
+            if key in self.textdict:
+                updateColumn(key, value)
+            else:
+                if key == 'statistics':
+                    updateColumn('total_down', self.utility.size_format(value['total_down']))
+                    updateColumn('total_up', self.utility.size_format(value['total_up']))
+                    
+                    del value['total_down']
+                    del value['total_up']
+                
+                parentNode = self.tree.AppendItem(fakeRoot, key)
+                addValue(parentNode, value)
+                
+        self.Layout()
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
