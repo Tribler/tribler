@@ -1407,6 +1407,7 @@ class Dispersy(Singleton):
         key = lambda message: message.address
         if meta.name == "dispersy-introduction-request":
             for message in messages:
+                # add source to candidate pool and mark as a node that stumbled upon us
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
                 elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
@@ -1416,6 +1417,7 @@ class Dispersy(Singleton):
 
         elif meta.name == "dispersy-introduction-response":
             for message in messages:
+                # add source to the candidate pool and mark as a node that is part of our walk
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
                 elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
@@ -1423,13 +1425,13 @@ class Dispersy(Singleton):
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
-                # TODO possibly remove depending on what we want with addresses and candidates
+                # add introduced node to the candidate pool and mark as an introduced node
                 sock_address = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
                 if sock_address in self._candidates:
-                    pass
+                    self._candidates[sock_address].inc_introduced(meta.community)
                 elif self.is_valid_remote_address(sock_address) and not sock_address in self._bootstrap_candidates:
                     assert not (sock_address == self.lan_address or sock_address == self.wan_address), (sock_address, self.lan_address, self.wan_address)
-                    self._candidates[sock_address] = Candidate(self, message.payload.lan_introduction_address, message.payload.wan_introduction_address, meta.community, is_walk=True)
+                    self._candidates[sock_address] = Candidate(self, message.payload.lan_introduction_address, message.payload.wan_introduction_address, meta.community, is_introduction=True)
                 
         else:
             for address, _ in groupby(sorted(messages, key=key), key=key):
@@ -1738,7 +1740,46 @@ class Dispersy(Singleton):
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
+        # SECURE 5 WAY SELECTION POOL
         candidates = list(self._yield_candidates(community, blacklist))
+        if candidates:
+            walks = set(candidate for candidate in candidates if candidate.is_walk)
+            stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
+            introduction = set(candidate for candidate in candidates if candidate.is_introduction)
+
+            A = walks.difference(stumbles, introduction)
+            B = walks.intersection(stumbles, introduction)
+            C = introduction.difference(walks, stumbles)
+            D = stumbles.difference(walks, introduction)
+            E = stumbles.intersection(introduction).difference(walks)
+
+            while True:
+                r = random()
+
+                if r <= 33.0:
+                    if A: yield choice(A)
+
+                elif r <= 66.0:
+                    if B: yield choice(B)
+
+                elif r <= 77.0:
+                    if C: yield choice(C)
+
+                elif r <= 88.0:
+                    if D: yield choice(D)
+
+                elif r <= 99.0:
+                    if E: yield choice(E)
+
+                elif self._bootstrap_candidates:
+                    yield choice(self._bootstrap_candidates.values())
+
+        elif self._bootstrap_candidates:
+            while True:
+                yield choice(self._bootstrap_candidates.values())
+        
+        # ORIGINAL 50-50 SELECTION
+        # candidates = list(self._yield_candidates(community, blacklist))
         # walks = [candidate for candidate in candidates if candidate.is_walk and not candidate.is_stumble]
         # stumbles = [candidate for candidate in candidates if candidate.is_stumble and not candidate.is_walk]
         # for candidate in candidates:
@@ -1773,14 +1814,16 @@ class Dispersy(Singleton):
         #         elif self._bootstrap_candidates:
         #             yield choice(self._bootstrap_candidates.values())
 
-        if candidates or self._bootstrap_candidates:
-            while True:
-                r = random()
-                if candidates and r <= 0.98:
-                    yield choice(candidates)
+        # UNIFORM RANDOM ACROSS ALL CANDIDATES
+        # candidates = list(self._yield_candidates(community, blacklist))
+        # if candidates or self._bootstrap_candidates:
+        #     while True:
+        #         r = random()
+        #         if candidates and r <= 0.98:
+        #             yield choice(candidates)
 
-                elif self._bootstrap_candidates:
-                    yield choice(self._bootstrap_candidates.values())
+        #         elif self._bootstrap_candidates:
+        #             yield choice(self._bootstrap_candidates.values())
         
     def start_walk(self, community):
         if community.cid in self._communities:

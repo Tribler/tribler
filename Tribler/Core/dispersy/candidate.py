@@ -19,7 +19,7 @@ class Candidate(object):
     """
     A wrapper around the candidate table in the dispersy database.
     """
-    def __init__(self, dispersy, lan_address, wan_address, community=None, is_walk=False, is_stumble=False):
+    def __init__(self, dispersy, lan_address, wan_address, community=None, is_walk=False, is_stumble=False, is_introduction=False):
         if __debug__:
             from dispersy import Dispersy
             from community import Community
@@ -35,6 +35,7 @@ class Candidate(object):
         self._wan_address = wan_address
         self._is_walk = is_walk
         self._is_stumble = is_stumble
+        self._is_introduction = is_introduction
         self._timestamp = time()
         self._communities = set((community,)) if community else set()
 
@@ -58,6 +59,10 @@ class Candidate(object):
     def is_stumble(self):
         return self._is_stumble
 
+    @property
+    def is_introduction(self):
+        return self._is_introduction
+    
     @property
     def timestamp(self):
         return self._timestamp
@@ -91,6 +96,14 @@ class Candidate(object):
         self._timestamp = time()
         self._is_walk = True
 
+    def inc_introduced(self, community):
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        if __debug__: dprint("updated")
+        self._communities.add(community)
+        self._is_introduction = True
+        
     def inc_any(self, community):
         if __debug__:
             from community import Community
