@@ -529,7 +529,7 @@ class SelectedChannelList(GenericSearchList):
     def OnModificationCreated(self, channel_id):
         if channel_id == self.id:
             manager = self.activityList.GetManager()
-            manager.refresh()
+            manager.new_activity()
             
         else: #maybe channel_id is a channeltorrent_id
             panel = self.list.GetExpandedItem()
@@ -537,6 +537,12 @@ class SelectedChannelList(GenericSearchList):
                 torDetails = panel.GetExpandedPanel()
                 if torDetails:
                     torDetails.OnModificationCreated(channel_id)
+                    
+    @warnWxThread
+    def OnModerationCreated(self, channel_id):
+        if channel_id == self.id:
+            manager = self.moderationList.GetManager()
+            manager.new_moderation()
     
     @warnWxThread
     def OnMarkingCreated(self, channeltorrent_id):
@@ -1781,7 +1787,10 @@ class ModerationItem(AvantarItem):
         
         if moderation.modification:
             modification = moderation.modification
-            self.body = "%s reverted due to '%s'.\nModification was:\n%s"%(modification.name.capitalize(), moderation.message, modification.value)
+            self.body = "%s reverted due to '%s'.\n"%(modification.name.capitalize(),moderation.message)
+            if moderation.severity > 0:
+                self.body += "%s additionally issued a warning!\n"%moderation.peer_name.capitalize()
+            self.body += "Modification was:\n%s"%modification.value
             
         else:
             self.body = moderation.message
@@ -2167,6 +2176,9 @@ class ModerationManager:
         else:
             data = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         self.list.SetData(data)
+        
+    def new_moderation(self):
+        self.do_or_schedule_refresh()
 
 class ModerationList(List):
     def __init__(self, parent, parent_list):

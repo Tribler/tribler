@@ -281,6 +281,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         
         # initialize the torrent feed thread
@@ -805,6 +806,12 @@ class ABCApp():
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnModificationCreated(objectID)
             self.frame.playlist.OnModificationCreated(objectID)
+            
+    @forceWxThread
+    def sesscb_ntfy_moderationupdats(self, subject, changeType, objectID, *args):
+        if self.ready and self.frame.ready:
+            self.frame.selectedchannellist.OnModerationCreated(objectID)
+            self.frame.playlist.OnModerationCreated(objectID)
     
     @forceWxThread
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):

@@ -3512,6 +3512,8 @@ class ChannelCastDBHandler(object):
         sql = "INSERT OR REPLACE INTO Moderations (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, time_stamp, severity) VALUES (?,?,?,?,?,?,?,?)"
         self._db.execute_write(sql, (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, timestamp, severity), commit =  self.shouldCommit)
         
+        self.notifier.notify(NTFY_MODERATIONS, NTFY_INSERT, channel_id)
+        
     def on_remove_moderation(self, channel_id, dispersy_id):
         sql = "DELETE FROM Moderations WHERE dispersy_id = ? AND channel_id = ?"
         self._db.execute_write(sql, (dispersy_id, channel_id))
