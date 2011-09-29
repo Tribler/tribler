@@ -1411,28 +1411,43 @@ class Dispersy(Singleton):
         key = lambda message: message.address
         if meta.name == "dispersy-introduction-request":
             for message in messages:
-                # add source to candidate pool and mark as a node that stumbled upon us
-                if message.address in self._candidates:
-                    self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
-                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
-                    self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
+                # apply vote to determine our WAN address
                 self.wan_address_vote(message.payload.destination_address, message.address)
+
+                # add source to candidate pool and mark as a node that stumbled upon us
+                if self._is_valid_lan_address(message.payload.source_lan_address) and self._is_valid_wan_address(message.payload.source_wan_address):
+                    if message.address in self._candidates:
+                        self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
+                    elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
+                        self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
+                else:
+                    if __debug__: dprint("unable to add walker node. LAN: ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " (", self._is_valid_lan_address(message.payload.source_lan_address), ") WAN: ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " (", self._is_valid_wan_address(message.payload.source_wan_address), ")", level="warning")
 
         elif meta.name == "dispersy-introduction-response":
             for message in messages:
-                # add source to the candidate pool and mark as a node that is part of our walk
-                if message.address in self._candidates:
-                    self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
-                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
-                    self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
+                # apply vote to determine our WAN address
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
+                # add source to the candidate pool and mark as a node that is part of our walk
+                if self._is_valid_lan_address(message.payload.source_lan_address) and self._is_valid_wan_address(message.payload.source_wan_address):
+                    if message.address in self._candidates:
+                        self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
+                    elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
+                        self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
+                else:
+                    if __debug__: dprint("unable to add walker node. LAN: ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " (", self._is_valid_lan_address(message.payload.source_lan_address), ") WAN: ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " (", self._is_valid_wan_address(message.payload.source_wan_address), ")", level="warning")
+
                 # add introduced node to the candidate pool and mark as an introduced node
-                sock_address = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
-                if sock_address in self._candidates:
-                    self._candidates[sock_address].inc_introduced(meta.community)
-                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
-                    self._candidates[sock_address] = Candidate(self, message.payload.lan_introduction_address, message.payload.wan_introduction_address, meta.community, is_introduction=True)
+                if self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
+                    sock_address = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
+                    if sock_address in self._candidates:
+                        self._candidates[sock_address].inc_introduced(meta.community)
+                    elif not (sock_address in self._bootstrap_candidates or sock_address == self._wan_address):
+                        self._candidates[sock_address] = Candidate(self, message.payload.lan_introduction_address, message.payload.wan_introduction_address, meta.community, is_introduction=True)
+                    else:
+                        if __debug__: dprint("unable to add introduced node", level="warning")
+                else:
+                    if __debug__: dprint("unable to add introduced node. LAN: ", message.payload.lan_introduction_address[0], ":", message.payload.lan_introduction_address[1], " (", self._is_valid_lan_address(message.payload.lan_introduction_address), ") WAN: ", message.payload.wan_introduction_address[0], ":", message.payload.wan_introduction_address[1], " (", self._is_valid_wan_address(message.payload.wan_introduction_address), ")", level="warning")
                 
         else:
             for address, _ in groupby(sorted(messages, key=key), key=key):
@@ -1757,27 +1772,31 @@ class Dispersy(Singleton):
         Yields a mixture of all candidates that we could get our hands on that are part of COMMUNITY
         and not in BLACKLIST.
         """
+        assert isinstance(include_introduction, bool)
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
         # SECURE 5 WAY SELECTION POOL
         candidates = list(self._yield_candidates(community, blacklist))
-        if candidates:
-            walks = set(candidate for candidate in candidates if candidate.is_walk)
-            stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
-            introduction = set(candidate for candidate in candidates if candidate.is_introduction) if include_introduction else set()
+        walks = set(candidate for candidate in candidates if candidate.is_walk)
+        stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
+        introduction = set(candidate for candidate in candidates if candidate.is_introduction) if include_introduction else set()
 
+        if walks or stumbles or introduction:
             A = list(walks.difference(stumbles).difference(introduction))
             B = list(walks) #list(walks.intersection(stumbles).union(walks.intersection(introduction)))
             C = list(introduction.difference(walks).difference(stumbles))
             D = list(stumbles.difference(walks).difference(introduction))
             E = list(stumbles.intersection(introduction).difference(walks))
 
-            assert any([A, B, C, D, E])
-            if A:
-                for candidate in A:
-                    dprint("== ", candidate.lan_address, " ", candidate.wan_address, force=1)
-            dprint("A", len(A), " B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
+            if __debug__:
+                if A:
+                    for candidate in A:
+                        dprint("== ", candidate.lan_address, " ", candidate.wan_address, force=1)
+                dprint("A", len(A), " B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
+            assert all(candidate.is_walk or candidate.is_stumble or candidate.is_introduction for candidate in candidates), "each candidate must have at least one mark"
+            assert any([walks, stumbles, introduction])
+            assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
             
             while True:
                 r = random()
@@ -1798,8 +1817,12 @@ class Dispersy(Singleton):
                     yield choice(self._bootstrap_candidates.values())
 
         elif self._bootstrap_candidates:
+            if __debug__: dprint("no candidates available.  yielding bootstrap candidates", level="warning")
             while True:
                 yield choice(self._bootstrap_candidates.values())
+
+        else:
+            if __debug__: dprint("no candidates or bootstrap candidates available", level="error")
         
         # ORIGINAL 50-50 SELECTION
         # candidates = list(self._yield_candidates(community, blacklist))
