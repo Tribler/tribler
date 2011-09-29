@@ -29,7 +29,7 @@ class WalktestCommunity(Community):
         return [DefaultConversion(self)]
 
     def dispersy_start_walk(self):
-        log("walktest.log", "candidates", lan_address=self._dispersy.lan_address, wan_address=self._dispersy.wan_address, candidates=[(candidate.lan_address, candidate.wan_address) for candidate in self._dispersy.yield_candidates(self, 1024)])
+        log("walktest.log", "candidates", lan_address=self._dispersy.lan_address, wan_address=self._dispersy.wan_address, candidates=[(candidate.lan_address, candidate.wan_address) for candidate in self._dispersy._yield_candidates(self)])
         return self._dispersy.start_walk(self)
 
     def impl_introduction_request(self, meta, *args, **kargs):
