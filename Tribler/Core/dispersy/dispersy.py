@@ -91,6 +91,7 @@ class DummySocket(object):
 
 class Statistics(object):
     def __init__(self):
+        self._start = time()
         self._drop = {}
         self._delay = {}
         self._success = {}
@@ -108,8 +109,10 @@ class Statistics(object):
                 "success":self._success,
                 "outgoing":self._outgoing,
                 "sequence_number":self._sequence_number,
-                "total_up": self._total_up,
-                "total_down": self._total_down}
+                "total_up":self._total_up,
+                "total_down":self._total_down,
+                "start":self._start,
+                "runtime":time() - self._start}
         
     def reset(self):
         """
@@ -244,8 +247,8 @@ class Dispersy(Singleton):
         self._wan_address_votes = {self._wan_address:set()}
         self.wan_address_vote(self._wan_address, ("", -1))
         if __debug__:
-            dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1])
-            dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1])
+            dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1], force=1)
+            dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=1)
         
         # bootstrap peers
         bootstrap_addresses = get_bootstrap_addresses()
@@ -316,7 +319,7 @@ class Dispersy(Singleton):
         @type socket: Object with a send(address, data) method
         """
         port = socket.get_address()[1]
-        if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port)
+        if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=1)
         self._socket = socket
         self._lan_address = (self._lan_address[0], port)
         # our address may not be a bootstrap address
@@ -649,7 +652,7 @@ class Dispersy(Singleton):
 
             # change when new vote count equal or higher than old address vote count
             if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
-                if __debug__: dprint("update wan address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1])
+                if __debug__: dprint("update wan address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=1)
                 self._wan_address = address
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
@@ -1694,6 +1697,8 @@ class Dispersy(Singleton):
 
     def _yield_candidates(self, community, blacklist):
         """
+        Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
+        
         BLACKLIST must contain addresses obtained from
         socket.recv_from(), not the lan or wan addresses.
         """
@@ -1711,30 +1716,47 @@ class Dispersy(Singleton):
         return (candidate for sock_address, candidate in self._candidates.iteritems() if not sock_address in blacklist and candidate.in_community(community))
 
     def yield_candidates(self, community, limit, blacklist=()):
-        return islice(self._yield_candidates(community, blacklist), limit)
+        """
+        Yields the first LIMIT candidates that are part of COMMUNITY and not in BLACKLIST with whom
+        we have interacted before.
+        """
+        return islice((candidate for candidate in self._yield_candidates(community, blacklist) if candidate.is_walk or candidate.is_stumble), limit)
 
     def yield_random_candidates(self, community, limit, blacklist=()):
-        candidates = list(islice(self._yield_candidates(community, blacklist), limit))
+        """
+        Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, and with whom
+        we have interacted before.
+        """
+        candidates = [candidate for candidate in self._yield_candidates(community, blacklist) if candidate.is_walk or candidate.is_stumble]
         shuffle(candidates)
-        return iter(candidates)
+        return islice(candidates, limit)
 
     def yield_subjective_candidates(self, community, limit, cluster, blacklist=()):
-        counter = 0
-        for candidate in self._yield_candidates(community, blacklist):
-            # we need to check the members associated to these candidates and see if they are
-            # interested in this cluster
+        """
+        Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, with whom we
+        have interacted before, and who have us in their subjective set CLUSTER.
+        """
+        def in_subjective_set(candidate):
             for member in candidate.members:
                 subjective_set = community.get_subjective_set(member, cluster)
                 # TODO when we do not have a subjective_set from member, we should request it to
                 # ensure that we make a valid decision next time
                 if subjective_set and community.my_member.public_key in subjective_set:
-                    yield candidate
-
-                    counter += 1
-                    if counter == limit:
-                        break
+                    return True
+            return False
+        
+        candidates = [candidate
+                      for candidate
+                      in self._yield_candidates(community, blacklist)
+                      if (candidate.is_walk or candidate.is_stumble) and in_subjective_set(candidate)]
+        shuffle(candidates)
+        return islice(candidates, limit)
    
-    def yield_walk_candidates(self, community, blacklist=()):
+    def yield_walk_candidates(self, community, include_introduction, blacklist=()):
+        """
+        Yields a mixture of all candidates that we could get our hands on that are part of COMMUNITY
+        and not in BLACKLIST.
+        """
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
@@ -1743,7 +1765,7 @@ class Dispersy(Singleton):
         if candidates:
             walks = set(candidate for candidate in candidates if candidate.is_walk)
             stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
-            introduction = set(candidate for candidate in candidates if candidate.is_introduction)
+            introduction = set(candidate for candidate in candidates if candidate.is_introduction) if include_introduction else set()
 
             A = list(walks.difference(stumbles).difference(introduction))
             B = list(walks) #list(walks.intersection(stumbles).union(walks.intersection(introduction)))
@@ -1829,7 +1851,7 @@ class Dispersy(Singleton):
     def start_walk(self, community):
         if community.cid in self._communities:
             try:
-                candidate = self.yield_walk_candidates(community).next()
+                candidate = self.yield_walk_candidates(community, True).next()
 
             except StopIteration:
                 if __debug__: dprint("no candidate to start walk.  retry in 1.0 seconds", level="error")
@@ -1890,10 +1912,15 @@ class Dispersy(Singleton):
             # as they are unknown and possibly wrong when the sender only just started her client
             if message.payload.advice and self._is_valid_lan_address(message.payload.source_lan_address) and self._is_valid_wan_address(message.payload.source_wan_address):
                 try:
-                    candidate = self.yield_walk_candidates(community, [message.address]).next()
+                    candidate = self.yield_walk_candidates(community, False, [message.address]).next()
                 except StopIteration:
                     candidate = None
             else:
+                if __debug__:
+                    if not self._is_valid_lan_address(message.payload.source_lan_address):
+                        dprint("can not introduce... invalid LAN source address ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], level="warning")
+                    if not self._is_valid_wan_address(message.payload.source_wan_address):
+                        dprint("can not introduce... invalid WAN source address ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], level="warning")
                 candidate = None
 
             if candidate:
@@ -2434,22 +2461,21 @@ class Dispersy(Singleton):
         if binary[3] == "\xff":
             return False
 
-        # range 10.0.0.0 - 10.255.255.255
-        if binary[0] == "\x0a":
-            pass
-
-        # range 172.16.0.0 - 172.31.255.255
-        # TODO fill in range
-        elif binary[0] == "\x7f":
-            pass
-
-        # range 192.168.0.0 - 192.168.255.255
-        elif binary[0] == "\xc0" and binary[1] == "\xa8":
-            pass
-
-        else:
-            # not in a valid LAN range
-            return False
+        # a LAN address may also be a WAN address as some nodes will be connected to the Internet
+        # directly
+        # # range 10.0.0.0 - 10.255.255.255
+        # if binary[0] == "\x0a":
+        #     pass
+        # # range 172.16.0.0 - 172.31.255.255
+        # # TODO fill in range
+        # elif binary[0] == "\x7f":
+        #     pass
+        # # range 192.168.0.0 - 192.168.255.255
+        # elif binary[0] == "\xc0" and binary[1] == "\xa8":
+        #     pass
+        # else:
+        #     # not in a valid LAN range
+        #     return False
         
         if address == self._lan_address:
             return False
