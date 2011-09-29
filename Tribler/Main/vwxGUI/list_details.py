@@ -1094,11 +1094,7 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread
     def OnMyChannel(self, event):
-        torrent_dir = self.guiutility.utility.session.get_torrent_collecting_dir()
-        torrent_filename = os.path.join(torrent_dir, self.torrent.torrent_file_name)
-        
-        tdef = TorrentDef.load(torrent_filename)
-        self.guiutility.channelsearch_manager.createTorrentFromDef(0, tdef)
+        self.guiutility.channelsearch_manager.createTorrent(None, self.torrent)
         
         self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
         self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)

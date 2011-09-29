@@ -1320,7 +1320,6 @@ class ChannelSearchGridManager:
         community = ChannelCommunity.create_community(self.session.dispersy_member)
         community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
-        
     
     @forceDispersyThread
     def createPlaylist(self, channel_id, name, description, infohashes = []):
@@ -1358,8 +1357,13 @@ class ChannelSearchGridManager:
     
     @forceDispersyThread
     def createTorrent(self, channel, torrent):
-        if not self.channelcast_db.hasTorrent(channel.id, torrent.infohash):
-            community = self._disp_get_community_from_cid(channel.dispersy_cid)
+        if not channel:
+            channel_id = self.channelcast_db.getMyChannelId()
+        else:
+            channel_id = channel.id
+        
+        if not self.channelcast_db.hasTorrent(channel_id, torrent.infohash):
+            community = self._disp_get_community_from_channel_id(channel_id)
             community._disp_create_torrent(torrent.infohash, long(time()), torrent.name, torrent.files, torrent.trackers)
             
     @forceDispersyThread
