@@ -41,6 +41,7 @@ from hashlib import sha1
 from itertools import groupby, islice, count
 from os.path import abspath
 from random import random, choice, shuffle
+from socket import inet_aton, error as socket_error
 from time import time
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
@@ -1410,8 +1411,7 @@ class Dispersy(Singleton):
                 # add source to candidate pool and mark as a node that stumbled upon us
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_requests(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
-                elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
-                    assert not (message.address == self.lan_address or message.address == self.wan_address), (message.address, self.lan_address, self.wan_address)
+                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
@@ -1420,8 +1420,7 @@ class Dispersy(Singleton):
                 # add source to the candidate pool and mark as a node that is part of our walk
                 if message.address in self._candidates:
                     self._candidates[message.address].inc_introduction_response(message.payload.source_lan_address, message.payload.source_wan_address, meta.community)
-                elif self.is_valid_remote_address(message.address) and not message.address in self._bootstrap_candidates:
-                    assert not (message.address == self.lan_address or message.address == self.wan_address), (message.address, self.lan_address, self.wan_address)
+                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                     self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 self.wan_address_vote(message.payload.destination_address, message.address)
 
@@ -1429,8 +1428,7 @@ class Dispersy(Singleton):
                 sock_address = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
                 if sock_address in self._candidates:
                     self._candidates[sock_address].inc_introduced(meta.community)
-                elif self.is_valid_remote_address(sock_address) and not sock_address in self._bootstrap_candidates:
-                    assert not (sock_address == self.lan_address or sock_address == self.wan_address), (sock_address, self.lan_address, self.wan_address)
+                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                     self._candidates[sock_address] = Candidate(self, message.payload.lan_introduction_address, message.payload.wan_introduction_address, meta.community, is_introduction=True)
                 
         else:
@@ -2423,12 +2421,36 @@ class Dispersy(Singleton):
         if address[1] <= 0:
             return False
 
-        if address[0].endswith(".0"):
+        try:
+            binary = inet_aton(address[1])
+        except socket_error:
             return False
 
-        if address[0].endswith(".255"):
+        # ending with .0
+        if binary[3] == "\x00":
             return False
 
+        # ending with .255
+        if binary[3] == "\xff":
+            return False
+
+        # range 10.0.0.0 - 10.255.255.255
+        if binary[0] == "\x0a":
+            pass
+
+        # range 172.16.0.0 - 172.31.255.255
+        # TODO fill in range
+        elif binary[0] == "\x7f":
+            pass
+
+        # range 192.168.0.0 - 192.168.255.255
+        elif binary[0] == "\xc0" and binary[1] == "\xa8":
+            pass
+
+        else:
+            # not in a valid LAN range
+            return False
+        
         if address == self._lan_address:
             return False
 
@@ -2444,16 +2466,30 @@ class Dispersy(Singleton):
         if address[1] <= 0:
             return False
 
-        if address[0].endswith(".0"):
+        try:
+            binary = inet_aton(address[1])
+        except socket_error:
             return False
 
-        if address[0].endswith(".255"):
+        # ending with .0
+        if binary[3] == "\x00":
             return False
 
-        if address[0].startswith("10."):
+        # ending with .255
+        if binary[3] == "\xff":
             return False
 
-        if address[0].startswith("192."):
+        # range 10.0.0.0 - 10.255.255.255
+        if binary[0] == "\x0a":
+            return False
+
+        # range 172.16.0.0 - 172.31.255.255
+        # TODO fill in range
+        if binary[0] == "\x7f":
+            return False
+
+        # range 192.168.0.0 - 192.168.255.255
+        if binary[0] == "\xc0" and binary[1] == "\xa8":
             return False
 
         if address == self._wan_address:
@@ -2465,7 +2501,7 @@ class Dispersy(Singleton):
         return True
 
     def is_valid_remote_address(self, address):
-        return self._is_valid_lan_address(address) and self._is_valid_wan_address(address)
+        return self._is_valid_lan_address(address) or self._is_valid_wan_address(address)
     
     def create_identity(self, community, store=True, update=True):
         """
