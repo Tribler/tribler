@@ -1748,32 +1748,33 @@ class Dispersy(Singleton):
             introduction = set(candidate for candidate in candidates if candidate.is_introduction)
 
             A = list(walks.difference(stumbles).difference(introduction))
-            B = list(walks.intersection(stumbles).union(walks.intersection(introduction)))
+            B = list(walks) #list(walks.intersection(stumbles).union(walks.intersection(introduction)))
             C = list(introduction.difference(walks).difference(stumbles))
             D = list(stumbles.difference(walks).difference(introduction))
             E = list(stumbles.intersection(introduction).difference(walks))
 
             assert any([A, B, C, D, E])
+            if A:
+                for candidate in A:
+                    dprint("== ", candidate.lan_address, " ", candidate.wan_address, force=1)
+            dprint("A", len(A), " B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
             
             while True:
                 r = random()
 
-                if r <= .33:
-                    if A: yield choice(A)
-
-                elif r <= .66:
+                if r <= .50: # 50%
                     if B: yield choice(B)
 
-                elif r <= .77:
+                elif r <= .6633: # 16.33%
                     if C: yield choice(C)
 
-                elif r <= .88:
+                elif r <= .8266: # 16.33%
                     if D: yield choice(D)
 
-                elif r <= .99:
+                elif r <= .9899: # 16.33%
                     if E: yield choice(E)
 
-                elif self._bootstrap_candidates:
+                elif self._bootstrap_candidates: # ~1%
                     yield choice(self._bootstrap_candidates.values())
 
         elif self._bootstrap_candidates:
@@ -1886,7 +1887,10 @@ class Dispersy(Singleton):
 
         for message in messages:
             # get introduction candidate (if requested)
-            if message.payload.advice:
+            #
+            # note that we also check that the source_lan_address and source_wan_address are valid
+            # as they are unknown and possibly wrong when the sender only just started her client
+            if message.payload.advice and self._is_valid_lan_address(message.payload.source_lan_address) and self._is_valid_wan_address(message.payload.source_wan_address):
                 try:
                     candidate = self.yield_walk_candidates(community, [message.address]).next()
                 except StopIteration:
