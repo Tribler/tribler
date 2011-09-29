@@ -1792,6 +1792,11 @@ class ModerationItem(AvantarItem):
                 self.body += "%s additionally issued a warning!\n"%moderation.peer_name.capitalize()
             self.body += "Modification was:\n%s"%modification.value
             
+            if modification.torrent:
+                self.header += " for torrent '%s'"%modification.torrent.name
+                self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+                self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+            
         else:
             self.body = moderation.message
         im = IconsManager.getInstance()
@@ -1799,8 +1804,9 @@ class ModerationItem(AvantarItem):
         
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
         
-    def RevertModification(self, event):
-        self.parent_list.parent_list.OnRevertModification(self.original_data)
+    def ShowTorrent(self, event):
+        if self.original_data:
+            self.parent_list.parent_list.OnShowTorrent(self.original_data.modification.torrent)
 
 class CommentManager:
     def __init__(self, list):
@@ -2206,3 +2212,6 @@ class ModerationList(List):
         else:
             self.list.ShowMessage('No moderations are found.')
         self.SetNrResults(len(data))
+        
+    def OnShowTorrent(self, torrent):
+        self.parent_list.Select(torrent)
