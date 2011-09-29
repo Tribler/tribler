@@ -202,7 +202,7 @@ class TorrentDetails(AbstractDetails):
                 self.Freeze()
                 self.messagePanel.Show(False)
             
-                self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+                self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME, name = "TorrentDetailsNotebook")
                 self._addTabs(ds, showTab)
                 
                 self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)

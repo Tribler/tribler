@@ -341,8 +341,8 @@ class DispersyPanel(HomePanel):
         
         vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
                
-        self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT)
-        vSizer.Add(self.tree, 1, wx.EXPAND)
+        self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
+        vSizer.Add(self.tree, 1, wx.EXPAND|wx.LEFT, 10)
         
         panel.SetSizer(vSizer)
         return panel
@@ -364,6 +364,8 @@ class DispersyPanel(HomePanel):
                         addColumn('total_up')
                     if 'total_down' in value:
                         addColumn('total_down')
+                    if 'runtime' in value:
+                        addColumn('runtime')
                 else:
                     addColumn(key)
                     
@@ -384,7 +386,6 @@ class DispersyPanel(HomePanel):
     def _UpdateStats(self, info):
         if not self.buildColumns:
             self.CreateColumns(info)
-            
         
         def addValue(parentNode, value):
             if isinstance(value, dict):
@@ -418,14 +419,12 @@ class DispersyPanel(HomePanel):
                 if key == 'statistics':
                     updateColumn('total_down', self.utility.size_format(value['total_down']))
                     updateColumn('total_up', self.utility.size_format(value['total_up']))
+                    updateColumn('runtime', self.utility.eta_value(value['runtime']))
                     
-                    del value['total_down']
-                    del value['total_up']
-                
                 parentNode = self.tree.AppendItem(fakeRoot, key)
                 addValue(parentNode, value)
                 
-        self.Layout()
+        self.panel.Layout()
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):

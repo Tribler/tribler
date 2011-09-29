@@ -299,7 +299,7 @@ class XRCPanel(wx.Panel):
     def _PostInit(self):
         pass
 
-class List(XRCPanel):
+class List(wx.BoxSizer):
     def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
 
         """
@@ -333,42 +333,46 @@ class List(XRCPanel):
         self.dirty = False
         self.rawfilter = ''
         self.filter = ''
+        self.footer = self.header = self.list = None
 
         self.id = 0
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
         self.leftLine = self.rightLine = None
-        XRCPanel.__init__(self, parent)
+        self.parent = parent
+        
+        wx.BoxSizer.__init__(self, wx.VERTICAL)
+        
+        self.isReady = False
+        self._PostInit()
+        self.isReady = True
     
     def _PostInit(self):
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.header = self.CreateHeader(self)
+        self.header = self.CreateHeader(self.parent)
         if self.header:
-            vSizer.Add(self.header, 0, wx.EXPAND)
+            self.Add(self.header, 0, wx.EXPAND)
         
-        self.list = self.CreateList(self)
+        self.list = self.CreateList(self.parent)
 
         #left and right borders
         if self.borders:
             listSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.leftLine = wx.Panel(self, size=(1,-1))
-            self.rightLine = wx.Panel(self, size=(1,-1))
+            self.leftLine = wx.Panel(self.parent, size=(1,-1))
+            self.rightLine = wx.Panel(self.parent, size=(1,-1))
         
             listSizer.Add(self.leftLine, 0, wx.EXPAND)
             listSizer.Add(self.list, 1, wx.EXPAND)
             listSizer.Add(self.rightLine, 0, wx.EXPAND)
-            vSizer.Add(listSizer, 1, wx.EXPAND)
+            self.Add(listSizer, 1, wx.EXPAND)
         else:
-            vSizer.Add(self.list, 1, wx.EXPAND)
+            self.Add(self.list, 1, wx.EXPAND)
         
-        self.footer = self.CreateFooter(self)
+        self.footer = self.CreateFooter(self.parent)
         if self.footer:
-            vSizer.Add(self.footer, 0, wx.EXPAND)
+            self.Add(self.footer, 0, wx.EXPAND)
         
         self.SetBackgroundColour(self.background)
-        self.SetSizer(vSizer)
         self.Layout()
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
@@ -376,10 +380,10 @@ class List(XRCPanel):
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns)
 
-    def CreateList(self, parent = None):
+    def CreateList(self, parent = None, listRateLimit = 1):
         if not parent:
             parent = self
-        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=0.5)
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit)
 
     def CreateFooter(self, parent):
         return ListFooter(parent)
@@ -495,8 +499,6 @@ class List(XRCPanel):
     def SetBackgroundColour(self, colour):
         self.__check_thread()
         
-        wx.Panel.SetBackgroundColour(self, colour)
-        
         if self.header:
             self.header.SetBackgroundColour(colour)
         
@@ -545,9 +547,17 @@ class List(XRCPanel):
     def OnLoadAll(self):
         if self.isReady:
             self.list.OnLoadAll()
+            
+    def IsShownOnScreen(self):
+        return self.parent.IsShownOnScreen()
+    
+    def Freeze(self):
+        self.parent.Freeze()
+    def Thaw(self):
+        self.parent.Thaw()
         
     def Show(self, show = True):
-        wx.Panel.Show(self, show)
+        self.ShowItems(show)
         
         if show and self.IsShownOnScreen():
             if self.dirty:
@@ -610,7 +620,7 @@ class List(XRCPanel):
         
     def Layout(self):
         self.__check_thread()
-        return wx.Panel.Layout(self)
+        return wx.BoxSizer.Layout(self)
     
 class SizeList(List):
     
@@ -831,20 +841,20 @@ class SearchList(GenericSearchList):
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.header = self.CreateHeader(self)
-        sizer.Add(self.header, 0, wx.EXPAND)
+        self.header = self.CreateHeader(self.parent)
+        self.Add(self.header, 0, wx.EXPAND)
         
-        list = wx.Panel(self)
-        self.subheader = ListHeader(list, self, self.columns, radius = 0, spacers=[7,7])
-        self.sidebar = SearchSideBar(self, size=(200,-1))
+        self.sidebar = SearchSideBar(self.parent, size=(200,-1))
         self.leftLine = self.sidebar
-        self.rightLine = wx.Panel(self, size=(1,-1))
+        self.rightLine = wx.Panel(self.parent, size=(1,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.leftLine, 0, wx.EXPAND)
         
-        self.list = self.CreateList(list)
+        list = wx.Panel(self.parent)
+        self.subheader = ListHeader(list, self, self.columns, radius = 0, spacers=[7,7])
+        
+        self.list = self.CreateList(list, listRateLimit=0.5)
         list.OnSort = self.list.OnSort
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -855,17 +865,16 @@ class SearchList(GenericSearchList):
         hSizer.Add(list, 1, wx.EXPAND)
         hSizer.Add(self.rightLine, 0, wx.EXPAND)
 
-        sizer.Add(hSizer, 1, wx.EXPAND)
+        self.Add(hSizer, 1, wx.EXPAND)
         
-        self.footer = self.CreateFooter(self)
-        sizer.Add(self.footer, 0, wx.EXPAND)
+        self.footer = self.CreateFooter(self.parent)
+        self.Add(self.footer, 0, wx.EXPAND)
         
         self.header.SetSpacerRight = self.subheader.SetSpacerRight
         self.header.ResizeColumn = self.subheader.ResizeColumn
         self.header.SetFF = self.sidebar.SetFF
         
         self.SetBackgroundColour(self.background)
-        self.SetSizer(sizer)
         self.Layout()
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
@@ -876,7 +885,7 @@ class SearchList(GenericSearchList):
         return self.manager
     
     def CreateHeader(self, parent):
-        return SearchHelpHeader(self, parent, [])
+        return SearchHelpHeader(parent, self, [])
 
     def CreateFooter(self, parent):
         footer = ChannelResultFooter(parent)
@@ -1453,7 +1462,6 @@ class ChannelCategoriesList(List):
     def _PostInit(self):
         List._PostInit(self)
         self.list.SetData([(1,['Popular'],None), (2,['New'],None), (6, ['Updated'], None), (3,['Favorites'],None), (4,['All'],None), (5,['My Channel'],None)])
-        self.SetMinSize((-1, self.GetBestSize()[1]))
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All','Updated']:

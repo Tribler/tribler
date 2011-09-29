@@ -176,10 +176,10 @@ class MainFrame(wx.Frame):
             self.channelselector.ShowItems(False)
         
             self.searchlist = SearchList(self)
-            self.searchlist.Hide()
+            self.searchlist.Show(False)
             
             self.channellist = ChannelList(self)
-            self.channellist.Hide()
+            self.channellist.Show(False)
         else:
             self.guiUtility.guiPage = ''
             self.home = None
@@ -189,15 +189,16 @@ class MainFrame(wx.Frame):
             self.channellist = None
         
         self.stats = Stats(self)
-        self.stats.Hide()
+        self.stats.Show(False)
         self.selectedchannellist = SelectedChannelList(self)
         self.selectedchannellist.Show(bool(channelonly))
         self.playlist = Playlist(self)
-        self.playlist.Hide()
+        self.playlist.Show(False)
+        
         self.managechannel = ManageChannel(self)
-        self.managechannel.Hide()
+        self.managechannel.Show(False)
         self.librarylist = LibraryList(self)
-        self.librarylist.Hide()
+        self.librarylist.Show(False)
         
         if internalvideo:
             self.videoparentpanel = wx.Panel(self)

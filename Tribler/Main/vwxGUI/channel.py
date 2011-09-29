@@ -173,16 +173,19 @@ class SelectedChannelList(GenericSearchList):
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, borders = False, showChange = True, parent = parent)
-        
+    
+    @warnWxThread
     def _PostInit(self):
-        self.uelog = UserEventLogDBHandler.getInstance()
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.header = ChannelHeader(self, self, [])
+        self.header = ChannelHeader(self.parent, self, [])
         self.header.SetEvents(self.OnBack)
-        sizer.Add(self.header, 0, wx.EXPAND|wx.BOTTOM, 3)
+        self.Add(self.header, 0, wx.EXPAND)
+
         
-        self.notebook = wx.Notebook(self, style = wx.NB_LEFT|wx.NO_BORDER)
+        self.leftLine = wx.Panel(self.parent, size=(1,-1))
+
+        self.notebook = wx.Notebook(self.parent, style = wx.NB_LEFT|wx.NO_BORDER, name = "ChannelNotebook")
+        #self.notebook = FlatNotebook(self.parent, style = fnb.FNB_DROPDOWN_TABS_LIST|fnb.FNB_DEFAULT_STYLE)
+        #self.notebook = wx.Listbook(self.parent, style = wx.NO_BORDER|wx.LB_SINGLE)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
         if self.background == LIST_GREY:
@@ -199,7 +202,6 @@ class SelectedChannelList(GenericSearchList):
         self.header.ResizeColumn = self.subheader.ResizeColumn
         
         vSizer.Add(self.subheader, 0, wx.EXPAND)
-                
         self.list = self.CreateList(list)
         vSizer.Add(self.list, 1, wx.EXPAND)
         
@@ -219,26 +221,35 @@ class SelectedChannelList(GenericSearchList):
         self.moderationList = ModerationList(self.notebook, self)
         self.moderationList.IsShownOnScreen = lambda this=self.moderationList: isTabShown(this)
         
-        sizer.Add(self.notebook, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+        self.rightLine = wx.Panel(self.parent, size=(1,-1))
         
-        self.footer = self.CreateFooter(self)
-        sizer.Add(self.footer, 0, wx.EXPAND)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.leftLine, 0, wx.EXPAND)
+        hSizer.Add(self.notebook,  1, wx.EXPAND)
+        hSizer.Add(self.rightLine, 0, wx.EXPAND)                
+        
+        self.Add(hSizer, 1, wx.EXPAND)
+        
+        self.footer = self.CreateFooter(self.parent)
+        self.Add(self.footer, 0, wx.EXPAND)
         
         self.SetBackgroundColour(self.background)
         
-        self.SetSizer(sizer)
         self.Layout()
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
-        
+    
+    @warnWxThread
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns, radius = 0)
    
+    @warnWxThread
     def CreateFooter(self, parent):
         footer = ChannelFooter(parent)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote, self.OnManage)
         return footer
 
+    @warnWxThread
     def SetChannel(self, channel):
         self.channel = channel
         
@@ -256,7 +267,7 @@ class SelectedChannelList(GenericSearchList):
         else:
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
         self.Thaw()
-
+    
     def SetId(self, id):
         self.id = id
         if id > 0:
@@ -271,10 +282,12 @@ class SelectedChannelList(GenericSearchList):
             manager = self.moderationList.GetManager()
             manager.SetIds(channel = self.channel)
     
+    @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
         self.footer.SetStates(vote, channelstate, iamModerator)
         self.Layout()
     
+    @warnWxThread
     def SetState(self, delayedResult):
         state, iamModerator = delayedResult.get()
         self.SetChannelState(state, iamModerator)
@@ -287,7 +300,7 @@ class SelectedChannelList(GenericSearchList):
                 self.commentList.Show()
                 self.activityList.Show()
                 self.moderationList.Show()
-            
+                
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
                 self.notebook.AddPage(self.moderationList, "Moderations")
@@ -384,7 +397,7 @@ class SelectedChannelList(GenericSearchList):
     def Reset(self):
         GenericSearchList.Reset(self)
         self.SetId(0)
-        self.notebook.ChangeSelection(0)
+        self.notebook.SetSelection(0)
     
     @warnWxThread
     def OnExpand(self, item):
@@ -474,31 +487,36 @@ class SelectedChannelList(GenericSearchList):
             startWorker(gui_call, db_call)
         dialog.Destroy()
     
+    @warnWxThread
     def OnManage(self, event):
         self.guiutility.showManageChannel(self.channel)
     
+    @warnWxThread
     def OnBack(self, event):
         self.guiutility.GoBack(self.id)
     
+    @warnWxThread
     def OnSize(self, event):
-        diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
-        self.subheader.SetSpacerRight(diff)
-        self.footer.SetSpacerRight(diff)
+#        diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
+#        self.subheader.SetSpacerRight(diff)
+#        self.footer.SetSpacerRight(diff)
         event.Skip()
         
     def OnChange(self, event):
-        page = event.GetSelection()
-        if page == 1:
-            self.commentList.Show()
-            self.commentList.SetFocus()
-            
-        elif page == 2:
-            self.activityList.Show()
-            self.activityList.SetFocus()
-            
-        elif page == 3:
-            self.moderationList.Show()
-            self.moderationList.SetFocus()
+        source = event.GetEventObject()
+        if source == self.notebook:
+            page = event.GetSelection()
+            if page == 1:
+                self.commentList.Show()
+                self.commentList.SetFocus()
+                
+            elif page == 2:
+                self.activityList.Show()
+                self.activityList.SetFocus()
+                
+            elif page == 3:
+                self.moderationList.Show()
+                self.moderationList.SetFocus()
         event.Skip()
         
     def OnDrag(self, dragitem):
@@ -569,7 +587,7 @@ class SelectedChannelList(GenericSearchList):
 
         GenericSearchList.Select(self, key, raise_event)
         
-        self.notebook.ChangeSelection(0)
+        self.notebook.SetSelection(0)
         self.ScrollToId(key)
     
     @forceDBThread
@@ -1889,7 +1907,7 @@ class CommentList(List):
         self.canReply = canReply
     
     def CreateHeader(self, parent):
-        return TitleHeader(self, parent, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0)
     
     def CreateFooter(self, parent):
         return CommentFooter(parent, self.OnNew, self.quickPost)
@@ -1996,7 +2014,7 @@ class ActivityList(List):
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
     def CreateHeader(self, parent):
-        return TitleHeader(self, parent, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0)
     
     def CreateFooter(self, parent):
         return None
@@ -2192,7 +2210,7 @@ class ModerationList(List):
         self.parent_list = parent_list
     
     def CreateHeader(self, parent):
-        return TitleHeader(self, parent, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0)
     
     def CreateFooter(self, parent):
         return None

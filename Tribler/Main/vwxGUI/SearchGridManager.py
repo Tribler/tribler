@@ -66,6 +66,9 @@ class TorrentManager:
         self.remoteLock = threading.Lock()
         self.remoteRefresh = False
         
+        # Most recent downloadstate list
+        self.dslist = []
+        
         # Requests for torrents
         self.requestedTorrents = set()
         
@@ -1126,6 +1129,7 @@ class ChannelSearchGridManager:
         if tuple:
             ct = ChannelTorrent(*tuple[1:]+[channel, playlist])
             ct.torrent_db = self.torrent_db
+            ct.channelcast_db = self.channelcast_db
             
             #Only return ChannelTorrent with a name, old not-collected torrents 
             #will be filtered due to this
