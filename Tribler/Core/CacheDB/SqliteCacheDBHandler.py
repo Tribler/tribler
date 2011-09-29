@@ -3162,7 +3162,11 @@ class ChannelCastDBHandler(object):
         def updateNrTorrents():
             rows = self.getChannelNrTorrents()
             update = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
-            self._db.executemany(update, rows)
+            self._db.executemany(update, rows, commit = False)
+            
+            rows = self.getChannelNrTorrentsLatestUpdate()
+            update = "UPDATE Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
+            self._db.executemany(update, rows, commit = self.shouldCommit)
             
             #schedule a call for in 5 minutes
             startWorker(None, updateNrTorrents, delay = 300)
@@ -3381,13 +3385,14 @@ class ChannelCastDBHandler(object):
             torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
             self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, timestamp), commit = False)
         
-        for channel_id in max_update.keys():        
+        for channel_id in max_update.keys():
+            modified, nrTorrents = self.getLatestUpdateNrTorrentsInChannel(channel_id, collected = True)
+            
             if channel_id in latest_update:
-                new_time = latest_update[channel_id][0]
                 new_name = latest_update[channel_id][1][:40]
-                self._db.execute_write(update_name, (new_name, long(new_time), self.getNrTorrentsInChannel(channel_id, collected = True), channel_id), commit = False)
+                self._db.execute_write(update_name, (new_name, modified, nrTorrents, channel_id), commit = False)
             else:
-                self._db.execute_write(update_channel, (long(time()), self.getNrTorrentsInChannel(channel_id, collected = True), channel_id), commit = False)
+                self._db.execute_write(update_channel, (modified, nrTorrents , channel_id), commit = False)
         
         if self.shouldCommit:
             self._db.commit()
@@ -3562,8 +3567,19 @@ class ChannelCastDBHandler(object):
             sql = "select count(ChannelTorrents.torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
         return self._db.fetchone(sql, (channel_id,))
     
+    def getLatestUpdateNrTorrentsInChannel(self, channel_id, collected = False):
+        if collected:
+            sql = "select max(ChannelTorrents.time_stamp), count(ChannelTorrents.torrent_id) from ChannelTorrents, CollectedTorrent where ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id==? LIMIT 1"
+        else:
+            sql = "select max(ChannelTorrents.time_stamp), count(ChannelTorrents.torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
+        return self._db.fetchone(sql, (channel_id,))
+    
     def getChannelNrTorrents(self):
         sql = "select count(torrent_id), channel_id from Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <>  -1 GROUP BY channel_id"
+        return self._db.fetchall(sql)
+    
+    def getChannelNrTorrentsLatestUpdate(self):
+        sql = "select count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id from Channels, ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1 GROUP BY channel_id"
         return self._db.fetchall(sql)
     
     def getNrChannels(self):
@@ -3681,8 +3697,14 @@ class ChannelCastDBHandler(object):
         results = self._db.fetchall(sql, (channel_id,))
         if limit is None:
             #use this possibility to update nrtorrent in channel
-            update = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
-            self._db.execute_write(update, (len(results), channel_id))
+            
+            if 'time_stamp' in keys and len(results) > 0:
+                update = "UPDATE Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
+                self._db.execute_write(update, (len(results), results[0][keys.index('time_stamp')], channel_id))
+            else:
+                #use this possibility to update nrtorrent in channel
+                update = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
+                self._db.execute_write(update, (len(results), channel_id))
         
         return self.__fixTorrents(keys, results)
     

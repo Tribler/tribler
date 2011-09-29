@@ -233,7 +233,6 @@ class ChannelSearchManager:
         if category != self.category:
             self.category = category
             self.list.Reset()
-            self.list.ShowLoading()
             
             if category != 'searchresults':
                 self.do_or_schedule_refresh(force_refresh)
@@ -380,7 +379,7 @@ class List(XRCPanel):
     def CreateList(self, parent = None):
         if not parent:
             parent = self
-        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=0.5)
 
     def CreateFooter(self, parent):
         return ListFooter(parent)

@@ -1301,7 +1301,9 @@ class ChannelSearchGridManager:
     @forceDispersyThread
     def createChannel(self, name, description):
         community = ChannelCommunity.create_community(self.session.dispersy_member)
+        community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
+        
     
     @forceDispersyThread
     def createPlaylist(self, channel_id, name, description, infohashes = []):

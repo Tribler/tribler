@@ -378,7 +378,7 @@ class ListItem(wx.Panel):
 class AbstractListBody():
     
     @warnWxThread
-    def __init__(self, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None, hasFilter = True):
+    def __init__(self, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = None, hasFilter = True, listRateLimit = LIST_RATE_LIMIT):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -386,6 +386,7 @@ class AbstractListBody():
         self.singleExpanded = singleExpanded
         self.showChange = showChange
         self.list_selected = LIST_SELECTED
+        self.listRateLimit = listRateLimit
         if not list_item_max:
             list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
@@ -598,6 +599,7 @@ class AbstractListBody():
         self.data = None
         self.lastData = 0
         self.raw_data = None
+        self.ShowLoading()
         self.OnChange()
         self.Thaw()
     
@@ -650,11 +652,6 @@ class AbstractListBody():
     @warnWxThread
     def ShowLoading(self):
         self.ShowMessage('Loading, please wait.')
-#        #Try to yield, allows us to show loading text
-#        try:
-#            wx.Yield()
-#        except:
-#            pass
     
     @warnWxThread
     def RefreshData(self, key, data):
@@ -690,7 +687,7 @@ class AbstractListBody():
             
             self.__SetData(highlight)
         
-        diff = time() - (LIST_RATE_LIMIT + self.lastData)
+        diff = time() - (self.listRateLimit + self.lastData)
         if diff >= 0:
             doSetData()
         else:
@@ -725,12 +722,7 @@ class AbstractListBody():
             data = []
         
         self.highlightSet = set()
-        if len(self.items) == 0:
-            #new data
-            if len(data) > LIST_ITEM_BATCH_SIZE:
-                self.ShowLoading()
-                
-        elif highlight:
+        if len(self.items) != 0 and highlight:
             cur_keys = set([curdata[0] for curdata in self.data[:self.list_item_max]])
             self.highlightSet = set([curdata[0] for curdata in data[:self.list_item_max] if curdata[0] not in cur_keys])
 
@@ -929,9 +921,9 @@ class AbstractListBody():
         event.Skip()
  
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
-    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
+    def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE, listRateLimit = LIST_RATE_LIMIT):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit)
         
         homeId = wx.NewId()
         endId = wx.NewId()

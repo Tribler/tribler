@@ -921,16 +921,16 @@ class ManageChannel(XRCPanel, AbstractDetails):
         text += "By choosing a more open setting, other users are allowed to do more.\n\n"
         
         text += "Currently three configurations exist:\n"
-        text += "\tClosed, only you can add new .torrents. Other users can only download them.\n"
+        text += "\tOpen, only you can define playlists and delete torrents. Other users can do everything else, ie add torrents, categorize torrents, comment etc.\n"
         text += "\tSemi-Open, only you can add new .torrents. Other users can download and comment on them.\n"
-        text += "\tOpen, only you can define playlists and delete torrents. Other users can do everything else, ie add torrents, categorize torrents, comment etc."
+        text += "\tClosed, only you can add new .torrents. Other users can only download them."
         vSizer.Add(wx.StaticText(self.settingspage, -1, text), 0, wx.EXPAND|wx.ALL, 10)
         
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
         gridSizer.AddGrowableRow(1)
         
-        self.statebox = wx.RadioBox(self.settingspage, choices = ('Closed', 'Semi-Open', 'Open'), style = wx.RA_VERTICAL) 
+        self.statebox = wx.RadioBox(self.settingspage, choices = ('Open', 'Semi-Open', 'Closed'), style = wx.RA_VERTICAL) 
         self._add_row(self.settingspage, gridSizer, "Configuration", self.statebox)
         vSizer.Add(gridSizer, 0, wx.EXPAND|wx.RIGHT, 10)
         
@@ -1078,7 +1078,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 if iamModerator:
                     self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
                     
-                    self.statebox.SetSelection(channel_state)
+                    selection = channel_state
+                    if selection == 0:
+                        selection = 2
+                    elif selection == 2:
+                        selection = 0
+                    
+                    self.statebox.SetSelection(selection)
                     self.AddPage(self.notebook, self.settingspage, "Settings", 1)
                 else:
                     self.RemovePage(self.notebook, "Overview")
@@ -1260,6 +1266,10 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
     def SaveSettings(self, event):
         state = self.statebox.GetSelection()
+        if state == 0:
+            state = 2
+        elif state == 2:
+            state = 0
         startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state))
         
         button = event.GetEventObject()
