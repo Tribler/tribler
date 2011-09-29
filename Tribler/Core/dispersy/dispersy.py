@@ -1805,21 +1805,38 @@ class Dispersy(Singleton):
             while True:
                 r = random()
 
-#                if r <= .50: # 50%
-                if r <= .33: # 50%
+                if r <= .495: # 50%
                     if B: yield choice(B)
 
-#                elif r <= .6633: # 16.33%
-                elif r <= .55: # 16.33%
-                    if C: yield choice(C)
+                elif r <= .99: # 50%
 
-#                elif r <= .8266: # 16.33%
-                elif r <= .77: # 16.33%
-                    if D: yield choice(D)
+                    if C or D or E:
+                        while True:
+                            r = random()
 
-#                elif r <= .9899: # 16.33%
-                elif r <= .99: # 16.33%
-                    if E: yield choice(E)
+                            if r <= .3333:
+                                if C:
+                                    yield choice(C)
+                                    break
+
+                            elif r <= .6666:
+                                if D:
+                                    yield choice(D)
+                                    break
+
+                            elif r <= .9999:
+                                if E:
+                                    yield choice(E)
+                                    break
+                                
+                # elif r <= .6633: # 16.33%
+                #     if C: yield choice(C)
+
+                # elif r <= .8266: # 16.33%
+                #     if D: yield choice(D)
+
+                # elif r <= .9899: # 16.33%
+                #     if E: yield choice(E)
 
                 elif self._bootstrap_candidates: # ~1%
                     yield choice(self._bootstrap_candidates.values())

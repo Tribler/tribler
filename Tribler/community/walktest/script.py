@@ -53,8 +53,8 @@ def main(filename):
         if "candidates" in kargs:
             check_candidates(datetime, kargs["candidates"])
 
-        if "internal_address" in kargs and "wan_address" in kargs:
-            check_my_addresses(datetime, kargs["internal_address"], kargs["wan_address"])
+        if "lan_address" in kargs and "wan_address" in kargs:
+            check_my_addresses(datetime, kargs["lan_address"], kargs["wan_address"])
 
     def check_my_addresses(datetime, lan_address, wan_address):
         if not public_addresses:
