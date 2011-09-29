@@ -260,23 +260,23 @@ def main(filename):
     #     print sum(in_intro_timeout.itervalues()), "timeouts /", outgoing["introduction-request"], "requests"
     #     print
 
-    # # churn
-    # print "time      diff      count    discovered                 lost"
-    # if not online:
-    #     print "-none-"
-    # else:
-    #     last_datetime, last_candidates = online[0]
-    #     for datetime, candidates in online:
-    #         more = candidates.difference(last_candidates)
-    #         less = last_candidates.difference(candidates)
+    # churn
+    print "time      diff      count    discovered                 lost"
+    if not online:
+        print "-none-"
+    else:
+        last_datetime, last_candidates = online[0]
+        for datetime, candidates in online:
+            more = candidates.difference(last_candidates)
+            less = last_candidates.difference(candidates)
 
-    #         for candidate in more:
-    #             print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
-    #         for candidate in less:
-    #             print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
+            for candidate in more:
+                print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), " +", candidate
+            for candidate in less:
+                print datetime - first_datetime, " ", datetime - last_datetime, "  %-5d" % len(candidates), "                            -", candidate
 
-    #         last_datetime, last_candidates = datetime, candidates
-    #     print
+            last_datetime, last_candidates = datetime, candidates
+        print
 
     print "duration", duration, "->", seconds, "seconds"
     print "inverval", outgoing["introduction-request"], "requests -> ", 1.0 * seconds / outgoing["introduction-request"], "r/s"
