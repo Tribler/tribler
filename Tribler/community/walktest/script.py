@@ -159,6 +159,8 @@ def main(filename):
             out_intro_req[key] += 1
         else:
             out_intro_req[key] = 1
+
+        walk.append(("request", key))
             
     def in_introduction_response(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         all_addresses.add(source)
@@ -169,6 +171,8 @@ def main(filename):
             in_intro_res[key] += 1
         else:
             in_intro_res[key] = 1
+
+        walk.append(("response", key))
         
     def out_introduction_response(lineno, datetime, message, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         outgoing["introduction-response"] += 1
@@ -201,6 +205,7 @@ def main(filename):
     all_addresses = set()
 
     # walk
+    walk = []
     out_intro_req = {}
     in_intro_res = {}
     in_intro_timeout = {}
@@ -248,6 +253,20 @@ def main(filename):
         print "%4d %22s" % (count, key), "=" * (250 * count / total)
     print
 
+    last_type = ""
+    last_key = ""
+    for count, (type_, key) in enumerate(walk):
+        if last_type == "request" and type_ == "request":
+            print count, last_key, "->", "timeout"
+
+        if type_ == "response":
+            if key.startswith(last_key):
+                print count, key
+            else:
+                print count, "???", last_key, "->", key
+
+        last_type, last_key = type_, key
+    
     # for count, key in sorted((count, key) for key, count in in_intro_res.iteritems()):
     #     print "incoming introduction response", "%4d" % count, key
     # print
