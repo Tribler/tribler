@@ -216,6 +216,9 @@ class SelectedChannelList(GenericSearchList):
         self.activityList = ActivityList(self.notebook, self)
         self.activityList.IsShownOnScreen = lambda this=self.activityList: isTabShown(this)
         
+        self.moderationList = ModerationList(self.notebook, self)
+        self.moderationList.IsShownOnScreen = lambda this=self.moderationList: isTabShown(this)
+        
         sizer.Add(self.notebook, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
         
         self.footer = self.CreateFooter(self)
@@ -264,6 +267,9 @@ class SelectedChannelList(GenericSearchList):
             
             manager = self.activityList.GetManager()
             manager.SetIds(channel = self.channel)
+            
+            manager = self.moderationList.GetManager()
+            manager.SetIds(channel = self.channel)
     
     def SetFooter(self, vote, channelstate, iamModerator):
         self.footer.SetStates(vote, channelstate, iamModerator)
@@ -278,14 +284,17 @@ class SelectedChannelList(GenericSearchList):
         self.iamModerator = iamModerator
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
-                self.commentList.Show(True)
-                self.activityList.Show(True)
+                self.commentList.Show()
+                self.activityList.Show()
+                self.moderationList.Show()
             
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
+                self.notebook.AddPage(self.moderationList, "Moderations")
         else:
             self.commentList.Show(False)
             self.activityList.Show(False)
+            self.moderationList.Show(False)
             
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 self.notebook.RemovePage(i-1)
@@ -486,6 +495,10 @@ class SelectedChannelList(GenericSearchList):
         elif page == 2:
             self.activityList.Show()
             self.activityList.SetFocus()
+            
+        elif page == 3:
+            self.moderationList.Show()
+            self.moderationList.SetFocus()
         event.Skip()
         
     def OnDrag(self, dragitem):
@@ -680,6 +693,9 @@ class Playlist(SelectedChannelList):
             manager.SetIds(channel = self.playlist.channel, playlist = self.playlist)
             
             manager = self.activityList.GetManager()
+            manager.SetIds(channel = self.playlist.channel, playlist = self.playlist)
+            
+            manager = self.moderationList.GetManager()
             manager.SetIds(channel = self.playlist.channel, playlist = self.playlist)
             
     def OnCommentCreated(self, key):
@@ -1755,6 +1771,27 @@ class ModerationActivityItem(AvantarItem):
         im = IconsManager.getInstance()
         self.avantar = im.get_default('REVERTED_MODIFICATION',SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+class ModerationItem(AvantarItem):
+    
+    def AddComponents(self, leftSpacer, rightSpacer):
+        moderation = self.original_data
+
+        self.header = "%s reverted a modification by %s at %s"%(moderation.peer_name.capitalize(), moderation.by_peer_name, format_time(moderation.time_stamp).lower())
+        
+        if moderation.modification:
+            modification = moderation.modification
+            self.body = "%s reverted due to '%s'.\nModification was:\n%s"%(modification.name.capitalize(), moderation.message, modification.value)
+            
+        else:
+            self.body = moderation.message
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('REVERTED_MODIFICATION',SMALL_ICON_MAX_DIM)
+        
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
+        
+    def RevertModification(self, event):
+        self.parent_list.parent_list.OnRevertModification(self.original_data)
 
 class CommentManager:
     def __init__(self, list):
@@ -2029,6 +2066,7 @@ class ModificationList(List):
             self.manager = ModificationManager(self) 
         return self.manager
     
+    @forceWxThread
     def SetData(self, data):
         List.SetData(self, data)
         data = [(modification.id, (), modification, ModificationItem) for modification in data]
@@ -2087,3 +2125,72 @@ class ModificationList(List):
             self.GetManager().OnRevertModification(modification, reason.GetValue())    
             
         dlg.Destroy()        
+        
+class ModerationManager:
+    def __init__(self, list):
+        self.list = list
+        self.list.id = 0
+        
+        self.channel = None
+        self.playlist = None
+        self.channeltorrent = None
+        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+    def SetIds(self, channel = None, playlist = None):
+        if channel != self.channel:
+            self.channel = channel
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Recent moderations for this Channel')
+        
+        if playlist != self.playlist:
+            self.playlist = playlist
+            self.list.dirty = True
+            
+            self.list.header.SetTitle('Recent moderations for this Playlist')
+    
+    def do_or_schedule_refresh(self, force_refresh = False):
+        if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
+            self.refresh()
+        else:
+            self.list.dirty = True
+    
+    def refreshDirty(self):
+        self.refresh()
+    
+    @forceDBThread
+    def refresh(self):
+        self.list.dirty = False
+        
+        if self.playlist:
+            data = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
+        else:
+            data = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
+        self.list.SetData(data)
+
+class ModerationList(List):
+    def __init__(self, parent, parent_list):
+        List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
+        self.parent_list = parent_list
+    
+    def CreateHeader(self, parent):
+        return TitleHeader(self, parent, [], 0, radius = 0)
+    
+    def CreateFooter(self, parent):
+        return None
+
+    def GetManager(self):
+        if getattr(self, 'manager', None) == None:
+            self.manager = ModerationManager(self) 
+        return self.manager
+    
+    @forceWxThread
+    def SetData(self, data):
+        List.SetData(self, data)
+        data = [(moderation.id, (), moderation, ModerationItem) for moderation in data]
+        
+        if len(data) > 0:
+            self.list.SetData(data)
+        else:
+            self.list.ShowMessage('No moderations are found.')
+        self.SetNrResults(len(data))

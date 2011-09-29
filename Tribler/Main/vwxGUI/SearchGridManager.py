@@ -1185,15 +1185,28 @@ class ChannelSearchGridManager:
     def getRecentModerationsFromChannel(self, channel, limit = None):
         data = self.channelcast_db.getRecentModerationsFromChannel(channel.id, MODERATION_REQ_COLUMNS, limit)
         return self._createModerations(data)
+
+    def getRecentModerationsFromPlaylist(self, playlist, limit = None):
+        data = self.channelcast_db.getRecentModerationsFromPlaylist(playlist.id, MODERATION_REQ_COLUMNS, limit)
+        return self._createModerations(data)
     
     def _createModerations(self, hits):
         returnList = []
         for hit in hits:
-            mod = Moderation(*hit)
-            
+            mod = Moderation(*hit[:8])
             mod.channelcast_db = self.channelcast_db
             mod.get_nickname = self.utility.session.get_nickname
-
+            
+            modification = hit[8:]
+            if modification[0] is not None:
+                modification = Modification(*modification)
+                modification.channelcast_db = self.channelcast_db
+                modification.get_nickname = self.utility.session.get_nickname
+                
+                #touch torrent property to load torrent
+                modification.torrent
+                
+                mod.modification = modification
             returnList.append(mod)
             
         return returnList

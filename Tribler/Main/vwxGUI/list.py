@@ -549,7 +549,7 @@ class List(XRCPanel):
     def Show(self, show = True):
         wx.Panel.Show(self, show)
         
-        if show:
+        if show and self.IsShownOnScreen():
             if self.dirty:
                 self.dirty = False
     

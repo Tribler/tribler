@@ -469,7 +469,7 @@ class Modification(Helper):
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
 
 class Moderation(Helper):
-    __slots__ = ('id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted', 'channelcast_db', 'get_nickname')
+    __slots__ = ('id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted', 'modification', 'channelcast_db', 'get_nickname')
     def __init__(self, id, channel_id, peer_id, by_peer_id, severity, message, time_stamp, inserted):
         self.id = id
         self.channel_id = channel_id
@@ -479,6 +479,7 @@ class Moderation(Helper):
         self.message = message
         self.time_stamp = time_stamp
         self.inserted = inserted
+        self.modification = None
         
     @cacheProperty
     def peer_name(self):

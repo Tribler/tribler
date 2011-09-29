@@ -24,11 +24,13 @@ CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'info
 PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
 
 COMMENT_REQ_COLUMNS = ['id', 'Comments.dispersy_id', 'CommentTorrent.channeltorrent_id', 'name', 'Peer.peer_id', 'comment', 'inserted', 'time_stamp']
-MODERATION_REQ_COLUMNS = ['id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted']
-MODIFICATION_REQ_COLUMNS = ['ChannelMetaData.id', 'ChannelMetaData.dispersy_id', 'ChannelMetaData.peer_id', 'ChannelMetaData.type_id', 'ChannelMetaData.value', 'ChannelMetaData.time_stamp', 'ChannelMetaData.inserted', 'channeltorrent_id']
-for key in MODERATION_REQ_COLUMNS:
-    MODIFICATION_REQ_COLUMNS.append('Moderations.'+key)
 
+MODERATION_REQ_COLUMNS = ['Moderations.id', 'Moderations.channel_id', 'Moderations.peer_id', 'Moderations.by_peer_id', 'Moderations.severity', 'Moderations.message', 'Moderations.time_stamp', 'Moderations.inserted']
+MODIFICATION_REQ_COLUMNS = ['ChannelMetaData.id', 'ChannelMetaData.dispersy_id', 'ChannelMetaData.peer_id', 'ChannelMetaData.type_id', 'ChannelMetaData.value', 'ChannelMetaData.time_stamp', 'ChannelMetaData.inserted', 'channeltorrent_id']
+
+tmp = MODERATION_REQ_COLUMNS + MODIFICATION_REQ_COLUMNS
+MODIFICATION_REQ_COLUMNS += MODERATION_REQ_COLUMNS
+MODERATION_REQ_COLUMNS = tmp
 
 CHANNEL_MAX_NON_FAVORITE = 50
 
