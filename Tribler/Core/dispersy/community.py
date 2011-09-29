@@ -109,6 +109,8 @@ class Community(object):
         @rtype: Community
         """
         assert isinstance(my_member, Member), my_member
+        assert my_member.public_key, my_member.database_id
+        assert my_member.private_key, my_member.database_id
         ec = ec_generate_key(u"high")
         master = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
@@ -169,6 +171,8 @@ class Community(object):
         """
         assert isinstance(master, Member)
         assert isinstance(my_member, Member)
+        assert my_member.public_key, my_member.database_id
+        assert my_member.private_key, my_member.database_id
         if __debug__: dprint("joining ", cls.get_classification(), " ", master.mid.encode("HEX"))
 
         execute = DispersyDatabase.get_instance().execute
@@ -248,6 +252,8 @@ class Community(object):
         self._cid = master.mid
         self._master_member = master
         self._my_member = Member.get_instance(str(member_public_key))
+        assert self._my_member.public_key, self._my_member.database_id
+        assert self._my_member.private_key, self._my_member.database_id
 
         # define all available messages
         self._meta_messages = {}

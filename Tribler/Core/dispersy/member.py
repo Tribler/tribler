@@ -139,6 +139,9 @@ class Member(Parameterized1Singleton):
                         database.execute(u"INSERT INTO member(mid, public_key) VALUES(?, ?)", (buffer(self._mid), buffer(self._public_key)))
                         self._database_id = database.last_insert_rowid
 
+                        if self._private_key:
+                            database.execute(u"INSERT INTO private_key(member, private_key) VALUES(?, ?)", (self._database_id, buffer(self._private_key)))
+
                     else:
                         if not self._private_key and private_key:
                             self._private_key = str(private_key)
