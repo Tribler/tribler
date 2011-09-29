@@ -2467,7 +2467,7 @@ class Dispersy(Singleton):
             return False
 
         try:
-            binary = inet_aton(address[1])
+            binary = inet_aton(address[0])
         except socket_error:
             return False
 
