@@ -1780,23 +1780,27 @@ class Dispersy(Singleton):
         candidates = list(self._yield_candidates(community, blacklist))
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
-        introduction = set(candidate for candidate in candidates if candidate.is_introduction) if include_introduction else set()
+        introduction = set(candidate for candidate in candidates if candidate.is_introduction)
 
-        if walks or stumbles or introduction:
-            A = list(walks.difference(stumbles).difference(introduction))
-            B = list(walks) #list(walks.intersection(stumbles).union(walks.intersection(introduction)))
+        if walks or stumbles or (include_introduction and introduction):
+            B = list(walks)
             C = list(introduction.difference(walks).difference(stumbles))
             D = list(stumbles.difference(walks).difference(introduction))
             E = list(stumbles.intersection(introduction).difference(walks))
 
-            if __debug__:
-                if A:
-                    for candidate in A:
-                        dprint("== ", candidate.lan_address, " ", candidate.wan_address, force=1)
-                dprint("A", len(A), " B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
+            # optionally remove introduced candidates (we need to do this after calculating the
+            # other sets, otherwise sets will contain wrong candidates)
+            if not include_introduction:
+                introduction = set()
+            
+            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
             assert all(candidate.is_walk or candidate.is_stumble or candidate.is_introduction for candidate in candidates), "each candidate must have at least one mark"
             assert any([walks, stumbles, introduction])
             assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
+            assert all(candidate.is_walk for candidate in B)
+            assert all(not candidate.is_walk and not candidate.is_stumble and candidate.is_introduction for candidate in C)
+            assert all(not candidate.is_walk and candidate.is_stumble and not candidate.is_introduction for candidate in D)
+            assert all(not candidate.is_walk and candidate.is_stumble and candidate.is_introduction for candidate in E)
             
             while True:
                 r = random()
