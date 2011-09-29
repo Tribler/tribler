@@ -1945,21 +1945,21 @@ class Dispersy(Singleton):
 
     def check_introduction_response(self, messages):
         for message in messages:
-            if message.payload.wan_introduction_address == message.address:
+            if not message.payload.identifier in self._walk_identifiers:
+                yield DropMessage(message, "invalid response identifier")
+
+            elif message.payload.wan_introduction_address == message.address:
                 yield DropMessage(message, "invalid WAN introduction address [introducing herself]")
 
             elif message.payload.lan_introduction_address == message.address:
                 yield DropMessage(message, "invalid LAN introduction address [introducing herself]")
 
-            elif message.payload.wan_introduction_address in (self._lan_address, self._wan_address):
+            elif message.payload.wan_introduction_address == self._wan_address:
                 yield DropMessage(message, "invalid WAN introduction address [introducing myself]")
 
-            elif message.payload.lan_introduction_address in (self._lan_address, self._wan_address):
+            elif message.payload.lan_introduction_address == self._lan_address and message.payload.wan_introduction_address[0] == self._wan_address[0]:
                 yield DropMessage(message, "invalid LAN introduction address [introducing myself]")
                 
-            elif not message.payload.identifier in self._walk_identifiers:
-                yield DropMessage(message, "invalid response identifier")
-
             else:
                 yield message
 
