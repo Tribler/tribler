@@ -12,15 +12,14 @@ import traceback
 import threading
 import optparse
 
-from Tribler.Core.Overlay.permid import read_keypair
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.community import SyncRange, Community, HardKilledCommunity
+from Tribler.Core.dispersy.conversion import BinaryConversion
+from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.member import Member
-from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.conversion import BinaryConversion
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -110,9 +109,9 @@ class TrackerDispersy(Dispersy):
     def __init__(self, callback, statedir):
         super(TrackerDispersy, self).__init__(callback, statedir)
 
-        # get my_member, the key pair that we will use when we join a new community
-        keypair = read_keypair(os.path.join(statedir, u"ec.pem"))
-        self._my_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        # generate a new my-member
+        ec = ec_generate_key(u"very-low")
+        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         callback.register(self._unload_communities)
 
