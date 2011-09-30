@@ -1415,14 +1415,14 @@ class ChannelSearchGridManager:
     @forceDispersyThread
     def removeTorrent(self, channel, infohash):
         torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly = False)
-
-        community = self._disp_get_community_from_channel_id(channel.id)
-        community.remove_torrents([torrent.dispersy_id])
+        if torrent:
+            community = self._disp_get_community_from_channel_id(channel.id)
+            community.remove_torrents([torrent.dispersy_id])
     
     @forceDispersyThread
     def removeAllTorrents(self, channel):
         _,_,torrents = self.getTorrentsFromChannel(channel, filterTorrents=False)
-        dispersy_ids = [torrent.dispersy_id for torrent in torrents]
+        dispersy_ids = [torrent.dispersy_id for torrent in torrents if torrent]
         
         community = self._disp_get_community_from_channel_id(channel.id)
         community.remove_torrents(dispersy_ids)

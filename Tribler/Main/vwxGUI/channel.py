@@ -1303,7 +1303,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def Show(self, show=True):
         if not show:
             if self.IsChanged():
-                dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this channel?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this channel?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.Save()
             
