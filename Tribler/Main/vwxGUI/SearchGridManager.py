@@ -982,6 +982,7 @@ class ChannelSearchGridManager:
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
+        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
 
         if Dispersy.has_instance():
             self.dispersy = Dispersy.get_instance()
@@ -1362,6 +1363,11 @@ class ChannelSearchGridManager:
     
     @forceDispersyThread
     def createTorrent(self, channel, torrent):
+        if not isinstance(torrent, CollectedTorrent):
+            def torrent_loaded(loaded_torrent):
+                self.createTorrent(channel, loaded_torrent)
+            self.torrentsearch_manager.loadTorrent(torrent, torrent_loaded)
+        
         if not channel:
             channel_id = self.channelcast_db.getMyChannelId()
         else:

@@ -6,10 +6,11 @@ import os
 
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.vwxGUI.tribler_topButton import _set_font
 
 class AddTorrent(wx.Dialog):
-    def __init__(self, parent, frame):
-        wx.Dialog.__init__(self, parent, -1, 'Add an external .torrent', size=(500,150))
+    def __init__(self, parent, frame, libraryTorrents = None):
+        wx.Dialog.__init__(self, parent, -1, 'Add an external .torrent', size=(500,200))
         self.frame = frame
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         
@@ -20,21 +21,17 @@ class AddTorrent(wx.Dialog):
         vSizer.AddSpacer((-1, 25))
         
         header = wx.StaticText(self, -1, 'Browse for local .torrent file or files')
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
         vSizer.Add(wx.StaticText(self, -1, 'Use this option if you have downloaded a .torrent manually'), 0, wx.BOTTOM, 3)
         
         browseButton = wx.Button(self, -1, 'Browse')
         browseButton.Bind(wx.EVT_BUTTON, self.OnBrowse)
         vSizer.Add(browseButton, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
         
         header = wx.StaticText(self, -1, 'Url')
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
         vSizer.Add(wx.StaticText(self, -1, 'This could either be a direct http-link (starting with http://), or a magnet link'), 0, wx.BOTTOM, 3)
         
@@ -46,10 +43,29 @@ class AddTorrent(wx.Dialog):
         hSizer.Add(linkButton, 0, wx.LEFT, 3)
         vSizer.Add(hSizer, 0 , wx.EXPAND|wx.BOTTOM, 3)
         
-        self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
-        self.choose.SetValue(self.defaultDLConfig.get_show_saveas())
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
-        vSizer.Add(self.choose, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
+        if libraryTorrents:
+            header = wx.StaticText(self, -1, 'Choose one from you library')
+            _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
+            vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
+            
+            torrentNames = [torrent.name for torrent in libraryTorrents]
+            
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.libraryChoice = wx.Choice(self, -1, choices=torrentNames)
+            self.libraryChoice.torrents = libraryTorrents
+            hSizer.Add(self.libraryChoice, 1, wx.ALIGN_CENTER_VERTICAL)
+            
+            linkButton = wx.Button(self, -1, "Add")
+            linkButton.Bind(wx.EVT_BUTTON, self.OnLibrary)
+            
+            hSizer.Add(linkButton, 0, wx.LEFT, 3)
+            vSizer.Add(hSizer, 0 , wx.EXPAND|wx.BOTTOM, 3)
+            
+        else:
+            self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
+            self.choose.SetValue(self.defaultDLConfig.get_show_saveas())
+            vSizer.Add(self.choose, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
         
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 10)
@@ -75,6 +91,14 @@ class AddTorrent(wx.Dialog):
                     return
             
             if self.frame.startDownloadFromMagnet(str(input), destdir):
+                self.EndModal(wx.ID_OK)
+                
+    def OnLibrary(self, event):
+        selection = self.libraryChoice.GetCurrentSelection()
+        if selection >= 0:
+            torrent = self.libraryChoice.torrents[selection]
+            
+            if self.frame.startDownloadFromTorrent(torrent):
                 self.EndModal(wx.ID_OK)
         
     def OnBrowse(self, event):

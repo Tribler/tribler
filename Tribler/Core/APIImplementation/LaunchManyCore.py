@@ -34,6 +34,7 @@ from Tribler.Core.dispersy.community import HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -454,6 +455,12 @@ class TriblerLaunchMany(Thread):
                 #print >> sys.stderr, 'tlm: add', save_name, self.session.sessconfig
                 torrent_dir = self.session.sessconfig['torrent_collecting_dir']
                 save_path = os.path.join(torrent_dir, save_name)
+                if not os.path.exists(save_path):    # save the torrent to the common torrent dir
+                    tdef.save(save_path)
+                
+                #Niels: 30-09-2011 additionally save in collectingdir as collected filename
+                normal_name = get_collected_torrent_filename(infohash)
+                save_path = os.path.join(torrent_dir, normal_name)
                 if not os.path.exists(save_path):    # save the torrent to the common torrent dir
                     tdef.save(save_path)
                     

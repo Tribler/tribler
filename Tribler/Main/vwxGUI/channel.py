@@ -837,6 +837,10 @@ class ManageChannelFilesManager():
         except:
             return False
         
+    def startDownloadFromTorrent(self, torrent):
+        self.channelsearch_manager.createTorrent(self.list.channel, torrent)
+        return True
+        
     def AddTDef(self, tdef):
         if tdef:
             self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
@@ -1409,7 +1413,9 @@ class ManageChannelFilesList(List):
         dlg.Destroy()
         
     def OnAdd(self, event):
-        dlg = AddTorrent(None, self.GetManager())
+        _,_,libraryTorrents = self.guiutility.library_manager.getHitsInCategory()
+        
+        dlg = AddTorrent(None, self.GetManager(),libraryTorrents)
         dlg.CenterOnParent()
         dlg.ShowModal()
         dlg.Destroy()
