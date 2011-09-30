@@ -11,7 +11,7 @@ import tempfile
 import atexit
 
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -327,74 +327,72 @@ class SettingsDialog(wx.Dialog):
         else:
             pass
     
+    @forceDBThread
     def OnMultiple(self, start):
-        user_download_choice = UserDownloadChoice.get_singleton()
-        
         choices = []
         dstates = []
         infohashes = []
-        
-        self.guiUtility.frame.librarylist.GetManager().refresh()
-        items = self.guiUtility.frame.librarylist.GetItems()
+        _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
         
         def sort_by_name(a, b):
-            return cmp(a.original_data['name'], b.original_data['name'])
+            return cmp(a.name, b.name)
         
-        downloads = items.values()
         downloads.sort(cmp = sort_by_name)
-        
         for item in downloads:
-            started = False
-            ds = item.original_data.get('ds', None)
-            if ds and ds.get_status() in [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]:
-                started = True
-                
+            started = 'active' in item.state
             if start != started:
-                choices.append(item.original_data['name'])
-                dstates.append(ds)
-                infohashes.append(item.original_data["infohash"])
-         
-        if len(choices) > 0:
-            message = 'Please select all torrents which should be '
-            if start:
-                message += 'started.'
+                choices.append(item.name)
+                dstates.append(item.ds)
+                infohashes.append(item.infohash)
+                
+        def do_gui(choices, dstates, infohashes):
+            user_download_choice = UserDownloadChoice.get_singleton()
+            
+            if len(choices) > 0:
+                message = 'Please select all torrents which should be '
+                if start:
+                    message += 'started.'
+                else:
+                    message += 'stopped.'
+                message += "\nUse ctrl+a to select all/deselect all."
+                
+                def bindAll(control):
+                    control.Bind(wx.EVT_KEY_DOWN, lambda event: self._SelectAll(dlg, event, len(choices)))
+                    func = getattr(control, 'GetChildren', False)
+                    if func:
+                        for child in func():
+                            bindAll(child)
+                
+                dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
+                dlg.allselected = False
+                bindAll(dlg)
+                
+                if dlg.ShowModal() == wx.ID_OK:
+                    selections = dlg.GetSelections()
+                    for selection in selections:
+                        if start:
+                            if dstates[selection]:
+                                dstates[selection].get_download().restart()
+                            user_download_choice.set_download_state(infohashes[selection], "restart")
+                            
+                        else:
+                            if dstates[selection]:
+                                dstates[selection].get_download().stop()
+                            
+                            user_download_choice.set_download_state(infohashes[selection], "stop")
+                            
+                    user_download_choice.flush()
             else:
-                message += 'stopped.'
-            message += "\nUse ctrl+a to select all/deselect all."
+                message = "No torrents in library which could be "
+                if start:
+                    message += "started."
+                else:
+                    message += "stopped."
+                dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
+                dlg.ShowModal()
+            dlg.Destroy()
             
-            def bindAll(control):
-                control.Bind(wx.EVT_KEY_DOWN, lambda event: self._SelectAll(dlg, event, len(choices)))
-                func = getattr(control, 'GetChildren', False)
-                if func:
-                    for child in func():
-                        bindAll(child)
-            
-            dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
-            dlg.allselected = False
-            bindAll(dlg)
-            
-            if dlg.ShowModal() == wx.ID_OK:
-                selections = dlg.GetSelections()
-                for selection in selections:
-                    if start:
-                        if dstates[selection]:
-                            dstates[selection].get_download().restart()
-                        user_download_choice.set_download_state(infohashes[selection], "restart")
-                        
-                    else:
-                        if dstates[selection]:
-                            dstates[selection].get_download().stop()
-                        
-                        user_download_choice.set_download_state(infohashes[selection], "stop")
-        else:
-            message = "No torrents in library which could be "
-            if start:
-                message += "started."
-            else:
-                message += "stopped."
-            dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
-            dlg.ShowModal()
-        dlg.Destroy()
+        wx.CallAfter(do_gui, choices, dstates, infohashes)
         
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():

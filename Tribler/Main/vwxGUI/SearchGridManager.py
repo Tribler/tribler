@@ -851,7 +851,7 @@ class LibraryManager:
                 
             for torrent in torrentlist:
                 if torrent.infohash in infohash_ds:
-                    torrent.ds = ds
+                    torrent.ds = infohash_ds[torrent.infohash]
         return torrentlist
     
     def playTorrent(self, torrent, selectedinfilename = None):

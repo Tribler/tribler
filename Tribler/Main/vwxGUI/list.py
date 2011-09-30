@@ -1277,7 +1277,7 @@ class LibraryList(SizeList):
     
     def MatchFilter(self, item):
         if self.statefilter:
-            if self.statefilter != item[2].state:
+            if self.statefilter not in item[2].state:
                 return False
         
         return SizeList.MatchFilter(self, item)

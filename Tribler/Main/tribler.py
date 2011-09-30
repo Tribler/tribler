@@ -193,7 +193,6 @@ class ABCApp():
                     internal_frame = True
            
             self.frame = MainFrame(None, channel_only, internal_frame, self.splash.tick)
-            self.frame.set_wxapp(self)
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
@@ -1078,12 +1077,14 @@ def run(params = None):
             app = wx.PySimpleApp(redirect = False)
             abc = ABCApp(params, single_instance_checker, installdir)
             app.SetTopWindow(abc.frame)
+            abc.frame.set_wxapp(app)
             
             app.MainLoop()
+            #Niels: No code should be present here, only executed after gui closes
             
             # Setup the statistic reporter while waiting for proper integration
-            status = get_status_holder("LivingLab")
-            status.add_reporter(NullReporter("Periodically remove all events", 0))
+            # status = get_status_holder("LivingLab")
+            # status.add_reporter(NullReporter("Periodically remove all events", 0))
             #id = "Tribler client"
             #reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
             # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
