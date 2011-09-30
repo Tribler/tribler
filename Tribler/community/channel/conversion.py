@@ -95,8 +95,18 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(files, tuple):
             raise DropPacket("Invalid 'files' type")
         
+        for path, length in files:
+            if isinstance(path, str):
+                raise DropPacket("Invalid 'files_str' type")
+            if isinstance(length, (int, long)):
+                raise DropPacket("Invalid 'files_length' type")
+        
         if not isinstance(trackers, tuple):
             raise DropPacket("Invalid 'trackers' type")
+        for tracker in trackers:
+            if not isinstance(tracker, str):
+                raise DropPacket("Invalid 'tracker' type")
+        
         return offset, placeholder.meta.payload.implement(infohash, timestamp, name, files, trackers)
 
     def _encode_comment(self, message):

@@ -188,10 +188,7 @@ class CollectedTorrent(Helper):
         self.torrent = torrent
         
         self.comment = torrentdef.get_comment_as_unicode()
-        if torrentdef.get_tracker_hierarchy():
-            self.trackers = torrentdef.get_tracker_hierarchy()
-        else:
-            self.trackers = [[torrentdef.get_tracker()]]
+        self.trackers = torrentdef.get_trackers_as_single_tuple()
         self.creation_date = torrentdef.get_creation_date()
         self.files = torrentdef.get_files_with_length()
         self.last_check = -1

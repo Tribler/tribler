@@ -1378,11 +1378,7 @@ class ChannelSearchGridManager:
         if not channel_id:
             channel_id = self.channelcast_db.getMyChannelId()
             
-        if not channel_id:
-            print >> sys.stderr, "No channel"
-            return
-        
-        if not self.channelcast_db.hasTorrent(channel_id, tdef.infohash):
+        if channel_id and not self.channelcast_db.hasTorrent(channel_id, tdef.infohash):
             community = self._disp_get_community_from_channel_id(channel_id)
             
             files = tdef.get_files_with_length()
@@ -1397,6 +1393,8 @@ class ChannelSearchGridManager:
                     torrent = self._createTorrent(data, False)
                     
                     self.modifyTorrent(channel_id, torrent.channeltorrent_id, {'description': desc}, forward = forward)
+            return True
+        return False
     
     @forceDispersyThread         
     def createTorrentsFromDefs(self, channel_id, tdefs):

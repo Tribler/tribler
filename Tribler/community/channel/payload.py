@@ -37,6 +37,8 @@ class TorrentPayload(Payload):
                 assert isinstance(length, (int, long))
                 
             assert isinstance(trackers, tuple)
+            for tracker in trackers:
+                assert isinstance(tracker, str), 'tracker is a %s'%type(tracker)
             
             super(TorrentPayload.Implementation, self).__init__(meta)
             self._infohash = infohash

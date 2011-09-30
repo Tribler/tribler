@@ -1066,7 +1066,7 @@ class LibraryList(SizeList):
         return LibraryDetails(item, item.original_data, self.OnStop, self.OnResume, self.OnDelete)
 
     def OnAdd(self, event):
-        dlg = AddTorrent(self, self.guiutility.frame)
+        dlg = AddTorrent(None, self.guiutility.frame)
         dlg.CenterOnParent()
         dlg.ShowModal()
         dlg.Destroy()

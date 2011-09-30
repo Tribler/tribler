@@ -817,6 +817,32 @@ class ManageChannelFilesManager():
     def RemoveAllItems(self):
         self.channelsearch_manager.removeAllTorrents(self.list.channel)
         
+    def startDownloadFromUrl(self, url, *args, **kwargs):
+        try:
+            tdef = TorrentDef.load_from_url(url)
+            return self.AddTDef(tdef)
+        except:
+            return False
+        
+    def startDownloadFromMagnet(self, url, *args, **kwargs):
+        try:
+            return TorrentDef.retrieve_from_magnet(url, self.AddTDef)
+        except:
+            return False
+    
+    def startDownload(self, filename, *args, **kwargs):
+        try:
+            tdef = TorrentDef.load(filename)
+            return self.AddTDef(tdef)
+        except:
+            return False
+        
+    def AddTDef(self, tdef):
+        if tdef:
+            self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
+            return True
+        return False
+        
 class ManageChannelPlaylistsManager():
     
     def __init__(self, list):
@@ -1126,7 +1152,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                     self.RemovePage(self.notebook, "Settings")
                     
                 if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
-                    self.fileslist.ShowFooter(iamModerator)
+                    self.fileslist.SetFooter(channel_state, iamModerator)
                     self.AddPage(self.notebook, self.fileslist, "Manage torrents", 2)
                 else:
                     self.RemovePage(self.notebook, "Manage torrents")
@@ -1343,7 +1369,7 @@ class ManageChannelFilesList(List):
         return ListHeader(parent, self, self.columns, 0)
     
     def CreateFooter(self, parent):
-        return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected)
+        return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected, self.OnAdd)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1360,6 +1386,12 @@ class ManageChannelFilesList(List):
             self.list.ShowMessage('You are currently not sharing any torrents in your channel.')
         self.SetNrResults(len(data))
         
+    def SetFooter(self, state, iamModerator):
+        canDelete = iamModerator
+        canAdd = (state == ChannelCommunity.CHANNEL_OPEN) or iamModerator
+        
+        self.footer.SetState(canDelete, canAdd)
+        
     def OnExpand(self, item):
         return MyChannelDetails(item, item.original_data, self.id)
     
@@ -1374,6 +1406,12 @@ class ManageChannelFilesList(List):
         if dlg.ShowModal() == wx.ID_YES:
             infohashes = [key for key,_ in self.list.GetExpandedItems()]
             self.manager.RemoveItems(infohashes)
+        dlg.Destroy()
+        
+    def OnAdd(self, event):
+        dlg = AddTorrent(None, self.GetManager())
+        dlg.CenterOnParent()
+        dlg.ShowModal()
         dlg.Destroy()
         
 class ManageChannelPlaylistList(ManageChannelFilesList):

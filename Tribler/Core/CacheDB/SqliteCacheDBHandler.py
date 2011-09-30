@@ -3263,7 +3263,7 @@ class ChannelCastDBHandler(object):
                 metainfo['info']['length'] = files[0][1]
            
             if len(trackers) > 0:
-                metainfo['announce'] = trackers[0][0]
+                metainfo['announce'] = trackers[0]
             else:
                 metainfo['nodes'] = []
 
