@@ -750,6 +750,9 @@ class TorrentDetails(AbstractDetails):
         explore_play_sizer.Add(StaticText(parent, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
         explore_play_sizer.Add(play)
         sizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        if isinstance(self, LibraryDetails):
+            sizer.AddSpacer((-1, 10))
         sizer.AddStretchSpacer()
         
         if not self.compact and not self.noChannel:
@@ -1309,9 +1312,28 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails.__init__(self, parent, torrent)
     
     def _addTabs(self, ds, showTab = None):
-        self.overviewPanel, overviewSizer = self._create_tab(self.notebook, 'Overview', 'Transfer Overview')
+        self.overviewPanel = wx.Panel(self.notebook)
+        def OnChange():
+            self.overviewPanel.Layout()
+
+            def resize():
+                best = self.overviewPanel.GetBestSize()[1]
+                if self.canComment:
+                    best = max(best, self.MINCOMMENTHEIGHT)
+                
+                notebook = self.notebook.CalcSizeFromPage((1, best))[1]
+                self.notebook.SetMinSize((-1, notebook))
+                self.parent.parent_list.OnChange()
+            wx.CallAfter(resize)
+        self.overviewPanel.OnChange = OnChange
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        self._add_header(self.overviewPanel, vSizer, 'Transfer Overview')
         self.overviewSizer = wx.BoxSizer(wx.VERTICAL)
-        overviewSizer.Add(self.overviewSizer, 1, wx.EXPAND)
+        vSizer.Add(self.overviewSizer, 1, wx.EXPAND)
+        self.overviewPanel.SetSizer(vSizer)
+        
+        self.notebook.AddPage(self.overviewPanel, "Overview")
         
         #add normal tabs
         TorrentDetails._addTabs(self, ds, showTab)
@@ -1434,7 +1456,7 @@ class LibraryDetails(TorrentDetails):
                 #TODO: show buffer, bitrate etc
                 pass
                 
-            self.overviewPanel.Layout()
+            self.overviewPanel.OnChange()
             self.overviewPanel.Thaw()
             
         if len(self.buttonSizer.GetChildren()) == 0:
