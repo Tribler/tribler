@@ -1720,8 +1720,8 @@ class Dispersy(Singleton):
         """
         Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
         
-        BLACKLIST must contain addresses obtained from
-        socket.recv_from(), not the lan or wan addresses.
+        BLACKLIST must contain addresses obtained from socket.recv_from(), not the lan or wan
+        addresses.
         """
         assert not self._lan_address in self._candidates, "our address may not be a candidate"
         assert not self._wan_address in self._candidates, "our address may not be a candidate"
@@ -1729,7 +1729,7 @@ class Dispersy(Singleton):
         assert not self._wan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
 
         # remove old candidates
-        deadline = time() - 60.0
+        deadline = time() - 55.0
         for key in [key for key, candidate in self._candidates.iteritems() if candidate.timestamp < deadline]:
             del self._candidates[key]
             
@@ -1781,13 +1781,66 @@ class Dispersy(Singleton):
                       if (candidate.is_walk or candidate.is_stumble) and in_subjective_set(candidate)]
         shuffle(candidates)
         return islice(candidates, limit)
-   
-    def yield_walk_candidates(self, community, include_introduction, blacklist=()):
+
+    def yield_introduction_candidates(self, community, blacklist=()):
+        """
+        Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, and with whom
+        we have interacted before.
+
+        Each call to iterator.send(...) takes one sock_address blacklist that will hold for one
+        iteration.
+        """
+        assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
+        assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
+
+        candidates = list(self._yield_candidates(community, blacklist))
+        walks = set(candidate for candidate in candidates if candidate.is_walk)
+        stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
+
+        if walks or stumbles:
+            candidate = None
+            W = list(walks)
+            S = list(stumbles.difference(walks))
+
+            while True:
+                ignore = (yield candidate)
+
+                # temp_. contains the sets without the IGNORED address
+                if ignore in W:
+                    temp_W = W[:]
+                    temp_W.remove(ignore)
+                else:
+                    temp_W = W
+                    
+                if ignore in S:
+                    temp_S = S[:]
+                    temp_S.remove(ignore)
+                else:
+                    temp_S = S
+
+                if temp_W and temp_S:
+                    candidate = choice(temp_W) if random() <= .5 else choice(temp_S)
+
+                elif temp_W:
+                    candidate = choice(temp_W)
+
+                elif temp_S:
+                    candidate = choice(temp_S)
+
+                else:
+                    if __debug__: dprint("no candidates available", level="warning")
+                    candidate = None
+                    
+        else:
+            while True:
+                if __debug__: dprint("no candidates available", level="error")
+                yield None
+
+    def yield_walk_candidates(self, community, blacklist=()):
         """
         Yields a mixture of all candidates that we could get our hands on that are part of COMMUNITY
         and not in BLACKLIST.
         """
-        assert isinstance(include_introduction, bool)
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
@@ -1798,18 +1851,13 @@ class Dispersy(Singleton):
         introduction = set(candidate for candidate in candidates if candidate.is_introduction)
         sort_key = lambda candidate: candidate.timestamp
 
-        if walks or stumbles or (include_introduction and introduction):
+        if walks or stumbles or introduction:
             B = sorted(walks, key=sort_key)
             C = sorted(introduction.difference(walks).difference(stumbles), key=sort_key)
             D = sorted(stumbles.difference(walks).difference(introduction), key=sort_key)
             E = sorted(stumbles.intersection(introduction).difference(walks), key=sort_key)
 
-            # optionally remove introduced candidates (we need to do this after calculating the
-            # other sets, otherwise sets will contain wrong candidates)
-            if not include_introduction:
-                introduction = set()
-            
-            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
+            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E))
             assert all(candidate.is_walk or candidate.is_stumble or candidate.is_introduction for candidate in candidates), "each candidate must have at least one mark"
             assert any([walks, stumbles, introduction])
             assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
@@ -1924,7 +1972,7 @@ class Dispersy(Singleton):
     def take_step(self, community):
         if community.cid in self._communities:
             try:
-                candidate = self.yield_walk_candidates(community, True).next()
+                candidate = self.yield_walk_candidates(community).next()
 
             except StopIteration:
                 # if __debug__: dprint("no candidate to start walk.  retry in 1.0 seconds", level="error")
@@ -1982,16 +2030,16 @@ class Dispersy(Singleton):
         responses = []
         requests = []
 
+        iterate_candidate = self.yield_introduction_candidates(community)
+        iterate_candidate.next()
+        
         for message in messages:
             # get introduction candidate (if requested)
             #
             # note that we also check that the source_lan_address and source_wan_address are valid
             # as they are unknown and possibly wrong when the sender only just started her client
             if message.payload.advice and self._is_valid_lan_address(message.payload.source_lan_address) and self._is_valid_wan_address(message.payload.source_wan_address):
-                try:
-                    candidate = self.yield_walk_candidates(community, False, [message.address]).next()
-                except StopIteration:
-                    candidate = None
+                candidate = iterate_candidate.send(message.address)
             else:
                 if __debug__:
                     if not self._is_valid_lan_address(message.payload.source_lan_address):
@@ -3709,7 +3757,7 @@ class Dispersy(Singleton):
         """
         while True:
             while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
-                if __debug__: dprint("there are no walker enabled communities", force=1)
+                if __debug__: dprint("there are no walker enabled communities")
                 desync = (yield 1.0)
                 while desync > 0.1:
                     if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
@@ -3727,10 +3775,10 @@ class Dispersy(Singleton):
                     # delay will never be less than 0.05, hence we can accommodate 100 communities
                     # before the interval between each step becomes larger than 5.0 seconds
                     delay = max(0.05, 5.0 / len(communities))
-                    if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step", force=1)
+                    if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
                 community = iter_communities.next()
-                if __debug__: dprint("step for ", community.get_classification(), " ", community.cid.encode("HEX"), force=1)
+                if __debug__: dprint("step for ", community.get_classification(), " ", community.cid.encode("HEX"))
                 if community.dispersy_take_step():
                     wait = delay
 
