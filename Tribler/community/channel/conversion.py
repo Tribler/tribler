@@ -95,7 +95,11 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(files, tuple):
             raise DropPacket("Invalid 'files' type")
         
-        for path, length in files:
+        for file in files:
+            if len(file) != 2:
+                raise DropPacket("Invalid 'file_len' type")
+            
+            path, length = file
             if isinstance(path, str):
                 raise DropPacket("Invalid 'files_str' type")
             if isinstance(length, (int, long)):

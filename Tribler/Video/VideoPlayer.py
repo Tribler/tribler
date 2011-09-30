@@ -371,6 +371,9 @@ class VideoPlayer:
             d.restart()
 
     def restart_other_downloads(self, download_state_list):
+        if len(download_state_list) == 0:
+            return
+        
         def get_vod_download_status(default):
             for download_state in download_state_list:
                 if self.vod_download == download_state.get_download():

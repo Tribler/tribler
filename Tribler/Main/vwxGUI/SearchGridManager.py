@@ -66,9 +66,6 @@ class TorrentManager:
         self.remoteLock = threading.Lock()
         self.remoteRefresh = False
         
-        # Most recent downloadstate list
-        self.dslist = []
-        
         # Requests for torrents
         self.requestedTorrents = set()
         
@@ -749,6 +746,7 @@ class LibraryManager:
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
+        self.dslist = []
         
         #current progress of download states
         self.cache_progress = {}
