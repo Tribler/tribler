@@ -1728,21 +1728,30 @@ class Dispersy(Singleton):
             del self._candidates[key]
             
         # get all viable candidates
-        return (candidate for sock_address, candidate in self._candidates.iteritems() if not sock_address in blacklist and candidate.in_community(community))
+        return (candidate
+                for sock_address, candidate
+                in self._candidates.iteritems()
+                if not sock_address in blacklist and candidate.in_community(community))
 
     def yield_candidates(self, community, limit, blacklist=()):
         """
         Yields the first LIMIT candidates that are part of COMMUNITY and not in BLACKLIST with whom
         we have interacted before.
         """
-        return islice((candidate for candidate in self._yield_candidates(community, blacklist) if candidate.is_walk or candidate.is_stumble), limit)
+        return islice((candidate
+                       for candidate
+                       in self._yield_candidates(community, blacklist)
+                       if candidate.is_walk or candidate.is_stumble), limit)
 
     def yield_random_candidates(self, community, limit, blacklist=()):
         """
         Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, and with whom
         we have interacted before.
         """
-        candidates = [candidate for candidate in self._yield_candidates(community, blacklist) if candidate.is_walk or candidate.is_stumble]
+        candidates = [candidate
+                      for candidate
+                      in self._yield_candidates(community, blacklist)
+                      if candidate.is_walk or candidate.is_stumble]
         shuffle(candidates)
         return islice(candidates, limit)
 
@@ -1781,12 +1790,13 @@ class Dispersy(Singleton):
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
         introduction = set(candidate for candidate in candidates if candidate.is_introduction)
+        sort_key = lambda candidate: candidate.timestamp
 
         if walks or stumbles or (include_introduction and introduction):
-            B = list(walks)
-            C = list(introduction.difference(walks).difference(stumbles))
-            D = list(stumbles.difference(walks).difference(introduction))
-            E = list(stumbles.intersection(introduction).difference(walks))
+            B = sorted(walks, key=sort_key)
+            C = sorted(introduction.difference(walks).difference(stumbles), key=sort_key)
+            D = sorted(stumbles.difference(walks).difference(introduction), key=sort_key)
+            E = sorted(stumbles.intersection(introduction).difference(walks), key=sort_key)
 
             # optionally remove introduced candidates (we need to do this after calculating the
             # other sets, otherwise sets will contain wrong candidates)
@@ -1806,7 +1816,10 @@ class Dispersy(Singleton):
                 r = random()
 
                 if r <= .495: # 50%
-                    if B: yield choice(B)
+                    if B:
+                        candidate = B.pop(0)
+                        yield candidate
+                        B.append(candidate)
 
                 elif r <= .99: # 50%
 
@@ -1816,17 +1829,23 @@ class Dispersy(Singleton):
 
                             if r <= .3333:
                                 if C:
-                                    yield choice(C)
+                                    candidate = C.pop(0)
+                                    yield candidate
+                                    C.append(candidate)
                                     break
 
                             elif r <= .6666:
                                 if D:
-                                    yield choice(D)
+                                    candidate = D.pop(0)
+                                    yield candidate
+                                    D.append(candidate)
                                     break
 
                             elif r <= .9999:
                                 if E:
-                                    yield choice(E)
+                                    candidate = E.pop(0)
+                                    yield candidate
+                                    E.append(candidate)
                                     break
                                 
                 # elif r <= .6633: # 16.33%
