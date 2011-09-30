@@ -3727,10 +3727,10 @@ class Dispersy(Singleton):
                     # delay will never be less than 0.05, hence we can accommodate 100 communities
                     # before the interval between each step becomes larger than 5.0 seconds
                     delay = max(0.05, 5.0 / len(communities))
-                    if __debug__: dprint("there are ", len(self._communities), " walker enabled communities.  pausing ", delay, "s between each step", force=1)
+                    if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step", force=1)
 
                 community = iter_communities.next()
-                if __debug__: dprint("step for ", community.cid.encode("HEX"), force=1)
+                if __debug__: dprint("step for ", community.get_classification(), " ", community.cid.encode("HEX"), force=1)
                 if community.dispersy_take_step():
                     wait = delay
 
