@@ -222,9 +222,6 @@ class Community(object):
 
         # tell dispersy that there is a new community
         community._dispersy.attach_community(community)
-
-        # start the peer selection strategy (must be called after attach)
-        community.dispersy_start_walk()
         
         return community
 
@@ -306,10 +303,10 @@ class Community(object):
 
         if __debug__:
             from distribution import SyncDistribution
-            sync_delay = self._meta_messages[u"dispersy-introduction-request"].delay
+            sync_delay = 5.0
             for meta_message in self._meta_messages.itervalues():
                 if isinstance(meta_message.distribution, SyncDistribution):
-                    assert meta_message.delay < sync_delay, (meta_message.name, "when sync is enabled the interval should be greater than the message delay.  otherwise you are likely to receive duplicate packets")
+                    assert meta_message.delay < sync_delay, (meta_message.name, "when sync is enabled the interval should be greater than the walking frequency.  otherwise you are likely to receive duplicate packets")
         
     def _initialize_sync_ranges(self):
         assert isinstance(self._sync_ranges, list)
@@ -446,6 +443,21 @@ class Community(object):
     # .setter was introduced in Python 2.6
     dispersy_auto_load = property(__get_dispersy_auto_load, __set_dispersy_auto_load)
 
+    @property
+    def dispersy_enable_candidate_walker(self):
+        """
+        Enable the candidate walker.
+
+        When True is returned, the dispersy_take_step method will be called periodically.  Otherwise
+        it will be ignored.
+        """
+        try:
+            self.get_meta_message(u"dispersy-introduction-request")
+        except KeyError:
+            return False
+        else:
+            return True
+    
     @property
     def dispersy_sync_bloom_filter_error_rate(self):
         """
@@ -1094,9 +1106,9 @@ class Community(object):
             self._conversions[None] = conversion
         self._conversions[conversion.prefix] = conversion
 
-    @documentation(Dispersy.start_walk)
-    def dispersy_start_walk(self):
-        return self._dispersy.start_walk(self)
+    @documentation(Dispersy.take_step)
+    def dispersy_take_step(self):
+        return self._dispersy.take_step(self)
         
     @documentation(Dispersy.get_message)
     def get_dispersy_message(self, member, global_time):

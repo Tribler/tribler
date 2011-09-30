@@ -38,7 +38,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 """
 
 from hashlib import sha1
-from itertools import groupby, islice, count
+from itertools import groupby, islice, count, cycle
 from os.path import abspath
 from random import random, choice, shuffle
 from socket import inet_aton, error as socket_error
@@ -273,6 +273,10 @@ class Dispersy(Singleton):
         # commit changes to the database periodically
         self._callback.register(self._watchdog)
 
+        # candidate walker
+        self._community_dict_modified = False
+        self._callback.register(self._candidate_walker)
+        
         # statistics...
         self._statistics = Statistics()
 
@@ -396,7 +400,7 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=5.0),
+        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.0),
                 Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
                 Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
                 Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, self.on_puncture, delay=0.0),
@@ -457,6 +461,7 @@ class Dispersy(Singleton):
         assert not community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
+        self._community_dict_modified = True
 
     def detach_community(self, community):
         """
@@ -476,6 +481,7 @@ class Dispersy(Singleton):
         assert community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         del self._communities[community.cid]
+        self._community_dict_modified = True
 
     def reclassify_community(self, source, destination):
         """
@@ -1861,7 +1867,7 @@ class Dispersy(Singleton):
                     yield choice(self._bootstrap_candidates.values())
 
         elif self._bootstrap_candidates:
-            if __debug__: dprint("no candidates available.  yielding bootstrap candidates", level="warning")
+            if __debug__: dprint("no candidates available.  yielding bootstrap candidate", level="warning")
             while True:
                 yield choice(self._bootstrap_candidates.values())
 
@@ -1915,18 +1921,20 @@ class Dispersy(Singleton):
         #         elif self._bootstrap_candidates:
         #             yield choice(self._bootstrap_candidates.values())
         
-    def start_walk(self, community):
+    def take_step(self, community):
         if community.cid in self._communities:
             try:
                 candidate = self.yield_walk_candidates(community, True).next()
 
             except StopIteration:
-                if __debug__: dprint("no candidate to start walk.  retry in 1.0 seconds", level="error")
-                self._callback.register(self.start_walk, (community,), delay=1.0)
+                # if __debug__: dprint("no candidate to start walk.  retry in 1.0 seconds", level="error")
+                # self._callback.register(self.start_walk, (community,), delay=1.0)
+                return False
 
             else:
                 assert community.my_member.private_key
                 self.create_introduction_request(community, candidate.address)
+                return True
             
     def create_introduction_request(self, community, destination):
         assert isinstance(destination, tuple)
@@ -1957,8 +1965,10 @@ class Dispersy(Singleton):
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
         footprint = meta_response.generate_footprint(payload=(identifier,))
-        # TODO why 5.0 margin
-        timeout = meta_request.delay + meta_response.delay + 5.0 
+        assert meta_request.delay == 0.0
+        assert meta_response.delay == 0.0
+        # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
+        timeout = 4.5
         self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination, advice), timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
@@ -2040,19 +2050,19 @@ class Dispersy(Singleton):
             if intermediary_address in self._candidates:
                 del self._candidates[intermediary_address]
 
-            # timeout, start new walk
-            community.dispersy_start_walk()
+        #     # timeout, start new walk
+        #     community.dispersy_start_walk()
 
-        else:
-            if False: #advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
-                # we asked for, and received, an introduction
+        # else:
+        #     if advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
+        #         # we asked for, and received, an introduction
 
-                # determine if we are in the same LAN as the introduced node
-                destination = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
-                self._callback.register(self.create_introduction_request, (community, destination), delay=1.0)
+        #         # determine if we are in the same LAN as the introduced node
+        #         destination = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
+        #         self._callback.register(self.create_introduction_request, (community, destination), delay=1.0)
 
-            else:
-                community.dispersy_start_walk()
+        #     else:
+        #         community.dispersy_start_walk()
 
     def on_puncture_request(self, messages):
         community = messages[0].community
@@ -3693,6 +3703,47 @@ class Dispersy(Singleton):
                 self._database.commit()
                 break
 
+    def _candidate_walker(self):
+        """
+        Periodically select a candidate and take a step in the network.
+        """
+        while True:
+            while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
+                if __debug__: dprint("there are no walker enabled communities", force=1)
+                desync = (yield 1.0)
+                while desync > 0.1:
+                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    desync = (yield desync)
+
+            assert self._community_dict_modified
+            while True:
+                if self._community_dict_modified:
+                    self._community_dict_modified = False
+                    if not self._communities:
+                        break
+
+                    communities = [community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker]
+                    iter_communities = cycle(communities)
+                    # delay will never be less than 0.05, hence we can accommodate 100 communities
+                    # before the interval between each step becomes larger than 5.0 seconds
+                    delay = max(0.05, 5.0 / len(communities))
+                    if __debug__: dprint("there are ", len(self._communities), " walker enabled communities.  pausing ", delay, "s between each step", force=1)
+
+                community = iter_communities.next()
+                if __debug__: dprint("step for ", community.cid.encode("HEX"), force=1)
+                if community.dispersy_take_step():
+                    wait = delay
+
+                else:
+                    # failed... try again quickly
+                    wait = 1.0
+
+                desync = (yield wait)
+                while desync > 0.1:
+                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
+                    desync = (yield desync)
+
+                    
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
         Returns a dictionary with runtime statistical information.
@@ -3716,7 +3767,7 @@ class Dispersy(Singleton):
         # 1.4: added info["statistics"]["outgoing"] containing all calls to _send(...)
         # 1.5: replaced some dispersy_candidate_... attributes and added a dump of the candidates
         # 1.6: new random walk candidates and my LAN and WAN addresses
-        # 1.7: removed several community atributes, no longer calling reset on self._statistics
+        # 1.7: removed several community attributes, no longer calling reset on self._statistics
 
         info = {"version":1.7, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
