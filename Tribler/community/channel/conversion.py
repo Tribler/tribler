@@ -100,10 +100,10 @@ class ChannelConversion(BinaryConversion):
                 raise DropPacket("Invalid 'file_len' type")
             
             path, length = file
-            if isinstance(path, str):
-                raise DropPacket("Invalid 'files_str' type")
-            if isinstance(length, (int, long)):
-                raise DropPacket("Invalid 'files_length' type")
+            if not isinstance(path, str):
+                raise DropPacket("Invalid 'files_path' type is %s"%type(path))
+            if not isinstance(length, (int, long)):
+                raise DropPacket("Invalid 'files_length' type is %s"%type(length))
         
         if not isinstance(trackers, tuple):
             raise DropPacket("Invalid 'trackers' type")
