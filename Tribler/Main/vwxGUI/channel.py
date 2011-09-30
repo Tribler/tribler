@@ -1004,8 +1004,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         #shared files page
         self.fileslist = NotebookPanel(self.notebook)
-        self.fileslist.SetList(ManageChannelFilesList(self.fileslist))
-        self.fileslist.SetNrResults = self.header.SetNrTorrents
+        filelist = ManageChannelFilesList(self.fileslist)
+        self.fileslist.SetList(filelist)
+        filelist.SetNrResults = self.header.SetNrTorrents
         
         #playlist page
         self.playlistlist = NotebookPanel(self.notebook)
