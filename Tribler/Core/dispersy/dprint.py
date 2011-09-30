@@ -84,14 +84,14 @@ _dprint_settings = {
     "time_format":"%H:%M:%S"}           # the timestamp format (see strftime)
 
 # We allow message filtering in a 'iptables like' fashion. Each
-# messages is passed to the ENTRY chain in _dprint_filters, when a
+# messages is passed to the ENTRY chain in _filters, when a
 # filter in the chain matches its target is used (accept, drop,
 # continue, or jump). If no filters in a chain match the default chain
 # policy (accept/True, drop/False, or return/None) is used. An
 # exception to this is the ENTRY chain which may only use accept and
 # drop its default.
 #
-# _dprint_filters contains chain-name:[policy, chain-list]
+# _filters contains chain-name:[policy, chain-list]
 # pairs. Where policy can be accept/True, drop/False, or return/None.
 #
 # chain-list contains lists in the form: [function, target]. Where
