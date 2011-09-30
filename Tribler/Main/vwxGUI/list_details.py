@@ -540,7 +540,7 @@ class TorrentDetails(AbstractDetails):
             if len(self.torrent.trackers) > 0:
                 trackerPanel, vSizer = self._create_tab(self.notebook, "Trackers", "Trackers")
                 for tracker in self.torrent.trackers:
-                    if tracker:
+                    if isinstance(tracker, basestring):
                         self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
         
