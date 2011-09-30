@@ -105,7 +105,9 @@ def validTorrentFile(metainfo):
         raise ValueError('metainfo misses key info')
     
     if 'announce' in metainfo and not isValidURL(metainfo['announce']):
-        raise ValueError('announce URL bad')
+        #Niels: Some .torrent files have a dht:// url in the announce field.
+        if not metainfo['announce'].startswith('dht:'):
+            raise ValueError('announce URL bad')
     
     # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes
     # are not allowed, but some torrents (Azureus?) apparently violate this.

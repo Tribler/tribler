@@ -32,7 +32,7 @@ class SetupScript(ScriptBase):
         """
         # we will use the below member identifier to create messages for our test.  the private key
         # can be found on disk, but will not be submitted to SVN for obvious reasons
-        assert "hardcoded_member" in self._kargs, "give --script-args hardcoded_member=A|B|C"
+        assert "hardcoded_member" in self._kargs, ("give --script-args hardcoded_member=A|B|C", self._kargs)
         assert self._kargs["hardcoded_member"] in SimpleDispersyTestCommunity.hardcoded_member_public_keys, "give --script-args hardcoded_member=A|B|C"
 
         member_name = self._kargs["hardcoded_member"]

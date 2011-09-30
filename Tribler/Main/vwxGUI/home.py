@@ -161,24 +161,48 @@ class Stats(XRCPanel):
             self.Bind(wx.EVT_MOUSE_EVENTS, self.onMouse)
         
         self.isReady = True
-    
+     
     def onActivity(self, msg):
         if self.isReady:
             self.activity.onActivity(msg)
         
     def onKey(self, event):
         if event.ControlDown() and event.GetKeyCode() == 73: #ctrl + i
-            import wx.lib.inspection
-            wx.lib.inspection.InspectionTool().Show()
+            self._showInspectionTool()
         else:
             event.Skip()
     
     def onMouse(self, event):
         if all([event.RightUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]): 
-            import wx.lib.inspection
-            wx.lib.inspection.InspectionTool().Show()
+            self._showInspectionTool()
         else:
             event.Skip()
+    
+    def _showInspectionTool(self):
+        import wx.lib.inspection
+        itool = wx.lib.inspection.InspectionTool()
+        itool.Show()
+        try:
+            frame = itool._frame
+            
+            import Tribler
+            frame.locals['Tribler'] = Tribler
+            
+            from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+            overlay = SecureOverlay.getInstance()
+            frame.locals['overlay'] = overlay
+            
+            session = Session.get_instance()
+            frame.locals['session'] = session
+            
+            from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+            channelcast = BuddyCastFactory.getInstance().channelcast_core
+            frame.locals['channelcast'] = channelcast
+            
+            
+        except Exception:
+            import traceback
+            traceback.print_exc()
             
     def Show(self, show = True):
         if show:
@@ -186,7 +210,7 @@ class Stats(XRCPanel):
                 self._DoInit()
                 
         XRCPanel.Show(self, show)
-        
+
 class HomePanel(wx.Panel):
     def __init__(self, parent, title, background):
         wx.Panel.__init__(self, parent)

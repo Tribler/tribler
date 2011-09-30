@@ -193,7 +193,7 @@ class CollectedTorrent(Helper):
         else:
             self.trackers = [[torrentdef.get_tracker()]]
         self.creation_date = torrentdef.get_creation_date()
-        self.files = torrentdef.get_files_as_unicode_with_length()
+        self.files = torrentdef.get_files_with_length()
         self.last_check = -1
 
     def __getattr__(self, name):
@@ -207,6 +207,12 @@ class CollectedTorrent(Helper):
             Helper.__setattr__(self, name, value)
         except:
             setattr(self.torrent, name, value)
+            
+    def __delattr__(self, name):
+        try:
+            Helper.__delattr__(self, name)
+        except:
+            delattr(self.torrent,name)
     
     @cacheProperty
     def swarminfo(self):

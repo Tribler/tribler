@@ -119,8 +119,8 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
 
 # generate the query URL
 def getUrl(announce, info_hashes):
-    if (announce == -1):                        # tracker url error
-        return None                                # return None
+    if (announce == -1) or not announce.startswith('http'):     # tracker url error
+        return None                                             # return None
     announce_index = announce.rfind("announce")
     last_index = announce.rfind("/")    
     

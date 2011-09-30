@@ -2,7 +2,7 @@
 import wx
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
-from Tribler.Main.vwxGUI.tribler_topButton import _set_font, MaxBetterText
+from Tribler.Main.vwxGUI.tribler_topButton import _set_font, MaxBetterText, NotebookPanel
 from Tribler.Core.API import *
 
 from list import *
@@ -179,19 +179,19 @@ class SelectedChannelList(GenericSearchList):
         self.header = ChannelHeader(self.parent, self, [])
         self.header.SetEvents(self.OnBack)
         self.Add(self.header, 0, wx.EXPAND)
-
         
-        self.leftLine = wx.Panel(self.parent, size=(1,-1))
-
-        self.notebook = wx.Notebook(self.parent, style = wx.NB_LEFT|wx.NO_BORDER, name = "ChannelNotebook")
-        #self.notebook = FlatNotebook(self.parent, style = fnb.FNB_DROPDOWN_TABS_LIST|fnb.FNB_DEFAULT_STYLE)
-        #self.notebook = wx.Listbook(self.parent, style = wx.NO_BORDER|wx.LB_SINGLE)
+        self.leftLine = wx.Panel(self.parent)
+        
+        self.notebook = wx.Notebook(self.leftLine, style = wx.NB_LEFT|wx.NO_BORDER, name = "ChannelNotebook")
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
-        
         if self.background == LIST_GREY:
             notebookcolour = self.notebook.GetThemeBackgroundColour()
             if notebookcolour.IsOk():
                 self.background = notebookcolour
+        
+        sizer = wx.BoxSizer()
+        sizer.Add(self.notebook, 1, wx.EXPAND|wx.LEFT, 1)
+        self.leftLine.SetSizer(sizer)
         
         list = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -208,24 +208,19 @@ class SelectedChannelList(GenericSearchList):
         list.SetSizer(vSizer)
         self.notebook.AddPage(list, "Contents")
         
-        def isTabShown(this):
-            page = self.notebook.GetPage(self.notebook.GetSelection())
-            return page == this
+        self.commentList = NotebookPanel(self.notebook)
+        self.commentList.SetList(CommentList(self.commentList, self))
         
-        self.commentList = CommentList(self.notebook, self)
-        self.commentList.IsShownOnScreen = lambda this=self.commentList: isTabShown(this)
+        self.activityList = NotebookPanel(self.notebook)
+        self.activityList.SetList(ActivityList(self.activityList, self))
         
-        self.activityList = ActivityList(self.notebook, self)
-        self.activityList.IsShownOnScreen = lambda this=self.activityList: isTabShown(this)
-        
-        self.moderationList = ModerationList(self.notebook, self)
-        self.moderationList.IsShownOnScreen = lambda this=self.moderationList: isTabShown(this)
+        self.moderationList = NotebookPanel(self.notebook)
+        self.moderationList.SetList(ModerationList(self.moderationList, self))
         
         self.rightLine = wx.Panel(self.parent, size=(1,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.leftLine, 0, wx.EXPAND)
-        hSizer.Add(self.notebook,  1, wx.EXPAND)
+        hSizer.Add(self.leftLine, 1, wx.EXPAND)
         hSizer.Add(self.rightLine, 0, wx.EXPAND)                
         
         self.Add(hSizer, 1, wx.EXPAND)
@@ -297,9 +292,9 @@ class SelectedChannelList(GenericSearchList):
         self.iamModerator = iamModerator
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
-                self.commentList.Show()
-                self.activityList.Show()
-                self.moderationList.Show()
+                self.commentList.Show(True)
+                self.activityList.Show(True)
+                self.moderationList.Show(True)
                 
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
@@ -416,7 +411,7 @@ class SelectedChannelList(GenericSearchList):
                 #detect changes
                 changes = panel.GetChanged()
                 if len(changes)>0:
-                    dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                    dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg.ShowModal() == wx.ID_YES:
                         self.OnSaveTorrent(panel)
                     dlg.Destroy()
@@ -497,9 +492,9 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def OnSize(self, event):
-#        diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
-#        self.subheader.SetSpacerRight(diff)
-#        self.footer.SetSpacerRight(diff)
+        diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
+        self.subheader.SetSpacerRight(diff)
+        self.footer.SetSpacerRight(diff)
         event.Skip()
         
     def OnChange(self, event):
@@ -508,15 +503,15 @@ class SelectedChannelList(GenericSearchList):
             page = event.GetSelection()
             if page == 1:
                 self.commentList.Show()
-                self.commentList.SetFocus()
+                self.commentList.Focus()
                 
             elif page == 2:
                 self.activityList.Show()
-                self.activityList.SetFocus()
+                self.activityList.Focus()
                 
             elif page == 3:
                 self.moderationList.Show()
-                self.moderationList.SetFocus()
+                self.moderationList.Focus()
         event.Skip()
         
     def OnDrag(self, dragitem):
@@ -591,18 +586,16 @@ class SelectedChannelList(GenericSearchList):
         self.ScrollToId(key)
     
     @forceDBThread
-    def StartDownload(self, torrent):
-        states = self.footer.GetStates()
-        if not states[1]:
+    def StartDownload(self, torrent, files = None):
+        if not self.channel.isFavorite():
             nrdownloaded = self.channelsearch_manager.getNrTorrentsDownloaded(self.id) + 1
             if  nrdownloaded > 1:
                 wx.CallAfter(self._ShowFavoriteDialog, nrdownloaded)
         
-        self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
-        self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
+        GenericSearchList.StartDownload(self, torrent, files)
         
     def _ShowFavoriteDialog(self, nrdownloaded):
-        dial = wx.MessageDialog(self, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+        dial = wx.MessageDialog(None, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
         if dial.ShowModal() == wx.ID_YES:
             self.OnFavorite()
             self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
@@ -980,11 +973,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.settingspage.SetSizer(vSizer)
         
         #shared files page
-        self.fileslist = ManageChannelFilesList(self.notebook)
+        self.fileslist = NotebookPanel(self.notebook)
+        self.fileslist.SetList(ManageChannelFilesList(self.fileslist))
         self.fileslist.SetNrResults = self.header.SetNrTorrents
         
         #playlist page
-        self.playlistlist = ManageChannelPlaylistList(self.notebook)
+        self.playlistlist = NotebookPanel(self.notebook)
+        self.playlistlist.SetList(ManageChannelPlaylistList(self.playlistlist))
         
         #manage page
         self.managepage = wx.Panel(self.notebook)
@@ -1369,13 +1364,13 @@ class ManageChannelFilesList(List):
         return MyChannelDetails(item, item.original_data, self.id)
     
     def OnRemoveAll(self, event):
-        dlg = wx.MessageDialog(self, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
             self.manager.RemoveAllItems()
         dlg.Destroy()
     
     def OnRemoveSelected(self, event):
-        dlg = wx.MessageDialog(self, 'Are you sure you want to remove all selected torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all selected torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
             infohashes = [key for key,_ in self.list.GetExpandedItems()]
             self.manager.RemoveItems(infohashes)
@@ -2089,7 +2084,7 @@ class ModificationList(List):
         self.header.SetTitle('Modifications of this torrent')
     
     def CreateHeader(self, parent):
-        return TitleHeader(self, parent, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0)
     
     def CreateFooter(self, parent):
         return None

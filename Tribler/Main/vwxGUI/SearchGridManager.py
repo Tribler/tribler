@@ -195,7 +195,7 @@ class TorrentManager:
     
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
         torrent_filename = self.getCollectedFilename(torrent)
-  
+        
         if isinstance(torrent_filename, basestring):
             #got actual filename
             name = torrent.get('name', torrent.infohash)
@@ -221,7 +221,6 @@ class TorrentManager:
 
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download: download started'
-        
         else:
             callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode)
             response = self.getTorrent(torrent, callback)
@@ -231,15 +230,18 @@ class TorrentManager:
                 return response[1]
             
             else:
-                #torrent cannot be requested
-                str = self.guiUtility.utility.lang.get('delete_torrent') % torrent.name
-                dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
+                #torrent not found
+                def showdialog():
+                    str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
+                    dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
                                     wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
-                result = dlg.ShowModal()
-                dlg.Destroy()
-                
-                if result == wx.ID_YES:
-                    self.torrent_db.deleteTorrent(torrent.infohash, delete_file=True, commit = True)
+                    result = dlg.ShowModal()
+                    dlg.Destroy()
+            
+                    if result == wx.ID_YES:
+                        infohash = torrent.infohash
+                        self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
+                wx.CallAfter(showdialog)
     
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):
@@ -397,7 +399,7 @@ class TorrentManager:
         
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
-        
+
         return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits]
 
     def prefetch_hits(self):
@@ -567,7 +569,7 @@ class TorrentManager:
         """
         if self.searchkeywords == kws:
             startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
-    
+
     def _gotRemoteHits(self, permid, kws, answers):
         refreshGrid = False
         try:
@@ -920,6 +922,9 @@ class LibraryManager:
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 
+                #touch channel to force load
+                t.channel
+                
                 return t
             
             results = map(create_torrent, results)
@@ -1081,9 +1086,9 @@ class ChannelSearchGridManager:
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
     
-    def getTorrentFromChannel(self, channel, infohash):
+    def getTorrentFromChannel(self, channel, infohash, collectedOnly = True):
         data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
-        return self._createTorrent(data, channel)
+        return self._createTorrent(data, channel, collectedOnly)
     
     def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)
@@ -1125,7 +1130,7 @@ class ChannelSearchGridManager:
             playlist = Playlist(*hit[1:]+(torrent.channel,))
             torrent.playlist = playlist
     
-    def _createTorrent(self, tuple, channel, playlist = None):
+    def _createTorrent(self, tuple, channel, playlist = None, collectedOnly = True):
         if tuple:
             ct = ChannelTorrent(*tuple[1:]+[channel, playlist])
             ct.torrent_db = self.torrent_db
@@ -1133,7 +1138,7 @@ class ChannelSearchGridManager:
             
             #Only return ChannelTorrent with a name, old not-collected torrents 
             #will be filtered due to this
-            if ct.name:
+            if not collectedOnly or ct.name:
                 return ct
         
     def _createTorrents(self, hits, filterTorrents, channel_dict = {}, playlist = None):
@@ -1364,7 +1369,9 @@ class ChannelSearchGridManager:
         
         if not self.channelcast_db.hasTorrent(channel_id, torrent.infohash):
             community = self._disp_get_community_from_channel_id(channel_id)
-            community._disp_create_torrent(torrent.infohash, long(time()), torrent.name, torrent.files, torrent.trackers)
+            community._disp_create_torrent(torrent.infohash, long(time()), torrent.name, tuple(torrent.files), tuple(torrent.trackers))
+            return True
+        return False
             
     @forceDispersyThread
     def createTorrentFromDef(self, channel_id, tdef, extraInfo = {}, forward = True):
@@ -1405,7 +1412,7 @@ class ChannelSearchGridManager:
             
     @forceDispersyThread
     def removeTorrent(self, channel, infohash):
-        torrent = self.getTorrentFromChannel(channel, infohash)
+        torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly = False)
 
         community = self._disp_get_community_from_channel_id(channel.id)
         community.remove_torrents([torrent.dispersy_id])
@@ -1589,11 +1596,6 @@ class ChannelSearchGridManager:
         for channel in channels:
             self.hits[channel.id] = channel
         return True
-            
-    def gotRemoteHits(self, permid, kws, answers):
-        """ Called by GUIUtil when hits come in. """
-        if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
     
     def gotDispersyRemoteHits(self, kws, answers):
         if self.searchkeywords == kws:
@@ -1606,7 +1608,12 @@ class ChannelSearchGridManager:
                     self.remoteHits.append((channel, -1))
             finally:
                 self.remoteLock.release()
-    
+
+    def gotRemoteHits(self, permid, kws, answers):
+        """ Called by GUIUtil when hits come in. """
+        if self.searchkeywords == kws:
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
+
     def _gotRemoteHits(self, permid, kws, answers):
         # @param permid: the peer who returned the answer to the query
         # @param kws: the keywords of the query that originated the answer

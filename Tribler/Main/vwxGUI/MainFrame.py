@@ -354,10 +354,8 @@ class MainFrame(wx.Frame):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "_" * 80
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            def _gui_torrentdef_retrieved():
-                self.startDownload(tdef=tdef, destdir = destdir)
+            self.startDownload(tdef=tdef, destdir = destdir)
                 
-            wx.CallAfter(_gui_torrentdef_retrieved)
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
             self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
@@ -375,14 +373,13 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
+    @forceWxThread
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
-        
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
         
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
-        
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)

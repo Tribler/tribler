@@ -489,7 +489,7 @@ class List(wx.BoxSizer):
     def Focus(self):
         assert self.isReady, "List not ready"
         if self.isReady:
-            self.list.SetFocus()
+            self.list.SetFocusIgnoringChildren()
         
     def HasFocus(self):
         assert self.isReady, "List not ready"
@@ -772,8 +772,7 @@ class GenericSearchList(SizeList):
         if data:
             original_data = data
             if 'bundle' in data: # bundle update
-                head = data['bundle'][0]
-            
+                head = data['bundle'][0]          
             else: # individual hit update
                 head = original_data
                 
@@ -1438,7 +1437,7 @@ class ChannelList(List):
 
     def Reset(self):
         List.Reset(self)
-        
+
         self.total_results = None
         self.title = None
 
@@ -1482,7 +1481,6 @@ class ChannelCategoriesList(List):
         
         if self.searchSelected:
             return 'Search'
-        
         return ''
 
     def SetQuicktip(self, quicktip):

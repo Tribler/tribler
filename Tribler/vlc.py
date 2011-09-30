@@ -1776,9 +1776,6 @@ class MediaList(_Ctype):
         '''
         return libvlc_media_list_count(self)
 
-    def __len__(self):
-        return libvlc_media_list_count(self)
-
     def item_at_index(self, i_pos):
         '''List media instance in media list at a position
         The L{lock} should be held upon entering this function.
@@ -1786,9 +1783,6 @@ class MediaList(_Ctype):
         @return: media instance at position i_pos, or NULL if not found. In case of success, L{media_retain}() is called to increase the refcount on the media.
         '''
         return libvlc_media_list_item_at_index(self, i_pos)
-
-    def __getitem__(self, i):
-        return libvlc_media_list_item_at_index(self, i)
 
     def __iter__(self):
         for i in range(len(self)):

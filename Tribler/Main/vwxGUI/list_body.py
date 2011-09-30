@@ -78,12 +78,10 @@ class ListItem(wx.Panel):
             if type == 'label':
                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
                 control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
-                
+
                 fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                 if fontWeight != wx.FONTWEIGHT_NORMAL:
-                    font = control.GetFont()
-                    font.SetWeight(fontWeight)
-                    control.SetFont(font)
+                    _set_font(control, fontweight = fontWeight)
 
                 #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
                 control.SetLabel(str_data.replace('&', "&&"))
@@ -292,7 +290,6 @@ class ListItem(wx.Panel):
             
             if self.expanded:
                 self.DoCollapse()
-                
             else:
                 self.ShowSelected()
        
@@ -371,6 +368,9 @@ class ListItem(wx.Panel):
             if getattr(self.expandedPanel, 'OnEventSize', False):
                 return self.expandedPanel.OnEventSize(width)
         return False
+        
+    def OnEventSize(self, width):
+        pass
         
     def __str__( self ):
         return "ListItem" + " ".join(map(str, self.data))
@@ -816,7 +816,7 @@ class AbstractListBody():
                     if not sizer:
                         self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
                         item.Show()
-                        
+
                         if key in self.highlightSet:
                             self.highlightSet.remove(key)
                             
@@ -853,6 +853,9 @@ class AbstractListBody():
             
             if len(revertList) > 0:
                 wx.CallLater(1000, self.Revert, revertList)
+        
+        if len(revertList) > 0:
+            wx.CallLater(1000, self.Revert, revertList)
         
         self.done = done
         if DEBUG:

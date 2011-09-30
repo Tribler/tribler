@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
 # injector.py is used to 'inject' .torrent files into the overlay
-# network. currently we only support a single .torrent source: rss
-# feed.
+# network.
+# Currently supported sources:
+#  * rss feed;
+#  * watched directory.
 
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
@@ -29,16 +31,17 @@ def main():
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
     command_line_parser.add_option("--port", action="store", type="int", help="Listen at this port")
     command_line_parser.add_option("--rss", action="store", type="string", help="Url where to fetch rss feed, or several seperated with ';'")
+    command_line_parser.add_option("--dir", action="store", type="string", help="Directory to watch for .torrent files, or several seperated with ';'")
     command_line_parser.add_option("--nickname", action="store", type="string", help="The moderator name")
 
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()
 
-    if not (opt.rss):
-        print "Usage: python Tribler/Main/metadata-injector.py --help"
-        print "Example: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja"
+    if not (opt.rss or opt.dir):
+        command_line_parser.print_help()
+        print "\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja"
         sys.exit()
-
+    
     print "Press Ctrl-C to stop the metadata-injector"
 
     sscfg = SessionStartupConfig()
@@ -46,12 +49,6 @@ def main():
     if opt.port: sscfg.set_listen_port(opt.port)
     if opt.nickname: sscfg.set_nickname(opt.nickname)
     
-    # set_moderationcast_promote_own() will ensure your moderations on
-    # the RSS feed items are sent to any peer you connect to on the
-    # overlay.
-
-    # Agressively promote own moderations:
-    sscfg.set_moderationcast_promote_own(True)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
@@ -63,34 +60,35 @@ def main():
     session = Session(sscfg)
     
     print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())    
-
+    
+    
+    torrent_feed_thread = TorrentFeedThread.getInstance()
+    torrent_feed_thread.register(session)
+    dir_feed_thread = DirectoryFeedThread(torrent_feed_thread)
+    
     if opt.rss:
-        
-        moderation_cast_db = session.open_dbhandler(NTFY_MODERATIONCAST)
-        torrent_feed_thread = TorrentFeedThread.getInstance()
         def on_torrent_callback(rss_url, infohash, torrent_data):
             """
-            A torrent file is discovered through rss. Create a new
-            moderation.
+            A torrent file is discovered through rss. Add it to our channel.
             """
-            if "info" in torrent_data and "name" in torrent_data["info"]:
-                print >>sys.stderr, "Creating moderation for %s" % torrent_data["info"]["name"]
-            else:
-                print >>sys.stderr, "Creating moderation"
-
-            moderation = {}
-            moderation['infohash'] = bin2str(infohash)
-            torrenthash = sha.sha(bencode(data)).digest()
-            moderation['torrenthash'] = bin2str(torrenthash)
-
-            moderation_cast_db.addOwnModeration(moderation)
-
-        torrent_feed_thread.register(session,120,1)
+            torrentdef = TorrentDef.load_from_dict(torrent_data)
+            print >>sys.stderr,"*** Added a torrent to channel: %s" % torrentdef.get_name_as_unicode()
+            
         for rss in opt.rss.split(";"):
             print >>sys.stderr, "Adding RSS: %s" % rss
-            torrent_feed_thread.addURL(rss, on_torrent_callback=on_torrent_callback)
-
-        torrent_feed_thread.start()
+            torrent_feed_thread.addURL(rss, callback=on_torrent_callback)
+    
+    if opt.dir:
+        def on_torrent_callback(dirpath, infohash, torrent_data):
+            torrentdef = TorrentDef.load_from_dict(torrent_data)
+            print '*** Added a torrent to channel: %s' % torrentdef.get_name_as_unicode()
+            
+        for dirpath in opt.dir.split(";"):
+            print >>sys.stderr, "Adding DIR: %s" % dirpath
+            dir_feed_thread.addDir(dirpath, callback=on_torrent_callback)
+    
+    torrent_feed_thread.start()
+    dir_feed_thread.start()
 
     # 22/10/08. Boudewijn: connect to a specific peer
     # connect to a specific peer using the overlay
@@ -109,9 +107,94 @@ def main():
     except:
         print_exc()
     
+    torrent_feed_thread.shutdown()
+    dir_feed_thread.shutdown()
     session.shutdown()
     print "Shutting down..."
     time.sleep(5)    
+
+
+#vliegendhart: This should probably be moved to some Tribler package:
+from threading import Thread, Event
+import shutil
+DIR_CHECK_FREQUENCY = 10 # Check directories every 10 seconds
+class DirectoryFeedThread(Thread):
+    def __init__(self, torrent_feed_thread):
+        Thread.__init__(self)
+        self.setName("DirectoryFeed"+self.getName())
+        self.setDaemon(True)
+        
+        self.paths = {}
+        self.feeds = []
+        
+        self.torrent_feed_thread = torrent_feed_thread
+        self.done = Event()
+        
+    
+    def _on_torrent_found(self, dirpath, torrentpath, infohash, torrent_data):
+        print >>sys.stderr, 'DirectoryFeedThread: Adding', torrentpath
+        self.torrent_feed_thread.addFile(torrentpath)
+        
+        imported_dir = os.path.join(dirpath, 'imported')
+        if not os.path.exists(imported_dir):
+            os.makedirs(imported_dir)
+        shutil.move(torrentpath, os.path.join(imported_dir, os.path.basename(torrentpath)))
+    
+    def addDir(self, dirpath, callback = None):
+        # callback(dirpath, infohash, torrent_data)
+        
+        if dirpath not in self.paths:
+            self.paths[dirpath] = 'active'
+            feed = DirectoryFeedReader(dirpath)
+            self.feeds.append([feed, callback])
+        
+        elif callback: #replace callback
+            for tup in self.feeds:
+                if tup[0].path == dirpath:
+                    tup[2] = callback
+        
+    
+    def deleteDir(self, path):
+        raise NotImplementedError('TODO')
+    
+    def refresh(self):
+        for (feed, callback) in self.feeds:
+            if self.paths[feed.path] == 'active':
+                for torrentpath, infohash, torrent_data in feed.read_torrents():
+                    self._on_torrent_found(feed.path, torrentpath, infohash, torrent_data)
+                    if callback:
+                        callback(feed.path, infohash, torrent_data)
+    
+    def run(self):
+        time.sleep(60) # Let other Tribler components, in particular, Session startup
+        
+        print >>sys.stderr, '*** DirectoryFeedThread: Starting first refresh round'
+        while not self.done.isSet():
+            self.refresh()
+            time.sleep(DIR_CHECK_FREQUENCY)
+        
+    
+    def shutdown(self):
+        self.done.set()
+
+class DirectoryFeedReader:
+    def __init__(self, path):
+        self.path = path
+    
+    def read_torrents(self):
+        files = os.listdir(self.path)
+        for file in files:
+            full_path = os.path.join(self.path, file)
+            
+            tdef = None
+            try:
+                tdef = TorrentDef.load(full_path)
+            except:
+                pass
+            
+            if tdef is not None:
+                yield full_path, tdef.infohash, tdef.get_metainfo()
+        
 
 if __name__ == "__main__":
     main()

@@ -6,6 +6,7 @@ import time
 import re
 import shutil
 from datetime import date, datetime
+from threading import currentThread
 
 from Tribler.Core.API import *
 from Tribler.Core.osutils import startfile
@@ -13,14 +14,14 @@ from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread,\
-    warnWxThread
+    warnWxThread, forceDBThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
-    MaxBetterText
+    MaxBetterText, NotebookPanel
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -262,7 +263,7 @@ class TorrentDetails(AbstractDetails):
         categories = self.torrent.categories
         if isinstance(categories, list):
             category = ', '.join(categories)
-        
+
         if not self.torrent.get('description', ''):
             description = 'No description yet, be the first to add a description.'
         else:
@@ -334,7 +335,8 @@ class TorrentDetails(AbstractDetails):
         #Create torrent overview
         if self.canComment:
             from channel import CommentList
-            self.commentList = CommentList(self.notebook, self.parent, canReply = True, quickPost = True)
+            self.commentList = NotebookPanel(self.notebook)
+            self.commentList.SetList(CommentList(self.commentList, self.parent, canReply = True, quickPost = True))
             commentManager = self.commentList.GetManager()
             commentManager.SetIds(self.torrent.channel, channeltorrent = self.torrent)
             
@@ -349,7 +351,8 @@ class TorrentDetails(AbstractDetails):
         
         if self.canEdit:
             from channel import ModificationList
-            self.modificationList = ModificationList(self.notebook)
+            self.modificationList = NotebookPanel(self.notebook)
+            self.modificationList.SetList(ModificationList(self.modificationList))
             modificationManager = self.modificationList.GetManager()
             modificationManager.SetId(self.torrent)
             
@@ -604,16 +607,15 @@ class TorrentDetails(AbstractDetails):
                 if newState in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
                     self.torrent.progress = 100
                     self._ShowDone()
-                
+
                 elif newState in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
                     self._ShowDownloadProgress()
-
                 else:
                     self._ShowTorrentDetails()
 
                 if getattr(self.parent, 'button', False):
                     self.parent.button.Enable(newState == TorrentDetails.INACTIVE)
-                
+            
                 self.buttonPanel.Thaw()
                 self.Layout()
         else:
@@ -712,7 +714,7 @@ class TorrentDetails(AbstractDetails):
         if self.torrent.isPlayable() and not self.state == TorrentDetails.VOD:
             self.buttonSizer.AddStretchSpacer()
             self._AddVodAd(self.buttonPanel, self.buttonSizer)
-    
+
         if isinstance(self, LibraryDetails):
             self.vod_log = StaticText(self.buttonPanel)
             self.vod_log.SetMinSize((1,-1))
@@ -1092,16 +1094,22 @@ class TorrentDetails(AbstractDetails):
         markWindow.Position(pos, (0, sz[1]))
         markWindow.Popup()
     
-    @warnWxThread
+    @forceDBThread
     def OnMyChannel(self, event):
-        self.guiutility.channelsearch_manager.createTorrent(None, self.torrent)
-        
-        self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
-        self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
+        didAdd = self.guiutility.channelsearch_manager.createTorrent(None, self.torrent)
+        if didAdd:
+            self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
+            
+            #remote channel link to force reload
+            del self.torrent.channel
+            self.torrent.channel
+            
+            def gui_call():
+                self.guiutility.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+            wx.CallAfter(gui_call)
 
     def RefreshData(self, data):
         if self.isReady:
-            
             del self.torrent.swarminfo
             self.UpdateStatus()
    
@@ -1117,7 +1125,7 @@ class TorrentDetails(AbstractDetails):
             
         if diff > 1800:
             TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
-    
+
     @forceWxThread
     def ShowStatus(self):
         if getattr(self, 'status', False):
@@ -1133,7 +1141,6 @@ class TorrentDetails(AbstractDetails):
                         self.status.SetLabel("%s seeders, %s leechers"%(self.torrent.num_seeders, self.torrent.num_leechers))
                     else:
                         self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent.num_seeders, self.torrent.num_leechers ,updated))
-    
     
     def OnMarkingCreated(self, channeltorrent_id):
         if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
@@ -1700,6 +1707,7 @@ class ProgressPanel(wx.BoxSizer):
             self.pb.Refresh()
             
         return return_val
+
 
 class MyChannelDetails(wx.Panel):
     def __init__(self, parent, torrent, channel_id):

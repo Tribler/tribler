@@ -9,6 +9,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from __init__ import LIST_GREY, LIST_BLUE, TRIBLER_RED, LIST_HIGHTLIGHT
 from wx.lib.stattext import GenStaticText
+from wx.lib.stattext import GenStaticText
 
 DEBUG = False
 
@@ -577,11 +578,11 @@ class LinkStaticText(wx.BoxSizer):
             
         normalfont = parent.GetFont()
         normalfont.SetPointSize(normalfont.GetPointSize() + font_increment)
-        
+
         selectedfont = parent.GetFont()
         selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
         selectedfont.SetUnderlined(True)
-        
+
         self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)], parentsizer = self)
         self.Add(self.text, 1, wx.ALIGN_CENTER_VERTICAL)
         
@@ -785,6 +786,31 @@ class EditStaticText(wx.Panel):
 
     def GetChanged(self):
         return self.edit.GetChanged()
+    
+class NotebookPanel(wx.Panel):
+    def __init__(self, *args, **kwargs):
+        wx.Panel.__init__(self, *args, **kwargs)
+        self.sizer = wx.BoxSizer()
+        self.SetSizer(self.sizer)
+    
+    def SetList(self, list):
+        self.list = list
+        self.sizer.Add(list, 1, wx.EXPAND)
+    
+    def IsShownOnScreen(self):
+        notebook = self.GetParent()
+        page = notebook.GetPage(notebook.GetSelection())
+        return page == self
+    
+    def __getattr__(self, name):
+        try:
+            wx.Panel.__getattr__(self, name)
+        except:
+            return getattr(self.list, name)
+        
+    def Show(self, show=True):
+        wx.Panel.Show(self, show)
+        self.list.Show(show)
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

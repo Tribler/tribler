@@ -453,7 +453,6 @@ class SimpleExactKeyGrouping(GroupingAlgorithm):
         def __setitem__(self, simkey, group):
             self.mapTo[simkey] = group
     
-    
 class IntGrouping(SimpleExactKeyGrouping):
     """
     The IntGrouping algorithm groups similarly numbered hits together.

@@ -6,6 +6,8 @@ from list_details import AbstractDetails
 from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
 from Tribler.community.channel.community import ChannelCommunity
 
+from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
+
 class ListFooter(wx.Panel):
     def __init__(self, parent, radius = LIST_RADIUS):
         wx.Panel.__init__(self, parent)

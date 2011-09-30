@@ -1842,6 +1842,7 @@ class TorrentDBHandler(BasicDBHandler):
             if count < len(kws):
                 sql += " intersect "
         
+        #TODO: not local only collectedtorrent?
         mainsql = """select T.*, C.channel_id
                      from Torrent T LEFT OUTER JOIN ChannelTorrents C on T.torrent_id = C.torrent_id
                      where T.torrent_id in (%s) order by T.num_seeders desc """ % (sql)
@@ -3262,7 +3263,7 @@ class ChannelCastDBHandler(object):
                 metainfo['info']['length'] = files[0][1]
            
             if len(trackers) > 0:
-                metainfo['announce'] = trackers[0]
+                metainfo['announce'] = trackers[0][0]
             else:
                 metainfo['nodes'] = []
 
@@ -3286,8 +3287,9 @@ class ChannelCastDBHandler(object):
                 insert_files.append((torrent_id, path, length))
             
             magnetlink = "magnet:?xt=urn:btih:"+hexlify(infohash)
-            for tracker in trackers:
-                magnetlink += "&tr="+urllib.quote_plus(tracker)
+            for tracker_prio in trackers:
+                for tracker in tracker_prio:
+                    magnetlink += "&tr="+urllib.quote_plus(tracker)
             insert_collecting.append((torrent_id, magnetlink))
             
             insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
@@ -3314,6 +3316,8 @@ class ChannelCastDBHandler(object):
     def on_remove_torrent_from_dispersy(self, channel_id, dispersy_id):
         sql = "DELETE FROM ChannelTorrents WHERE channel_id = ? and dispersy_id = ?"
         self._db.execute_write(sql, (channel_id, dispersy_id), commit = self.shouldCommit)
+        
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
     def on_torrent_modification_from_dispersy(self, channeltorrent_id, modification_type, modification_value):
         if modification_type in ['name', 'description']:
@@ -3341,8 +3345,8 @@ class ChannelCastDBHandler(object):
     def hasTorrent(self, channel_id, infohash):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id:
-            sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
-            channeltorrent_id = self._db.fetchone(sql, (torrent_id, ))
+            sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ? and channel_id = ?"
+            channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
             if channeltorrent_id:
                 return True
             

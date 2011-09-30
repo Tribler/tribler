@@ -161,7 +161,7 @@ class GUIUtility:
                     selectedcat = self.frame.channelcategories.GetSelectedCategory()
                 else:
                     selectedcat = ''
-                    
+
                 if selectedcat == 'My Channel':
                     self.frame.channelcategories.Select(1)
                     
@@ -317,16 +317,18 @@ class GUIUtility:
                     print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords, time()
                 
                 self.frame.searchlist.Freeze()         
+               
+                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
+                self.channelsearch_manager.setSearchKeywords(wantkeywords)
+                
+                self.frame.searchlist.Reset()
                 self.ShowPage('search_results', safekeywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
                 self.frame.searchlist.Thaw()                
                 
                 #Peform local search
-                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
-                
-                self.channelsearch_manager.setSearchKeywords(wantkeywords)
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 
                 self.torrentsearch_manager.refreshGrid()

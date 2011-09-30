@@ -1,6 +1,6 @@
 # Written by Niels Zeilemaker
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
-    NativeIcon, LinkText, BetterText as StaticText
+    NativeIcon, LinkText, BetterText as StaticText, _set_font
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -108,7 +108,7 @@ class ListHeader(wx.Panel):
                             label.sortIcon = wx.StaticBitmap(self, -1, up)
                         else:
                             label.sortIcon = wx.StaticBitmap(self, -1, down)
-                        
+                                
                         self.sortedColumn = i
                         self.defaultSort = i
                     else:
@@ -253,6 +253,7 @@ class TitleHeader(ListHeader):
     def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=LIST_RADIUS):
         self.font_increment = font_increment
         self.fontweight = fontweight
+
         ListHeader.__init__(self, parent, parent_list, columns, radius = radius)
     
     def AddComponents(self, columns, spacers):
@@ -260,11 +261,8 @@ class TitleHeader(ListHeader):
         vSizer.AddSpacer((-1, 3))
         
         self.title = StaticText(self)
-        font = self.title.GetFont()
-        font.SetPointSize(font.GetPointSize() + self.font_increment)
-        font.SetWeight(self.fontweight)
-        self.title.SetFont(font)
-        
+        _set_font(self.title, self.font_increment, self.fontweight)
+                
         titlePanel = self.GetTitlePanel(self)
         subtitlePanel = self.GetSubTitlePanel(self)
         righttitlePanel = self.GetRightTitlePanel(self)
