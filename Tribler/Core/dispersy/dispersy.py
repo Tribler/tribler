@@ -87,7 +87,7 @@ class DummySocket(object):
     but throw away all packets it is supposed to sent.
     """
     def send(self, address, data):
-        if __debug__: dprint("Thrown away ", len(data), " bytes worth of data to ", address[0], ":", address[1], level="warning")
+        if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data to ", address[0], ":", address[1], level="warning")
 
 class Statistics(object):
     def __init__(self):
