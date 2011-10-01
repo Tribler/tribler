@@ -250,11 +250,11 @@ class ListHeader(wx.Panel):
         event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=LIST_RADIUS):
+    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=LIST_RADIUS, spacers = [0,0]):
         self.font_increment = font_increment
         self.fontweight = fontweight
 
-        ListHeader.__init__(self, parent, parent_list, columns, radius = radius)
+        ListHeader.__init__(self, parent, parent_list, columns, radius = radius, spacers = spacers)
     
     def AddComponents(self, columns, spacers):
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -270,8 +270,8 @@ class TitleHeader(ListHeader):
         
         if titlePanel:
             subSizer = wx.BoxSizer(wx.HORIZONTAL)
-            subSizer.Add(self.title, 0, wx.RIGHT, 3)
-            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL)
+            subSizer.Add(self.title)
+            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
             titlePanel = subSizer
         else:
             titlePanel = self.title
@@ -284,15 +284,13 @@ class TitleHeader(ListHeader):
         else:
             subtitlePanel = titlePanel
         
+        subSizer = wx.BoxSizer(wx.HORIZONTAL)
+        subSizer.Add(subtitlePanel, 0, wx.LEFT, 3)
         if righttitlePanel:
-            subSizer = wx.BoxSizer(wx.HORIZONTAL)
-            subSizer.Add(subtitlePanel, 0, wx.RIGHT, 3)
-            subSizer.Add(righttitlePanel, 1)
-            righttitlePanel = subSizer
-        else:
-            righttitlePanel = subtitlePanel
-        
-        vSizer.Add(righttitlePanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius + 3)
+            subSizer.Add(righttitlePanel, 1, wx.LEFT, 3)
+        righttitlePanel = subSizer
+             
+        vSizer.Add(righttitlePanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius+spacers[0])
         if belowPanel:
             vSizer.Add(belowPanel, 1, wx.EXPAND|wx.TOP, 3)
 
@@ -300,7 +298,7 @@ class TitleHeader(ListHeader):
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.AddColumns(hSizer, self, columns)
             vSizer.AddSpacer((-1, 3))
-            vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius)
+            vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius+spacers[0])
         self.SetSizer(vSizer)
     
     def GetTitlePanel(self, parent):

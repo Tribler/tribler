@@ -688,10 +688,10 @@ class AbstractListBody():
             self.__SetData(highlight)
         
         diff = time() - (self.listRateLimit + self.lastData)
-        if diff >= 0:
+        call_in = -diff * 1000
+        if call_in < 0:
             doSetData()
         else:
-            call_in = -diff * 1000
             if self.dataTimer == None:
                 self.dataTimer = wx.CallLater(call_in, doSetData) 
             else:

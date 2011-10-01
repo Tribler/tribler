@@ -249,6 +249,10 @@ class ChannelSearchManager:
                 elif self.category in ['All', 'New']:
                     #Show new channel, but only if we are not showing search results
                     self.refresh()
+                
+                elif self.category == 'Popular':
+                    if len(self.list.GetItems()) < 20:
+                        self.refresh()
                     
             elif self.list.InList(id):
                 self.dirtyset.add(id)

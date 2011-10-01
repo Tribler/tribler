@@ -3386,7 +3386,14 @@ class ChannelCastDBHandler(object):
         max_update = {}
         latest_update = {}
         
-        for channel_id, channel_name, infohash, name, timestamp in torrents:
+        #batch fetch torrent_ids:
+        infohashes = [infohash for channel_id, channel_name, infohash, name, timestamp in torrents]
+        torrent_ids = self.torrent_db.addOrGetTorrentIDS(infohashes)
+        
+        for i, torrent in enumerate(torrents):
+            channel_id, channel_name, infohash, name, timestamp = torrent
+            torrent_id = torrent_ids[i]
+            
             if not channel_id in max_update:
                 max_update[channel_id] = self._db.fetchone(select_max, (channel_id,))
             
@@ -3394,7 +3401,6 @@ class ChannelCastDBHandler(object):
                 #possible name change
                 latest_update[channel_id] = max((timestamp, channel_name), latest_update.get(channel_id, None))
             
-            torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
             self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, timestamp), commit = False)
         
         for channel_id in max_update.keys():
@@ -3676,11 +3682,13 @@ class ChannelCastDBHandler(object):
             for cid, infohash in othersrandomtorrents:
                 torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
         
+        twomonthsago = long(time() - 5259487)
         nr_records = sum(len(torrents) for torrents in torrent_dict.values())
         additionalSpace = (NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS + NUM_OTHERS_RECENT_TORRENTS + NUM_OTHERS_RANDOM_TORRENTS) - nr_records
         NUM_OTHERS_DOWNLOADED += additionalSpace
-        sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select distinct channel_id from ChannelTorrents where torrent_id in (select torrent_id from MyPreference)) and dispersy_id <> -1  order by time_stamp desc limit ?"
-        interesting_records = self._db.fetchall(sql,(NUM_OTHERS_DOWNLOADED,))
+        
+        sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select distinct channel_id from ChannelTorrents where torrent_id in (select torrent_id from MyPreference)) and dispersy_id <> -1 and Channels.modified > ? order by time_stamp desc limit ?"
+        interesting_records = self._db.fetchall(sql,(twomonthsago, NUM_OTHERS_DOWNLOADED))
         for cid, infohash in interesting_records:
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             
