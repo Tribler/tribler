@@ -256,7 +256,7 @@ class TorrentManager:
                     for source, in collectingSources:
                         if source.startswith('magnet'):
                             _, _, trs = MagnetLink.MagnetLink.parse_url(source)
-                            trackers.append(trs)
+                            trackers.extend(trs)
                 
                 if len(files) > 0:
                     torrent = NotCollectedTorrent(torrent, files, trackers)

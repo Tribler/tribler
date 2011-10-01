@@ -1,6 +1,7 @@
 #Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import sys
 import os.path
+from datetime import date
 from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
@@ -255,6 +256,11 @@ class CollectedTorrent(Helper):
     @cache
     def isPlayable(self):
         return len(self.videofiles) > 0
+    
+    def formatCreationDate(self, format = '%Y-%m-%d'):
+        if self.creation_date > 0:
+            return date.fromtimestamp(self.creation_date).strftime(format)
+        return 'Unknown'
     
 class NotCollectedTorrent(CollectedTorrent):
     def __init__(self, torrent, files, trackers):

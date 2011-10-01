@@ -277,7 +277,7 @@ class TorrentDetails(AbstractDetails):
             "Name": self.torrent.name,
             "Description": description,
             "Type": category.capitalize(),
-            "Uploaded": date.fromtimestamp(self.torrent.creation_date).strftime('%Y-%m-%d'),
+            "Uploaded": self.torrent.formatCreationDate(),
             "Filesize": filesize,
             "Status": "Unknown"
         }

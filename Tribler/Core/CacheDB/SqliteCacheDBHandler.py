@@ -3296,9 +3296,8 @@ class ChannelCastDBHandler(object):
                 insert_files.append((torrent_id, path, length))
             
             magnetlink = "magnet:?xt=urn:btih:"+hexlify(infohash)
-            for tracker_prio in trackers:
-                for tracker in tracker_prio:
-                    magnetlink += "&tr="+urllib.quote_plus(tracker)
+            for tracker in trackers:
+                magnetlink += "&tr="+urllib.quote_plus(tracker)
             insert_collecting.append((torrent_id, magnetlink))
             
             insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
