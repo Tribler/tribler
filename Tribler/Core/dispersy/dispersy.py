@@ -600,6 +600,9 @@ class Dispersy(Singleton):
 
                                 # disable auto-load for this community (prevent this from happening again)
                                 self._database.execute(u"UPDATE community SET auto_load = 0 WHERE master = ?", (master.database_id,))
+                            else:
+                                if __debug__: dprint("successfully auto-loaded ", classification)
+                                break
 
                     else:
                         if __debug__: dprint("Failed to obtain class [", classification, "]", level="warning")
