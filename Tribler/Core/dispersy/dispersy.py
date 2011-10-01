@@ -48,7 +48,7 @@ from authentication import NoAuthentication, MemberAuthentication, MultiMemberAu
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
 from callback import Callback
-from candidate import Candidate
+from candidate import BootstrapCandidate, Candidate
 from decorator import runtime_duration_warning
 from destination import CommunityDestination, AddressDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
@@ -252,7 +252,7 @@ class Dispersy(Singleton):
         
         # bootstrap peers
         bootstrap_addresses = get_bootstrap_addresses()
-        self._bootstrap_candidates = dict((address, Candidate(self, address, address)) for address in bootstrap_addresses if address)
+        self._bootstrap_candidates = dict((address, BootstrapCandidate(self, address)) for address in bootstrap_addresses if address)
         assert isinstance(self._bootstrap_candidates, dict)
         if not all(bootstrap_addresses):
             self._callback.register(self._retry_bootstrap_candidates)
@@ -297,7 +297,7 @@ class Dispersy(Singleton):
                     break
             else:
                 if __debug__: dprint("resolved all bootstrap addresses")
-                self._bootstrap_candidates = dict((address, Candidate(self, address, address)) for address in addresses if address)
+                self._bootstrap_candidates = dict((address, BootstrapCandidate(self, address)) for address in addresses if address)
                 break
 
     @property
@@ -462,6 +462,7 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
         self._community_dict_modified = True
+        community.__tracker_hammering = 0
 
     def detach_community(self, community):
         """
@@ -1975,11 +1976,22 @@ class Dispersy(Singleton):
                 candidate = self.yield_walk_candidates(community).next()
 
             except StopIteration:
-                # if __debug__: dprint("no candidate to start walk.  retry in 1.0 seconds", level="error")
-                # self._callback.register(self.start_walk, (community,), delay=1.0)
                 return False
 
             else:
+                # prevent 'tracker hammering' where communities with no other nodes cause an
+                # introduction-request every 5.0 seconds to a tracker
+                assert isinstance(community.__tracker_hammering, int)
+                assert community.__tracker_hammering >= 0
+                if community.__tracker_hammering > 0:
+                    community.__tracker_hammering -= 1
+                if isinstance(candidate, BootstrapCandidate):
+                    if community.__tracker_hammering == 0:
+                        community.__tracker_hammering = 6
+                    else:
+                        if __debug__: dprint("prevented tracker hammering (", community.__tracker_hammering, ")")
+                        return False
+                        
                 assert community.my_member.private_key
                 self.create_introduction_request(community, candidate.address)
                 return True
@@ -3777,16 +3789,17 @@ class Dispersy(Singleton):
                     delay = max(0.05, 5.0 / len(communities))
                     if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
+                    # ensure that we start at a random community (otherwise continues attach/detach
+                    # will cause more walks at the communities that happen to be first in the list)
+                    for _ in xrange(int(len(communities) * random())):
+                        iter_communities.next()
+
                 community = iter_communities.next()
                 if __debug__: dprint("step for ", community.get_classification(), " ", community.cid.encode("HEX"))
-                if community.dispersy_take_step():
-                    wait = delay
+                if not community.dispersy_take_step():
+                    if __debug__: dprint("no candidate to take step", level="error")
 
-                else:
-                    # failed... try again quickly
-                    wait = 1.0
-
-                desync = (yield wait)
+                desync = (yield delay)
                 while desync > 0.1:
                     if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)

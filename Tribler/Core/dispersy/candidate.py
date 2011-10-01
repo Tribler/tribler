@@ -121,3 +121,7 @@ class Candidate(object):
         return [Member.get_instance(str(public_key))
                 for public_key,
                 in list(DispersyDatabase.get_instance().execute(u"SELECT DISTINCT member.public_key FROM identity JOIN member ON member.id = identity.member WHERE identity.host = ? AND identity.port = ? -- AND verified = 1", (unicode(host), port)))]
+
+class BootstrapCandidate(Candidate):
+    def __init__(self, dispersy, wan_address):
+        super(BootstrapCandidate, self).__init__(dispersy, wan_address, wan_address)
