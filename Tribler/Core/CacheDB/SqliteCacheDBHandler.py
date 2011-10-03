@@ -3369,8 +3369,8 @@ class ChannelCastDBHandler(object):
                 returnAr.append(False)
         
             else:
-                sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?"
-                channeltorrent_id = self._db.fetchone(sql, (torrent_ids[i], ))
+                sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ?, channel_id = ?"
+                channeltorrent_id = self._db.fetchone(sql, (torrent_ids[i], channel_id))
                 returnAr.append(True if channeltorrent_id else False)
         return returnAr
     
