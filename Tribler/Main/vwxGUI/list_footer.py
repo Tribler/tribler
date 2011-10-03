@@ -18,8 +18,10 @@ class ListFooter(wx.Panel):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         if radius+spacers[0] > 0:
             hSizer.AddSpacer((radius+spacers[0], 10))
-            
-        self.GetMidPanel(hSizer)
+        
+        midSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.GetMidPanel(midSizer)
+        hSizer.Add(midSizer, 1, wx.EXPAND)
         
         if radius+spacers[1] > 0:
             hSizer.AddSpacer((radius+spacers[1], 10))

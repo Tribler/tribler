@@ -239,7 +239,7 @@ class SelectedChannelList(GenericSearchList):
    
     @warnWxThread
     def CreateFooter(self, parent):
-        footer = ChannelFooter(parent, spacers = [7,7])
+        footer = ChannelFooter(parent)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote, self.OnManage)
         return footer
 
