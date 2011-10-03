@@ -36,7 +36,7 @@ class Candidate(object):
         self._is_walk = is_walk
         self._is_stumble = is_stumble
         self._is_introduction = is_introduction
-        self._timestamp = 0
+        self._timestamp = time() - 30.0
         self._communities = set((community,)) if community else set()
 
     @property
