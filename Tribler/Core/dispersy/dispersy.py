@@ -1734,7 +1734,7 @@ class Dispersy(Singleton):
         # remove old candidates
         threshold = time() - 55.0
         for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems() if candidate.timestamp_incoming <= threshold]:
-            if __debug__: dprint("removing old candidate ", sock_address[0], ":", sock_address[1], force=1)
+            if __debug__: dprint("removing old candidate ", sock_address[0], ":", sock_address[1])
             del self._candidates[sock_address]
             
         # get all viable candidates
@@ -2016,7 +2016,7 @@ class Dispersy(Singleton):
         assert meta_response.delay == 0.0
         # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
         timeout = 4.5
-        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination, advice), timeout=timeout)
+        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(destination,), timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
         self._callback.register(self._walk_identifiers.remove, (identifier,), delay=timeout+10.0)
@@ -2099,29 +2099,13 @@ class Dispersy(Singleton):
         # handled in introduction_response_or_timeout
         pass
                 
-    def introduction_response_or_timeout(self, message, community, intermediary_address, advice):
+    def introduction_response_or_timeout(self, message, intermediary_address):
         if message is None:
             # intermediary_address is no longer online
             if intermediary_address in self._candidates:
-                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)", force=1)
-                del self._candidates[intermediary_address]
-
-        else:
-            if __debug__: dprint("response from ", message.address[0], ":", message.address[1], force=1)
-
-        #     # timeout, start new walk
-        #     community.dispersy_start_walk()
-
-        # else:
-        #     if advice and self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
-        #         # we asked for, and received, an introduction
-
-        #         # determine if we are in the same LAN as the introduced node
-        #         destination = message.payload.lan_introduction_address if message.payload.wan_introduction_address[0] == self._wan_address[0] else message.payload.wan_introduction_address
-        #         self._callback.register(self.create_introduction_request, (community, destination), delay=1.0)
-
-        #     else:
-        #         community.dispersy_start_walk()
+                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)")
+                if not self._candidates[intermediary_address].timeout(message.community):
+                    del self._candidates[intermediary_address]
 
     def on_puncture_request(self, messages):
         community = messages[0].community

@@ -75,6 +75,18 @@ class Candidate(object):
     def in_community(self, community):
         return community in self._communities
 
+    def timeout(self, community):
+        """
+        Called on timeout of a dispersy-introduction-response message
+
+        Returns True if there are communities left where this candidate did not timeout.
+        """
+        try:
+            self._communities.remove(community)
+        except KeyError:
+            pass
+        return bool(self._communities)
+    
     def out_introduction_request(self):
         self._timestamp_last_step = time()
     
