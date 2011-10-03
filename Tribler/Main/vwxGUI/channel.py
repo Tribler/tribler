@@ -185,7 +185,10 @@ class SelectedChannelList(GenericSearchList):
         self.leftLine = wx.Panel(self.parent)
 
         self.notebook = FlatNotebook(self.leftLine)
-        self.notebook.SetAGWWindowStyleFlag(fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS)
+        if getattr(self.notebook, 'SetAGWWindowStyleFlag', False):
+            self.notebook.SetAGWWindowStyleFlag(fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS)
+        else:
+            self.notebook.SetWindowStyleFlag(fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS)
         self.notebook.SetTabAreaColour(self.background)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
