@@ -218,7 +218,7 @@ class ChannelFooter(ListFooter):
         self.manage.Show(False)
         
         #clean up old ortext statictext
-        if not preview and self.ortext and explicit_vote:
+        if self.ortext:
             self.ortext.Destroy()
             self.ortext = None
         

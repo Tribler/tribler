@@ -564,6 +564,9 @@ class ABCApp():
         return(1.0, True)
     
     def _gui_sesscb_states_callback(self, dslist):
+        if not self.ready:
+            return
+        
         """ Called by GUITHREAD  """
         if DEBUG: 
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)

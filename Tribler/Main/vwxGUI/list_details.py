@@ -1849,8 +1849,9 @@ class MyChannelDetails(wx.Panel):
         dlg.Destroy()
         
 class MyChannelPlaylist(AbstractDetails):
-    def __init__(self, parent, on_manage, playlist = {}):
+    def __init__(self, parent, on_manage, on_save = None, playlist = {}):
         self.on_manage = on_manage
+        self.on_save = on_save
         self.playlist = playlist
         self.torrent_ids = []
         
@@ -1868,17 +1869,30 @@ class MyChannelPlaylist(AbstractDetails):
         
         self._add_row(self, gridSizer, 'Name', self.name)
         self._add_row(self, gridSizer, 'Description', self.description)
-        
         vSizer.Add(gridSizer, 1, wx.EXPAND|wx.ALL, 3)
         
         manage = wx.Button(self, -1, 'Manage Torrents')
         manage.Bind(wx.EVT_BUTTON, self.OnManage)
-        vSizer.Add(manage, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
+        if playlist.get('id', False):
+            
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            save = wx.Button(self, -1, 'Save Playlist')
+            save.Bind(wx.EVT_BUTTON, self.OnSave)
+            hSizer.Add(save, wx.RIGHT, 3)
+            hSizer.Add(manage)
+            
+            vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
+        else:
+            
+            vSizer.Add(manage, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
         
         self.SetSizer(vSizer)
     
     def OnManage(self, event):
         self.torrent_ids = self.on_manage(self.playlist)
+        
+    def OnSave(self, event):
+        self.on_save(self.playlist.get('id'), self)
         
     def GetInfo(self):
         name = self.name.GetValue()

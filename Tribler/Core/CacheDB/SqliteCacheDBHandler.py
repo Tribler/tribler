@@ -3765,9 +3765,8 @@ class ChannelCastDBHandler(object):
     
     def getRecentModificationsFromPlaylist(self, playlist_id, keys, limit = None):
         playlistKeys = keys[:]
-        if 'channeltorrent_id' in playlistKeys:
-            playlistKeys[playlistKeys.index('channeltorrent_id')] = '""'
-            keys[keys.index('channeltorrent_id')] = 'MetaDataTorrent.channeltorrent_id'
+        if 'MetaDataTorrent.channeltorrent_id' in playlistKeys:
+            playlistKeys[playlistKeys.index('MetaDataTorrent.channeltorrent_id')] = '""'
             
         sql = "SELECT " + ", ".join(playlistKeys) +" FROM MetaDataPlaylist, ChannelMetaData LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND playlist_id = ?"
         if limit:

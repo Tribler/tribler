@@ -1462,24 +1462,26 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         self.SetNrResults(len(data))
     
     def OnExpand(self, item):
-        return MyChannelPlaylist(item, self.OnEdit, item.original_data)
+        return MyChannelPlaylist(item, self.OnEdit, self.OnSave, item.original_data)
 
     def OnCollapse(self, item, panel):
         playlist_id = item.original_data.get('id', False)
         if playlist_id:
             if panel.IsChanged():
-                dlg = wx.MessageDialog(self, 'Do you want to save your changes made to this playlist?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this playlist?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
-                    name, description, _ = panel.GetInfo()
-                    
-                    manager = self.GetManager()
-                    manager.savePlaylist(playlist_id, name, description)
+                    self.OnSave(playlist_id, panel)
         ManageChannelFilesList.OnCollapse(self, item, panel)
+        
+    def OnSave(self, playlist_id, panel):
+        name, description, _ = panel.GetInfo()
+        manager = self.GetManager()
+        manager.savePlaylist(playlist_id, name, description)
     
     def OnNew(self, event):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        dlg = wx.Dialog(self, -1, 'Create a new playlist', size = (500, 300), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Create a new playlist', size = (500, 300), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
         playlistdetails = MyChannelPlaylist(dlg, self.OnManage)
         
         vSizer.Add(playlistdetails, 1, wx.EXPAND|wx.ALL, 3)
@@ -1500,7 +1502,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             manager.savePlaylistTorrents(playlist.id, torrent_ids)
     
     def OnManage(self, playlist):
-        dlg = wx.Dialog(self, -1, 'Manage the torrents for this playlist', size = (900, 500), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Manage the torrents for this playlist', size = (900, 500), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
         
         manager = self.GetManager()
         available = manager.GetTorrentsFromChannel()
