@@ -462,7 +462,6 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
         self._community_dict_modified = True
-        # community.__tracker_hammering = 0
 
     def detach_community(self, community):
         """
@@ -1457,7 +1456,7 @@ class Dispersy(Singleton):
                     else:
                         if __debug__: dprint("unable to add introduced node", level="warning")
                 else:
-                    if __debug__: dprint("unable to add introduced node. LAN: ", message.payload.lan_introduction_address[0], ":", message.payload.lan_introduction_address[1], " (", self._is_valid_lan_address(message.payload.lan_introduction_address), ") WAN: ", message.payload.wan_introduction_address[0], ":", message.payload.wan_introduction_address[1], " (", self._is_valid_wan_address(message.payload.wan_introduction_address), ")", level="warning")
+                    if __debug__: dprint("unable to add introduced node. LAN: ", message.payload.lan_introduction_address[0], ":", message.payload.lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(message.payload.lan_introduction_address) else "invalid"), ") WAN: ", message.payload.wan_introduction_address[0], ":", message.payload.wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(message.payload.wan_introduction_address) else "invalid"), ")", level="warning")
                 
         else:
             for address, _ in groupby(sorted(messages, key=key), key=key):
@@ -1733,8 +1732,8 @@ class Dispersy(Singleton):
         assert not self._wan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
 
         # remove old candidates
-        deadline = time() - 55.0
-        for key in [key for key, candidate in self._candidates.iteritems() if candidate.timestamp < deadline]:
+        threshold = time() - 55.0
+        for key in [key for key, candidate in self._candidates.iteritems() if candidate.timestamp_incoming <= threshold]:
             del self._candidates[key]
             
         # get all viable candidates
@@ -1842,12 +1841,12 @@ class Dispersy(Singleton):
         threshold = time() - 30.0
         
         # SECURE 5 WAY SELECTION POOL
-        bootstrap_candidates = [candidate for sock_addr, candidate in self._bootstrap_candidates.iteritems() if candidate.timestamp <= threshold and not sock_addr in blacklist]
-        candidates = [candidate for _, candidate in self._yield_candidates(community, blacklist) if candidate.timestamp <= threshold]
+        bootstrap_candidates = [candidate for sock_addr, candidate in self._bootstrap_candidates.iteritems() if candidate.timestamp_last_step <= threshold and not sock_addr in blacklist]
+        candidates = [candidate for _, candidate in self._yield_candidates(community, blacklist) if candidate.timestamp_last_step <= threshold]
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
         introduction = set(candidate for candidate in candidates if candidate.is_introduction)
-        sort_key = lambda candidate: candidate.timestamp
+        sort_key = lambda candidate: candidate.timestamp_last_step
 
         if walks or stumbles or introduction:
             B = sorted(walks, key=sort_key)
@@ -1870,7 +1869,6 @@ class Dispersy(Singleton):
                 if r <= .495: # 50%
                     if B:
                         candidate = B.pop(0)
-                        candidate.update_timestamp()
                         yield candidate
                         B.append(candidate)
 
@@ -1883,7 +1881,6 @@ class Dispersy(Singleton):
                             if r <= .3333:
                                 if C:
                                     candidate = C.pop(0)
-                                    candidate.update_timestamp()
                                     yield candidate
                                     C.append(candidate)
                                     break
@@ -1891,7 +1888,6 @@ class Dispersy(Singleton):
                             elif r <= .6666:
                                 if D:
                                     candidate = D.pop(0)
-                                    candidate.update_timestamp()
                                     yield candidate
                                     D.append(candidate)
                                     break
@@ -1899,7 +1895,6 @@ class Dispersy(Singleton):
                             elif r <= .9999:
                                 if E:
                                     candidate = E.pop(0)
-                                    candidate.update_timestamp()
                                     yield candidate
                                     E.append(candidate)
                                     break
@@ -1913,16 +1908,14 @@ class Dispersy(Singleton):
                 # elif r <= .9899: # 16.33%
                 #     if E: yield choice(E)
 
-                elif self._bootstrap_candidates: # ~1%
+                elif bootstrap_candidates: # ~1%
                     candidate = choice(bootstrap_candidates)
-                    candidate.update_timestamp()
                     yield candidate
 
         elif bootstrap_candidates:
             if __debug__: dprint("no candidates available.  yielding bootstrap candidate", level="warning")
             while True:
                 candidate = choice(bootstrap_candidates)
-                candidate.update_timestamp()
                 yield candidate
 
         else:
@@ -1984,20 +1977,8 @@ class Dispersy(Singleton):
                 return False
 
             else:
-                # # prevent 'tracker hammering' where communities with no other nodes cause an
-                # # introduction-request every 5.0 seconds to a tracker
-                # assert isinstance(community.__tracker_hammering, int)
-                # assert community.__tracker_hammering >= 0
-                # if community.__tracker_hammering > 0:
-                #     community.__tracker_hammering -= 1
-                # if isinstance(candidate, BootstrapCandidate):
-                #     if community.__tracker_hammering == 0:
-                #         community.__tracker_hammering = 6
-                #     else:
-                #         if __debug__: dprint("prevented tracker hammering (", community.__tracker_hammering, ")")
-                #         return False
-                        
                 assert community.my_member.private_key
+                candidate.out_introduction_request()
                 self.create_introduction_request(community, candidate.address)
                 return True
             
@@ -2067,14 +2048,13 @@ class Dispersy(Singleton):
 
             if candidate:
                 if __debug__:
-                    dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.lan_address[0], ":", candidate.lan_address[1], " i.e. ", candidate.wan_address[0], ":", candidate.wan_address[1], force=1)
+                    dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.lan_address[0], ":", candidate.lan_address[1], " or ", candidate.wan_address[0], ":", candidate.wan_address[1])
                     # the blacklist should have ensured that this candidate is not the same as the
                     # introduction-request sender
                     if candidate.wan_address == message.address:
-                        dprint("probably introducing this candidate to herself", force=1)
+                        dprint("probably introducing this candidate to herself (or the candidate is spreading invalid LAN and WAN addresses)", level="warning")
                     if candidate.lan_address == message.address and candidate.wan_address[0] == message.address[0]:
-                        dprint("probably introducing this candidate to herself", force=1)
-                        
+                        dprint("probably introducing this candidate to herself (or the candidate is spreading invalid LAN and WAN addresses)", level="warning")
                 # create introduction responses
                 meta = community.get_meta_message(u"dispersy-introduction-response")
                 responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
@@ -3817,7 +3797,6 @@ class Dispersy(Singleton):
                 while desync > 0.1:
                     if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)
-
                     
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
@@ -3873,6 +3852,7 @@ class Dispersy(Singleton):
 
             if candidate:
                 community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
+                if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
 
         if __debug__: dprint(info, pprint=True)
         return info

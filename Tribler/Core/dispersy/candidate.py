@@ -36,7 +36,8 @@ class Candidate(object):
         self._is_walk = is_walk
         self._is_stumble = is_stumble
         self._is_introduction = is_introduction
-        self._timestamp = time() - 30.0
+        self._timestamp_last_step = time() - 30.0
+        self._timestamp_incoming = time()
         self._communities = set((community,)) if community else set()
 
     @property
@@ -64,14 +65,18 @@ class Candidate(object):
         return self._is_introduction
     
     @property
-    def timestamp(self):
-        return self._timestamp
+    def timestamp_last_step(self):
+        return self._timestamp_last_step
+
+    @property
+    def timestamp_incoming(self):
+        return self._timestamp_incoming
 
     def in_community(self, community):
         return community in self._communities
 
-    def update_timestamp(self):
-        self._timestamp = time()
+    def out_introduction_request(self):
+        self._timestamp_last_step = time()
     
     def inc_introduction_requests(self, lan_address, wan_address, community):
         if __debug__:
@@ -83,7 +88,7 @@ class Candidate(object):
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._communities.add(community)
-        # self._timestamp = time()
+        self._timestamp_incoming = time()
         self._is_stumble = True
 
     def inc_introduction_response(self, lan_address, wan_address, community):
@@ -96,7 +101,7 @@ class Candidate(object):
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._communities.add(community)
-        # self._timestamp = time()
+        self._timestamp_incoming = time()
         self._is_walk = True
 
     def inc_introduced(self, community):
@@ -113,7 +118,7 @@ class Candidate(object):
         assert isinstance(community, Community)
         if __debug__: dprint("updated ", self._wan_address[0], ":", self._wan_address[1], " (", self._lan_address[0], ":", self._lan_address[1], ")")
         self._communities.add(community)
-        # self._timestamp = time()
+        self._timestamp_incoming = time()
 
     @property
     def members(self):
