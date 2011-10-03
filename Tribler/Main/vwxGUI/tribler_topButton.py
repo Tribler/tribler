@@ -799,7 +799,7 @@ class NotebookPanel(wx.Panel):
     
     def IsShownOnScreen(self):
         notebook = self.GetParent()
-        page = notebook.GetPage(notebook.GetSelection())
+        page = notebook.GetCurrentPage()
         return page == self
     
     def __getattr__(self, name):
@@ -811,6 +811,8 @@ class NotebookPanel(wx.Panel):
     def Show(self, show=True):
         wx.Panel.Show(self, show)
         self.list.Show(show)
+        if show:
+            self.Layout()
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

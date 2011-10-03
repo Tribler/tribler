@@ -968,6 +968,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         vSizer.Add(self.saveButton, 0, wx.ALIGN_RIGHT|wx.ALL, 10)
         
         self.overviewpage.SetSizer(vSizer)
+        self.overviewpage.Show(False)
         
         #Open2Edit settings
         self.settingspage = wx.Panel(self.notebook)
@@ -1000,16 +1001,19 @@ class ManageChannel(XRCPanel, AbstractDetails):
         saveButton.Bind(wx.EVT_BUTTON, self.SaveSettings)
         vSizer.Add(saveButton, 0, wx.ALIGN_RIGHT|wx.ALL, 10)
         self.settingspage.SetSizer(vSizer)
+        self.settingspage.Show(False)
         
         #shared files page
         self.fileslist = NotebookPanel(self.notebook)
         filelist = ManageChannelFilesList(self.fileslist)
         self.fileslist.SetList(filelist)
         filelist.SetNrResults = self.header.SetNrTorrents
+        self.fileslist.Show(False)
         
         #playlist page
         self.playlistlist = NotebookPanel(self.notebook)
         self.playlistlist.SetList(ManageChannelPlaylistList(self.playlistlist))
+        self.playlistlist.Show(False)
         
         #manage page
         self.managepage = wx.Panel(self.notebook)
@@ -1035,6 +1039,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         vSizer.Add(self.gridSizer, 1, wx.EXPAND|wx.ALL, 10)
         self.managepage.SetSizer(vSizer)
+        self.managepage.Show(False)
         
         boxSizer.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
         self.SetSizer(boxSizer)
@@ -1209,10 +1214,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
         if curindex is None:
             index = min(notebook.GetPageCount(), index)
             notebook.InsertPage(index, page, title)
+            page.Show(True)
     
     def RemovePage(self, notebook, title):
         curindex = self.GetPage(notebook, title)
         if curindex is not None:
+            page = notebook.GetPage(curindex)
+            page.Show(False)
             notebook.RemovePage(curindex)
     
     def IsChanged(self):
@@ -1397,7 +1405,8 @@ class ManageChannelFilesList(List):
         self.footer.SetState(canDelete, canAdd)
         
     def OnExpand(self, item):
-        return MyChannelDetails(item, item.original_data, self.id)
+        return True
+        #return MyChannelDetails(item, item.original_data, self.id)
     
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(None, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)

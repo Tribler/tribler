@@ -309,7 +309,7 @@ class ChannelFooter(ListFooter):
             else:
                 vSizer.Add(self.subtitle, 0, wx.EXPAND)
             
-            self.hSizer.Add(vSizer, 1, wx.EXPAND)
+            self.hSizer.Add(vSizer, 1, wx.EXPAND|wx.TOP|wx.BOTTOM, 7)
         else:
             self.message.SetLabel(msg)
             self.subtitle.Show(False)
