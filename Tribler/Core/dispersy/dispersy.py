@@ -1842,7 +1842,8 @@ class Dispersy(Singleton):
         threshold = time() - 30.0
         
         # SECURE 5 WAY SELECTION POOL
-        candidates = list(candidate for _, candidate in self._yield_candidates(community, blacklist) if candidate.timestamp <= threshold)
+        bootstrap_candidates = [candidate for sock_addr, candidate in self._bootstrap_candidates.iteritems() if candidate.timestamp <= threshold and not sock_addr in blacklist]
+        candidates = [candidate for _, candidate in self._yield_candidates(community, blacklist) if candidate.timestamp <= threshold]
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
         introduction = set(candidate for candidate in candidates if candidate.is_introduction)
@@ -1913,19 +1914,19 @@ class Dispersy(Singleton):
                 #     if E: yield choice(E)
 
                 elif self._bootstrap_candidates: # ~1%
-                    candidate = choice(self._bootstrap_candidates.values())
+                    candidate = choice(bootstrap_candidates)
                     candidate.update_timestamp()
                     yield candidate
 
-        elif self._bootstrap_candidates:
+        elif bootstrap_candidates:
             if __debug__: dprint("no candidates available.  yielding bootstrap candidate", level="warning")
             while True:
-                candidate = choice(self._bootstrap_candidates.values())
+                candidate = choice(bootstrap_candidates)
                 candidate.update_timestamp()
                 yield candidate
 
         else:
-            if __debug__: dprint("no candidates or bootstrap candidates available", level="error")
+            if __debug__: dprint("no candidates or bootstrap candidates available", level="warning")
         
         # ORIGINAL 50-50 SELECTION
         # candidates = list(self._yield_candidates(community, blacklist))
@@ -2065,6 +2066,14 @@ class Dispersy(Singleton):
                 candidate = None
 
             if candidate:
+                if __debug__:
+                    # the blacklist should have ensured that this candidate is not the same as the
+                    # introduction-request sender
+                    if candidate.wan_address == message.address:
+                        dprint("probably introducing this candidate to herself", force=1)
+                    if candidate.lan_address == message.address and candidate.wan_address[0] == message.address[0]:
+                        dprint("probably introducing this candidate to herself", force=1)
+
                 # create introduction responses
                 meta = community.get_meta_message(u"dispersy-introduction-response")
                 responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
