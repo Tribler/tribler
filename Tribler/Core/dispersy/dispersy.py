@@ -2106,6 +2106,9 @@ class Dispersy(Singleton):
                 if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)", force=1)
                 del self._candidates[intermediary_address]
 
+        else:
+            if __debug__: dprint("response from ", message.address[0], ":", message.address[1], force=1)
+
         #     # timeout, start new walk
         #     community.dispersy_start_walk()
 
