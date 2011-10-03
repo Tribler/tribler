@@ -2103,6 +2103,7 @@ class Dispersy(Singleton):
         if message is None:
             # intermediary_address is no longer online
             if intermediary_address in self._candidates:
+                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)", force=1)
                 del self._candidates[intermediary_address]
 
         #     # timeout, start new walk
