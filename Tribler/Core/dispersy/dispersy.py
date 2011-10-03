@@ -2067,13 +2067,14 @@ class Dispersy(Singleton):
 
             if candidate:
                 if __debug__:
+                    dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.lan_address[0], ":", candidate.lan_address[1], " i.e. ", candidate.wan_address[0], ":", candidate.wan_address[1], force=1)
                     # the blacklist should have ensured that this candidate is not the same as the
                     # introduction-request sender
                     if candidate.wan_address == message.address:
                         dprint("probably introducing this candidate to herself", force=1)
                     if candidate.lan_address == message.address and candidate.wan_address[0] == message.address[0]:
                         dprint("probably introducing this candidate to herself", force=1)
-
+                        
                 # create introduction responses
                 meta = community.get_meta_message(u"dispersy-introduction-response")
                 responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
