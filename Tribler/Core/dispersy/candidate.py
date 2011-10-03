@@ -69,6 +69,9 @@ class Candidate(object):
 
     def in_community(self, community):
         return community in self._communities
+
+    def update_timestamp(self):
+        self._timestamp = time()
     
     def inc_introduction_requests(self, lan_address, wan_address, community):
         if __debug__:
@@ -80,7 +83,7 @@ class Candidate(object):
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._communities.add(community)
-        self._timestamp = time()
+        # self._timestamp = time()
         self._is_stumble = True
 
     def inc_introduction_response(self, lan_address, wan_address, community):
@@ -93,7 +96,7 @@ class Candidate(object):
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._communities.add(community)
-        self._timestamp = time()
+        # self._timestamp = time()
         self._is_walk = True
 
     def inc_introduced(self, community):
@@ -110,7 +113,7 @@ class Candidate(object):
         assert isinstance(community, Community)
         if __debug__: dprint("updated ", self._wan_address[0], ":", self._wan_address[1], " (", self._lan_address[0], ":", self._lan_address[1], ")")
         self._communities.add(community)
-        self._timestamp = time()
+        # self._timestamp = time()
 
     @property
     def members(self):

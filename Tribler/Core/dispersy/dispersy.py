@@ -462,7 +462,7 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
         self._community_dict_modified = True
-        community.__tracker_hammering = 0
+        # community.__tracker_hammering = 0
 
     def detach_community(self, community):
         """
@@ -1738,7 +1738,7 @@ class Dispersy(Singleton):
             del self._candidates[key]
             
         # get all viable candidates
-        return (candidate
+        return ((sock_address, candidate)
                 for sock_address, candidate
                 in self._candidates.iteritems()
                 if not sock_address in blacklist and candidate.in_community(community))
@@ -1749,7 +1749,7 @@ class Dispersy(Singleton):
         we have interacted before.
         """
         return islice((candidate
-                       for candidate
+                       for _, candidate
                        in self._yield_candidates(community, blacklist)
                        if candidate.is_walk or candidate.is_stumble), limit)
 
@@ -1759,7 +1759,7 @@ class Dispersy(Singleton):
         we have interacted before.
         """
         candidates = [candidate
-                      for candidate
+                      for _, candidate
                       in self._yield_candidates(community, blacklist)
                       if candidate.is_walk or candidate.is_stumble]
         shuffle(candidates)
@@ -1780,7 +1780,7 @@ class Dispersy(Singleton):
             return False
         
         candidates = [candidate
-                      for candidate
+                      for _, candidate
                       in self._yield_candidates(community, blacklist)
                       if (candidate.is_walk or candidate.is_stumble) and in_subjective_set(candidate)]
         shuffle(candidates)
@@ -1798,8 +1798,8 @@ class Dispersy(Singleton):
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
         candidates = list(self._yield_candidates(community, blacklist))
-        walks = set(candidate for candidate in candidates if candidate.is_walk)
-        stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
+        walks = set((sock_addr, candidate) for sock_addr, candidate in candidates if candidate.is_walk)
+        stumbles = set((sock_addr, candidate) for sock_addr, candidate in candidates if candidate.is_stumble)
 
         if walks or stumbles:
             candidate = None
@@ -1810,17 +1810,8 @@ class Dispersy(Singleton):
                 ignore = (yield candidate)
 
                 # temp_. contains the sets without the IGNORED address
-                if ignore in W:
-                    temp_W = W[:]
-                    temp_W.remove(ignore)
-                else:
-                    temp_W = W
-                    
-                if ignore in S:
-                    temp_S = S[:]
-                    temp_S.remove(ignore)
-                else:
-                    temp_S = S
+                temp_W = [candidate for sock_addr, candidate in W if not sock_addr == ignore]
+                temp_S = [candidate for sock_addr, candidate in S if not sock_addr == ignore]
 
                 if temp_W and temp_S:
                     candidate = choice(temp_W) if random() <= .5 else choice(temp_S)
@@ -1848,8 +1839,10 @@ class Dispersy(Singleton):
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
+        threshold = time() - 30.0
+        
         # SECURE 5 WAY SELECTION POOL
-        candidates = list(self._yield_candidates(community, blacklist))
+        candidates = list(candidate for _, candidate in self._yield_candidates(community, blacklist) if candidate.timestamp <= threshold)
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
         introduction = set(candidate for candidate in candidates if candidate.is_introduction)
@@ -1876,6 +1869,7 @@ class Dispersy(Singleton):
                 if r <= .495: # 50%
                     if B:
                         candidate = B.pop(0)
+                        candidate.update_timestamp()
                         yield candidate
                         B.append(candidate)
 
@@ -1888,6 +1882,7 @@ class Dispersy(Singleton):
                             if r <= .3333:
                                 if C:
                                     candidate = C.pop(0)
+                                    candidate.update_timestamp()
                                     yield candidate
                                     C.append(candidate)
                                     break
@@ -1895,6 +1890,7 @@ class Dispersy(Singleton):
                             elif r <= .6666:
                                 if D:
                                     candidate = D.pop(0)
+                                    candidate.update_timestamp()
                                     yield candidate
                                     D.append(candidate)
                                     break
@@ -1902,6 +1898,7 @@ class Dispersy(Singleton):
                             elif r <= .9999:
                                 if E:
                                     candidate = E.pop(0)
+                                    candidate.update_timestamp()
                                     yield candidate
                                     E.append(candidate)
                                     break
@@ -1916,12 +1913,16 @@ class Dispersy(Singleton):
                 #     if E: yield choice(E)
 
                 elif self._bootstrap_candidates: # ~1%
-                    yield choice(self._bootstrap_candidates.values())
+                    candidate = choice(self._bootstrap_candidates.values())
+                    candidate.update_timestamp()
+                    yield candidate
 
         elif self._bootstrap_candidates:
             if __debug__: dprint("no candidates available.  yielding bootstrap candidate", level="warning")
             while True:
-                yield choice(self._bootstrap_candidates.values())
+                candidate = choice(self._bootstrap_candidates.values())
+                candidate.update_timestamp()
+                yield candidate
 
         else:
             if __debug__: dprint("no candidates or bootstrap candidates available", level="error")
@@ -1982,18 +1983,18 @@ class Dispersy(Singleton):
                 return False
 
             else:
-                # prevent 'tracker hammering' where communities with no other nodes cause an
-                # introduction-request every 5.0 seconds to a tracker
-                assert isinstance(community.__tracker_hammering, int)
-                assert community.__tracker_hammering >= 0
-                if community.__tracker_hammering > 0:
-                    community.__tracker_hammering -= 1
-                if isinstance(candidate, BootstrapCandidate):
-                    if community.__tracker_hammering == 0:
-                        community.__tracker_hammering = 6
-                    else:
-                        if __debug__: dprint("prevented tracker hammering (", community.__tracker_hammering, ")")
-                        return False
+                # # prevent 'tracker hammering' where communities with no other nodes cause an
+                # # introduction-request every 5.0 seconds to a tracker
+                # assert isinstance(community.__tracker_hammering, int)
+                # assert community.__tracker_hammering >= 0
+                # if community.__tracker_hammering > 0:
+                #     community.__tracker_hammering -= 1
+                # if isinstance(candidate, BootstrapCandidate):
+                #     if community.__tracker_hammering == 0:
+                #         community.__tracker_hammering = 6
+                #     else:
+                #         if __debug__: dprint("prevented tracker hammering (", community.__tracker_hammering, ")")
+                #         return False
                         
                 assert community.my_member.private_key
                 self.create_introduction_request(community, candidate.address)
