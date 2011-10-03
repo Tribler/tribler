@@ -183,18 +183,14 @@ class SelectedChannelList(GenericSearchList):
         self.Add(self.header, 0, wx.EXPAND)
         
         self.leftLine = wx.Panel(self.parent)
-        
-#        self.notebook = wx.Notebook(self.leftLine, style = wx.NB_LEFT|wx.NO_BORDER, name = "ChannelNotebook")
-#        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
-#        if self.background == LIST_GREY:
-#            notebookcolour = self.notebook.GetThemeBackgroundColour()
-#            if notebookcolour.IsOk():
-#                self.background = notebookcolour
 
-        self.notebook = FlatNotebook(self.leftLine, style = fnb.FNB_BOTTOM|fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS)
+        self.notebook = FlatNotebook(self.leftLine)
+        self.notebook.SetAGWWindowStyleFlag(fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS)
+        self.notebook.SetTabAreaColour(self.background)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
         sizer = wx.BoxSizer()
-        sizer.Add(self.notebook, 1, wx.EXPAND)
+        sizer.Add(self.notebook, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,1)
         self.leftLine.SetSizer(sizer)
         
         list = wx.Panel(self.notebook)
@@ -207,7 +203,7 @@ class SelectedChannelList(GenericSearchList):
         
         vSizer.Add(self.subheader, 0, wx.EXPAND)
         self.list = self.CreateList(list)
-        vSizer.Add(self.list, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+        vSizer.Add(self.list, 1, wx.EXPAND)
         
         list.SetSizer(vSizer)
         self.notebook.AddPage(list, "Contents")
@@ -234,7 +230,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def CreateHeader(self, parent):
-        return ListHeader(parent, self, self.columns, radius = 0, spacers=[7,7])
+        return ListHeader(parent, self, self.columns, radius = 0, spacers=[6,6])
    
     @warnWxThread
     def CreateFooter(self, parent):
