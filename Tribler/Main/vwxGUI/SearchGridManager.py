@@ -1232,7 +1232,8 @@ class ChannelSearchGridManager:
         return self._createComments(hits, channel=channel_torrent.channel, channel_torrent=channel_torrent)
         
     def _createComments(self, hits, channel = None, playlist = None, channel_torrent = None):
-        returnList = []
+        hitsDict = {}
+        hitsSequence = []
         for hit in hits:
             comment = Comment(*(hit+(channel, playlist, channel_torrent)))
             
@@ -1242,8 +1243,16 @@ class ChannelSearchGridManager:
             #touch torrent property to load torrent
             comment.torrent
             
-            returnList.append(comment)
-        return returnList
+            hitsSequence.append(comment.dispersy_id)
+            hitsDict[comment.dispersy_id] = comment
+        
+        for comment in hitsDict.itervalues():
+            if comment.reply_to_id and comment.reply_to_id in hitsDict:
+                replyAfter = hitsDict[comment.reply_to_id]
+                replyAfter.replies.append(comment)
+                hitsSequence.remove(comment.dispersy_id)
+        
+        return [hitsDict[id] for id in hitsSequence if id in hitsDict]
     
     def getPlaylist(self, channel, playlist_id):
         hit = self.channelcast_db.getPlaylist(playlist_id, PLAYLIST_REQ_COLUMNS)

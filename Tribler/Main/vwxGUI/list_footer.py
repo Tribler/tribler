@@ -9,19 +9,20 @@ from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
 
 class ListFooter(wx.Panel):
-    def __init__(self, parent, radius = LIST_RADIUS):
+    def __init__(self, parent, radius = LIST_RADIUS, spacers = [0,0]):
         wx.Panel.__init__(self, parent)
         self.originalColor = None
         self.radius = radius
+        self.spacers = spacers
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        if radius > 0:
-            hSizer.AddSpacer((radius, 10))
+        if radius+spacers[0] > 0:
+            hSizer.AddSpacer((radius+spacers[0], 10))
             
         self.GetMidPanel(hSizer)
         
-        if radius > 0:
-            hSizer.AddSpacer((radius, 10))
+        if radius+spacers[1] > 0:
+            hSizer.AddSpacer((radius+spacers[1], 10))
         
         self.SetSizer(hSizer)
         
@@ -306,7 +307,7 @@ class ChannelFooter(ListFooter):
             else:
                 vSizer.Add(self.subtitle, 0, wx.EXPAND)
             
-            self.hSizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 7)
+            self.hSizer.Add(vSizer, 1, wx.EXPAND)
         else:
             self.message.SetLabel(msg)
             self.subtitle.Show(False)
@@ -371,7 +372,11 @@ class CommentFooter(ListFooter, AbstractDetails):
     def __init__(self, parent, createnew, quickPost):
         self.quickPost = quickPost
         
-        ListFooter.__init__(self, parent, 0)
+        if quickPost:
+            spacers = [3,3]
+        else:
+            spacers = [7,7]
+        ListFooter.__init__(self, parent, 0, spacers = spacers)
         self.addnew.Bind(wx.EVT_BUTTON, createnew)
         
         if quickPost:
@@ -379,7 +384,7 @@ class CommentFooter(ListFooter, AbstractDetails):
     
     def GetMidPanel(self, sizer):
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        self._add_header(self, vSizer, 'Post a comment')
+        self._add_header(self, vSizer, 'Post a comment', spacer = 0)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.commentbox = wx.TextCtrl(self, style = wx.TE_MULTILINE)
@@ -395,11 +400,11 @@ class CommentFooter(ListFooter, AbstractDetails):
             postSizer.Add(self.quickAdd)
             postSizer.AddStretchSpacer()
             postSizer.Add(self.addnew)
-            hSizer.Add(postSizer, 0, wx.LEFT|wx.EXPAND, 3)
+            hSizer.Add(postSizer, 0, wx.EXPAND|wx.LEFT, 3)
         else:
             hSizer.Add(self.addnew, 0, wx.ALIGN_BOTTOM|wx.LEFT, 3)
             
-        vSizer.Add(hSizer, 0, wx.EXPAND|wx.ALL, 3)
+        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, self.spacers[0])
         sizer.Add(vSizer, 1, wx.EXPAND)
     
     def GetComment(self):

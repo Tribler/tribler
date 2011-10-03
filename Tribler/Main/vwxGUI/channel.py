@@ -18,6 +18,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Rss.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook
 import wx.lib.agw.flatnotebook as fnb
+from wx._controls import StaticLine
 
 DEBUG = False
 
@@ -192,8 +193,9 @@ class SelectedChannelList(GenericSearchList):
         self.notebook.SetTabAreaColour(self.background)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.notebook, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,1)
+        sizer.Add(StaticLine(self.leftLine, -1), 0, wx.EXPAND)
         self.leftLine.SetSizer(sizer)
         
         list = wx.Panel(self.notebook)
@@ -237,7 +239,7 @@ class SelectedChannelList(GenericSearchList):
    
     @warnWxThread
     def CreateFooter(self, parent):
-        footer = ChannelFooter(parent)
+        footer = ChannelFooter(parent, spacers = [7,7])
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote, self.OnManage)
         return footer
 
@@ -1691,21 +1693,24 @@ class CommentItem(AvantarItem):
             self.inTorrent = True
         else:
             self.inTorrent = False
-        
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):
         comment = self.original_data
-        self.header = "Posted %s by %s"%(format_time(comment.time_stamp).lower(), comment.name)
+        depth = self.data[0]
         
-        if not self.inTorrent and comment.torrent:
-            self.header += " in %s"%comment.torrent.name
-            self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-            self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
-            
+        self.header = "Posted %s by %s"%(format_time(comment.time_stamp).lower(), comment.name)
         self.body = comment.comment
         self.avantar = comment.avantar
         
+        if depth == 0:
+            if not self.inTorrent and comment.torrent:
+                self.header += " in %s"%comment.torrent.name
+                self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+                self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        else:
+            leftSpacer += depth * (self.avantar.GetWidth() + 7)  #avantar + spacer
+            
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)       
         
     def ShowTorrent(self, event):
@@ -1919,11 +1924,11 @@ class CommentManager:
     
     @forceDBThread
     def addComment(self, comment):
-        reply_after = None
-        
-        items = self.list.GetItems().values()
-        if len(items) > 0:
-            reply_after = items[-1].original_data.dispersy_id
+        item = self.list.GetExpandedItem()
+        if item:
+            reply_after = item.original_data.dispersy_id
+        else:
+            reply_after = None
         
         if self.playlist:
             self.channelsearch_manager.createComment(comment, self.channel, reply_after, infohash = self.channeltorrent.infohash, playlist = self.playlist)
@@ -1944,7 +1949,7 @@ class CommentList(List):
         self.canReply = canReply
     
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0,spacers = [4,7])
     
     def CreateFooter(self, parent):
         return CommentFooter(parent, self.OnNew, self.quickPost)
@@ -1958,12 +1963,20 @@ class CommentList(List):
     def SetData(self, data):
         List.SetData(self, data)
         
-        data = [(comment.id,[], comment, CommentItem) for comment in data]
-        if len(data) > 0:
-            self.list.SetData(data)
+        listData = []
+        def addComments(comment, depth):
+            listData.append((comment.id, [depth], comment, CommentItem))
+            for reply in comment.replies:
+                addComments(reply, depth+1)
+        
+        for comment in data:
+            addComments(comment, 0)
+        
+        if len(listData) > 0:
+            self.list.SetData(listData)
         else:
             self.list.ShowMessage('No comments are found.')
-        self.SetNrResults(len(data))
+        self.SetNrResults(len(listData))
     
     def OnExpand(self, item):
         if self.canReply:
@@ -2051,7 +2064,7 @@ class ActivityList(List):
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0, spacers = [4,7])
     
     def CreateFooter(self, parent):
         return None
@@ -2126,7 +2139,7 @@ class ModificationList(List):
         self.header.SetTitle('Modifications of this torrent')
     
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius = 0)
+        return TitleHeader(parent, self, [], 0, radius = 0, spacers = [4,7])
     
     def CreateFooter(self, parent):
         return None

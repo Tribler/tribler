@@ -374,8 +374,8 @@ class RemoteChannel(Channel):
                 return torrent
         
 class Comment(Helper):
-    __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
-    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, inserted, time_stamp, channel, playlist, torrent):
+    __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'reply_to_id', 'replies', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
+    def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, reply_to_id, inserted, time_stamp, channel, playlist, torrent):
         self.id = id
         self.dispersy_id = dispersy_id
         self.channeltorrent_id = channeltorrent_id
@@ -383,6 +383,8 @@ class Comment(Helper):
         self._name = name
         self.peer_id = peer_id
         self.comment = comment
+        self.reply_to_id = reply_to_id
+        self.replies = []
         self.inserted = inserted
         self.time_stamp = time_stamp
         

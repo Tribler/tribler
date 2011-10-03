@@ -96,6 +96,8 @@ class Database(Singleton):
 
         @return: The method self.execute
         """
+        assert self._debug_thread_ident == thread.get_ident()
+
         if __debug__: dprint("COMMIT")
         self._connection.commit()
         return self
@@ -108,6 +110,9 @@ class Database(Singleton):
         together, causing only one transaction block to be used, hence increasing database
         performance.  When __exit__ is called the transaction block is commited.
         """
+        assert self._debug_thread_ident == thread.get_ident()
+
+        
         if exc_type is None:
             if __debug__: dprint("COMMIT")
             self._connection.commit()
@@ -242,6 +247,8 @@ class Database(Singleton):
             raise
 
     def commit(self):
+        assert self._debug_thread_ident == thread.get_ident(), "Calling Database.commit on the wrong thread"
+        
         if __debug__: dprint("COMMIT")
         result = self._connection.commit()
         for callback in self._commit_callbacks:
