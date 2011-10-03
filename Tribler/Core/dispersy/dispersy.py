@@ -401,7 +401,7 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.0),
-                Message(community, u"dispersy-introduction-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
+                Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
                 Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
                 Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self._generic_timeline_check, self.on_puncture, delay=0.0),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
@@ -1719,7 +1719,7 @@ class Dispersy(Singleton):
             # update bloom filters
             meta.community.free_sync_range(free_sync_range)
 
-    def _yield_candidates(self, community, blacklist):
+    def yield_all_candidates(self, community, blacklist):
         """
         Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
         
@@ -1749,7 +1749,7 @@ class Dispersy(Singleton):
         """
         return islice((candidate
                        for _, candidate
-                       in self._yield_candidates(community, blacklist)
+                       in self.yield_all_candidates(community, blacklist)
                        if candidate.is_walk or candidate.is_stumble), limit)
 
     def yield_random_candidates(self, community, limit, blacklist=()):
@@ -1759,7 +1759,7 @@ class Dispersy(Singleton):
         """
         candidates = [candidate
                       for _, candidate
-                      in self._yield_candidates(community, blacklist)
+                      in self.yield_all_candidates(community, blacklist)
                       if candidate.is_walk or candidate.is_stumble]
         shuffle(candidates)
         return islice(candidates, limit)
@@ -1780,7 +1780,7 @@ class Dispersy(Singleton):
         
         candidates = [candidate
                       for _, candidate
-                      in self._yield_candidates(community, blacklist)
+                      in self.yield_all_candidates(community, blacklist)
                       if (candidate.is_walk or candidate.is_stumble) and in_subjective_set(candidate)]
         shuffle(candidates)
         return islice(candidates, limit)
@@ -1796,7 +1796,7 @@ class Dispersy(Singleton):
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
-        candidates = list(self._yield_candidates(community, blacklist))
+        candidates = list(self.yield_all_candidates(community, blacklist))
         walks = set((sock_addr, candidate) for sock_addr, candidate in candidates if candidate.is_walk)
         stumbles = set((sock_addr, candidate) for sock_addr, candidate in candidates if candidate.is_stumble)
 
@@ -1842,7 +1842,7 @@ class Dispersy(Singleton):
         
         # SECURE 5 WAY SELECTION POOL
         bootstrap_candidates = [candidate for sock_addr, candidate in self._bootstrap_candidates.iteritems() if candidate.timestamp_last_step <= threshold and not sock_addr in blacklist]
-        candidates = [candidate for _, candidate in self._yield_candidates(community, blacklist) if candidate.timestamp_last_step <= threshold]
+        candidates = [candidate for _, candidate in self.yield_all_candidates(community, blacklist) if candidate.timestamp_last_step <= threshold]
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
         introduction = set(candidate for candidate in candidates if candidate.is_introduction)
@@ -1922,7 +1922,7 @@ class Dispersy(Singleton):
             if __debug__: dprint("no candidates or bootstrap candidates available", level="warning")
         
         # ORIGINAL 50-50 SELECTION
-        # candidates = list(self._yield_candidates(community, blacklist))
+        # candidates = list(self.yield_all_candidates(community, blacklist))
         # walks = [candidate for candidate in candidates if candidate.is_walk and not candidate.is_stumble]
         # stumbles = [candidate for candidate in candidates if candidate.is_stumble and not candidate.is_walk]
         # for candidate in candidates:
@@ -1958,7 +1958,7 @@ class Dispersy(Singleton):
         #             yield choice(self._bootstrap_candidates.values())
 
         # UNIFORM RANDOM ACROSS ALL CANDIDATES
-        # candidates = list(self._yield_candidates(community, blacklist))
+        # candidates = list(self.yield_all_candidates(community, blacklist))
         # if candidates or self._bootstrap_candidates:
         #     while True:
         #         r = random()

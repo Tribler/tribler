@@ -4,7 +4,6 @@
 Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
 
-import os
 import errno
 import socket
 import sys
@@ -15,7 +14,7 @@ import optparse
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.callback import Callback
-from Tribler.Core.dispersy.community import SyncRange, Community, HardKilledCommunity
+from Tribler.Core.dispersy.community import SyncRange, Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
@@ -114,6 +113,7 @@ class TrackerDispersy(Dispersy):
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         callback.register(self._unload_communities)
+        callback.register(self._stats)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
@@ -135,6 +135,12 @@ class TrackerDispersy(Dispersy):
             yield 60.0
             for community in [community for community in self._communities.itervalues() if not has_candidates(community)]:
                 community.unload_community()
+
+    def _stats(self):
+        while True:
+            yield 10.0
+            for community in self._communities.itervalues():
+                print community.cid.encode("HEX"), len(list(self.yield_all_candidates())), "candidates"
         
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
