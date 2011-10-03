@@ -41,7 +41,7 @@ class Trigger(object):
         raise NotImplementedError()
 
 class TriggerCallback(Trigger):
-    def __init__(self, pattern, response_func, response_args, max_responses):
+    def __init__(self, dispersy, pattern, response_func, response_args, max_responses):
         """
         Receiving a message matching PATTERN triggers a call to RESPONSE_FUNC.
 
@@ -69,6 +69,7 @@ class TriggerCallback(Trigger):
             self._debug_pattern = pattern
             dprint("create new trigger for one callback")
             dprint("pattern: ", self._debug_pattern)
+        self._dispersy = dispersy
         self._search = expression_compile(pattern).search
         self._response_func = response_func
         self._response_args = response_args
@@ -93,7 +94,7 @@ class TriggerCallback(Trigger):
                 if __debug__: dprint("match footprint for one callback")
                 self._responses_remaining -= 1
                 # note: this callback may raise DelayMessage, etc
-                self._response_func(message, *self._response_args)
+                self._dispersy.callback.register(self._response_func, (message,) + self._response_args)
 
         # False to remove the Trigger
         return self._responses_remaining > 0
@@ -105,10 +106,10 @@ class TriggerCallback(Trigger):
                 dprint("pattern: ", self._debug_pattern)
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
-            self._response_func(None, *self._response_args)
+            self._dispersy.callback.register(self._response_func, (None,) + self._response_args)
 
 class TriggerPacket(Trigger):
-    def __init__(self, pattern, callback, packets):
+    def __init__(self, dispersy, pattern, callback, packets):
         """
         Receiving a message matching PATTERN triggers a call to the on_incoming_packet method with
         PACKETS.
@@ -139,6 +140,7 @@ class TriggerPacket(Trigger):
         if __debug__:
             dprint("create new trigger for ", len(packets), " packets")
             dprint("pattern: ", pattern)
+        self._dispersy = dispersy
         self._pattern = pattern
         self._search = expression_compile(pattern).search
         self._callback = callback
@@ -183,7 +185,7 @@ class TriggerPacket(Trigger):
                     self._search = None
 
                     if __debug__: dprint("match footprint for ", len(self._packets), " waiting packets")
-                    self._callback(self._packets)
+                    self._dispersy.callback.register(self._callback, (self._packets,))
                     # False to remove the Trigger, because we handled the Trigger
                     return False
             else:
@@ -201,7 +203,7 @@ class TriggerPacket(Trigger):
             self._search = None
 
 class TriggerMessage(Trigger):
-    def __init__(self, pattern, callback, messages):
+    def __init__(self, dispersy, pattern, callback, messages):
         """
         Receiving a message matching PATTERN triggers a call to the on_incoming_message message with
         ADDRESS and MESSAGE.
@@ -226,6 +228,7 @@ class TriggerMessage(Trigger):
         if __debug__:
             dprint("create new trigger for ", len(messages), " messages")
             dprint("pattern: ", pattern)
+        self._dispersy = dispersy
         self._pattern = pattern
         self._search = expression_compile(pattern).search
         self._callback = callback
@@ -264,7 +267,7 @@ class TriggerMessage(Trigger):
                     self._search = None
 
                     if __debug__: dprint("match footprint for ", len(self._messages), " waiting messages")
-                    self._callback(self._messages)
+                    self._dispersy.callback.register(self._callback, (self._messages,))
                     # False to remove the Trigger, because we handled the Trigger
                     return False
             else:

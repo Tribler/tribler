@@ -802,7 +802,7 @@ class Dispersy(Singleton):
                     if seq >= message.distribution.sequence_number:
                         # we already have this message (drop)
                         # TODO: something similar to _check_identical_payload_with_different_signature can occur...
-                        yield DropMessage(message, "duplicate message by sequence_number (1)")
+                        yield DropMessage(message, "duplicate message by sequence_number (we have %d, message has %d)"%(seq, message.distribution.sequence_number))
 
                     elif seq + 1 == message.distribution.sequence_number:
                         # we have the previous message, check for duplicates based on community,
@@ -1366,7 +1366,7 @@ class Dispersy(Singleton):
         def _filter_fail(message):
             if isinstance(message, DelayMessage):
                 self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
-                if __debug__: dprint(message.request.address[0], ":", message.request.address[1], ": delay a ", len(message.request.packet), " byte message (", message, ")", level="warning")
+                if __debug__: dprint(message.delayed.address[0], ":", message.delayed.address[1], ": delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ")", level="warning")
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerMessage) and trigger.extend(message.pattern, [message.delayed]):
@@ -1374,7 +1374,7 @@ class Dispersy(Singleton):
                         break
                 else:
                     # create a new Trigger with this pattern
-                    trigger = TriggerMessage(message.pattern, self.on_messages, [message.delayed])
+                    trigger = TriggerMessage(self, message.pattern, self.on_messages, [message.delayed])
                     if __debug__: dprint("created a new TriggeMessage")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0)
@@ -1589,7 +1589,7 @@ class Dispersy(Singleton):
                         break
                 else:
                     # create a new Trigger with this pattern
-                    trigger = TriggerPacket(delay.pattern, self.on_incoming_packets, [(address, packet)])
+                    trigger = TriggerPacket(self, delay.pattern, self.on_incoming_packets, [(address, packet)])
                     if __debug__: dprint("created a new TriggerPacket")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0)
@@ -2374,7 +2374,7 @@ class Dispersy(Singleton):
         assert isinstance(max_responses, (int, long))
         assert max_responses > 0
 
-        trigger = TriggerCallback(footprint, response_func, response_args, max_responses)
+        trigger = TriggerCallback(self, footprint, response_func, response_args, max_responses)
         self._triggers.append(trigger)
         self._callback.register(trigger.on_timeout, delay=timeout)
 
