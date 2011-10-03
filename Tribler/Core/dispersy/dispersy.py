@@ -2010,7 +2010,7 @@ class Dispersy(Singleton):
 
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
-        footprint = meta_response.generate_footprint(authentication=(community.my_member,), payload=(identifier,))
+        footprint = meta_response.generate_footprint(authentication=([community.my_member.mid],), payload=(identifier,))
         assert meta_request.delay == 0.0
         assert meta_response.delay == 0.0
         # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
