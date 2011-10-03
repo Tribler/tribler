@@ -1719,7 +1719,7 @@ class Dispersy(Singleton):
             # update bloom filters
             meta.community.free_sync_range(free_sync_range)
 
-    def yield_all_candidates(self, community, blacklist):
+    def yield_all_candidates(self, community, blacklist=()):
         """
         Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
         

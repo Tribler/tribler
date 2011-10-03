@@ -140,7 +140,7 @@ class TrackerDispersy(Dispersy):
         while True:
             yield 10.0
             for community in self._communities.itervalues():
-                print community.cid.encode("HEX"), len(list(self.yield_all_candidates())), "candidates"
+                print community.cid.encode("HEX"), len(list(self.yield_all_candidates(community))), "candidates"
         
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
