@@ -1247,7 +1247,7 @@ class ChannelSearchGridManager:
             hitsDict[comment.dispersy_id] = comment
         
         for comment in hitsDict.itervalues():
-            if comment.reply_to_id and comment.reply_to_id in hitsDict:
+            if comment.reply_to_id and isinstance(comment.reply_to_id, (long, int)) and comment.reply_to_id in hitsDict:
                 replyAfter = hitsDict[comment.reply_to_id]
                 replyAfter.replies.append(comment)
                 hitsSequence.remove(comment.dispersy_id)
