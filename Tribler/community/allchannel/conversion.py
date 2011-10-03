@@ -95,7 +95,7 @@ class AllChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode the payload")
         
         cid, vote, timestamp = unpack_from('!20shl', data, offset)
-        if not vote in [-1, 2]:
+        if not vote in [-1, 0, 2]:
             raise DropPacket("Invalid 'vote' type or value")
         
         return offset, placeholder.meta.payload.implement(cid, vote, timestamp)
