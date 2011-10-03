@@ -1016,8 +1016,10 @@ class ChannelSearchGridManager:
             
             #check if we need to convert our vote
             if channel.isDispersy() and channel.my_vote != 0:
-                timestamp = self.votecastdb.getTimestamp(channel.id, None)
-                self.do_vote(channel.id, channel.my_vote, timestamp)
+                dispersy_id = self.votecastdb.getDispersyId(channel.id, None) or ''
+                if dispersy_id <= 0:
+                    timestamp = self.votecastdb.getTimestamp(channel.id, None)
+                    self.do_vote(channel.id, channel.my_vote, timestamp)
         
         return channel
     
@@ -1475,9 +1477,6 @@ class ChannelSearchGridManager:
         self.do_vote(channel_id, 0)
         
     def do_vote(self, channel_id, vote, timestamp = None):
-        print_stack()
-        print >> sys.stderr, "DO_VOTE", vote
-        
         if not timestamp:
             timestamp = int(time())
         
