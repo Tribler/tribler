@@ -1733,8 +1733,9 @@ class Dispersy(Singleton):
 
         # remove old candidates
         threshold = time() - 55.0
-        for key in [key for key, candidate in self._candidates.iteritems() if candidate.timestamp_incoming <= threshold]:
-            del self._candidates[key]
+        for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems() if candidate.timestamp_incoming <= threshold]:
+            if __debug__: dprint("removing old candidate ", sock_address[0], ":", sock_address[1], force=1)
+            del self._candidates[sock_address]
             
         # get all viable candidates
         return ((sock_address, candidate)
