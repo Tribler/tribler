@@ -1475,6 +1475,8 @@ class ChannelSearchGridManager:
         self.do_vote(channel_id, 0)
         
     def do_vote(self, channel_id, vote, timestamp = None):
+        print >> sys.stderr, "DO_VOTE", vote
+        
         if not timestamp:
             timestamp = int(time())
         
