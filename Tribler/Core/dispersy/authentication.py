@@ -195,11 +195,18 @@ class MemberAuthentication(Authentication):
         """
         return self._encoding
 
-    def generate_footprint(self, mids):
+    def generate_footprint(self, mids=()):
+        """
+        MIDS is a list with member identifiers that can match the footprint, when MIDS is empty any
+        mid will match
+        """
         assert isinstance(mids, (tuple, list))
-        assert not filter(lambda x: not isinstance(x, str), mids)
-        assert not filter(lambda x: not len(x) == 20, mids)
-        return "MemberAuthentication:(" + "|".join([mid.encode("HEX") for mid in mids]) + ")"
+        assert all(isinstance(mid, str) for mid in mids)
+        assert all(len(mid) == 20 for mid in mids)
+        if mids:
+            return "MemberAuthentication:(" + "|".join([mid.encode("HEX") for mid in mids]) + ")"
+        else:
+            return "MemberAuthentication:.{40}"
 
 class MultiMemberAuthentication(Authentication):
     """
