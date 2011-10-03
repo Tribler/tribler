@@ -2057,7 +2057,7 @@ class Dispersy(Singleton):
                         dprint("probably introducing this candidate to herself (or the candidate is spreading invalid LAN and WAN addresses)", level="warning")
                 # create introduction responses
                 meta = community.get_meta_message(u"dispersy-introduction-response")
-                responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
+                responses.append(meta.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
 
                 # create puncture requests
                 destination = candidate.lan_address if candidate.wan_address[0] == self._wan_address[0] else candidate.wan_address
@@ -2067,7 +2067,7 @@ class Dispersy(Singleton):
             else:
                 none = ("0.0.0.0", 0)
                 meta = community.get_meta_message(u"dispersy-introduction-response")
-                responses.append(meta.impl(distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, none, none, message.payload.identifier)))
+                responses.append(meta.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, none, none, message.payload.identifier)))
 
         if responses:
             self.store_update_forward(responses, False, False, True)
