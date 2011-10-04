@@ -1873,6 +1873,8 @@ class TorrentDBHandler(BasicDBHandler):
             names_permid = {}
         t3 = time()
         
+        myChannelId = self.channelcast_db._channel_id or 0
+        
         torrents_dict = {}
         #step 1, merge torrents keep one with best channel
         for result in results:
@@ -1886,7 +1888,9 @@ class TorrentDBHandler(BasicDBHandler):
                 old_posvotes, old_negvotes = votes.get(old_record['channel_id'], (0,0))
                 
                 # allways prefer my channel
-                if torrent['channel_id'] == self.channelcast_db._channel_id or ((posvotes - negvotes) > (old_posvotes - old_negvotes)):
+                myChannel = torrent['channel_id'] == myChannelId
+                higherVotes = (posvotes - negvotes) > (old_posvotes - old_negvotes)  
+                if myChannel or higherVotes:
                     #this is better
                     torrents_dict[torrent['infohash']] = torrent
             else:
@@ -3015,7 +3019,7 @@ class VoteCastDBHandler(BasicDBHandler):
         sql = 'select id, nr_favorite, nr_spam from Channels'+channel_ids
         records = self._db.fetchall(sql)
         for channel_id, nr_favorite, nr_spam in records:
-            votes[channel_id] = (nr_favorite, nr_spam)
+            votes[channel_id] = (nr_favorite or 0, nr_spam or 0)
             
         return votes
 

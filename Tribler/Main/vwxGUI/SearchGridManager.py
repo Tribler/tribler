@@ -1522,6 +1522,9 @@ class ChannelSearchGridManager:
                 self.remoteHits = []
                 self.remoteRefresh = False
                 self.searchDispersy()
+            except TypeError:
+                #Dispersy not loaded yet
+                pass
             finally:
                 self.remoteLock.release()
         
@@ -1543,7 +1546,7 @@ class ChannelSearchGridManager:
                         curChannel = remoteItem
                         
                     if not curChannel.id in self.hits:
-                        self.hits[channel_id] = curChannel
+                        self.hits[curChannel.id] = curChannel
                         hitsUpdated = True
                     
                     #add torrents to remotechannel
