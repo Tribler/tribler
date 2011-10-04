@@ -211,7 +211,7 @@ class BinaryConversion(Conversion):
 
         member_id = data[offset:offset+20]
         offset += 20
-        members = self._community.get_members_from_id(member_id)
+        members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
         if not members:
             raise DelayPacketByMissingMember(self._community, member_id)
         elif len(members) > 1:
@@ -262,6 +262,8 @@ class BinaryConversion(Conversion):
         if not ec_check_public_bin(key):
             raise DropPacket("Invalid cryptographic key (_decode_missing_message)")
         member = self._community.get_member(key)
+        if not member.has_identity(self._community):
+            raise DelayPacketByMissingMember(self._community, member.mid)
         offset += key_length
 
         # there must be at least one global time in the packet
@@ -386,6 +388,8 @@ class BinaryConversion(Conversion):
             if not ec_check_public_bin(key):
                 raise DropPacket("Invalid cryptographic key (_decode_authorize)")
             member = self._community.get_member(key)
+            if not member.has_identity(self._community):
+                raise DelayPacketByMissingMember(self._community, member.mid)
             offset += key_length
 
             messages_length, = unpack_from("!B", data, offset)
@@ -486,6 +490,8 @@ class BinaryConversion(Conversion):
             if not ec_check_public_bin(key):
                 raise DropPacket("Invalid cryptographic key (_decode_revoke)")
             member = self._community.get_member(key)
+            if not member.has_identity(self._community):
+                raise DelayPacketByMissingMember(self._community, member.mid)
             offset += key_length
 
             messages_length, = unpack_from("!B", data, offset)
@@ -565,7 +571,7 @@ class BinaryConversion(Conversion):
 
         members = []
         while len(data) >= offset + 20:
-            members.extend(self._community.get_members_from_id(data[offset:offset+20]))
+            members.extend(member for member in self._community.get_members_from_id(data[offset:offset+20]) if member.has_identity(self._community))
             offset += 20
 
         if not members:
@@ -611,6 +617,8 @@ class BinaryConversion(Conversion):
         if not ec_check_public_bin(key):
             raise DropPacket("Invalid cryptographic key (_decode_missing_proof)")
         member = self._community.get_member(key)
+        if not member.has_identity(self._community):
+            raise DelayPacketByMissingMember(self._community, member.mid)
         offset += key_length
 
         return offset, placeholder.meta.payload.implement(member, global_time)
@@ -968,7 +976,7 @@ class BinaryConversion(Conversion):
         elif isinstance(authentication, MemberAuthentication):
             if authentication.encoding == "sha1":
                 member_id = data[offset:offset+20]
-                members = self._community.get_members_from_id(member_id)
+                members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
                 if not members:
                     raise DelayPacketByMissingMember(self._community, member_id)
                 offset += 20
@@ -994,6 +1002,9 @@ class BinaryConversion(Conversion):
                     if __debug__: dprint(key_length, " ", key.encode("HEX"), level="warning")
                     raise DropPacket("Invalid cryptographic key (_decode_authentication)")
                 member = self._community.get_member(key)
+                # TODO we should ensure that member.had_identity(self._community), however, the
+                # exception is the dispersy-identity message.  hence we need the placeholder
+                # parameter to check this
                 offset += key_length
                 first_signature_offset = len(data) - member.signature_length
                 if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
@@ -1023,7 +1034,7 @@ class BinaryConversion(Conversion):
             members_ids = []
             for _ in range(authentication.count):
                 member_id = data[offset:offset+20]
-                members = self._community.get_members_from_id(member_id)
+                members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
                 if not members:
                     raise DelayPacketByMissingMember(self._community, member_id)
                 offset += 20

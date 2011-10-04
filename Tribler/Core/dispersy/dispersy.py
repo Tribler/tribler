@@ -280,6 +280,9 @@ class Dispersy(Singleton):
         # statistics...
         self._statistics = Statistics()
 
+        if __debug__:
+            self._callback.register(self._stats)
+
     def _retry_bootstrap_candidates(self):
         """
         One or more bootstrap addresses could not be retrieved.
@@ -2220,35 +2223,17 @@ class Dispersy(Singleton):
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
-                    if __debug__:
-                        if addresses:
-                            dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
-                        else:
-                            dprint("failed to send ", message.name, " (", len(message.packet), " bytes) because there are no destination addresses", level="warning")
-
             elif isinstance(message.destination, SubjectiveDestination.Implementation):
                 if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
                     addresses = [candidate.address for candidate in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
                     if addresses:
                         self._send(addresses, [message.packet], message.name)
 
-                    if __debug__:
-                        if addresses:
-                            dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in addresses))
-                        else:
-                            dprint("failed to send ", message.name, " (", len(message.packet), " bytes) because there are no destination addresses", level="warning")
-
             elif isinstance(message.destination, AddressDestination.Implementation):
-                if __debug__: dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % address for address in message.destination.addresses))
                 self._send(message.destination.addresses, [message.packet], message.name)
 
             elif isinstance(message.destination, MemberDestination.Implementation):
-                if __debug__:
-                    for member in message.destination.members:
-                        if not self.is_valid_remote_address(member.address):
-                            dprint("unable to send ", message.name, " to member (", member.address, ")", level="error")
-                    dprint("outgoing ", message.name, " (", len(message.packet), " bytes) to ", ", ".join("%s:%d" % member.address for member in message.destination.members))
-                self._send([member.address for member in message.destination.members], [message.packet], message.name)
+                self._send([member.get_address(message.community, ("", -1)) for member in message.destination.members], [message.packet], message.name)
 
             else:
                 raise NotImplementedError(message.destination)
@@ -3786,7 +3771,15 @@ class Dispersy(Singleton):
                 while desync > 0.1:
                     if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     desync = (yield desync)
-                    
+
+    if __debug__:
+        def _stats(self):
+            while True:
+                yield 1.0
+                for counter, community in enumerate(self._communities.itervalues()):
+                    candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
+                    dprint(counter, " ", community.cid.encode("HEX"), " ", community.get_classification(), " with ", len(candidates), " candidates[:10] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10]), style="short")
+
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
         Returns a dictionary with runtime statistical information.

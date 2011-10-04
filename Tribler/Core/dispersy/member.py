@@ -125,7 +125,7 @@ class Member(Parameterized1Singleton):
                 self._private_key = private_key
                 self._mid = sha1(public_key).digest()
                 self._database_id = -1
-                self._address = ("", -1)
+                self._communities = {}
                 self._tags = []
 
                 if sync_with_database:
@@ -155,7 +155,7 @@ class Member(Parameterized1Singleton):
                 self._private_key = ""
                 self._mid = public_key
                 self._database_id = -1
-                self._address = ("", -1)
+                self._communities = {}
                 self._tags = []
 
                 if sync_with_database:
@@ -193,9 +193,13 @@ class Member(Parameterized1Singleton):
                 for tag in self._tags:
                     assert tag in (u"store", u"ignore", u"blacklist"), tag
 
-        for community, host, port in execute(u"SELECT community, host, port FROM identity WHERE member = ?", (self._database_id,)):
-            # TODO we may have multiple addresses
-            self._address = (str(host), port)
+        for cid, host, port in execute(u"SELECT member.mid, identity.host, identity.port FROM identity JOIN community ON community.id = identity.member JOIN member ON member.id = community.master WHERE identity.member = ?", (self._database_id,)):
+            assert isinstance(cid, buffer)
+            assert isinstance(host, unicode)
+            assert isinstance(port, int)
+            # note that the SQL query gives back the master-member.mid and NOT the mid of the member
+            # that we are currently loading!
+            self._communities[str(cid)] = (str(host), port)
 
     @property
     def mid(self):
@@ -244,17 +248,23 @@ class Member(Parameterized1Singleton):
         assert self._database_id > 0, "No database id set.  Please call member.update()"
         return self._database_id
 
-    @property
-    def address(self):
+    def has_identity(self, community):
         """
-        The most recently advertised address for this member.
+        Returns True when we have a dispersy-identity message for this member in COMMUNITY.
+        """
+        return community.cid in self._communities
+    
+    def get_address(self, community, default=None):
+        """
+        The most recently advertised address for this member in community.
 
-        Addresses are advertised using a dispersy-identity message,
-        and the most recent -per member- is stored and forwarded.  The
-        address will be ('', -1) until at least one dispersy-identity
-        message for the member is received.
+        Addresses are advertised using a dispersy-identity message, and the most recent -per member-
+        is stored and forwarded.  DEFAULT is given if no dispersy-identity message is available.
         """
-        return self._address
+        if __debug__:
+            from community import Community
+            assert isinstance(community, Community)
+        return self._communities.get(community.cid, default)
 
     def _set_tag(self, tag, value):
         assert isinstance(tag, unicode)

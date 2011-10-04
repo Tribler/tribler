@@ -978,10 +978,6 @@ class Community(object):
          this method should be moved to Dispersy
         """
         assert isinstance(public_key, str)
-        # note that this allows a security attack where someone might obtain a crypographic key that
-        # has the same sha1 as the master member, however unlikely.  the only way to prevent this,
-        # as far as we know, is to increase the size of the community identifier, for instance by
-        # using sha256 instead of sha1.
         return Member.get_instance(public_key)
 
     def get_members_from_id(self, mid):

@@ -1,6 +1,7 @@
 from meta import MetaObject
 
 if __debug__:
+    import re
     from dprint import dprint
 
 #
@@ -13,8 +14,6 @@ class DelayPacket(Exception):
     'some event' occurs.
     """
     def __init__(self, msg, pattern, request_packet):
-        if __debug__:
-            import re
         assert isinstance(msg, str)
         assert isinstance(pattern, str)
         assert re.compile(pattern)
@@ -70,8 +69,8 @@ class DelayPacketByMissingMessage(DelayPacket):
         assert isinstance(member, Member)
         assert isinstance(global_times, list)
         assert len(global_times) > 0
-        assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
-        assert not filter(lambda x: not x > 0, global_times)
+        assert all(isinstance(x, (int, long)) for x in global_times)
+        assert all(x > 0 for x in global_times)
         # the footprint that will trigger the delayed packet
         footprint = "".join(("Community:", community.cid.encode("HEX"),
                              "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
@@ -104,8 +103,6 @@ class DelayMessage(Exception):
     'some event' occurs.
     """
     def __init__(self, msg, pattern, request, delayed):
-        if __debug__:
-            import re
         assert isinstance(msg, str)
         assert isinstance(pattern, str)
         assert re.compile(pattern)

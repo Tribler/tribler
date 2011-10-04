@@ -30,7 +30,6 @@ from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import traceback
 from Tribler.Core.dispersy.callback import Callback
-from Tribler.Core.dispersy.community import HardKilledCommunity
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
@@ -381,7 +380,6 @@ class TriblerLaunchMany(Thread):
                 desync = (yield desync)
 
             schedule = []
-            schedule.append((HardKilledCommunity, (), {}))
             schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
             schedule.append((ChannelCommunity, (), {}))
 
