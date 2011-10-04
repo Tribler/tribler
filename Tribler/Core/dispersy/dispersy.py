@@ -331,11 +331,11 @@ class Dispersy(Singleton):
         if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=1)
         self._lan_address = (self._lan_address[0], port)
 
-        if not self._is_valid_lan_address(self._lan_address):
+        if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
             if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", host, ":", self._lan_address[1], force=1)
             self._lan_address = (host, self._lan_address[1])
 
-        if not self._is_valid_lan_address(self._lan_address):
+        if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
             if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=1)
             self._lan_address = (self._wan_address[0], self._lan_address[1])
             
@@ -681,7 +681,7 @@ class Dispersy(Singleton):
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
 
-                if not self._is_valid_lan_address(self._lan_address):
+                if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
                     if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=1)
                     self._lan_address = (self._wan_address[0], self._lan_address[1])
 
@@ -2562,7 +2562,11 @@ class Dispersy(Singleton):
     #     for address, responses in groupby(responses):
     #         self._send([address], [packet for _, packet in responses])
 
-    def _is_valid_lan_address(self, address):
+    def _is_valid_lan_address(self, address, check_my_lan_address=True):
+        """
+        TODO we should rename _is_valid_lan_address to _is_valid_address as the way it is used now
+        things will fail if it only accepted LAN domain addresses (10.xxx.yyy.zzz, etc.)
+        """        
         if address[0] == "":
             return False
 
@@ -2598,7 +2602,7 @@ class Dispersy(Singleton):
         #     # not in a valid LAN range
         #     return False
         
-        if address == self._lan_address:
+        if check_my_lan_address and address == self._lan_address:
             return False
 
         if address == ("127.0.0.1", self._lan_address[1]):
@@ -2606,7 +2610,7 @@ class Dispersy(Singleton):
 
         return True
     
-    def _is_valid_wan_address(self, address):
+    def _is_valid_wan_address(self, address, check_my_wan_address=True):
         if address[0] == "":
             return False
 
@@ -2639,7 +2643,7 @@ class Dispersy(Singleton):
         if binary[0] == "\xc0" and binary[1] == "\xa8":
             return False
 
-        if address == self._wan_address:
+        if check_my_wan_address and address == self._wan_address:
             return False
 
         if address == ("127.0.0.1", self._wan_address[1]):
