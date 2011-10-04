@@ -3991,15 +3991,15 @@ class ChannelCastDBHandler(object):
     def getLatestUpdated(self, max_nr = 20):
         def channel_sort(a,b):
             #first compare local vote, spam -> return -1
-            if a[6] == -1:
+            if a[7] == -1:
                 return 1
-            if b[6] == -1:
+            if b[7] == -1:
                 return -1
             
             #then compare latest update
-            if a[2] < b[2]:
+            if a[8] < b[8]:
                 return 1
-            if a[2] > b[2]:
+            if a[8] > b[8]:
                 return -1
             #finally compare nr_torrents
             return cmp(a[4], b[4])
