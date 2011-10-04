@@ -1842,12 +1842,12 @@ class Dispersy(Singleton):
                     candidate = choice(temp_S)
 
                 else:
-                    if __debug__: dprint("no candidates available", level="warning")
+                    if __debug__: dprint("no candidates available")
                     candidate = None
                     
         else:
             while True:
-                if __debug__: dprint("no candidates available", level="error")
+                if __debug__: dprint("no candidates available")
                 yield None
 
     def yield_walk_candidates(self, community, blacklist=()):
@@ -1918,75 +1918,19 @@ class Dispersy(Singleton):
                                     yield candidate
                                     E.append(candidate)
                                     break
-                                
-                # elif r <= .6633: # 16.33%
-                #     if C: yield choice(C)
-
-                # elif r <= .8266: # 16.33%
-                #     if D: yield choice(D)
-
-                # elif r <= .9899: # 16.33%
-                #     if E: yield choice(E)
 
                 elif bootstrap_candidates: # ~1%
                     candidate = choice(bootstrap_candidates)
                     yield candidate
 
         elif bootstrap_candidates:
-            if __debug__: dprint("no candidates available.  yielding bootstrap candidate", level="warning")
+            if __debug__: dprint("no candidates available.  yielding bootstrap candidate")
             while True:
                 candidate = choice(bootstrap_candidates)
                 yield candidate
 
         else:
-            if __debug__: dprint("no candidates or bootstrap candidates available", level="warning")
-        
-        # ORIGINAL 50-50 SELECTION
-        # candidates = list(self.yield_all_candidates(community, blacklist))
-        # walks = [candidate for candidate in candidates if candidate.is_walk and not candidate.is_stumble]
-        # stumbles = [candidate for candidate in candidates if candidate.is_stumble and not candidate.is_walk]
-        # for candidate in candidates:
-        #     if candidate.is_walk and candidate.is_stumble:
-        #         if len(walks) < len(stumbles):
-        #             walks.append(candidate)
-        #         else:
-        #             stumbles.append(candidate)
-        
-        # if walks and stumbles:
-        #     walk_threshold = 0.49
-        #     stumble_threshold = 0.98
-        # elif walks:
-        #     walk_threshold = 0.98
-        #     stumble_threshold = -1.0
-        # elif stumbles:
-        #     walk_threshold = -1.0
-        #     stumble_threshold = 0.98
-        # else:
-        #     walk_threshold = stumble_threshold = -1.0
-            
-        # if walks or stumbles or self._bootstrap_candidates:
-        #     while True:
-        #         r = random()
-
-        #         if r <= walk_threshold:
-        #             yield choice(walks)
-
-        #         elif r <= stumble_threshold:
-        #             yield choice(stumbles)
-
-        #         elif self._bootstrap_candidates:
-        #             yield choice(self._bootstrap_candidates.values())
-
-        # UNIFORM RANDOM ACROSS ALL CANDIDATES
-        # candidates = list(self.yield_all_candidates(community, blacklist))
-        # if candidates or self._bootstrap_candidates:
-        #     while True:
-        #         r = random()
-        #         if candidates and r <= 0.98:
-        #             yield choice(candidates)
-
-        #         elif self._bootstrap_candidates:
-        #             yield choice(self._bootstrap_candidates.values())
+            if __debug__: dprint("no candidates or bootstrap candidates available")
         
     def take_step(self, community):
         if community.cid in self._communities:
@@ -2099,6 +2043,12 @@ class Dispersy(Singleton):
             if not message.payload.identifier in self._walk_identifiers:
                 yield DropMessage(message, "invalid response identifier")
 
+            elif message.payload.wan_introduction_address == ("0.0.0.0", 0) or message.payload.lan_introduction_address == ("0.0.0.0", 0):
+                # sender has no clue what her own address is, allow the message.  no introduction
+                # will be given but a response will be sent to allow the sender to figure out her
+                # addresses
+                yield message
+                
             elif message.payload.wan_introduction_address == message.address:
                 yield DropMessage(message, "invalid WAN introduction address [introducing herself]")
 
@@ -3783,9 +3733,9 @@ class Dispersy(Singleton):
                         iter_communities.next()
 
                 community = iter_communities.next()
-                if __debug__: dprint("step for ", community.get_classification(), " ", community.cid.encode("HEX"))
+                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step")
                 if not community.dispersy_take_step():
-                    if __debug__: dprint("no candidate to take step", level="error")
+                    if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " no candidate to take step")
 
                 desync = (yield delay)
                 while desync > 0.1:
@@ -3796,9 +3746,10 @@ class Dispersy(Singleton):
         def _stats(self):
             while True:
                 yield 10.0
-                for counter, community in enumerate(self._communities.itervalues()):
+                dprint("---", style="short")
+                for community in self._communities.itervalues():
                     candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
-                    dprint(counter, " ", community.cid.encode("HEX"), " ", community.get_classification(), " with ", len(candidates), " candidates[:10] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10]), style="short")
+                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:10] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10]), style="short")
 
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
