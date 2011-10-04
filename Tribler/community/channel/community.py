@@ -1,4 +1,5 @@
 from random import expovariate, choice, randint
+from struct import pack
 
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
@@ -536,7 +537,7 @@ class ChannelCommunity(Community):
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
                 
-            mid_global_time = "%s@%d"%(message.authentication.member.mid, message.distribution.global_time)
+            mid_global_time = pack('!20sQ', message.authentication.member.mid, message.distribution.global_time)
             
             if message.payload.reply_to_packet:
                 reply_to_id = message.payload.reply_to_packet.packet_id

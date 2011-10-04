@@ -813,6 +813,9 @@ class NotebookPanel(wx.Panel):
         self.list.Show(show)
         if show:
             self.Layout()
+            
+    def Focus(self):
+        self.list.Focus()
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

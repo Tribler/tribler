@@ -1,5 +1,6 @@
 from Tribler.Core.dispersy.message import Packet
 from Tribler.Core.dispersy.payload import Payload
+from struct import pack
 
 class ChannelPayload(Payload):
     class Implementation(Payload.Implementation):
@@ -127,7 +128,7 @@ class CommentPayload(Payload):
         @property
         def reply_to_id(self):
             if self._reply_to_mid and self._reply_to_global_time:
-                return "%s@%d"%(self._reply_to_mid, self._reply_to_global_time)
+                return pack('!20sQ',self._reply_to_mid, self._reply_to_global_time)
 
         @property
         def reply_after_packet(self):
@@ -144,7 +145,7 @@ class CommentPayload(Payload):
         @property
         def reply_after_id(self):
             if self._reply_after_mid and self._reply_after_global_time:
-                return "%s@%d"%(self._reply_after_mid, self._reply_after_global_time)
+                return pack('!20sQ',self._reply_after_mid, self._reply_after_global_time)
         
         @property
         def playlist_packet(self):

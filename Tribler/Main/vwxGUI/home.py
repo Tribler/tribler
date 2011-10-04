@@ -26,6 +26,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOV
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.dispersy.dispersy import Dispersy
+from traceback import print_exc
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -129,7 +130,11 @@ class Stats(XRCPanel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
         
-        vSizer.Add(DispersyPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
+        try:
+            vSizer.Add(DispersyPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
+        except:
+            vSizer.Add(StaticText(self, -1, 'Could not create DispersyPanel, please restart to try again.'))
+            print_exc()
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)

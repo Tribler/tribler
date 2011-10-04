@@ -3454,7 +3454,7 @@ class ChannelCastDBHandler(object):
                 
         #try fo fix loose reply_to and reply_after pointers
         sql =  "UPDATE COMMENTS SET reply_to_id = ? WHERE reply_to_id = ?; UPDATE COMMENTS SET reply_after_id = ? WHERE reply_after_id = ?"
-        self._db.execute_write(sql, (dispersy_id, buffer(mid_global_time), dispersy_id, buffer(mid_global_time)), commit = self.shouldCommit)
+        self._db.execute_write(sql, (dispersy_id, mid_global_time, dispersy_id, mid_global_time), commit = self.shouldCommit)
         self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
         
     #dispersy removing comments
