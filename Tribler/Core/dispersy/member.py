@@ -193,13 +193,18 @@ class Member(Parameterized1Singleton):
                 for tag in self._tags:
                     assert tag in (u"store", u"ignore", u"blacklist"), tag
 
-        for cid, host, port in execute(u"SELECT member.mid, identity.host, identity.port FROM identity JOIN community ON community.id = identity.member JOIN member ON member.id = community.master WHERE identity.member = ?", (self._database_id,)):
+        for cid, host, port in execute(u"SELECT member.mid, identity.host, identity.port FROM identity JOIN community ON community.id = identity.community JOIN member ON member.id = community.master WHERE identity.member = ?", (self._database_id,)):
             assert isinstance(cid, buffer)
             assert isinstance(host, unicode)
             assert isinstance(port, int)
+            if __debug__: dprint("member ", self._database_id, " is part of community ", str(cid).encode("HEX"))
             # note that the SQL query gives back the master-member.mid and NOT the mid of the member
             # that we are currently loading!
             self._communities[str(cid)] = (str(host), port)
+
+        if __debug__:
+            if not self._communities:
+                dprint("member ", self._database_id, " is not part of any community")
 
     @property
     def mid(self):
