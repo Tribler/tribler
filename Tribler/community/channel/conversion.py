@@ -117,16 +117,14 @@ class ChannelConversion(BinaryConversion):
         dict = {"text":message.payload.text,
                 "timestamp":message.payload.timestamp}
         
-        reply_to_packet = message.payload.reply_to_packet
-        reply_after_packet = message.payload.reply_after_packet
         playlist_packet = message.payload.playlist_packet
         infohash = message.payload.infohash
         
-        if reply_to_packet:
+        if message.payload.reply_to_mid:
             dict["reply-to-mid"] = message.payload.reply_to_mid
             dict["reply-to-global-time"] = message.payload.reply_to_global_time
             
-        if reply_after_packet:
+        if message.payload.reply_after_mid:
             dict["reply-after-mid"] = message.payload.reply_after_mid
             dict["reply-after-global-time"] = message.payload.reply_after_global_time
             
@@ -148,7 +146,7 @@ class ChannelConversion(BinaryConversion):
         if not "text" in dic:
             raise DropPacket("Missing 'text'")
         text = dic["text"]
-        if not (isinstance(text, unicode) and len(text) < 2**16):
+        if not (isinstance(text, unicode) and len(text) < 1024):
             raise DropPacket("Invalid 'text' type or value")
         
         if not "timestamp" in dic:
@@ -165,12 +163,6 @@ class ChannelConversion(BinaryConversion):
         if reply_to_global_time and not isinstance(reply_to_global_time, (int, long)):
             raise DropPacket("Invalid 'reply-to-global-time' type")
 
-        try:
-            packet_id, packet, message_name = self._get_message(reply_to_global_time, reply_to_mid)
-            reply_to = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
-            reply_to = None
-
         reply_after_mid = dic.get("reply-after-mid", None)
         if reply_after_mid and not (isinstance(reply_after_mid, str) and len(reply_after_mid) == 20):
             raise DropPacket("Invalid 'reply-after-mid' type or value")
@@ -178,13 +170,7 @@ class ChannelConversion(BinaryConversion):
         reply_after_global_time = dic.get("reply-after-global-time", None)
         if reply_after_global_time and not isinstance(reply_after_global_time, (int, long)):
             raise DropPacket("Invalid 'reply-after-global-time' type")
-        
-        try:
-            packet_id, packet, message_name = self._get_message(reply_after_global_time, reply_after_mid)
-            reply_after = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
-            reply_after = None
-            
+
         playlist_mid = dic.get("playlist-mid", None)
         if playlist_mid and not (isinstance(playlist_mid, str) and len(playlist_mid) == 20):
             raise DropPacket("Invalid 'playlist-mid' type or value")
@@ -202,7 +188,7 @@ class ChannelConversion(BinaryConversion):
         infohash = dic.get("infohash", None)
         if infohash and not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
-        return offset, placeholder.meta.payload.implement(text, timestamp, reply_to, reply_to_mid, reply_to_global_time, reply_after, reply_after_mid, reply_after_global_time, playlist, infohash)
+        return offset, placeholder.meta.payload.implement(text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist, infohash)
     
     def _encode_moderation(self, message):
         dict = {"text":message.payload.text,
@@ -222,7 +208,7 @@ class ChannelConversion(BinaryConversion):
         if not "text" in dic:
             raise DropPacket("Missing 'text'")
         text = dic["text"]
-        if not (isinstance(text, unicode) and len(text) < 2**16):
+        if not (isinstance(text, unicode) and len(text) < 1024):
             raise DropPacket("Invalid 'text' type or value")
         
         if not "timestamp" in dic:
@@ -316,10 +302,14 @@ class ChannelConversion(BinaryConversion):
         if not "modification-value" in dic:
             raise DropPacket("Missing 'modification-value'")
         modification_value = dic["modification-value"]
+        if not (isinstance(modification_value, unicode) and len(modification_value) < 1024):
+            raise DropPacket("Invalid 'modification_value' type or value") 
         
         if not "timestamp" in dic:
             raise DropPacket("Missing 'timestamp'")
         timestamp = dic["timestamp"]
+        if not isinstance(timestamp, (int, long)):
+            raise DropPacket("Invalid 'timestamp' type or value")
         
         if not "modification-on-mid" in dic:
             raise DropPacket("Missing 'modification-on-mid'")
@@ -381,7 +371,11 @@ class ChannelConversion(BinaryConversion):
             return packet_id, str(packet), message_name
 
     def _encode_missing_channel(self, message):
-        return ()
+        return pack('!?', message.payload.includeSnapshot),
 
     def _decode_missing_channel(self, placeholder, offset, data):
-        return offset, placeholder.meta.payload.implement()
+        if len(data) < offset + 1:
+            raise DropPacket("Unable to decode the payload")
+
+        includeSnapshot = unpack_from('!?', data, offset)
+        return offset, placeholder.meta.payload.implement(includeSnapshot)

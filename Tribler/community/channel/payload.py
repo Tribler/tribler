@@ -71,17 +71,15 @@ class TorrentPayload(Payload):
 
 class CommentPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, text, timestamp, reply_to_packet, reply_to_mid, reply_to_global_time, reply_after_packet, reply_after_mid, reply_after_global_time, playlist_packet, infohash):
+        def __init__(self, meta, text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist_packet, infohash):
             assert isinstance(text, unicode)
             assert len(text) < 1024
             assert isinstance(timestamp, (int, long)) 
             
-            assert not reply_to_packet or isinstance(reply_to_packet, Packet)
             assert not reply_to_mid or isinstance(reply_to_mid, str), 'reply_to_mid is a %s'%type(reply_to_mid)
             assert not reply_to_mid or len(reply_to_mid) == 20, 'reply_to_mid has length %d'%len(reply_to_mid)
             assert not reply_to_global_time or isinstance(reply_to_global_time, (int, long)), 'reply_to_global_time is a %s'%type(reply_to_global_time)
             
-            assert not reply_after_packet or isinstance(reply_after_packet, Packet)
             assert not reply_after_mid or isinstance(reply_after_mid, str), 'reply_after_mid is a %s'%type(reply_after_mid)
             assert not reply_after_mid or len(reply_after_mid) == 20, 'reply_after_mid has length %d'%len(reply_after_global_time)
             assert not reply_after_global_time or isinstance(reply_after_global_time, (int, long)), 'reply_after_global_time is a %s'%type(reply_to_global_time)
@@ -94,11 +92,9 @@ class CommentPayload(Payload):
             super(CommentPayload.Implementation, self).__init__(meta)
             self._text = text
             self._timestamp = timestamp
-            self._reply_to_packet = reply_to_packet
             self._reply_to_mid = reply_to_mid
             self._reply_to_global_time = reply_to_global_time
             
-            self._reply_after_packet = reply_after_packet
             self._reply_after_mid = reply_after_mid
             self._reply_after_global_time = reply_after_global_time
             
@@ -114,10 +110,6 @@ class CommentPayload(Payload):
             return self._timestamp
 
         @property
-        def reply_to_packet(self):
-            return self._reply_to_packet
-        
-        @property
         def reply_to_mid(self):
             return self._reply_to_mid
         
@@ -126,26 +118,12 @@ class CommentPayload(Payload):
             return self._reply_to_global_time
         
         @property
-        def reply_to_id(self):
-            if self._reply_to_mid and self._reply_to_global_time:
-                return pack('!20sQ',self._reply_to_mid, self._reply_to_global_time)
-
-        @property
-        def reply_after_packet(self):
-            return self._reply_after_packet
-        
-        @property
         def reply_after_mid(self):
             return self._reply_after_mid
         
         @property
         def reply_after_global_time(self):
             return self._reply_after_global_time
-        
-        @property
-        def reply_after_id(self):
-            if self._reply_after_mid and self._reply_after_global_time:
-                return pack('!20sQ',self._reply_after_mid, self._reply_after_global_time)
         
         @property
         def playlist_packet(self):
@@ -232,6 +210,8 @@ class ModificationPayload(Payload):
         def __init__(self, meta, modification_type, modification_value, timestamp, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time):
             assert isinstance(modification_type, unicode)
             assert modification_value is not None
+            assert isinstance(modification_value, unicode)
+            assert len(modification_value) < 1024
             assert isinstance(modification_on, Packet)
 
             assert not prev_modification_packet or isinstance(prev_modification_packet, Packet)
@@ -302,4 +282,13 @@ class PlaylistTorrentPayload(Payload):
             return self._playlist
 
 class MissingChannelPayload(Payload):
-    pass
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, includeSnapshot = False):
+            assert isinstance(includeSnapshot, bool), 'includeSnapshot is a %s'%type(includeSnapshot)
+            super(MissingChannelPayload.Implementation, self).__init__(meta)
+            
+            self._includeSnapshot = includeSnapshot
+
+        @property
+        def includeSnapshot(self):
+            return self._includeSnapshot

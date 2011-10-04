@@ -1060,12 +1060,9 @@ class Bundler:
                 if group.has_changed():
                     d['bundle_changed'] = True
                 
-                # Copy channel_permid, channel_name, and subscriptions from head to bundle-dict
-                copy_keys = ['channel_id', 'channel_permid', 'channel_name', 'channel_posvotes', 'channel_negvotes']
+                # Copy channel from head to bundle-dict
                 head = group[0]
-                for key in copy_keys:
-                    d[key] = head.get(key)
-                
+                d['channel'] = head.get('channel')
                 res.append(d)
             else:
                 res.append(group[0])

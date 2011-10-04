@@ -3426,18 +3426,14 @@ class ChannelCastDBHandler(object):
     
     #dispersy receiving comments
     def on_comment_from_dispersy(self, channel_id, dispersy_id, mid_global_time, peer_id, comment, timestamp, reply_to, reply_after, playlist_dispersy_id, infohash):
-
-        # 04/10/11 boudewijn: I believe that mid_global_time must be a str, but since the database
-        # can't handle that we convert it to a buffer
-        assert isinstance(mid_global_time, str)
-        mid_global_time = buffer(mid_global_time)
-
         #both reply_to and reply_after could be loose pointers to not yet received dispersy message
         if isinstance(reply_to, (str)):
             reply_to = buffer(reply_to)
             
         if isinstance(reply_after, (str)):
             reply_after = buffer(reply_after)
+        mid_global_time = buffer(mid_global_time)
+
         
         sql = "INSERT OR REPLACE INTO Comments (channel_id, dispersy_id, peer_id, comment, reply_to_id, reply_after_id, time_stamp) VALUES (?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
         comment_id = self._db.fetchone(sql, (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, timestamp))
@@ -3448,21 +3444,26 @@ class ChannelCastDBHandler(object):
                 playlist_id = self._db.fetchone(sql, (playlist_dispersy_id, ))
                 
                 sql = "INSERT INTO CommentPlaylist (comment_id, playlist_id) VALUES (?, ?)"
-                self._db.execute_write(sql, (comment_id, playlist_id), commit = self.shouldCommit)
-                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, playlist_id)
+                self._db.execute_write(sql, (comment_id, playlist_id), commit = False)
                 
             if infohash:
                 channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
                 
                 sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
-                self._db.execute_write(sql, (comment_id, channeltorrent_id), commit = self.shouldCommit)
-                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, infohash)
+                self._db.execute_write(sql, (comment_id, channeltorrent_id), commit = False)
                 
         #try fo fix loose reply_to and reply_after pointers
-        sql =  "UPDATE COMMENTS SET reply_to_id = ? WHERE reply_to_id = ?; UPDATE COMMENTS SET reply_after_id = ? WHERE reply_after_id = ?"
-        self._db.execute_write(sql, (dispersy_id, mid_global_time, dispersy_id, mid_global_time), commit = self.shouldCommit)
-        self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
+        sql = "UPDATE COMMENTS SET reply_to_id = ? WHERE reply_to_id = ?"
+        self._db.execute_write(sql, (dispersy_id, mid_global_time), commit = False)
+        sql = "UPDATE COMMENTS SET reply_after_id = ? WHERE reply_after_id = ?"
+        self._db.execute_write(sql, (dispersy_id, mid_global_time), commit = self.shouldCommit)
         
+        self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
+        if playlist_dispersy_id:
+            self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, playlist_id)
+        if infohash:
+            self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, infohash)
+            
     #dispersy removing comments
     def on_remove_comment_from_dispersy(self, channel_id, dispersy_id):
         sql = "UPDATE Comments SET comment = ? WHERE dispersy_id = ?"
@@ -3703,6 +3704,10 @@ class ChannelCastDBHandler(object):
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             
         return torrent_dict
+    
+    def getRandomTorrents(self, channel_id, limit = 15):
+        sql = "select infohash from ChannelTorrents, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id and channel_id = ? ORDER BY RANDOM() LIMIT ?"
+        return self._db.fetchall(sql, (channel_id, limit))
 
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? AND infohash = ?"

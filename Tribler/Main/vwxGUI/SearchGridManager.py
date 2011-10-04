@@ -1441,7 +1441,7 @@ class ChannelSearchGridManager:
     @forceDispersyThread
     def createComment(self, comment, channel, reply_after = None, reply_to = None, playlist = None, infohash = None):
         comment = comment.strip()
-        comment = comment[:1024]
+        comment = comment[:1023]
         if len(comment) > 0:
             playlist_id = None
             if playlist:

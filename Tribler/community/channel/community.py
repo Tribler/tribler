@@ -311,6 +311,9 @@ class ChannelCommunity(Community):
 
     @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
+        name = name[:255]
+        description = description[:1023]
+        
         meta = self.get_meta_message(u"channel")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
@@ -435,6 +438,9 @@ class ChannelCommunity(Community):
 
     @forceDispersyThread
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
+        name = name[:255]
+        description = description[:1023]
+        
         meta = self.get_meta_message(u"playlist")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
@@ -509,7 +515,7 @@ class ChannelCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(self.claim_global_time(),),
-                            payload=(text, timestamp, reply_to_message, reply_to_mid, reply_to_global_time, reply_after_message, reply_after_mid, reply_after_global_time, playlist_message, infohash))
+                            payload=(text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -539,15 +545,19 @@ class ChannelCommunity(Community):
                 
             mid_global_time = pack('!20sQ', message.authentication.member.mid, message.distribution.global_time)
             
-            if message.payload.reply_to_packet:
-                reply_to_id = message.payload.reply_to_packet.packet_id
-            else:
-                reply_to_id = message.payload.reply_to_id
+            reply_to_id = None
+            if message.payload.reply_to_mid:
+                try:
+                    reply_to_id = self._get_packet_id(message.payload.reply_to_global_time, message.payload.reply_to_mid)
+                except:
+                    reply_to_id = pack('!20sQ', message.payload.reply_to_mid, message.payload.reply_to_global_time)
             
-            if message.payload.reply_after_packet:
-                reply_after_id = message.payload.reply_after_packet.packet_id
-            else:
-                reply_after_id = message.payload.reply_after_id
+            reply_after_id = None
+            if message.payload.reply_after_mid:
+                try:
+                    reply_after_id = self._get_packet_id(message.payload.reply_after_global_time, message.payload.reply_after_mid)
+                except:
+                    reply_after_id = pack('!20sQ', message.payload.reply_after_mid, message.payload.reply_after_global_time)
             
             playlist_dispersy_id = None
             if message.payload.playlist_packet:
@@ -605,6 +615,8 @@ class ChannelCommunity(Community):
             self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
         
     def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on, latest_modification, store=True, update=True, forward=True):
+        modifcation_value = modifcation_value[:1023]
+        
         latest_modification_mid = None
         latest_modification_global_time = None
         if latest_modification:
@@ -792,10 +804,22 @@ class ChannelCommunity(Community):
 
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()
+        snapshot = None
+        
         for message in messages:
             log("dispersy.log", "sending-channel-record", address = message.address, packet = channelmessage.packet) # TODO: maybe move to barter.log
 
             self._dispersy._send([message.address], [channelmessage.packet])
+            if message.payload.includeSnapshot:
+                if snapshot is None:
+                    snapshot = []
+                    torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
+                    for infohash in torrents:
+                        tormessage = self._get_message_from_torrent_infohash(infohash)
+                        snapshot.append(tormessage.packet)
+                
+                if len(snapshot) > 0:
+                    self._dispersy._send([message.address], snapshot)
             
     #check or receive moderation messages
     @forceDispersyThread
@@ -1056,3 +1080,18 @@ class ChannelCommunity(Community):
             raise RuntimeError("unable to convert packet")
 
         return message
+    
+    @forceAndReturnDispersyThread
+    def _get_packet_id(self, global_time, mid):
+        if global_time and mid:
+            try:
+                packet_id,  = self._dispersy_database.execute(u"""
+                    SELECT sync.id
+                    FROM sync
+                    JOIN member ON (member.id = sync.member)
+                    JOIN meta_message ON (meta_message.id = sync.meta_message)
+                    WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
+                                                          (self.database_id, global_time, buffer(mid))).next()
+            except StopIteration:
+                pass
+            return packet_id
