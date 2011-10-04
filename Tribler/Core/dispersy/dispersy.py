@@ -669,7 +669,7 @@ class Dispersy(Singleton):
         assert len(voter_address) == 2
         assert isinstance(voter_address[0], str)
         assert isinstance(voter_address[1], int)
-        if self._is_valid_wan_address(address):
+        if self._is_valid_wan_address(address, check_my_wan_address=False):
             if not address in self._wan_address_votes:
                 self._wan_address_votes[address] = set()
             self._wan_address_votes[address].add(voter_address)
