@@ -847,7 +847,7 @@ class SearchList(GenericSearchList):
         self.header = self.CreateHeader(self.parent)
         self.Add(self.header, 0, wx.EXPAND)
         
-        self.sidebar = SearchSideBar(self.parent, size=(200,-1))
+        self.sidebar = SearchSideBar(self.parent, self, size=(200,-1))
         self.leftLine = self.sidebar
         self.rightLine = wx.Panel(self.parent, size=(1,-1))
         

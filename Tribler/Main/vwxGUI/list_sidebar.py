@@ -15,11 +15,12 @@ class SearchSideBar(wx.Panel):
     INDENT = 7
     HEADER_FONT_WEIGHT = wx.FONTWEIGHT_NORMAL
     
-    def __init__(self, parent, size):
+    def __init__(self, parent, parent_list, size):
         wx.Panel.__init__(self, parent, size = size)
         self.guiutility =  GUIUtility.getInstance()
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.parent = parent
+        self.parent_list = parent_list
         
         self.nrfiltered = 0
         self.family_filter = True
@@ -191,7 +192,7 @@ class SearchSideBar(wx.Panel):
         self.Thaw()
     
     def toggleFamilyFilter(self, event):
-        self.parent.toggleFamilyFilter()
+        self.parent_list.toggleFamilyFilter()
         
     def _SetLabels(self):
         self.Freeze()
