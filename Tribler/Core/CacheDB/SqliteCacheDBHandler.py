@@ -3426,6 +3426,12 @@ class ChannelCastDBHandler(object):
     
     #dispersy receiving comments
     def on_comment_from_dispersy(self, channel_id, dispersy_id, mid_global_time, peer_id, comment, timestamp, reply_to, reply_after, playlist_dispersy_id, infohash):
+
+        # 04/10/11 boudewijn: I believe that mid_global_time must be a str, but since the database
+        # can't handle that we convert it to a buffer
+        assert isinstance(mid_global_time, str)
+        mid_global_time = buffer(mid_global_time)
+
         #both reply_to and reply_after could be loose pointers to not yet received dispersy message
         if isinstance(reply_to, (str)):
             reply_to = buffer(reply_to)

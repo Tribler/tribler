@@ -3795,7 +3795,7 @@ class Dispersy(Singleton):
     if __debug__:
         def _stats(self):
             while True:
-                yield 1.0
+                yield 10.0
                 for counter, community in enumerate(self._communities.itervalues()):
                     candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
                     dprint(counter, " ", community.cid.encode("HEX"), " ", community.get_classification(), " with ", len(candidates), " candidates[:10] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10]), style="short")
