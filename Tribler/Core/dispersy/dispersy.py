@@ -325,16 +325,28 @@ class Dispersy(Singleton):
         @param socket: The socket object.
         @type socket: Object with a send(address, data) method
         """
-        port = socket.get_address()[1]
-        if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=1)
         self._socket = socket
+
+        host, port = socket.get_address()
+        if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=1)
         self._lan_address = (self._lan_address[0], port)
+
+        if not self._is_valid_lan_address(self._lan_address):
+            if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", host, ":", self._lan_address[1], force=1)
+            self._lan_address = (host, self._lan_address[1])
+
+        if not self._is_valid_lan_address(self._lan_address):
+            if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=1)
+            self._lan_address = (self._wan_address[0], self._lan_address[1])
+            
         # our address may not be a bootstrap address
         if self._lan_address in self._bootstrap_candidates:
             del self._bootstrap_candidates[self._lan_address]
+
         # our address may not be a candidate
         if self._lan_address in self._candidates:
             del self._candidates[self._lan_address]
+
         self.wan_address_vote(self._lan_address, ("", -1))
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
@@ -668,6 +680,10 @@ class Dispersy(Singleton):
                 self._wan_address = address
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
+
+                if not self._is_valid_lan_address(self._lan_address):
+                    if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=1)
+                    self._lan_address = (self._wan_address[0], self._lan_address[1])
 
                 # our address may not be a bootstrap address
                 if self._wan_address in self._bootstrap_candidates:
@@ -1433,7 +1449,7 @@ class Dispersy(Singleton):
                     elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
                         self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_stumble=True)
                 else:
-                    if __debug__: dprint("unable to add walker node. LAN: ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " (", self._is_valid_lan_address(message.payload.source_lan_address), ") WAN: ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " (", self._is_valid_wan_address(message.payload.source_wan_address), ")", level="warning")
+                    if __debug__: dprint("unable to add stumble node. LAN: ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " (", ("valid" if self._is_valid_lan_address(message.payload.source_lan_address) else "invalid"), ") WAN: ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " (", ("valid" if self._is_valid_wan_address(message.payload.source_wan_address) else "invalid"), ")", level="warning")
 
         elif meta.name == "dispersy-introduction-response":
             for message in messages:
@@ -1447,7 +1463,7 @@ class Dispersy(Singleton):
                     elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
                         self._candidates[message.address] = Candidate(self, message.payload.source_lan_address, message.payload.source_wan_address, meta.community, is_walk=True)
                 else:
-                    if __debug__: dprint("unable to add walker node. LAN: ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " (", self._is_valid_lan_address(message.payload.source_lan_address), ") WAN: ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " (", self._is_valid_wan_address(message.payload.source_wan_address), ")", level="warning")
+                    if __debug__: dprint("unable to add walker node. LAN: ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " (", ("valid" if self._is_valid_lan_address(message.payload.source_lan_address) else "invalid"), ") WAN: ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " (", ("valid" if self._is_valid_wan_address(message.payload.source_wan_address) else "invalid"), ")", level="warning")
 
                 # add introduced node to the candidate pool and mark as an introduced node
                 if self._is_valid_lan_address(message.payload.lan_introduction_address) and self._is_valid_wan_address(message.payload.wan_introduction_address):
