@@ -204,6 +204,7 @@ class Stats(XRCPanel):
             channelcast = BuddyCastFactory.getInstance().channelcast_core
             frame.locals['channelcast'] = channelcast
             
+            frame.locals['dispersy'] = Dispersy.get_instance()
             
         except Exception:
             import traceback
