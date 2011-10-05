@@ -219,7 +219,7 @@ class SelectedChannelList(GenericSearchList):
         self.notebook.AddPage(list, "Contents")
         
         self.commentList = NotebookPanel(self.notebook)
-        self.commentList.SetList(CommentList(self.commentList, self))
+        self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
         
         self.activityList = NotebookPanel(self.notebook)
         self.activityList.SetList(ActivityList(self.activityList, self))
@@ -1179,6 +1179,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 else:
                     self.RemovePage(self.notebook, "Manage playlists")
                     self.RemovePage(self.notebook, "Manage")
+                
+                self.Refresh()
                     
             startWorker(update_panel, db_call)
             
@@ -1201,6 +1203,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             #disable all other tabs
             for i in range(1, self.notebook.GetPageCount()):
+                page = self.notebook.GetPage(i)
+                page.Show(False)
                 self.notebook.RemovePage(i)
     
     @forceDBThread        
@@ -1217,14 +1221,16 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def AddPage(self, notebook, page, title, index):
         curindex = self.GetPage(notebook, title)
         if curindex is None:
+            page.Show(True)
+            
             index = min(notebook.GetPageCount(), index)
             notebook.InsertPage(index, page, title)
-            page.Show(True)
     
     def RemovePage(self, notebook, title):
         curindex = self.GetPage(notebook, title)
         if curindex is not None:
             page = notebook.GetPage(curindex)
+
             page.Show(False)
             notebook.RemovePage(curindex)
     
@@ -1234,12 +1240,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def OnChange(self, event):
         page = event.GetSelection()
         if page == self.GetPage(self.notebook, "Manage torrents"):
-            self.fileslist.Show()
-            self.fileslist.SetFocus()
+            self.fileslist.Show(isSelected = True)
+            self.fileslist.Focus()
         
         elif page == self.GetPage(self.notebook, "Manage playlists"):
-            self.playlistlist.Show()
-            self.playlistlist.SetFocus() 
+            self.playlistlist.Show(isSelected = True)
+            self.playlistlist.Focus() 
         event.Skip()
     
     def OnBack(self, event):
@@ -2182,7 +2188,7 @@ class ModificationList(List):
         self.SetNrResults(len(data))
         
     def OnRevertModification(self, modification):
-        dlg = wx.Dialog(self, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
         dlg.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         

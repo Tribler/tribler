@@ -3794,7 +3794,7 @@ class ChannelCastDBHandler(object):
         torrent_modifications = self._db.fetchall(sql, (playlist_id, ))
         
         #merge two lists
-        orderIndex = keys.index('time_stamp')
+        orderIndex = keys.index('ChannelMetaData.time_stamp')
         revertIndex = keys.index('Moderations.time_stamp')
         data = [(row[revertIndex], row[orderIndex], row) for row in playlist_modifications]
         data += [(row[revertIndex], row[orderIndex], row) for row in torrent_modifications]
@@ -4008,7 +4008,7 @@ class ChannelCastDBHandler(object):
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels ORDER BY nr_favorite DESC LIMIT ?"
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels ORDER BY nr_favorite DESC, modified DESC LIMIT ?"
         return self._getChannels(sql, (max_nr, ), includeSpam = False)
 
     def getMySubscribedChannels(self, includeDispsersy = False):

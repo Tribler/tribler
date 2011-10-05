@@ -560,10 +560,10 @@ class List(wx.BoxSizer):
     def Thaw(self):
         self.parent.Thaw()
         
-    def Show(self, show = True):
+    def Show(self, show = True, isShown = False):
         self.ShowItems(show)
         
-        if show and self.IsShownOnScreen():
+        if show and (isShown or self.IsShownOnScreen()):
             if self.dirty:
                 self.dirty = False
     
