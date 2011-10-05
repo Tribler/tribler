@@ -703,6 +703,8 @@ class Dispersy(Singleton):
                 # TODO the wan address should no longer be in the identity message... remove below code
                 for community in self._communities.itervalues():
                     community.create_dispersy_identity()
+        else:
+            if __debug__: dprint("got invalid external vote from ", voter_address[0],":",voter_address[1], " received ", address[0], ":", address[1], force=1)
 
     def _check_identical_payload_with_different_signature(self, message):
         """
