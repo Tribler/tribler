@@ -45,7 +45,9 @@ class SettingsDialog(wx.Dialog):
                              'externalplayer',\
                              'batchstart',\
                              'batchstop',\
-                             'use_bundle_magic']
+                             'use_bundle_magic',\
+                             't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
+                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3']
 
         self.myname = None
         self.elements = {}
@@ -69,7 +71,7 @@ class SettingsDialog(wx.Dialog):
         dialog = xrc.XRCCTRL(self, "settingsDialog")
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(dialog, element)
-            if not xrcElement:
+            if not xrcElement:    
                 print 'settingsOverviewPanel: Error: Could not identify xrc element:',element
             self.elements[element] = xrcElement
         
@@ -78,7 +80,7 @@ class SettingsDialog(wx.Dialog):
         root = self.tree.AddRoot('Root')
         self.tree.SelectItem(self.tree.AppendItem(root,'General',data=wx.TreeItemData(xrc.XRCCTRL(self,"general_panel"))),True)
         self.tree.AppendItem(root,'Connection',data=wx.TreeItemData(xrc.XRCCTRL(self,"connection_panel")))
-        self.tree.AppendItem(root,'Bandwidth',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
+        self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
         self.tree.AppendItem(root,'Misc',data=wx.TreeItemData(xrc.XRCCTRL(self,"misc_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
@@ -158,6 +160,38 @@ class SettingsDialog(wx.Dialog):
         
         self.elements['use_bundle_magic'].SetValue(self.utility.config.Read('use_bundle_magic', "boolean"))
         
+        self.elements['t4t0'].SetLabel(self.utility.lang.get('no_leeching'))
+        self.elements['t4t1'].SetLabel(self.utility.lang.get('unlimited_seeding'))
+        self.elements['t4t2'].SetLabel(self.utility.lang.get('seed_sometime'))
+        self.elements['t4t3'].SetLabel(self.utility.lang.get('no_seeding'))
+        
+        self.elements['g2g0'].SetLabel(self.utility.lang.get('seed_for_large_ratio'))
+        self.elements['g2g1'].SetLabel(self.utility.lang.get('boost__reputation'))
+        self.elements['g2g2'].SetLabel(self.utility.lang.get('seed_sometime'))
+        self.elements['g2g3'].SetLabel(self.utility.lang.get('no_seeding'))
+        
+        
+        t4t_option = self.utility.config.Read('t4t_option', 'int')
+        self.elements['t4t%d'%t4t_option].SetValue(True)
+        t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
+        index = self.elements['t4t0choice'].FindString(str(t4t_ratio))
+        if index != wx.NOT_FOUND:
+            self.elements['t4t0choice'].Select(index)
+        
+        t4t_hours = self.utility.config.Read('t4t_hours', 'int') 
+        t4t_minutes = self.utility.config.Read('t4t_mins', 'int')
+        self.elements['t4t2text'].SetLabel("%d:%d"%(t4t_hours, t4t_minutes))
+        
+        g2g_option = self.utility.config.Read('g2g_option', 'int')
+        self.elements['g2g%d'%g2g_option].SetValue(True)
+        g2g_ratio = self.utility.config.Read('g2g_ratio', 'int')/100.0
+        index = self.elements['g2g0choice'].FindString(str(g2g_ratio))
+        if index != wx.NOT_FOUND:
+            self.elements['g2g0choice'].Select(index)
+
+        g2g_hours = self.utility.config.Read('g2g_hours', 'int') 
+        g2g_mins = self.utility.config.Read('g2g_mins', 'int')
+        self.elements['g2g2text'].SetLabel("%d:%d"%(g2g_hours, g2g_mins))
         wx.CallAfter(self.Refresh)
     
     def OnSelectionChanging(self, event):
@@ -166,6 +200,7 @@ class SettingsDialog(wx.Dialog):
         try:
             self.tree.GetItemData(old_item).GetData().Hide()
             self.tree.GetItemData(new_item).GetData().Show(True)
+            self.tree.GetItemData(new_item).GetData().Layout()
             self.Layout()
             self.Refresh()
         except:
@@ -221,6 +256,24 @@ class SettingsDialog(wx.Dialog):
         valname = self.elements['myNameField'].GetValue()
         if len(valname) > 40:
             errors['myNameField'] = 'Max 40 characters'
+            
+        hours_min = self.elements['t4t2text'].GetValue()
+        hours_min = hours_min.split(':')
+        if len(hours_min) == 0:
+            errors['t4t2text'] = 'Need value'
+        else:
+            for value in hours_min:
+                if not value.isdigit():
+                    errors['t4t2text'] = 'Needs to be integer'
+        
+        hours_min = self.elements['g2g2text'].GetValue()
+        hours_min = hours_min.split(':')
+        if len(hours_min) == 0:
+            errors['g2g2text'] = 'Need value'
+        else:
+            for value in hours_min:
+                if not value.isdigit():
+                    errors['g2g2text'] = 'Needs to be hours:minutes'
         
         if len(errors) == 0: #No errors found, continue saving
             restart = False
@@ -289,6 +342,42 @@ class SettingsDialog(wx.Dialog):
             if self.currentPopup != selectedPopup:
                 self.utility.config.Write('popup_player', selectedPopup, "boolean")
                 restart = True
+            
+            # tit-4-tat 
+            for i in range (4):
+                if self.elements['t4t%d'%i].GetValue():
+                    self.utility.config.Write('t4t_option', i)
+                    break
+            t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection())*100)
+            self.utility.config.Write("t4t_ratio", t4t_ratio)
+        
+            hours_min = self.elements['t4t2text'].GetValue()
+            hours_min = hours_min.split(':')
+            if len(hours_min) > 0:
+                if len(hours_min)>1:
+                    self.utility.config.Write("t4t_hours", hours_min[0])
+                    self.utility.config.Write("t4t_mins", hours_min[1])
+                else:
+                    self.utility.config.Write("t4t_hours", hours_min[0])
+                    self.utility.config.Write("t4t_mins", 0)
+            
+            # give-2-get
+            for i in range (4):
+                if self.elements['g2g%d'%i].GetValue():
+                    self.utility.config.Write("g2g_option", i)
+                    break
+            g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection())*100)
+            self.utility.config.Write("g2g_ratio", g2g_ratio)
+            
+            hours_min = self.elements['g2g2text'].GetValue()
+            hours_min = hours_min.split(':')
+            if len(hours_min) > 0:
+                if len(hours_min)>1:
+                    self.utility.config.Write("g2g_hours", hours_min[0])
+                    self.utility.config.Write("g2g_mins", hours_min[1])
+                else:
+                    self.utility.config.Write("g2g_hours", hours_min[0])
+                    self.utility.config.Write("g2g_mins", 0)
             
             self.utility.config.Flush()
             
@@ -504,3 +593,4 @@ class SettingsDialog(wx.Dialog):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
+

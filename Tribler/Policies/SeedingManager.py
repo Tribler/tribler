@@ -80,7 +80,7 @@ class GlobalSeedingManager:
                     if t4t_option == 0:
                         # No Bittorrent leeching, seeding until sharing ratio = 1.0
                         if DEBUG: print >>sys.stderr, "GlobalSeedingManager: TitForTatRatioBasedSeeding"
-                        seeding_manager.set_t4t_policy(TitForTatRatioBasedSeeding())
+                        seeding_manager.set_t4t_policy(TitForTatRatioBasedSeeding(self.Read))
 
                     elif t4t_option == 1:
                         # Unlimited seeding
@@ -235,8 +235,9 @@ class GiveToGetTimeBasedSeeding(SeedingPolicy):
         return current <= limit
     
 class TitForTatRatioBasedSeeding(SeedingPolicy):
-    def __init__(self):
+    def __init__(self, Read):
         SeedingPolicy.__init__(self)
+        self.Read = Read
         
     def apply(self, _, download_state, storage):
         # No Bittorrent leeching (minimal ratio of 1.0)
@@ -257,7 +258,7 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
 
         if DEBUG: print >>sys.stderr, "TitForTatRatioBasedSeeding: apply:", dl, ul, ratio
 
-        return ratio < 1.0
+        return ratio < self.Read('t4t_ratio', "int")/100.0
 
 class GiveToGetRatioBasedSeeding(SeedingPolicy):
     def __init__(self, Read):

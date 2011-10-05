@@ -248,19 +248,19 @@ uploadrateminwarningauto = "Minimum upload rate is 3kB/s or 0 for auto upload ra
 
 #Common option for t4t and g2g
 default_setting = "default"
-seed_sometime = "Seeding for"
+seed_sometime = "Seeding for (hours:minutes)"
 seed_hours = "hours"
 seed_mins = "minutes"
 no_seeding = "No seeding"
 
 #Seeding option texts for tit-4-tat
 tit-4-tat = "tit-4-tat: (Forgets about uploads)"
-no_leeching = "Seed until UL/DL ratio > 1.0 (no Bittorrent leeching)"
+no_leeching = "Seed until UL/DL ratio >"
 unlimited_seeding = "Unlimited seeding"
 
 #Seeding option texts for give-2-get
 give-2-get = "give-2-get: (Remembers every upload)"
-seed_for_large_ratio = "Seed only to peers with UL/DL ratio >"
+seed_for_large_ratio = "Seed to peers with UL/DL ratio >"
 boost__reputation = "Unlimited seeding (Boost your reputation)"
 
 
