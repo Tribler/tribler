@@ -368,7 +368,7 @@ class AllChannelCommunity(Community):
                             to_send[message.address] = []
                         to_send[message.address].append(curmessage.packet)
             else:
-                yield DelayMessageReqChannelMessage(message, community)
+                yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
                 
         #send all 'newer' votes to addresses
         for address in to_send.keys():
