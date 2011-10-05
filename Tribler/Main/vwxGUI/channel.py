@@ -16,7 +16,7 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Rss.rssparser import RssParser
-from wx.lib.agw.flatnotebook import FlatNotebook
+from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 
@@ -168,6 +168,7 @@ class SelectedChannelList(GenericSearchList):
         
         self.title = None
         self.channel = None
+        self.iamModerator = False
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
@@ -184,6 +185,9 @@ class SelectedChannelList(GenericSearchList):
         self.Add(self.header, 0, wx.EXPAND)
         
         self.leftLine = wx.Panel(self.parent)
+
+        #Hack to prevent focus on tabs
+        PageContainer.SetFocus = lambda a: None
 
         style = fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS|fnb.FNB_NODRAG
         self.notebook = FlatNotebook(self.leftLine, style = style)
