@@ -1938,16 +1938,21 @@ class CommentManager:
     def addComment(self, comment):
         item = self.list.GetExpandedItem()
         if item:
-            reply_after = item.original_data.dispersy_id
+            reply_to = item.original_data.dispersy_id
         else:
-            reply_after = None
+            reply_to = None
+        
+        reply_after = None
+        items = self.list.GetItems().values()
+        if len(items) > 0:
+            reply_after = items[-1].original_data.dispersy_id
         
         if self.playlist:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_after, infohash = self.channeltorrent.infohash, playlist = self.playlist)
+            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash, playlist = self.playlist)
         elif self.channeltorrent:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_after, infohash = self.channeltorrent.infohash)
+            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
         else:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_after)
+            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
 
 class CommentList(List):
     def __init__(self, parent, parent_list, canReply = False, quickPost = False):

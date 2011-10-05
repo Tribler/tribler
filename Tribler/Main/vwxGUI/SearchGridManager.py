@@ -1439,7 +1439,7 @@ class ChannelSearchGridManager:
         community.remove_torrents(dispersy_ids)
     
     @forceDispersyThread
-    def createComment(self, comment, channel, reply_after = None, reply_to = None, playlist = None, infohash = None):
+    def createComment(self, comment, channel, reply_to = None, reply_after = None, playlist = None, infohash = None):
         comment = comment.strip()
         comment = comment[:1023]
         if len(comment) > 0:
@@ -1448,7 +1448,7 @@ class ChannelSearchGridManager:
                 playlist_id = playlist.id
             
             community = self._disp_get_community_from_channel_id(channel.id)
-            community.create_comment(comment, long(time()), reply_after, reply_to, playlist_id, infohash)
+            community.create_comment(comment, long(time()), reply_to, reply_after, playlist_id, infohash)
     
     @forceDispersyThread
     def modifyChannel(self, channel_id, changes):
