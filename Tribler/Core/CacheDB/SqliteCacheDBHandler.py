@@ -4009,7 +4009,7 @@ class ChannelCastDBHandler(object):
     
     def getMostPopularChannels(self, max_nr = 20):
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels ORDER BY nr_favorite DESC LIMIT ?"
-        return self._getChannels(sql, (max_nr, ))
+        return self._getChannels(sql, (max_nr, ), includeSpam = False)
 
     def getMySubscribedChannels(self, includeDispsersy = False):
         sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
@@ -4018,7 +4018,7 @@ class ChannelCastDBHandler(object):
         
         return self._getChannels(sql)
     
-    def _getChannels(self, sql, args = None, cmpF = None):
+    def _getChannels(self, sql, args = None, cmpF = None, includeSpam = True):
         """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
@@ -4026,6 +4026,8 @@ class ChannelCastDBHandler(object):
         my_votes = self.votecast_db.getMyVotes()
         for id, name, description, dispersy_cid, modified, nr_torrents, nr_favorites, nr_spam in results:
             my_vote = my_votes.get(id, 0)
+            if not includeSpam and my_vote < 0:
+                continue
             channels.append((id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified))
                 
         def channel_sort(a, b):
