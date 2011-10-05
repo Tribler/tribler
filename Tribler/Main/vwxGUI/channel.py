@@ -742,15 +742,15 @@ class PlaylistItem(ListItem):
         
         self.icontype = 'tree'
         self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
-        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
         self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.title.SetMinSize((1, -1))
         _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD)
         
-        titleRow.Add(self.title, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        titleRow.Add(self.title, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.LEFT|wx.BOTTOM, 3)
         self.nrTorrents = wx.StaticText(self, -1, "%d Torrents"%self.data[2], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
-        titleRow.Add(self.nrTorrents, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        titleRow.Add(self.nrTorrents, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.LEFT|wx.BOTTOM, 3)
 
         if rightSpacer > 0:
             titleRow.AddSpacer((rightSpacer, -1))
@@ -759,7 +759,7 @@ class PlaylistItem(ListItem):
         self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.desc.SetMinSize((1, -1))
         self.hSizer.AddSpacer((40, -1))
-        self.hSizer.Add(self.desc, 1, wx.ALL, 3)
+        self.hSizer.Add(self.desc, 1, wx.LEFT|wx.BOTTOM, 3)
         self.AddEvents(self)
         
     def RefreshData(self, data):
