@@ -396,6 +396,8 @@ class DispersyPanel(HomePanel):
                         addColumn('total_down')
                     if 'runtime' in value:
                         addColumn('runtime')
+                    if 'bussy_time' in value:
+                        addColumn('bussy_time')
                 else:
                     addColumn(key)
                     
@@ -450,6 +452,7 @@ class DispersyPanel(HomePanel):
                     updateColumn('total_down', self.utility.size_format(value['total_down']))
                     updateColumn('total_up', self.utility.size_format(value['total_up']))
                     updateColumn('runtime', self.utility.eta_value(value['runtime']))
+                    updateColumn('bussy_time', self.utility.eta_value(value['bussy_time']))
                     
                 parentNode = self.tree.AppendItem(fakeRoot, key)
                 addValue(parentNode, value)
