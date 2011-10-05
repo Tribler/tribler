@@ -126,15 +126,17 @@ class Stats(XRCPanel):
         self.isReady = False
         
     def _DoInit(self):
+        try:
+            disp = DispersyPanel(self)
+        except:
+            self.SetBackgroundColour(wx.RED)
+            print_exc()
+            return
+        
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
-        
-        try:
-            vSizer.Add(DispersyPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
-        except:
-            vSizer.Add(StaticText(self, -1, 'Could not create DispersyPanel, please restart to try again.'))
-            print_exc()
+        vSizer.Add(disp, 0, wx.EXPAND|wx.BOTTOM, 10)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
@@ -396,8 +398,8 @@ class DispersyPanel(HomePanel):
                         addColumn('total_down')
                     if 'runtime' in value:
                         addColumn('runtime')
-                    if 'bussy_time' in value:
-                        addColumn('bussy_time')
+                    if 'busy_time' in value:
+                        addColumn('busy_time')
                 else:
                     addColumn(key)
                     
@@ -452,7 +454,7 @@ class DispersyPanel(HomePanel):
                     updateColumn('total_down', self.utility.size_format(value['total_down']))
                     updateColumn('total_up', self.utility.size_format(value['total_up']))
                     updateColumn('runtime', self.utility.eta_value(value['runtime']))
-                    updateColumn('bussy_time', self.utility.eta_value(value['bussy_time']))
+                    updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
                     
                 parentNode = self.tree.AppendItem(fakeRoot, key)
                 addValue(parentNode, value)
