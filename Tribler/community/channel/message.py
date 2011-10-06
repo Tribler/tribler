@@ -22,6 +22,6 @@ class DelayMessageReqChannelMessage(DelayMessage):
         meta = community.get_meta_message(u"missing-channel")
         message = meta.impl(distribution=(community.global_time,),
                             destination=(delayed.address,),
-                            payload=(True))
+                            payload=(True,))
 
         super(DelayMessageReqChannelMessage, self).__init__("Missing channel-message", footprint, message, delayed)
