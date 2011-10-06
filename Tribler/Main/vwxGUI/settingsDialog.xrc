@@ -346,7 +346,19 @@
 		                                    </object>
 											<flag>wxEXPAND</flag>
 		                                </object>
-										<object class="sizeritem">
+									</object>
+								</object>
+							</object>
+						</object>
+                        <flag>wxEXPAND</flag>
+                        <option>1</option>
+                    </object>
+                    <object class="sizeritem">
+                        <object class="wxPanel" name="seeding_panel">
+                            <hidden>1</hidden>
+                            <object class="wxBoxSizer">
+                                <orient>wxVERTICAL</orient>
+                                    <object class="sizeritem">
                                             <object class="wxStaticText">
                                                 <label>Seeding</label>
                                                 <font>
@@ -364,150 +376,148 @@
                                             <border>7</border>
                                         </object>
                                         <object class="sizeritem">
-                                        	<object class="wxGridSizer">
-		                                		<rows>0</rows>
-												<cols>2</cols>
-												<vgap>3</vgap>
-												<hgap>3</hgap>
-												
+                                            <object class="wxGridSizer">
+                                                <rows>0</rows>
+                                                <cols>2</cols>
+                                                <vgap>3</vgap>
+                                                <hgap>3</hgap>
+                                                
                                                 <object class="sizeritem">
-			                                    	<object class="wxStaticText">
-			                                        	<label>BitTorrent-peers</label>
-			                                        	<font>
-                                                    		<weight>bold</weight>
-                                                		</font>
-			                                    	</object>
-													<minsize>100,-1</minsize>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="spacer">
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="t4t0">
-														<style>wxRB_GROUP</style>
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="sizeritem">
-													<object class="wxChoice" name="t4t0choice">
-														<content>
-															<item>0.5</item>
-															<item>0.75</item>
-															<item>1.0</item>
-															<item>1.5</item>
-															<item>2.0</item>
-															<item>3.0</item>
-															<item>5.0</item>
-														</content>
-													</object>
-													<flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
-		                                        </object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="t4t1">
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="spacer">
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="t4t2">
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="sizeritem">
-		                                            <object class="wxTextCtrl" name="t4t2text">
-		                                            </object>
-		                                            <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
-		                                        </object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="t4t3">
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="spacer">
-													<option>1</option>
-												</object>
+                                                    <object class="wxStaticText">
+                                                        <label>BitTorrent-peers</label>
+                                                        <font>
+                                                            <weight>bold</weight>
+                                                        </font>
+                                                    </object>
+                                                    <minsize>100,-1</minsize>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="spacer">
+                                                    <option>1</option>
+                                                </object>
                                                 <object class="sizeritem">
-			                                    	<object class="wxStaticText">
-			                                        	<label>Tribler-peers</label>
-			                                        	<font>
-		                                                    <weight>bold</weight>
-		                                                </font>
-			                                    	</object>
-													<minsize>100,-1</minsize>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="spacer">
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="g2g0">
-														<style>wxRB_GROUP</style>
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="sizeritem">
-													<object class="wxChoice" name="g2g0choice">
-														<content>
-															<item>0.5</item>
-															<item>0.75</item>
-															<item>1.0</item>
-															<item>1.5</item>
-															<item>2.0</item>
-															<item>3.0</item>
-															<item>5.0</item>
-														</content>
-													</object>
-													<flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
-		                                        </object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="g2g1">
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="spacer">
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="g2g2">
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="sizeritem">
-		                                            <object class="wxTextCtrl" name="g2g2text">
-		                                            </object>
-		                                            <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
-		                                        </object>
-												<object class="sizeritem">
-													<object class="wxRadioButton" name="g2g3">
-													</object>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="spacer">
-													<option>1</option>
-												</object>
-											</object>
-											<flag>wxEXPAND</flag>
-										</object>
-										<object class="spacer">
-											<option>1</option>
-										</object>
-										<object class="sizeritem">
-                                            <object class="wxStaticText">
-                                                <label>Why differ between 'normal' BitTorrent and other Tribler-peers?\nBecause between Tribler-peers you will build up a repuation.\nThis is not the case for 'normal' BitTorrent-peers.</label>
+                                                    <object class="wxRadioButton" name="t4t0">
+                                                        <style>wxRB_GROUP</style>
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxChoice" name="t4t0choice">
+                                                        <content>
+                                                            <item>0.5</item>
+                                                            <item>0.75</item>
+                                                            <item>1.0</item>
+                                                            <item>1.5</item>
+                                                            <item>2.0</item>
+                                                            <item>3.0</item>
+                                                            <item>5.0</item>
+                                                        </content>
+                                                    </object>
+                                                    <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="t4t1">
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="spacer">
+                                                    <option>1</option>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="t4t2">
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxTextCtrl" name="t4t2text">
+                                                    </object>
+                                                    <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="t4t3">
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="spacer">
+                                                    <option>1</option>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxStaticText">
+                                                        <label>Tribler-peers</label>
+                                                        <font>
+                                                            <weight>bold</weight>
+                                                        </font>
+                                                    </object>
+                                                    <minsize>100,-1</minsize>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="spacer">
+                                                    <option>1</option>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="g2g0">
+                                                        <style>wxRB_GROUP</style>
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxChoice" name="g2g0choice">
+                                                        <content>
+                                                            <item>0.5</item>
+                                                            <item>0.75</item>
+                                                            <item>1.0</item>
+                                                            <item>1.5</item>
+                                                            <item>2.0</item>
+                                                            <item>3.0</item>
+                                                            <item>5.0</item>
+                                                        </content>
+                                                    </object>
+                                                    <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="g2g1">
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="spacer">
+                                                    <option>1</option>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="g2g2">
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxTextCtrl" name="g2g2text">
+                                                    </object>
+                                                    <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxRadioButton" name="g2g3">
+                                                    </object>
+                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                </object>
+                                                <object class="spacer">
+                                                    <option>1</option>
+                                                </object>
                                             </object>
                                             <flag>wxEXPAND</flag>
                                         </object>
-                            		</object>
-									<flag>wxEXPAND</flag>
-									<option>1</option>
-                        		</object>
-                        		<flag>wxEXPAND</flag>
-                    		</object>
-						</object>
-						<flag>wxEXPAND</flag>
+                                        <object class="spacer">
+                                            <option>1</option>
+                                        </object>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Why differ between 'normal' BitTorrent and Tribler-peers?\nBecause between Tribler-peers you will build up a repuation.\nThis is not the case for 'normal' BitTorrent-peers.</label>
+                                            </object>
+                                            <flag>wxEXPAND</flag>
+                                        </object>
+                                    </object>
+                                    <flag>wxEXPAND</flag>
+                                    <option>1</option>
+                                </object>
+
+                        <flag>wxEXPAND</flag>
                         <option>1</option>
 					</object>
                     <object class="sizeritem">

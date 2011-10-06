@@ -1181,6 +1181,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                     self.RemovePage(self.notebook, "Manage")
                 
                 self.Refresh()
+                #self.CreateJoinChannelFile()
                     
             startWorker(update_panel, db_call)
             

@@ -81,6 +81,7 @@ class SettingsDialog(wx.Dialog):
         self.tree.SelectItem(self.tree.AppendItem(root,'General',data=wx.TreeItemData(xrc.XRCCTRL(self,"general_panel"))),True)
         self.tree.AppendItem(root,'Connection',data=wx.TreeItemData(xrc.XRCCTRL(self,"connection_panel")))
         self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
+        self.tree.AppendItem(root,'Seeding',data=wx.TreeItemData(xrc.XRCCTRL(self,"seeding_panel")))
         self.tree.AppendItem(root,'Misc',data=wx.TreeItemData(xrc.XRCCTRL(self,"misc_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
