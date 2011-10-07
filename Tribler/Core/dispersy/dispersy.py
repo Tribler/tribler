@@ -1512,7 +1512,7 @@ class Dispersy(Singleton):
         self.store_update_forward(messages, True, True, False)
 
         # check if there are triggers
-        if self._triggers:
+        if messages and self._triggers:
             if not self._untriggered_messages:
                 self._callback.register(self._check_triggers, priority=TRIGGER_CHECK_PRIORITY)
             self._untriggered_messages.extend(messages)
