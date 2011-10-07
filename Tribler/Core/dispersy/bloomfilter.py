@@ -952,71 +952,63 @@ if __debug__:
         from struct import pack
         from random import random
 
+        from database import Database
+
+        class TestDatabase(Database):
+            def check_database(self, *args):
+                pass
+
+        db = TestDatabase.get_instance(u"test.db")
+        
         DATA_COUNT = 1000
         RUN_COUNT = 1000
         
-        add10 = []
-        add500 = []
-        add1500 = []
+        db.execute(u"CREATE TABLE data10 (id INTEGER PRIMARY KEY AUTOINCREMENT, public_key TEXT, global_time INTEGER)")
+        db.execute(u"CREATE TABLE data500 (id INTEGER PRIMARY KEY AUTOINCREMENT, packet TEXT)")
+        db.execute(u"CREATE TABLE data1500 (id INTEGER PRIMARY KEY AUTOINCREMENT, packet TEXT)")
+        db.executemany(u"INSERT INTO data10 (public_key, global_time) VALUES (?, ?)", ((buffer("".join(chr(int(random() * 256)) for _ in xrange(83))), int(random() * 2**32)) for _ in xrange(DATA_COUNT)))
+        db.executemany(u"INSERT INTO data500 (packet) VALUES (?)", ((buffer("".join(chr(int(random() * 256)) for _ in xrange(500))),) for _ in xrange(DATA_COUNT)))
+        db.executemany(u"INSERT INTO data1500 (packet) VALUES (?)", ((buffer("".join(chr(int(random() * 256)) for _ in xrange(1500))),) for _ in xrange(DATA_COUNT)))
 
-        data10 = [("".join(chr(int(random() * 256)) for _ in xrange(83)), int(random() * 2**64)) for _ in xrange(DATA_COUNT)]
-        data500 = ["".join(chr(int(random() * 256)) for _ in xrange(500)) for _ in xrange(DATA_COUNT)]
-        data1500 = ["".join(chr(int(random() * 256)) for _ in xrange(1500)) for _ in xrange(DATA_COUNT)]
-        
-        for _ in xrange(RUN_COUNT):
-            b10 = BloomFilter(1000, 0.1)
-            start = clock()
-            for public_key, global_time in data10:
-                b10.add(public_key + pack("!Q", global_time))
-            end = clock()
-            add10.append(end - start)
+        b10 = BloomFilter(1000, 0.1)
+        for public_key, global_time in db.execute(u"SELECT public_key, global_time FROM data10"):
+            b10.add(str(public_key) + pack("!Q", global_time))
 
-            b500 = BloomFilter(1000, 0.1)
-            start = clock()
-            for packet in data500:
-                b500.add(packet)
-            end = clock()
-            add500.append(end - start)
+        b500 = BloomFilter(1000, 0.1)
+        for packet, in db.execute(u"SELECT packet FROM data500"):
+            b500.add(str(packet))
 
-            b1500 = BloomFilter(1000, 0.1)
-            start = clock()
-            for packet in data1500:
-                b1500.add(packet)
-            end = clock()
-            add1500.append(end - start)
-
-        print DATA_COUNT, "*", RUN_COUNT, "=", DATA_COUNT * RUN_COUNT
-        print "create"
-        print "10  ", sum(add10)
-        print "500 ", sum(add500)
-        print "1500", sum(add1500)
-
+        b1500 = BloomFilter(1000, 0.1)
+        for packet, in db.execute(u"SELECT packet FROM data1500"):
+            b1500.add(str(packet))
+            
         check10 = []
         check500 = []
         check1500 = []
 
         for _ in xrange(RUN_COUNT):
             start = clock()
-            for public_key, global_time in data10:
-                if not public_key + pack("!Q", global_time) in b10:
+            for public_key, global_time in db.execute(u"SELECT public_key, global_time FROM data10"):
+                if not str(public_key) + pack("!Q", global_time) in b10:
                     raise RuntimeError("err")
             end = clock()
             check10.append(end - start)
 
             start = clock()
-            for packet in data500:
-                if not packet in data500:
+            for packet, in db.execute(u"SELECT packet FROM data500"):
+                if not str(packet) in b500:
                     raise RuntimeError("err")
             end = clock()
             check500.append(end - start)
 
             start = clock()
-            for packet in data1500:
-                if not packet in data1500:
+            for packet, in db.execute(u"SELECT packet FROM data1500"):
+                if not str(packet) in b1500:
                     raise RuntimeError("err")
             end = clock()
             check1500.append(end - start)
             
+        print DATA_COUNT, "*", RUN_COUNT, "=", DATA_COUNT * RUN_COUNT
         print "check"
         print "10  ", sum(check10)
         print "500 ", sum(check500)

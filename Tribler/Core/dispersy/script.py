@@ -2809,6 +2809,7 @@ class DispersySignatureScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
+        yield 0.555
 
         dprint("SELF requests NODE to double sign")
         def on_response(response):
@@ -2871,6 +2872,7 @@ class DispersySignatureScript(ScriptBase):
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
         node.give_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address))
+        yield 1.11
         assert container["response"] == 1, container["response"]
 
         # cleanup
@@ -2981,6 +2983,7 @@ class DispersySignatureScript(ScriptBase):
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
         node2.give_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address))
+        yield 1.11
         assert container["response"] == 2, container["response"]
 
         # cleanup
@@ -3108,6 +3111,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         subjective_set = BloomFilter(100, 0.1)
         subjective_set.add(node.my_member.public_key)
         node.give_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10))
+        yield 1.11
 
         # the dispersy-sync message should now be processed (again) and result in the missing
         # subjective-set-text message

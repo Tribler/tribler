@@ -38,7 +38,10 @@ class Node(object):
     
     @property
     def wan_address(self):
-        return self._socket.getsockname()
+        if self._community:
+            return self._community.dispersy.wan_address[0], self.lan_address[1]
+        else:
+            return self.lan_address
     
     def init_socket(self):
         assert self._socket is None
@@ -82,14 +85,14 @@ class Node(object):
             # update identity information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            message = self.create_dispersy_identity_message(self.wan_address, 2)
+            message = self.create_dispersy_identity_message(self.lan_address, 2)
             self.give_message(message)
 
         if candidate:
             # update candidate information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            destination_address = self._community._dispersy.socket.get_address()
+            destination_address = self._community._dispersy.wan_address
             message = self.create_dispersy_introduction_request_message(destination_address, self.lan_address, self.wan_address, False, 0, 1, 1, [], 1)
             self.give_message(message)
 
