@@ -2153,7 +2153,11 @@ class Dispersy(Singleton):
             messages[0].community.update_global_time(max(message.distribution.global_time for message in messages))
             messages[0].handle_callback(messages)
 
-        if store:
+        # 07/10/11 Boudewijn: we will only commit if it the message was create by our self.
+        # Otherwise we can safely skip the commit overhead, since, if a crash occurs, we will be
+        # able to regain the data eventually
+        if store and any(message.authentication.member == message.community.my_member for message in messages):
+            if __debug__: dprint("commit user generated message")
             self._database.commit()
 
         if forward:
@@ -3697,13 +3701,13 @@ class Dispersy(Singleton):
         """
         while True:
             try:
-                desync = (yield 300.0)
+                desync = (yield 60.0)
                 while desync > 0.1:
                     if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
                     self._statistics.increment_bussy_time(desync)
                     desync = (yield desync)
 
-                # flush changes to disk every 5 minutes
+                # flush changes to disk every 1 minutes
                 self._database.commit()
             except GeneratorExit:
                 if __debug__: dprint("shutdown")
