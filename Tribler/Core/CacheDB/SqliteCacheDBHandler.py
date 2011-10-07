@@ -3183,10 +3183,10 @@ class ChannelCastDBHandler(object):
             self._db.executemany(update, rows, commit = self.shouldCommit)
             
             #schedule a call for in 5 minutes
-            startWorker(None, updateNrTorrents, delay = 300)
+            startWorker(None, updateNrTorrents, delay = 300.0)
             
         startWorker(None, db_call)
-        startWorker(None, updateNrTorrents, delay = 120)
+        startWorker(None, updateNrTorrents, delay = 120.0)
     
     def commit(self):
         self._db.commit()

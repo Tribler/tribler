@@ -5,12 +5,13 @@ from __future__ import with_statement
 A callback thread running Dispersy.
 """
 
+from dprint import dprint
 from heapq import heappush, heappop
+from itertools import chain
 from thread import get_ident
 from threading import Thread, Lock, Event
 from time import sleep, time
 from types import GeneratorType
-from dprint import dprint
 
 if __debug__:
     import atexit
@@ -84,11 +85,12 @@ class Callback(object):
         # _state contains the current state of the thread.  it is protected by _lock and follows the
         # following states:
         #
-        #                                 -> fatal-exception -> STATE_EXCEPTION
-        #                                /
-        # STATE_INIT -> start() -> STATE_RUNNING
-        #                                \
-        #                                 -> stop() -> PLEASE_STOP -> STATE_FINISHED
+        #                                              -> fatal-exception -> STATE_EXCEPTION
+        #                                             /
+        # STATE_INIT -> start() -> PLEASE_RUN -> STATE_RUNNING
+        #                                \            \
+        #                                 --------------> stop() -> PLEASE_STOP -> STATE_FINISHED
+        #
         self._state = "STATE_INIT"
         if __debug__: dprint("STATE_INIT")
 
@@ -136,10 +138,51 @@ class Callback(object):
         return self._exception
 
     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", callback=None, callback_args=(), callback_kargs=None):
+        """
+        Register CALL to be called.
+
+        The call will be made with ARGS and KARGS as arguments and keyword arguments, respectively.
+        ARGS must be a tuple and KARGS must be a dictionary.
+
+        CALL may return a generator object that will be repeatedly called until it raises the
+        StopIteration exception.  The generator can yield floating point values to reschedule the
+        generator after that amount of seconds counted from the scheduled start of the call.  It is
+        possible to yield other values, however, these are currently undocumented.
+
+        The call will be made after DELAY seconds.  DELAY must be a floating point value.
+
+        When multiple calls should be, or should have been made, the PRIORITY will decide the order
+        at which the calls are made.  Calls with a higher PRIORITY will be handled before calls with
+        a lower PRIORITY.  PRIORITY must be an integer.  The default PRIORITY is 0.  The order will
+        be undefined for calls with the same PRIORITY.
+
+        Each call is identified with an ID_.  A unique numerical identifier will be assigned when no
+        ID_ is specified.  And specified id's must be strings.  Registering multiple calls with the
+        same ID_ is allowed, all calls will be handled normally, however, all these calls will be
+        removed if the associated ID_ is unregistered.
+
+        Once the call is performed the optional CALLBACK is registered to be called immediately.  In
+        this case CALLBACK_ARGS and CALLBACK_KARGS are the calls arguments and keyword arguments.
+
+        Returns ID_ if specified or a uniquely generated numerical identifier
+        
+        Example:
+         > callback.register(my_func, delay=10.0)
+         > -> my_func() will be called after 10.0 seconds
+
+        Example:
+         > def my_generator():
+         >    while True:
+         >       print "foo"
+         >       yield 1.0
+         > callback.register(my_generator)
+         > -> my_generator will be called immediately printing "foo", subsequently "foo" will be
+              printed at exactly 1.0 second intervals
+        """
         assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
         assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
-        assert isinstance(delay, (int, float)), "DELAY has invalid type: %s" % type(delay)
+        assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
         assert isinstance(priority, int), "PRIORITY has invalid type: %s" % type(priority)
         assert isinstance(id_, str), "ID_ has invalid type: %s" % type(id_)
         assert callback is None or callable(callback), "CALLBACK must be None or callable"
@@ -151,7 +194,7 @@ class Callback(object):
                 self._id += 1
                 id_ = self._id
             self._new_actions.append(("register", (delay + time(),
-                                                   512 - priority,
+                                                   -priority,
                                                    id_,
                                                    (call, args, {} if kargs is None else kargs),
                                                    None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
@@ -161,15 +204,17 @@ class Callback(object):
 
     def persistent_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0, callback=None, callback_args=(), callback_kargs=None):
         """
-        Register a callback only if ID_ has not already been registered.
+        Register CALL to be called only if ID_ has not already been registered.
 
+        Aside from the different behavior of ID_, all parameters behave as in register(...).
+        
         Example:
          > callback.persistent_register("my-id", my_func, ("first",), delay=60.0)
          > callback.persistent_register("my-id", my_func, ("second",))
          > -> my_func("first") will be called after 60 seconds, my_func("second") will not be called at all
 
         Example:
-         > callback.register("my-id", my_func, ("first",), delay=60.0)
+         > callback.register(my_func, ("first",), delay=60.0, id_="my-id")
          > callback.persistent_register("my-id", my_func, ("second",))
          > -> my_func("first") will be called after 60 seconds, my_func("second") will not be called at all
         """
@@ -186,7 +231,7 @@ class Callback(object):
         if __debug__: dprint("reregister ", call, " after ", delay, " seconds")
         with self._lock:
             self._new_actions.append(("persistent-register", (delay + time(),
-                                                              512 - priority,
+                                                              -priority,
                                                               id_,
                                                               (call, args, {} if kargs is None else kargs),
                                                               None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
@@ -213,14 +258,20 @@ class Callback(object):
         assert isinstance(name, str)
         assert isinstance(wait, bool), "WAIT has invalid type: %s" % type(wait)
         if __debug__: dprint()
+        with self._lock:
+            self._state = "STATE_PLEASE_RUN"
+            if __debug__: dprint("STATE_PLEASE_RUN")
+
         thread = Thread(target=self._loop, name=name)
         thread.daemon = True
         thread.start()
 
         if wait:
             # Wait until the thread has started
-            while self._state == "STATE_INIT":
+            while self._state == "STATE_PLEASE_RUN":
                 sleep(0.01)
+
+        return self.is_running
 
     def stop(self, timeout=10.0, wait=True, exception=None):
         """
@@ -250,7 +301,7 @@ class Callback(object):
                     if timeout <= 0.0:
                         dprint("timeout.  perhaps callback.stop() was called on the same thread?")
 
-        return self._state == "STATE_FINISHED" or self._state == "STATE_EXCEPTION"
+        return self.is_finished
 
     def _loop(self):
         if __debug__: dprint()
@@ -270,9 +321,9 @@ class Callback(object):
         self._thread_ident = get_ident()
 
         with lock:
-            assert self._state == "STATE_INIT"
-            self._state = "STATE_RUNNING"
-            if __debug__: dprint("STATE_RUNNING")
+            if self._state == "STATE_PLEASE_RUN":
+                self._state = "STATE_RUNNING"
+                if __debug__: dprint("STATE_RUNNING")
 
         while self._state == "STATE_RUNNING":
             with lock:
@@ -426,23 +477,23 @@ class Callback(object):
             self._state = "STATE_FINISHED"
 
 if __debug__:
-    if __name__ == "__main__":
+    def main():
         c = Callback()
         c.start()
         d = Callback()
         d.start()
 
-        def call():
+        def call1():
             dprint(time())
 
         sleep(2)
         dprint(time())
-        c.register(call, delay=1.0)
+        c.register(call1, delay=1.0)
 
         sleep(2)
         dprint(line=1)
 
-        def call():
+        def call2():
             delay = 3.0
             for i in range(10):
                 dprint(time(), " ", i)
@@ -450,11 +501,11 @@ if __debug__:
                 if delay > 0.0:
                     delay -= 1.0
                 yield 1.0
-        c.register(call)
+        c.register(call2)
         sleep(11)
         dprint(line=1)
 
-        def call():
+        def call3():
             delay = 3.0
             for i in range(10):
                 dprint(time(), " ", i)
@@ -466,13 +517,13 @@ if __debug__:
 
                 yield Switch(c)
                 # perform code on Callback c
-        c.register(call)
+        c.register(call3)
         sleep(11.0)
         dprint(line=1)
 
         # CPU intensive call... should 'back off'
-        def call():
-            for i in xrange(10):
+        def call4():
+            for _ in xrange(10):
                 sleep(2.0)
                 desync = (yield 1.0)
                 dprint("desync... ", desync)
@@ -481,9 +532,12 @@ if __debug__:
                     desync = (yield desync)
                     dprint("next try... ", desync)
 
-        c.register(call)
+        c.register(call4)
         sleep(21.0)
         dprint(line=1)
 
         d.stop()
         c.stop()
+
+    if __name__ == "__main__":
+        main()

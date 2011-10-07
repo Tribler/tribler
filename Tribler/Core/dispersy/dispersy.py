@@ -10,7 +10,7 @@ Unfortunately, this increases the strain on these other nodes, which we try to a
 specific message policies, which will be described below.
 
 Following from this, we can easily package each message into one UDP packet to simplify
-connectability problems since UDP packets are much easier to pass though NAT's and firewalls.
+connect-ability problems since UDP packets are much easier to pass though NAT's and firewalls.
 
 Earlier we hinted that messages can have different policies.  A message has the following four
 different policies, and each policy defines how a specific part of the message should be handled.
@@ -75,6 +75,17 @@ from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 if __debug__:
     from dprint import dprint
     from time import clock
+
+# callback priorities.  note that a lower value is less priority
+WATCHDOG_PRIORITY = -1
+CANDIDATE_WALKER_PRIORITY = -1
+TRIGGER_CHECK_PRIORITY = -1
+TRIGGER_TIMEOUT_PRIORITY = -2
+assert isinstance(WATCHDOG_PRIORITY, int)
+assert isinstance(CANDIDATE_WALKER_PRIORITY, int)
+assert isinstance(TRIGGER_CHECK_PRIORITY, int)
+assert isinstance(TRIGGER_TIMEOUT_PRIORITY, int)
+assert TRIGGER_TIMEOUT_PRIORITY < TRIGGER_CHECK_PRIORITY, "an existing trigger should not timeout before being checked"
 
 class DummySocket(object):
     """
@@ -271,17 +282,18 @@ class Dispersy(Singleton):
 
         # triggers for incoming messages
         self._triggers = []
+        self._untriggered_messages = []
 
         self._check_distribution_batch_map = {DirectDistribution:self._check_direct_distribution_batch,
                                               FullSyncDistribution:self._check_full_sync_distribution_batch,
                                               LastSyncDistribution:self._check_last_sync_distribution_batch}
 
         # commit changes to the database periodically
-        self._callback.register(self._watchdog)
+        self._callback.register(self._watchdog, priority=WATCHDOG_PRIORITY)
 
         # candidate walker
         self._community_dict_modified = False
-        self._callback.register(self._candidate_walker)
+        self._callback.register(self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
         
         # statistics...
         self._statistics = Statistics()
@@ -1400,10 +1412,10 @@ class Dispersy(Singleton):
                         break
                 else:
                     # create a new Trigger with this pattern
-                    trigger = TriggerMessage(self, message.pattern, self.on_messages, [message.delayed])
+                    trigger = TriggerMessage(message.pattern, self.on_messages, [message.delayed])
                     if __debug__: dprint("created a new TriggeMessage")
                     self._triggers.append(trigger)
-                    self._callback.register(trigger.on_timeout, delay=10.0)
+                    self._callback.register(trigger.on_timeout, delay=10.0, priority=TRIGGER_TIMEOUT_PRIORITY)
                     self._send([message.delayed.address], [message.request.packet], message.request.name)
                 return False
 
@@ -1495,8 +1507,10 @@ class Dispersy(Singleton):
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
 
-        # try to 'trigger' zero or more previously delayed 'things'
-        self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(messages)]
+        if self._triggers:
+            if not self._untriggered_messages:
+                self._callback.register(self._check_triggers, priority=TRIGGER_CHECK_PRIORITY)
+            self._untriggered_messages.extend(messages)
 
         # tell what happened
         if __debug__:
@@ -1615,10 +1629,10 @@ class Dispersy(Singleton):
                         break
                 else:
                     # create a new Trigger with this pattern
-                    trigger = TriggerPacket(self, delay.pattern, self.on_incoming_packets, [(address, packet)])
+                    trigger = TriggerPacket(delay.pattern, self.on_incoming_packets, [(address, packet)])
                     if __debug__: dprint("created a new TriggerPacket")
                     self._triggers.append(trigger)
-                    self._callback.register(trigger.on_timeout, delay=10.0)
+                    self._callback.register(trigger.on_timeout, delay=10.0, priority=TRIGGER_TIMEOUT_PRIORITY)
                     self._send([address], [delay.request_packet], u"-delay-packet-")
 
         if __debug__:
@@ -1946,6 +1960,7 @@ class Dispersy(Singleton):
                 candidate = self.yield_walk_candidates(community).next()
 
             except StopIteration:
+                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " no candidate to take step")
                 return False
 
             else:
@@ -2080,7 +2095,7 @@ class Dispersy(Singleton):
         if message is None:
             # intermediary_address is no longer online
             if intermediary_address in self._candidates:
-                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)")
+                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)", force=1)
                 if not self._candidates[intermediary_address].timeout(community):
                     del self._candidates[intermediary_address]
 
@@ -2263,6 +2278,16 @@ class Dispersy(Singleton):
             self._statistics.outgoing(address, key, sum(len(packet) for packet in packets), len(packets))
             if __debug__: dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
 
+    def _check_triggers(self):
+        if __debug__:
+            debug_len_triggers = len(self._triggers)
+            debug_len_messages = len(self._untriggered_messages)
+        untriggered_messages = self._untriggered_messages
+        self._untriggered_messages = []
+        self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(untriggered_messages)]
+        if __debug__:
+            dprint("matched ", debug_len_triggers - len(self._triggers), "/", debug_len_triggers, " triggers on ", debug_len_messages, " messages")
+    
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
         Register a callback to occur when a message with a specific footprint is received, or after
@@ -2317,9 +2342,9 @@ class Dispersy(Singleton):
         assert isinstance(max_responses, (int, long))
         assert max_responses > 0
 
-        trigger = TriggerCallback(self, footprint, response_func, response_args, max_responses)
+        trigger = TriggerCallback(footprint, response_func, response_args, max_responses)
         self._triggers.append(trigger)
-        self._callback.register(trigger.on_timeout, delay=timeout)
+        self._callback.register(trigger.on_timeout, delay=timeout, priority=TRIGGER_TIMEOUT_PRIORITY)
 
     def declare_malicious_member(self, member, packets):
         """
@@ -3702,10 +3727,7 @@ class Dispersy(Singleton):
         while True:
             try:
                 desync = (yield 60.0)
-                while desync > 0.1:
-                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                    self._statistics.increment_bussy_time(desync)
-                    desync = (yield desync)
+                self._statistics.increment_bussy_time(desync)
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()
@@ -3722,10 +3744,7 @@ class Dispersy(Singleton):
             while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
                 if __debug__: dprint("there are no walker enabled communities")
                 desync = (yield 1.0)
-                while desync > 0.1:
-                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                    self._statistics.increment_bussy_time(desync)
-                    desync = (yield desync)
+                self._statistics.increment_bussy_time(desync)
 
             assert self._community_dict_modified
             while True:
@@ -3748,14 +3767,10 @@ class Dispersy(Singleton):
 
                 community = iter_communities.next()
                 if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step")
-                if not community.dispersy_take_step():
-                    if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " no candidate to take step")
+                community.dispersy_take_step()
 
                 desync = (yield delay)
-                while desync > 0.1:
-                    if __debug__: dprint("busy... backing off for ", "%4f" % desync, " seconds", level="warning")
-                    self._statistics.increment_bussy_time(desync)
-                    desync = (yield desync)
+                self._statistics.increment_bussy_time(desync)
 
     if __debug__:
         def _stats(self):
