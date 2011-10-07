@@ -17,8 +17,8 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 
 from array import array
 from hashlib import sha1, sha256, sha384, sha512, md5
-from math import ceil, log, pow, exp
-from struct import unpack_from, unpack, pack
+from math import ceil, log, exp
+from struct import unpack, pack
 
 from decorator import Constructor, constructor
 
@@ -947,6 +947,81 @@ if __debug__:
             print "Errors:", errors, "~", errors / (i + 1.0), "Two-Errors:", two_errors, "~", two_errors / (i + 1.0), "Three-Errors:", three_errors, "~", three_errors / (i + 1.0), four_errors, "~", four_errors / (i + 1.0)
             print
 
+    def _test_performance():
+        from time import clock
+        from struct import pack
+        from random import random
+
+        DATA_COUNT = 1000
+        RUN_COUNT = 1000
+        
+        add10 = []
+        add500 = []
+        add1500 = []
+
+        data10 = [("".join(chr(int(random() * 256)) for _ in xrange(83)), int(random() * 2**64)) for _ in xrange(DATA_COUNT)]
+        data500 = ["".join(chr(int(random() * 256)) for _ in xrange(500)) for _ in xrange(DATA_COUNT)]
+        data1500 = ["".join(chr(int(random() * 256)) for _ in xrange(1500)) for _ in xrange(DATA_COUNT)]
+        
+        for _ in xrange(RUN_COUNT):
+            b10 = BloomFilter(1000, 0.1)
+            start = clock()
+            for public_key, global_time in data10:
+                b10.add(public_key + pack("!Q", global_time))
+            end = clock()
+            add10.append(end - start)
+
+            b500 = BloomFilter(1000, 0.1)
+            start = clock()
+            for packet in data500:
+                b500.add(packet)
+            end = clock()
+            add500.append(end - start)
+
+            b1500 = BloomFilter(1000, 0.1)
+            start = clock()
+            for packet in data1500:
+                b1500.add(packet)
+            end = clock()
+            add1500.append(end - start)
+
+        print DATA_COUNT, "*", RUN_COUNT, "=", DATA_COUNT * RUN_COUNT
+        print "create"
+        print "10  ", sum(add10)
+        print "500 ", sum(add500)
+        print "1500", sum(add1500)
+
+        check10 = []
+        check500 = []
+        check1500 = []
+
+        for _ in xrange(RUN_COUNT):
+            start = clock()
+            for public_key, global_time in data10:
+                if not public_key + pack("!Q", global_time) in b10:
+                    raise RuntimeError("err")
+            end = clock()
+            check10.append(end - start)
+
+            start = clock()
+            for packet in data500:
+                if not packet in data500:
+                    raise RuntimeError("err")
+            end = clock()
+            check500.append(end - start)
+
+            start = clock()
+            for packet in data1500:
+                if not packet in data1500:
+                    raise RuntimeError("err")
+            end = clock()
+            check1500.append(end - start)
+            
+        print "check"
+        print "10  ", sum(check10)
+        print "500 ", sum(check500)
+        print "1500", sum(check1500)
+            
     def p(b, postfix=""):
         print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
 
@@ -956,27 +1031,28 @@ if __debug__:
         # _test_occurrence()
         # _test_documentation()
         # _test_save_load()
-        _test_false_positives()
-        _test_false_positives(FasterBloomFilter)
-        _test_prefix_false_positives()
-        _test_prefix_false_positives(FasterBloomFilter)
+        _test_performance()
+        # _test_false_positives()
+        # _test_false_positives(FasterBloomFilter)
+        # _test_prefix_false_positives()
+        # _test_prefix_false_positives(FasterBloomFilter)
 
-        MTU = 1500 # typical MTU
-        # MTU = 576 # ADSL
-        DISP = 51 + 60 + 16 + 8
-        BITS = 9583 # currently used bloom filter size
-        # BITS = (MTU - 20 - 8 - DISP) * 8 # size allowed by MTU (typical header)
-        BITS = (MTU - 60 - 8 - DISP) * 8 # size allowed by MTU (max header)
+        # MTU = 1500 # typical MTU
+        # # MTU = 576 # ADSL
+        # DISP = 51 + 60 + 16 + 8
+        # BITS = 9583 # currently used bloom filter size
+        # # BITS = (MTU - 20 - 8 - DISP) * 8 # size allowed by MTU (typical header)
+        # BITS = (MTU - 60 - 8 - DISP) * 8 # size allowed by MTU (max header)
 
-        # b1 = BloomFilter(1000, 0.01)
-        # p(b1)
-        # b2 = BloomFilter(0.01, b1.size)
-        # p(b2)
-        b3 = BloomFilter(0.001, BITS)
-        p(b3)
-        b3 = BloomFilter(0.01, BITS)
-        p(b3)
-        b3 = BloomFilter(0.1, BITS)
-        p(b3)
-        b4 = BloomFilter(0.5, BITS)
-        p(b4)
+        # # b1 = BloomFilter(1000, 0.01)
+        # # p(b1)
+        # # b2 = BloomFilter(0.01, b1.size)
+        # # p(b2)
+        # b3 = BloomFilter(0.001, BITS)
+        # p(b3)
+        # b3 = BloomFilter(0.01, BITS)
+        # p(b3)
+        # b3 = BloomFilter(0.1, BITS)
+        # p(b3)
+        # b4 = BloomFilter(0.5, BITS)
+        # p(b4)
