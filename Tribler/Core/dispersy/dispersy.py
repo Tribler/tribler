@@ -110,7 +110,7 @@ class Statistics(object):
         self._sequence_number = 0
         self._total_up = 0
         self._total_down = 0
-        self._bussy_time = 0.0
+        self._busy_time = 0.0
         
     def info(self):
         """
@@ -123,7 +123,7 @@ class Statistics(object):
                 "sequence_number":self._sequence_number,
                 "total_up":self._total_up,
                 "total_down":self._total_down,
-                "bussy_time":self._bussy_time,
+                "busy_time":self._busy_time,
                 "start":self._start,
                 "runtime":time() - self._start}
         
@@ -196,9 +196,9 @@ class Statistics(object):
         assert isinstance(byte_count, (int, long))
         self._total_down += byte_count
 
-    def increment_bussy_time(self, bussy_time):
-        assert isinstance(bussy_time, float)
-        self._bussy_time += bussy_time
+    def increment_busy_time(self, busy_time):
+        assert isinstance(busy_time, float)
+        self._busy_time += busy_time
 
 class Dispersy(Singleton):
     """
@@ -3727,7 +3727,7 @@ class Dispersy(Singleton):
         while True:
             try:
                 desync = (yield 60.0)
-                self._statistics.increment_bussy_time(desync)
+                self._statistics.increment_busy_time(desync)
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()
@@ -3744,7 +3744,7 @@ class Dispersy(Singleton):
             while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
                 if __debug__: dprint("there are no walker enabled communities")
                 desync = (yield 1.0)
-                self._statistics.increment_bussy_time(desync)
+                self._statistics.increment_busy_time(desync)
 
             assert self._community_dict_modified
             while True:
@@ -3770,7 +3770,7 @@ class Dispersy(Singleton):
                 community.dispersy_take_step()
 
                 desync = (yield delay)
-                self._statistics.increment_bussy_time(desync)
+                self._statistics.increment_busy_time(desync)
 
     if __debug__:
         def _stats(self):
@@ -3805,7 +3805,7 @@ class Dispersy(Singleton):
         # 1.5: replaced some dispersy_candidate_... attributes and added a dump of the candidates
         # 1.6: new random walk candidates and my LAN and WAN addresses
         # 1.7: removed several community attributes, no longer calling reset on self._statistics
-        # 1.8: added bussy_time to the statistics (delay caused by overloaded cpu/disk)
+        # 1.8: added busy_time to the statistics (delay caused by overloaded cpu/disk)
 
         info = {"version":1.8, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
