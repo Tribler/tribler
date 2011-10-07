@@ -414,6 +414,10 @@ class TriblerLaunchMany(Thread):
         from Tribler.Core.dispersy.member import Member
         self.session.dispersy_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
+        # define auto loads
+        self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,))
+        self.dispersy.define_auto_load(ChannelCommunity)
+        
         # load all communities after some time
         self.dispersy_thread.register(load_communities)
 

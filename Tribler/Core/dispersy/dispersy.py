@@ -274,7 +274,10 @@ class Dispersy(Singleton):
         if not all(bootstrap_addresses):
             self._callback.register(self._retry_bootstrap_candidates)
 
-        # all available communities.  cid:Community pairs.
+        # communities that can be auto loaded.  classification:(cls, args, kargs) pairs.
+        self._auto_load_communities = {}
+            
+        # loaded communities.  cid:Community pairs.
         self._communities = {}
 
         # outgoing communication
@@ -475,6 +478,24 @@ class Dispersy(Singleton):
                 # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last, delay=0.0),
                 ]
 
+    def define_auto_load(self, community, args=(), kargs=None):
+        """
+        Tell Dispersy how to load COMMUNITY is needed.
+
+        COMMUNITY is the community class that is defined.
+
+        ARGS an KARGS are optional arguments and keyword arguments used when a community is loaded
+        using COMMUNITY.load_community(master, *ARGS, **KARGS).
+        """
+        if __debug__:
+            # pylint: disable-msg=W0404
+            from community import Community
+        assert issubclass(community, Community)
+        assert isinstance(args, tuple)
+        assert kargs is None or isinstance(kargs, dict)
+        assert not community.get_classification() in self._auto_load_communities
+        self._auto_load_communities[community.get_classification()] = (community, args, kargs if kargs else {})
+        
     def attach_community(self, community):
         """
         Add a community to the Dispersy instance.
@@ -604,40 +625,23 @@ class Dispersy(Singleton):
             else:
                 if load or (auto_load and auto_load_flag):
 
-                    def recursive_subclasses(cls):
-                        l = set()
-                        for subcls in cls.__subclasses__():
-                            l.add(subcls)
-                            l.update(recursive_subclasses(subcls))
-                        return l
+                    if classification in self._auto_load_communities:
+                        # master_public_key may be None
+                        if master_public_key:
+                            master_public_key = str(master_public_key)
+                            master = Member.get_instance(str(master_public_key))
+                        else:
+                            master = Member.get_instance(cid, public_key_available=False)
 
-                    # todo: get some other mechanism to obtain the class from classification
-                    # pylint: disable-msg=W0404
-                    from community import Community
-
-                    # master_public_key may be None
-                    if master_public_key:
-                        master_public_key = str(master_public_key)
-                        master = Member.get_instance(str(master_public_key))
-                    else:
-                        master = Member.get_instance(cid, public_key_available=False)
-
-                    # attempt to load this community
-                    for cls in recursive_subclasses(Community):
-                        if classification == cls.get_classification():
-                            try:
-                                self._communities[cid] = cls.load_community(master)
-                            except TypeError:
-                                if __debug__: dprint("unable to auto load a community (most likely the community requires a parameter that we do not have at auto-load)", exception=True, level="warning")
-
-                                # disable auto-load for this community (prevent this from happening again)
-                                self._database.execute(u"UPDATE community SET auto_load = 0 WHERE master = ?", (master.database_id,))
-                            else:
-                                if __debug__: dprint("successfully auto-loaded ", classification)
-                                break
+                        cls, args, kargs = self._auto_load_communities[classification]
+                        cls.load_community(master, *args, **kargs)
+                        assert master.cid in self._communities
 
                     else:
-                        if __debug__: dprint("Failed to obtain class [", classification, "]", level="warning")
+                        if __debug__: dprint("unable to auto load, '", classification, "' is an undefined classification", level="error")
+
+                else:
+                    if __debug__: dprint("not allowed to load '", classification, "'")
 
         return self._communities[cid]
 
@@ -1507,6 +1511,7 @@ class Dispersy(Singleton):
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
 
+        # check if there are triggers
         if self._triggers:
             if not self._untriggered_messages:
                 self._callback.register(self._check_triggers, priority=TRIGGER_CHECK_PRIORITY)
@@ -2095,7 +2100,7 @@ class Dispersy(Singleton):
         if message is None:
             # intermediary_address is no longer online
             if intermediary_address in self._candidates:
-                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)", force=1)
+                if __debug__: dprint("removing candidate ", intermediary_address[0], ":", intermediary_address[1], " (timeout)")
                 if not self._candidates[intermediary_address].timeout(community):
                     del self._candidates[intermediary_address]
 
@@ -2282,6 +2287,8 @@ class Dispersy(Singleton):
         if __debug__:
             debug_len_triggers = len(self._triggers)
             debug_len_messages = len(self._untriggered_messages)
+            assert debug_len_triggers, "should not check if there are no triggers"
+            assert debug_len_messages, "should not check if there are no messages"
         untriggered_messages = self._untriggered_messages
         self._untriggered_messages = []
         self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(untriggered_messages)]

@@ -53,10 +53,6 @@ class AllChannelCommunity(Community):
 
     @classmethod
     def load_community(cls, master, my_member):
-
-        # note that we set auto_load to False.  auto_load is not possible because of the additional
-        # my_member parameter
-
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
