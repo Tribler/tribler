@@ -1021,7 +1021,7 @@ class LibraryList(SizeList):
     
     def CreateHeader(self, parent):
         header = LibraryHeader(parent, self, self.columns)
-        header.SetTitle('Library')
+        header.SetTitle('Downloads')
         header.SetEvents(self.OnAdd)
         return header
     
@@ -1105,7 +1105,7 @@ class LibraryList(SizeList):
         hSizer.Add(wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)), 0, wx.RIGHT, 10)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        firstLine = wx.StaticText(dlg, -1, "Delete '%s' from disk, or just remove them from your library?"%item.data[0])
+        firstLine = wx.StaticText(dlg, -1, "Delete '%s' from disk, or just remove them from your downloads?"%item.data[0])
         font = firstLine.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         firstLine.SetFont(font)
@@ -1118,7 +1118,7 @@ class LibraryList(SizeList):
         bSizer = wx.BoxSizer(wx.HORIZONTAL)
         bSizer.AddStretchSpacer()
         bSizer.Add(wx.Button(dlg, wx.ID_CANCEL), 0, wx.RIGHT, 3)
-        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from library'), 0, wx.RIGHT, 3)
+        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from downloads'), 0, wx.RIGHT, 3)
         bSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from disk'))
         
         vSizer.Add(bSizer, 0, wx.ALIGN_RIGHT|wx.TOP, 7)
@@ -1243,7 +1243,7 @@ class LibraryList(SizeList):
             data = [(file.infohash, [file.name, [0,0], None, None, None], file) for file in data]
             self.list.SetData(data)
         else:
-            header = "Currently not downloading any torrents."
+            header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
             message += "Additionally you could add any torrent file downloaded from an external source by using the '+ Add' button or dropping it here."
             self.list.ShowMessage(message, header = header)

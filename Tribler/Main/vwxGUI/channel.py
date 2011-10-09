@@ -184,24 +184,17 @@ class SelectedChannelList(GenericSearchList):
         self.header.SetEvents(self.OnBack)
         self.Add(self.header, 0, wx.EXPAND)
         
-        self.leftLine = wx.Panel(self.parent)
-
         #Hack to prevent focus on tabs
         PageContainer.SetFocus = lambda a: None
 
         style = fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS|fnb.FNB_NODRAG
-        self.notebook = FlatNotebook(self.leftLine, style = style)
+        self.notebook = FlatNotebook(self.parent, style = style)
         if getattr(self.notebook, 'SetAGWWindowStyleFlag', False):
             self.notebook.SetAGWWindowStyleFlag(style)
         else:
             self.notebook.SetWindowStyleFlag(style)
         self.notebook.SetTabAreaColour(self.background)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
-        
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.notebook, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,1)
-        sizer.Add(StaticLine(self.leftLine, -1), 0, wx.EXPAND)
-        self.leftLine.SetSizer(sizer)
         
         list = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -227,7 +220,14 @@ class SelectedChannelList(GenericSearchList):
         self.moderationList = NotebookPanel(self.notebook)
         self.moderationList.SetList(ModerationList(self.moderationList, self))
         
-        self.Add(self.leftLine, 1, wx.EXPAND)
+        self.leftLine = wx.Panel(self.parent, size=(1,-1))
+        self.rightLine = wx.Panel(self.parent, size=(1,-1))
+
+        listSizer = wx.BoxSizer(wx.HORIZONTAL)
+        listSizer.Add(self.leftLine, 0, wx.EXPAND)
+        listSizer.Add(self.notebook, 1, wx.EXPAND)
+        listSizer.Add(self.rightLine, 0, wx.EXPAND)
+        self.Add(listSizer, 1, wx.EXPAND)
         
         self.footer = self.CreateFooter(self.parent)
         self.Add(self.footer, 0, wx.EXPAND)

@@ -294,10 +294,11 @@ class TitleHeader(ListHeader):
         if belowPanel:
             vSizer.Add(belowPanel, 1, wx.EXPAND|wx.TOP, 3)
 
+        vSizer.AddSpacer((-1, 3))
+
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.AddColumns(hSizer, self, columns)
-            vSizer.AddSpacer((-1, 3))
             vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius+spacers[0])
         self.SetSizer(vSizer)
     

@@ -681,8 +681,8 @@ class TorrentDetails(AbstractDetails):
     @warnWxThread
     def _ShowDownloadProgress(self):
         if not self.compact and not isinstance(self, LibraryDetails):
-            library = LinkStaticText(self.buttonPanel, "Open library")
-            library.SetToolTipString("Open library")
+            library = LinkStaticText(self.buttonPanel, "Open downloads")
+            library.SetToolTipString("Open downloads")
             library.target = 'my_files'
             library.Bind(wx.EVT_LEFT_UP, self.OnClick)
             self.buttonSizer.Add(library, 0, wx.LEFT|wx.RIGHT, 3)

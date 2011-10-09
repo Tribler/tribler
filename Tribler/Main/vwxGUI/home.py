@@ -42,7 +42,7 @@ class Home(XRCPanel):
         
         vSizer.AddStretchSpacer()
         
-        text = StaticText(self, -1, "Tribler")
+        text = StaticText(self, -1, self.guiutility.utility.lang.get('title'))
         font = text.GetFont()
         font.SetPointSize(font.GetPointSize() * 3)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
