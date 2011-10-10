@@ -2367,10 +2367,12 @@ class Dispersy(Singleton):
         untriggered_messages = self._untriggered_messages
         self._triggers = []
         self._untriggered_messages = []
-        triggers = [trigger for trigger in self._triggers if trigger.on_messages(untriggered_messages)]
-        self._triggers.extend(triggers)
+        triggers = [trigger for trigger in triggers if trigger.on_messages(untriggered_messages)]
         if __debug__:
-            dprint("matched ", debug_len_triggers - len(self._triggers), "/", debug_len_triggers, " triggers on ", debug_len_messages, " messages")
+            dprint("matched ", debug_len_triggers - len(triggers), "/", debug_len_triggers, " triggers on ", debug_len_messages, " messages")
+
+        # add remaining triggers to _triggers
+        self._triggers.extend(triggers)
     
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """

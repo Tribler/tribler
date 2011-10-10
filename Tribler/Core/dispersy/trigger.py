@@ -101,7 +101,7 @@ class TriggerCallback(Trigger):
     def on_timeout(self):
         if self._responses_remaining > 0:
             if __debug__:
-                dprint("timout on trigger with one callback", level="warning")
+                dprint("timeout on trigger with one callback", level="warning")
                 dprint("pattern: ", self._debug_pattern)
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
