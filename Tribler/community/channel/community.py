@@ -814,7 +814,7 @@ class ChannelCommunity(Community):
                 if snapshot is None:
                     snapshot = []
                     torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
-                    for infohash in torrents:
+                    for infohash, in torrents:
                         tormessage = self._get_message_from_torrent_infohash(infohash)
                         snapshot.append(tormessage.packet)
                 
