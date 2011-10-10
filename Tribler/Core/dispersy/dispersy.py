@@ -1958,6 +1958,9 @@ class Dispersy(Singleton):
                                     distribution=(community.global_time,),
                                     destination=(destination,),
                                     payload=(destination, self._lan_address, self._wan_address, advice, identifier, time_low, time_high, bloom_filter))
+    
+        if __debug__:
+            dprint(community.cid.encode("HEX"), ' sending introduction request to '+destination[0], ':', destination[1])
 
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
@@ -2086,6 +2089,9 @@ class Dispersy(Singleton):
         for message in messages:
             # apply vote to determine our WAN address
             self.wan_address_vote(message.payload.destination_address, message.address)
+            
+            if __debug__:
+                dprint(community.cid.encode("HEX"), ' got introduction response from '+message.address[0], ':', message.address[1])
 
             # modify either the senders LAN or WAN address based on how we perceive that node
             if message.address[0] == self._wan_address[0]:
