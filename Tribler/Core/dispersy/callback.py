@@ -144,12 +144,26 @@ class Callback(object):
         return self._exception
 
     def attach_exception_handler(self, func):
+        """
+        Attach a new exception notifier.
+
+        FUNC will be called whenever a registered call raises an exception.  The first parameter
+        will be the raised exception, the second parameter will be a boolean indicating if the
+        exception was fatal.
+
+        Fatal exceptions are SystemExit, KeyboardInterrupt, GeneratorExit, or AssertionError.  These
+        exceptions will cause the Callback thread to exit.  The Callback thread will continue to
+        function on all other exceptions.
+        """
         assert callable(func), "handler must be callable"
         with self._lock:
             assert not func in self._exception_handlers, "handler was already attached"
             self._exception_handlers.append(func)
 
     def detach_exception_handler(self, func):
+        """
+        Detach an existing exception notifier.
+        """
         assert callable(func), "handler must be callable"
         with self._lock:
             assert func in self._exception_handlers, "handler is not attached"
