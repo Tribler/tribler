@@ -31,6 +31,7 @@ import urllib
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
+from Tribler.Core.dispersy.dispersy import Dispersy
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -282,6 +283,13 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
+        
+        try:
+            Dispersy.get_instance()
+            self.sesscb_ntfy_dispersy()
+        except:
+            s.add_observer(self.sesscb_ntfy_dispersy, NTFY_DISPERSY, [NTFY_STARTED])
+        
         
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
@@ -834,7 +842,12 @@ class ABCApp():
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
-
+    
+    @forceWxThread
+    def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
+        disp = Dispersy.get_instance()
+        disp._callback.attach_exception_handler(self.frame.exceptionHandler)
+                    
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
         # valid.

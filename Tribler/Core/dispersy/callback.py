@@ -176,8 +176,8 @@ class Callback(object):
             try:
                 exception_handler(exception, fatal)
             except Exception:
-                assert False, "the exception handler should not cause an exception"
                 dprint(exception=True, level="error")
+                assert False, "the exception handler should not cause an exception"
     
     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", callback=None, callback_args=(), callback_kargs=None):
         """

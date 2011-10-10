@@ -27,6 +27,8 @@ from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
     ManageChannel
 from wx.html import HtmlWindow
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
+import traceback
 
 try:
     import wxversion
@@ -373,7 +375,37 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    @forceWxThread
+    @forceWxThread#        self.frame.sendButton.Disable()
+#        # Disabling the focused button disables keyboard navigation
+#        # unless we set the focus to something else - let's put it
+#        # on close button
+#        self.frame.closeButton.SetFocus() 
+#        self.frame.sendButton.SetLabel(_(u'Sending...'))
+#        
+#        try:
+#            from M2Crypto import httpslib, SSL
+#            # Try to load the CA certificates for secure SSL.
+#            # If we can't load them, the data is hidden from casual observation,
+#            # but a man-in-the-middle attack is possible.
+#            ctx = SSL.Context()
+#            opts = {}
+#            if ctx.load_verify_locations('parcels/osaf/framework/certstore/cacert.pem') == 1:
+#                ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, 9)
+#                opts['ssl_context'] = ctx
+#            c = httpslib.HTTPSConnection('feedback.osafoundation.org', 443, opts)
+#            body = buildXML(self.frame.comments, self.frame.email,
+#                            self.frame.sysInfo, self.frame.text)
+#            c.request('POST', '/desktop/post/submit', body)
+#            response = c.getresponse()
+#            
+#            if response.status != 200:
+#                raise Exception('response.status=' + response.status)
+#            c.close()
+#        except:
+#            self.frame.sendButton.SetLabel(_(u'Failed to send'))
+#        else:
+#            self.frame.sendButton.SetLabel(_(u'Sent'))
+#            self.logReport(body, response.read())
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
@@ -436,7 +468,37 @@ class MainFrame(wx.Frame):
                     self.show_saved()
                 
                 # store result because we want to store clicklog data
-                # right after download was started, then return result
+                # right after d#        self.frame.sendButton.Disable()
+#        # Disabling the focused button disables keyboard navigation
+#        # unless we set the focus to something else - let's put it
+#        # on close button
+#        self.frame.closeButton.SetFocus() 
+#        self.frame.sendButton.SetLabel(_(u'Sending...'))
+#        
+#        try:
+#            from M2Crypto import httpslib, SSL
+#            # Try to load the CA certificates for secure SSL.
+#            # If we can't load them, the data is hidden from casual observation,
+#            # but a man-in-the-middle attack is possible.
+#            ctx = SSL.Context()
+#            opts = {}
+#            if ctx.load_verify_locations('parcels/osaf/framework/certstore/cacert.pem') == 1:
+#                ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, 9)
+#                opts['ssl_context'] = ctx
+#            c = httpslib.HTTPSConnection('feedback.osafoundation.org', 443, opts)
+#            body = buildXML(self.frame.comments, self.frame.email,
+#                            self.frame.sysInfo, self.frame.text)
+#            c.request('POST', '/desktop/post/submit', body)
+#            response = c.getresponse()
+#            
+#            if response.status != 200:
+#                raise Exception('response.status=' + response.status)
+#            c.close()
+#        except:
+#            self.frame.sendButton.SetLabel(_(u'Failed to send'))
+#        else:
+#            self.frame.sendButton.SetLabel(_(u'Sent'))
+#            self.logReport(body, response.read())ownload was started, then return result
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                     mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
@@ -915,6 +977,22 @@ class MainFrame(wx.Frame):
         dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK|wx.ICON_WARNING)
         result = dlg.ShowModal()
         dlg.Destroy()
+        
+    def exceptionHandler(self, exc, fatal = False):
+        type, value, stack = sys.exc_info()
+        backtrace = traceback.format_exception(type, value, stack)
+        
+        def do_gui():
+            win = FeedbackWindow(self.utility.lang.get('tribler_warning'))
+            win.SetParent(self)
+            win.CreateOutputWindow('')
+            for line in backtrace:
+                win.write(line)
+            
+            if fatal:
+                win.Show()
+            
+        wx.CallAfter(do_gui)
 
     def onUPnPError(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
 
