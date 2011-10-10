@@ -33,6 +33,7 @@ from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 if sys.platform == 'win32':
