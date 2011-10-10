@@ -16,7 +16,7 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Rss.rssparser import RssParser
-from wx.lib.agw.flatnotebook import FlatNotebook
+from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 
@@ -168,6 +168,7 @@ class SelectedChannelList(GenericSearchList):
         
         self.title = None
         self.channel = None
+        self.iamModerator = False
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
@@ -183,21 +184,17 @@ class SelectedChannelList(GenericSearchList):
         self.header.SetEvents(self.OnBack)
         self.Add(self.header, 0, wx.EXPAND)
         
-        self.leftLine = wx.Panel(self.parent)
+        #Hack to prevent focus on tabs
+        PageContainer.SetFocus = lambda a: None
 
         style = fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS|fnb.FNB_NODRAG
-        self.notebook = FlatNotebook(self.leftLine, style = style)
+        self.notebook = FlatNotebook(self.parent, style = style)
         if getattr(self.notebook, 'SetAGWWindowStyleFlag', False):
             self.notebook.SetAGWWindowStyleFlag(style)
         else:
             self.notebook.SetWindowStyleFlag(style)
         self.notebook.SetTabAreaColour(self.background)
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
-        
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.notebook, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,1)
-        sizer.Add(StaticLine(self.leftLine, -1), 0, wx.EXPAND)
-        self.leftLine.SetSizer(sizer)
         
         list = wx.Panel(self.notebook)
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -215,7 +212,7 @@ class SelectedChannelList(GenericSearchList):
         self.notebook.AddPage(list, "Contents")
         
         self.commentList = NotebookPanel(self.notebook)
-        self.commentList.SetList(CommentList(self.commentList, self))
+        self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
         
         self.activityList = NotebookPanel(self.notebook)
         self.activityList.SetList(ActivityList(self.activityList, self))
@@ -223,7 +220,14 @@ class SelectedChannelList(GenericSearchList):
         self.moderationList = NotebookPanel(self.notebook)
         self.moderationList.SetList(ModerationList(self.moderationList, self))
         
-        self.Add(self.leftLine, 1, wx.EXPAND)
+        self.leftLine = wx.Panel(self.parent, size=(1,-1))
+        self.rightLine = wx.Panel(self.parent, size=(1,-1))
+
+        listSizer = wx.BoxSizer(wx.HORIZONTAL)
+        listSizer.Add(self.leftLine, 0, wx.EXPAND)
+        listSizer.Add(self.notebook, 1, wx.EXPAND)
+        listSizer.Add(self.rightLine, 0, wx.EXPAND)
+        self.Add(listSizer, 1, wx.EXPAND)
         
         self.footer = self.CreateFooter(self.parent)
         self.Add(self.footer, 0, wx.EXPAND)
@@ -738,15 +742,15 @@ class PlaylistItem(ListItem):
         
         self.icontype = 'tree'
         self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
-        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
         self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.title.SetMinSize((1, -1))
         _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD)
         
-        titleRow.Add(self.title, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        titleRow.Add(self.title, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.LEFT|wx.BOTTOM, 3)
         self.nrTorrents = wx.StaticText(self, -1, "%d Torrents"%self.data[2], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
-        titleRow.Add(self.nrTorrents, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        titleRow.Add(self.nrTorrents, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.LEFT|wx.BOTTOM, 3)
 
         if rightSpacer > 0:
             titleRow.AddSpacer((rightSpacer, -1))
@@ -755,7 +759,7 @@ class PlaylistItem(ListItem):
         self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.desc.SetMinSize((1, -1))
         self.hSizer.AddSpacer((40, -1))
-        self.hSizer.Add(self.desc, 1, wx.ALL, 3)
+        self.hSizer.Add(self.desc, 1, wx.LEFT|wx.BOTTOM, 3)
         self.AddEvents(self)
         
     def RefreshData(self, data):
@@ -1175,6 +1179,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 else:
                     self.RemovePage(self.notebook, "Manage playlists")
                     self.RemovePage(self.notebook, "Manage")
+                
+                self.Refresh()
+                #self.CreateJoinChannelFile()
                     
             startWorker(update_panel, db_call)
             
@@ -1197,6 +1204,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             #disable all other tabs
             for i in range(1, self.notebook.GetPageCount()):
+                page = self.notebook.GetPage(i)
+                page.Show(False)
                 self.notebook.RemovePage(i)
     
     @forceDBThread        
@@ -1213,14 +1222,16 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def AddPage(self, notebook, page, title, index):
         curindex = self.GetPage(notebook, title)
         if curindex is None:
+            page.Show(True)
+            
             index = min(notebook.GetPageCount(), index)
             notebook.InsertPage(index, page, title)
-            page.Show(True)
     
     def RemovePage(self, notebook, title):
         curindex = self.GetPage(notebook, title)
         if curindex is not None:
             page = notebook.GetPage(curindex)
+
             page.Show(False)
             notebook.RemovePage(curindex)
     
@@ -1230,12 +1241,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def OnChange(self, event):
         page = event.GetSelection()
         if page == self.GetPage(self.notebook, "Manage torrents"):
-            self.fileslist.Show()
-            self.fileslist.SetFocus()
+            self.fileslist.Show(isSelected = True)
+            self.fileslist.Focus()
         
         elif page == self.GetPage(self.notebook, "Manage playlists"):
-            self.playlistlist.Show()
-            self.playlistlist.SetFocus() 
+            self.playlistlist.Show(isSelected = True)
+            self.playlistlist.Focus() 
         event.Skip()
     
     def OnBack(self, event):
@@ -2178,7 +2189,7 @@ class ModificationList(List):
         self.SetNrResults(len(data))
         
     def OnRevertModification(self, modification):
-        dlg = wx.Dialog(self, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
         dlg.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         

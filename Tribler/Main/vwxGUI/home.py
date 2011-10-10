@@ -42,7 +42,7 @@ class Home(XRCPanel):
         
         vSizer.AddStretchSpacer()
         
-        text = StaticText(self, -1, "Tribler")
+        text = StaticText(self, -1, self.guiutility.utility.lang.get('title'))
         font = text.GetFont()
         font.SetPointSize(font.GetPointSize() * 3)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -126,15 +126,17 @@ class Stats(XRCPanel):
         self.isReady = False
         
     def _DoInit(self):
+        try:
+            disp = DispersyPanel(self)
+        except:
+            self.SetBackgroundColour(wx.RED)
+            print_exc()
+            return
+        
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
-        
-        try:
-            vSizer.Add(DispersyPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
-        except:
-            vSizer.Add(StaticText(self, -1, 'Could not create DispersyPanel, please restart to try again.'))
-            print_exc()
+        vSizer.Add(disp, 0, wx.EXPAND|wx.BOTTOM, 10)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)

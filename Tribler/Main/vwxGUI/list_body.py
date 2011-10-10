@@ -369,9 +369,6 @@ class ListItem(wx.Panel):
                 return self.expandedPanel.OnEventSize(width)
         return False
         
-    def OnEventSize(self, width):
-        pass
-        
     def __str__( self ):
         return "ListItem" + " ".join(map(str, self.data))
         
@@ -421,7 +418,7 @@ class AbstractListBody():
         
         messageSizer = wx.BoxSizer(wx.HORIZONTAL)
         messageSizer.AddStretchSpacer()
-        messageSizer.Add(messageVSizer)
+        messageSizer.Add(messageVSizer, 0, wx.TOP|wx.BOTTOM, 7)
         messageSizer.AddStretchSpacer()
         self.messagePanel.SetSizer(messageSizer)
         

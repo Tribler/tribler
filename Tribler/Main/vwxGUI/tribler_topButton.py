@@ -808,9 +808,9 @@ class NotebookPanel(wx.Panel):
         except:
             return getattr(self.list, name)
         
-    def Show(self, show=True):
+    def Show(self, show=True,isSelected=False):
         wx.Panel.Show(self, show)
-        self.list.Show(show)
+        self.list.Show(show, isShown=isSelected)
         if show:
             self.Layout()
             

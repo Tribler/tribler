@@ -869,9 +869,9 @@ class ChannelCommunity(Community):
             else:
                 by_peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
           
-            self._channelcast_db.on_moderation(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp, message.payload.severity)
-
-            #see if this was a torrent
+            #determine if we are reverting latest
+            updateTorrent = False
+            
             modifying_dispersy_id = cause_message.payload.modification_on.packet_id
             channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
             if channeltorrent_id:
@@ -879,9 +879,16 @@ class ChannelCommunity(Community):
                 modification_type_id = self._modification_types[modification_type]
                 
                 latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
-                if not latest or latest.packet_id == dispersy_id:
-                    modification_value = latest.payload.modification_value if latest else ''
-                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+                if not latest or latest.packet_id == cause_message.packet_id:
+                    updateTorrent = True
+                
+            self._channelcast_db.on_moderation(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp, message.payload.severity)
+            
+            if updateTorrent:
+                latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                
+                modification_value = latest.payload.modification_value if latest else ''
+                self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
     
     def _disp_undo_moderation(self, descriptors):
         for _, _, packet in descriptors:

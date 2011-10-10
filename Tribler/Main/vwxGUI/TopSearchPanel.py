@@ -190,7 +190,7 @@ class TopSearchPanel(bgPanel):
         else:
             self.channels = createToggle('Channel', self.OnChannels)
         self.settings = createToggle('Settings', self.OnSettings)
-        self.my_files = createToggle('Library', self.OnLibrary)
+        self.my_files = createToggle('Downloads', self.OnLibrary)
         
         if not self.channelonly:
             self.results = createToggle('Results', self.OnResults)
