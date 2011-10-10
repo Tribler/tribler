@@ -113,7 +113,6 @@ class TrackerDispersy(Dispersy):
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         callback.register(self._unload_communities)
-        callback.register(self._stats)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
@@ -136,13 +135,6 @@ class TrackerDispersy(Dispersy):
             for community in [community for community in self._communities.itervalues() if not has_candidates(community)]:
                 community.unload_community()
 
-    def _stats(self):
-        while True:
-            yield 10.0
-            for community in self._communities.itervalues():
-                candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
-                print community.cid.encode("HEX"), len(candidates), "candidates[:10]", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10])
-        
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
         while True:
