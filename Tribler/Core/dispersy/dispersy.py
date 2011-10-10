@@ -2152,7 +2152,7 @@ class Dispersy(Singleton):
 
     def check_puncture(self, messages):
         for message in messages:
-            if not message.payload.identifier in self._walk_identifiers:
+            if not self._walk_identifiers.get(message.payload.identifier, None):
                 yield DropMessage(message, "invalid response identifier")
 
             else:
@@ -3813,7 +3813,9 @@ class Dispersy(Singleton):
         while True:
             try:
                 desync = (yield 60.0)
-                self._statistics.increment_busy_time(desync)
+                if desync > 0.1:
+                    self._statistics.increment_busy_time(desync)
+                    yield desync
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()
@@ -3830,7 +3832,9 @@ class Dispersy(Singleton):
             while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
                 if __debug__: dprint("there are no walker enabled communities")
                 desync = (yield 1.0)
-                self._statistics.increment_busy_time(desync)
+                if desync > 0.1:
+                    self._statistics.increment_busy_time(desync)
+                    yield desync
 
             assert self._community_dict_modified
             while True:
@@ -3856,7 +3860,9 @@ class Dispersy(Singleton):
                 community.dispersy_take_step()
 
                 desync = (yield delay)
-                self._statistics.increment_busy_time(desync)
+                if desync > 0.1:
+                    self._statistics.increment_busy_time(desync)
+                    yield desync
 
     if __debug__:
         def _stats(self):
