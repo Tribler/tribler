@@ -635,7 +635,7 @@ class Dispersy(Singleton):
 
                         cls, args, kargs = self._auto_load_communities[classification]
                         cls.load_community(master, *args, **kargs)
-                        assert master.cid in self._communities
+                        assert master.mid in self._communities
 
                     else:
                         if __debug__: dprint("unable to auto load, '", classification, "' is an undefined classification", level="error")
