@@ -90,40 +90,33 @@ class Candidate(object):
     def out_introduction_request(self):
         self._timestamp_last_step = time()
     
-    def inc_introduction_requests(self, lan_address, wan_address, community):
-        if __debug__:
-            from community import Community
+    def inc_introduction_requests(self, lan_address, wan_address):
         assert is_address(lan_address)
         assert is_address(wan_address)
-        assert isinstance(community, Community)
         if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
         self._lan_address = lan_address
         self._wan_address = wan_address
-        self._communities.add(community)
-        self._timestamp_incoming = time()
         self._is_stumble = True
 
-    def inc_introduction_response(self, lan_address, wan_address, community):
-        if __debug__:
-            from community import Community
+    def inc_introduction_response(self, lan_address, wan_address):
         assert is_address(lan_address)
         assert is_address(wan_address)
-        assert isinstance(community, Community)
         if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
         self._lan_address = lan_address
         self._wan_address = wan_address
-        self._communities.add(community)
-        self._timestamp_incoming = time()
         self._is_walk = True
 
-    def inc_introduced(self, community):
-        if __debug__:
-            from community import Community
-        assert isinstance(community, Community)
+    def inc_introduced(self):
         if __debug__: dprint("updated")
-        self._communities.add(community)
         self._is_introduction = True
-        
+
+    def inc_puncture(self, lan_address, wan_address):
+        assert is_address(lan_address)
+        assert is_address(wan_address)
+        if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
+        self._lan_address = lan_address
+        self._wan_address = wan_address
+
     def inc_any(self, community):
         if __debug__:
             from community import Community

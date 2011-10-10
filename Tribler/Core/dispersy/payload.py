@@ -1,4 +1,3 @@
-from time import time
 from hashlib import sha1
 
 from meta import MetaObject
@@ -201,7 +200,7 @@ class IntroductionResponsePayload(Payload):
 
 class PunctureRequestPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, lan_walker_address, wan_walker_address):
+        def __init__(self, meta, lan_walker_address, wan_walker_address, identifier):
             """
             Create the payload for a puncture-request payload.
 
@@ -212,12 +211,18 @@ class PunctureRequestPayload(Payload):
             WAN_WALKER_ADDRESS is the wan address of the node that the sender wants us to
             contact.  This contact attempt should punch a hole in our NAT to allow the node to
             connect to us.
+
+            IDENTIFIER is a number that was given in the associated introduction-request.  This
+            number allows to distinguish between multiple introduction-response messages.
             """
             assert is_address(lan_walker_address)
             assert is_address(wan_walker_address)
+            assert isinstance(identifier, int)
+            assert 0 <= identifier < 2**16
             super(PunctureRequestPayload.Implementation, self).__init__(meta)
             self._lan_walker_address = lan_walker_address
             self._wan_walker_address = wan_walker_address
+            self._identifier = identifier
 
         @property
         def lan_walker_address(self):
@@ -227,9 +232,27 @@ class PunctureRequestPayload(Payload):
         def wan_walker_address(self):
             return self._wan_walker_address
 
+        @property
+        def identifier(self):
+            return self._identifier
+
 class PuncturePayload(Payload):
     class Implementation(Payload.Implementation):
-        pass
+        def __init__(self, meta, identifier):
+            """
+            Create the payload for a puncture message
+            
+            IDENTIFIER is a number that was given in the associated introduction-request.  This
+            number allows to distinguish between multiple introduction-response messages.
+            """
+            assert isinstance(identifier, int)
+            assert 0 <= identifier < 2**16
+            super(PuncturePayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            
+        @property
+        def identifier(self):
+            return self._identifier
 
 class AuthorizePayload(Payload):
     class Implementation(Payload.Implementation):
@@ -262,10 +285,6 @@ class AuthorizePayload(Payload):
         def permission_triplets(self):
             return self._permission_triplets
 
-        @property
-        def payload(self):
-            return self._payload
-
 class RevokePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, permission_triplets):
@@ -296,10 +315,6 @@ class RevokePayload(Payload):
         @property
         def permission_triplets(self):
             return self._permission_triplets
-
-        @property
-        def payload(self):
-            return self._payload
 
 class UndoPayload(Payload):
     class Implementation(Payload.Implementation):
@@ -488,7 +503,7 @@ class MissingSubjectiveSetPayload(Payload):
             assert isinstance(cluster, int)
             assert 0 < cluster < 2^8, "CLUSTER must fit in one byte"
             assert isinstance(members, (tuple, list))
-            assert not filter(lambda x: not isinstance(x, Member), members)
+            assert all(isinstance(member, Member) for member in members)
             super(MissingSubjectiveSetPayload.Implementation, self).__init__(meta)
             self._cluster = cluster
             self._members = members
@@ -508,8 +523,8 @@ class MissingMessagePayload(Payload):
                 from member import Member
             assert isinstance(member, Member)
             assert isinstance(global_times, (tuple, list))
-            assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
-            assert not filter(lambda x: not x > 0, global_times), global_times
+            assert all(isinstance(global_time, (int, long)) for global_time in global_times)
+            assert all(global_time > 0 for global_time in global_times)
             assert len(global_times) > 0
             assert len(set(global_times)) == len(global_times)
             super(MissingMessagePayload.Implementation, self).__init__(meta)

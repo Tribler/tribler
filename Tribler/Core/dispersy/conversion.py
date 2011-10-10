@@ -8,9 +8,8 @@ from bloomfilter import BloomFilter
 from crypto import ec_check_public_bin
 from destination import MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
-from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution, RelayDistribution
-from encoding import encode, decode
-from message import DelayPacket, DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
+from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
+from message import DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
@@ -749,10 +748,11 @@ class BinaryConversion(Conversion):
     def _encode_puncture_request(self, message):
         payload = message.payload
         return inet_aton(payload.lan_walker_address[0]), pack("!H", payload.lan_walker_address[1]), \
-            inet_aton(payload.wan_walker_address[0]), pack("!H", payload.wan_walker_address[1])
+            inet_aton(payload.wan_walker_address[0]), pack("!H", payload.wan_walker_address[1]), \
+            pack("!H", payload.identifier)
 
     def _decode_puncture_request(self, placeholder, offset, data):
-        if len(data) < offset + 12:
+        if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
         lan_walker_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
@@ -761,13 +761,22 @@ class BinaryConversion(Conversion):
         wan_walker_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
 
-        return offset, placeholder.meta.payload.implement(lan_walker_address, wan_walker_address)
+        identifier, = unpack_from("!H", data, offset)
+        offset += 2
+        
+        return offset, placeholder.meta.payload.implement(lan_walker_address, wan_walker_address, identifier)
 
     def _encode_puncture(self, message):
-        return ()
+        return pack("!H", message.payload.identifier),
 
     def _decode_puncture(self, placeholder, offset, data):
-        return offset, placeholder.meta.payload.implement()
+        if len(data) < offset + 2:
+            raise DropPacket("Insufficient packet size")
+
+        identifier, = unpack_from("!H", data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
 
     #
     # Encoding
