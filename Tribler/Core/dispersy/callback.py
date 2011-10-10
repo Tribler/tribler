@@ -99,6 +99,12 @@ class Callback(object):
         # be set to STATE_EXCEPTION.  it is protected by _lock
         self._exception = None
 
+        # _exception_handlers contains a list with callable functions of methods.  all handlers are
+        # called whenever an exception occurs.  first parameter is the exception, second parameter
+        # is a boolean indicating if the exception is fatal (i.e. True indicates SystemExit,
+        # KeyboardInterrupt, GeneratorExit, or AssertionError)
+        self._exception_handlers = []
+
         # _id contains a running counter to ensure that every scheduled callback has its own unique
         # identifier.  it is protected by _lock
         self._id = 0
@@ -137,6 +143,28 @@ class Callback(object):
         """
         return self._exception
 
+    def attach_exception_handler(self, func):
+        assert callable(func), "handler must be callable"
+        with self._lock:
+            assert not func in self._exception_handlers, "handler was already attached"
+            self._exception_handlers.append(func)
+
+    def detach_exception_handler(self, func):
+        assert callable(func), "handler must be callable"
+        with self._lock:
+            assert func in self._exception_handlers, "handler is not attached"
+            self._exception_handlers.remove(func)
+
+    def _call_exception_handlers(self, exception, fatal):
+        with self._lock:
+            exception_handlers = self._exception_handlers[:]
+        for exception_handler in exception_handlers:
+            try:
+                exception_handler(exception, fatal)
+            except Exception:
+                assert False, "the exception handler should not cause an exception"
+                dprint(exception=True, level="error")
+    
     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", callback=None, callback_args=(), callback_kargs=None):
         """
         Register CALL to be called.
@@ -361,15 +389,6 @@ class Callback(object):
                     level = "warning" if max(debug_desyncs) > QUEUE_DELAY_FOR_WARNING else "normal"
                     dprint(len(requests), " non-expired waiting in queue")
                     dprint(len(expired), " expired waiting in queue (min desync %.4fs" % min(debug_desyncs), ", max desync %.4fs" % max(debug_desyncs), ")", level=level)
-                    # for counter, (deadline, _, _, call, _) in enumerate(requests, 1):
-                    #     desync = deadline - actual_time
-                    #     level = "error" if desync < 0.0 else "normal"
-                    #     dprint("%2d/%-2d queue waiting %.4fs" % (counter, len(requests), desync), " for request ", call[0], level=level)
-
-                    # for counter, (_, deadline, _, call, _) in enumerate(expired, 1):
-                    #     desync = actual_time - deadline
-                    #     level = "warning" if desync > QUEUE_DELAY_FOR_WARNING else "normal"
-                    #     dprint("%2d/%-2d queue desync  %.4fs" % (counter, len(expired), desync), " for expired ", call[0], level=level)
 
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
@@ -393,10 +412,12 @@ class Callback(object):
                             with lock:
                                 self._state = "STATE_EXCEPTION"
                                 self._exception = exception
+                            self._call_exception_handlers(exception, True)
                         except Exception, exception:
+                            dprint(exception=True, level="error")
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
-                            dprint(exception=True, level="error")
+                            self._call_exception_handlers(exception, False)
                         else:
                             if isinstance(result, float):
                                 # schedule CALL again in RESULT seconds
@@ -426,10 +447,12 @@ class Callback(object):
                             with lock:
                                 self._state = "STATE_EXCEPTION"
                                 self._exception = exception
+                            self._call_exception_handlers(exception, True)
                         except Exception, exception:
+                            dprint(exception=True, level="error")
                             if callback:
                                 heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
-                            dprint(exception=True, level="error")
+                            self._call_exception_handlers(exception, False)
                         else:
                             if isinstance(result, GeneratorType):
                                 # we only received the generator, no actual call has been made to the
