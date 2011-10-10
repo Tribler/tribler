@@ -377,5 +377,5 @@ class ChannelConversion(BinaryConversion):
         if len(data) < offset + 1:
             raise DropPacket("Unable to decode the payload")
 
-        includeSnapshot = unpack_from('!?', data, offset)
+        includeSnapshot, = unpack_from('!?', data, offset)
         return offset, placeholder.meta.payload.implement(includeSnapshot)
