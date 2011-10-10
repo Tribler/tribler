@@ -1995,9 +1995,9 @@ class Dispersy(Singleton):
 
             if __debug__:
                 if not source_lan_address == message.payload.source_lan_address:
-                    dprint("modified our local view of candidates LAN address ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " -> ", source_lan_address[0], ":", source_lan_address[1], force=1)
+                    dprint("modified our local view of candidates LAN address ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " -> ", source_lan_address[0], ":", source_lan_address[1])
                 if not source_wan_address == message.payload.source_wan_address:
-                    dprint("modified our local view of candidates WAN address ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " -> ", source_wan_address[0], ":", source_wan_address[1], force=1)
+                    dprint("modified our local view of candidates WAN address ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " -> ", source_wan_address[0], ":", source_wan_address[1])
 
             # add source to candidate pool and mark as a node that stumbled upon us
             if self._is_valid_lan_address(source_lan_address) and self._is_valid_wan_address(source_wan_address):
@@ -2097,9 +2097,9 @@ class Dispersy(Singleton):
 
             if __debug__:
                 if not source_lan_address == message.payload.source_lan_address:
-                    dprint("modified our local view of candidates LAN address ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " -> ", source_lan_address[0], ":", source_lan_address[1], force=1)
+                    dprint("modified our local view of candidates LAN address ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], " -> ", source_lan_address[0], ":", source_lan_address[1])
                 if not source_wan_address == message.payload.source_wan_address:
-                    dprint("modified our local view of candidates WAN address ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " -> ", source_wan_address[0], ":", source_wan_address[1], force=1)
+                    dprint("modified our local view of candidates WAN address ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], " -> ", source_wan_address[0], ":", source_wan_address[1])
 
             # add source to the candidate pool and mark as a node that is part of our walk
             if self._is_valid_lan_address(source_lan_address) and self._is_valid_wan_address(source_wan_address):
@@ -2186,9 +2186,9 @@ class Dispersy(Singleton):
 
             if __debug__:
                 if not lan_address == candidate.lan_address:
-                    dprint("modified our local view of candidates LAN address ", candidate.lan_address[0], ":", candidate.lan_address[1], " -> ", lan_address[0], ":", lan_address[1], force=1)
+                    dprint("modified our local view of candidates LAN address ", candidate.lan_address[0], ":", candidate.lan_address[1], " -> ", lan_address[0], ":", lan_address[1])
                 if not wan_address == candidate.wan_address:
-                    dprint("modified our local view of candidates WAN address ", candidate.wan_address[0], ":", candidate.wan_address[1], " -> ", wan_address[0], ":", wan_address[1], force=1)
+                    dprint("modified our local view of candidates WAN address ", candidate.wan_address[0], ":", candidate.wan_address[1], " -> ", wan_address[0], ":", wan_address[1])
 
             candidate.inc_puncture(lan_address, wan_address)
 
@@ -2363,9 +2363,12 @@ class Dispersy(Singleton):
             debug_len_messages = len(self._untriggered_messages)
             assert debug_len_triggers, "should not check if there are no triggers"
             assert debug_len_messages, "should not check if there are no messages"
+        triggers = self._triggers
         untriggered_messages = self._untriggered_messages
+        self._triggers = []
         self._untriggered_messages = []
-        self._triggers = [trigger for trigger in self._triggers if trigger.on_messages(untriggered_messages)]
+        triggers = [trigger for trigger in self._triggers if trigger.on_messages(untriggered_messages)]
+        self._triggers.extend(triggers)
         if __debug__:
             dprint("matched ", debug_len_triggers - len(self._triggers), "/", debug_len_triggers, " triggers on ", debug_len_messages, " messages")
     
