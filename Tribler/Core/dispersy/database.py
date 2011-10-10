@@ -169,13 +169,13 @@ class Database(Singleton):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.execute on the wrong thread"
         assert isinstance(statement, unicode), "The SQL statement must be given in unicode"
         assert isinstance(bindings, (tuple, list, dict)), "The bindings must be a tuple, list, or dictionary"
-        assert not filter(lambda x: isinstance(x, str), bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
+        assert all(lambda x: isinstance(x, str) for x in bindings), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB. \nGiven types: %s" % str([type(binding) for binding in bindings])
 
         try:
             if __debug__: dprint(statement, " <-- ", bindings)
             return self._cursor.execute(statement, bindings)
 
-        except sqlite3.Error, exception:
+        except sqlite3.Error:
             if __debug__:
                 dprint(exception=True, level="warning")
                 dprint("Filename: ", self._debug_file_path, level="warning")
@@ -191,7 +191,7 @@ class Database(Singleton):
             if __debug__: dprint(statements)
             return self._cursor.executescript(statements)
 
-        except sqlite3.Error, exception:
+        except sqlite3.Error:
             if __debug__:
                 dprint(exception=True, level="warning")
                 dprint("Filename: ", self._debug_file_path, level="warning")
@@ -232,14 +232,14 @@ class Database(Singleton):
                 sequenceofbindings = list(sequenceofbindings)
         assert isinstance(statement, unicode), "The SQL statement must be given in unicode"
         assert isinstance(sequenceofbindings, (tuple, list)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
-        assert not filter(lambda x: not isinstance(x, (tuple, list, dict)), list(sequenceofbindings)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
-        assert not filter(lambda x: filter(lambda y: isinstance(y, str), x), list(sequenceofbindings)), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
+        assert all(isinstance(x, (tuple, list, dict)) for x in list(sequenceofbindings)), "The sequenceofbindings must be a list with tuples, lists, or dictionaries"
+        assert all(not isinstance(y, str) for y in x for x in list(sequenceofbindings)), "The bindings may not contain a string. \nProvide unicode for TEXT and buffer(...) for BLOB."
 
         try:
             if __debug__: dprint(statement)
             return self._cursor.executemany(statement, sequenceofbindings)
 
-        except sqlite3.Error, exception:
+        except sqlite3.Error:
             if __debug__:
                 dprint(exception=True)
                 dprint("Filename: ", self._debug_file_path)
@@ -254,7 +254,7 @@ class Database(Singleton):
         for callback in self._commit_callbacks:
             try:
                 callback()
-            except:
+            except Exception:
                 if __debug__: dprint(exception=True, stack=True)
         return result
 
@@ -286,7 +286,7 @@ class Database(Singleton):
 
     def detach_commit_callback(self, func):
         assert func in self._commit_callbacks
-        self.remove(func)
+        self._commit_callbacks.remove(func)
 
 if __debug__:
     if __name__ == "__main__":
@@ -321,7 +321,7 @@ if __debug__:
             db.execute(u"INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42)")
             print "ERROR"
             assert False
-        except:
+        except Exception:
             pass
 
         l = list(db.execute(u"SELECT * FROM pair WHERE key BETWEEN 2000 AND 3000"))
@@ -333,7 +333,7 @@ if __debug__:
             with db:
                 db.execute(u"INSERT INTO pair (key, value) VALUES ('foo', 'bar')")
                 db.execute(u"INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42)")
-        except:
+        except Exception:
             pass
         # there should not be a foo/bar entry
         try:
