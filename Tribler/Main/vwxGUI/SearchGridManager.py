@@ -1519,7 +1519,7 @@ class ChannelManager:
     def getChannelHits(self):
         hitsUpdated = self.searchLocalDatabase()
         if DEBUG:
-            print >>sys.stderr,'ChannelSearchGridManager: getChannelHits: search found: %d items' % len(self.hits)
+            print >>sys.stderr,'ChannelManager: getChannelHits: search found: %d items' % len(self.hits)
             
         try:
             #merge remoteHits 
@@ -1582,13 +1582,13 @@ class ChannelManager:
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
         if self.searchkeywords == self.oldsearchkeywords:
             if DEBUG:
-                print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: returning old hit list", len(self.hits)
+                print >>sys.stderr,"ChannelManager: searchLocalDB: returning old hit list", len(self.hits)
             return False
         
         self.oldsearchkeywords = self.searchkeywords
         
         if DEBUG:
-            print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: Want",self.searchkeywords
+            print >>sys.stderr,"ChannelManager: searchLocalDB: Want",self.searchkeywords
      
         if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
             return False
@@ -1628,17 +1628,17 @@ class ChannelManager:
             self.remoteLock.acquire()
             
             if DEBUG:
-                print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
+                print >>sys.stderr,"ChannelManager: gotRemoteHist: got",len(answers),"for",kws
 
             if self.searchkeywords == kws:
                 for hit in answers.itervalues():
                     self.remoteHits.append((hit, permid))
                     
                     if DEBUG:
-                        print >>sys.stderr,'ChannelSearchGridManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
+                        print >>sys.stderr,'ChannelManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
             
             elif DEBUG:
-                print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
+                print >>sys.stderr,"ChannelManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
         
         finally:
             refreshGrid = len(self.remoteHits) > 0
