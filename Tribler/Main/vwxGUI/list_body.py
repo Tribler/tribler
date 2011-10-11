@@ -561,10 +561,12 @@ class AbstractListBody():
         
         #Determine scrollrate
         if self.rate is None:
-            nritems = len(self.vSizer.GetChildren()) / 2
-            if nritems > 4:
+            nritems = len(self.vSizer.GetChildren())
+            if nritems > 0:
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
+                if DEBUG:
+                    print >> sys.stderr, "ListBody: setting scrollrate to", self.rate
                 
                 self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             else:
