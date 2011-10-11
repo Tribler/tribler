@@ -371,9 +371,8 @@ class TriblerLaunchMany(Thread):
                         if error[0] == SOCKET_BLOCK_ERRORCODE:
                             self.sendqueue.append((data, address))
                             self.sendqueue.extend(sendqueue)
-                            # avoid MemoryError
-                            self.sendqueue = self.sendqueue[:-100]
                             self.rawserver.add_task(self.process_sendqueue, 0.1)
+                            break
 
         def load_communities():
             # initial delay

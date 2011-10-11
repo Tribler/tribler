@@ -185,6 +185,7 @@ class DispersySocket(object):
                     self.sendqueue.append((data, address))
                     self.sendqueue.extend(sendqueue)
                     self.rawserver.add_task(self.process_sendqueue, 0.1)
+                    break
 
 def main():
     def on_fatal_error(error):
