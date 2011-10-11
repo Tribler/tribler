@@ -36,9 +36,8 @@ class Candidate(object):
         self._is_walk = is_walk
         self._is_stumble = is_stumble
         self._is_introduction = is_introduction
-        self._timestamp_last_step = time() - 30.0
         self._timestamp_incoming = time()
-        self._communities = set((community,)) if community else set()
+        self._timestamp_last_step = {community.cid:time() - 30.0} if community else {}
 
     @property
     def lan_address(self):
@@ -65,15 +64,14 @@ class Candidate(object):
         return self._is_introduction
     
     @property
-    def timestamp_last_step(self):
-        return self._timestamp_last_step
-
-    @property
     def timestamp_incoming(self):
         return self._timestamp_incoming
 
+    def timestamp_last_step_in_community(self, community, default=0.0):
+        return self._timestamp_last_step.get(community.cid, default)
+    
     def in_community(self, community):
-        return community in self._communities
+        return community.cid in self._timestamp_last_step
 
     def timeout(self, community):
         """
@@ -82,14 +80,17 @@ class Candidate(object):
         Returns True if there are communities left where this candidate did not timeout.
         """
         try:
-            self._communities.remove(community)
+            self._timestamp_last_step.pop(community.cid)
         except KeyError:
             pass
-        return bool(self._communities)
+        return bool(self._timestamp_last_step)
+
+    def get_timestamp_incoming(self, community, default=0.0):
+        return self._timestamp_last_step.get(community.cid, default)
     
-    def out_introduction_request(self):
-        self._timestamp_last_step = time()
-    
+    def out_introduction_request(self, community):
+        self._timestamp_last_step[community.cid] = time()
+        
     def inc_introduction_requests(self, lan_address, wan_address):
         assert is_address(lan_address)
         assert is_address(wan_address)
@@ -122,7 +123,8 @@ class Candidate(object):
             from community import Community
         assert isinstance(community, Community)
         if __debug__: dprint("updated ", self._wan_address[0], ":", self._wan_address[1], " (", self._lan_address[0], ":", self._lan_address[1], ")")
-        self._communities.add(community)
+        if not community.cid in self._timestamp_last_step:
+            self._timestamp_last_step[community.cid] = time() - 30.0
         self._timestamp_incoming = time()
 
     @property
