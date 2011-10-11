@@ -15,54 +15,12 @@ from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
-import inspect
+from Tribler.Main.vwxGUI import forceWxThread
 
 DEBUG = False
-TRHEADING_DEBUG = False
-
-def forceWxThread(func):
-    def invoke_func(*args,**kwargs):
-        if wx.Thread_IsMain():
-            func(*args, **kwargs)
-        else:
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            wx.CallAfter(func, *args, **kwargs)
-            
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
-def warnWxThread(func):
-    def invoke_func(*args,**kwargs):
-        if not wx.Thread_IsMain():
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-        
-        return func(*args, **kwargs)
-    
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
-def forceDBThread(func):
-    def invoke_func(*args,**kwargs):
-        if onWorkerThread():
-            func(*args, **kwargs)
-        else:
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            startWorker(None, func, wargs=args, wkwargs=kwargs)
-            
-    invoke_func.__name__ = func.__name__
-    return invoke_func
 
 class GUIUtility:
     __single = None
@@ -115,12 +73,12 @@ class GUIUtility:
     
     def register(self):
         self.torrentsearch_manager = TorrentManager.getInstance(self)
-        self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
+        self.channelsearch_manager = ChannelManager.getInstance()
         self.library_manager = LibraryManager.getInstance(self)
         
-        self.torrentsearch_manager.connect()
-        self.channelsearch_manager.connect()
-        self.library_manager.connect()
+        self.torrentsearch_manager.connect(self.utility.session, self.library_manager)
+        self.channelsearch_manager.connect(self.utility.session, self.torrentsearch_manager)
+        self.library_manager.connect(self.utility.session, self.torrentsearch_manager)
     
     def ShowPlayer(self, show):
         if self.frame.videoparentpanel:
@@ -247,8 +205,6 @@ class GUIUtility:
             self.frame.selectedchannellist.Focus()
         elif page =='my_files':
             self.frame.librarylist.Focus()
-        
-                
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):

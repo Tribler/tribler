@@ -67,7 +67,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *
-from Tribler.Main.Utility.Rss.rssparser import RssParser
+from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
@@ -284,12 +284,10 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         
-        try:
-            Dispersy.get_instance()
+        if Dispersy.has_instance():
             self.sesscb_ntfy_dispersy()
-        except:
+        else:
             s.add_observer(self.sesscb_ntfy_dispersy, NTFY_DISPERSY, [NTFY_STARTED])
-        
         
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()

@@ -13,8 +13,7 @@ from Tribler.Core.osutils import startfile
 from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread,\
-    warnWxThread, forceDBThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler

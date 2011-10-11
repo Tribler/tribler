@@ -12,7 +12,6 @@ from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as Stat
     _set_font
 
 from __init__ import *
-from Tribler.Main.vwxGUI.GuiUtility import warnWxThread
 from wx._core import PyDeadObjectError
 
 DEBUG = False

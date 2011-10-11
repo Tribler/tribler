@@ -1,7 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import _set_font, MaxBetterText, NotebookPanel
 from Tribler.Core.API import *
 
@@ -15,7 +15,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-from Tribler.Main.Utility.Rss.rssparser import RssParser
+from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
@@ -384,10 +384,11 @@ class SelectedChannelList(GenericSearchList):
                 data = (data.id,[data.name, data.extended_description, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
         
-        item = self.list.GetItem(key)
-        panel = item.GetExpandedPanel()
-        if panel:
-            panel.UpdateStatus()
+        if self.list.InList(key):
+            item = self.list.GetItem(key)
+            panel = item.GetExpandedPanel()
+            if panel:
+                panel.UpdateStatus()
         
         manager = self.activityList.GetManager()
         manager.do_or_schedule_refresh()
@@ -1959,7 +1960,7 @@ class CommentManager:
             reply_after = items[-1].original_data.dispersy_id
         
         if self.playlist:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash, playlist = self.playlist)
+            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, playlist = self.playlist)
         elif self.channeltorrent:
             self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
         else:

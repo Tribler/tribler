@@ -11,8 +11,7 @@ from time import time
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL,\
-    safenamedtuple
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
@@ -26,7 +25,6 @@ from Tribler.Core.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session
-from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.DecentralizedTracking.MagnetLink import MagnetLink 
 
@@ -34,8 +32,6 @@ from math import sqrt
 from __init__ import *
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from collections import namedtuple
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation
 import threading
@@ -51,7 +47,7 @@ class TorrentManager:
     # Code to make this a singleton
     __single = None
    
-    def __init__(self,guiUtility):
+    def __init__(self, guiUtility):
         if TorrentManager.__single:
             raise RuntimeError, "TorrentSearchGridManager is singleton"
         TorrentManager.__single = self
@@ -83,10 +79,6 @@ class TorrentManager:
         self.bundle_mode = None
         self.bundle_mode_changed = True
         self.category = Category.getInstance()
-        
-        # 09/10/09 boudewijn: CallLater does not accept zero as a
-        # delay. the value needs to be a positive integer.
-        self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -101,7 +93,7 @@ class TorrentManager:
         
         Returns a filename, if filename is known
         """
-        torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
+        torrent_dir = self.session.get_torrent_collecting_dir()
         
         torrent_filename = torrent.get('torrent_file_name')
         if not torrent_filename:
@@ -117,6 +109,12 @@ class TorrentManager:
         torrent_filename = os.path.join(torrent_dir, torrent_filename)
         if os.path.isfile(torrent_filename):
             return torrent_filename
+        
+    def getCollectedFilenameFromDef(self, torrentdef):
+        torrent_dir = self.session.get_torrent_collecting_dir()
+        
+        torrent_filename = get_collected_torrent_filename(torrentdef.infohash)
+        return os.path.join(torrent_dir, torrent_filename)
     
     def getTorrent(self, torrent, callback):
         """
@@ -138,7 +136,7 @@ class TorrentManager:
         if self.downloadTorrentfileFromPeers(torrent, callback):
             return (True, "from peers")
         
-        torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
+        torrent_dir = self.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, get_collected_torrent_filename(torrent['infohash']))
         
         #.torrent still not found, try magnet link
@@ -184,10 +182,10 @@ class TorrentManager:
         
         peers = torrent.get('query_permids', [])
         if len(peers) == 0:
-            self.guiUtility.utility.session.download_torrentfile(torrent.infohash, callback, prio)
+            self.session.download_torrentfile(torrent.infohash, callback, prio)
         else:
             for permid in peers:
-                self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent.infohash, callback, prio)
+                self.session.download_torrentfile_from_peer(permid, torrent.infohash, callback, prio)
         return True
     
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
@@ -291,15 +289,15 @@ class TorrentManager:
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
     
-    def connect(self):
-        session = self.guiUtility.utility.session
+    def connect(self, session, library_manager):
+        self.session = session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
-        self.library_manager = self.guiUtility.library_manager
+        self.library_manager = library_manager
     
     def getHitsInCategory(self, categorykey = 'all', sort = 'rameezmetric'):
         if DEBUG: begintime = time()
@@ -738,7 +736,7 @@ class LibraryManager:
     # Code to make this a singleton
     __single = None
    
-    def __init__(self,guiUtility):
+    def __init__(self, guiUtility):
         if LibraryManager.__single:
             raise RuntimeError, "LibraryManager is singleton"
         LibraryManager.__single = self
@@ -750,12 +748,10 @@ class LibraryManager:
         
         #current progress of download states
         self.cache_progress = {}
-        
         self.rerankingStrategy = DefaultTorrentReranker()
         
         # For asking for a refresh when remote results came in
         self.gridmgr = None
-        self.guiserver = GUITaskQueue.getInstance()
         
         # Gui callbacks
         self.gui_callback = []
@@ -797,8 +793,9 @@ class LibraryManager:
                 self.remove_download_state_callback(callback)
             
         #TODO: This seems like the wrong place to do this?
-        self.guiserver.add_task(lambda:self.updateProgressInDB(dslist),0)
-     
+        self.updateProgressInDB(dslist)
+    
+    @forceDBThread
     def updateProgressInDB(self, dslist):
         updates = False
         for ds in dslist:
@@ -887,7 +884,7 @@ class LibraryManager:
         self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
         
     def deleteTorrentDownload(self, download, infohash, removecontent = False, removestate = True):
-        self.guiUtility.utility.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        self.session.remove_download(download, removecontent = removecontent, removestate = removestate)
         
         if infohash:
             # Johan, 2009-03-05: we need long download histories for good 
@@ -897,18 +894,14 @@ class LibraryManager:
             self.mypref_db.updateDestDir(infohash,"")
             self.user_download_choice.remove_download_state(infohash)
     
-    def set_gridmgr(self,gridmgr):
-        self.gridmgr = gridmgr
-    
-    def connect(self):
-        session = self.guiUtility.utility.session
+    def connect(self, session, torrentsearch_manager):
+        self.session = session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
-        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
-        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
+        self.torrentsearch_manager = torrentsearch_manager
     
     def getHitsInCategory(self):
         if DEBUG: begintime = time()
@@ -936,21 +929,21 @@ class LibraryManager:
         self.hits = self.addDownloadStates(results)
         return [len(self.hits), 0 , self.hits]
 
+    def set_gridmgr(self,gridmgr):
+        self.gridmgr = gridmgr
+        
     def refreshGrid(self):
         if self.gridmgr is not None:
             self.gridmgr.refresh()
 
-class ChannelSearchGridManager:
+class ChannelManager:
     # Code to make this a singleton
     __single = None
    
-    def __init__(self,guiUtility):
-        if ChannelSearchGridManager.__single:
-            raise RuntimeError, "ChannelSearchGridManager is singleton"
-        ChannelSearchGridManager.__single = self
-        self.guiUtility = guiUtility
-        self.guiserver = GUITaskQueue.getInstance()
-        self.utility = guiUtility.utility
+    def __init__(self):
+        if ChannelManager.__single:
+            raise RuntimeError, "ChannelManager is singleton"
+        ChannelManager.__single = self
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = {}
@@ -970,17 +963,17 @@ class ChannelSearchGridManager:
         self.category = Category.getInstance()
         
     def getInstance(*args, **kw):
-        if ChannelSearchGridManager.__single is None:
-            ChannelSearchGridManager(*args, **kw)       
-        return ChannelSearchGridManager.__single
+        if ChannelManager.__single is None:
+            ChannelManager(*args, **kw)       
+        return ChannelManager.__single
     getInstance = staticmethod(getInstance)
 
-    def connect(self):
-        self.session = self.utility.session
+    def connect(self, session, torrentsearch_manager):
+        self.session = session
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
-        self.torrentsearch_manager = self.guiUtility.torrentsearch_manager
+        self.torrentsearch_manager = torrentsearch_manager
 
         if Dispersy.has_instance():
             self.dispersy = Dispersy.get_instance()
@@ -1042,11 +1035,6 @@ class ChannelSearchGridManager:
     def setChannelState(self, channel_id, channel_mode):
         community = self._disp_get_community_from_channel_id(channel_id)
         return community.set_channel_mode(channel_mode)
-    
-    def getChannelFromPermid(self, channel_permid):
-        channel = self.channelcast_db.getChannelFromPermid(channel_permid)
-        if channel:
-            return self._createChannel(channel)
         
     def getPermidFromChannel(self, channel_id):
         return self.channelcast_db.getPermidForChannel(channel_id)
@@ -1176,13 +1164,13 @@ class ChannelSearchGridManager:
         for hit in hits:
             mod = Modification(*hit[:8])
             mod.channelcast_db = self.channelcast_db
-            mod.get_nickname = self.utility.session.get_nickname
+            mod.get_nickname = self.session.get_nickname
             
             moderation = hit[8:]
             if moderation[0] is not None:
                 moderation = Moderation(*moderation)
                 moderation.channelcast_db = self.channelcast_db
-                moderation.get_nickname = self.utility.session.get_nickname
+                moderation.get_nickname = self.session.get_nickname
                 
                 mod.moderation = moderation
             #touch torrent property to load torrent
@@ -1205,13 +1193,13 @@ class ChannelSearchGridManager:
         for hit in hits:
             mod = Moderation(*hit[:8])
             mod.channelcast_db = self.channelcast_db
-            mod.get_nickname = self.utility.session.get_nickname
+            mod.get_nickname = self.session.get_nickname
             
             modification = hit[8:]
             if modification[0] is not None:
                 modification = Modification(*modification)
                 modification.channelcast_db = self.channelcast_db
-                modification.get_nickname = self.utility.session.get_nickname
+                modification.get_nickname = self.session.get_nickname
                 
                 #touch torrent property to load torrent
                 modification.torrent
@@ -1239,8 +1227,8 @@ class ChannelSearchGridManager:
         for hit in hits:
             comment = Comment(*(hit+(channel, playlist, channel_torrent)))
             
-            comment.get_nickname = self.utility.session.get_nickname
-            comment.get_mugshot = self.utility.session.get_mugshot
+            comment.get_nickname = self.session.get_nickname
+            comment.get_mugshot = self.session.get_mugshot
             
             #touch torrent property to load torrent
             comment.torrent
@@ -1341,7 +1329,7 @@ class ChannelSearchGridManager:
         community = self._disp_get_community_from_channel_id(channel_id)
         community.create_playlist(name, description, infohashes)
     
-    @forceDispersyThread  
+    @forceDispersyThread
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         #detect changesmodification
         to_be_created = set(infohashes)

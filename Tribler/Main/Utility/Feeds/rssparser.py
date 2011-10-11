@@ -7,7 +7,7 @@ import sys
 from copy import deepcopy
 from shutil import copyfile
 from Tribler.Subscriptions.rss_client import URLHistory
-from Tribler.Main.Utility.Rss import feedparser
+from Tribler.Main.Utility.Feeds import feedparser
 from Tribler.Core.TorrentDef import TorrentDef
 from traceback import print_exc
 import time
