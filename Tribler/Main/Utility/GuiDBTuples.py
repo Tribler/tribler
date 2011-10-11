@@ -339,9 +339,9 @@ class Channel(Helper):
     @cache
     def getState(self):
         if self.isDispersy():
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
-            searchManager = ChannelSearchGridManager.getInstance()
+            searchManager = ChannelManager.getInstance()
             return searchManager.getChannelStateByCID(self.dispersy_cid)
         
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
@@ -421,9 +421,9 @@ class Comment(Helper):
             return self._torrent
         
         if self.channeltorrent_id:
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
-            searchManager = ChannelSearchGridManager.getInstance()
+            searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
 class Playlist(Helper):
@@ -442,10 +442,10 @@ class Playlist(Helper):
         if self.description:
             return self.description
         
-        from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+        from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
         
         #No description, get swarmnames
-        searchManager = ChannelSearchGridManager.getInstance()
+        searchManager = ChannelManager.getInstance()
         _,_, torrents =  searchManager.getTorrentsFromPlaylist(self, limit = 3)
         names = [torrent.name for torrent in torrents]
         return "Contents: '"+"'    '".join(names)+"'"
@@ -477,9 +477,9 @@ class Modification(Helper):
     @cacheProperty
     def torrent(self):
         if self.channeltorrent_id:
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
-            searchManager = ChannelSearchGridManager.getInstance()
+            searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
 
 class Moderation(Helper):
