@@ -224,11 +224,11 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'severity' type or value")
 
         cause_mid = dic.get("cause-mid", None)
-        if isinstance(cause_mid, str) and len(cause_mid) == 20:
+        if not (isinstance(cause_mid, str) and len(cause_mid) == 20):
             raise DropPacket("Invalid 'cause-mid' type or value")
         
         cause_global_time = dic.get("cause-global-time", None)
-        if isinstance(cause_global_time, (int, long)):
+        if not isinstance(cause_global_time, (int, long)):
             raise DropPacket("Invalid 'cause-global-time' type")
         
         try:
