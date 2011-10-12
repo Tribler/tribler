@@ -2338,12 +2338,7 @@ class Dispersy(Singleton):
             if __debug__: dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", address[0], ":", address[1])
 
     def _check_triggers(self):
-        if __debug__:
-            debug_len_triggers = len(self._triggers)
-            debug_len_messages = len(self._untriggered_messages)
-            assert debug_len_triggers, "should not check if there are no triggers"
-            assert debug_len_messages, "should not check if there are no messages"
-
+        assert self._untriggered_messages, "should not check if there are no messages"
         untriggered_messages = self._untriggered_messages
         self._untriggered_messages = []
             
