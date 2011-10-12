@@ -380,17 +380,19 @@ class Community(object):
                 assert not key in self._subjective_sets
                 self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
 
-            # ensure that there are no missing subjective sets
-            for cluster in self._subjective_set_clusters:
-                    key = (self._my_member, cluster)
-                    if not key in self._subjective_sets:
-                        # create this missing subjective set
-                        message = self.create_dispersy_subjective_set(cluster, [self._my_member])
-                        self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
+            # 12/10/11 Boudewijn: we must create missing subjective sets on demand because at this point
+            # newly created communities will not yet have the dispersy-identity for my member
+            # # ensure that there are no missing subjective sets
+            # for cluster in self._subjective_set_clusters:
+            #     key = (self._my_member, cluster)
+            #     if not key in self._subjective_sets:
+            #         # create this missing subjective set
+            #         message = self.create_dispersy_subjective_set(cluster, [self._my_member])
+            #         self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
 
-            if self._subjective_sets:
-                # apparently we have one or more subjective sets
-                self._dispersy.callback.register(self._periodically_cleanup_subjective_sets)
+            # if self._subjective_sets:
+            #     # apparently we have one or more subjective sets
+            self._dispersy.callback.register(self._periodically_cleanup_subjective_sets)
 
     def _periodically_cleanup_subjective_sets(self):
         while True:
@@ -880,7 +882,7 @@ class Community(object):
         else:
             del self._subjective_sets[key]
 
-    def get_subjective_set_cache(self, member, cluster):
+    def get_subjective_set_cache(self, member, cluster, create_my_subjective_set_on_demand=True):
         """
         Returns the SubjectiveSetCache object for a certain member and cluster.
 
@@ -888,6 +890,8 @@ class Community(object):
         is a string containing the binary representation of the dispersy-subjective-set message.
         The subjective_set is a bloom_filter containing the subjective set.
 
+        Subjective sets for self.my_member will be generated on demand when they do not yet exist.
+        
         @param member: The member for who we want the subjective set.
         @type member: Member
 
@@ -921,9 +925,18 @@ class Community(object):
                 if not tmp_key in self._subjective_sets:
                     self._subjective_sets[tmp_key] = SubjectiveSetCache(packet, message.payload.subjective_set)
 
+            # if our own subjective set is missing we will generate one on demand
+            if create_my_subjective_set_on_demand and member == self._my_member and not key in self._subjective_sets:
+                for cluster in self._subjective_set_clusters:
+                    tmp_key = (member, cluster)
+                    if not tmp_key in self._subjective_sets:
+                        # create this missing subjective set
+                        message = self.create_dispersy_subjective_set(cluster, [member])
+                        self._subjective_sets[tmp_key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
+
         return self._subjective_sets.get(key)
 
-    def get_subjective_set(self, member, cluster):
+    def get_subjective_set(self, member, cluster, create_my_subjective_set_on_demand=True):
         """
         Returns the subjective set for a certain member and cluster.
 
@@ -939,7 +952,7 @@ class Community(object):
         assert isinstance(member, Member)
         assert isinstance(cluster, int)
         assert cluster in self._subjective_set_clusters, (cluster, self._subjective_set_clusters)
-        cache = self.get_subjective_set_cache(member, cluster)
+        cache = self.get_subjective_set_cache(member, cluster, create_my_subjective_set_on_demand)
         return cache.subjective_set if cache else None
 
     def get_subjective_sets(self, member):

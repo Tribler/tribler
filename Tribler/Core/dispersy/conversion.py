@@ -792,13 +792,8 @@ class BinaryConversion(Conversion):
             container.append(pack("!Q", message.distribution.global_time))
 
     def _encode_last_sync_distribution(self, container, message):
-        if message.distribution.enable_sequence_number:
-            assert message.distribution.global_time
-            assert message.distribution.sequence_number
-            container.append(pack("!QL", message.distribution.global_time, message.distribution.sequence_number))
-        else:
-            assert message.distribution.global_time
-            container.append(pack("!Q", message.distribution.global_time))
+        assert message.distribution.global_time
+        container.append(pack("!Q", message.distribution.global_time))
 
     def _encode_direct_distribution(self, container, message):
         assert message.distribution.global_time
@@ -933,18 +928,10 @@ class BinaryConversion(Conversion):
             return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     def _decode_last_sync_distribution(self, placeholder, offset, data):
-        if placeholder.meta.distribution.enable_sequence_number:
-            global_time, sequence_number = unpack_from("!QL", data, offset)
-            if not global_time:
-                raise DropPacket("Invalid global time value (_decode_last_sync_distribution)")
-            if not sequence_number:
-                raise DropPacket("Invalid sequence number value (_decode_last_sync_distribution)")
-            return offset + 12, placeholder.meta.distribution.implement(global_time, sequence_number)
-        else:
-            global_time, = unpack_from("!Q", data, offset)
-            if not global_time:
-                raise DropPacket("Invalid global time value (_decode_last_sync_distribution)")
-            return offset + 8, placeholder.meta.distribution.implement(global_time)
+        global_time, = unpack_from("!Q", data, offset)
+        if not global_time:
+            raise DropPacket("Invalid global time value (_decode_last_sync_distribution)")
+        return offset + 8, placeholder.meta.distribution.implement(global_time)
 
     def _decode_direct_distribution(self, placeholder, offset, data):
         global_time, = unpack_from("!Q", data, offset)

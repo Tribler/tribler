@@ -75,7 +75,7 @@ class DelayPacketByMissingMessage(DelayPacket):
         footprint = "".join(("Community:", community.cid.encode("HEX"),
                              "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
                              "\s", "Resolution",
-                             "\s", "(Relay|Direct|Sync|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+"))
+                             "\s", "((Relay|Direct|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), ")|FullSyncDistribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+)"))
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-missing-message")
@@ -652,8 +652,6 @@ class Message(MetaObject):
             require(distribution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution, DynamicResolution))
             require(distribution, destination, (CommunityDestination, SubjectiveDestination))
-            if isinstance(authentication, MultiMemberAuthentication) and distribution.enable_sequence_number:
-                raise ValueError("%s may not be used with %s when sequence numbers are enabled" % (distribution.__class__.__name__, authentication.__class__.__name__))
         else:
             raise ValueError("%s is not supported" % distribution.__class_.__name__)
 

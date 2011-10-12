@@ -550,9 +550,11 @@ class DispersyClassificationScript(ScriptBase):
         """
         - Create community
         - Enable auto-load (should be enabled by default)
+        - Define auto load
         - Unload community
         - Send community message
         - Verify that the community got auto-loaded
+        - Undefine auto load
         """
         # create community
         community = DebugCommunity.create_community(self._my_member)
@@ -570,6 +572,10 @@ class DispersyClassificationScript(ScriptBase):
         assert community.dispersy_auto_load == True
         yield 0.555
 
+        dprint("define auto load")
+        self._dispersy.define_auto_load(DebugCommunity)
+        yield 0.555
+        
         dprint("unload community")
         community.unload_community()
         try:
@@ -594,6 +600,10 @@ class DispersyClassificationScript(ScriptBase):
         assert global_time in times
         yield 0.555
 
+        dprint("undefine auto load")
+        self._dispersy.undefine_auto_load(DebugCommunity)
+        yield 0.555
+        
         dprint("cleanup")
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
@@ -602,12 +612,14 @@ class DispersyClassificationScript(ScriptBase):
         """
         - Create community
         - Enable auto-load (should be enabled by default)
+        - Define auto load
         - Unload community
         - Send community message
         - Verify that the community got auto-loaded
         - Disable auto-load
         - Send community message
         - Verify that the community did NOT get auto-loaded
+        - Undefine auto load
         """
         # create community
         community = DebugCommunity.create_community(self._my_member)
@@ -622,6 +634,9 @@ class DispersyClassificationScript(ScriptBase):
 
         dprint("verify auto-load is enabled (default)")
         assert community.dispersy_auto_load == True
+
+        dprint("define auto load")
+        self._dispersy.define_auto_load(DebugCommunity)
 
         dprint("unload community")
         community.unload_community()
@@ -670,6 +685,9 @@ class DispersyClassificationScript(ScriptBase):
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
         assert not global_time in times
 
+        dprint("undefine auto load")
+        self._dispersy.undefine_auto_load(DebugCommunity)
+        
         dprint("cleanup")
         DebugCommunity.load_community(community.master_member)
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1275,11 +1293,10 @@ class DispersySyncScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        # one dispersy-subjective-set
         # one dispersy-identity (master member)
         # one dispersy-identity (my member)
         # one dispersy-authorize
-        self._initial_spaces_used_in_sync = 4
+        self._initial_spaces_used_in_sync = 3
 
         # scaling: when we have to many messages in the sync bloom filter
         self.caller(self.batch_reversed_enlarging_sync_bloom)
@@ -1300,8 +1317,8 @@ class DispersySyncScript(ScriptBase):
         # self.caller(self.random_order_test)
         self.caller(self.mixed_order_test)
         self.caller(self.last_1_test)
-        self.caller(self.last_9_nosequence_test)
-        self.caller(self.last_9_sequence_test)
+        self.caller(self.last_9_test)
+        # self.caller(self.last_9_sequence_test)
 
         # multimember authentication and last sync policies
         self.caller(self.last_1_multimember)
@@ -1340,10 +1357,9 @@ class DispersySyncScript(ScriptBase):
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining, community._sync_ranges[0].space_remaining
+        assert community._sync_ranges[0].space_remaining == space_remaining, [community._sync_ranges[0].space_remaining, space_remaining]
 
         messages = []
         for counter in xrange(11):
@@ -1627,7 +1643,7 @@ class DispersySyncScript(ScriptBase):
 
         # create a lot of messages, the first few sync ranges should go 'empty'
         for global_time in xrange(10, 51):
-            node.give_message(node.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time))
+            node.give_message(node.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time))
         self.assert_sync_ranges(community, [], verbose=True)
 
         # at least one sync range must have been removed!  in total there should be 4 + 9 = 13
@@ -1689,7 +1705,7 @@ class DispersySyncScript(ScriptBase):
         remaining_messages = []
 
         # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(4):
+        for i in xrange(5):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
@@ -1704,7 +1720,7 @@ class DispersySyncScript(ScriptBase):
         # fill range (300:200] with 50% filler and 50% removable (index 2)
         for i in xrange(5):
             community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(210, 215)]
         nodeA.give_messages(messages)
@@ -1716,7 +1732,7 @@ class DispersySyncScript(ScriptBase):
         # fill range (400:300] with 50% filler and 50% removable (index 3)
         for i in xrange(5):
             community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeB.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(310, 315)]
         nodeB.give_messages(messages)
@@ -1727,12 +1743,12 @@ class DispersySyncScript(ScriptBase):
         assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # now we will free 50% of in the (500:400] range (index 2)
-        messagesA = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(410, 419)]
 
         # now we will free 50% of in the (500:400] range (index 3)
-        messagesB = [nodeB.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesB = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(410, 419)]
         messages = messagesA + messagesB
@@ -1814,59 +1830,59 @@ class DispersySyncScript(ScriptBase):
         remaining_messages = []
 
         # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(3):
+        for i in xrange(4):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # fill range (200:100] with 50% filler and 50% removable (index 1)
         for i in xrange(5):
             remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
-        messages = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(110, 115)]
         nodeA.give_messages(messages)
         assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0
-        assert community._sync_ranges[0].space_remaining == 0
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # fill range (300:200] with 50% filler and 50% removable (index 2)
         for i in xrange(5):
             community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeB.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(210, 215)]
         nodeB.give_messages(messages)
         assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0
-        assert community._sync_ranges[1].space_remaining == 0
-        assert community._sync_ranges[0].space_remaining == 0
+        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # fill range (400:300] with 50% filler and 50% removable (index 3)
         for i in xrange(5):
             community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeC.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(310, 315)]
         nodeC.give_messages(messages)
         assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0
-        assert community._sync_ranges[2].space_remaining == 0
-        assert community._sync_ranges[1].space_remaining == 0
-        assert community._sync_ranges[0].space_remaining == 0
+        assert community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining
+        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
+        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # now we will free 50% in the (200:100] range (index 1)
-        messagesA = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(410, 419)]
 
         # now we will free 50% in the (300:200] range (index 2)
-        messagesB = [nodeB.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesB = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(420, 429)]
 
         # now we will free 50% in the (400:300] range (index 3)
-        messagesC = [nodeC.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesC = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(430, 439)]
         messages = messagesA + messagesB + messagesC
@@ -1878,11 +1894,11 @@ class DispersySyncScript(ScriptBase):
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
         assert len(community._sync_ranges) >= 6
-        assert community._sync_ranges[-1].space_remaining == 0
+        assert community._sync_ranges[-1].space_remaining == 0, community._sync_ranges[-1].space_remaining
         assert community._sync_ranges[-1].space_freed == 0
-        assert community._sync_ranges[-2].space_remaining == 0
+        assert community._sync_ranges[-2].space_remaining == 0, community._sync_ranges[-2].space_remaining
         assert community._sync_ranges[-2].space_freed == 0
-        assert community._sync_ranges[-3].space_remaining == 0
+        assert community._sync_ranges[-3].space_remaining == 0, community._sync_ranges[-3].space_remaining
         assert community._sync_ranges[-3].space_freed == 5
 
         # cleanup
@@ -1948,15 +1964,15 @@ class DispersySyncScript(ScriptBase):
         remaining_messages = []
 
         # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(3):
+        for i in xrange(4):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
         assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0
+        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
 
         # fill range (200:100] with 30% filler and 70% removable (index 1)
         for i in xrange(3):
             remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
-        messages = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(110, 117)]
         nodeA.give_messages(messages)
@@ -1967,7 +1983,7 @@ class DispersySyncScript(ScriptBase):
         # fill range (300:200] with 30% filler and 70% removable (index 2)
         for i in xrange(3):
             community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeB.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(210, 217)]
         nodeB.give_messages(messages)
@@ -1979,7 +1995,7 @@ class DispersySyncScript(ScriptBase):
         # fill range (400:300] with 30% filler and 70% removable (index 3)
         for i in xrange(3):
             community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeC.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messages = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                     for global_time in
                     xrange(310, 317)]
         nodeC.give_messages(messages)
@@ -1990,17 +2006,17 @@ class DispersySyncScript(ScriptBase):
         assert community._sync_ranges[0].space_remaining == 0
 
         # now we will free 70% in the (200:100] range (index 1)
-        messagesA = [nodeA.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(410, 419)]
 
         # now we will free 70% in the (300:100] range (index 2)
-        messagesB = [nodeB.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesB = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(410, 419)]
 
         # now we will free 70% in the (400:500] range (index 3)
-        messagesC = [nodeC.create_last_9_nosequence_test_message("global-time: %d; Dprint=False" % global_time, global_time)
+        messagesC = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
                      for global_time in
                      xrange(410, 419)]
         messages = messagesA + messagesB + messagesC
@@ -2259,10 +2275,10 @@ class DispersySyncScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-    def last_9_nosequence_test(self):
+    def last_9_test(self):
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        message = community.get_meta_message(u"last-9-nosequence-test")
+        message = community.get_meta_message(u"last-9-test")
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -2277,7 +2293,7 @@ class DispersySyncScript(ScriptBase):
         number_of_messages = 0
         for global_time in [21, 20, 28, 27, 22, 23, 24, 26, 25]:
             # send a message
-            message = node.create_last_9_nosequence_test_message(str(global_time), global_time)
+            message = node.create_last_9_test_message(str(global_time), global_time)
             node.give_message(message)
             number_of_messages += 1
             try:
@@ -2294,7 +2310,7 @@ class DispersySyncScript(ScriptBase):
         dprint("Older: should be dropped")
         for global_time in [11, 12, 13, 19, 18, 17]:
             # send a message (older: should be dropped)
-            node.give_message(node.create_last_9_nosequence_test_message(str(global_time), global_time))
+            node.give_message(node.create_last_9_test_message(str(global_time), global_time))
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             assert len(times) == 9, len(times)
             assert not global_time in times
@@ -2302,7 +2318,7 @@ class DispersySyncScript(ScriptBase):
         dprint("Duplicate: should be dropped")
         for global_time in [21, 20, 28, 27, 22, 23, 24, 26, 25]:
             # send a message (duplicate: should be dropped)
-            message = node.create_last_9_nosequence_test_message("wrong content!", global_time)
+            message = node.create_last_9_test_message("wrong content!", global_time)
             node.give_message(message)
             try:
                 packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
@@ -2316,7 +2332,7 @@ class DispersySyncScript(ScriptBase):
         match_times = sorted(times[:])
         for global_time in [30, 35, 37, 31, 32, 34, 33, 36, 38, 45, 44, 43, 42, 41, 40, 39]:
             # send a message (should be added and old one removed)
-            message = node.create_last_9_nosequence_test_message(str(global_time), global_time)
+            message = node.create_last_9_test_message(str(global_time), global_time)
             node.give_message(message)
             match_times.pop(0)
             match_times.append(global_time)
@@ -2329,84 +2345,6 @@ class DispersySyncScript(ScriptBase):
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             dprint(sorted(times))
             assert sorted(times) == match_times, sorted(times)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def last_9_sequence_test(self):
-        community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        message = community.get_meta_message(u"last-9-sequence-test")
-
-        # create node and ensure that SELF knows the node address
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-
-        # should be no messages from NODE yet
-        times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0
-
-        number_of_messages = 0
-        for sequence_number in range(1, 10):
-            global_time = sequence_number * 100
-            # send a message
-            message = node.create_last_9_sequence_test_message("Wave 1 #%d" % global_time, global_time, sequence_number)
-            node.give_message(message)
-            number_of_messages += 1
-            try:
-                packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ? ORDER BY global_time DESC LIMIT 1", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
-            except StopIteration:
-                dprint((community.database_id, node.my_member.database_id, global_time, sequence_number, message.database_id))
-                assert False
-            assert str(packet) == message.packet
-            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-            dprint(sorted(times))
-            assert len(times) == number_of_messages, (len(times), number_of_messages)
-            assert global_time in times
-        assert number_of_messages == 9, number_of_messages
-
-        for sequence_number in range(1, 10):
-            global_time = sequence_number * 100
-            # send a message (both global_time and sequence_number are duplicate: should be dropped)
-            message = node.create_last_9_sequence_test_message("Wave 2 #%d (should be dropped)" % global_time, global_time, sequence_number)
-            node.give_message(message)
-            try:
-                packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ? ORDER BY global_time DESC LIMIT 1", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
-            except StopIteration:
-                assert False
-            assert not str(packet) == message.packet
-            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-            assert sorted(times) == range(100, 1000, 100), sorted(times)
-
-        match_times = sorted([x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))])
-        for sequence_number in range(10, 25):
-            global_time = sequence_number * 100
-            # send a message (should be added and old one removed)
-            message = node.create_last_9_sequence_test_message("Wave 3 #%d (should replace older)" % global_time, global_time, sequence_number)
-            node.give_message(message)
-            match_times.pop(0)
-            match_times.append(global_time)
-            try:
-                packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ? ORDER BY global_time DESC LIMIT 1", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
-            except StopIteration:
-                assert False
-            assert str(packet) == message.packet
-            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-            dprint(sorted(times))
-            assert sorted(times) == match_times, sorted(times)
-
-        match_times = sorted([x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))])
-        for sequence_number in range(1, 16):
-            global_time = sequence_number * 100
-            # send a message (older: should be dropped)
-            node.give_message(node.create_last_9_sequence_test_message("Wave 4 #%d" % global_time, global_time, sequence_number))
-            times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-            assert len(times) == 9, len(times)
-            assert not global_time in times, (global_time, times)
-            assert sorted(times) == match_times
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
