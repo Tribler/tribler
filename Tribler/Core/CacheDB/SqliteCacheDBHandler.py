@@ -3151,7 +3151,7 @@ class ChannelCastDBHandler(object):
     def __init__(self):
         ChannelCastDBHandler.__single = self
         try:
-            self.__db = SQLiteCacheDB.getInstance()
+            self._db = SQLiteCacheDB.getInstance()
             
             self.peer_db = PeerDBHandler.getInstance()
             self.votecast_db = VoteCastDBHandler.getInstance()
@@ -3191,13 +3191,14 @@ class ChannelCastDBHandler(object):
     def commit(self):
         self._db.commit()
 
-    def get_db(self):
-        if not currentThread().getName().startswith('Dispersy'):
-            print  >> sys.stderr,"ChannelCastDBHandler: thread",currentThread().getName(),"is NOT Dispersy"
-            print_stack()
-        
-        return self.__db
-    _db = property(get_db, None, None, None)
+# Niels 12-10-2011, disabling correct db thread check
+#    def get_db(self):
+#        if not currentThread().getName().startswith('Dispersy'):
+#            print  >> sys.stderr,"ChannelCastDBHandler: thread",currentThread().getName(),"is NOT Dispersy"
+#            print_stack()
+#        
+#        return self.__db
+#    _db = property(get_db, None, None, None)
     
     def registerSession(self, session):
         self.session = session
