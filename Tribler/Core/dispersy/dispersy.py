@@ -2343,16 +2343,17 @@ class Dispersy(Singleton):
             debug_len_messages = len(self._untriggered_messages)
             assert debug_len_triggers, "should not check if there are no triggers"
             assert debug_len_messages, "should not check if there are no messages"
-        triggers = self._triggers
-        untriggered_messages = self._untriggered_messages
-        self._triggers = []
-        self._untriggered_messages = []
-        triggers = [trigger for trigger in triggers if trigger.on_messages(untriggered_messages)]
-        if __debug__:
-            dprint("matched ", debug_len_triggers - len(triggers), "/", debug_len_triggers, " triggers on ", debug_len_messages, " messages")
 
-        # add remaining triggers to _triggers
-        self._triggers.extend(triggers)
+        untriggered_messages = self._untriggered_messages
+        self._untriggered_messages = []
+            
+        for trigger in self._triggers[:]:
+            if not trigger.on_messages(untriggered_messages):
+                try:
+                    self._triggers.remove(trigger)
+                except ValueError:
+                    # apparently this trigger was already removed
+                    pass
     
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
