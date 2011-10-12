@@ -19,6 +19,7 @@ from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
+from Tribler.Main.vwxGUI.list_header import ChannelOnlyHeader
 
 DEBUG = False
 
@@ -180,8 +181,21 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def _PostInit(self):
-        self.header = ChannelHeader(self.parent, self, [])
-        self.header.SetEvents(self.OnBack)
+        if self.parent.top_bg:
+            self.header = ChannelHeader(self.parent, self, [])
+            self.header.SetEvents(self.OnBack)
+            
+        else:
+            self.header = ChannelOnlyHeader(self.parent, self, [])
+            
+            def showSettings(event):
+                self.guiutility.ShowPage('settings')
+                
+            def showLibrary(event):
+                self.guiutility.ShowPage('my_files')
+                
+            self.header.SetEvents(showSettings, showLibrary)
+        
         self.Add(self.header, 0, wx.EXPAND)
         
         #Hack to prevent focus on tabs

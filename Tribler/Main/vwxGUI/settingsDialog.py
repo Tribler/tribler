@@ -11,13 +11,14 @@ import tempfile
 import atexit
 
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
+from Tribler.Main.vwxGUI import forceDBThread
 
 class SettingsDialog(wx.Dialog):
     def __init__(self):

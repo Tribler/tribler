@@ -20,7 +20,8 @@ import os,sys
 import signal
 import commands
 import pickle
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel,\
+    TopSearchPanelStub
 from Tribler.Main.vwxGUI.home import Home, Stats
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
     ChannelCategoriesList, LibraryList
@@ -160,9 +161,9 @@ class MainFrame(wx.Frame):
             
         #Create all components        
         progress('Creating panels')
-        self.top_bg = TopSearchPanel(self, channelonly)
-        
         if not channelonly:
+            self.top_bg = TopSearchPanel(self)
+            
             self.home = Home(self)
         
             #build channelselector panel
@@ -183,7 +184,9 @@ class MainFrame(wx.Frame):
             self.channellist = ChannelList(self)
             self.channellist.Show(False)
         else:
-            self.guiUtility.guiPage = ''
+            self.top_bg = None
+            
+            self.guiUtility.guiPage = 'selectedchannel'
             self.home = None
             self.channelselector = None
             self.channelcategories = None
@@ -209,17 +212,27 @@ class MainFrame(wx.Frame):
             self.videoparentpanel = None
         
         progress('Positioning')
-        #position all elements            
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(self.top_bg, 0, wx.EXPAND)
         
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         if not channelonly:
+            #position all elements            
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            
+            vSizer.Add(self.top_bg, 0, wx.EXPAND)
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
+            
             hSizer.Add(self.home, 1, wx.EXPAND|wx.ALL, 20)
             hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
             hSizer.Add(self.channelselector, 0, wx.EXPAND|wx.RIGHT, 5)
             hSizer.Add(self.channellist, 1, wx.EXPAND)
             hSizer.Add(self.searchlist, 1, wx.EXPAND)
+            
+        else:
+            vSizer = wx.BoxSizer(wx.VERTICAL) 
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
+            
+            self.top_bg = TopSearchPanelStub()
             
         hSizer.Add(self.selectedchannellist, 1, wx.EXPAND)
         hSizer.Add(self.playlist, 1, wx.EXPAND)
@@ -229,7 +242,6 @@ class MainFrame(wx.Frame):
         if self.videoparentpanel:
             hSizer.Add(self.videoparentpanel, 0, wx.LEFT, 5)
         
-        vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
         self.SetSizer(vSizer)
         
         #set sizes
@@ -255,6 +267,8 @@ class MainFrame(wx.Frame):
         wx.CallLater(1500, preload_data)
         if channelonly:
             self.guiUtility.showChannelFromDispCid(channelonly)
+            if not self.guiUtility.useExternalVideo:
+                self.guiUtility.ShowPlayer(True)
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
@@ -776,9 +790,9 @@ class MainFrame(wx.Frame):
     def OnFind(self, event):
         self.top_bg.SearchFocus()
     def OnNext(self, event):
-        self.guiUtility.frame.top_bg.NextPage()
+        self.top_bg.NextPage()
     def OnPrev(self, event):
-        self.guiUtility.frame.top_bg.PrevPage()
+        self.top_bg.PrevPage()
 
 
     #######################################

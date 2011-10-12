@@ -211,7 +211,10 @@ class GUIUtility:
         if topage:
             self.oldpage.pop()
         else:
-            topage = self.oldpage.pop()
+            if len(self.oldpage) > 0:
+                topage = self.oldpage.pop()
+            else:
+                return
         
         if topage == 'channels':
             category = self.frame.channellist.GetManager().category

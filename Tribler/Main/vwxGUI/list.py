@@ -29,6 +29,7 @@ from list_sidebar import *
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from collections import namedtuple
+from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 
 DEBUG = False
 
@@ -1020,9 +1021,21 @@ class LibraryList(SizeList):
         return self.manager
     
     def CreateHeader(self, parent):
-        header = LibraryHeader(parent, self, self.columns)
+        if parent.top_bg:
+            header = LibraryHeader(parent, self, self.columns)
+            header.SetEvents(self.OnAdd)
+        else:
+            header = LibraryOnlyHeader(parent, self, self.columns)
+            def showSettings(event):
+                self.guiutility.ShowPage('settings')
+                
+            def showChannel(event):
+                self.guiutility.ShowPage('selectedchannel')
+                
+            header.SetEvents(self.OnAdd, showSettings, showChannel)
+            
         header.SetTitle('Downloads')
-        header.SetEvents(self.OnAdd)
+        
         return header
     
     def CreateFooter(self, parent):

@@ -632,6 +632,22 @@ class ChannelHeader(SearchHeader):
         else:
             self.descriptionPanel.Hide()
             
+class ChannelOnlyHeader(ChannelHeader):
+    
+    def GetRightTitlePanel(self, parent):
+        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+
+        self.settings = wx.Button(parent, -1, "Settings")
+        self.library = wx.Button(parent, -1, "Downloads")
+        
+        hSizer.Add(self.settings, 0, wx.LEFT, 5)
+        hSizer.Add(self.library, 0, wx.LEFT, 5)
+        return hSizer
+    
+    def SetEvents(self, settings, library):
+        self.library.Bind(wx.EVT_BUTTON, library)
+        self.settings.Bind(wx.EVT_BUTTON, settings)
+            
 class LibraryHeader(SearchHelpHeader):
     def GetRightTitlePanel(self, parent):
         sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
@@ -643,6 +659,24 @@ class LibraryHeader(SearchHelpHeader):
         
     def SetEvents(self, add):
         self.add.Bind(wx.EVT_BUTTON, add)
+        
+class LibraryOnlyHeader(LibraryHeader):
+    
+    def GetRightTitlePanel(self, parent):
+        hSizer = LibraryHeader.GetRightTitlePanel(self, parent)
+        
+        self.settings = wx.Button(parent, -1, "Settings")
+        self.channel = wx.Button(parent, -1, "Channel")
+        
+        hSizer.Add(self.settings, 0, wx.LEFT, 5)
+        hSizer.Add(self.channel, 0, wx.LEFT, 5)
+        return hSizer
+    
+    def SetEvents(self, add, settings, channel):
+        LibraryHeader.SetEvents(self, add)
+        
+        self.channel.Bind(wx.EVT_BUTTON, channel)
+        self.settings.Bind(wx.EVT_BUTTON, settings)
             
 class PlayerHeader(TitleHeader):
     def __init__(self, parent, parent_list, background, columns, minimize, maximize):
