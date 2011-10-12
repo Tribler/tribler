@@ -2219,7 +2219,13 @@ class Dispersy(Singleton):
         if update:
             # TODO in theory we do not need to update_global_time when we store...
             messages[0].community.update_global_time(max(message.distribution.global_time for message in messages))
+            if __debug__:
+                begin = clock()
             messages[0].handle_callback(messages)
+            if __debug__:
+                end = clock()
+                level = "warning" if (end - begin) > 1.0 else "normal"
+                dprint("handler for ", messages[0].name, " took ", end - begin, " seconds", level=level)
 
         # 07/10/11 Boudewijn: we will only commit if it the message was create by our self.
         # Otherwise we can safely skip the commit overhead, since, if a crash occurs, we will be
