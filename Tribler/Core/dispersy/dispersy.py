@@ -2014,7 +2014,11 @@ class Dispersy(Singleton):
                 candidate = None
 
             if candidate:
-                if __debug__: dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.lan_address[0], ":", candidate.lan_address[1], " / ", candidate.wan_address[0], ":", candidate.wan_address[1])
+                if __debug__:
+                    if candidate.lan_address == candidate.wan_address:
+                        dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.wan_address[0], ":", candidate.wan_address[1])
+                    else:
+                        dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.wan_address[0], ":", candidate.wan_address[1], " (", candidate.lan_address[0], ":", candidate.lan_address[1], ")")
 
                 # create introduction response
                 responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
@@ -2115,6 +2119,9 @@ class Dispersy(Singleton):
                     if __debug__: dprint("we have no candidates, immediately contact the introduced node")
                     self.create_introduction_request(community, candidate.address)
                     
+                assert not self._walk_identifiers[message.payload.identifier] == None
+                assert self._walk_identifiers[message.payload.identifier] == self._candidates[message.address]
+                
             else:
                 if __debug__: dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level="warning")
                 
@@ -2183,6 +2190,9 @@ class Dispersy(Singleton):
                     candidate = Candidate(message.address, message.address, message.address, is_introduction=True)
                     self._walk_identifiers[message.payload.identifier] = candidate
                     self._candidates[message.address] = candidate
+
+            assert not self._walk_identifiers[message.payload.identifier] == None
+            assert self._walk_identifiers[message.payload.identifier] == self._candidates[message.address]
 
     @runtime_duration_warning(1.0)
     def store_update_forward(self, messages, store, update, forward):
