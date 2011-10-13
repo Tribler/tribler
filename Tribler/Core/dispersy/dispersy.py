@@ -1954,12 +1954,12 @@ class Dispersy(Singleton):
         """
         if sock_addr[0] == self._wan_address[0]:
             # we have the same WAN address, we are probably behind the same NAT
-            dprint("estimate a different LAN address ", lan_address[0], ":", lan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
+            if __debug__: dprint("estimate a different LAN address ", lan_address[0], ":", lan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             return sock_addr, wan_address
 
         elif self._is_valid_wan_address(sock_addr):
             # we have a different WAN address and the sock address is WAN, we are probably behind a different NAT
-            dprint("estimate a different WAN address ", wan_address[0], ":", wan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
+            if __debug__: dprint("estimate a different WAN address ", wan_address[0], ":", wan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             return lan_address, sock_addr
 
         else:
