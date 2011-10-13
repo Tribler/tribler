@@ -715,7 +715,10 @@ class Dispersy(Singleton):
 
             # change when new vote count equal or higher than old address vote count
             if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
-                if __debug__: dprint("update wan address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
+                if __debug__:
+                    dprint("update wan address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
+                    dprint([(address, len(votes)) for address, votes in self._wan_address_votes.iteritems()], lines=1, force=1)
+
                 self._wan_address = address
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
