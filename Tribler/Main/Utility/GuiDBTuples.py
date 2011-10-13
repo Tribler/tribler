@@ -99,7 +99,7 @@ class Torrent(Helper):
         self._torrent_id = torrent_id
         self.infohash = infohash
         self.name = name
-        self.length = length
+        self.length = length or 0
         self.category_id = category_id
         self.status_id = status_id
         

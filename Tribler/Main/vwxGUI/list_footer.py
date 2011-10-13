@@ -390,6 +390,7 @@ class CommentFooter(ListFooter, AbstractDetails):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.commentbox = wx.TextCtrl(self, style = wx.TE_MULTILINE)
+        self.commentbox.SetMinSize((-1, 70))
         
         hSizer.Add(self.commentbox, 1, wx.EXPAND)
         
