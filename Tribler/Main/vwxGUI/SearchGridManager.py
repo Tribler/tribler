@@ -575,6 +575,7 @@ class TorrentManager:
             if self.searchkeywords == kws:
                 permid_channelid = self.channelcast_db.getPermChannelIdDict()
                 my_votes = self.votecastdb.getMyVotes()
+                channel_votes = {}
                 
                 for key,value in answers.iteritems():
                     # Convert answer fields as per 
@@ -634,7 +635,11 @@ class TorrentManager:
                                 # I marked this channel as SPAM
                                 continue
                             
-                            newval['subscriptions'], newval['neg_votes'] = self.votecastdb.getPosNegVotes(channel_id)
+                            if not channel_id in channel_votes:
+                                posvotes, negvotes = self.votecastdb.getPosNegVotes(channel_id)
+                                channel_votes[channel_id] = (posvotes or 0, negvotes or 0)
+                            
+                            newval['subscriptions'], newval['neg_votes'] = channel_votes.get(channel_id, (0,0))
                             if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
                                 # We consider this as SPAM
                                 continue

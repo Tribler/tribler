@@ -664,6 +664,11 @@ class LinkStaticText(wx.BoxSizer):
         if self.icon:
             self.icon.Bind(event, modified_handler, source, id, id2)
             
+    def Unbind(self, event):
+        self.text.Unbind(event)
+        if self.icon:
+            self.icon.Unbind(event)
+            
     def SetBackgroundColour(self, colour, blink = False):
         if not blink:
             self.originalColor = colour

@@ -63,9 +63,11 @@ class BundleListItem(ListItem):
             if DEBUG:
                 print >>sys.stderr, "*** BundleListItem.RefreshData: bundle changed:", original_data['key'], '#1+%s' % (len(bundle)-1)
                         
-            self.bundlepanel.SetHits(bundle[1:])
+            showHighlight = self.bundlepanel.SetHits(bundle[1:])
             self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
-            self.Highlight(1)
+            
+            if showHighlight:
+                self.Highlight(1)
         else:
             if infohash == self.original_data.infohash: #update top row
                 ListItem.RefreshData(self, data)
@@ -225,7 +227,7 @@ class BundlePanel(wx.BoxSizer):
         self.SetDescription(description)
     
     def AddGrid(self):
-        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
+        self.grid = wx.FlexGridSizer(0, self.num_cols, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
         self.grid.SetMinSize((1,-1))
@@ -252,7 +254,7 @@ class BundlePanel(wx.BoxSizer):
             self.vsizer.Detach(self.grid)
             self.grid.Destroy()
             
-            self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
+            self.grid = wx.FlexGridSizer(0, self.num_cols, 3, 7)
             for child in children_controls:
                 self.grid.Add(child, 0, wx.EXPAND)
                 
@@ -282,7 +284,7 @@ class BundlePanel(wx.BoxSizer):
             
             #total nr items did not change
             for i in range(min(len(children), items_to_add)):
-                link_static_text = children[i].GetWindow()
+                link_static_text = children[i].GetWindow() or children[i].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(hits[i].name)
                     link_static_text.action = hits[i]
@@ -292,7 +294,7 @@ class BundlePanel(wx.BoxSizer):
             
             if self.nrhits > N:
                 more_caption = '(%s more...)' % (self.nrhits - N + 1)
-                link_static_text = children[i+1].GetWindow()
+                link_static_text = children[i+1].GetWindow() or children[i].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(more_caption)
                     link_static_text.Unbind(wx.EVT_LEFT_UP)
@@ -301,6 +303,13 @@ class BundlePanel(wx.BoxSizer):
                     didChange = True
 
         if didChange:
+            if DEBUG:
+                print >> sys.stderr, "*** BundlePanel.UpdateGrid: something did change rebuilding grid", len(children),min(N, self.nrhits)
+            
+            curRows = len(children) / BUNDLE_NUM_COLS
+            newRows = min(self.nrhits / BUNDLE_NUM_COLS, BUNDLE_NUM_ROWS)
+            rowsChanged = curRows != newRows            
+            
             self.grid.ShowItems(False)
             self.grid.Clear(deleteWindows = True)
             for i in range(items_to_add):
@@ -323,8 +332,13 @@ class BundlePanel(wx.BoxSizer):
             
             if self.state != self.COLLAPSED:
                 self.ShowGrid(False)
+                
+            if rowsChanged:
+                self.parent_listitem.OnChange()
                     
         self.parent.Thaw()
+        
+        return didChange
         
     def OnEventSize(self, width):
         if width < BUNDLE_GRID_COLLAPSE:
@@ -385,10 +399,11 @@ class BundlePanel(wx.BoxSizer):
     def SetHits(self, hits):
         self.nrhits = len(hits)
         
-        self.UpdateGrid(hits)
+        gridChanged = self.UpdateGrid(hits)
         self.UpdateList(hits)
         
         self.Layout()
+        return gridChanged
     
     def ChangeState(self, new_state, doLayout=True):
         if self.state != new_state:
@@ -523,9 +538,6 @@ class BundleListView(GenericSearchList):
         # id == infohash
         item = self.list.items[id]
         return item.GetPosition()[1]
-    
-    def SetFilteredResults(self, nr):
-        pass
 
 class ExpandableFixedListBody(FixedListBody):
     
