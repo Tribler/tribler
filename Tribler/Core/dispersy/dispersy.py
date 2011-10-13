@@ -2166,6 +2166,7 @@ class Dispersy(Singleton):
 
             candidate.inc_puncture(lan_address, wan_address)
 
+    @runtime_duration_warning(1.0)
     def store_update_forward(self, messages, store, update, forward):
         """
         Usually we need to do three things when we have a valid messages: (1) store it in our local
