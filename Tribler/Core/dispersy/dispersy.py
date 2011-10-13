@@ -75,6 +75,7 @@ from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 if __debug__:
     from dprint import dprint
     from time import clock
+    from types import GeneratorType
 
 # callback priorities.  note that a lower value is less priority
 WATCHDOG_PRIORITY = -1
@@ -243,7 +244,9 @@ class Dispersy(Singleton):
         self._candidates = {}
 
         # random numbers in the range [0:2**16) that are used to match outgoing
-        # introduction-request, incoming introduction-response, and incoming puncture
+        # introduction-request, incoming introduction-response, and incoming puncture.
+        # identifier:introduced-candidate pairs, where introduced-candidate is None until either the
+        # introduction-response of the puncture is received
         self._walk_identifiers = {}
         
         # our LAN and WAN addresses
@@ -269,7 +272,7 @@ class Dispersy(Singleton):
         
         # bootstrap peers
         bootstrap_addresses = get_bootstrap_addresses()
-        self._bootstrap_candidates = dict((address, BootstrapCandidate(self, address)) for address in bootstrap_addresses if address)
+        self._bootstrap_candidates = dict((address, BootstrapCandidate(address)) for address in bootstrap_addresses if address)
         assert isinstance(self._bootstrap_candidates, dict)
         if not all(bootstrap_addresses):
             self._callback.register(self._retry_bootstrap_candidates)
@@ -321,7 +324,7 @@ class Dispersy(Singleton):
                     break
             else:
                 if __debug__: dprint("resolved all bootstrap addresses")
-                self._bootstrap_candidates = dict((address, BootstrapCandidate(self, address)) for address in addresses if address)
+                self._bootstrap_candidates = dict((address, BootstrapCandidate(address)) for address in addresses if address)
                 break
 
     @property
@@ -1951,7 +1954,15 @@ class Dispersy(Singleton):
         """
         We received a message from SOCK_ADDR claiming to have LAN_ADDRESS and WAN_ADDRESS, returns
         the estimated LAN and WAN address for this node.
+
+        The returned LAN and WAN addresses have passed the _is_valid_lan_address and
+        _is_valid_wan_address, respectively.
         """
+        if not self._is_valid_lan_address(lan_address):
+            lan_address = sock_addr
+        if not self._is_valid_wan_address(wan_address):
+            wan_address = sock_addr
+        
         if sock_addr[0] == self._wan_address[0]:
             # we have the same WAN address, we are probably behind the same NAT
             if __debug__: dprint("estimate a different LAN address ", lan_address[0], ":", lan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
@@ -1973,67 +1984,54 @@ class Dispersy(Singleton):
         responses = []
         requests = []
 
-        for message in messages:
+        # modify either the senders LAN or WAN address based on how we perceive that node
+        estimates = [self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address) + (message,)
+                     for message
+                     in messages]
+        
+        for source_lan_address, source_wan_address, message in estimates:
             # apply vote to determine our WAN address
             self.wan_address_vote(message.payload.destination_address, message.address)
 
-            # modify either the senders LAN or WAN address based on how we perceive that node
-            source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
-
             # add source to candidate pool and mark as a node that stumbled upon us
-            if self._is_valid_lan_address(source_lan_address) and self._is_valid_wan_address(source_wan_address):
-                if message.address in self._candidates:
-                    self._candidates[message.address].inc_introduction_requests(source_lan_address, source_wan_address)
-                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
-                    self._candidates[message.address] = Candidate(self, source_lan_address, source_wan_address, community, is_stumble=True)
+            if message.address in self._candidates:
+                self._candidates[message.address].inc_introduction_requests(source_lan_address, source_wan_address)
+            elif not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
+                self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, community, is_stumble=True)
             else:
-                if __debug__: dprint("unable to add stumble node. LAN: ", source_lan_address[0], ":", source_lan_address[1], " (", ("valid" if self._is_valid_lan_address(source_lan_address) else "invalid"), ") WAN: ", source_wan_address[0], ":", source_wan_address[1], " (", ("valid" if self._is_valid_wan_address(source_wan_address) else "invalid"), ")", level="warning")
+                if __debug__: dprint("unable to add stumble node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
 
         # obtain candidate iterator -after- updating known candidates to ensure all candidates are
         # included in the iteration
         iterate_candidate = self.yield_introduction_candidates(community)
         iterate_candidate.next()
         
-        for message in messages:
-            # get introduction candidate (if requested)
-            #
-            # note that we also check that the source_lan_address and source_wan_address are valid
-            # as they are unknown and possibly wrong when the sender only just started her client
-            if message.payload.advice and self._is_valid_lan_address(message.payload.source_lan_address) and self._is_valid_wan_address(message.payload.source_wan_address):
+        for source_lan_address, source_wan_address, message in estimates:
+            if message.payload.advice:
                 candidate = iterate_candidate.send(message.address)
             else:
-                if __debug__:
-                    if not self._is_valid_lan_address(message.payload.source_lan_address):
-                        dprint("can not introduce... invalid LAN source address ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], level="warning")
-                    if not self._is_valid_wan_address(message.payload.source_wan_address):
-                        dprint("can not introduce... invalid WAN source address ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1], level="warning")
+                if __debug__: dprint("no candidates available to introduce")
                 candidate = None
 
             if candidate:
-                if __debug__:
-                    dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.lan_address[0], ":", candidate.lan_address[1], " or ", candidate.wan_address[0], ":", candidate.wan_address[1])
-                    # the blacklist should have ensured that this candidate is not the same as the
-                    # introduction-request sender
-                    if candidate.wan_address == message.address:
-                        dprint("probably introducing this candidate to herself (or the candidate is spreading invalid LAN and WAN addresses)", level="warning")
-                    if candidate.lan_address == message.address and candidate.wan_address[0] == message.address[0]:
-                        dprint("probably introducing this candidate to herself (or the candidate is spreading invalid LAN and WAN addresses)", level="warning")
+                if __debug__: dprint("introducing ", message.address[0], ":", message.address[1], " to ", candidate.lan_address[0], ":", candidate.lan_address[1], " / ", candidate.wan_address[0], ":", candidate.wan_address[1])
 
-                # create introduction responses
+                # create introduction response
                 responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, message.payload.identifier)))
 
-                # create puncture requests
-                destination = candidate.lan_address if candidate.wan_address[0] == self._wan_address[0] else candidate.wan_address
-                requests.append(meta_puncture_request.impl(distribution=(community.global_time,), destination=(destination,), payload=(message.payload.source_lan_address, message.payload.source_wan_address, message.payload.identifier)))
+                # create puncture request
+                requests.append(meta_puncture_request.impl(distribution=(community.global_time,), destination=(candidate.address,), payload=(source_lan_address, source_wan_address, message.payload.identifier)))
 
             else:
+                if __debug__: dprint("responding to ", message.address[0], ":", message.address[1], " without an introduction")
+
                 none = ("0.0.0.0", 0)
                 responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.address,), payload=(message.address, self._lan_address, self._wan_address, none, none, message.payload.identifier)))
 
         if responses:
-            self.store_update_forward(responses, False, False, True)
+            self._forward(responses)
         if requests:
-            self.store_update_forward(requests, False, False, True)
+            self._forward(requests)
 
     def check_introduction_response(self, messages):
         for message in messages:
@@ -2068,20 +2066,18 @@ class Dispersy(Singleton):
             # apply vote to determine our WAN address
             self.wan_address_vote(message.payload.destination_address, message.address)
             
-            if __debug__:
-                dprint(community.cid.encode("HEX"), " got introduction response from ", message.address[0], ":", message.address[1])
+            if __debug__: dprint(community.cid.encode("HEX"), " got introduction response from ", message.address[0], ":", message.address[1])
 
             # modify either the senders LAN or WAN address based on how we perceive that node
             source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
 
             # add source to the candidate pool and mark as a node that is part of our walk
-            if self._is_valid_lan_address(source_lan_address) and self._is_valid_wan_address(source_wan_address):
-                if message.address in self._candidates:
-                    self._candidates[message.address].inc_introduction_response(source_lan_address, source_wan_address)
-                elif self.is_valid_remote_address(message.address) and not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
-                    self._candidates[message.address] = Candidate(self, source_lan_address, source_wan_address, community, is_walk=True)
+            if message.address in self._candidates:
+                self._candidates[message.address].inc_introduction_response(source_lan_address, source_wan_address)
+            elif not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
+                self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, community, is_walk=True)
             else:
-                if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], " (", ("valid" if self._is_valid_lan_address(source_lan_address) else "invalid"), ") WAN: ", source_wan_address[0], ":", source_wan_address[1], " (", ("valid" if self._is_valid_wan_address(source_wan_address) else "invalid"), ")", level="warning")
+                if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
 
             lan_introduction_address = message.payload.lan_introduction_address
             wan_introduction_address = message.payload.wan_introduction_address
@@ -2089,20 +2085,38 @@ class Dispersy(Singleton):
             # add introduced node to the candidate pool and mark as an introduced node
             if self._is_valid_lan_address(lan_introduction_address) and self._is_valid_wan_address(wan_introduction_address):
                 sock_address = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
-                if sock_address in self._candidates:
-                    candidate = self._candidates[sock_address]
-                    candidate.inc_introduced()
-                    assert message.payload.identifier in self._walk_identifiers, "must be checked in check_introduction_response"
-                    self._walk_identifiers[message.payload.identifier] = candidate
-                elif not (sock_address in self._bootstrap_candidates or sock_address == self._wan_address):
-                    candidate = Candidate(self, lan_introduction_address, wan_introduction_address, community, is_introduction=True)
-                    self._candidates[sock_address] = candidate
-                    assert message.payload.identifier in self._walk_identifiers, "must be checked in check_introduction_response"
-                    self._walk_identifiers[message.payload.identifier] = candidate
+
+                # 1. self._candidates contains the candidate.  this indicates that we have seen this
+                #    node before, either from a previous walk or from receiving a puncture before
+                #    the introduction-response
+                candidate = self._candidates.get(sock_address)
+                if candidate:
+                    # 2. self._walk_identifiers does not contain the candidate.  this indicates that
+                    #    the puncture message has not yet been received
+                    if self._walk_identifiers.get(message.payload.identifier) is None:
+                        self._walk_identifiers[message.payload.identifier] = candidate
+                        candidate.inc_introduced()
+
+                # 3. self._candidates does not contain the candidate.  this indicates that we have
+                #    not seen this node before
                 else:
-                    if __debug__: dprint("unable to add introduced node", level="warning")
+                    candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
+                    assert self._walk_identifiers[message.payload.identifier] == None
+                    self._candidates[sock_address] = candidate
+                    self._walk_identifiers[message.payload.identifier] = candidate
+
+                # 13/10/11 Boudewijn: when we had no candidates and we received this response
+                # from a bootstrap node, we will immediately take an additional step towards the
+                # introduced node
+                #
+                # small note:  we check if self._candidates contains only one node, this is the
+                # node that was just introduced and added to self._candidates a few lines up
+                if len(self._candidates) == 1 and message.address in self._bootstrap_candidates:
+                    if __debug__: dprint("we have no candidates, immediately contact the introduced node")
+                    self.create_introduction_request(community, candidate.address)
+                    
             else:
-                if __debug__: dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ") WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level="warning")
+                if __debug__: dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level="warning")
                 
     def introduction_response_or_timeout(self, message, community, intermediary_address):
         if message is None:
@@ -2125,7 +2139,7 @@ class Dispersy(Singleton):
 
     def check_puncture(self, messages):
         for message in messages:
-            if not self._walk_identifiers.get(message.payload.identifier, None):
+            if not message.payload.identifier in self._walk_identifiers:
                 yield DropMessage(message, "invalid response identifier")
 
             else:
@@ -2139,32 +2153,36 @@ class Dispersy(Singleton):
 
             # we can match this source address (message.address) to the candidate and modify the LAN
             # or WAN address that has been proposed.
-
             assert message.payload.identifier in self._walk_identifiers, "must be checked in check_puncture"
-            candidate = self._walk_identifiers[message.payload.identifier]
-            
-            # modify either the senders LAN or WAN address based on how we perceive that node
-            # TODO maybe we can use self._estimate_lan_and_wan_addresses
-            if message.address[0] == self._wan_address[0]:
-                if candidate.lan_address == message.address:
-                    # no change
-                    continue
-                lan_address = message.address
-                wan_address = candidate.wan_address
+
+            # 1. self._walk_identifiers contains the candidate.  this indicates that the
+            #    introduction-response has already been received.  this is most common
+            candidate = self._walk_identifiers.get(message.payload.identifier)
+            if candidate:
+                assert candidate.address in self._candidates, "the candidate should have been created when the introduction-response was received"
+                if not candidate.address == message.address:
+                    del self._candidates[candidate.address]
+                    self._candidates[message.address] = candidate
+                lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, candidate.lan_address, candidate.wan_address)
+                candidate.inc_puncture(message.address, lan_address, wan_address)
+
             else:
-                if candidate.wan_address == message.address:
-                    # no change
-                    continue
-                lan_address = candidate.lan_address
-                wan_address = message.address
+                # 2. self._candidates contains the candidate.  this indicates that the
+                #    introduction-response has not yet been received but that it will introduce a
+                #    candidate that we already know
+                candidate = self._candidates.get(message.address)
+                if candidate:
+                    assert self._walk_identifiers[message.payload.identifier] == None
+                    self._walk_identifiers[message.payload.identifier] = candidate
+                    candidate.inc_introduced()
 
-            if __debug__:
-                if not lan_address == candidate.lan_address:
-                    dprint("modified our local view of candidates LAN address ", candidate.lan_address[0], ":", candidate.lan_address[1], " -> ", lan_address[0], ":", lan_address[1])
-                if not wan_address == candidate.wan_address:
-                    dprint("modified our local view of candidates WAN address ", candidate.wan_address[0], ":", candidate.wan_address[1], " -> ", wan_address[0], ":", wan_address[1])
-
-            candidate.inc_puncture(lan_address, wan_address)
+                # 3. the candidate is new.  this indicates that the introduction-response has not
+                #    yet been received and the introduced candidate is new
+                else:
+                    assert self._walk_identifiers[message.payload.identifier] == None
+                    candidate = Candidate(message.address, message.address, message.address, is_introduction=True)
+                    self._walk_identifiers[message.payload.identifier] = candidate
+                    self._candidates[message.address] = candidate
 
     @runtime_duration_warning(1.0)
     def store_update_forward(self, messages, store, update, forward):
@@ -2306,6 +2324,9 @@ class Dispersy(Singleton):
         @param key: A unicode string purely used for statistics.  Indicating the type of data send.
         @type key: unicode
         """
+        if __debug__:
+            if isinstance(addresses, GeneratorType):
+                addresses = list(addresses)
         assert isinstance(addresses, (tuple, list, set)), type(addresses)
         assert isinstance(packets, (tuple, list, set)), type(packets)
         assert isinstance(key, unicode), type(key)
@@ -3750,6 +3771,7 @@ class Dispersy(Singleton):
                     assert self._database.changes == len(redo), (self._database.changes, len(redo))
                     meta.handle_callback(redo)
 
+    @runtime_duration_warning(1.0)
     def sanity_check(self, community):
         """
         Check everything we can about a community.
@@ -3935,6 +3957,17 @@ class Dispersy(Singleton):
         """
         Periodically select a candidate and take a step in the network.
         """
+        class DummyCommunity(object):
+            cid = "\x00" * 20
+
+            @staticmethod
+            def get_classification():
+                return u"DummyCommunity"
+
+            @staticmethod
+            def dispersy_take_step():
+                pass
+        
         while True:
             while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
                 if __debug__: dprint("there are no walker enabled communities")
@@ -3951,6 +3984,12 @@ class Dispersy(Singleton):
                         break
 
                     communities = [community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker]
+                    if len(communities) < 10:
+                        # extend the community list to at least 10 communities.  this will ensure
+                        # that whenever a new community is added the delay until the first step is
+                        # taken is at most 5.0 / 10 = 0.5 seconds
+                        communities.extend([DummyCommunity] * (10 - len(communities)))
+                        
                     iter_communities = cycle(communities)
                     # delay will never be less than 0.05, hence we can accommodate 100 communities
                     # before the interval between each step becomes larger than 5.0 seconds
