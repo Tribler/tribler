@@ -720,6 +720,7 @@ class Dispersy(Singleton):
                     dprint([(address, len(votes)) for address, votes in self._wan_address_votes.iteritems()], lines=1, force=1)
 
                 self._wan_address = address
+                dprint("wan is now ", self._wan_address[0], ":", self._wan_address[1], force=1)
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
                 self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
 
