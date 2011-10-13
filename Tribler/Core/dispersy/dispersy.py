@@ -2108,9 +2108,9 @@ class Dispersy(Singleton):
                 #    not seen this node before
                 else:
                     candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
-                    assert self._walk_identifiers[message.payload.identifier] == None
-                    self._candidates[sock_address] = candidate
-                    self._walk_identifiers[message.payload.identifier] = candidate
+                    if self._walk_identifiers[message.payload.identifier] is None:
+                        self._candidates[sock_address] = candidate
+                        self._walk_identifiers[message.payload.identifier] = candidate
 
                 # 13/10/11 Boudewijn: when we had no candidates and we received this response
                 # from a bootstrap node, we will immediately take an additional step towards the
@@ -2122,9 +2122,6 @@ class Dispersy(Singleton):
                     if __debug__: dprint("we have no candidates, immediately contact the introduced node")
                     self.create_introduction_request(community, candidate.address)
                     
-                assert not self._walk_identifiers[message.payload.identifier] == None
-                assert self._walk_identifiers[message.payload.identifier] == self._candidates[sock_address]
-                
             else:
                 if __debug__: dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level="warning")
                 
