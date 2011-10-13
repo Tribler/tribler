@@ -2101,6 +2101,9 @@ class Dispersy(Singleton):
                         self._walk_identifiers[message.payload.identifier] = candidate
                         candidate.inc_introduced()
 
+                    else:
+                        assert self._walk_identifiers[message.payload.identifier] == candidate
+
                 # 3. self._candidates does not contain the candidate.  this indicates that we have
                 #    not seen this node before
                 else:
