@@ -1996,7 +1996,7 @@ class Dispersy(Singleton):
             # add source to candidate pool and mark as a node that stumbled upon us
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_requests(source_lan_address, source_wan_address)
-            elif not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
+            elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                 self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, community, is_stumble=True)
             else:
                 if __debug__: dprint("unable to add stumble node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
@@ -2078,7 +2078,7 @@ class Dispersy(Singleton):
             # add source to the candidate pool and mark as a node that is part of our walk
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_response(source_lan_address, source_wan_address)
-            elif not (message.address in self._bootstrap_candidates or message.address == self._wan_address):
+            elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                 self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, community, is_walk=True)
             else:
                 if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
@@ -2106,7 +2106,7 @@ class Dispersy(Singleton):
 
                 # 3. self._candidates does not contain the candidate.  this indicates that we have
                 #    not seen this node before
-                else:
+                elif not (sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
                     candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
                     if self._walk_identifiers[message.payload.identifier] is None:
                         self._candidates[sock_address] = candidate
@@ -2168,6 +2168,9 @@ class Dispersy(Singleton):
             if candidate:
                 assert candidate.address in self._candidates, "the candidate should have been created when the introduction-response was received"
                 if not candidate.address == message.address:
+                    if message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address:
+                        # we can not have a candidate pointing to either a bootstrap node or ourselves
+                        continue
                     del self._candidates[candidate.address]
                     self._candidates[message.address] = candidate
                 lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, candidate.lan_address, candidate.wan_address)
@@ -2185,14 +2188,11 @@ class Dispersy(Singleton):
 
                 # 3. the candidate is new.  this indicates that the introduction-response has not
                 #    yet been received and the introduced candidate is new
-                else:
+                elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                     assert self._walk_identifiers[message.payload.identifier] == None
                     candidate = Candidate(message.address, message.address, message.address, is_introduction=True)
                     self._walk_identifiers[message.payload.identifier] = candidate
                     self._candidates[message.address] = candidate
-
-            assert not self._walk_identifiers[message.payload.identifier] == None
-            assert self._walk_identifiers[message.payload.identifier] == self._candidates[message.address]
 
     @runtime_duration_warning(1.0)
     def store_update_forward(self, messages, store, update, forward):
