@@ -111,7 +111,7 @@ def dispersy_started(session, opt):
         
         myChannel = channelManager.getChannel(myChannelId)
         if myChannel.name != myChannelName:
-            print >> sys.stderr, "renaming channel"
+            print >> sys.stderr, "renaming channel to",myChannelName
             channelManager.modifyChannel(myChannelId, {'name': myChannelName})
 
     #use dispersythread, this way we know our channel has been created
