@@ -715,7 +715,7 @@ class Dispersy(Singleton):
 
             # change when new vote count equal or higher than old address vote count
             if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
-                if len(self._wan_address_votes[address] == 1 and self._wan_address_votes[self._wan_address]):
+                if len(self._wan_address_votes[address]) == 1 and len(self._wan_address_votes[self._wan_address]) == 1:
                     dprint("not updating, suspect symmetric NAT", force=1)
                     return
 
