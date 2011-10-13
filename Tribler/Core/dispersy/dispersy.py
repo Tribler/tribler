@@ -2094,19 +2094,23 @@ class Dispersy(Singleton):
                 #    node before, either from a previous walk or from receiving a puncture before
                 #    the introduction-response
                 candidate = self._candidates.get(sock_address)
+                dprint("A ", candidate, force=1)
                 if candidate:
                     # 2. self._walk_identifiers does not contain the candidate.  this indicates that
                     #    the puncture message has not yet been received
                     if self._walk_identifiers.get(message.payload.identifier) is None:
                         self._walk_identifiers[message.payload.identifier] = candidate
                         candidate.inc_introduced()
+                        dprint("B ", candidate, force=1)
 
                     else:
+                        dprint("C ", candidate, force=1)
                         assert self._walk_identifiers[message.payload.identifier] == candidate
 
                 # 3. self._candidates does not contain the candidate.  this indicates that we have
                 #    not seen this node before
                 else:
+                    dprint("D ", candidate, force=1)
                     candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
                     assert self._walk_identifiers[message.payload.identifier] == None
                     self._candidates[sock_address] = candidate
