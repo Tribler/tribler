@@ -397,13 +397,7 @@ class SelectedChannelList(GenericSearchList):
             else:
                 data = (data.id,[data.name, data.extended_description, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
-        
-        if self.list.InList(key):
-            item = self.list.GetItem(key)
-            panel = item.GetExpandedPanel()
-            if panel:
-                panel.UpdateStatus()
-        
+         
         manager = self.activityList.GetManager()
         manager.do_or_schedule_refresh()
     

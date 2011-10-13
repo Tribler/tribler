@@ -256,56 +256,9 @@ class TorrentDetails(AbstractDetails):
         self.torrentSizer = wx.BoxSizer(wx.VERTICAL)
         self.overview.SetSizer(self.torrentSizer)
         
-        self._add_header(self.overview, self.torrentSizer, 'Torrent Details')
         self.notebook.AddPage(self.overview, "Details")
         
-        categories = self.torrent.categories
-        if isinstance(categories, list):
-            category = ', '.join(categories)
-
-        if not self.torrent.get('description', ''):
-            description = 'No description yet, be the first to add a description.'
-        else:
-            description = self.torrent.description
-        
-        filesize = "%s in %d file"%(self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files))
-        if len(self.torrent.files) > 1:
-            filesize += "s"
-
-        overviewColumns = {
-            "Name": self.torrent.name,
-            "Description": description,
-            "Type": category.capitalize(),
-            "Uploaded": self.torrent.formatCreationDate(),
-            "Filesize": filesize,
-            "Status": "Unknown"
-        }
-
-        if self.compact:
-            vSizer = wx.FlexGridSizer(0, 6, 3, 3)
-            vSizer.AddGrowableCol(1,4) #we give more space to name and status
-            vSizer.AddGrowableCol(3,2)
-            vSizer.AddGrowableCol(5,2)
-            
-            overviewColumnsOrder = ["Name", "Type", "Uploaded", "Status", "Filesize"]
-            del overviewColumns['Description']
-        else:
-            vSizer = wx.FlexGridSizer(0, 2, 3, 3)
-            vSizer.AddGrowableCol(1)
-            
-            if self.canEdit:
-                overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
-            else:
-                del overviewColumns['Description']
-                overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
-
-        for column in overviewColumnsOrder:
-            _, value = self._add_row(self.overview, vSizer, column, overviewColumns[column])
-            if column == "Status":
-                self.status = value
-    
-        self.torrentSizer.Add(vSizer, 1, wx.EXPAND)
-        self.UpdateStatus()
+        self._addOverview(self.overview, self.torrentSizer)
 
         if self.canEdit:
             self.UpdateMarkings()
@@ -326,6 +279,10 @@ class TorrentDetails(AbstractDetails):
             
             def save(event):
                 self.doSave(self)
+                
+                button = event.GetEventObject()
+                button.Enable(False)
+                wx.CallLater(5000, button.Enable, True)
             
             saveButton = wx.Button(edit, -1, "Save")
             saveButton.Bind(wx.EVT_BUTTON, save)
@@ -540,7 +497,7 @@ class TorrentDetails(AbstractDetails):
                     if isinstance(tracker, basestring):
                         self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
-        
+                
         self.overview.OnChange()
     
         if showTab:
@@ -557,7 +514,62 @@ class TorrentDetails(AbstractDetails):
             self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
             self.buttonPanel.SetSizer(self.buttonSizer)
             
-            sizer.Add(self.buttonPanel, 35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)     
+            sizer.Add(self.buttonPanel, 35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+            
+    @warnWxThread
+    def _addOverview(self, panel, sizer):
+        sizer.Clear(deleteWindows = True)
+        self._add_header(panel, sizer, 'Torrent Details')
+        
+        categories = self.torrent.categories
+        if isinstance(categories, list):
+            category = ', '.join(categories)
+
+        if not self.torrent.get('description', ''):
+            description = 'No description yet, be the first to add a description.'
+        else:
+            description = self.torrent.description
+        
+        filesize = "%s in %d file"%(self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files))
+        if len(self.torrent.files) > 1:
+            filesize += "s"
+
+        overviewColumns = {
+            "Name": self.torrent.name,
+            "Description": description,
+            "Type": category.capitalize(),
+            "Uploaded": self.torrent.formatCreationDate(),
+            "Filesize": filesize,
+            "Status": "Unknown"
+        }
+
+        if self.compact:
+            vSizer = wx.FlexGridSizer(0, 6, 3, 3)
+            vSizer.AddGrowableCol(1,4) #we give more space to name and status
+            vSizer.AddGrowableCol(3,2)
+            vSizer.AddGrowableCol(5,2)
+            
+            overviewColumnsOrder = ["Name", "Type", "Uploaded", "Status", "Filesize"]
+            del overviewColumns['Description']
+        else:
+            vSizer = wx.FlexGridSizer(0, 2, 3, 3)
+            vSizer.AddGrowableCol(1)
+            
+            if self.canEdit:
+                overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
+            else:
+                del overviewColumns['Description']
+                overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
+
+        for column in overviewColumnsOrder:
+            _, value = self._add_row(panel, vSizer, column, overviewColumns[column])
+            if column == "Status":
+                self.status = value
+    
+        sizer.Add(vSizer, 1, wx.EXPAND)
+        self.UpdateStatus()
+        
+        panel.OnChange()
     
     @warnWxThread
     def DownloadStarted(self):
@@ -1105,8 +1117,13 @@ class TorrentDetails(AbstractDetails):
 
     def RefreshData(self, data):
         if self.isReady:
+            #replace current torrent
+            self.torrent.torrent = data[2]
+            
+            #remove cached swarminfo
             del self.torrent.swarminfo
-            self.UpdateStatus()
+            
+            self._addOverview(self.overview, self.torrentSizer)
    
     def UpdateStatus(self):
         #touch swarminfo property        
