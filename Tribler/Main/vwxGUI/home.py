@@ -174,7 +174,7 @@ class Stats(XRCPanel):
             self.activity.onActivity(msg)
         
     def onKey(self, event):
-        if event.ControlDown() and event.GetKeyCode() == 73: #ctrl + i
+        if event.ControlDown() and (event.GetKeyCode() == 73 or event.GetKeyCode() == 105): #ctrl + i
             self._showInspectionTool()
         else:
             event.Skip()

@@ -283,7 +283,7 @@ class BundlePanel(wx.BoxSizer):
                 print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
             
             #total nr items did not change
-            for i in range(min(len(children), items_to_add)):
+            for i in range(items_to_add):
                 link_static_text = children[i].GetWindow() or children[i].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(hits[i].name)
@@ -294,7 +294,7 @@ class BundlePanel(wx.BoxSizer):
             
             if self.nrhits > N:
                 more_caption = '(%s more...)' % (self.nrhits - N + 1)
-                link_static_text = children[i+1].GetWindow() or children[i].GetSizer()
+                link_static_text = children[i+1].GetWindow() or children[i+1].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(more_caption)
                     link_static_text.Unbind(wx.EVT_LEFT_UP)
