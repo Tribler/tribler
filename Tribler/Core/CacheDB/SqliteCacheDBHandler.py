@@ -23,6 +23,7 @@ from random import randint, sample
 import math
 import re
 from sets import Set
+from struct import unpack_from
 
 from maxflow import Network
 from math import atan, pi
@@ -32,7 +33,8 @@ from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
-from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Search.SearchManager import split_into_keywords,\
+    filter_keywords
 from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
@@ -1268,37 +1270,32 @@ class TorrentDBHandler(BasicDBHandler):
             where = 'torrent_id = %d' % torrent_id
             self._db.update('Torrent', where=where, commit=False, **database_dict)
         
-        # boudewijn: we are using a Set to ensure that all keywords
-        # are unique.  no use having the database layer figuring this
-        # out when we can do it now, in memory
-        keywords = set(split_into_keywords(torrent_name))
-
-        # search through the .torrent file for potential keywords in
-        # the filenames, but only add the 50 most used
-        filedict = {}
-        for filename in torrentdef.get_files_as_unicode():
-            for keyword in split_into_keywords(filename):
-                if len(keyword) > 2:
-                    filedict[keyword] = filedict.get(keyword, 0) + 1
+        #Niels: new method for indexing, replaces invertedindex
+        #Making sure that swarmname does not include extension for single file torrents
+        swarmname = torrentdef.get_name_as_unicode()
+        if not torrentdef.is_multifile_torrent():
+            swarmname, _ = os.path.splitext(swarmname)
         
-        file_keywords = filedict.keys()
-        if len(file_keywords) > 50:
+        filedict = {}
+        fileextensions = set()
+        for filename in torrentdef.get_files_as_unicode():
+            filename, extension = os.path.splitext(filename)
+            for keyword in split_into_keywords(filename, filterStopwords = True):
+                filedict[keyword] = filedict.get(keyword, 0) + 1
+            
+            fileextensions.add(extension[1:])
+            
+        filenames = filedict.keys()
+        if len(filenames) > 1000:
             def popSort(a, b):
                 return filedict[a] - filedict[b]
-            file_keywords.sort(cmp = popSort, reverse = True)
-            file_keywords = file_keywords[:50]
+            filenames.sort(cmp = popSort, reverse = True)
+            filenames = filenames[:1000]
         
-        keywords.update(file_keywords)
-        
-        #only insert keywords with length 2 or higher
-        keywords = [keyword for keyword in keywords if len(keyword) > 1]
-                
-        # store the keywords in the InvertedIndex table in the database
-        if len(keywords) > 0:
-            values = [(keyword, torrent_id) for keyword in keywords]
-            self._db.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
-            if DEBUG:
-                print >> sys.stderr, "torrentdb: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
+        values = (torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions))
+        #INSERT OR REPLACE not working for fts3 table
+        self._db.execute_write(u"DELETE FROM FullTextIndex WHERE rowid = ?", (torrent_id, ), commit=False)
+        self._db.execute_write(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values, commit=False)
         
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         nb = NetworkBuzzDBHandler.getInstance()
@@ -1833,32 +1830,23 @@ class TorrentDBHandler(BasicDBHandler):
                       'num_leechers', 
                       'comment',
                       'channel_id']        
-        
-        sql = ""
-        count = 0
-        for word in kws:
-            word = word.lower()
-            count += 1
-            sql += " select torrent_id from InvertedIndex where word='" + word + "' "
-            if count < len(kws):
-                sql += " intersect "
-        
-        #TODO: not local only collectedtorrent?
-        mainsql = """select T.*, C.channel_id
-                     from Torrent T LEFT OUTER JOIN ChannelTorrents C on T.torrent_id = C.torrent_id
-                     where T.torrent_id in (%s) order by T.num_seeders desc """ % (sql)
+                
+        mainsql = """SELECT T.*, C.channel_id, Matchinfo(FullTextIndex) FROM Torrent T, FullTextIndex
+                     LEFT OUTER JOIN ChannelTorrents C ON T.torrent_id = C.torrent_id
+                     WHERE t.torrent_id = FullTextIndex.rowid AND FullTextIndex MATCH ?
+                     ORDER BY T.num_seeders desc """
         if not local:
             mainsql += " limit 20"
-            
-        results = self._db.fetchall(mainsql)
+        
+        query = " ".join(filter_keywords(kws))
+        results = self._db.fetchall(mainsql, (query, ))
 
         channels = set()
         for result in results:
-            if result[-1]:
-                channels.add(result[-1])
+            if result[-2]:
+                channels.add(result[-2])
         
         t2 = time()
-        
         if len(channels) > 0:
             votes = self.votecast_db.getAllPosNegVotes(channels)
             
@@ -1879,7 +1867,29 @@ class TorrentDBHandler(BasicDBHandler):
         torrents_dict = {}
         #step 1, merge torrents keep one with best channel
         for result in results:
-            torrent = dict(zip(value_name,result))
+            torrent = dict(zip(value_name,result[:-1]))
+            
+            torrent['matches'] = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
+            
+            #Matchinfo is documented at: http://www.sqlite.org/fts3.html#matchinfo
+            matchinfo = result[-1]
+            nrfields = len(matchinfo)/4
+            matchinfo = unpack_from('I'*nrfields, matchinfo)
+            num_phrases = matchinfo[0]
+            num_cols = matchinfo[1]
+            
+            swarmnames, filenames, fileextensions  = [
+                [matchinfo[3 * (i + p*num_cols) + 2] for p in range(num_phrases)]
+                for i in range(num_cols)
+            ]
+            
+            for i, keyword in enumerate(query.split()):
+                if swarmnames[i]:
+                    torrent['matches']['swarmname'].add(keyword)
+                if filenames[i]:
+                    torrent['matches']['filenames'].add(keyword)
+                if fileextensions[i]:
+                    torrent['matches']['fileextensions'].add(keyword)
             
             if torrent['infohash'] in torrents_dict:
                 old_record = torrents_dict[torrent['infohash']]

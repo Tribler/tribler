@@ -259,10 +259,12 @@ class RssParser(Thread):
             except:
                 pass
             
-            description = entry.summary
-            if description:
-                description = re.sub("<.*?>", "\n", description)
-                description = re.sub("\n+", "\n", description)
+            description = ''
+            if getattr(entry, 'summary', False):
+                description = entry.summary
+                if description:
+                    description = re.sub("<.*?>", "\n", description)
+                    description = re.sub("\n+", "\n", description)
             
             try:
                 thumbnail = entry.media_thumbnail[0]['url']

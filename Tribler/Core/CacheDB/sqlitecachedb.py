@@ -16,6 +16,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
 from collections import namedtuple
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 #support_version = (3,5,9)
 #support_version = (3,3,13)
 #apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
@@ -417,7 +418,7 @@ class SQLiteCacheDBBase:
         curr_ver = int(curr_ver)
         #print "check db", db_ver, curr_ver
         if db_ver != curr_ver or \
-               (not config_dir is None and os.path.exists(os.path.join(config_dir, "upgradingdb.txt"))): 
+               (not config_dir is None and (os.path.exists(os.path.join(config_dir, "upgradingdb.txt")) or os.path.exists(os.path.join(config_dir, "upgradingdb2.txt")))): 
             self.updateDB(db_ver,curr_ver)
             
     def updateDB(self,db_ver,curr_ver):
@@ -1480,6 +1481,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               PRIMARY KEY (channeltorrent_id, peer_id)
             );
             CREATE INDEX IF NOT EXISTS TorMarkIndex ON TorrentMarkings(channeltorrent_id);
+            
+            CREATE VIRTUAL TABLE FullTextIndex USING fts3(swarmname, filenames, fileextensions);
 
             """
             self.execute_write(sql, commit=False)
@@ -1643,25 +1646,39 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             if DEBUG:
                 print >> sys.stderr, "INSERTING NEW KEYWORDS TOOK", time.time() - t1, "INSERTING took", time.time() - t2
         
-        if fromver < 9:
+        tmpfilename = os.path.join(state_dir,"upgradingdb2.txt")
+        if fromver < 9 or os.path.exists(tmpfilename):
             from Tribler.Core.Session import Session
             from time import time
+            from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+            from Tribler.Core.Search.SearchManager import split_into_keywords
+            from Tribler.Core.TorrentDef import TorrentDef
             
-            session = Session.get_instance()
+            # Create an empty file to mark the process of upgradation.
+            # In case this process is terminated before completion of upgradation,
+            # this file remains even though fromver >= 4 and hence indicating that 
+            # rest of the torrents need to be inserted into the InvertedIndex!
             
+            # ensure the temp-file is created, if it is not already
+            try:
+                open(tmpfilename, "w")
+                print >> sys.stderr, "DB Upgradation: temp-file successfully created"
+            except:
+                print >> sys.stderr, "DB Upgradation: failed to create temp-file"
+            
+            session = Session.get_instance()            
             my_permid = session.get_permid()
             if my_permid:
                 my_permid = bin2str(my_permid)
             
             #start converting channelcastdb to new format
+            finished_convert = "SELECT name FROM sqlite_master WHERE name='ChannelCast'"
             select_channels = "SELECT publisher_id, min(time_stamp), max(time_stamp) FROM ChannelCast WHERE publisher_name <> '' GROUP BY publisher_id"
             select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ? LIMIT 1"
             
             select_channel_torrent = "SELECT CollectedTorrent.torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash Order By time_stamp DESC"
-            select_mychannel_torrent = "SELECT CollectedTorrent.infohash, time_stamp, torrent_file_name FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash AND CollectedTorrent.torrent_id NOT IN (SELECT torrent_id FROM ChannelTorrents WHERE channel_id = ?) ORDER BY time_stamp DESC LIMIT ?"
             
             select_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
-            select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
             
             insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description, inserted, modified) VALUES (?, ?, ?, ?, ?, ?)"
             insert_channel_contents = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
@@ -1669,182 +1686,289 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             update_channel = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
             
             select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
-            select_votes_for_me = "SELECT voter_id, vote, time_stamp FROM VoteCast WHERE mod_id = ? Order By time_stamp ASC"
             insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
             
-            #placeholders for dispersy channel conversion
-            my_channel_name = None
+            if self.fetchone(finished_convert) == 'ChannelCast':
             
-            to_be_inserted = []
-            t1 = time()
-            
-            #create channels
-            permid_peerid = {}
-            channel_permid_cid = {}
-            channels = self.fetchall(select_channels)
-            for publisher_id, mintimestamp, maxtimestamp in channels:
-                channel_name = self.fetchone(select_channel_name, (publisher_id, maxtimestamp))
+                #placeholders for dispersy channel conversion
+                my_channel_name = None
                 
-                if publisher_id == my_permid:
-                    my_channel_name = channel_name
-                    continue
+                to_be_inserted = []
+                t1 = time()
                 
-                peer_id = self.getPeerID(str2bin(publisher_id))
-                if peer_id:
-                    permid_peerid[publisher_id] = peer_id
-                    to_be_inserted.append((-1, peer_id, channel_name, '', mintimestamp, maxtimestamp))
-            
-            self.executemany(insert_channel, to_be_inserted)
-            
-            to_be_inserted = []
-
-            #insert torrents
-            for publisher_id, peer_id in permid_peerid.iteritems():
-                torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
-
-                channel_id = self.fetchone(select_channel_id, (peer_id,))
-                channel_permid_cid[publisher_id] = channel_id
+                #create channels
+                permid_peerid = {}
+                channel_permid_cid = {}
+                channels = self.fetchall(select_channels)
+                for publisher_id, mintimestamp, maxtimestamp in channels:
+                    channel_name = self.fetchone(select_channel_name, (publisher_id, maxtimestamp))
+                    
+                    if publisher_id == my_permid:
+                        my_channel_name = channel_name
+                        continue
+                    
+                    peer_id = self.getPeerID(str2bin(publisher_id))
+                    if peer_id:
+                        permid_peerid[publisher_id] = peer_id
+                        to_be_inserted.append((-1, peer_id, channel_name, '', mintimestamp, maxtimestamp))
                 
-                for torrent_id, time_stamp in torrents:
-                    to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
-                    
-                self.execute_write(update_channel, (len(torrents), channel_id), commit = False)
-            self.executemany(insert_channel_contents, to_be_inserted)
-            
-            #convert votes
-            to_be_inserted = []
-            votes = self.fetchall(select_votes)
-            for mod_id, voter_id, vote, time_stamp in votes:
-                if mod_id != my_permid: #cannot yet convert votes on my channel 
+                self.executemany(insert_channel, to_be_inserted)
                 
-                    channel_id = channel_permid_cid.get(mod_id, None)
+                to_be_inserted = []
+    
+                #insert torrents
+                for publisher_id, peer_id in permid_peerid.iteritems():
+                    torrents = self.fetchall(select_channel_torrent, (publisher_id, ))
+    
+                    channel_id = self.fetchone(select_channel_id, (peer_id,))
+                    channel_permid_cid[publisher_id] = channel_id
                     
-                    if channel_id:
-                        if voter_id == my_permid:
-                            to_be_inserted.append((channel_id, None, -1, vote, time_stamp))
-                        else:
-                            peer_id = self.getPeerID(str2bin(voter_id))
-                            if peer_id:
-                                to_be_inserted.append((channel_id, peer_id, -1, vote, time_stamp))
-            
-            self.executemany(insert_vote, to_be_inserted)
-            
-            #set cached nr_spam and nr_favorites
-            votes = {}
-            select_pos_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == 2 GROUP BY channel_id"
-            select_neg_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == -1 GROUP BY channel_id"
-            records = self.fetchall(select_pos_vote)
-            for channel_id, pos_votes in records:
-                votes[channel_id] = [pos_votes, 0]
-        
-            records = self.fetchall(select_neg_vote)
-            for channel_id, neg_votes in records:
-                if channel_id not in votes:
-                    votes[channel_id] = [0, neg_votes]
-                else:
-                    votes[channel_id][1] = neg_votes
+                    for torrent_id, time_stamp in torrents:
+                        to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
+                        
+                    self.execute_write(update_channel, (len(torrents), channel_id), commit = False)
+                self.executemany(insert_channel_contents, to_be_inserted)
+                
+                #convert votes
+                to_be_inserted = []
+                votes = self.fetchall(select_votes)
+                for mod_id, voter_id, vote, time_stamp in votes:
+                    if mod_id != my_permid: #cannot yet convert votes on my channel 
                     
-            channel_tuples = [(values[1], values[0], channel_id) for channel_id, values in votes.iteritems()]
-            update_votes = "UPDATE Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
-            self.executemany(update_votes, channel_tuples)
-            
-            print >> sys.stderr, "Converting took", time() - t1
-            if my_channel_name:
-                def dispersy_started(subject,changeType,objectID):
-                    print >> sys.stderr, "Dispersy started"
-                    
-                    community = None
-                    def create_my_channel():
-                        global community
+                        channel_id = channel_permid_cid.get(mod_id, None)
                         
-                        if my_channel_name:
-                            print >> sys.stderr, "Dispersy started, creating community"
-                            
-                            community = ChannelCommunity.create_community(session.dispersy_member)
-                            community._disp_create_channel(my_channel_name, u'')
-
-                            print >> sys.stderr, "Dispersy started, community created"                            
-                            #insert votes
-                            insert_votes_for_me()
-                            
-                            #schedule insert torrents
-                            dispersy.callback.register(insert_my_torrents, delay = 10)
-                            
-                    def insert_votes_for_me():
-                        print >> sys.stderr, "Dispersy started, inserting votes"
-                        my_channel_id = self.fetchone(select_mychannel_id)
-                        
-                        to_be_inserted = []
-                        
-                        votes = self.fetchall(select_votes_for_me, (my_permid, ))
-                        for voter_id, vote, time_stamp in votes:
-                            peer_id = self.getPeerID(str2bin(voter_id))
-                            if peer_id:
-                                to_be_inserted.append((my_channel_id, peer_id, -1, vote, time_stamp))
-                                
-                        if len(to_be_inserted) > 0:
-                            self.executemany(insert_vote, to_be_inserted)
-                            
-                            from Tribler.Core.CacheDB.SqliteCacheDBHandler import VoteCastDBHandler
-                            votecast = VoteCastDBHandler.getInstance()
-                            votecast._updateVotes(my_channel_id)
-                        
-                    def insert_my_torrents():
-                        global community
-                        
-                        print >> sys.stderr, "Dispersy started, inserting torrents"
-                        torrent_dir = session.get_torrent_collecting_dir()
-                        
-                        channel_id = self.fetchone(select_mychannel_id)
                         if channel_id:
-                            batch_insert = 50
+                            if voter_id == my_permid:
+                                to_be_inserted.append((channel_id, None, -1, vote, time_stamp))
+                            else:
+                                peer_id = self.getPeerID(str2bin(voter_id))
+                                if peer_id:
+                                    to_be_inserted.append((channel_id, peer_id, -1, vote, time_stamp))
+                
+                self.executemany(insert_vote, to_be_inserted)
+                
+                #set cached nr_spam and nr_favorites
+                votes = {}
+                select_pos_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == 2 GROUP BY channel_id"
+                select_neg_vote = "SELECT channel_id, count(*) FROM ChannelVotes WHERE vote == -1 GROUP BY channel_id"
+                records = self.fetchall(select_pos_vote)
+                for channel_id, pos_votes in records:
+                    votes[channel_id] = [pos_votes, 0]
+            
+                records = self.fetchall(select_neg_vote)
+                for channel_id, neg_votes in records:
+                    if channel_id not in votes:
+                        votes[channel_id] = [0, neg_votes]
+                    else:
+                        votes[channel_id][1] = neg_votes
+                        
+                channel_tuples = [(values[1], values[0], channel_id) for channel_id, values in votes.iteritems()]
+                update_votes = "UPDATE Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
+                self.executemany(update_votes, channel_tuples)
+                
+                print >> sys.stderr, "Converting took", time() - t1
+                self.execute_write('DELETE FROM Channels WHERE peer_id IS NOT NULL', commit = False)
+                self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid, ), commit = False)
+                self.execute_write('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid, ))
+                
+                select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
+                select_votes_for_me = "SELECT voter_id, vote, time_stamp FROM VoteCast WHERE mod_id = ? Order By time_stamp ASC"
+                select_mychannel_torrent = "SELECT CollectedTorrent.infohash, time_stamp, torrent_file_name FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash AND CollectedTorrent.torrent_id NOT IN (SELECT torrent_id FROM ChannelTorrents WHERE channel_id = ?) ORDER BY time_stamp DESC LIMIT ?"
+            
+                if my_channel_name:
+                    def dispersy_started(subject,changeType,objectID):
+                        print >> sys.stderr, "Dispersy started"
+                    
+                        community = None
+                        def create_my_channel():
+                            global community
+                            
+                            if my_channel_name:
+                                channel_id = self.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
+            
+                                if channel_id:
+                                    print >> sys.stderr, "Dispersy started, allready got community"
+                                    dispersy_cid = self.fetchone("SELECT dispersy_cid FROM Channels WHERE id = ?", (channel_id,))
+                                    dispersy_cid = str(dispersy_cid)
+                                    
+                                    community =  dispersy.get_community(dispersy_cid)
+                                
+                                else:
+                                    print >> sys.stderr, "Dispersy started, creating community"
+                                
+                                    community = ChannelCommunity.create_community(session.dispersy_member)
+                                    community._disp_create_channel(my_channel_name, u'')
+    
+                                    print >> sys.stderr, "Dispersy started, community created"
+                                                                
+                                #insert votes
+                                insert_votes_for_me()
+                                
+                                #schedule insert torrents
+                                dispersy.callback.register(insert_my_torrents, delay = 10.0)
+                                
+                        def insert_votes_for_me():
+                            print >> sys.stderr, "Dispersy started, inserting votes"
+                            my_channel_id = self.fetchone(select_mychannel_id)
                             
                             to_be_inserted = []
-                            torrents = self.fetchall(select_mychannel_torrent, (my_permid, channel_id, batch_insert))
-                            for infohash, timestamp, torrent_file_name in torrents:
-                                timestamp = long(timestamp)
-                                infohash = str2bin(infohash)
-                                
-                                torrent_file_name = os.path.join(torrent_dir, torrent_file_name)
-                                if not os.path.isfile(torrent_file_name):
-                                    _, tail = os.path.split(torrent_file_name)
-                                    torrent_file_name = os.path.join(torrent_dir, tail)
-                                
-                                if os.path.isfile(torrent_file_name):    
-                                    torrentdef = TorrentDef.load(torrent_file_name)
+                            
+                            votes = self.fetchall(select_votes_for_me, (my_permid, ))
+                            for voter_id, vote, time_stamp in votes:
+                                peer_id = self.getPeerID(str2bin(voter_id))
+                                if peer_id:
+                                    to_be_inserted.append((my_channel_id, peer_id, -1, vote, time_stamp))
                                     
-                                    files = torrentdef.get_files_with_length()
-                                    to_be_inserted.append((infohash, timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple()))
-                            
                             if len(to_be_inserted) > 0:
-                                community._disp_create_torrents(to_be_inserted, forward = False)
-                                dispersy.callback.register(insert_my_torrents, delay = 10)
+                                self.executemany(insert_vote, to_be_inserted)
+                                
+                                from Tribler.Core.CacheDB.SqliteCacheDBHandler import VoteCastDBHandler
+                                votecast = VoteCastDBHandler.getInstance()
+                                votecast._updateVotes(my_channel_id)
                             
-                            else: #done
-                                drop_channelcast = "DROP TABLE ChannelCast"
-                                #self.execute_write(drop_channelcast)
+                        def insert_my_torrents():
+                            global community
+                            
+                            print >> sys.stderr, "Dispersy started, inserting torrents"
+                            torrent_dir = session.get_torrent_collecting_dir()
+                            
+                            channel_id = self.fetchone(select_mychannel_id)
+                            if channel_id:
+                                batch_insert = 50
+                                
+                                to_be_inserted = []
+                                to_be_removed = []
+                                torrents = self.fetchall(select_mychannel_torrent, (my_permid, channel_id, batch_insert))
+                                for infohash, timestamp, torrent_file_name in torrents:
+                                    timestamp = long(timestamp)
+                                    infohash = str2bin(infohash)
+                                    
+                                    torrent_file_name = os.path.join(torrent_dir, torrent_file_name)
+                                    if not os.path.isfile(torrent_file_name):
+                                        _, tail = os.path.split(torrent_file_name)
+                                        torrent_file_name = os.path.join(torrent_dir, tail)
+                                    
+                                    if os.path.isfile(torrent_file_name):    
+                                        torrentdef = TorrentDef.load(torrent_file_name)
+                                        
+                                        files = torrentdef.get_files_with_length()
+                                        to_be_inserted.append((infohash, timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple()))
+                                    else:
+                                        to_be_removed.append((bin2str(infohash), ))
+                                
+                                if len(torrents) > 0:
+                                    if len(to_be_inserted)>0:
+                                        community._disp_create_torrents(to_be_inserted, forward = False)
+                                    
+                                    if len(to_be_removed)>0:
+                                        self.executemany("DELETE FROM ChannelCast WHERE infohash = ?", to_be_removed)
+                                    dispersy.callback.register(insert_my_torrents, delay = 10.0)
+                                    
+                                else: #done
+                                    drop_channelcast = "DROP TABLE ChannelCast"
+                                    self.execute_write(drop_channelcast)
+                            
+                                    drop_votecast = "DROP TABLE VoteCast"
+                                    self.execute_write(drop_votecast)
+                            else:
+                                dispersy.callback.register(insert_my_torrents, delay = 10.0)
+                    
+                        from Tribler.community.channel.community import ChannelCommunity
+                        from Tribler.Core.dispersy.dispersy import Dispersy
+                        from Tribler.Core.TorrentDef import TorrentDef
                         
-                                drop_votecast = "DROP TABLE VoteCast"
-                                #self.execute_write(drop_votecast)
-                        else:
-                            dispersy.callback.register(insert_my_torrents, delay = 10)
-                    
-                    from Tribler.community.channel.community import ChannelCommunity
-                    from Tribler.Core.dispersy.dispersy import Dispersy
-                    from Tribler.Core.TorrentDef import TorrentDef
-                    
-                    dispersy = Dispersy.get_instance()
-                    dispersy.callback.register(create_my_channel, delay = 10)
-                    session.remove_observer(dispersy_started)
+                        dispersy = Dispersy.get_instance()
+                        dispersy.callback.register(create_my_channel, delay = 10.0)
+                        session.remove_observer(dispersy_started)
                 
-                session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
-        else:
-            drop_channelcast = "DROP TABLE ChannelCast"
-            #self.execute_write(drop_channelcast)
+                    session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+                else:
+                    drop_channelcast = "DROP TABLE ChannelCast"
+                    self.execute_write(drop_channelcast)
+                        
+                    drop_votecast = "DROP TABLE VoteCast"
+                    self.execute_write(drop_votecast)
+            
+            def upgradeTorrents():
+                print >> sys.stderr, "Upgrading DB .. inserting into FullTextIndex"
                 
-            drop_votecast = "DROP TABLE VoteCast"
-            #self.execute_write(drop_votecast)
+                # fetch some un-inserted torrents to put into the FullTextIndex
+                sql = """
+                SELECT torrent_id, name, infohash, num_files, torrent_file_name
+                FROM CollectedTorrent
+                WHERE torrent_id NOT IN (SELECT rowid FROM FullTextIndex)
+                LIMIT 100"""
+                records = self.fetchall(sql)
+                
+                if len(records) == 0:
+                    #self.execute_write("DROP TABLE InvertedIndex")
+                    
+                    # upgradation is complete and hence delete the temp file
+                    os.remove(tmpfilename) 
+                    print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
+                    return 
+                
+                torrent_dir = session.get_torrent_collecting_dir()
+                values = []
+                for torrent_id, name, infohash, num_files, torrent_filename in records:
+                    try:
+                        torrent_filename = os.path.join(torrent_dir, torrent_filename)
+            
+                        #.torrent found, return complete filename
+                        if not os.path.isfile(torrent_filename):
+                            #.torrent not found, possibly a new torrent_collecting_dir
+                            torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+                        
+                        if not os.path.isfile(torrent_filename):
+                            raise RuntimeError(".torrent file not found. Use fallback.")
+                    
+                        torrentdef = TorrentDef.load(torrent_filename)
+                        
+                        #Making sure that swarmname does not include extension for single file torrents
+                        swarmname = torrentdef.get_name_as_unicode()
+                        if not torrentdef.is_multifile_torrent():
+                            swarmname, _ = os.path.splitext(swarmname)
+                        
+                        filedict = {}
+                        fileextensions = set()
+                        for filename in torrentdef.get_files_as_unicode():
+                            filename, extension = os.path.splitext(filename)
+                            for keyword in split_into_keywords(filename, filterStopwords = True):
+                                filedict[keyword] = filedict.get(keyword, 0) + 1
+                            
+                            fileextensions.add(extension[1:])
+                            
+                        filenames = filedict.keys()
+                        if len(filenames) > 1000:
+                            def popSort(a, b):
+                                return filedict[a] - filedict[b]
+                            filenames.sort(cmp = popSort, reverse = True)
+                            filenames = filenames[:1000]
+                        
+                    except RuntimeError:
+                        swarmname = dunno2unicode(name)
+                        fileextensions = set()
+                        filenames = []
+                        
+                        if num_files == 1:
+                            swarmname, extension = os.path.splitext(swarmname)
+                            fileextensions.add(extension[1:])
+                            
+                            filenames.extend(split_into_keywords(swarmname, filterStopwords = True))
 
+                    values.append((torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions)))
+                    
+                if len(values) > 0:
+                    self.executemany(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values, commit=True)
+                
+                # upgradation not yet complete; comeback after 5 sec
+                tqueue.add_task(upgradeTorrents, 5)
+            
+            # start the upgradation after 10 seconds
+            tqueue = TimedTaskQueue("UpgradeDB")
+            tqueue.add_task(upgradeTorrents, 10)
+            
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern
 

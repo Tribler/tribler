@@ -299,7 +299,7 @@ class TorrentManager:
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
         self.library_manager = library_manager
     
-    def getHitsInCategory(self, categorykey = 'all', sort = 'rameezmetric'):
+    def getHitsInCategory(self, categorykey = 'all', sort = 'fulltextmetric'):
         if DEBUG: begintime = time()
         # categorykey can be 'all', 'Video', 'Document', ...
         bundle_mode = self.bundle_mode
@@ -371,7 +371,10 @@ class TorrentManager:
             # want to prefetch the top N torrents.
             if new_local_hits or new_remote_hits:
                 if sort == 'rameezmetric':
-                    self.sort()
+                    self.rameezSort()
+                    
+                elif sort == 'fulltextmetric':
+                    self.fulltextSort()
     
                 self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
                                                             self.pref_db, self.mypref_db, self.search_db)
@@ -500,6 +503,7 @@ class TorrentManager:
                 t = Torrent(**getValidArgs(Torrent.__init__, a))
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
+                t.assignRelevance(a['matches'])
                 return t
             
             results = map(create_torrent, results)
@@ -542,6 +546,7 @@ class TorrentManager:
                     if not known:
                         remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
                         remoteHit.torrent_db = self.torrent_db
+                        remoteHit.assignRelevance(remoteItem['matches'])
                         self.hits.append(remoteHit)
                         
                         hitsUpdated = True
@@ -649,6 +654,23 @@ class TorrentManager:
                         newval['channel_permid'] = ""
                         newval['subscriptions'] = 0
                         newval['neg_votes'] = 0
+                        
+                    # Guess matches
+                    keywordset = set(kws)
+                    
+                    newval['matches'] = {'fileextensions': set()}
+                    newval['matches']['swarmname'] = set(split_into_keywords(newval['name'])) & keywordset #all keywords matching in swarmname
+                    newval['matches']['filenames'] = keywordset - newval['matches']['swarmname'] #remaining keywords should thus me matching in filenames or fileextensions
+                    
+                    if len(newval['matches']['filenames']) == 0:
+                        _, ext = os.path.splitext(newval['name'])
+                        ext = ext[1:]
+                        
+                        newval['matches']['filenames'] = newval['matches']['swarmname']
+                        newval['matches']['filenames'].discard(ext)
+                        
+                        if ext in keywordset:
+                            newval['matches']['fileextensions'].add(ext)
                
                     # Extra field: Set from which peer this info originates
                     newval['query_permids'] = set([permid])
@@ -685,7 +707,7 @@ class TorrentManager:
 
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the torrent results
-    def sort(self):
+    def rameezSort(self):
         norm_num_seeders = self.doStatNormalization(self.hits, 'num_seeders')
         norm_neg_votes = self.doStatNormalization(self.hits, 'neg_votes')
         norm_subscriptions = self.doStatNormalization(self.hits, 'subscriptions')
@@ -701,6 +723,17 @@ class TorrentManager:
             return cmp(score_a, score_b)
            
         self.hits.sort(cmp, reverse = True)
+        
+    def fulltextSort(self):
+        norm_num_seeders = self.doStatNormalization(self.hits, 'num_seeders')
+        norm_neg_votes = self.doStatNormalization(self.hits, 'neg_votes')
+        norm_subscriptions = self.doStatNormalization(self.hits, 'subscriptions')
+        
+        for hit in self.hits:
+            score = 0.8*norm_num_seeders[hit.infohash] - 0.1 * norm_neg_votes[hit.infohash] + 0.1 * norm_subscriptions[hit.infohash]
+            hit.relevance_score[-1] = score
+           
+        self.hits.sort(key=lambda hit:hit.relevance_score, reverse = True)
 
     def doStatNormalization(self, hits, normKey):
         '''Center the variance on zero (this means mean == 0) and divide
@@ -1306,13 +1339,15 @@ class ChannelManager:
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_channel_id(self, channel_id):
-        assert isinstance(channel_id, (int, long))
+        if not channel_id:
+            channel_id = self.channelcast_db.getMyChannelId()
+        
+        if channel_id:
+            # 1. get the dispersy identifier from the channel_id
+            dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
+            dispersy_cid = str(dispersy_cid)
 
-        # 1. get the dispersy identifier from the channel_id
-        dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
-        dispersy_cid = str(dispersy_cid)
-
-        return self._disp_get_community_from_cid(dispersy_cid)
+            return self._disp_get_community_from_cid(dispersy_cid)
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):

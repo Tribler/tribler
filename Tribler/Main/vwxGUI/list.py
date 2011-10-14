@@ -32,6 +32,7 @@ from collections import namedtuple
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 
 DEBUG = False
+DEBUG_RELEVANCE = False
 
 class RemoteSearchManager:
     def __init__(self, list):
@@ -757,7 +758,11 @@ class GenericSearchList(SizeList):
                     if key in self.infohash2key:
                         del self.infohash2key[key]
                 
-                item_data = [head.name, head.length, 0, 0]
+                if DEBUG_RELEVANCE:
+                    item_data = ["%s %s"%(head.name,head.relevance_score), head.length, 0, 0]
+                else:
+                    item_data = [head.name, head.length, 0, 0]
+                    
                 original_data = file
                     
                 list_data.append((key, item_data, original_data, create_method))

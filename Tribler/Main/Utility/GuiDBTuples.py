@@ -94,7 +94,7 @@ class Helper(object):
             setattr(self, key, value)
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress')
+    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress', 'relevance_score')
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
@@ -111,6 +111,7 @@ class Torrent(Helper):
         self.torrent_db = None
         self.channelcast_db = None
         self.ds = None
+        self.relevance_score = None
    
     @cacheProperty
     def categories(self):
@@ -161,6 +162,17 @@ class Torrent(Helper):
             if self.ds.progress == 1.0:
                 stateList.append('completed')
         return stateList
+    
+    def assignRelevance(self, dict):
+        lowerSwarmname = self.name.lower()
+        
+        pos = sys.maxint
+        for keyword in dict['swarmname']:
+            index = lowerSwarmname.find(keyword.lower(), 0, pos)
+            if index != -1 and index < pos:
+                pos = index
+        
+        self.relevance_score = [len(dict['swarmname']), -pos, len(dict['filenames']), len(dict['fileextensions']), 0]
             
     def __eq__(self, other):
         return self.infohash == other.infohash
