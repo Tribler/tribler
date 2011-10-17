@@ -826,11 +826,13 @@ class BuzzPanel(HomePanel):
             self.DoPauseResume()
 
             # 29/06/11 boudewijn: do not perform database inserts on the GUI thread
-            def db_callback():
-                uelog = UserEventLogDBHandler.getInstance()
-                uelog.addEvent(message=repr((term, last_shown_buzz)))
-            last_shown_buzz = self.last_shown_buzz
-            self.guiserver.add_task(db_callback)
+
+# 17-10-2011: Niels disabling networkbuzz uel 
+#            def db_callback():
+#                uelog = UserEventLogDBHandler.getInstance()
+#                uelog.addEvent(message=repr((term, last_shown_buzz)))
+#            last_shown_buzz = self.last_shown_buzz
+#            self.guiserver.add_task(db_callback)
 
 # ProxyService 90s Test_
 #
