@@ -71,7 +71,7 @@ class TorrentManager:
         
         self.searchkeywords = []
         self.rerankingStrategy = DefaultTorrentReranker()
-        self.oldsearchkeywords = []
+        self.oldsearchkeywords = None
         self.fts3feaures = []
         self.fts3negated = []
         
@@ -460,9 +460,9 @@ class TorrentManager:
                 self.remoteLock.acquire()
                 
                 self.bundle_mode = None
-                self.searchkeywords = wantkeywords
+                self.searchkeywords = [kw for kw in wantkeywords if kw != '']
                 self.fts3feaures = fts3feaures
-                self.fts3negated = [kw[1:] for kw in fts3feaures if kw[0] == '-']
+                self.fts3negated = [kw[1:].lower() for kw in fts3feaures if kw[0] == '-']
                 if DEBUG:
                     print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,"fts3keywords", fts3feaures, ";time:%", time() 
             
@@ -471,7 +471,7 @@ class TorrentManager:
                 self.hits = []
                 self.remoteHits = []
                 
-                self.oldsearchkeywords = ''
+                self.oldsearchkeywords = None
                 self.remoteRefresh = False
             finally:
                 self.hitsLock.release()
@@ -493,8 +493,8 @@ class TorrentManager:
         
         if DEBUG:
             print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords
-                    
-        if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
+        
+        if len(self.searchkeywords) == 0 and len(self.fts3feaures) == 0:
             return False
         
         results = self.torrent_db.searchNames(self.searchkeywords + self.fts3feaures)
@@ -594,7 +594,7 @@ class TorrentManager:
                     ignore = False
                     #check fts3 negated values
                     for keyword in self.fts3negated:
-                        if value['content_name'].find(keyword) != -1:
+                        if value['content_name'].lower().find(keyword) != -1:
                             ignore = True
                             break
                         

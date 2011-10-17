@@ -272,6 +272,7 @@ class GUIUtility:
             
             if len(safekeywords)  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
+                
             else:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = remotekeywords
@@ -287,7 +288,7 @@ class GUIUtility:
                 self.ShowPage('search_results', safekeywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
-                self.frame.searchlist.Thaw()                
+                self.frame.searchlist.Thaw()
                 
                 #Peform local search
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
@@ -295,25 +296,26 @@ class GUIUtility:
                 
                 self.torrentsearch_manager.refreshGrid()
                 
-                #Start remote search
-                #Arno, 2010-02-03: Query starts as Unicode
-                q = u'SIMPLE '
-                for kw in remotekeywords:
-                    q += kw+u' '
-                q = q.strip()
-                
-                nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
-                
-                #Indicate expected nr replies in gui, use local result as first
-                self.frame.searchlist.SetMaxResults(nr_peers_connected+1)
-                self.frame.searchlist.NewResult()
-                
-                if len(input) > 1: #do not perform remote channel search for single character inputs
-                    q = 'CHANNEL k '
+                if len(remotekeywords) > 0:
+                    #Start remote search
+                    #Arno, 2010-02-03: Query starts as Unicode
+                    q = u'SIMPLE '
                     for kw in remotekeywords:
-                        q += kw+' '
-                    self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
-                wx.CallLater(10000, self.CheckSearch, remotekeywords)
+                        q += kw+u' '
+                    q = q.strip()
+                    
+                    nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
+                    
+                    #Indicate expected nr replies in gui, use local result as first
+                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1)
+                    self.frame.searchlist.NewResult()
+                    
+                    if len(input) > 1: #do not perform remote channel search for single character inputs
+                        q = 'CHANNEL k '
+                        for kw in remotekeywords:
+                            q += kw+' '
+                        self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
+                    wx.CallLater(10000, self.CheckSearch, remotekeywords)
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):
