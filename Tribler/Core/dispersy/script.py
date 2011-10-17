@@ -12,29 +12,21 @@ Run some python code, usually to test one or more features.
 from itertools import count
 from hashlib import sha1
 from random import random, shuffle
-from struct import pack, unpack_from
 from time import clock, time
 from lencoder import log
-from datetime import datetime
 import gc
 import hashlib
-import math
-import types
 
-from authentication import MultiMemberAuthentication
 from bloomfilter import BloomFilter
-from community import Community
-from conversion import BinaryConversion
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from debug import Node
-from destination import CommunityDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
 from dprint import dprint
 # from lencoder import log
 from member import Member
-from message import Message, DropMessage, DelayMessageByProof
-from resolution import PublicResolution, LinearResolution, DynamicResolution
+from message import Message, DelayMessageByProof
+from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 
 from debugcommunity import DebugCommunity, DebugNode
@@ -80,9 +72,9 @@ class Script(Singleton):
 
         elif self._testcases:
             call = self._testcases.pop(0)
-            dprint("start ", call, line=True)
+            dprint("start ", call, line=True, force=True)
             if call.__doc__:
-                dprint(call.__doc__, box=True)
+                dprint(call.__doc__, box=True, force=True)
             self._callback.register(call, callback=self._next_testcase)
 
         else:
@@ -3779,7 +3771,7 @@ class DispersyCryptoScript(ScriptBase):
 
         # create dispersy-identity message
         global_time = 10
-        message = node.create_dispersy_identity_message(node.wan_address, global_time)
+        message = node.create_dispersy_identity_message(global_time)
 
         # replace the valid public-key with an invalid one
         public_key = node.my_member.public_key

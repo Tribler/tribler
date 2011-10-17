@@ -114,7 +114,7 @@ class AllChannelCommunity(Community):
             #loop through all candidates to see if we can find a non-blocked address
             for candidate in self._dispersy.yield_random_candidates(self, 10, self._blocklist.keys()):
                 peer_ids = set()
-                for member in candidate.members:
+                for member in candidate.members_in_community(self):
                     key = member.public_key
                     peer_ids.add(self._peer_db.addOrGetPeerID(key))
                         

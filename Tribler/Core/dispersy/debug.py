@@ -85,7 +85,7 @@ class Node(object):
             # update identity information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            message = self.create_dispersy_identity_message(self.lan_address, 2)
+            message = self.create_dispersy_identity_message(2)
             self.give_message(message)
 
         if candidate:
@@ -234,16 +234,10 @@ class Node(object):
                          distribution=(global_time, sequence_number),
                          payload=(permission_triplets,))
 
-    def create_dispersy_identity_message(self, address, global_time):
-        assert isinstance(address, tuple)
-        assert len(address) == 2
-        assert isinstance(address[0], str)
-        assert isinstance(address[1], int)
+    def create_dispersy_identity_message(self, global_time):
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(u"dispersy-identity")
-        return meta.impl(authentication=(self._my_member,),
-                         distribution=(global_time,),
-                         payload=(address,))
+        return meta.impl(authentication=(self._my_member,), distribution=(global_time,))
 
     def create_dispersy_undo_message(self, message, global_time, sequence_number):
         meta = self._community.get_meta_message(u"dispersy-undo")

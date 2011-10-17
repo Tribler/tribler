@@ -122,9 +122,7 @@ class Community(object):
 
         # create the dispersy-identity for the master member
         meta = community.get_meta_message(u"dispersy-identity")
-        message = meta.impl(authentication=(master,),
-                            distribution=(community.claim_global_time(),),
-                            payload=(("0.0.0.0", 0),))
+        message = meta.impl(authentication=(master,), distribution=(community.claim_global_time(),))
         community.dispersy.store_update_forward([message], True, True, False)
 
         # create the dispersy-identity for my member
@@ -1031,15 +1029,11 @@ class Community(object):
 
     def get_members_from_address(self, address, verified=True):
         """
-        Returns zero or more Member instances that are or have been reachable at address.
+        Returns zero or more Member instances associated with ADDRESS.
 
-        Each member distributes dispersy-identity messages, these messages contain the address where
-        this member is reachable or was reachable in the past.
-
-        TODO: Currently we trust that the information in the dispersy-identity is correct.
-        Obviously this is not always the case.  Hence we will need to verify the truth by contacting
-        the peer at a certain address and performing a secure handshake.
-
+        The returned members are retrieved from candidates matching ADDRESS, hence, only members
+        that are online will be returned.
+        
         @param address: The address that we want members from.
         @type address: (str, int)
 
@@ -1060,14 +1054,10 @@ class Community(object):
         assert isinstance(address[0], str)
         assert isinstance(address[1], int)
         assert isinstance(verified, bool)
-        if verified:
-            # TODO we should not just trust this information, a member can put any address in their
-            # dispersy-identity message.  The database should contain a column with a 'verified'
-            # flag.  This flag is only set when a handshake was successful.
-            sql = u"SELECT DISTINCT member.public_key FROM identity JOIN member ON member.id = identity.member WHERE identity.host = ? AND identity.port = ? -- AND verified = 1"
-        else:
-            sql = u"SELECT DISTINCT member.public_key FROM identity JOIN member ON member.id = identity.member WHERE identity.host = ? AND identity.port = ?"
-        return [Member.get_instance(str(public_key)) for public_key, in list(self._dispersy_database.execute(sql, (unicode(address[0]), address[1])))]
+        for sock_addr, candidate in self._dispersy.yield_all_candidates(self):
+            if sock_addr == address:
+                for member in candidate.members_in_community(self):
+                    yield member
 
     def get_conversion(self, prefix=None):
         """

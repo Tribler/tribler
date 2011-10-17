@@ -442,7 +442,7 @@ class Dispersy(Singleton):
         return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.0),
                 Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
                 Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
-                Message(community, u"dispersy-puncture", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.0),
+                Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.0),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
@@ -1431,12 +1431,6 @@ class Dispersy(Singleton):
         messages = [message for message in messages if _filter_fail(message)]
         if not messages:
             return 0
-
-        # update candidate local view
-        key = lambda message: message.address
-        for address, _ in groupby(sorted(messages, key=key), key=key):
-            if address in self._candidates:
-                self._candidates[address].inc_any(meta.community)
             
         # store to disk and update locally
         if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages from ", ", ".join("%s:%d" % address for address in set(message.address for message in messages)))
@@ -2002,9 +1996,9 @@ class Dispersy(Singleton):
 
             # add source to candidate pool and mark as a node that stumbled upon us
             if message.address in self._candidates:
-                self._candidates[message.address].inc_introduction_requests(source_lan_address, source_wan_address)
+                self._candidates[message.address].inc_introduction_requests(message.authentication.member, community, source_lan_address, source_wan_address)
             elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
-                self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, community, is_stumble=True)
+                self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, message.authentication.member, community, is_stumble=True)
             else:
                 if __debug__: dprint("unable to add stumble node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
 
@@ -2086,7 +2080,7 @@ class Dispersy(Singleton):
             if message.address in self._candidates:
                 self._candidates[message.address].inc_introduction_response(source_lan_address, source_wan_address)
             elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
-                self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, community, is_walk=True)
+                self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, message.authentication.member, community, is_walk=True)
             else:
                 if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
 
@@ -2106,7 +2100,7 @@ class Dispersy(Singleton):
                     #    the puncture message has not yet been received
                     if self._walk_identifiers.get(message.payload.identifier) is None:
                         self._walk_identifiers[message.payload.identifier] = candidate
-                        candidate.inc_introduced()
+                        candidate.inc_introduced(message.authentication.member, community)
 
                     else:
                         assert self._walk_identifiers[message.payload.identifier] == candidate
@@ -2145,9 +2139,12 @@ class Dispersy(Singleton):
         meta_puncture = community.get_meta_message(u"dispersy-puncture")
         punctures = []
         for message in messages:
+            if message.address in self._candidates:
+                self._candidates[message.address].inc_puncture_request()
+            
             # determine if we are in the same LAN as the walker node
             destination = message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address
-            punctures.append(meta_puncture.impl(distribution=(community.global_time,), destination=(destination,), payload=(message.payload.identifier,)))
+            punctures.append(meta_puncture.impl(distribution=(community.global_time,), destination=(destination,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
 
         self.store_update_forward(punctures, False, False, True)
 
@@ -2181,7 +2178,7 @@ class Dispersy(Singleton):
                     del self._candidates[candidate.address]
                     self._candidates[message.address] = candidate
                 lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, candidate.lan_address, candidate.wan_address)
-                candidate.inc_puncture(message.address, lan_address, wan_address)
+                candidate.inc_puncture(message.authorization.member, message.community, message.address, lan_address, wan_address)
 
             else:
                 # 2. self._candidates contains the candidate.  this indicates that the
@@ -2191,13 +2188,15 @@ class Dispersy(Singleton):
                 if candidate:
                     assert self._walk_identifiers[message.payload.identifier] == None
                     self._walk_identifiers[message.payload.identifier] = candidate
-                    candidate.inc_introduced()
+                    lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
+                    candidate.inc_puncture(message.authorization.member, message.community, message.address, lan_address, wan_address)
 
                 # 3. the candidate is new.  this indicates that the introduction-response has not
                 #    yet been received and the introduced candidate is new
                 elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                     assert self._walk_identifiers[message.payload.identifier] == None
-                    candidate = Candidate(message.address, message.address, message.address, is_introduction=True)
+                    lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
+                    candidate = Candidate(message.address, lan_address, wan_address, message.authorization.member, message.community, is_introduction=True)
                     self._walk_identifiers[message.payload.identifier] = candidate
                     self._candidates[message.address] = candidate
 
@@ -2321,7 +2320,12 @@ class Dispersy(Singleton):
                 self._send(message.destination.addresses, [message.packet], message.name)
 
             elif isinstance(message.destination, MemberDestination.Implementation):
-                self._send([member.get_address(message.community, ("", -1)) for member in message.destination.members], [message.packet], message.name)
+                addresses = [candidate.address
+                             for _, candidate
+                             in self.yield_all_candidates(message.community)
+                             if any(member in message.destination.members for member in candidate.members_in_community(message.community))]
+                if addresses:
+                    self._send(addresses, [message.packet], message.name)
 
             else:
                 raise NotImplementedError(message.destination)
@@ -2744,14 +2748,12 @@ class Dispersy(Singleton):
     
     def create_identity(self, community, store=True, update=True):
         """
-        Create a dispersy-identity message.
+        Create a dispersy-identity message for self.my_member.
 
-        The dispersy-identity message contains information on community.my_member.  Such as your
-        public key and the IP address and port where you are reachable.
-
-        Typically, every member is represented my the most recent dispersy-identity message that she
-        created and provided to the network.  Generally one such message is created whenever a
-        member joins an existing community for the first time, or when she creates a new community.
+        The dispersy-identity message contains the public key of a community member.  In the future
+        other data can be included in this message, however, it must consist of data that does not
+        change over time as this message is only transferred on demand, and not during the sync
+        phase.
 
         @param community: The community for wich the dispersy-identity message will be created.
         @type community: Community
@@ -2767,9 +2769,7 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         assert isinstance(store, bool)
         meta = community.get_meta_message(u"dispersy-identity")
-        message = meta.impl(authentication=(community.my_member,),
-                            distribution=(community.claim_global_time(),),
-                            payload=(self._wan_address,))
+        message = meta.impl(authentication=(community.my_member,), distribution=(community.claim_global_time(),))
         self.store_update_forward([message], store, update, False)
         return message
 
@@ -2779,24 +2779,11 @@ class Dispersy(Singleton):
         """
         for message in messages:
             assert message.name == u"dispersy-identity"
-            if __debug__: dprint(message)
-            host, port = message.payload.address
-            # TODO: we should drop messages that contain invalid addresses... or at the very least we
-            # should ignore the address part.
-
-            self._database.execute(u"INSERT OR REPLACE INTO identity (community, member, host, port) VALUES (?, ?, ?, ?)",
-                                   (message.community.database_id, message.authentication.member.database_id, unicode(host), port))
-
-            if __debug__:
-                # there may be a Member instance indexed at the mid
-                member = message.authentication.member
-                assert member.public_key
-                if Member.has_instance(member.mid):
-                    assert id(Member.has_instance(member.mid)) == id(member)
-                    assert Member.has_instance(member.mid).public_key, "the public key should now be available"
-
+            if __debug__: dprint(message, force=1)
             # update the in-memory member instance
             message.authentication.member.update()
+            assert self._database.execute(u"SELECT 1 FROM sync WHERE packet = ?", (buffer(message.packet),)).next()
+            assert message.authentication.member.has_identity(message.community)
             
     # def create_identity_request(self, community, mid, addresses, forward=True):
     #     """

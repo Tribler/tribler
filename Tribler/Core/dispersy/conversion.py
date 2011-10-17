@@ -289,15 +289,10 @@ class BinaryConversion(Conversion):
         return len(data), placeholder.meta.payload.implement(data[offset:offset+20], data[offset+20:])
 
     def _encode_identity(self, message):
-        return inet_aton(message.payload.address[0]), pack("!H", message.payload.address[1])
+        return ()
 
     def _decode_identity(self, placeholder, offset, data):
-        if len(data) < offset + 6:
-            raise DropPacket("Insufficient packet size")
-
-        address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
-
-        return offset + 6, placeholder.meta.payload.implement(address)
+        return offset, placeholder.meta.payload.implement()
 
     def _encode_missing_identity(self, message):
         return message.payload.mid,
@@ -767,16 +762,25 @@ class BinaryConversion(Conversion):
         return offset, placeholder.meta.payload.implement(lan_walker_address, wan_walker_address, identifier)
 
     def _encode_puncture(self, message):
-        return pack("!H", message.payload.identifier),
+        payload = message.payload
+        return inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]), \
+            inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
+            pack("!H", payload.identifier)
 
     def _decode_puncture(self, placeholder, offset, data):
-        if len(data) < offset + 2:
+        if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
+
+        source_lan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
+
+        source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        offset += 6
 
         identifier, = unpack_from("!H", data, offset)
         offset += 2
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(source_lan_address, source_wan_address, identifier)
 
     #
     # Encoding

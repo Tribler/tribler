@@ -238,18 +238,36 @@ class PunctureRequestPayload(Payload):
 
 class PuncturePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier):
+        def __init__(self, meta, source_lan_address, source_wan_address, identifier):
             """
             Create the payload for a puncture message
             
+            SOURCE_LAN_ADDRESS is the lan address of the sender.  Nodes in the same LAN
+            should use this address to communicate.
+
+            SOURCE_WAN_ADDRESS is the wan address of the sender.  Nodes not in the same
+            LAN should use this address to communicate.
+
             IDENTIFIER is a number that was given in the associated introduction-request.  This
             number allows to distinguish between multiple introduction-response messages.
             """
+            assert is_address(source_lan_address)
+            assert is_address(source_wan_address)
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(PuncturePayload.Implementation, self).__init__(meta)
+            self._source_lan_address = source_lan_address
+            self._source_wan_address = source_wan_address
             self._identifier = identifier
             
+        @property
+        def source_lan_address(self):
+            return self._source_lan_address
+
+        @property
+        def source_wan_address(self):
+            return self._source_wan_address
+
         @property
         def identifier(self):
             return self._identifier
@@ -417,14 +435,7 @@ class SignatureResponsePayload(Payload):
 
 class IdentityPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, address):
-            assert is_address(address)
-            super(IdentityPayload.Implementation, self).__init__(meta)
-            self._address = address
-
-        @property
-        def address(self):
-            return self._address
+        pass
 
 class MissingIdentityPayload(Payload):
     class Implementation(Payload.Implementation):
