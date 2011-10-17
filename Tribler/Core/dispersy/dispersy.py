@@ -2144,7 +2144,7 @@ class Dispersy(Singleton):
             
             # determine if we are in the same LAN as the walker node
             destination = message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address
-            punctures.append(meta_puncture.impl(distribution=(community.global_time,), destination=(destination,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
+            punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(destination,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
 
         self.store_update_forward(punctures, False, False, True)
 
