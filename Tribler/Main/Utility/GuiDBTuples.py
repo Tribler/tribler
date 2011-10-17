@@ -94,7 +94,7 @@ class Helper(object):
             setattr(self, key, value)
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress', 'relevance_score')
+    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress', 'relevance_score', 'query_permids')
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
@@ -112,6 +112,7 @@ class Torrent(Helper):
         self.channelcast_db = None
         self.ds = None
         self.relevance_score = None
+        self.query_permids = None
    
     @cacheProperty
     def categories(self):
@@ -188,14 +189,12 @@ class Torrent(Helper):
         return statedict
     
 class RemoteTorrent(Torrent):
-    __slots__ = ('query_permids')
     def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = [], channel_id = -1, channel_permid = -1, channel_name = '', subscriptions = 0, neg_votes = 0):
         if channel_name != "":
             c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes)
         else:
             c = False
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, c)
-        
         self.query_permids = query_permids
 
 class CollectedTorrent(Helper):

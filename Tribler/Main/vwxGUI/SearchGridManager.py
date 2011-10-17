@@ -135,15 +135,16 @@ class TorrentManager:
             return torrent_filename
         
         #.torrent not found, try to download from peers
-        if self.downloadTorrentfileFromPeers(torrent, callback):
-            return (True, "from peers")
+        peers = torrent.query_permids
+        if peers and len(peers) > 0:
+            if self.downloadTorrentfileFromPeers(torrent, callback):
+                return (True, "from peers")
         
         torrent_dir = self.session.get_torrent_collecting_dir()
-        torrent_filename = os.path.join(torrent_dir, get_collected_torrent_filename(torrent['infohash']))
-        
+        torrent_filename = os.path.join(torrent_dir, get_collected_torrent_filename(torrent.infohash))
         #.torrent still not found, try magnet link
-        magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent['infohash'])
-        sources = self.torrent_db.getTorrentCollecting(torrent['torrent_id'])
+        magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent.infohash)
+        sources = self.torrent_db.getTorrentCollecting(torrent.torrent_id)
         if sources:
             for source, in sources:
                 if source.startswith('magnet'):
@@ -152,7 +153,7 @@ class TorrentManager:
         
         def torrentdef_retrieved(tdef):
             tdef.save(torrent_filename)
-            callback(torrent['infohash'], torrent, torrent_filename)
+            callback(torrent.infohash, torrent, torrent_filename)
 
         return (TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved), "from dht")
              
@@ -180,14 +181,17 @@ class TorrentManager:
         if not duplicate and torrent.infohash in self.requestedTorrents:
             return False
         
-        self.requestedTorrents.add(torrent.infohash)
-        
-        peers = torrent.get('query_permids', [])
-        if len(peers) == 0:
+        peers = torrent.query_permids
+        if peers == None or len(peers) == 0:
             self.session.download_torrentfile(torrent.infohash, callback, prio)
+            
         else:
+            #only add to requestedTorrents if we have peers
+            self.requestedTorrents.add(torrent.infohash)
+            
             for permid in peers:
                 self.session.download_torrentfile_from_peer(permid, torrent.infohash, callback, prio)
+                
         return True
     
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
@@ -435,7 +439,7 @@ class TorrentManager:
 
             torrent_filename = self.getCollectedFilename(hit)
             if not torrent_filename:
-                if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio = 1):
+                if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate = False, prio = 1):
                     if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", hit.name
                     prefetch_counter += 1
 
@@ -526,10 +530,11 @@ class TorrentManager:
                     known = False
                     for item in self.hits:
                         if item.infohash == remoteItem['infohash']:
-                            #If this item is a remote, then update query_permids
+                            if item.query_permids == None:
+                                item.query_permids = set()
+                            item.query_permids.update(remoteItem['query_permids'])
+                            
                             if isinstance(item, RemoteTorrent):
-                                item.query_permids.update(remoteItem['query_permids'])
-                                
                                 #Maybe update channel?
                                 if remoteItem['channel_permid'] != "" and remoteItem['channel_name'] != "":
                                     if item.hasChannel():

@@ -227,7 +227,7 @@ class TorrentDetails(AbstractDetails):
                 if DEBUG:
                     print >> sys.stderr, "TorrentDetails: timout on loading", self.torrent.name
             
-                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry.")
+                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry or wait to allow other peers to respond.")
             
                 self.Layout()
                 self.parent.parent_list.OnChange()
@@ -330,9 +330,7 @@ class TorrentDetails(AbstractDetails):
         if len(self.torrent.files) > 0:
             if self.saveSpace and not isinstance(self, LibraryDetails):
                 parent = wx.Panel(self.notebook)
-                themeColour = self.notebook.GetThemeBackgroundColour()
-                if themeColour.IsOk():
-                    parent.SetBackgroundColour(themeColour)
+                parent.SetBackgroundColour(wx.WHITE)
             else:
                 parent = self.notebook    
             
@@ -412,14 +410,11 @@ class TorrentDetails(AbstractDetails):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 hSizer.Add(self.listCtrl, 6, wx.EXPAND)
                 
-                self.buttonPanel = wx.Panel(parent)
-                self.buttonPanel.SetBackgroundColour(wx.WHITE)
-                
+                self.buttonPanel = parent
                 self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-                self.buttonPanel.SetSizer(self.buttonSizer)
                 
                 hSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_VERTICAL), 0, wx.EXPAND|wx.ALL, 3)
-                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.RIGHT, 3)
+                hSizer.Add(self.buttonSizer, 4, wx.EXPAND|wx.RIGHT, 3)
                 parent.SetSizer(hSizer)
                 self.notebook.AddPage(parent, "Files")
             else:
