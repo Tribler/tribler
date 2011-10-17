@@ -20,6 +20,12 @@ if __debug__:
     # dprint warning when registered call, or generator call, should have run N seconds ago
     QUEUE_DELAY_FOR_WARNING = 1.0
 
+# when a call is behind for more that MAX_DESYNC_TIME seconds, the call is rescheduled to run
+# immediately.  this will prevent the problem where a Callback was running and the computer went
+# into hibernation or sleep mode, woke up, and believes it is behind several hours.  especially the
+# generator callback will cause massive amounts of calls to be performed.
+MAX_DESYNC_TIME = 60.0
+    
 class Yielder(object):
     pass
 
@@ -407,6 +413,11 @@ class Callback(object):
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
 
+                assert deadline <= actual_time
+                if actual_time - deadline >= MAX_DESYNC_TIME:
+                    if __debug__: dprint("MAX_DESYNC_TIME exceeded.  resetting deadline", level="warning")
+                    deadline = actual_time
+
                 while True:
                     # call can be either:
                     # 1. A (generator, arg)
@@ -573,6 +584,20 @@ if __debug__:
         sleep(21.0)
         dprint(line=1)
 
+        # test MAX_DESYNC_TIME
+        def call5():
+            for i in xrange(1, 10):
+                dprint(i, force=True)
+                yield 1.0
+
+        global MAX_DESYNC_TIME
+        mdt = MAX_DESYNC_TIME
+        MAX_DESYNC_TIME = 5.0
+        c.register(call5)
+        c.register(sleep, (10.0,))
+        sleep(15)
+        MAX_DESYNC_TIME = mdt
+                
         d.stop()
         c.stop()
 
