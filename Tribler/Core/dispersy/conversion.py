@@ -703,7 +703,7 @@ class BinaryConversion(Conversion):
         if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
             raise DropPacket("Invalid number of bytes available")
         bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
-        offset += ceil(num_slices * bits_per_slice / 8.0)
+        offset += int(ceil(num_slices * bits_per_slice / 8.0))
         
         return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, advice, identifier, time_low, time_high, bloom_filter)
 
