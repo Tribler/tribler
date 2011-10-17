@@ -975,6 +975,8 @@ class BinaryConversion(Conversion):
 
         elif isinstance(authentication, MemberAuthentication):
             if authentication.encoding == "sha1":
+                if len(data) < offset + 20:
+                    raise DropPacket("Insufficient packet size (_decode_authentication sha1)")
                 member_id = data[offset:offset+20]
                 members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
                 if not members:
@@ -997,6 +999,8 @@ class BinaryConversion(Conversion):
             elif authentication.encoding == "bin":
                 key_length, = unpack_from("!H", data, offset)
                 offset += 2
+                if len(data) < offset + key_length:
+                    raise DropPacket("Insufficient packet size (_decode_authentication bin)")
                 key = data[offset:offset+key_length]
                 if not ec_check_public_bin(key):
                     if __debug__: dprint(key_length, " ", key.encode("HEX"), level="warning")
