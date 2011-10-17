@@ -1154,12 +1154,11 @@ class BinaryConversion(Conversion):
             debug_begin = clock()
 
         # payload
-        try:
-            placeholder.offset, placeholder.payload = decode_payload_func(placeholder, placeholder.offset, placeholder.data[:placeholder.first_signature_offset])
-        except:
-            if __debug__: dprint(decode_payload_func)
-            raise
-
+        placeholder.offset, placeholder.payload = decode_payload_func(placeholder, placeholder.offset, placeholder.data[:placeholder.first_signature_offset])
+        if placeholder.offset != placeholder.first_signature_offset:
+            if __debug__: dprint("invalid packet size.  data:", placeholder.first_signature_offset, "; offset:", placeholder.offset, level="warning")
+            raise DropPacket("Invalid packet size (there are unconverted bytes)")
+        
         if __debug__:
             self.debug_stats["decode-payload"] += clock() - debug_begin
 
