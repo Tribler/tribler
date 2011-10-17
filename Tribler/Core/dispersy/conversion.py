@@ -1156,7 +1156,7 @@ class BinaryConversion(Conversion):
         # payload
         placeholder.offset, placeholder.payload = decode_payload_func(placeholder, placeholder.offset, placeholder.data[:placeholder.first_signature_offset])
         if placeholder.offset != placeholder.first_signature_offset:
-            if __debug__: dprint("invalid packet size.  data:", placeholder.first_signature_offset, "; offset:", placeholder.offset, level="warning")
+            if __debug__: dprint("invalid packet size for ", placeholder.meta.name, " data:", placeholder.first_signature_offset, "; offset:", placeholder.offset, level="warning")
             raise DropPacket("Invalid packet size (there are unconverted bytes)")
         
         if __debug__:
