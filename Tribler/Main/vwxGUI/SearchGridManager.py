@@ -72,6 +72,8 @@ class TorrentManager:
         self.searchkeywords = []
         self.rerankingStrategy = DefaultTorrentReranker()
         self.oldsearchkeywords = []
+        self.fts3feaures = []
+        self.fts3negated = []
         
         self.filteredResults = 0
         
@@ -447,17 +449,18 @@ class TorrentManager:
     def getSearchKeywords(self ):
         return self.searchkeywords, len(self.hits), self.filteredResults
     
-    def setSearchKeywords(self, wantkeywords):
-        if wantkeywords != self.searchkeywords:
+    def setSearchKeywords(self, wantkeywords, fts3feaures):
+        if wantkeywords != self.searchkeywords or fts3feaures != self.fts3feaures:
             try:
                 self.hitsLock.acquire()
                 self.remoteLock.acquire()
                 
-                
                 self.bundle_mode = None
                 self.searchkeywords = wantkeywords
+                self.fts3feaures = fts3feaures
+                self.fts3negated = [kw[1:] for kw in fts3feaures if kw[0] == '-']
                 if DEBUG:
-                    print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,";time:%", time()
+                    print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords,"fts3keywords", fts3feaures, ";time:%", time() 
             
                 self.filteredResults = 0
                 
@@ -490,7 +493,7 @@ class TorrentManager:
         if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
             return False
         
-        results = self.torrent_db.searchNames(self.searchkeywords)
+        results = self.torrent_db.searchNames(self.searchkeywords + self.fts3feaures)
         if len(results) > 0:
             
             def create_channel(a):
@@ -583,100 +586,108 @@ class TorrentManager:
                 channel_votes = {}
                 
                 for key,value in answers.iteritems():
-                    # Convert answer fields as per 
-                    # Session.query_connected_peers() spec. to NEWDB format
-                    newval = {}
-                    newval['torrent_id'] = -1
-                    newval['name'] = value['content_name']                    
-                    newval['infohash'] = key
-                    newval['torrent_file_name'] = ''
-                    newval['length'] = value['length']
-                    newval['creation_date'] = time()  # None  gives '?' in GUI
-                    newval['relevance'] = 0
-                    newval['source'] = 'RQ'
-                    newval['category'] = value['category'][0]
-                    newval['category_id'] = self.torrent_db.category_table.get(newval['category'], 0)
-                    
-                    # We trust the peer
-                    newval['status'] = 'good'
-                    newval['status_id'] = self.torrent_db.status_table['good']
-                    newval['num_seeders'] = value['seeder']
-                    newval['num_leechers'] = value['leecher']
-
-                    # OLPROTO_VER_NINETH includes a torrent_size. Set to
-                    # -1 when not available.
-                    newval['torrent_size'] = value.get('torrent_size', -1)
+                    ignore = False
+                    #check fts3 negated values
+                    for keyword in self.fts3negated:
+                        if value['content_name'].find(keyword) != -1:
+                            ignore = True
+                            break
                         
-                    # OLPROTO_VER_ELEVENTH includes channel_permid, channel_name fields.
-                    if 'channel_permid' not in value:
-                        # just to check if it is not OLPROTO_VER_ELEVENTH version
-                        # if so, check word boundaries in the swarm name
-                        ls = split_into_keywords(value['content_name'])
-
-                        if DEBUG:
-                            print >>sys.stderr,"TorrentSearchGridManager: ls is",`ls`
-                            print >>sys.stderr,"TorrentSearchGridManager: kws is",`kws`
+                    if not ignore:
+                        # Convert answer fields as per 
+                        # Session.query_connected_peers() spec. to NEWDB format
+                        newval = {}
+                        newval['torrent_id'] = -1
+                        newval['name'] = value['content_name']
+                        newval['infohash'] = key
+                        newval['torrent_file_name'] = ''
+                        newval['length'] = value['length']
+                        newval['creation_date'] = time()  # None  gives '?' in GUI
+                        newval['relevance'] = 0
+                        newval['source'] = 'RQ'
+                        newval['category'] = value['category'][0]
+                        newval['category_id'] = self.torrent_db.category_table.get(newval['category'], 0)
                         
-                        flag = False
-                        for kw in kws:
-                            if kw not in ls:
-                                flag=True
-                                break
-                        if flag:
-                            continue
-                    
-                    newval['channel_permid'] = value.get('channel_permid', '')
-                    newval['channel_id'] = 0
-                    newval['channel_name'] = value.get('channel_name', '')
-                    newval['subscriptions'] = 0
-                    newval['neg_votes'] = 0
-                    
-                    if 'channel_permid' in value:
-                        channel_id = permid_channelid.get(newval['channel_permid'], None)
-                        
-                        if channel_id is not None:
-                            my_vote = my_votes.get(channel_id, 0)
-                            if my_vote < 0:
-                                # I marked this channel as SPAM
+                        # We trust the peer
+                        newval['status'] = 'good'
+                        newval['status_id'] = self.torrent_db.status_table['good']
+                        newval['num_seeders'] = value['seeder']
+                        newval['num_leechers'] = value['leecher']
+    
+                        # OLPROTO_VER_NINETH includes a torrent_size. Set to
+                        # -1 when not available.
+                        newval['torrent_size'] = value.get('torrent_size', -1)
+                            
+                        # OLPROTO_VER_ELEVENTH includes channel_permid, channel_name fields.
+                        if 'channel_permid' not in value:
+                            # just to check if it is not OLPROTO_VER_ELEVENTH version
+                            # if so, check word boundaries in the swarm name
+                            ls = split_into_keywords(value['content_name'])
+    
+                            if DEBUG:
+                                print >>sys.stderr,"TorrentSearchGridManager: ls is",`ls`
+                                print >>sys.stderr,"TorrentSearchGridManager: kws is",`kws`
+                            
+                            flag = False
+                            for kw in kws:
+                                if kw not in ls:
+                                    flag=True
+                                    break
+                            if flag:
                                 continue
-                            
-                            if not channel_id in channel_votes:
-                                posvotes, negvotes = self.votecastdb.getPosNegVotes(channel_id)
-                                channel_votes[channel_id] = (posvotes or 0, negvotes or 0)
-                            
-                            newval['subscriptions'], newval['neg_votes'] = channel_votes.get(channel_id, (0,0))
-                            if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
-                                # We consider this as SPAM
-                                continue
-                            
-                            newval['channel_id'] = channel_id
-                    else:
-                        newval['channel_permid'] = ""
+                        
+                        newval['channel_permid'] = value.get('channel_permid', '')
+                        newval['channel_id'] = 0
+                        newval['channel_name'] = value.get('channel_name', '')
                         newval['subscriptions'] = 0
                         newval['neg_votes'] = 0
                         
-                    # Guess matches
-                    keywordset = set(kws)
-                    
-                    newval['matches'] = {'fileextensions': set()}
-                    newval['matches']['swarmname'] = set(split_into_keywords(newval['name'])) & keywordset #all keywords matching in swarmname
-                    newval['matches']['filenames'] = keywordset - newval['matches']['swarmname'] #remaining keywords should thus me matching in filenames or fileextensions
-                    
-                    if len(newval['matches']['filenames']) == 0:
-                        _, ext = os.path.splitext(newval['name'])
-                        ext = ext[1:]
+                        if 'channel_permid' in value:
+                            channel_id = permid_channelid.get(newval['channel_permid'], None)
+                            
+                            if channel_id is not None:
+                                my_vote = my_votes.get(channel_id, 0)
+                                if my_vote < 0:
+                                    # I marked this channel as SPAM
+                                    continue
+                                
+                                if not channel_id in channel_votes:
+                                    posvotes, negvotes = self.votecastdb.getPosNegVotes(channel_id)
+                                    channel_votes[channel_id] = (posvotes or 0, negvotes or 0)
+                                
+                                newval['subscriptions'], newval['neg_votes'] = channel_votes.get(channel_id, (0,0))
+                                if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
+                                    # We consider this as SPAM
+                                    continue
+                                
+                                newval['channel_id'] = channel_id
+                        else:
+                            newval['channel_permid'] = ""
+                            newval['subscriptions'] = 0
+                            newval['neg_votes'] = 0
+                            
+                        # Guess matches
+                        keywordset = set(kws)
                         
-                        newval['matches']['filenames'] = newval['matches']['swarmname']
-                        newval['matches']['filenames'].discard(ext)
+                        newval['matches'] = {'fileextensions': set()}
+                        newval['matches']['swarmname'] = set(split_into_keywords(newval['name'])) & keywordset #all keywords matching in swarmname
+                        newval['matches']['filenames'] = keywordset - newval['matches']['swarmname'] #remaining keywords should thus me matching in filenames or fileextensions
                         
-                        if ext in keywordset:
-                            newval['matches']['fileextensions'].add(ext)
-               
-                    # Extra field: Set from which peer this info originates
-                    newval['query_permids'] = set([permid])
-                        
-                    # Store or update self.remoteHits
-                    self.remoteHits.append(newval)
+                        if len(newval['matches']['filenames']) == 0:
+                            _, ext = os.path.splitext(newval['name'])
+                            ext = ext[1:]
+                            
+                            newval['matches']['filenames'] = newval['matches']['swarmname']
+                            newval['matches']['filenames'].discard(ext)
+                            
+                            if ext in keywordset:
+                                newval['matches']['fileextensions'].add(ext)
+                                
+                        # Extra field: Set from which peer this info originates
+                        newval['query_permids'] = set([permid])
+                            
+                        # Store or update self.remoteHits
+                        self.remoteHits.append(newval)
                     
                 refreshGrid = True
                 return True

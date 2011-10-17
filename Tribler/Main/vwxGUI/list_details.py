@@ -247,6 +247,11 @@ class TorrentDetails(AbstractDetails):
                 if self.canComment:
                     best = max(best, self.MINCOMMENTHEIGHT)
                 
+                if self.compact:
+                    best = max(best, 75)
+                else:
+                    best = max(best, 100)
+                
                 notebook = self.notebook.CalcSizeFromPage((1, best))[1]
                 self.notebook.SetMinSize((-1, notebook))
                 self.parent.parent_list.OnChange()

@@ -222,7 +222,9 @@ class ChannelSearchManager:
     
     def _on_data(self, data, category):
         if category == self.category:
-            data = [channel for channel in data if not channel.isEmpty()]
+            if category != 'searchresults': #if we filter empty channels from search we will never see them
+                data = [channel for channel in data if not channel.isEmpty()]
+                
             self.list.SetData(data)
             if DEBUG:
                 print >> sys.stderr, "ChannelManager complete refresh done"

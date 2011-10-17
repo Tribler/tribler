@@ -31,6 +31,23 @@ def split_into_keywords(string, filterStopwords = False):
 def filter_keywords(keywords):
     return [keyword for keyword in keywords if len(keyword) > 0 and keyword not in dialog_stopwords]
 
+def fts3_preprocess(keywords):
+    fts3_only = []
+    normal_keywords = []
+    
+    keywords = keywords.split()
+    for keyword in keywords:
+        if keyword[0] == '-':
+            fts3_only.append(keyword)
+        elif keyword[0] == '*' or keyword[-1] == "*":
+            fts3_only.append(keyword)
+        elif keyword.find(':') != -1:
+            fts3_only.append(keyword)
+        else:
+            normal_keywords.append(keyword)
+    
+    return fts3_only, " ".join(normal_keywords)
+
 class SearchManager:
     """ Arno: This is DB neutral. All it assumes is a DBHandler with
     a searchNames() method that returns records with at least a 'name' field

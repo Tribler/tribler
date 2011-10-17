@@ -13,7 +13,8 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Category.Category import Category
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Search.SearchManager import split_into_keywords,\
+    fts3_preprocess
 from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -263,22 +264,24 @@ class GUIUtility:
                 self.ShowPage('my_files')
                 
         else:
-            wantkeywords = split_into_keywords(input)
-            wantkeywords = [keyword for keyword in wantkeywords if len(keyword) > 1]
-            safekeywords = ' '.join(wantkeywords)
+            fts3feaures, old_keywords = fts3_preprocess(input)
+            remotekeywords = split_into_keywords(old_keywords)
+            remotekeywords = [keyword for keyword in remotekeywords if len(keyword) > 1]
+            
+            safekeywords = ' '.join(remotekeywords + fts3feaures)
             
             if len(safekeywords)  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
             else:
                 self.frame.top_bg.StartSearch()
-                self.current_search_query = wantkeywords
+                self.current_search_query = remotekeywords
                 if DEBUG:
-                    print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords, time()
+                    print >>sys.stderr,"GUIUtil: searchFiles:", remotekeywords, time()
                 
                 self.frame.searchlist.Freeze()         
                
-                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
-                self.channelsearch_manager.setSearchKeywords(wantkeywords)
+                self.torrentsearch_manager.setSearchKeywords(remotekeywords, fts3feaures)
+                self.channelsearch_manager.setSearchKeywords(remotekeywords)
                 
                 self.frame.searchlist.Reset()
                 self.ShowPage('search_results', safekeywords)
@@ -295,7 +298,7 @@ class GUIUtility:
                 #Start remote search
                 #Arno, 2010-02-03: Query starts as Unicode
                 q = u'SIMPLE '
-                for kw in wantkeywords:
+                for kw in remotekeywords:
                     q += kw+u' '
                 q = q.strip()
                 
@@ -307,10 +310,10 @@ class GUIUtility:
                 
                 if len(input) > 1: #do not perform remote channel search for single character inputs
                     q = 'CHANNEL k '
-                    for kw in wantkeywords:
+                    for kw in remotekeywords:
                         q += kw+' '
                     self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
-                wx.CallLater(10000, self.CheckSearch, wantkeywords)
+                wx.CallLater(10000, self.CheckSearch, remotekeywords)
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):

@@ -247,7 +247,7 @@ class ChannelFooter(ListFooter):
         else:
             if open2edit:
                 header = "You can now enable community-features for this Channel."
-                msg = "Allowing other users to comment, modify and improve meta-data will increase .\nEdit your channel settings to get started."
+                msg = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit your channel settings to get started."
                 
                 self.manage.Show(True)
                 buttonSizer = self.manage

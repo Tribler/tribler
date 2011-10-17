@@ -1810,7 +1810,7 @@ class TorrentDBHandler(BasicDBHandler):
             sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
             self._db.executemany(sql_update_sims, tid_rel_pairs, commit=commit)
     
-    def searchNames(self,kws,local=True):
+    def searchNames(self, kws, local=True):
         t1 = time()
         value_name = ['torrent_id',
                       'infohash',
@@ -1839,6 +1839,7 @@ class TorrentDBHandler(BasicDBHandler):
             mainsql += " limit 20"
         
         query = " ".join(filter_keywords(kws))
+        not_negated = [kw for kw in kws if kw[0] != '-']
         results = self._db.fetchall(mainsql, (query, ))
 
         channels = set()
@@ -1883,7 +1884,7 @@ class TorrentDBHandler(BasicDBHandler):
                 for i in range(num_cols)
             ]
             
-            for i, keyword in enumerate(query.split()):
+            for i, keyword in enumerate(not_negated):
                 if swarmnames[i]:
                     torrent['matches']['swarmname'].add(keyword)
                 if filenames[i]:
