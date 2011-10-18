@@ -94,7 +94,7 @@ def dispersy_started(session, opt):
     libraryManager = LibraryManager(None)
     channelManager = ChannelManager()
     
-    torrentManager.connect(session, libraryManager)
+    torrentManager.connect(session, libraryManager, channelManager)
     channelManager.connect(session, torrentManager)
     libraryManager.connect(session, torrentManager)
     
