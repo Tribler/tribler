@@ -1721,7 +1721,7 @@ class Dispersy(Singleton):
             del self._candidates[sock_address]
 
         if __debug__:
-            for counter, (sock_address, candidate) in self._candidates.iteritems():
+            for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems()):
                 dprint(counter, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", addr2str(candidate.address, candidate.lan_address, candidate.wan_address))
             
         # get all viable candidates
