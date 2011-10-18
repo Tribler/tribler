@@ -3673,13 +3673,16 @@ class ChannelCastDBHandler(object):
         sql +=")"
         return self._db.fetchall(sql)
     
-    def getPermChannelIdDict(self):
+    def getPermChannelIdDict(self, binary = False):
         returndict = {}
         
         sql = "SELECT permid, Channels.id FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id GROUP BY permid"
         results = self._db.fetchall(sql)
         for permid, channel_id in results:
-            returndict[str2bin(permid)] = channel_id
+            if binary:
+                returndict[str2bin(permid)] = channel_id
+            else:
+                returndict[permid] = channel_id
             
         return returndict
     

@@ -482,7 +482,7 @@ class SelectedChannelList(GenericSearchList):
         if not self.channel.isDispersy():
             permid = self.channelsearch_manager.getPermidFromChannel(id)
             channelcast = BuddyCastFactory.getInstance().channelcast_core
-            channelcast.updateAChannel(self.id, permid)
+            channelcast.updateAChannel(id, permid)
 
         self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         

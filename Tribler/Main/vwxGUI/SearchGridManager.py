@@ -644,13 +644,14 @@ class TorrentManager:
                         
                         newval['channel'] = None
                         if value.get('channel_name', '') != '':
-                            channel_id = permid_channelid.get(value['channel_permid'], None)
+                            channel_permid = value['channel_permid']
+                            channel_id = permid_channelid.get(channel_permid, None)
                             if channel_id:
-                                if value['channel_permid'] not in permid_channel:
-                                    permid_channel[value['channel_permid']] = self.channel_manager.getChannelByPermid(value['channel_permid'])
-                                newval['channel'] = permid_channel[value['channel_permid']]
+                                if channel_permid not in permid_channel:
+                                    permid_channel[channel_permid] = self.channel_manager.getChannelByPermid(channel_permid)
+                                newval['channel'] = permid_channel[channel_permid]
                             else:
-                                newval['channel'] = RemoteChannel(value['channel_permid'], value['channel_name'])
+                                newval['channel'] = RemoteChannel(channel_permid, value['channel_name'])
                             
                         # Guess matches
                         keywordset = set(kws)
