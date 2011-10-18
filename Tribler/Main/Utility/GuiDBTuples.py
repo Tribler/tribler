@@ -190,7 +190,7 @@ class Torrent(Helper):
                 rel_pos = pos / (len(swarmnameTerms)-1.0)
             else:
                 rel_pos = 0.0
-            pos_score = round( rel_pos*(DISCRETE_POINTS-1) )
+            pos_score = -round( rel_pos*(DISCRETE_POINTS-1) )
         
         self.relevance_score = [len(matches['swarmname']), pos_score, len(matches['filenames']), len(matches['fileextensions']), 0]
             
