@@ -683,13 +683,8 @@ class Community(object):
         if __debug__:
             previous = self._global_time
             new = max(self._global_time, global_time)
-            if new - previous >= 100:
-                level = "warning"
-                stack = True
-            else:
-                level = "normal"
-                stack = False
-            dprint(previous, " -> ", new, level=level, stack=stack)
+            level = "warning" if new - previous >= 100 else "normal"
+            dprint(previous, " -> ", new, level=level)
         self._global_time = max(self._global_time, global_time)
 
     def free_sync_range(self, global_times):

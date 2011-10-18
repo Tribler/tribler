@@ -97,7 +97,7 @@ class Candidate(object):
         assert is_address(lan_address)
         assert is_address(wan_address)
         if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
-        self._timestamp_last_step.setdefault((member, community), time() - 30)
+        self._timestamp_last_step.setdefault((member, community.cid), time() - 30)
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._is_stumble = True
@@ -114,7 +114,7 @@ class Candidate(object):
 
     def inc_introduced(self, member, community):
         if __debug__: dprint("updated")
-        self._timestamp_last_step.setdefault((member, community), time() - 30)
+        self._timestamp_last_step.setdefault((member, community.cid), time() - 30)
         self._is_introduction = True
         self._timestamp_incoming = time()
 
@@ -127,7 +127,7 @@ class Candidate(object):
         assert is_address(wan_address)
         assert address == lan_address or address == wan_address
         if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
-        self._timestamp_last_step.setdefault((member, community), time() - 30)
+        self._timestamp_last_step.setdefault((member, community.cid), time() - 30)
         self._address = address
         self._lan_address = lan_address
         self._wan_address = wan_address

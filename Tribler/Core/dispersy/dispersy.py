@@ -73,6 +73,8 @@ from trigger import TriggerCallback, TriggerPacket, TriggerMessage
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 
 if __debug__:
+    def addr2str(sock_addr, lan_addr, wan_addr):
+        return ("%s:%d" % sock_addr if sock_addr else "" + "" if sock_addr == lan_addr else " LAN %s:%d" % lan_addr + "" if sock_addr == wan_addr else " WAN %s:%d" % wan_addr).strip()
     from dprint import dprint
     from time import clock
     from types import GeneratorType
@@ -1717,6 +1719,10 @@ class Dispersy(Singleton):
         for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems() if candidate.timestamp_incoming <= threshold]:
             if __debug__: dprint("removing old candidate ", sock_address[0], ":", sock_address[1])
             del self._candidates[sock_address]
+
+        if __debug__:
+            for counter, (sock_address, candidate) in self._candidates.iteritems():
+                dprint(counter, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", addr2str(candidate.address, candidate.lan_address, candidate.wan_address))
             
         # get all viable candidates
         return ((sock_address, candidate)
@@ -1936,9 +1942,6 @@ class Dispersy(Singleton):
                                     destination=(destination,),
                                     payload=(destination, self._lan_address, self._wan_address, advice, identifier, time_low, time_high, bloom_filter))
     
-        if __debug__:
-            dprint(community.cid.encode("HEX"), " sending introduction request to ", destination[0], ":", destination[1])
-
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
         footprint = meta_response.generate_footprint(payload=(identifier,))
@@ -1951,6 +1954,7 @@ class Dispersy(Singleton):
         # release walk identifier some seconds after timeout expires
         self._callback.register(self._walk_identifiers.pop, (identifier,), delay=timeout+10.0)
 
+        if __debug__: dprint(community.cid.encode("HEX"), " sending introduction request to ", destination[0], ":", destination[1])
         self.store_update_forward([request], False, False, True)
         return request
 
@@ -1963,18 +1967,28 @@ class Dispersy(Singleton):
         _is_valid_wan_address, respectively.
         """
         if not self._is_valid_lan_address(lan_address):
+            if __debug__:
+                if lan_address != sock_addr:
+                    dprint("estimate a different LAN address ", lan_address[0], ":", lan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             lan_address = sock_addr
         if not self._is_valid_wan_address(wan_address):
+            if __debug__:
+                if wan_address != sock_addr:
+                    dprint("estimate a different WAN address ", wan_address[0], ":", wan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             wan_address = sock_addr
         
         if sock_addr[0] == self._wan_address[0]:
             # we have the same WAN address, we are probably behind the same NAT
-            if __debug__: dprint("estimate a different LAN address ", lan_address[0], ":", lan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
+            if __debug__:
+                if lan_address != sock_addr:
+                    dprint("estimate a different LAN address ", lan_address[0], ":", lan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             return sock_addr, wan_address
 
         elif self._is_valid_wan_address(sock_addr):
             # we have a different WAN address and the sock address is WAN, we are probably behind a different NAT
-            if __debug__: dprint("estimate a different WAN address ", wan_address[0], ":", wan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
+            if __debug__:
+                if wan_address != sock_addr:
+                    dprint("estimate a different WAN address ", wan_address[0], ":", wan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             return lan_address, sock_addr
 
         else:
@@ -2074,10 +2088,9 @@ class Dispersy(Singleton):
             # apply vote to determine our WAN address
             self.wan_address_vote(message.payload.destination_address, message.address)
             
-            if __debug__: dprint(community.cid.encode("HEX"), " got introduction response from ", message.address[0], ":", message.address[1])
-
             # modify either the senders LAN or WAN address based on how we perceive that node
             source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
+            if __debug__: dprint("received introduction response from ", addr2str(message.address, source_lan_address, source_wan_address))
 
             # add source to the candidate pool and mark as a node that is part of our walk
             if message.address in self._candidates:
@@ -2085,10 +2098,11 @@ class Dispersy(Singleton):
             elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                 self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, message.authentication.member, community, is_walk=True)
             else:
-                if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1], " (received from ", message.address[0], ":", message.address[1], ")")
+                if __debug__: dprint("unable to add walker node ", addr2str(message.address, source_lan_address, source_wan_address))
 
             lan_introduction_address = message.payload.lan_introduction_address
             wan_introduction_address = message.payload.wan_introduction_address
+            if __debug__: dprint("received introduction to ", addr2str(None, lan_introduction_address, wan_introduction_address))
                 
             # add introduced node to the candidate pool and mark as an introduced node
             if self._is_valid_lan_address(lan_introduction_address) and self._is_valid_wan_address(wan_introduction_address):
@@ -2150,7 +2164,8 @@ class Dispersy(Singleton):
             # determine if we are in the same LAN as the walker node
             destination = message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address
             punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(destination,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
-
+            if __debug__: dprint(message.address[0], ":", message.address[1], " asked us to send a puncture to ", destination[0], ":", destination[1])
+            
         self.store_update_forward(punctures, False, False, True)
 
     def check_puncture(self, messages):
