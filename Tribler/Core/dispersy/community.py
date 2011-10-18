@@ -680,6 +680,16 @@ class Community(object):
         """
         Increase the local global time if the given GLOBAL_TIME is larger.
         """
+        if __debug__:
+            previous = self._global_time
+            new = max(self._global_time, global_time)
+            if new - previous >= 100:
+                level = "warning"
+                stack = True
+            else:
+                level = "normal"
+                stack = False
+            dprint(previous, " -> ", new, level=level, stack=stack)
         self._global_time = max(self._global_time, global_time)
 
     def free_sync_range(self, global_times):

@@ -1709,7 +1709,8 @@ class Dispersy(Singleton):
         assert not self._wan_address in self._candidates, "our address may not be a candidate"
         assert not self._lan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
         assert not self._wan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
-
+        assert all(not sock_address in self._bootstrap_candidates for sock_address in self._candidates.iterkeys()), "non of the candidates may be a bootstrap address"
+        
         # remove old candidates
         threshold = time() - 55.0
         for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems() if candidate.timestamp_incoming <= threshold]:
@@ -1903,6 +1904,7 @@ class Dispersy(Singleton):
 
             else:
                 assert community.my_member.private_key
+                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step towards ", candidate.address[0], ":", candidate.address[1])
                 candidate.out_introduction_request(community)
                 self.create_introduction_request(community, candidate.address)
                 return True
@@ -2124,7 +2126,9 @@ class Dispersy(Singleton):
                     self.create_introduction_request(community, candidate.address)
                     
             else:
-                if __debug__: dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level="warning")
+                if __debug__:
+                    level = "normal" if lan_introduction_address == ("0.0.0.0", 0) and wan_introduction_address == ("0.0.0.0", 0) else "warning"
+                    dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level=level)
                 
     def introduction_response_or_timeout(self, message, community, intermediary_address):
         if message is None:
@@ -2779,7 +2783,7 @@ class Dispersy(Singleton):
         """
         for message in messages:
             assert message.name == u"dispersy-identity"
-            if __debug__: dprint(message, force=1)
+            if __debug__: dprint(message)
             # update the in-memory member instance
             message.authentication.member.update()
             assert self._database.execute(u"SELECT 1 FROM sync WHERE packet = ?", (buffer(message.packet),)).next()
