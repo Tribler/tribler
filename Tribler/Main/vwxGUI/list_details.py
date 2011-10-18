@@ -678,7 +678,7 @@ class TorrentDetails(AbstractDetails):
                 sizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
                 
                 #this is not a 'local' known channel, update it
-                if isinstance(self.torrent.channel, RemoteChannel) and 'query_permids' in self.torrent:
+                if isinstance(self.torrent.channel, RemoteChannel) and self.torrent.query_permids:
                     channelcast = BuddyCastFactory.getInstance().channelcast_core
                     channelcast.updateAChannel(self.torrent.channel.permid, self.torrent.query_permids)
         
@@ -1056,11 +1056,7 @@ class TorrentDetails(AbstractDetails):
             self.guiutility.ShowPage('my_files', self.torrent.infohash)
             
         else:
-            if isinstance(self.torrent.channel, RemoteChannel):
-                #When torrent was loaded this channel was not know, is it now?
-                self.guiutility.showChannelFromPermid(self.torrent.channel.permid)
-            else:
-                self.guiutility.showChannelFromId(self.torrent.channel.id)
+            self.guiutility.showChannel(self.torrent.channel)
     
     @warnWxThread   
     def OnMark(self, event):

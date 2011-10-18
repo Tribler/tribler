@@ -33,7 +33,8 @@ from __init__ import *
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
-    Comment, Modification, Channel, RemoteChannel, Playlist, Moderation
+    Comment, Modification, Channel, RemoteChannel, Playlist, Moderation,\
+    RemoteChannelTorrent
 import threading
 
 DEBUG = False
@@ -295,7 +296,7 @@ class TorrentManager:
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
     
-    def connect(self, session, library_manager):
+    def connect(self, session, library_manager, channel_manager):
         self.session = session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
@@ -303,7 +304,9 @@ class TorrentManager:
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
+        
         self.library_manager = library_manager
+        self.channel_manager = channel_manager
     
     def getHitsInCategory(self, categorykey = 'all', sort = 'fulltextmetric'):
         if DEBUG: begintime = time()
@@ -536,16 +539,14 @@ class TorrentManager:
                             
                             if isinstance(item, RemoteTorrent):
                                 #Maybe update channel?
-                                if remoteItem['channel_permid'] != "" and remoteItem['channel_name'] != "":
+                                if remoteItem['channel']:
                                     if item.hasChannel():
-                                        this_rating = remoteItem['subscriptions'] - remoteItem['neg_votes']
+                                        this_rating = remoteItem['channel'].nr_favorites - remoteItem['channel'].nr_spam
                                         current_rating = item.channel.nr_favorites - item.channel.nr_spam
-                                        updateChannel = this_rating > current_rating
+                                        if this_rating > current_rating:
+                                            item.updateChannel(remoteItem['channel'])
                                     else:
-                                        updateChannel = True 
-                                    
-                                    if updateChannel:
-                                        item.updateChannel(RemoteChannel(remoteItem['channel_id'], remoteItem['channel_permid'], remoteItem['channel_name'], remoteItem['subscriptions'], remoteItem['neg_votes'], remoteItem['channel_vote']))
+                                        item.updateChannel(remoteItem['channel'])
                                 
                                 hitsUpdated = True
                             known = True
@@ -554,9 +555,10 @@ class TorrentManager:
                     if not known:
                         remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
                         remoteHit.torrent_db = self.torrent_db
+                        remoteHit.channelcast_db = self.channelcast_db
                         remoteHit.assignRelevance(remoteItem['matches'])
-                        self.hits.append(remoteHit)
                         
+                        self.hits.append(remoteHit)
                         hitsUpdated = True
                         
                 self.remoteHits = []
@@ -587,8 +589,7 @@ class TorrentManager:
             
             if self.searchkeywords == kws:
                 permid_channelid = self.channelcast_db.getPermChannelIdDict()
-                my_votes = self.votecastdb.getMyVotes()
-                channel_votes = {}
+                permid_channel = {}
                 
                 for key,value in answers.iteritems():
                     ignore = False
@@ -641,37 +642,15 @@ class TorrentManager:
                             if flag:
                                 continue
                         
-                        newval['channel_permid'] = value.get('channel_permid', '')
-                        newval['channel_id'] = 0
-                        newval['channel_name'] = value.get('channel_name', '')
-                        newval['subscriptions'] = 0
-                        newval['neg_votes'] = 0
-                        newval['channel_vote'] = 0
-                        
-                        if 'channel_permid' in value:
-                            channel_id = permid_channelid.get(newval['channel_permid'], None)
-                            
-                            if channel_id is not None:
-                                my_vote = my_votes.get(channel_id, 0)
-                                if my_vote < 0:
-                                    # I marked this channel as SPAM
-                                    continue
-                                newval['channel_vote'] = my_vote
-                                
-                                if not channel_id in channel_votes:
-                                    posvotes, negvotes = self.votecastdb.getPosNegVotes(channel_id)
-                                    channel_votes[channel_id] = (posvotes or 0, negvotes or 0)
-                                
-                                newval['subscriptions'], newval['neg_votes'] = channel_votes.get(channel_id, (0,0))
-                                if newval['subscriptions'] - newval['neg_votes'] < VOTE_LIMIT:
-                                    # We consider this as SPAM
-                                    continue
-                                
-                                newval['channel_id'] = channel_id
-                        else:
-                            newval['channel_permid'] = ""
-                            newval['subscriptions'] = 0
-                            newval['neg_votes'] = 0
+                        newval['channel'] = None
+                        if value.get('channel_name', '') != '':
+                            channel_id = permid_channelid.get(value['channel_permid'], None)
+                            if channel_id:
+                                if value['channel_permid'] not in permid_channel:
+                                    permid_channel[value['channel_permid']] = self.channel_manager.getChannelByPermid(value['channel_permid'])
+                                newval['channel'] = permid_channel[value['channel_permid']]
+                            else:
+                                newval['channel'] = RemoteChannel(value['channel_permid'], value['channel_name'])
                             
                         # Guess matches
                         keywordset = set(kws)
@@ -1585,32 +1564,33 @@ class ChannelManager:
             
             if len(self.remoteHits) > 0:
                 for remoteItem, permid in self.remoteHits:
-                    if not isinstance(remoteItem, Channel):
-                        channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
-                        curChannel = RemoteChannel(channel_id, -1, channel_name, 0, 0, 0)
-                    else:
-                        curChannel = remoteItem
-                        
-                    if not curChannel.id in self.hits:
-                        self.hits[curChannel.id] = curChannel
-                        hitsUpdated = True
                     
-                    #add torrents to remotechannel
+                    channel = None
                     if not isinstance(remoteItem, Channel):
-                        channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
+                        channel_id, _, infohash, torrent_name, timestamp = remoteItem
                         
-                        channel = self.hits[channel_id]
-                        if isinstance(channel, RemoteChannel):
-                            torrent = channel.getTorrent(infohash)
-                            if torrent:
-                                torrent.query_permids.append(permid)
-                            else:
-                                torrent = RemoteTorrent(torrent_id = None, infohash = infohash, name = torrent_name, query_permids = [permid])
-                                torrent.updateChannel(channel)
-                                channel.addTorrent(torrent)
-                                
-                            channel.nr_torrents = len(channel.torrents) 
-                            channel.modified = max(channel.modified, timestamp)
+                        if channel_id not in self.hits:
+                            channel = self.getChannel(channel_id)
+                        else:
+                            channel = self.hits[channel_id]
+                        
+                        torrent = channel.getTorrent(infohash)
+                        if not torrent:
+                            torrent = RemoteChannelTorrent(torrent_id = None, infohash = infohash, name = torrent_name, channel = channel, query_permids = set())
+                            channel.addTorrent(torrent)
+                        
+                        if not torrent.query_permids:
+                            torrent.query_permids = set()
+                        torrent.query_permids.add(permid)
+                            
+                        channel.nr_torrents += 1 
+                        channel.modified = max(channel.modified, timestamp)
+                    else:
+                        channel = remoteItem
+                        
+                    if channel and not channel.id in self.hits:
+                        self.hits[channel.id] = channel
+                        hitsUpdated = True
         finally:
             self.remoteLock.release()
 

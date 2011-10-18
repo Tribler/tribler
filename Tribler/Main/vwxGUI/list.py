@@ -926,7 +926,7 @@ class SearchList(GenericSearchList):
         
         channels = channel_hits.values()
         channels.sort(reverse = True)
-        print >> sys.stderr, channels
+        
         self.sidebar.SetAssociatedChannels(channels)
         
     def SetNrResults(self, nr, nr_channels):

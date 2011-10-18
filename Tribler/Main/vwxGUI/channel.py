@@ -104,6 +104,16 @@ class ChannelManager():
             
             total_items = len(playlists) + len(torrents)
         
+        #sometimes a channel has some torrents in the torrents variable, merge them here
+        if self.list.channel.torrents:
+            remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
+            for torrent in torrents:
+                if torrent.infohash in remoteTorrents:
+                    remoteTorrents.discard(torrent.infohash)
+            
+            self.list.channel.torrents = set([torrent for torrent in self.list.channel.torrents if torrent.infohash in remoteTorrents])
+            torrents = torrents + list(self.list.channel.torrents)
+        
         self.list.SetData(playlists, torrents)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
         if DEBUG:    
@@ -170,6 +180,7 @@ class SelectedChannelList(GenericSearchList):
         self.title = None
         self.channel = None
         self.iamModerator = False
+        self.my_channel = False
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
@@ -294,6 +305,8 @@ class SelectedChannelList(GenericSearchList):
             
             manager = self.moderationList.GetManager()
             manager.SetIds(channel = self.channel)
+        else:
+            self.my_channel = False
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):

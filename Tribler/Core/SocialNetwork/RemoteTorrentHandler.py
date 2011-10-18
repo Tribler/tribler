@@ -144,11 +144,11 @@ class TorrentRequester():
     
     def add_source(self, infohash, permid):
         was_empty = self.queue.empty()
-        self.queue.put(infohash)
         
         if infohash not in self.sources:
             self.sources[infohash] = set()
         self.sources[infohash].add(permid)
+        self.queue.put(infohash)
         
         if was_empty:
             self.overlay_bridge.add_task(self.doRequest, self.REQUEST_INTERVAL * self.prio, self)
@@ -186,7 +186,7 @@ class TorrentRequester():
                 
                 #schedule a magnet lookup after X seconds
                 if self.prio <= 1 or (infohash not in self.sources and infohash in self.nr_times_requested and self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD):
-                    self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*(self.prio+1), infohash)
+                    self.overlay_bridge.add_task(lambda infohash=infohash: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*(self.prio+1), infohash)
 
             #Make sure exceptions wont crash this requesting loop
             except: 
@@ -245,7 +245,7 @@ class MagnetRequester():
                 #request new infohash from queue
                 while True:
                     if len(self.list) == 0:
-                            return
+                        return
                     prio, infohash = self.list.pop(0)
                     if infohash in self.requestedInfohashes:
                         if DEBUG:

@@ -20,6 +20,7 @@ from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
 from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 
 DEBUG = False
 
@@ -77,7 +78,7 @@ class GUIUtility:
         self.channelsearch_manager = ChannelManager.getInstance()
         self.library_manager = LibraryManager.getInstance(self)
         
-        self.torrentsearch_manager.connect(self.utility.session, self.library_manager)
+        self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
         self.channelsearch_manager.connect(self.utility.session, self.torrentsearch_manager)
         self.library_manager.connect(self.utility.session, self.torrentsearch_manager)
     
@@ -369,7 +370,11 @@ class GUIUtility:
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.refresh(channel)
+            
             self.ShowPage('selectedchannel')
+            
+            if isinstance(channel, RemoteChannel):
+                self.showChannelFromPermid(channel.permid)
             
     def showChannels(self):
         self.frame.top_bg.selectTab('channels')
@@ -464,7 +469,6 @@ class GUIUtility:
                 kws = split_into_keywords(kwstr)
 
                 self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
-            
             
         # Let channelcast handle inserting items etc.
         channelcast = BuddyCastFactory.getInstance().channelcast_core

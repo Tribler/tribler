@@ -198,12 +198,9 @@ class Torrent(Helper):
         return statedict
     
 class RemoteTorrent(Torrent):
-    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = [], channel_id = -1, channel_permid = -1, channel_name = '', subscriptions = 0, neg_votes = 0):
-        if channel_name != "":
-            c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes, 0)
-        else:
-            c = False
-        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, c)
+    __slots__ = ()
+    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = set(), channel = False):
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel)
         self.query_permids = query_permids
 
 class CollectedTorrent(Helper):
@@ -283,6 +280,7 @@ class CollectedTorrent(Helper):
         return 'Unknown'
     
 class NotCollectedTorrent(CollectedTorrent):
+    __slots__ = ()
     def __init__(self, torrent, files, trackers):
         self.torrent = torrent
         self.comment = None
@@ -325,8 +323,14 @@ class ChannelTorrent(Torrent):
             statedict[key] = getattr(self, key, None)
         return statedict
     
+class RemoteChannelTorrent(ChannelTorrent):
+    __slots__ = ()
+    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, channel = False, query_permids = set()):
+        ChannelTorrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', 0, 0, channel, None)
+        self.query_permids = query_permids
+    
 class Channel(Helper):
-    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel')
+    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents')
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
         self.id = id
         self.dispersy_cid = str(dispersy_cid)
@@ -340,6 +344,7 @@ class Channel(Helper):
         self.my_vote = my_vote
         self.modified = modified
         self.my_channel = my_channel
+        self.torrents = None
     
     def isDispersy(self):
         return len(self.dispersy_cid) == 20
@@ -373,25 +378,22 @@ class Channel(Helper):
             pass
         return self.getState()
 
-class RemoteChannel(Channel):
-    __slots__ = ('permid', 'torrents')
-    def __init__(self, id, permid, name, subscriptions, neg_votes, my_vote):
-        Channel.__init__(self, id, '-1', name, '', 0, subscriptions, neg_votes, my_vote, 0, False)
-        self.permid = permid
-        
-    def getState(self):
-        return ChannelCommunity.CHANNEL_CLOSED, False
-    
     def addTorrent(self, torrent):
-        torrents = getattr(self, 'torrent', set())
-        torrents.add(torrent)
-        self.torrents = torrents
+        if not self.torrents:
+            self.torrents = set()
+        self.torrents.add(torrent)
         
     def getTorrent(self, infohash):
-        torrents = getattr(self, 'torrent', set())
-        for torrent in torrents:
-            if torrent.infohash == infohash:
-                return torrent
+        if self.torrents:
+            for torrent in self.torrents:
+                if torrent.infohash == infohash:
+                    return torrent
+
+class RemoteChannel(Channel):
+    __slots__ = ('permid')
+    def __init__(self, permid, name):
+        Channel.__init__(self, 0, '-1', name, '', 0, 0, 0, 0, 0, False)
+        self.permid = permid
         
 class Comment(Helper):
     __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'reply_to_id', 'replies', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
