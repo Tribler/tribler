@@ -1710,6 +1710,7 @@ class Dispersy(Singleton):
         assert not self._lan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
         assert not self._wan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
         assert all(not sock_address in self._bootstrap_candidates for sock_address in self._candidates.iterkeys()), "non of the candidates may be a bootstrap address"
+        assert all(sock_address == candidate.address for candidate in self._candidates.itervalues())
         
         # remove old candidates
         threshold = time() - 55.0
@@ -2084,7 +2085,7 @@ class Dispersy(Singleton):
             elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
                 self._candidates[message.address] = Candidate(message.address, source_lan_address, source_wan_address, message.authentication.member, community, is_walk=True)
             else:
-                if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1])
+                if __debug__: dprint("unable to add walker node. LAN: ", source_lan_address[0], ":", source_lan_address[1], "  WAN: ", source_wan_address[0], ":", source_wan_address[1], " (received from ", message.address[0], ":", message.address[1], ")")
 
             lan_introduction_address = message.payload.lan_introduction_address
             wan_introduction_address = message.payload.wan_introduction_address
