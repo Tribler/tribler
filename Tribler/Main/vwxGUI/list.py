@@ -784,15 +784,18 @@ class GenericSearchList(SizeList):
         if data:
             original_data = data
             if 'bundle' in data: # bundle update
-                head = data['bundle'][0]          
+                head = data['bundle'][0] 
             else: # individual hit update
                 head = original_data
                 
                 # check whether the individual hit is in a bundle
                 key = self.infohash2key.get(key, key)
-        
+                
             # Update primary columns with new data
-            data = (head.infohash, [head.name, head.length, 0, 0], original_data)
+            if DEBUG_RELEVANCE:
+                data = (head.infohash, ["%s %s"%(head.name, head.relevance_score), head.length, 0, 0], original_data)
+            else:
+                data = (head.infohash, [head.name, head.length, 0, 0], original_data)
             self.list.RefreshData(key, data)
             
     def SetFilteredResults(self, nr):

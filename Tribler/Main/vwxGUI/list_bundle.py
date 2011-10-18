@@ -59,12 +59,13 @@ class BundleListItem(ListItem):
             bundle = original_data['bundle']
             head_original_data, bundled = bundle[0], bundle[1:]
             
-            self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
             ListItem.RefreshData(self, (infohash, item_data, head_original_data))
             
             showHighlight = self.bundlepanel.SetHits(bundled)
             if showHighlight:
                 self.Highlight(1)
+                
+            self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
             
             if DEBUG:
                 print >>sys.stderr, "*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled))

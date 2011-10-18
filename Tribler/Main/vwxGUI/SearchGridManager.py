@@ -646,6 +646,7 @@ class TorrentManager:
                         newval['channel_name'] = value.get('channel_name', '')
                         newval['subscriptions'] = 0
                         newval['neg_votes'] = 0
+                        newval['channel_vote'] = 0
                         
                         if 'channel_permid' in value:
                             channel_id = permid_channelid.get(newval['channel_permid'], None)
@@ -1586,7 +1587,7 @@ class ChannelManager:
                 for remoteItem, permid in self.remoteHits:
                     if not isinstance(remoteItem, Channel):
                         channel_id, channel_name, infohash, torrent_name, timestamp = remoteItem
-                        curChannel = RemoteChannel(channel_id, -1, channel_name, 0, 0)
+                        curChannel = RemoteChannel(channel_id, -1, channel_name, 0, 0, 0)
                     else:
                         curChannel = remoteItem
                         

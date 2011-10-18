@@ -172,25 +172,15 @@ class Torrent(Helper):
         """
         
         # Find the lowest term position of the matching keywords 
-        pos = None
+        pos_score = None
         if matches['swarmname']:
             swarmnameTerms = split_into_keywords(self.name)
             swarmnameMatches = matches['swarmname']
             
             for i, term in enumerate(swarmnameTerms):
                 if term in swarmnameMatches:
-                    pos = i
+                    pos_score = -i
                     break
-        
-        # Transform lowest position into relevance score in range(DISCRETE_POINTS)
-        pos_score = None
-        DISCRETE_POINTS = 5 
-        if pos is not None:
-            if pos > 0:
-                rel_pos = pos / (len(swarmnameTerms)-1.0)
-            else:
-                rel_pos = 0.0
-            pos_score = -round( rel_pos*(DISCRETE_POINTS-1) )
         
         self.relevance_score = [len(matches['swarmname']), pos_score, len(matches['filenames']), len(matches['fileextensions']), 0]
             
