@@ -1710,7 +1710,7 @@ class Dispersy(Singleton):
         assert not self._lan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
         assert not self._wan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
         assert all(not sock_address in self._bootstrap_candidates for sock_address in self._candidates.iterkeys()), "non of the candidates may be a bootstrap address"
-        assert all(sock_address == candidate.address for candidate in self._candidates.itervalues())
+        assert all(sock_address == candidate.address for sock_address, candidate in self._candidates.iteritems())
         
         # remove old candidates
         threshold = time() - 55.0
