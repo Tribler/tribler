@@ -310,7 +310,7 @@ class ChannelCastCore:
                 
                 q = "CHANNEL p "+publisher_id
                 
-                if timeframe:
+                if timeframe or not channel_id:
                     record = timeframe
                 else:
                     record = startWorker(None, self.channelcastdb.getTimeframeForChannel, wargs = (channel_id, ))

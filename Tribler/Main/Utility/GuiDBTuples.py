@@ -326,7 +326,7 @@ class ChannelTorrent(Torrent):
 class RemoteChannelTorrent(ChannelTorrent):
     __slots__ = ()
     def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, channel = False, query_permids = set()):
-        ChannelTorrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', 0, 0, channel, None)
+        ChannelTorrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
         self.query_permids = query_permids
     
 class Channel(Helper):

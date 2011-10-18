@@ -680,7 +680,7 @@ class TorrentDetails(AbstractDetails):
                 #this is not a 'local' known channel, update it
                 if isinstance(self.torrent.channel, RemoteChannel) and self.torrent.query_permids:
                     channelcast = BuddyCastFactory.getInstance().channelcast_core
-                    channelcast.updateAChannel(self.torrent.channel.permid, self.torrent.query_permids)
+                    channelcast.updateAChannel(self.torrent.channel.id, self.torrent.channel.permid, self.torrent.query_permids)
         
         elif self.canEdit:
             wrong = LinkStaticText(panel, 'Have an opinion? Signal it to other users:')
