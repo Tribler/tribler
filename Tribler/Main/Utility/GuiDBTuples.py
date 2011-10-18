@@ -9,6 +9,7 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
     DLSTATUS_SEEDING, DLSTATUS_REPEXING
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Core.Search.SearchManager import split_into_keywords
 
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
@@ -164,16 +165,34 @@ class Torrent(Helper):
                 stateList.append('completed')
         return stateList
     
-    def assignRelevance(self, dict):
-        lowerSwarmname = self.name.lower()
+    def assignRelevance(self, matches):
+        """
+        Assigns a relevance score to this Torrent.
+        @param matches A dict containing sets stored under the keys 'swarmname', 'filenames' and 'fileextensions'.
+        """
         
-        pos = sys.maxint
-        for keyword in dict['swarmname']:
-            index = lowerSwarmname.find(keyword.lower(), 0, pos)
-            if index != -1 and index < pos:
-                pos = index
+        # Find the lowest term position of the matching keywords 
+        pos = None
+        if matches['swarmname']:
+            swarmnameTerms = split_into_keywords(self.name)
+            swarmnameMatches = matches['swarmname']
+            
+            for i, term in enumerate(swarmnameTerms):
+                if term in swarmnameMatches:
+                    pos = i
+                    break
         
-        self.relevance_score = [len(dict['swarmname']), -pos, len(dict['filenames']), len(dict['fileextensions']), 0]
+        # Transform lowest position into relevance score in range(DISCRETE_POINTS)
+        pos_score = None
+        DISCRETE_POINTS = 5 
+        if pos is not None:
+            if pos > 0:
+                rel_pos = pos / (len(swarmnameTerms)-1.0)
+            else:
+                rel_pos = 0.0
+            pos_score = round( rel_pos*(DISCRETE_POINTS-1) )
+        
+        self.relevance_score = [len(matches['swarmname']), pos_score, len(matches['filenames']), len(matches['fileextensions']), 0]
             
     def __eq__(self, other):
         return self.infohash == other.infohash
