@@ -1839,7 +1839,8 @@ class TorrentDBHandler(BasicDBHandler):
             mainsql += " limit 20"
         
         query = " ".join(filter_keywords(kws))
-        not_negated = [kw for kw in kws if kw[0] != '-']
+        not_negated = [kw for kw in filter_keywords(kws) if kw[0] != '-']
+        
         results = self._db.fetchall(mainsql, (query, ))
 
         channels = set()
@@ -1850,6 +1851,7 @@ class TorrentDBHandler(BasicDBHandler):
         t2 = time()
         if len(channels) > 0:
             votes = self.votecast_db.getAllPosNegVotes(channels)
+            myvotes = self.votecast_db.getMyVotes()
             
             names_permid = self.channelcast_db.getNamesPermidForChannels(channels)
 
@@ -1860,6 +1862,7 @@ class TorrentDBHandler(BasicDBHandler):
                     names_permid[id] = [channel[0], my_permid]
         else:
             votes = {}
+            myvotes = {}
             names_permid = {}
         t3 = time()
         
@@ -1869,6 +1872,11 @@ class TorrentDBHandler(BasicDBHandler):
         #step 1, merge torrents keep one with best channel
         for result in results:
             torrent = dict(zip(value_name,result[:-1]))
+            
+            #ignoring spam channels
+            torrent['channel_vote'] = myvotes.get(torrent['channel_id'], 0)
+            if torrent['channel_vote'] < 0:
+                continue
             
             torrent['matches'] = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
             
@@ -1901,8 +1909,9 @@ class TorrentDBHandler(BasicDBHandler):
                 
                 # allways prefer my channel
                 myChannel = torrent['channel_id'] == myChannelId
-                higherVotes = (posvotes - negvotes) > (old_posvotes - old_negvotes)  
-                if myChannel or higherVotes:
+                myHigherVote = torrent['channel_vote'] > old_record['channel_vote']
+                higherVotes = (posvotes - negvotes) > (old_posvotes - old_negvotes)
+                if myChannel or myHigherVote or higherVotes:
                     #this is better
                     torrents_dict[torrent['infohash']] = torrent
             else:
@@ -4081,7 +4090,7 @@ class ChannelCastDBHandler(object):
                 return 1
             if a[5] > b[5]:
                 return -1
-            
+
             #then compare latest update
             if a[8] < b[8]:
                 return 1
@@ -4143,6 +4152,8 @@ class ChannelCastDBHandler(object):
                     return channel
                 
                 if not best_channel or channel[5] > best_channel[5]:
+                    best_channel = channel
+                elif channel[5] == best_channel[5] and channel[4] > best_channel[4]:
                     best_channel = channel
             return best_channel
             

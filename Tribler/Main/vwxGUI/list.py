@@ -912,18 +912,18 @@ class SearchList(GenericSearchList):
         #indentify popular associated channels
         channel_hits = {}
         for hit in data:
-            if hit.get('channel'):
+            if hit.get('channel', False):
                 channel = hit.get('channel')
-                if channel.nr_favorites > 0:
-                    if channel.id not in channel_hits:
-                        channel_hits[channel.id] = [0, channel]
+                if channel.id not in channel_hits:
+                        channel_hits[channel.id] = [0, channel.nr_torrents, channel]
+                
+                #positive bump
+                if channel.nr_favorites > 0 or channel.isFavorite():
                     channel_hits[channel.id][0] += 1
         
-        def channel_occur(a, b):
-            return cmp(a[0], b[0])
-        
         channels = channel_hits.values()
-        channels.sort(channel_occur, reverse = True)
+        channels.sort(reverse = True)
+        print >> sys.stderr, channels
         self.sidebar.SetAssociatedChannels(channels)
         
     def SetNrResults(self, nr, nr_channels):

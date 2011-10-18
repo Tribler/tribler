@@ -178,11 +178,11 @@ class SearchSideBar(wx.Panel):
         self.nochannels.Show(len(channels) == 0)
         for i in range(len(self.channels)):
             if i < len(channels):
-                tooltip = "Click to go to %s's Channel."%channels[i][1].name
+                tooltip = "Click to go to %s's Channel."%channels[i][-1].name
                 
-                self.channels[i].SetLabel(channels[i][1].name)
+                self.channels[i].SetLabel(channels[i][-1].name)
                 self.channels[i].SetToolTipString(tooltip)
-                self.channels[i].channel = channels[i][1]
+                self.channels[i].channel = channels[i][-1]
                 
             else:
                 self.channels[i].SetLabel('')

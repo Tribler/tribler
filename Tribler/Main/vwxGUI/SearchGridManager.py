@@ -501,8 +501,8 @@ class TorrentManager:
         if len(results) > 0:
             
             def create_channel(a):
-                if a['channel_id']:
-                    return Channel(a['channel_id'], -1, a['channel_name'], '', 0, a['subscriptions'], a['neg_votes'], 0, 0, a['channel_id'] == self.channelcast_db._channel_id)
+                if a['channel_id'] and a['channel_name'] != '':
+                    return Channel(a['channel_id'], -1, a['channel_name'], '', 0, a['subscriptions'], a['neg_votes'], a['channel_vote'], 0, a['channel_id'] == self.channelcast_db._channel_id)
                 return False
             
             def create_torrent(a):
@@ -545,7 +545,7 @@ class TorrentManager:
                                         updateChannel = True 
                                     
                                     if updateChannel:
-                                        item.updateChannel(RemoteChannel(remoteItem['channel_id'], remoteItem['channel_permid'], remoteItem['channel_name'], remoteItem['subscriptions'], remoteItem['neg_votes']))
+                                        item.updateChannel(RemoteChannel(remoteItem['channel_id'], remoteItem['channel_permid'], remoteItem['channel_name'], remoteItem['subscriptions'], remoteItem['neg_votes'], remoteItem['channel_vote']))
                                 
                                 hitsUpdated = True
                             known = True
@@ -655,6 +655,7 @@ class TorrentManager:
                                 if my_vote < 0:
                                     # I marked this channel as SPAM
                                     continue
+                                newval['channel_vote'] = my_vote
                                 
                                 if not channel_id in channel_votes:
                                     posvotes, negvotes = self.votecastdb.getPosNegVotes(channel_id)

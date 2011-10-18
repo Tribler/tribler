@@ -191,7 +191,7 @@ class Torrent(Helper):
 class RemoteTorrent(Torrent):
     def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = [], channel_id = -1, channel_permid = -1, channel_name = '', subscriptions = 0, neg_votes = 0):
         if channel_name != "":
-            c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes)
+            c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes, 0)
         else:
             c = False
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, c)
@@ -366,8 +366,8 @@ class Channel(Helper):
 
 class RemoteChannel(Channel):
     __slots__ = ('permid', 'torrents')
-    def __init__(self, id, permid, name, subscriptions, neg_votes):
-        Channel.__init__(self, id, '-1', name, '', 0, subscriptions, neg_votes, 0, 0, False)
+    def __init__(self, id, permid, name, subscriptions, neg_votes, my_vote):
+        Channel.__init__(self, id, '-1', name, '', 0, subscriptions, neg_votes, my_vote, 0, False)
         self.permid = permid
         
     def getState(self):
