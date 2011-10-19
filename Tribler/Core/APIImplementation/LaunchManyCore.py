@@ -138,7 +138,6 @@ class TriblerLaunchMany(Thread):
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
             self.pref_db        = PreferenceDBHandler.getInstance()
             self.superpeer_db   = SuperPeerDBHandler.getInstance()
-            self.superpeer_db.loadSuperPeers(config)
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
@@ -203,6 +202,9 @@ class TriblerLaunchMany(Thread):
         
     def init(self):
         config = self.session.sessconfig # Should be safe at startup
+        
+        if config['megacache'] and self.superpeer_db:
+            self.superpeer_db.loadSuperPeers(config)
         
         if config['overlay']:
             from Tribler.Core.Overlay.SecureOverlay import SecureOverlay

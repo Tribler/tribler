@@ -55,6 +55,14 @@ class ChannelManager():
     @forceWxThread
     def refresh(self, channel = None):
         if channel:
+            #copy torrents if channel stays the same 
+            if channel == self.list.channel:
+                if self.list.channel.torrents:
+                    if channel.torrents:
+                        channel.torrents.update(self.list.channel.torrents)
+                    else:
+                        channel.torrents = self.list.channel.torrents
+            
             self.list.Reset()
             self.list.SetChannel(channel)
 

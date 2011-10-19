@@ -185,7 +185,9 @@ class Torrent(Helper):
         self.relevance_score = [len(matches['swarmname']), pos_score, len(matches['filenames']), len(matches['fileextensions']), 0]
             
     def __eq__(self, other):
-        return self.infohash == other.infohash
+        if other and isinstance(other, Torrent):
+            return self.infohash == other.infohash
+        return False
     
     def __str__(self):
         return self.name
@@ -388,6 +390,11 @@ class Channel(Helper):
             for torrent in self.torrents:
                 if torrent.infohash == infohash:
                     return torrent
+                
+    def __eq__(self, other):
+        if other and isinstance(other, Channel):
+            return self.id == other.id
+        return False
 
 class RemoteChannel(Channel):
     __slots__ = ('permid')

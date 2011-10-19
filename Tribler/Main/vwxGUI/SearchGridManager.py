@@ -316,7 +316,7 @@ class TorrentManager:
         if DEBUG:
             print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:", categorykey
         
-        enabled_category_keys = [key.lower() for key in self.category.getCategoryKeys()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         enabled_category_ids = set()
         for key, id in self.torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
@@ -329,7 +329,7 @@ class TorrentManager:
 
         def torrentFilter(torrent):
             okCategory = False
-            category = torrent.get("category_id", None)
+            category = torrent.category_id
             if not category:
                 category = 0
                 
@@ -356,18 +356,8 @@ class TorrentManager:
             
             if DEBUG:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
-    
-            # 2. Filter self.hits on category and status
-            if DEBUG:
-                beginfilterhits = time()
-                
-            if new_local_hits:
-                self.hits = filter(torrentFilter, self.hits)
-    
-            if DEBUG:
-                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items took %s' % (len(self.hits), time() - beginfilterhits)
             
-            # 3. Add remote hits that may apply.
+            # 2. Add remote hits that may apply.
             new_remote_hits = self.addStoredRemoteResults()
     
             if DEBUG:
@@ -376,9 +366,9 @@ class TorrentManager:
             if DEBUG:
                 beginsort = time()
             
-            # boudewijn: now that we have sorted the search results we
-            # want to prefetch the top N torrents.
             if new_local_hits or new_remote_hits:
+                self.hits = filter(torrentFilter, self.hits)
+                
                 if sort == 'rameezmetric':
                     self.rameezSort()
                     
@@ -390,6 +380,8 @@ class TorrentManager:
                 
                 self.hits = self.library_manager.addDownloadStates(self.hits)
                 
+                # boudewijn: now that we have sorted the search results we
+                # want to prefetch the top N torrents.
                 self.guiserver.add_task(self.prefetch_hits, t = 1, id = "PREFETCH_RESULTS")
     
             if DEBUG:

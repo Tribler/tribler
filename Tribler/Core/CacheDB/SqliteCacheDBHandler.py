@@ -674,6 +674,7 @@ class SuperPeerDBHandler(BasicDBHandler):
             except:
                 print_exc()
                 continue
+            
             try:
                 ip = socket.gethostbyname(superpeer_info[0])
                 superpeer = {'ip':ip, 'port':superpeer_info[1], 
@@ -682,6 +683,7 @@ class SuperPeerDBHandler(BasicDBHandler):
                     superpeer['name'] = superpeer_info[3]
                 superpeers_info.append(superpeer)
             except:
+                print >> sys.stderr, "Error while connecting to superpeer: ", superpeer_info
                 print_exc()
                 
         return superpeers_info
