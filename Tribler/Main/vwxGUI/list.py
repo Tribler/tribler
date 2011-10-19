@@ -488,7 +488,12 @@ class List(wx.BoxSizer):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.items
-        
+    
+    def GetItemPos(self, key):
+        assert self.isReady, "List not ready"
+        if self.isReady:
+            return self.list.GetItemPos(key)
+    
     def GetExpandedItem(self):
         assert self.isReady, "List not ready"
         if self.isReady:
@@ -831,6 +836,10 @@ class GenericSearchList(SizeList):
     def GetItem(self, key):
         key = self.infohash2key.get(key, key)
         return List.GetItem(self, key)
+    
+    def GetItemPos(self, key):
+        key = self.infohash2key.get(key, key)
+        return List.GetItemPos(self, key)
         
     def format(self, val):
         val = int(val)

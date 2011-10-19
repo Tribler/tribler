@@ -862,6 +862,12 @@ class AbstractListBody():
     def GetItem(self, key):
         return self.items[key]
     
+    def GetItemPos(self, key):
+        # Returns the index of the ListItem belonging to this key
+        for i, data in enumerate(self.data):
+            if key == data[0]:
+                return i
+    
     @warnWxThread   
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
