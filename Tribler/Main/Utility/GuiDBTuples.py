@@ -345,8 +345,8 @@ class Channel(Helper):
         self.description = description[:1024]
         
         self.nr_torrents = nr_torrents
-        self.nr_favorites = nr_favorites
-        self.nr_spam = nr_spam
+        self.nr_favorites = nr_favorites or 0
+        self.nr_spam = nr_spam or 0
         self.my_vote = my_vote
         self.modified = modified
         self.my_channel = my_channel
