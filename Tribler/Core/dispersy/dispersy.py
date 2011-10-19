@@ -2004,7 +2004,7 @@ class Dispersy(Singleton):
         for source_lan_address, source_wan_address, message in estimates:
             if message.payload.advice:
                 try:
-                    candidate = self.yield_random_candidates(community, 1, (message.address,), (u"symmetric-NAT" if message.payload.connection_type == u"symmetric-NAT" else u""),).next()
+                    candidate = self.yield_random_candidates(community, 1, (message.address,), (u"symmetric-NAT" if message.payload.connection_type == u"symmetric-NAT" else u"",)).next()
                 except StopIteration:
                     candidate = None
             else:
