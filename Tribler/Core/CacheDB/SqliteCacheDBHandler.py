@@ -2797,7 +2797,7 @@ class BarterCastDBHandler(BasicDBHandler):
             peer_id = self.getPeerID(permid)
             # check if they already exist in database; if not: add
             if peer_id is None:
-                self._db.insertPeer(permid,commit=False)
+                self._db.insertPeer(permid, update=False, commit=False)
         self._db.commit()
 
     def updateULDL(self, (permid_from, permid_to), ul, dl, commit=True):
