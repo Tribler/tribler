@@ -1712,6 +1712,10 @@ class Dispersy(Singleton):
         BLACKLIST must contain addresses obtained from socket.recv_from(), not the lan or wan
         addresses.
         """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(blacklist, tuple)
         assert not self._lan_address in self._candidates, "our address may not be a candidate"
         assert not self._wan_address in self._candidates, "our address may not be a candidate"
         assert not self._lan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
@@ -1763,6 +1767,12 @@ class Dispersy(Singleton):
         Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, and with whom
         we have interacted before.
         """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(limit, int)
+        assert isinstance(blacklist, tuple)
+        assert isinstance(connection_type_blacklist, tuple)
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
@@ -1994,7 +2004,7 @@ class Dispersy(Singleton):
         for source_lan_address, source_wan_address, message in estimates:
             if message.payload.advice:
                 try:
-                    candidate = self.yield_random_candidates(1, (message.address,), (u"symmetric-NAT" if message.payload.connection_type == u"symmetric-NAT" else u""),).next()
+                    candidate = self.yield_random_candidates(community, 1, (message.address,), (u"symmetric-NAT" if message.payload.connection_type == u"symmetric-NAT" else u""),).next()
                 except StopIteration:
                     candidate = None
             else:
