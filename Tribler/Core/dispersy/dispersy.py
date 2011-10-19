@@ -1746,6 +1746,11 @@ class Dispersy(Singleton):
         Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, with whom we
         have interacted before, and who have us in their subjective set CLUSTER.
         """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(blacklist, (tuple, list))
+
         def in_subjective_set(candidate):
             for member in candidate.members:
                 subjective_set = community.get_subjective_set(member, cluster)
@@ -1804,6 +1809,10 @@ class Dispersy(Singleton):
         Yields a mixture of all candidates that we could get our hands on that are part of COMMUNITY
         and not in BLACKLIST.
         """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(blacklist, (tuple, list))
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
