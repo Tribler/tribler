@@ -208,6 +208,8 @@ class RemoteTorrent(Torrent):
 class CollectedTorrent(Helper):
     __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check', 'torrent')
     def __init__(self, torrent, torrentdef):
+        assert isinstance(self.torrent, Torrent)
+        
         self.torrent = torrent
         
         self.comment = torrentdef.get_comment_as_unicode()
@@ -284,6 +286,8 @@ class CollectedTorrent(Helper):
 class NotCollectedTorrent(CollectedTorrent):
     __slots__ = ()
     def __init__(self, torrent, files, trackers):
+        assert isinstance(self.torrent, Torrent)
+        
         self.torrent = torrent
         self.comment = None
         self.trackers = trackers
