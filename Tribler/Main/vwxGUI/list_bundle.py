@@ -28,18 +28,18 @@ class BundleListItem(ListItem):
     
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         # fetch bundle and descriptions
-        bundle = original_data['bundle']
+        self.bundle = original_data['bundle']
         self.general_description = original_data.get('bundle_general_description')
         self.description = original_data.get('bundle_description')
         
         # use the head as original_data (needed for SearchList)
-        original_data = bundle[0]
+        original_data = self.bundle[0]
         
         # call the original constructor
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
         
         # Now add the BundleListView (after AddComponents)
-        self.AddBundlePanel(bundle[1:])
+        self.AddBundlePanel(self.bundle[1:])
         self.bundlepanel.Layout()
         
         self.expanded_panel = None
@@ -56,8 +56,8 @@ class BundleListItem(ListItem):
         infohash, item_data, original_data = data
         
         if isinstance(original_data, dict) and 'bundle' in original_data:
-            bundle = original_data['bundle']
-            head_original_data, bundled = bundle[0], bundle[1:]
+            self.bundle = original_data['bundle']
+            head_original_data, bundled = self.bundle[0], self.bundle[1:]
             
             ListItem.RefreshData(self, (infohash, item_data, head_original_data))
             
