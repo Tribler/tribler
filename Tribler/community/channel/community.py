@@ -87,7 +87,6 @@ class ChannelCommunity(Community):
             if isinstance(community, AllChannelCommunity):
                 self.integrate_with_tribler = community.integrate_with_tribler
         
-        
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
@@ -123,8 +122,9 @@ class ChannelCommunity(Community):
                         self._channel_id = self._master_member.mid
                 except:
                     pass
+            
             # call this after the init is completed and the community is attached to dispersy
-            _register_task(post_init)
+            register_task(post_init)
 
             from Tribler.community.allchannel.community import ChannelCastDBStub
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
