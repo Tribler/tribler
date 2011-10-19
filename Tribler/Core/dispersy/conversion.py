@@ -147,6 +147,18 @@ class BinaryConversion(Conversion):
         self._encode_message_map = dict() # message.name : (byte, encode_payload_func)
         self._decode_message_map = dict() # byte : (message, decode_payload_func)
 
+        # the dispersy-introduction-request and dispersy-introduction-response have several bitfield
+        # flags that must be set correctly
+        # reserve 1st bit for enable/disable advice
+        self._encode_advice_map = {True:0b1, False:0b0}
+        self._decode_advice_map = dict((value, key) for key, value in self._encode_advice_map.iteritems())
+        # reserve 2nd bit for enable/disable sync
+        self._encode_sync_map = {True:0b10, False:0b00}
+        self._decode_sync_map = dict((value, key) for key, value in self._encode_sync_map.iteritems())
+        # reserve 7th and 8th bits for connection type
+        self._encode_connection_type_map = {u"unknown":0b00000000, u"public":0b10000000, u"symmetric-NAT":0b11000000}
+        self._decode_connection_type_map = dict((value, key) for key, value in self._encode_connection_type_map.iteritems())
+
         def define(value, name, encode, decode):
             try:
                 meta = community.get_meta_message(name)
@@ -254,7 +266,7 @@ class BinaryConversion(Conversion):
         key_length, = unpack_from("!H", data, offset)
         offset += 2
 
-        if len(data) < offset + key_length + 1:
+        if len(data) < offset + key_length:
             raise DropPacket("Insufficient packet size (_decode_missing_message.2)")
 
         key = data[offset:offset+key_length]
@@ -273,6 +285,7 @@ class BinaryConversion(Conversion):
             raise DropPacket("Invalid packet size (_decode_missing_message)")
 
         global_times = unpack_from("!%dQ" % global_time_length, data, offset)
+        offset += 8 * len(global_times)
 
         return offset, placeholder.meta.payload.implement(member, global_times)
 
@@ -528,7 +541,7 @@ class BinaryConversion(Conversion):
         assert 0 < payload.subjective_set.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
         assert 0 < payload.subjective_set.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
         assert len(payload.subjective_set.prefix) == 0, "Should not have a prefix"
-        return pack("!BBH", payload.cluster, payload.subjective_set.num_slices, payload.subjective_set.bits_per_slice), payload.subjective_set.prefix, payload.subjective_set.bytes
+        return pack("!BBH", payload.cluster, payload.subjective_set.num_slices, payload.subjective_set.bits_per_slice), payload.subjective_set.bytes
 
     def _decode_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 4:
@@ -542,9 +555,9 @@ class BinaryConversion(Conversion):
             raise DropPacket("Invalid bits_per_slice value")
         if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
             raise DropPacket("Invalid number of bytes available")
-
+        
         subjective_set = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
-        offset += num_slices * bits_per_slice
+        offset += int(ceil(num_slices * bits_per_slice / 8.0))
 
         return offset, placeholder.meta.payload.implement(cluster, subjective_set)
 
@@ -659,18 +672,29 @@ class BinaryConversion(Conversion):
 
     def _encode_introduction_request(self, message):
         payload = message.payload
-        assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
-        assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
-        assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
-        return inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]), \
-            inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]), \
-            inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
-            pack("!BH", int(payload.advice), payload.identifier), \
-            pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), \
-            payload.bloom_filter.prefix, payload.bloom_filter.bytes
+        if __debug__:
+            if payload.sync:
+                assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
+                assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+                assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
+            else:
+                assert payload.bloom_filter is None
+
+        data = [inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]),
+                inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]),
+                inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]),
+                pack("!B", self._encode_advice_map[payload.advice] | self._encode_connection_type_map[payload.connection_type] | self._encode_sync_map[payload.sync]),
+                pack("!H", payload.identifier)]
+        
+        # add optional sync
+        if payload.sync:
+            data.extend((pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), 
+                         payload.bloom_filter.prefix, payload.bloom_filter.bytes))
+
+        return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
-        if len(data) < offset + 41:
+        if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
@@ -682,30 +706,49 @@ class BinaryConversion(Conversion):
         source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
         
-        advice, identifier = unpack_from("!BH", data, offset)
-        advice = bool(advice)
+        flags, identifier = unpack_from("!BH", data, offset)
         offset += 3
-
-        time_low, time_high, num_slices, bits_per_slice = unpack_from("!QQBH", data, offset)
-        offset += 19
-        if not time_low > 0:
-            raise DropPacket("Invalid time_low value")
-        if not (time_high == 0 or time_low <= time_high):
-            raise DropPacket("Invalid time_high value")
-        if not num_slices > 0:
-            raise DropPacket("Invalid num_slices value")
-        if not bits_per_slice > 0:
-            raise DropPacket("Invalid bits_per_slice value")
-
-        prefix = data[offset]
-        offset += 1
-
-        if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
-            raise DropPacket("Invalid number of bytes available")
-        bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
-        offset += int(ceil(num_slices * bits_per_slice / 8.0))
         
-        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, advice, identifier, time_low, time_high, bloom_filter)
+        if not flags & 0b1 in self._decode_advice_map:
+            raise DropPacket("Invalid advice flag")
+        advice = self._decode_advice_map[flags & 0b1]
+
+        if not flags & 0b11000000 in self._decode_connection_type_map:
+            raise DropPacket("Invalid connection type flag")
+        connection_type = self._decode_connection_type_map[flags & 0b11000000]
+
+        if not flags & 0b10 in self._decode_sync_map:
+            raise DropPacket("Invalid sync flag")
+        if self._decode_sync_map[flags & 0b10]:
+            if len(data) < offset + 20:
+                raise DropPacket("Insufficient packet size")
+
+            time_low, time_high, num_slices, bits_per_slice = unpack_from("!QQBH", data, offset)
+            offset += 19
+            if not time_low > 0:
+                raise DropPacket("Invalid time_low value")
+            if not (time_high == 0 or time_low <= time_high):
+                raise DropPacket("Invalid time_high value")
+            if not num_slices > 0:
+                raise DropPacket("Invalid num_slices value")
+            if not bits_per_slice > 0:
+                raise DropPacket("Invalid bits_per_slice value")
+
+            prefix = data[offset]
+            offset += 1
+
+            if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
+                raise DropPacket("Invalid number of bytes available")
+
+            bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
+            offset += int(ceil(num_slices * bits_per_slice / 8.0))
+
+            sync = (time_low, time_high, bloom_filter)
+
+        else:
+            sync = None
+        
+        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
 
     def _encode_introduction_response(self, message):
         payload = message.payload
@@ -714,10 +757,11 @@ class BinaryConversion(Conversion):
             inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
             inet_aton(payload.lan_introduction_address[0]), pack("!H", payload.lan_introduction_address[1]), \
             inet_aton(payload.wan_introduction_address[0]), pack("!H", payload.wan_introduction_address[1]), \
+            pack("!B", self._encode_connection_type_map[payload.connection_type]), \
             pack("!H", payload.identifier)
 
     def _decode_introduction_response(self, placeholder, offset, data):
-        if len(data) < offset + 32:
+        if len(data) < offset + 33:
             raise DropPacket("Insufficient packet size")
 
         destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
@@ -734,11 +778,15 @@ class BinaryConversion(Conversion):
 
         wan_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
-        
-        identifier, = unpack_from("!H", data, offset)
-        offset += 2
 
-        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier)
+        flags, identifier, = unpack_from("!BH", data, offset)
+        offset += 3
+
+        if not flags & 0b1110 in self._decode_connection_type_map:
+            raise DropPacket("Invalid connection type flag")
+        connection_type = self._decode_connection_type_map[flags & 0b1110]
+        
+        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier)
 
     def _encode_puncture_request(self, message):
         payload = message.payload

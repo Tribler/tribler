@@ -2046,7 +2046,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_in_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages ASC
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, min(global_times), max(global_times), [], max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in global_times:
@@ -2078,7 +2078,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_out_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages DESC
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, min(global_times), max(global_times), [], max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in reversed(global_times):
@@ -2181,7 +2181,7 @@ class DispersySyncScript(ScriptBase):
         # lists = []
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
-            node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, min(global_times), 0, [], max(global_times)))
+            node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, []), 42, max(global_times)))
             yield 0.1
 
             received_times = get_messages_back()
@@ -2986,7 +2986,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert times == [global_time]
 
         # a sync MUST return the message that was just sent
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, 10, 0, [], 20))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert message.distribution.global_time == global_time
@@ -3024,7 +3024,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert times == [global_time]
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, 42, 10, 0, [], 20))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         assert message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name)

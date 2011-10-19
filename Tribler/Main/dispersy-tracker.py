@@ -12,9 +12,8 @@ import threading
 import optparse
 
 from Tribler.Core.BitTornado.RawServer import RawServer
-from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.callback import Callback
-from Tribler.Core.dispersy.community import SyncRange, Community
+from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
@@ -30,22 +29,6 @@ else:
 
 class BinaryTrackerConversion(BinaryConversion):
     pass
-
-class TrackerSyncRange(SyncRange):
-    def __init__(self):
-        self.time_low = 1
-        self.space_freed = 0
-        self.bloom_filters = [BloomFilter("\xff", 1, 8, prefix="\x00")]
-        self.space_remaining = self.capacity = 2 ** 64 - 1
-
-    def add(self, packet):
-        pass
-
-    def free(self):
-        pass
-
-    def clear(self):
-        pass
 
 class TrackerCommunity(Community):
     """
@@ -72,12 +55,9 @@ class TrackerCommunity(Community):
     def initiate_conversions(self):
         return [BinaryTrackerConversion(self, "\x00")]
 
-    def _initialize_sync_ranges(self):
-        self._sync_ranges.insert(0, TrackerSyncRange())
-    
     def dispersy_claim_sync_bloom_filter(self, identifier):
-        # the tracker doesn't want any data... so our bloom filter must be full
-        return 1, 1, self._sync_ranges[0].bloom_filters[0]
+        # disable the sync mechanism
+        return None
     
     def get_conversion(self, prefix=None):
         if not prefix in self._conversions:
@@ -124,7 +104,7 @@ class TrackerDispersy(Dispersy):
     def _unload_communities(self):
         def has_candidates(community):
             try:
-                self.yield_candidates(community, 1).next()
+                self.yield_all_candidates(community).next()
             except StopIteration:
                 return False
             else:

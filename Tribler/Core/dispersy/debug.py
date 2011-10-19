@@ -1,15 +1,10 @@
 import socket
 
-from authentication import NoAuthentication
 from bloomfilter import BloomFilter
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from destination import CommunityDestination, AddressDestination
-from distribution import DirectDistribution, LastSyncDistribution, FullSyncDistribution
 from dprint import dprint
 from member import Member
 from message import Message
-from payload import MissingSequencePayload, SignatureResponsePayload, IdentityPayload
-from resolution import PublicResolution, LinearResolution
 
 class DebugOnlyMember(Member):
     _singleton_instances = {}
@@ -93,7 +88,7 @@ class Node(object):
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
             destination_address = self._community._dispersy.wan_address
-            message = self.create_dispersy_introduction_request_message(destination_address, self.lan_address, self.wan_address, False, 0, 1, 1, [], 1)
+            message = self.create_dispersy_introduction_request_message(destination_address, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
             self.give_message(message)
 
     @property
@@ -316,18 +311,21 @@ class Node(object):
         meta = self._community.get_meta_message(u"dispersy-missing-proof")
         return meta.impl(distribution=(global_time,), payload=(member, global_time))
     
-    def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, identifier, time_low, time_high, bloom_packets, global_time):
+    def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, connection_type, sync, identifier, global_time):
         # TODO assert other arguments
-        assert isinstance(time_low, (int, long))
-        assert isinstance(time_high, (int, long))
-        assert isinstance(bloom_packets, list)
-        assert not filter(lambda x: not isinstance(x, str), bloom_packets)
+        if sync:
+            time_low, time_high, bloom_packets = sync
+            assert isinstance(time_low, (int, long))
+            assert isinstance(time_high, (int, long))
+            assert isinstance(bloom_packets, list)
+            assert not filter(lambda x: not isinstance(x, str), bloom_packets)
+            bloom_filter = BloomFilter(700, 0.001, prefix="x")
+            map(bloom_filter.add, bloom_packets)
+            sync = (time_low, time_high, bloom_filter)
         assert isinstance(global_time, (int, long))
-        bloom_filter = BloomFilter(700, 0.001, prefix="x")
-        map(bloom_filter.add, bloom_packets)
         meta = self._community.get_meta_message(u"dispersy-introduction-request")
         return meta.impl(authentication=(self._my_member,),
                          destination=(destination,),
                          distribution=(global_time,),
-                         payload=(destination, source_lan, source_wan, advice, identifier, time_low, time_high, bloom_filter))
+                         payload=(destination, source_lan, source_wan, advice, connection_type, sync, identifier))
     

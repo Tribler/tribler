@@ -516,7 +516,7 @@ class Community(object):
           The current value is: self._my_member.signature_length
           
         - The other payload is 6 + 6 + 6 + 1 + 2 = 21 (destination-address, source-lan-address,
-          source-wan-address, advice, identifier)
+          source-wan-address, advice+connection-type+sync flags, identifier)
         
         - The sync payload uses 16 bytes to indicate the sync range and 4 bytes for the num_slices,
           bits_per_slice, and the prefix

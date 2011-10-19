@@ -37,7 +37,7 @@ class Payload(MetaObject):
 
 class IntroductionRequestPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, identifier, time_low, time_high, bloom_filter):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier):
             """
             Create the payload for an introduction-request message.
 
@@ -53,35 +53,49 @@ class IntroductionRequestPayload(Payload):
             ADVICE is a boolean value.  When True the receiver will introduce the sender to a new
             node.  This introduction will be facilitated by the receiver sending a puncture-request
             to the new node.
+
+            CONNECTION_TYPE is a unicode string indicating the connection type that the message
+            creator has.  Currently the following values are supported: u"unknown", u"public", and
+            u"symmetric-NAT".
+
+            SYNC is an optional (TIME_LOW, TIME_HIGH, BLOOM_FILTER) tuple.  When given the
+            introduction-request will also add this sync bloom filter in the message allowing the
+            receiver to respond with missing packets.  No such sync bloom filter will be included
+            when SYNC is None.
+
+               TIME_LOW and TIME_HIGH give the global time range that the sync bloomfilter covers.
+
+               BLOOM_FILTER is a BloomFilter object containing all packets that the sender has in
+               the given sync range.
             
             IDENTIFIER is a number that must be given in the associated introduction-response.  This
             number allows to distinguish between multiple introduction-response messages.
-
-            TIME_LOW and TIME_HIGH give the global time range that the sync bloomfilter covers.
-
-            BLOOM_FILTER is a BloomFilter object containing all packets that the sender has in the
-            given sync range.
             """
             assert is_address(destination_address)
             assert is_address(source_lan_address)
             assert is_address(source_wan_address)
             assert isinstance(advice, bool)
+            assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", u"symmetric-NAT")
+            assert sync is None or isinstance(sync, tuple)
+            assert sync is None or len(sync) == 3
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
-            assert isinstance(time_low, (int, long))
-            assert 0 < time_low
-            assert isinstance(time_high, (int, long))
-            assert time_high == 0 or time_low <= time_high
-            assert isinstance(bloom_filter, BloomFilter)
             super(IntroductionRequestPayload.Implementation, self).__init__(meta)
             self._destination_address = destination_address
             self._source_lan_address = source_lan_address
             self._source_wan_address = source_wan_address
             self._advice = advice
+            self._connection_type = connection_type
             self._identifier = identifier
-            self._time_low = time_low
-            self._time_high = time_high
-            self._bloom_filter = bloom_filter
+            if sync:
+                self._time_low, self._time_high, self._bloom_filter = sync
+                assert isinstance(self._time_low, (int, long))
+                assert 0 < self._time_low
+                assert isinstance(self._time_high, (int, long))
+                assert self._time_high == 0 or self._time_low <= self._time_high
+                assert isinstance(self._bloom_filter, BloomFilter)
+            else:
+                self._time_low, self._time_high, self._bloom_filter = 0, 0, None
 
         @property
         def destination_address(self):
@@ -100,9 +114,13 @@ class IntroductionRequestPayload(Payload):
             return self._advice
 
         @property
-        def identifier(self):
-            return self._identifier
+        def connection_type(self):
+            return self._connection_type
 
+        @property
+        def sync(self):
+            return True if self._bloom_filter else False
+        
         @property
         def time_low(self):
             return self._time_low
@@ -119,9 +137,13 @@ class IntroductionRequestPayload(Payload):
         def bloom_filter(self):
             return self._bloom_filter
 
+        @property
+        def identifier(self):
+            return self._identifier
+
 class IntroductionResponsePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier):
             """
             Create the payload for an introduction-response message.
 
@@ -142,6 +164,10 @@ class IntroductionResponsePayload(Payload):
             advises the receiver to contact.  This address is zero when the associated request did
             not want advice.
             
+            CONNECTION_TYPE is a unicode string indicating the connection type that the message
+            creator has.  Currently the following values are supported: u"unknown", u"public", and
+            u"symmetric-NAT".
+
             IDENTIFIER is a number that was given in the associated introduction-request.  This
             number allows to distinguish between multiple introduction-response messages.
 
@@ -155,6 +181,7 @@ class IntroductionResponsePayload(Payload):
             assert is_address(source_wan_address)
             assert is_address(lan_introduction_address)
             assert is_address(wan_introduction_address)
+            assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", u"symmetric-NAT")
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(IntroductionResponsePayload.Implementation, self).__init__(meta)
@@ -163,6 +190,7 @@ class IntroductionResponsePayload(Payload):
             self._source_wan_address = source_wan_address
             self._lan_introduction_address = lan_introduction_address
             self._wan_introduction_address = wan_introduction_address
+            self._connection_type = connection_type
             self._identifier = identifier
 
         @property
@@ -188,6 +216,10 @@ class IntroductionResponsePayload(Payload):
         @property
         def wan_introduction_address(self):
             return self._wan_introduction_address
+
+        @property
+        def connection_type(self):
+            return self._connection_type
 
         @property
         def identifier(self):
