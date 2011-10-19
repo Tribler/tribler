@@ -150,6 +150,8 @@ class ChannelCommunity(Community):
             disp_undo_mark_torrent = self._disp_undo_mark_torrent
             
         else:
+            log("dispersy.log", "channel community starting in not integrated mode")
+            
             batch_delay = 1.0
             
             def dummy_function(*params):
