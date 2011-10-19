@@ -30,7 +30,7 @@ CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0
 CHANNELCAST_BLOCK_PERIOD = 10.0 * 60.0 #block for 10 minutes
 
-DEBUG = False
+DEBUG = True
 
 class AllChannelCommunity(Community):
     """
