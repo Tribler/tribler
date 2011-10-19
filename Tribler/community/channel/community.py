@@ -82,7 +82,8 @@ class ChannelCommunity(Community):
         from Tribler.community.allchannel.community import AllChannelCommunity
         
         self.integrate_with_tribler = True
-        for community in self.dispersy.get_communities():
+        dispersy = Dispersy.get_instance()
+        for community in dispersy.get_communities():
             if isinstance(community, AllChannelCommunity):
                 self.integrate_with_tribler = community.integrate_with_tribler
         
