@@ -79,13 +79,20 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, master):
+        from Tribler.community.allchannel.community import AllChannelCommunity
+        
         self.integrate_with_tribler = True
+        for community in self.dispersy.get_communities():
+            if isinstance(community, AllChannelCommunity):
+                self.integrate_with_tribler = community.integrate_with_tribler
+        
+        
         self._channel_id = None
         self._last_sync_range = None
         self._last_sync_space_remaining = 0
         
         super(ChannelCommunity, self).__init__(master)
-
+        
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
             from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler

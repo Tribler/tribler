@@ -332,12 +332,7 @@ class SearchSideBar(wx.Panel):
         
         if channel_name != '':
             channel = label.channel
-            
-            if isinstance(channel, RemoteChannel):
-                #When torrent was loaded this channel was not know, is it now?
-                self.guiutility.showChannelFromPermid(channel.permid)
-            else:
-                self.guiutility.showChannel(channel)
+            self.guiutility.showChannel(channel)
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)
