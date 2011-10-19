@@ -52,14 +52,14 @@ class AllChannelCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member):
+    def load_community(cls, master, my_member, integrate_with_tribler = True):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler)
         else:
-            return super(AllChannelCommunity, cls).load_community(master)
+            return super(AllChannelCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler)
 
     def __init__(self, master, integrate_with_tribler = True):
         super(AllChannelCommunity, self).__init__(master)
