@@ -276,6 +276,7 @@ class SearchSideBar(wx.Panel):
                 newstate = Bundler.ALG_OFF # default
         
         self.bundlestate = newstate
+        self.selected_bundle_mode = None
         self.Freeze()
         
         if newstate != Bundler.ALG_OFF:
@@ -312,6 +313,7 @@ class SearchSideBar(wx.Panel):
         if self.bundlestate == Bundler.ALG_MAGIC:
             self.Freeze()
             
+            self.selected_bundle_mode = selected_bundle_mode
             index = self.bundlestates.index(selected_bundle_mode)
             for i in range(len(self.bundletexts)):
                 linkStaticText = self.bundletexts[i]
