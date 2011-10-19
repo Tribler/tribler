@@ -1715,7 +1715,7 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        assert isinstance(blacklist, tuple)
+        assert isinstance(blacklist, (tuple, list))
         assert not self._lan_address in self._candidates, "our address may not be a candidate"
         assert not self._wan_address in self._candidates, "our address may not be a candidate"
         assert not self._lan_address in self._bootstrap_candidates, "our address my not be a bootstrap address"
@@ -1771,8 +1771,8 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(limit, int)
-        assert isinstance(blacklist, tuple)
-        assert isinstance(connection_type_blacklist, tuple)
+        assert isinstance(blacklist, (tuple, list))
+        assert isinstance(connection_type_blacklist, (tuple, list))
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
