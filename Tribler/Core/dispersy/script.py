@@ -245,7 +245,6 @@ class ScenarioScriptBase(ScriptBase):
         
         log(self._logfile, "joined-barter-community")
         log(self._logfile, "barter-community-property", name="sync_interval", value=self._community.dispersy_sync_interval)
-        log(self._logfile, "barter-community-property", name="sync_member_count", value=self._community.dispersy_sync_member_count)
         log(self._logfile, "barter-community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
         log(self._logfile, "barter-community-property", name="timestep", value=self._timestep)
 
