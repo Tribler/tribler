@@ -360,8 +360,8 @@ class DispersyPanel(HomePanel):
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
-        # self.timer.Start(30000, False)
-        self.timer.Start(1000, False)
+        self.timer.Start(30000, False)
+        # self.timer.Start(1000, False)
         self.UpdateStats()
 
     def CreatePanel(self):
@@ -465,7 +465,8 @@ class DispersyPanel(HomePanel):
                 sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
                 for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
                     self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
-                self.summary_tree.Expand(parent)
+                # self.summary_tree.Expand(parent)
+            # self.summary_tree.ExpandAll()
 
         # full tree
         self.tree.DeleteAllItems()

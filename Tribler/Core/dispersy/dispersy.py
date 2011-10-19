@@ -1832,7 +1832,7 @@ class Dispersy(Singleton):
             D = sorted(stumbles.difference(walks).difference(introduction), key=sort_key)
             E = sorted(stumbles.intersection(introduction).difference(walks), key=sort_key)
 
-            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E))
+            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
             assert all(candidate.is_walk or candidate.is_stumble or candidate.is_introduction for candidate in candidates), "each candidate must have at least one mark"
             assert any([walks, stumbles, introduction])
             assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
@@ -2097,27 +2097,21 @@ class Dispersy(Singleton):
             if self._is_valid_lan_address(lan_introduction_address) and self._is_valid_wan_address(wan_introduction_address):
                 sock_address = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
 
-                # 1. self._candidates contains the candidate.  this indicates that we have seen this
-                #    node before, either from a previous walk or from receiving a puncture before
-                #    the introduction-response
                 candidate = self._candidates.get(sock_address)
                 if candidate:
-                    # 2. self._walk_identifiers does not contain the candidate.  this indicates that
-                    #    the puncture message has not yet been received
-                    if self._walk_identifiers.get(message.payload.identifier) is None:
-                        self._walk_identifiers[message.payload.identifier] = candidate
+                    self._walk_identifiers[message.payload.identifier] = candidate
+                    candidate.inc_introduced(message.authentication.member, community)
+
+                else:
+                    candidate = self._walk_identifiers.get(message.payload.identifier)
+                    if candidate and candidate.address == sock_address:
+                        self._candidates[sock_address] = candidate
                         candidate.inc_introduced(message.authentication.member, community)
 
-                    else:
-                        assert self._walk_identifiers[message.payload.identifier] == candidate
-
-                # 3. self._candidates does not contain the candidate.  this indicates that we have
-                #    not seen this node before
-                elif not (sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
-                    candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
-                    if self._walk_identifiers[message.payload.identifier] is None:
-                        self._candidates[sock_address] = candidate
+                    elif not (sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
+                        candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
                         self._walk_identifiers[message.payload.identifier] = candidate
+                        self._candidates[sock_address] = candidate
 
                 # 13/10/11 Boudewijn: when we had no candidates and we received this response
                 # from a bootstrap node, we will immediately take an additional step towards the
