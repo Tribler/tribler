@@ -277,7 +277,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE,NTFY_MODIFIED])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE, NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
@@ -791,9 +791,8 @@ class ABCApp():
                 if self.frame.channellist:
                     self.frame.channellist.SetMyChannelId(objectID)
                 
-                torrentfeed = RssParser.getInstance()
-                torrentfeed.register(self.utility.session, objectID)
-                torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                self.torrentfeed.register(self.utility.session, objectID)
+                self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
             
             self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
     

@@ -230,8 +230,18 @@ class ChannelSearchManager:
                 print >> sys.stderr, "ChannelManager complete refresh done"
             
     def refresh_partial(self, ids):
+        def mergeChannel(delayedResult, id):
+            newChannel = delayedResult.get()
+            
+            item = self.list.GetItem(id)
+            oldChannel = item.original_data
+            if oldChannel.torrents:
+                newChannel.torrents = oldChannel.torrents
+            
+            self.list.RefreshData(id, newChannel)
+            
         for id in ids:
-            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,))
+            startWorker(mergeChannel, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,))
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:

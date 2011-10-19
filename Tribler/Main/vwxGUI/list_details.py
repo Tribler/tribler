@@ -524,6 +524,9 @@ class TorrentDetails(AbstractDetails):
         categories = self.torrent.categories
         if isinstance(categories, list):
             category = ', '.join(categories)
+        else:
+            print >> sys.stderr, 'categories is',type(categories)
+            category = ''
 
         if not self.torrent.get('description', ''):
             description = 'No description yet, be the first to add a description.'

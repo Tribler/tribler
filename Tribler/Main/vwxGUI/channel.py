@@ -39,10 +39,8 @@ class ChannelManager():
     def refreshDirty(self):
         if 'COMPLETE_REFRESH_STATE' in self.dirtyset:
             self._refresh_list(stateChanged = True)
-            
         elif 'COMPLETE_REFRESH' in self.dirtyset:
             self._refresh_list()
-            
         else:
             self._refresh_partial(list(self.dirtyset))
         self.dirtyset.clear()
@@ -99,19 +97,6 @@ class ChannelManager():
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
-        torrents = self.library_manager.addDownloadStates(torrents)
-        total_items += len(playlists)
-        
-        #only show a small random selection of available content for non-favorite channels
-        if not self.list.channel.isFavorite() and not self.list.channel.isMyChannel():
-            if len(playlists) > 3:
-                playlists = sample(playlists, 3)
-                
-            if len(torrents) > CHANNEL_MAX_NON_FAVORITE:
-                torrents = sample(torrents, CHANNEL_MAX_NON_FAVORITE)
-            
-            total_items = len(playlists) + len(torrents)
-        
         #sometimes a channel has some torrents in the torrents variable, merge them here
         if self.list.channel.torrents:
             remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
@@ -121,6 +106,16 @@ class ChannelManager():
             
             self.list.channel.torrents = set([torrent for torrent in self.list.channel.torrents if torrent.infohash in remoteTorrents])
             torrents = torrents + list(self.list.channel.torrents)
+        
+        torrents = self.library_manager.addDownloadStates(torrents)
+        
+        #only show a small random selection of available content for non-favorite channels
+        if not self.list.channel.isFavorite() and not self.list.channel.isMyChannel():
+            if len(playlists) > 3:
+                playlists = sample(playlists, 3)
+                
+            if len(torrents) > CHANNEL_MAX_NON_FAVORITE:
+                torrents = sample(torrents, CHANNEL_MAX_NON_FAVORITE)
         
         self.list.SetData(playlists, torrents)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
@@ -1158,6 +1153,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
         if channel:
             self.channel = channel
             self.channel_id = channel.id
+            
+            if channel.isMyChannel():
+                self.torrentfeed.register(self.guiutility.utility.session, self.channel_id)
             
             def db_call():
                 channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
