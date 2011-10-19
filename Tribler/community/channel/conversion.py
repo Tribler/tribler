@@ -353,7 +353,7 @@ class ChannelConversion(BinaryConversion):
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
         packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        return offset, placeholder.meta.payload.implement(infohash, playlist)
+        return offset + 44, placeholder.meta.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
         if global_time and mid:

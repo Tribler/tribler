@@ -98,7 +98,7 @@ class AllChannelConversion(BinaryConversion):
         if not vote in [-1, 0, 2]:
             raise DropPacket("Invalid 'vote' type or value")
         
-        return offset, placeholder.meta.payload.implement(cid, vote, timestamp)
+        return offset + 26, placeholder.meta.payload.implement(cid, vote, timestamp)
 
     def _encode_channel_search_request(self, message):
         skip = str(message.payload.skip)
