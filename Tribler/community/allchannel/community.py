@@ -452,7 +452,7 @@ class ChannelCastDBStub():
         results = list(self._dispersy.database.execute(sql, (limit,)))
         messages = self.convert_to_messages(results)
         
-        return [message.payload.infohash for message in messages]
+        return [message.payload.infohash for cid, message in messages]
     
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent'"
