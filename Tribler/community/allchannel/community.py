@@ -446,7 +446,14 @@ class ChannelCastDBStub():
                 torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
                 last_result_time = message.payload.timestamp
         return torrent_dict
-
+    
+    def getRandomTorrents(self, channel_id, limit = 15):
+        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' ORDER BY random() DESC LIMIT ?"
+        results = list(self._dispersy.database.execute(sql, (limit,)))
+        messages = self.convert_to_messages(results)
+        
+        return [message.payload.infohash for message in messages]
+    
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent'"
         results = list(self._dispersy.database.execute(sql))
