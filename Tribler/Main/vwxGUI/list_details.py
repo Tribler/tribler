@@ -648,6 +648,7 @@ class TorrentDetails(AbstractDetails):
         
         self.downloadButton.SetToolTipString('Start downloading this torrent.')
         self.downloadButton.Bind(wx.EVT_BUTTON, self.OnDownload)
+        self.downloadButton.Bind(wx.EVT_MOTION, self.OnDrag)
         
         play = wx.Button(panel, -1, "Play")
         play.SetToolTipString('Start playing this torrent.')
@@ -902,6 +903,17 @@ class TorrentDetails(AbstractDetails):
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
+        
+    def OnDrag(self, event):
+        if event.LeftIsDown():
+            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
+            
+            tdo = wx.FileDataObject()
+            tdo.AddFile(filename)
+            
+            tds = wx.DropSource(self)
+            tds.SetData(tdo)
+            tds.DoDragDrop(True)
     
     @warnWxThread
     def OnPlay(self, event):

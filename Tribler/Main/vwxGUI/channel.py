@@ -646,9 +646,7 @@ class DragItem(ListItem):
         ListItem.AddEvents(self, control)
         
     def OnDrag(self, event):
-        #event.LeftDown does not work
-        mouse = wx.GetMouseState()
-        if mouse.LeftDown():
+        if event.LeftIsDown:
             self.parent_list.parent_list.OnDrag(self)
         
 class TorrentDO(wx.CustomDataObject):
