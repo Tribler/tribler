@@ -864,11 +864,15 @@ class GenericSearchList(SizeList):
                 hits_pos = None
                 hits_old_pos = None
             
-            return 'RelevanceRanking: pos/subpos_v/subpos_h: %s/%s/%s; hits_pos: %s; hits_old_pos: %s; bundle: %s/%s [%s/%s]; family: %s' \
-                   % (pos_visual, subpos_visual, subpos_hits,
-                      hits_pos, hits_old_pos, 
-                      bundlestate, selected_bundle_mode, bundlestate_str, selected_bundle_mode_str,
-                      sidebar.family_filter)
+            keywords = self.guiutility.torrentsearch_manager.getSearchKeywords()[0]
+            query = ' '.join(keywords)
+            
+            return \
+            'RelevanceRanking: pos/subpos_v/subpos_h: %s/%s/%s; hits_pos: %s; hits_old_pos: %s; bundle: %s/%s [%s/%s]; family: %s; q=%s' \
+            % (pos_visual, subpos_visual, subpos_hits,
+               hits_pos, hits_old_pos, 
+               bundlestate, selected_bundle_mode, bundlestate_str, selected_bundle_mode_str,
+               sidebar.family_filter, query)
         
         relevance_msg = relevance_ranking_msg()
         def db_callback():
@@ -880,7 +884,7 @@ class GenericSearchList(SizeList):
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
             
             self.uelog.addEvent(message=relevance_msg, type = 4)
-            
+        
         self.guiutility.frame.guiserver.add_task(db_callback)
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
