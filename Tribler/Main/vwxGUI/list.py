@@ -828,6 +828,49 @@ class GenericSearchList(SizeList):
         from Tribler.Main.vwxGUI.channel import SelectedChannelList
         from list_bundle import BundleListView
         
+        # vliegendhart: Logging relevance ranking stats
+        def relevance_ranking_msg():
+            infohash = torrent.infohash
+            
+            main_searchlist = self.guiutility.frame.searchlist
+            sidebar = main_searchlist.sidebar
+            
+            bundlestate = main_searchlist.sidebar.bundlestate
+            selected_bundle_mode = sidebar.selected_bundle_mode
+            bundlestate_str = sidebar.bundlestates_str[bundlestate]
+            selected_bundle_mode_str = sidebar.bundlestates_str.get(selected_bundle_mode, None)
+            
+            pos_visual = None
+            subpos_visual = None
+            subpos_hits = None
+            
+            if isinstance(self, BundleListView):
+                bundlelistitem = main_searchlist.GetItem(infohash)
+                
+                pos_visual = main_searchlist.GetItemPos(infohash)
+                subpos_visual = self.GetItemPos(infohash)
+                try:
+                    subpos_hits = bundlelistitem.bundle[1:].index(torrent)
+                except:
+                    pass
+            else:
+                pos_visual = self.GetItemPos(infohash)
+            
+            hits = self.guiutility.torrentsearch_manager.hits
+            try:
+                hits_pos = hits.index(torrent)
+                hits_old_pos = sorted(hits, key=lambda hit: hit.relevance_score[-1], reverse=True).index(torrent)
+            except:
+                hits_pos = None
+                hits_old_pos = None
+            
+            return 'RelevanceRanking: pos/subpos_v/subpos_h: %s/%s/%s; hits_pos: %s; hits_old_pos: %s; bundle: %s/%s [%s/%s]; family: %s' \
+                   % (pos_visual, subpos_visual, subpos_hits,
+                      hits_pos, hits_old_pos, 
+                      bundlestate, selected_bundle_mode, bundlestate_str, selected_bundle_mode_str,
+                      sidebar.family_filter)
+        
+        relevance_msg = relevance_ranking_msg()
         def db_callback():
             if isinstance(self, SelectedChannelList):
                 self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
@@ -835,7 +878,9 @@ class GenericSearchList(SizeList):
                 self.uelog.addEvent(message="Torrent: torrent download from bundle", type = 2)
             else:
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
-        
+            
+            self.uelog.addEvent(message=relevance_msg, type = 4)
+            
         self.guiutility.frame.guiserver.add_task(db_callback)
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
