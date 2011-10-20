@@ -1724,7 +1724,7 @@ class Dispersy(Singleton):
         assert all(sock_address == candidate.address for sock_address, candidate in self._candidates.iteritems())
 
         # remove old candidates
-        introduced_threshold = time() - 25.0
+        introduced_threshold = time() - 55.0
         other_threshold = time() - 55.0
         for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems()
                              if candidate.timestamp_incoming <= (other_threshold if candidate.is_walk or candidate.is_stumble else introduced_threshold)]:
