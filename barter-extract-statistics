@@ -116,45 +116,43 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 h_received_record.write("\n")
                 write_total = True
 
-            if message == "handled-successfully":
-                drop_count = kargs['total_packet_count'] - kargs['handled_message_count']
-                if drop_count != 0:
-                    c_drop += drop_count
-                    time = int(mktime(datetime.timetuple()))
+            if message == "statistics":
+                time = int(mktime(datetime.timetuple()))
+                
+                if "total_send" in kargs and "total_received" in kargs:
+                    h_stat.write(str(time))
+                    h_stat.write(" ")
+                    timeoffset = time - first
+                    h_stat.write(str(timeoffset))
+                    h_stat.write(" ")
+                    h_stat.write(str(kargs["total_send"]))
+                    h_stat.write(" ")
+                    h_stat.write(str(kargs["total_received"]))
+                    h_stat.write("\n")
+                    
+                    # statistics are gathered every second, so we don't need to do much checking for interval limits in here
+                    # if statistics will no longer be gathered every second, additional processing should include
+                    # - saving the initial timeoffset when traffic_start was seen
+                    # - saving the final timeoffset when traffic_stop was seen
+                    # - saving the speed identified for the above mentioned interval (initial timeoffset, final timeoffset)
+                    if not started_monitoring and not done_monitoring and timeoffset >= measure_interval_start:
+                        started_monitoring = True
+                        traffic_start = kargs["total_send"] + kargs["total_received"]
+                        
+                    if not done_monitoring and started_monitoring:
+                        traffic_stop = kargs["total_send"] + kargs["total_received"]
+                        traffic_count[node[-5:]] = [traffic_start, traffic_stop, traffic_stop - traffic_start]
+                        
+                    if not done_monitoring and started_monitoring and timeoffset >= measure_interval_stop:
+                        done_monitoring = True
+                
+                if "total_dropped" in kargs:
                     h_drop.write(str(time))
                     h_drop.write(" ")
                     h_drop.write(str(time - first))
                     h_drop.write(" ")
-                    h_drop.write(str(c_drop))
+                    h_drop.write(str(kargs["total_dropped"]))
                     h_drop.write("\n")
-                for param_name, param_value in kargs.iteritems():
-                    if not param_name[:4] == "msg_": continue
-                    dispersy_msg_distribution[param_name] = dispersy_msg_distribution.get(param_name, 0) + 1
-
-            if message == "statistics" and "total_send" in kargs and "total_received" in kargs:
-                time = int(mktime(datetime.timetuple()))
-                h_stat.write(str(time))
-                h_stat.write(" ")
-                timeoffset = time - first
-                h_stat.write(str(timeoffset))
-                h_stat.write(" ")
-                h_stat.write(str(kargs["total_send"]))
-                h_stat.write(" ")
-                h_stat.write(str(kargs["total_received"]))
-                h_stat.write("\n")
-                # statistics are gathered every second, so we don't need to do much checking for interval limits in here
-                # if statistics will no longer be gathered every second, additional processing should include
-                # - saving the initial timeoffset when traffic_start was seen
-                # - saving the final timeoffset when traffic_stop was seen
-                # - saving the speed identified for the above mentioned interval (initial timeoffset, final timeoffset)
-                if not started_monitoring and not done_monitoring and timeoffset >= measure_interval_start:
-                    started_monitoring = True
-                    traffic_start = kargs["total_send"] + kargs["total_received"]
-                if not done_monitoring and started_monitoring:
-                    traffic_stop = kargs["total_send"] + kargs["total_received"]
-                    traffic_count[node[-5:]] = [traffic_start, traffic_stop, traffic_stop - traffic_start]
-                if not done_monitoring and started_monitoring and timeoffset >= measure_interval_stop:
-                    done_monitoring = True
 
             if write_total:
                 h_total_record.write(str(time))
