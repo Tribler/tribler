@@ -94,10 +94,6 @@ class AllChannelCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
-    
-    @property
-    def dispersy_sync_interval(self):
-        return 5.0
 
     def create_channelcast(self):
         try:
@@ -303,6 +299,9 @@ class AllChannelCommunity(Community):
                 torrents = message.payload.torrents
                 for callback in self._searchCallbacks[query]:
                     callback(keywords, torrents)
+                    
+            elif DEBUG:
+                print >> sys.stderr, "AllChannelCommunity: no callback found"
                 
     def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         self._register_task(self._disp_create_votecast, (vote, timestamp, store, update, forward))

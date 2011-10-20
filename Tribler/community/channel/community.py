@@ -160,12 +160,10 @@ class ChannelCommunity(Community):
             
             def handled_function(messages):
                 for _ in messages:
-                    log("dispersy.log", "handled-barter-record",type = "torrent")
+                    log("dispersy.log", "handled-record",type = "torrent")
                         
             def handled_channel_function(messages):
-                if __debug__:
-                    dprint("handled-channel-record", stack = True)
-                log("dispersy.log", "received-channel-record")
+                log("dispersy.log", "handled-record", type = "channel")
                 self._channel_id = self._master_member.mid
             
             disp_on_channel = handled_channel_function
@@ -240,22 +238,6 @@ class ChannelCommunity(Community):
     @property    
     def dispersy_sync_bloom_filter_error_rate(self):
         return 0.3
-    
-    @property
-    def dispersy_candidate_online_scores(self):
-        return []
-    
-    @property
-    def dispersy_candidate_direct_observation_score(self):
-        return 1
-
-    @property
-    def dispersy_candidate_indirect_observation_score(self):
-        return 1
-    
-    @property
-    def dispersy_sync_interval(self):
-        return 5.0
     
     @property
     def dispersy_sync_response_limit(self):
@@ -366,7 +348,7 @@ class ChannelCommunity(Community):
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
-        log("dispersy.log", "created-barter-record", size = len(message.packet)) # TODO: should change this to something more specific to channels
+        log("dispersy.log", "created-record", type = "torrent", size = len(message.packet))
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
@@ -380,8 +362,7 @@ class ChannelCommunity(Community):
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, timestamp, name, files, trackers))
             
-            log("dispersy.log", "created-torrent-record", size = len(message.packet))
-            log("dispersy.log", "created-barter-record")
+            log("dispersy.log", "created-record", type = "torrent", size = len(message.packet))
             messages.append(message)
             
         self._dispersy.store_update_forward(messages, store, update, forward)

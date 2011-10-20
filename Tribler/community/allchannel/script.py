@@ -218,7 +218,6 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         dprint("-master- ", master.database_id, " ", id(master), " ", master.mid.encode("HEX"), force=1)
         dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
-        # return AllChannelCommunity.join_community(sha1(master_key).digest(), master_key, my_member, integrate_with_tribler = False)
         return AllChannelCommunity.join_community(master, my_member, my_member, integrate_with_tribler = False)
     
     def execute_scenario_cmds(self, commands):

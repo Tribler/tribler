@@ -127,7 +127,7 @@ class ScenarioScriptBase(ScriptBase):
         This simulates a node coming online, since it's able to send
         and receive messages.
         """
-        dprint("Going online")
+        log(self._logfile, "Going online")
         self._dispersy.on_incoming_packets = self.original_on_incoming_packets
         self._dispersy._send = self.original_send
 
@@ -140,7 +140,7 @@ class ScenarioScriptBase(ScriptBase):
         """
         def dummy_function(*params):
             return
-        dprint("Going offline")
+        log(self._logfile, "Going offline")
         self._dispersy.on_incoming_packets = dummy_function
         self._dispersy._send = dummy_function
 
@@ -189,7 +189,7 @@ class ScenarioScriptBase(ScriptBase):
         pass
 
     def run(self):
-        if __debug__: log(self._logfile, "start-barter-script")
+        if __debug__: log(self._logfile, "start-scenario-script")
         
         #
         # Read our configuration from the peer.conf file
@@ -241,12 +241,11 @@ class ScenarioScriptBase(ScriptBase):
 
         # join the community with the newly created member
         self._community = self.join_community(my_member)
-        dprint("Joined barter community ", self._community._my_member)
+        dprint("Joined community ", self._community._my_member)
         
-        log(self._logfile, "joined-barter-community")
-        log(self._logfile, "barter-community-property", name="sync_interval", value=self._community.dispersy_sync_interval)
-        log(self._logfile, "barter-community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
-        log(self._logfile, "barter-community-property", name="timestep", value=self._timestep)
+        log(self._logfile, "joined-community")
+        log(self._logfile, "community-property", name="timestep", value=self._timestep)
+        log(self._logfile, "community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
 
         yield 2.0
 
@@ -312,6 +311,8 @@ class ScenarioScriptBase(ScriptBase):
             total_received = {}
             for key, values in self._dispersy._statistics._success.iteritems():
                 key = key.replace('-','_')
+                key = key.replace(':','_')
+                key = key.replace(' ','_')
                 total_received[key] = values[0]
                 
             if len(total_received) > 0:
@@ -321,6 +322,7 @@ class ScenarioScriptBase(ScriptBase):
             for key, values in self._dispersy._statistics._drop.iteritems():
                 key = key.replace('-','_')
                 key = key.replace(':','_')
+                key = key.replace(' ','_')
                 total_dropped[key] = values[0]
                 
             if len(total_dropped) > 0:    
