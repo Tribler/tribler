@@ -2169,35 +2169,23 @@ class Dispersy(Singleton):
             # or WAN address that has been proposed.
             assert message.payload.identifier in self._walk_identifiers, "must be checked in check_puncture"
 
-            # 1. self._walk_identifiers contains the candidate.  this indicates that the
-            #    introduction-response has already been received.  this is most common
             candidate = self._walk_identifiers.get(message.payload.identifier)
             if candidate:
-                assert candidate.address in self._candidates, "the candidate should have been created when the introduction-response was received"
                 if not candidate.address == message.address:
-                    if message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address:
-                        # we can not have a candidate pointing to either a bootstrap node or ourselves
-                        continue
-                    del self._candidates[candidate.address]
-                    self._candidates[message.address] = candidate
+                    self._candidates.pop(candidate.address, None)
                 lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, candidate.lan_address, candidate.wan_address)
                 candidate.inc_puncture(message.authentication.member, message.community, message.address, lan_address, wan_address)
+                if not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
+                    self._candidates[candidate.address] = candidate
 
             else:
-                # 2. self._candidates contains the candidate.  this indicates that the
-                #    introduction-response has not yet been received but that it will introduce a
-                #    candidate that we already know
                 candidate = self._candidates.get(message.address)
                 if candidate:
-                    assert self._walk_identifiers[message.payload.identifier] == None
-                    self._walk_identifiers[message.payload.identifier] = candidate
                     lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
                     candidate.inc_puncture(message.authentication.member, message.community, message.address, lan_address, wan_address)
+                    self._walk_identifiers[message.payload.identifier] = candidate
 
-                # 3. the candidate is new.  this indicates that the introduction-response has not
-                #    yet been received and the introduced candidate is new
                 elif not (message.address in self._bootstrap_candidates or message.address == self._lan_address or message.address == self._wan_address):
-                    assert self._walk_identifiers[message.payload.identifier] == None
                     lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
                     candidate = Candidate(message.address, lan_address, wan_address, message.authentication.member, message.community, is_introduction=True)
                     self._walk_identifiers[message.payload.identifier] = candidate
