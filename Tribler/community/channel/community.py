@@ -348,7 +348,7 @@ class ChannelCommunity(Community):
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
-        log("dispersy.log", "created-record", type = "torrent", size = len(message.packet))
+        log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
@@ -362,7 +362,7 @@ class ChannelCommunity(Community):
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, timestamp, name, files, trackers))
             
-            log("dispersy.log", "created-record", type = "torrent", size = len(message.packet))
+            log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
             messages.append(message)
             
         self._dispersy.store_update_forward(messages, store, update, forward)
