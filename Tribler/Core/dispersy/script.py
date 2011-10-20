@@ -311,11 +311,13 @@ class ScenarioScriptBase(ScriptBase):
             
             total_received = {}
             for key, values in self._dispersy._statistics._success.iteritems():
+                key = key.replace('-','_')
                 total_received[key] = values[0]
             log("dispersy.log", "statistics-successful-messages", **total_received)
             
             total_dropped = {}
             for key, values in self._dispersy._statistics._drop.iteritems():
+                key = key.replace('-','_')
                 total_dropped[key] = values[0]
             log("dispersy.log", "statistics-dropped-messages", **total_dropped)
 
