@@ -892,7 +892,7 @@ class Dispersy(Singleton):
                         else:
                             # we have the previous message (drop)
                             if self._check_identical_payload_with_different_signature(message):
-                                yield DropMessage(message, "duplicate message by global_time (1)")
+                                yield DropMessage(message, "duplicate message by global_time (1) (%s-%d)"%(message.name,message.distribution.global_time))
 
                     else:
                         # we do not have the previous message (delay and request)
@@ -919,7 +919,7 @@ class Dispersy(Singleton):
                     else:
                         # we have the previous message (drop)
                         if self._check_identical_payload_with_different_signature(message):
-                            yield DropMessage(message, "duplicate message by global_time (2)")
+                            yield DropMessage(message, "duplicate message by global_time (2) (%s-%d)"%(message.name,message.distribution.global_time))
 
     def _check_last_sync_distribution_batch(self, messages):
         """
