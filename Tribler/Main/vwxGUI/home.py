@@ -360,8 +360,7 @@ class DispersyPanel(HomePanel):
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
-        self.timer.Start(30000, False)
-        # self.timer.Start(1000, False)
+        self.timer.Start(1000, False)
         self.UpdateStats()
 
     def CreatePanel(self):
@@ -372,12 +371,19 @@ class DispersyPanel(HomePanel):
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
 
-        vSizer.Add(self.gridSizer, 1, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
 
         self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
+        self.summary_tree.blockUpdate = False
+        self.summary_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.summary_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+        
         vSizer.Add(self.summary_tree, 2, wx.EXPAND|wx.LEFT, 10)
 
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
+        self.tree.blockUpdate = False
+        self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
         vSizer.Add(self.tree, 1, wx.EXPAND|wx.LEFT, 10)
 
         panel.SetSizer(vSizer)
@@ -412,6 +418,17 @@ class DispersyPanel(HomePanel):
                     addColumn(key)
 
         self.buildColumns = True
+    
+    def OnMouseEvent(self, event):
+        tree = event.GetEventObject()
+        
+        if event.Moving():
+            tree.blockUpdate = True
+
+        elif event.Leaving():
+            tree.blockUpdate = False
+            
+        event.Skip()
 
     def _onTimer(self, event):
         if self.IsShownOnScreen():
@@ -453,38 +470,41 @@ class DispersyPanel(HomePanel):
             self.textdict[key].SetLabel(str(value))
 
         # summary tree
-        self.summary_tree.DeleteAllItems()
-        if "communities" in info:
-            root = self.summary_tree.AddRoot("fake")
-            for community in info["communities"]:
-                parent = self.summary_tree.AppendItem(root, unicode(community["hex_cid"]))
-                self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
-                sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %d" % len(community["candidates"]))
-                for lan_address, wan_address in community["candidates"]:
-                    self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
-                sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
-                for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
-                    self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
-                # self.summary_tree.Expand(parent)
-            # self.summary_tree.ExpandAll()
+        if not self.summary_tree.blockUpdate:
+            self.summary_tree.DeleteAllItems()
+            if "communities" in info:
+                root = self.summary_tree.AddRoot("fake")
+                for community in info["communities"]:
+                    parent = self.summary_tree.AppendItem(root, unicode(community["hex_cid"]))
+                    self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
+                    sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %d" % len(community["candidates"]))
+                    for lan_address, wan_address in community["candidates"]:
+                        self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
+                    sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
+                    for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
+                        self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
+                    # self.summary_tree.Expand(parent)
+                # self.summary_tree.ExpandAll()
 
+        
         # full tree
-        self.tree.DeleteAllItems()
-        fakeRoot = self.tree.AddRoot('fake')
-        for key, value in info.iteritems():
-            if key in self.textdict:
-                updateColumn(key, value)
-            else:
-                if key == 'statistics':
-                    updateColumn('total_down', self.utility.size_format(value['total_down']))
-                    updateColumn('total_up', self.utility.size_format(value['total_up']))
-                    updateColumn('runtime', self.utility.eta_value(value['runtime']))
-                    updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
-                    updateColumn("avg_down", self.utility.size_format(int(value["total_down"] / value["runtime"])) + "/s")
-                    updateColumn("avg_up", self.utility.size_format(int(value["total_up"] / value["runtime"])) + "/s")
-
-                parentNode = self.tree.AppendItem(fakeRoot, key)
-                addValue(parentNode, value)
+        if not self.tree.blockUpdate:
+            self.tree.DeleteAllItems()
+            fakeRoot = self.tree.AddRoot('fake')
+            for key, value in info.iteritems():
+                if key in self.textdict:
+                    updateColumn(key, value)
+                else:
+                    if key == 'statistics':
+                        updateColumn('total_down', self.utility.size_format(value['total_down']))
+                        updateColumn('total_up', self.utility.size_format(value['total_up']))
+                        updateColumn('runtime', self.utility.eta_value(value['runtime']))
+                        updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
+                        updateColumn("avg_down", self.utility.size_format(int(value["total_down"] / value["runtime"])) + "/s")
+                        updateColumn("avg_up", self.utility.size_format(int(value["total_up"] / value["runtime"])) + "/s")
+    
+                    parentNode = self.tree.AppendItem(fakeRoot, key)
+                    addValue(parentNode, value)
 
         self.panel.Layout()
 
