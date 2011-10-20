@@ -839,7 +839,7 @@ class ChannelCommunity(Community):
         snapshot = None
         
         for message in messages:
-            log("dispersy.log", "sending-channel-record", address = message.address, packet = channelmessage.packet) # TODO: maybe move to barter.log
+            log("dispersy.log", "sending-channel-record", address = message.address)
 
             self._dispersy._send([message.address], [channelmessage.packet])
             if message.payload.includeSnapshot:
