@@ -1845,29 +1845,25 @@ class TorrentDBHandler(BasicDBHandler):
         
         results = self._db.fetchall(mainsql, (query, ))
 
+
+        t2 = time()
+        channel_dict = {}
+        
         channels = set()
         for result in results:
             if result[-2]:
                 channels.add(result[-2])
         
-        t2 = time()
         if len(channels) > 0:
-            votes = self.votecast_db.getAllPosNegVotes(channels)
-            myvotes = self.votecast_db.getMyVotes()
-            
-            names_permid = self.channelcast_db.getNamesPermidForChannels(channels)
-
-            from Tribler.Core.Session import Session
-            my_permid = Session.get_instance().get_permid()
-            for id, channel in names_permid.iteritems():
-                if not channel[1]:
-                    names_permid[id] = [channel[0], my_permid]
+            #Channels consist of a tuple (id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified)
+            for channel in self.channelcast_db.getChannels(channels):
+                channel_dict[channel[0]] = channel 
+                
+            channel_permid = self.channelcast_db.getPermidForChannelsDict(channels)
         else:
-            votes = {}
-            myvotes = {}
-            names_permid = {}
+            channel_permid = {}
+            
         t3 = time()
-        
         myChannelId = self.channelcast_db._channel_id or 0
         
         torrents_dict = {}
@@ -1875,10 +1871,37 @@ class TorrentDBHandler(BasicDBHandler):
         for result in results:
             torrent = dict(zip(value_name,result[:-1]))
             
+            channel = channel_dict.get(torrent['channel_id'], (torrent['channel_id'], -1, '', '', 0, 0, 0, 0, 0))
+            
             #ignoring spam channels
-            torrent['channel_vote'] = myvotes.get(torrent['channel_id'], 0)
-            if torrent['channel_vote'] < 0:
+            if channel[7] < 0:
                 continue
+            
+            #see if we have a better channel in torrents_dict
+            if torrent['infohash'] in torrents_dict:
+                if channel[2] != '':
+                    old_record = torrents_dict[torrent['infohash']]
+                    if old_record['channel_name'] != '':
+                        
+                        # allways prefer my channel
+                        myChannel = torrent['channel_id'] == myChannelId
+                        myHigherVote = channel[7] > old_record['channel_vote']
+                        higherVotes = (channel[5] - channel[6]) > old_record['channel_votes']
+                        
+                        if not (myChannel or myHigherVote or higherVotes):
+                            #previous one is better
+                            continue
+            
+            torrent['channel_cid'] = channel[1]
+            torrent['channel_name'] = channel[2]
+            torrent['channel_description'] = channel[3]
+            torrent['channel_nr_torrents'] = channel[4]
+            torrent['channel_permid'] = channel_permid.get(torrent['channel_id'], '')
+            torrent['subscriptions'] = channel[5] or 0
+            torrent['neg_votes'] = channel[6] or 0
+            torrent['channel_vote'] = channel[7]
+            torrent['channel_modified'] = channel[8]
+            torrent['channel_votes'] = torrent['subscriptions'] - torrent['neg_votes']
             
             torrent['matches'] = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
             
@@ -1902,22 +1925,7 @@ class TorrentDBHandler(BasicDBHandler):
                 if fileextensions[i]:
                     torrent['matches']['fileextensions'].add(keyword)
             
-            if torrent['infohash'] in torrents_dict:
-                old_record = torrents_dict[torrent['infohash']]
-                
-                # check if this channel has votes and if so, is it better than previous channel
-                posvotes, negvotes = votes.get(torrent['channel_id'], (0,0))
-                old_posvotes, old_negvotes = votes.get(old_record['channel_id'], (0,0))
-                
-                # allways prefer my channel
-                myChannel = torrent['channel_id'] == myChannelId
-                myHigherVote = torrent['channel_vote'] > old_record['channel_vote']
-                higherVotes = (posvotes - negvotes) > (old_posvotes - old_negvotes)
-                if myChannel or myHigherVote or higherVotes:
-                    #this is better
-                    torrents_dict[torrent['infohash']] = torrent
-            else:
-                torrents_dict[torrent['infohash']] = torrent
+            torrents_dict[torrent['infohash']] = torrent
         
         t4 = time()
         
@@ -1927,8 +1935,6 @@ class TorrentDBHandler(BasicDBHandler):
         #Niels: small optimization, for larger resultlists this will result in a 0.3s speedup
         dont_sort_torrent_list = [] 
         for torrent in torrents_dict.itervalues():
-            torrent['channel_name'], torrent['channel_permid'] = names_permid.get(torrent['channel_id'], ('',''))
-            
             try:
                 torrent['source'] = self.id2src[torrent['source_id']]
             except:
@@ -1943,7 +1949,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['last_check_time'] = 0 #torrent['last_check']
             
             del torrent['source_id']
-            torrent['subscriptions'], torrent['neg_votes'] = votes.get(torrent['channel_id'], (0,0))
 
             if torrent['num_seeders'] > 0:
                 torrent_list.append(torrent)
@@ -1954,10 +1959,11 @@ class TorrentDBHandler(BasicDBHandler):
         
         def compare(a,b):
             return cmp(a['num_seeders'], b['num_seeders'])
+        
         torrent_list.sort(compare, reverse = True)
         torrent_list.extend(dont_sort_torrent_list)
         
-        #print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
+        print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return torrent_list
 
 
@@ -3688,20 +3694,18 @@ class ChannelCastDBHandler(object):
             
         return returndict
     
-    def getNamesPermidForChannels(self, channel_ids = None):
-        if channel_ids:
-            channel_ids = " WHERE Channels.id IN (" + " ,".join(map(str, channel_ids)) + ") "
-        else:
-            channel_ids = ''
-
-        names = {}
-        sql = 'SELECT id, Channels.name, permid FROM Channels LEFT JOIN Peer ON Channels.peer_id = Peer.peer_id'+channel_ids
-        records = self._db.fetchall(sql)
+    def getPermidForChannelsDict(self, channel_ids = None):
+        if len(channel_ids) == 1:
+            channel_ids = list(channel_ids)
+            return {channel_ids[0]: self.getPermidForChannel(channel_ids[0])}
         
-        for channel_id, name, permid in records:
-            names[channel_id] = [name, permid]
-            
-        return names
+        returndict = {}
+        
+        sql = "SELECT Channels.id, permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id GROUP BY permid"
+        results = self._db.fetchall(sql)
+        for channel_id, permid in results:
+            returndict[channel_id] = permid
+        return returndict
     
     def getRecentAndRandomTorrents(self,NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}

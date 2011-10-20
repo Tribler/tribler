@@ -27,7 +27,7 @@ from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent
 from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
@@ -1128,8 +1128,11 @@ class TorrentDetails(AbstractDetails):
 
     def RefreshData(self, data):
         if self.isReady:
-            #replace current torrent
-            self.torrent.torrent = data[2]
+            if isinstance(data[2], Torrent):
+                #replace current torrent
+                self.torrent.torrent = data[2]
+            else:
+                self.torrent.torrent = data[2]['bundle'][0] 
             
             #remove cached swarminfo
             del self.torrent.swarminfo

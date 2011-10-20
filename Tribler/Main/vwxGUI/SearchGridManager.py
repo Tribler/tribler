@@ -497,7 +497,7 @@ class TorrentManager:
             
             def create_channel(a):
                 if a['channel_id'] and a['channel_name'] != '':
-                    return Channel(a['channel_id'], -1, a['channel_name'], '', 0, a['subscriptions'], a['neg_votes'], a['channel_vote'], 0, a['channel_id'] == self.channelcast_db._channel_id)
+                    return Channel(a['channel_id'], a['channel_cid'], a['channel_name'], a['channel_description'], a['channel_nr_torrents'], a['subscriptions'], a['neg_votes'], a['channel_vote'], a['channel_modified'], a['channel_id'] == self.channelcast_db._channel_id)
                 return False
             
             def create_torrent(a):
