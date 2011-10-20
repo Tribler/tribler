@@ -55,6 +55,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     measure_interval_length = measure_interval_stop - measure_interval_start
 
     dispersy_msg_distribution = {}
+    dispersy_dropped_msg_distribution = {}
 
     for node in node_list:
         started_monitoring = False
@@ -153,6 +154,14 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                     h_drop.write(" ")
                     h_drop.write(str(kargs["total_dropped"]))
                     h_drop.write("\n")
+                    
+            if message == "statistics-successful-messages":
+                for key, value in kargs:
+                    dispersy_msg_distribution[key] = value
+            
+            if message == "statistics-dropped-messages":
+                for key, value in kargs:
+                    dispersy_dropped_msg_distribution[key] = value
 
             if write_total:
                 h_total_record.write(str(time))
@@ -198,11 +207,18 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     h_first_last.close()
 
     fn_dispersy_msg_distribution = peers_directory + "/output/dispersy-msg-distribution.txt"
-    h_dispersy_msg_distribution = open(fn_received_record, "w+")
+    h_dispersy_msg_distribution = open(fn_dispersy_msg_distribution, "w+")
     h_dispersy_msg_distribution.write("# msg_name count\n")
     for msg, count in dispersy_msg_distribution.iteritems():
         h_dispersy_msg_distribution.write("%s %d\n" %(msg, count))
     h_dispersy_msg_distribution.close()
+    
+    fn_dispersy_dropped_msg_distribution = peers_directory + "/output/dispersy-dropped-msg-distribution.txt"
+    h_dispersy_dropped_msg_distribution = open(fn_dispersy_dropped_msg_distribution, "w+")
+    h_dispersy_dropped_msg_distribution.write("# msg_name count\n")
+    for msg, count in dispersy_dropped_msg_distribution.iteritems():
+        h_dispersy_dropped_msg_distribution.write("%s %d\n" %(msg, count))
+    h_dispersy_dropped_msg_distribution.close()
 
     fn_traffic_count = peers_directory + "/output/traffic_count_per_peer.txt"
     h_traffic_count = open(fn_traffic_count, "w+")

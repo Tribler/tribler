@@ -308,6 +308,16 @@ class ScenarioScriptBase(ScriptBase):
             #print statistics
             total_dropped = sum([amount for amount, bytes in self._dispersy._statistics._drop.itervalues()])
             log("dispersy.log", "statistics", total_send = self._dispersy._statistics._total_up, total_received = self._dispersy._statistics._total_down, total_dropped = total_dropped)
+            
+            total_received = {}
+            for key, values in self._dispersy._statistics._success.iteritems():
+                total_received[key] = values[0]
+            log("dispersy.log", "statistics-successful-messages", **total_received)
+            
+            total_dropped = {}
+            for key, values in self._dispersy._statistics._drop.iteritems():
+                total_dropped[key] = values[0]
+            log("dispersy.log", "statistics-dropped-messages", **total_dropped)
 
             # sleep until the next step
             yield self.sleep()
