@@ -155,11 +155,11 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                     
             if message == "statistics-successful-messages":
                 for key, value in kargs.iteritems():
-                    dispersy_msg_distribution[key] = value
+                    dispersy_msg_distribution[key] = max(value, dispersy_msg_distribution.get(key, 0))
             
             if message == "statistics-dropped-messages":
                 for key, value in kargs.iteritems():
-                    dispersy_dropped_msg_distribution[key] = value
+                    dispersy_dropped_msg_distribution[key] = max(value, dispersy_dropped_msg_distribution.get(key, 0))
 
             if write_total:
                 h_total_record.write(str(time))
