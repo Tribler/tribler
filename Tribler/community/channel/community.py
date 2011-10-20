@@ -832,6 +832,7 @@ class ChannelCommunity(Community):
                         snapshot.append(tormessage.packet)
                 
                 if len(snapshot) > 0:
+                    log("dispersy.log", "sending-channel-snapshot", address = message.address, nr_torrents = len(snapshot))
                     self._dispersy._send([message.address], snapshot)
             
     #check or receive moderation messages

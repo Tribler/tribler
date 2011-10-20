@@ -221,6 +221,7 @@ class AllChannelCommunity(Community):
                 
                 for infohash in torrents:
                     tormessage = community._get_message_from_torrent_infohash(infohash)
+                    assert infohash == tormessage.payload.infohash
                     requested_packets.append(tormessage.packet)
             
             self._dispersy._send([message.address], requested_packets)
@@ -333,16 +334,8 @@ class AllChannelCommunity(Community):
         return message
                     
     def check_votecast(self, messages):
-        to_send = {}
-        
         for message in messages:
             cid = message.payload.cid
-            
-            authentication_member = message.authentication.member
-            if authentication_member == self._my_member:
-                peer_id = None
-            else:
-                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
             try:
                 community = self._dispersy.get_community(cid, True)
@@ -350,25 +343,9 @@ class AllChannelCommunity(Community):
                 if __debug__: dprint("join_community ", cid.encode("HEX"))
                 community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
             
-            if community._channel_id:
-                dispersy_id = self._votecast_db.getDispersyId(community._channel_id, peer_id)
-                if dispersy_id and dispersy_id != -1:
-                    curmessage = self._get_message_from_dispersy_id(dispersy_id, 'votecast')
-                    
-                    #see if this message is newer
-                    if curmessage.distribution.global_time > message.distribution.global_time:
-                        yield DropMessage("Older vote than we currently have")
-                        
-                        if message.address not in to_send:
-                            to_send[message.address] = []
-                        to_send[message.address].append(curmessage.packet)
-            else:
+            if not community._channel_id:
                 yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
                 
-        #send all 'newer' votes to addresses
-        for address in to_send.keys():
-            self._dispersy._send([address], to_send[address])
-        
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
             for message in messages:
