@@ -2,6 +2,7 @@
 
 from string import digits, letters, punctuation
 from time import strftime
+import re
 
 def _encode_str(l, value):
     assert isinstance(l, list)
@@ -108,6 +109,9 @@ def to_string(datetime, _message, **kargs):
         l.extend((key, ":"))
         _encode(l, kargs[key])
     return "".join(l)
+
+def make_valid_key(key):
+    return re.sub('[^a-zA-Z0-9_]', '_', key)           
 
 _printable = "".join((digits, letters, punctuation, " "))
 _seperator = "   "
