@@ -2109,7 +2109,7 @@ class Dispersy(Singleton):
                         candidate.inc_introduced(message.authentication.member, community)
 
                     elif not (sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
-                        candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, is_introduction=True)
+                        candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, community=community, is_introduction=True)
                         self._walk_identifiers[message.payload.identifier] = candidate
                         self._candidates[sock_address] = candidate
 

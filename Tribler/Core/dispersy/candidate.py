@@ -27,7 +27,7 @@ class Candidate(object):
         assert isinstance(is_walk, bool)
         assert isinstance(is_stumble, bool)
         assert isinstance(is_introduction, bool)
-        assert (member is None and community is None) or (isinstance(member, Member) and isinstance(community, Community))
+#        assert (member is None and community is None) or (isinstance(member, Member) and isinstance(community, Community))
         assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
         if __debug__: dprint("discovered ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
         self._address = address
@@ -73,11 +73,11 @@ class Candidate(object):
         return self._timestamp_incoming
 
     def members_in_community(self, community):
-        return (member for member, cid in self._timestamp_last_step.iterkeys() if cid == community.cid)
+        return (member for member, cid in self._timestamp_last_step.iterkeys() if member and cid == community.cid)
     
     def timestamp_last_step_in_community(self, community, default=0.0):
         try:
-            max(timestamp for (_, cid), timestamp in self._timestamp_last_step.iteritems() if cid == community.cid)
+            return max(timestamp for (_, cid), timestamp in self._timestamp_last_step.iteritems() if cid == community.cid)
         except ValueError:
             return default
     
@@ -99,6 +99,7 @@ class Candidate(object):
         self._timestamp_last_step = dict((((member, cid), time() if cid == community.cid else timestamp))
                                          for (member, cid), timestamp
                                          in self._timestamp_last_step.iteritems())
+        self._timestamp_last_step[(None, community.cid)] = time()
         
     def inc_introduction_requests(self, member, community, lan_address, wan_address, connection_type):
         assert is_address(lan_address)
