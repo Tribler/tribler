@@ -190,6 +190,7 @@ class AllChannelCommunity(Community):
                 
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
             if nr_requests > 0:
+                log("dispersy.log", "requesting-torrents", nr_requests = nr_requests)
                 self.create_channelcast_request(toCollect, message.address)
     
     def create_channelcast_request(self, toCollect, address):
@@ -454,7 +455,7 @@ class ChannelCastDBStub():
         return [message.payload.infohash for cid, message in messages]
     
     def _cacheTorrents(self):
-        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent'"
+        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
         results = list(self._dispersy.database.execute(sql))
         messages = self.convert_to_messages(results)
         
