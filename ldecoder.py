@@ -215,7 +215,7 @@ def parse_line(stream, lineno=-1, interests=[]):
                     break
 
                 elif not stream[split] in _valid_key_chars:
-                    raise ValueError("Can not decode character", stream[split], "on line", lineno)
+                    raise ValueError("Can not decode character", stream[split], "on line", lineno, "offset", offset)
 
         return lineno, stamp, message, kargs
     raise NotInterested(message)
