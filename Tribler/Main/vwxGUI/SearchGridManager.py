@@ -1641,8 +1641,20 @@ class ChannelManager:
                 
                 for channel in dispersyChannels:
                     self.remoteHits.append((channel, -1))
+                    
             finally:
+                refreshGrid = len(self.remoteHits) > 0
+                if refreshGrid:
+                    #if already scheduled, dont schedule another
+                    if self.remoteRefresh:
+                        refreshGrid = False
+                    else:
+                        self.remoteRefresh = True
+            
                 self.remoteLock.release()
+            
+                if refreshGrid:
+                    self.refreshGrid()
 
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
