@@ -789,8 +789,16 @@ class Dispersy(Singleton):
             packet = str(packet)
             if packet == message.packet:
                 # exact duplicates, do NOT process the message
-                pass
-
+                
+                # 21/10/11 Boudewijn: since the community/member/global-time is already in the
+                # database, the associated packet should also be in the sync bloom filter to prevent
+                # us from receiving it again
+                if __debug__:
+                    for sync_range in message.community._sync_ranges:
+                        if sync_range.time_low <= message.distribution.global_time:
+                            for bloom_filter in sync_range.bloom_filters:
+                                assert message.packet in bloom_filter
+            
             else:
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
@@ -820,8 +828,8 @@ class Dispersy(Singleton):
                 #             self.declare_malicious_member(message.authentication.member, [message, Packet(packet_meta, packet, packet_id)])
                 #             break
 
-        # do NOT process the message
-        return True
+            # do NOT process the message
+            return True
 
     def _check_full_sync_distribution_batch(self, messages):
         """
@@ -880,19 +888,27 @@ class Dispersy(Singleton):
                     elif seq + 1 == message.distribution.sequence_number:
                         # we have the previous message, check for duplicates based on community,
                         # member, and global_time
-                        try:
-                            execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                    (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
-
-                        except StopIteration:
+                        if self._check_identical_payload_with_different_signature(message):
+                            # we have the previous message (drop)
+                            yield DropMessage(message, "duplicate message by global_time (1)")
+                        else:
                             # we accept this message
                             highest[message.authentication.member] += 1
                             yield message
+                            
+                        # try:
+                        #     execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                        #             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
 
-                        else:
-                            # we have the previous message (drop)
-                            if self._check_identical_payload_with_different_signature(message):
-                                yield DropMessage(message, "duplicate message by global_time (1) (%s-%d)"%(message.name,message.distribution.global_time))
+                        # except StopIteration:
+                        #     # we accept this message
+                        #     highest[message.authentication.member] += 1
+                        #     yield message
+
+                        # else:
+                        #     # we have the previous message (drop)
+                        #     if self._check_identical_payload_with_different_signature(message):
+                        #         yield DropMessage(message, "duplicate message by global_time (1)")
 
                     else:
                         # we do not have the previous message (delay and request)
@@ -908,18 +924,26 @@ class Dispersy(Singleton):
                     unique.add(key)
 
                     # check for duplicates based on community, member, and global_time
-                    try:
-                        execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
-
-                    except StopIteration:
+                    if self._check_identical_payload_with_different_signature(message):
+                        # we have the previous message (drop)
+                        yield DropMessage(message, "duplicate message by global_time (2)")
+                    else:
                         # we accept this message
                         yield message
+                        
+                    # # check for duplicates based on community, member, and global_time
+                    # try:
+                    #     execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                    #             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
 
-                    else:
-                        # we have the previous message (drop)
-                        if self._check_identical_payload_with_different_signature(message):
-                            yield DropMessage(message, "duplicate message by global_time (2) (%s-%d)"%(message.name,message.distribution.global_time))
+                    # except StopIteration:
+                    #     # we accept this message
+                    #     yield message
+
+                    # else:
+                    #     # we have the previous message (drop)
+                    #     if self._check_identical_payload_with_different_signature(message):
+                    #         yield DropMessage(message, "duplicate message by global_time (2)")
 
     def _check_last_sync_distribution_batch(self, messages):
         """
@@ -1031,16 +1055,20 @@ class Dispersy(Singleton):
                 else:
                     unique.add(key)
 
-                    # ensure that the community / member / global_time is always unique
-                    try:
-                        self._database.execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                               (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
-                    except StopIteration:
-                        pass
-                    else:
+                    if self._check_identical_payload_with_different_signature(message):
                         # we have the previous message (drop)
-                        if self._check_identical_payload_with_different_signature(message):
-                            return DropMessage(message, "duplicate message by member^global_time (4)")
+                        return DropMessage(message, "duplicate message by member^global_time (4)")
+                    
+                    # # ensure that the community / member / global_time is always unique
+                    # try:
+                    #     self._database.execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                    #                            (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+                    # except StopIteration:
+                    #     pass
+                    # else:
+                    #     # we have the previous message (drop)
+                    #     if self._check_identical_payload_with_different_signature(message):
+                    #         return DropMessage(message, "duplicate message by member^global_time (4)")
 
                     if not members in times:
                         # the next query obtains a list with all global times that we have in the
