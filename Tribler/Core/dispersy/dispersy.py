@@ -806,7 +806,7 @@ class Dispersy(Singleton):
                         
                         for bloom_filter in sync_range.bloom_filters:
                             assert message.packet in bloom_filter
-                            log('dispersy.log', 'Packet in bloomfilter')
+                            log('dispersy.log', 'Packet in bloomfilter', check = message.packet in bloom_filter)
         
             else:
                 
