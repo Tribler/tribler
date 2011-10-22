@@ -78,6 +78,7 @@ if __debug__:
     from dprint import dprint
     from time import clock
     from types import GeneratorType
+    from lencoder import log
 
 # callback priorities.  note that a lower value is less priority
 WATCHDOG_PRIORITY = -1
@@ -798,6 +799,7 @@ class Dispersy(Singleton):
                         if sync_range.time_low <= message.distribution.global_time:
                             for bloom_filter in sync_range.bloom_filters:
                                 assert message.packet in bloom_filter
+                                log('dispersy.log', 'Packet is in bloomfilter')
             
             else:
                 signature_length = message.authentication.member.signature_length
@@ -926,7 +928,7 @@ class Dispersy(Singleton):
                     # check for duplicates based on community, member, and global_time
                     if self._check_identical_payload_with_different_signature(message):
                         # we have the previous message (drop)
-                        yield DropMessage(message, "duplicate message by global_time (2)")
+                        yield DropMessage(message, "duplicate message by global_time (2 %s %d)"%(message.name, message.distribution.global_time))
                     else:
                         # we accept this message
                         yield message
