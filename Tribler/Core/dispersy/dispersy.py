@@ -78,7 +78,6 @@ if __debug__:
     from dprint import dprint
     from time import clock
     from types import GeneratorType
-    from lencoder import log
 
 # callback priorities.  note that a lower value is less priority
 WATCHDOG_PRIORITY = -1
@@ -777,6 +776,8 @@ class Dispersy(Singleton):
         Returns False when the message is not a duplicate with anything in the database.
         Otherwise returns True when the message is a duplicate and must be dropped.
         """
+        from lencoder import log
+        
         # fetch the duplicate binary packet from the database
         try:
             packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
@@ -787,6 +788,8 @@ class Dispersy(Singleton):
             return False
 
         else:
+            
+            
             packet = str(packet)
             if packet == message.packet:
                 # exact duplicates, do NOT process the message
@@ -794,17 +797,17 @@ class Dispersy(Singleton):
                 # 21/10/11 Boudewijn: since the community/member/global-time is already in the
                 # database, the associated packet should also be in the sync bloom filter to prevent
                 # us from receiving it again
-                if __debug__:
-                    log('dispersy.log', 'Checking bloomfilters', syn_ranges=len(message.community._sync_ranges), name=message.name, gt = message.distribution.global_time)
-                    
-                    for sync_range in message.community._sync_ranges:
-                        if sync_range.time_low <= message.distribution.global_time:
-                            log('dispersy.log', 'Found syncrange', bloom_filters = len(sync_range.bloom_filters), sync_low=sync_range.time_low)
-                            
-                            for bloom_filter in sync_range.bloom_filters:
-                                assert message.packet in bloom_filter
-                                log('dispersy.log', 'Packet in bloomfilter')
-            
+                #if __debug__:
+                log('dispersy.log', 'Checking bloomfilters', syn_ranges=len(message.community._sync_ranges), name=message.name, gt = message.distribution.global_time)
+                
+                for sync_range in message.community._sync_ranges:
+                    if sync_range.time_low <= message.distribution.global_time:
+                        log('dispersy.log', 'Found syncrange', bloom_filters = len(sync_range.bloom_filters), sync_low=sync_range.time_low)
+                        
+                        for bloom_filter in sync_range.bloom_filters:
+                            assert message.packet in bloom_filter
+                            log('dispersy.log', 'Packet in bloomfilter')
+        
             else:
                 
                 
