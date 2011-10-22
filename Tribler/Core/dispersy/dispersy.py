@@ -845,6 +845,7 @@ class Dispersy(Singleton):
                 #             self.declare_malicious_member(message.authentication.member, [message, Packet(packet_meta, packet, packet_id)])
                 #             break
 
+            log('dispersy.log', 'found it in database')
             # do NOT process the message
             return True
 
