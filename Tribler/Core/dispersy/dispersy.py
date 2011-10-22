@@ -806,21 +806,32 @@ class Dispersy(Singleton):
                                 log('dispersy.log', 'Packet in bloomfilter')
             
             else:
+                
+                
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
                     # the message payload is binary unique (only the signature is different)
                     if __debug__: dprint("received identical message with different signature [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
-
+                    log('dispersy.log', 'Identical with different signature')
+                    
                     if packet < message.packet:
                         # replace our current message with the other one
                         self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND member = ? AND global_time = ?",
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
-
+                        
+                        log('dispersy.log', 'replacing...')
+                    else:
+                        log('dispersy.log', 'not-replacing...')
+                        
                     # add the newly received message.packet to the bloom filter
                     message.community.update_sync_range([message])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
+                    
+                    log('dispersy.log', 'Identical, but different')
+                    
+                    
 
                 # TODO: if we decide that this is malicious behavior, handle it (note that this code
                 # is checked into release-5.3.x while the declare_malicious_member code is currently
