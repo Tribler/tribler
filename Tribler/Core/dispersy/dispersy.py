@@ -875,7 +875,7 @@ class Dispersy(Singleton):
         enable_sequence_number = messages[0].meta.distribution.enable_sequence_number
 
         # sort the messages by their (1) global_time and (2) binary packet
-        messages = sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
+        messages = sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
 
         if enable_sequence_number:
             # obtain the highest sequence_number from the database
@@ -1148,7 +1148,7 @@ class Dispersy(Singleton):
         meta = messages[0].meta
 
         # sort the messages by their (1) global_time and (2) binary packet
-        messages = sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
+        messages = sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
 
         if isinstance(meta.authentication, MemberAuthentication):
             # a message is considered unique when (creator, global-time), i.r. (authentication.member,
@@ -1186,7 +1186,7 @@ class Dispersy(Singleton):
         @rtype: [Message.Implementation]
         """
         # sort the messages by their (1) global_time and (2) binary packet
-        return sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet))
+        return sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
 
     def data_came_in(self, packets):
         """

@@ -1108,6 +1108,10 @@ def run(params = None):
             abc.frame.set_wxapp(app)
             
             app.MainLoop()
+
+            # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
+            abc.OnExit()
+
             #Niels: No code should be present here, only executed after gui closes
             
             # Setup the statistic reporter while waiting for proper integration
@@ -1126,7 +1130,7 @@ def run(params = None):
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(1)
-        
+
     except:
         print_exc()
 
