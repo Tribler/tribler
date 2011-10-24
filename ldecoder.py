@@ -219,7 +219,7 @@ def parse_line(stream, lineno=-1, interests=[]):
                         raise ValueError("Can not decode character", stream[split], "on line", lineno, "offset", offset)
     
             return lineno, stamp, message, kargs
-    except ValueError, e:
+    except Exception, e:
         raise ValueError("Cannot read line", str(e), "on line", lineno)
     
     raise NotInterested(message)
