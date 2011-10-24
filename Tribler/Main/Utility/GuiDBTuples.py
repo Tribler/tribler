@@ -192,6 +192,7 @@ class Torrent(Helper):
     def __str__(self):
         return self.name
     
+    #Required for drag and drop
     def __getstate__(self):
         statedict = {}
         for key in Torrent.__slots__:
@@ -235,6 +236,11 @@ class CollectedTorrent(Helper):
             Helper.__delattr__(self, name)
         except:
             delattr(self.torrent,name)
+    
+    def __contains__(self, key):
+        if key in self.__slots__:
+            return True
+        return key in self.torrent
     
     @cacheProperty
     def swarminfo(self):
@@ -323,6 +329,7 @@ class ChannelTorrent(Torrent):
     def name(self, name):
         pass
     
+    #Required for drag and drop
     def __getstate__(self):
         statedict = Torrent.__getstate__(self)
         for key in self.__slots__:

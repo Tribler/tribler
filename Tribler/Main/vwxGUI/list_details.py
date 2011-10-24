@@ -554,11 +554,12 @@ class TorrentDetails(AbstractDetails):
             
             overviewColumnsOrder = ["Name", "Type", "Uploaded", "Status", "Filesize"]
             del overviewColumns['Description']
+            
         else:
             vSizer = wx.FlexGridSizer(0, 2, 3, 3)
             vSizer.AddGrowableCol(1)
             
-            if self.canEdit:
+            if 'description' in self.torrent:
                 overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
             else:
                 del overviewColumns['Description']

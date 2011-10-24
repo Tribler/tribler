@@ -493,8 +493,8 @@ class TorrentManager:
             return False
         
         results = self.torrent_db.searchNames(self.searchkeywords + self.fts3feaures)
+
         if len(results) > 0:
-            
             def create_channel(a):
                 if a['channel_id'] and a['channel_name'] != '':
                     return Channel(a['channel_id'], a['channel_cid'], a['channel_name'], a['channel_description'], a['channel_nr_torrents'], a['subscriptions'], a['neg_votes'], a['channel_vote'], a['channel_modified'], a['channel_id'] == self.channelcast_db._channel_id)
@@ -502,14 +502,20 @@ class TorrentManager:
             
             def create_torrent(a):
                 a['channel'] = create_channel(a)
-                t = Torrent(**getValidArgs(Torrent.__init__, a))
+                a['playlist'] = None
+                a['colt_name'] = a['name']
+                
+                if a['channel'] and (a['channel'].isFavorite() or a['channel'].isMyChannel()):
+                    t = ChannelTorrent(**getValidArgs(ChannelTorrent.__init__, a))
+                else:
+                    t = Torrent(**getValidArgs(Torrent.__init__, a))
+                    
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 t.assignRelevance(a['matches'])
                 return t
             
             results = map(create_torrent, results)
-            
         self.hits = results
         return True
 

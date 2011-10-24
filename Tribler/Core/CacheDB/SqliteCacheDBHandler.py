@@ -1830,21 +1830,28 @@ class TorrentDBHandler(BasicDBHandler):
                        'status_id',
                        'num_seeders',
                       'num_leechers', 
-                      'comment',
-                      'channel_id']        
+                      'comment']        
                 
-        mainsql = """SELECT T.*, C.channel_id, Matchinfo(FullTextIndex) FROM Torrent T, FullTextIndex
-                     LEFT OUTER JOIN ChannelTorrents C ON T.torrent_id = C.torrent_id
-                     WHERE t.torrent_id = FullTextIndex.rowid AND FullTextIndex MATCH ?
-                     ORDER BY T.num_seeders desc """
+        mainsql = "SELECT T.*, "
+        if local:
+            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
+            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
+        
+        mainsql +=  """
+                    C.channel_id, Matchinfo(FullTextIndex) FROM Torrent T, FullTextIndex
+                    LEFT OUTER JOIN ChannelTorrents C ON T.torrent_id = C.torrent_id
+                    WHERE t.torrent_id = FullTextIndex.rowid AND FullTextIndex MATCH ?
+                    ORDER BY T.num_seeders desc """
+                    
         if not local:
             mainsql += " limit 20"
+        
+        value_name.append('channel_id')
         
         query = " ".join(filter_keywords(kws))
         not_negated = [kw for kw in filter_keywords(kws) if kw[0] != '-']
         
         results = self._db.fetchall(mainsql, (query, ))
-
 
         t2 = time()
         channel_dict = {}
@@ -1963,7 +1970,7 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_list.sort(compare, reverse = True)
         torrent_list.extend(dont_sort_torrent_list)
         
-        print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
+        #print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return torrent_list
 
 
