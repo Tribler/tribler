@@ -176,11 +176,13 @@ class ScenarioScriptBase(ScriptBase):
     def sleep(self):
         """ Calculate the time to sleep.
         """
-        now = time()
-        expected_time = self._starting_timestamp + (self._timestep * self._stepcount)
-        st = max(0.0, expected_time - now) * random()
-        log(self._logfile, "sleep", delay=st, diff=expected_time - now, stepcount=self._stepcount)
-        return st
+        #when should we start the next step?
+        expected_time = self._starting_timestamp + (self._timestep * (self._stepcount + 1))
+        diff = expected_time - time()
+        
+        delay = max(0.0, diff)
+        log(self._logfile, "sleep", delay=delay, diff=diff, stepcount=self._stepcount)
+        return delay
     
     def join_community(self, my_member):
         pass
@@ -242,12 +244,11 @@ class ScenarioScriptBase(ScriptBase):
         # join the community with the newly created member
         self._community = self.join_community(my_member)
         dprint("Joined community ", self._community._my_member)
-        
-        log(self._logfile, "joined-community")
+
+        log(self._logfile, "joined-community", name="time", value=time())
         log(self._logfile, "community-property", name="timestep", value=self._timestep)
         log(self._logfile, "community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
-
-        yield 2.0
+        log(self._logfile, "community-property", name="starting_timestamp", value=self._starting_timestamp)
 
         # 30/08/11 boudewijn: we do not need to create a dispersy-identity message.  it is created
         # when we join the community and transferred on demand
@@ -268,14 +269,23 @@ class ScenarioScriptBase(ScriptBase):
 
         # open the scenario files, as generated from Mircea's Scenario
         # Generator
-        scenario_fp = open('data/bartercast.log')
-        availability_fp = open('data/availability.log')
 
         self._stepcount = 0
 
         # wait until we reach the starting time
-        yield self.sleep()
-
+        self._callback.register(self.do_steps, delay=self.sleep())
+        
+        # I finished the scenario execution. I should stay online
+        # until killed. Note that I can still sync and exchange
+        # messages with other peers.
+        while True:
+            # wait to be killed
+            yield 100.0
+        
+    def do_steps(self):
+        scenario_fp = open('data/bartercast.log')
+        availability_fp = open('data/availability.log')
+        
         self._stepcount = 1
 
         # start the scenario
@@ -302,7 +312,6 @@ class ScenarioScriptBase(ScriptBase):
                 # offline
                 if availability_cmds != -1 and 'stop' in availability_cmds:
                     self.set_offline()
-
                     
             #print statistics
             total_dropped = sum([amount for amount, bytes in self._dispersy._statistics._drop.itervalues()])
@@ -322,16 +331,11 @@ class ScenarioScriptBase(ScriptBase):
             if len(total_dropped) > 0:    
                 log("dispersy.log", "statistics-dropped-messages", **total_dropped)
 
-            # sleep until the next step
-            yield self.sleep()
+            #log delay
+            self.sleep()
+            
+            yield self._timestep
             self._stepcount += 1
-
-        # I finished the scenario execution. I should stay online
-        # until killed. Note that I can still sync and exchange
-        # messages with other peers.
-        while True:
-            # wait to be killed
-            yield 100.0
 
 class DispersyClassificationScript(ScriptBase):
     def run(self):
