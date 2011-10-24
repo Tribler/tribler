@@ -273,7 +273,7 @@ class ScenarioScriptBase(ScriptBase):
         self._stepcount = 0
 
         # wait until we reach the starting time
-        self._callback.register(self.do_steps, delay=self.sleep())
+        self._dispersy.callback.register(self.do_steps, delay=self.sleep())
         
         # I finished the scenario execution. I should stay online
         # until killed. Note that I can still sync and exchange
