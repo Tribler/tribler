@@ -746,11 +746,6 @@ class Dispersy(Singleton):
                 if self._wan_address in self._candidates:
                     del self._candidates[self._wan_address]
                 
-                # notify all communities that our wan address has changed.
-                # TODO the wan address should no longer be in the identity message... remove below code
-                for community in self._communities.itervalues():
-                    community.create_dispersy_identity()
-        else:
             if __debug__: dprint("got invalid external vote from ", voter_address[0],":",voter_address[1], " received ", address[0], ":", address[1])
 
     def _check_identical_payload_with_different_signature(self, message):
@@ -1350,7 +1345,9 @@ class Dispersy(Singleton):
             performances = self._debug_batch_cache_performance.pop(meta)
             if meta.delay:
                 dprint("batch size: ", sum(performances), " [", ":".join(str(performance) for performance in performances), "] for ", meta.name, " after ", meta.delay, "s")
-        return self._on_batch_cache(meta, self._batch_cache.pop(meta))
+        
+        if self._communities.get(meta.community.cid, None) == meta.community:
+            return self._on_batch_cache(meta, self._batch_cache.pop(meta))
 
     @runtime_duration_warning(1.0)
     def _on_batch_cache(self, meta, batch):
