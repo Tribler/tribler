@@ -1330,10 +1330,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._addTorrentTrackerList(torrent_id, announce, announce_list, extra_info, add_all, commit)
         
     def _addTorrentTrackerList(self, torrent_id, announce, announce_list, extra_info={}, add_all=False, commit=True):
-        exist = self._db.getOne('TorrentTracker', 'tracker', torrent_id=torrent_id)
-        if exist:
-            return
-        
         ignore_number = 0
         retry_number = 0
         last_check_time = 0
@@ -1341,7 +1337,7 @@ class TorrentDBHandler(BasicDBHandler):
             last_check_time = int(time() - extra_info["last_check_time"])
         
         sql_insert_torrent_tracker = """
-        INSERT INTO TorrentTracker
+        INSERT OR IGNORE INTO TorrentTracker
         (torrent_id, tracker, announce_tier, 
         ignored_times, retried_times, last_check)
         VALUES (?,?,?, ?,?,?)
@@ -1482,6 +1478,11 @@ class TorrentDBHandler(BasicDBHandler):
         sql = "SELECT infohash FROM TorrentTracker, Torrent WHERE Torrent.torrent_id = TorrentTracker.torrent_id AND tracker = ? AND last_check < ? ORDER BY RANDOM() LIMIT ?"
         infohashes = self._db.fetchall(sql, (tracker, max_last_check, limit))
         return [str2bin(infohash) for infohash, in infohashes]
+    
+    def getPopularTrackers(self, limit = 10):
+        sql = "SELECT DISTINCT tracker FROM torrenttracker WHERE ignored_times = 0 ORDER BY last_check DESC LIMIT ?"
+        trackers = self._db.fetchall(sql, (limit, ))
+        return [tracker for tracker, in trackers]
     
     def getSwarmInfoByInfohash(self, infohash):
         sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id = tr.torrent_id AND t.infohash  = ?"

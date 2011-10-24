@@ -20,6 +20,7 @@ from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 from Tribler.Main.vwxGUI.list_header import ChannelOnlyHeader
+from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 
 DEBUG = False
 
@@ -1135,6 +1136,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
         hSizer.Add(browseButton)
         hSizer.Add(browseButton2, 0, wx.LEFT, 5)
         sizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
+        
+        #create
+        self._add_subheader(parent, sizer, "Create .torrents", "(using your local files)")
+        createButton = wx.Button(parent, -1, "Create .torrents")
+        createButton.Bind(wx.EVT_BUTTON, self.OnCreate)
+        sizer.Add(createButton, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
     
     def RebuildRssPanel(self):
         self.gridSizer.ShowItems(False)
@@ -1305,7 +1312,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.uelog.addEvent(message="MyChannel: rssfeed refreshed", type = 2)
         
     def OnManualAdd(self, event):
-        dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)
+        dlg = wx.FileDialog(self, "Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)
         
         path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
         dlg.SetPath(path)
@@ -1314,9 +1321,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self._import_torrents(files)
             
             self.uelog.addEvent(message="MyChannel: manual import files", type = 2)
+    
+        dlg.Destroy()
             
     def OnManualDirAdd(self, event):
-        dlg = wx.DirDialog(self,"Choose a directory containing the .torrent files", style = wx.wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(self, "Choose a directory containing the .torrent files", style = wx.wx.DD_DIR_MUST_EXIST)
         
         path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
         dlg.SetPath(path)
@@ -1329,6 +1338,23 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self._import_torrents(full_files)
             
             self.uelog.addEvent(message="MyChannel: manual import directory", type = 2)
+            
+        dlg.Destroy()
+    
+    def OnCreate(self, event):
+        configfile = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_trackers')
+        trackers = self.channelsearch_manager.torrent_db.getPopularTrackers()
+        
+        dlg = CreateTorrent(self, configfile, trackers)
+        if dlg.ShowModal() == wx.ID_OK:
+            #import them into channel
+            self._import_torrents([torrent for _, torrent in dlg.createdTorrents])
+            
+            #start seeding...
+            for destdir, torrentfilename in dlg.createdTorrents:
+                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = destdir)
+                
+        dlg.Destroy()
             
     def CreateJoinChannelFile(self):
         f = open('joinchannel', 'wb')
