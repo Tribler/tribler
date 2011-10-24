@@ -942,7 +942,7 @@ class Dispersy(Singleton):
                     # check for duplicates based on community, member, and global_time
                     if self._check_identical_payload_with_different_signature(message):
                         # we have the previous message (drop)
-                        yield DropMessage(message, "duplicate message by global_time (2 %s %d)"%(message.name, message.distribution.global_time))
+                        yield DropMessage(message, "duplicate message by global_time (2)")
                     else:
                         # we accept this message
                         yield message
