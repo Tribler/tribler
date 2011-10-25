@@ -6,7 +6,6 @@ from community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
-from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
@@ -25,12 +24,6 @@ class AllChannelNode(Node):
         meta = self._community.get_meta_message(u"torrent-request")
         return meta.impl(distribution=(global_time,), payload=(infohash,))
 
-    def create_channel_search_request(self, skips, search, method, global_time):
-        meta = self._community.get_meta_message(u"channel-search-request")
-        skip = BloomFilter(max(10, len(skips)), 0.01)
-        map(skip.add, skips)
-        return meta.impl(distribution=(global_time,), payload=(skip, search, method))
-
 class AllChannelScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")                    
@@ -38,8 +31,6 @@ class AllChannelScript(ScriptBase):
 
         self.caller(self.test_incoming_channel_propagate)
         self.caller(self.test_outgoing_channel_propagate)
-        self.caller(self.test_incoming_channel_search_request)
-        self.caller(self.test_outgoing_channel_search_request)
 
     def test_incoming_channel_propagate(self):
         """
@@ -102,61 +93,6 @@ class AllChannelScript(ScriptBase):
         assert len(set(message.payload.infohashes)) == len(message.payload.infohashes), "duplicate infohashes"
 
         dprint(map(lambda infohash: infohash.encode("HEX"), message.payload.infohashes), lines=1)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-
-    def test_incoming_channel_search_request(self):
-        """
-        We will send a 'channel-search-request' message from NODE to SELF.
-
-        TODO: currently there is nothing in the database to find.  We need to add something and
-        verify that we get some response back.  Hence the channel-search-response is not tested yet
-        """
-        community = AllChannelCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-
-        # create node and ensure that SELF knows the node address
-        node = AllChannelNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-        yield 0.1
-
-        # send a 'channel-search-message' message from NODE to SELF
-        global_time = 10
-        node.send_message(node.create_channel_search_request([], [u"foo", u"bar"], u"simple-any-keyword", global_time), address)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-
-    def test_outgoing_channel_search_request(self):
-        """
-        We will send a 'channel-search-request' message from SELF to NODE.
-
-        TODO: currently there is that we can send back... hence the channel-search-response is not
-        tested yet
-        """
-        def on_response(address, response):
-            assert response is None
-
-        community = AllChannelCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-
-        # create node and ensure that SELF knows the node address
-        node = AllChannelNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-        yield 0.1
-
-        # send a 'channel-search-message' message from NODE to SELF
-        community.create_channel_search_request([], [u"foo", u"bar"], on_response, timeout=1.0)
-        yield 0.1
-
-        _, request = node.receive_message(addresses=[address], message_names=[u"channel-search-request"])
-        assert request.payload.search == (u"foo", u"bar"), request.payload.search
-        assert request.payload.method == u"simple-any-keyword", request.payload.method
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

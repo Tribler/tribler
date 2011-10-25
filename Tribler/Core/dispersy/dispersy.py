@@ -1583,6 +1583,7 @@ class Dispersy(Singleton):
         assert all(len(x) == 3 for x in batch)
 
         if __debug__:
+            debug_begin = clock()
             begin_stats = Conversion.debug_stats.copy()
 
         for address, packet, conversion in batch:
@@ -1617,10 +1618,11 @@ class Dispersy(Singleton):
                     self._send([address], [delay.request_packet], u"-delay-packet-")
 
         if __debug__:
-            if len(batch) > 100:
-                for key, value in sorted(Conversion.debug_stats.iteritems()):
-                    if value - begin_stats[key] > 0.0:
-                        dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key)
+            debug_end = clock()
+            level = "warning" if (debug_end - debug_begin) > 1.0 else "normal"
+            for key, value in sorted(Conversion.debug_stats.iteritems()):
+                if value - begin_stats[key] > 0.0:
+                    dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key, level=level)
 
     @runtime_duration_warning(1.0)
     def _store(self, messages):
@@ -1875,7 +1877,7 @@ class Dispersy(Singleton):
             D = sorted(stumbles.difference(walks).difference(introduction), key=sort_key)
             E = sorted(stumbles.intersection(introduction).difference(walks), key=sort_key)
 
-            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E), force=1)
+            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E))
             assert all(candidate.is_walk or candidate.is_stumble or candidate.is_introduction for candidate in candidates), "each candidate must have at least one mark"
             assert any([walks, stumbles, introduction])
             assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
@@ -2899,8 +2901,7 @@ class Dispersy(Singleton):
         # 12/10/11 Boudewijn: create_my_subjective_set_on_demand must be False to prevent infinite recursion
         subjective_set = community.get_subjective_set(community.my_member, cluster, create_my_subjective_set_on_demand=False)
         if not subjective_set:
-            # TODO set the correct bloom filter params
-            subjective_set = BloomFilter(community.dispersy_subjective_set_error_rate, community.dispersy_subjective_set_bits)
+            subjective_set = BloomFilter(community.dispersy_subjective_set_bits, community.dispersy_subjective_set_error_rate)
         if reset:
             subjective_set.clear()
         for member in members:

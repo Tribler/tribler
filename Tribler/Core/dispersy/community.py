@@ -1,5 +1,5 @@
 """
-the community module provides the Community baseclass that should be used when a new Community is
+the community module provides the Community base class that should be used when a new Community is
 implemented.  It provides a simplified interface between the Dispersy instance and a running
 Community instance.
 
@@ -41,13 +41,13 @@ class SyncRange(object):
         assert redundancy > 0
         self.time_low = time_low
         self.space_freed = 0
-        self.bloom_filters = [BloomFilter(error_rate, bits, prefix=chr(i)) for i in xrange(redundancy)]
-        self.space_remaining = self.capacity = self.bloom_filters[0].capacity
+        self.bloom_filters = [BloomFilter(bits, error_rate, prefix=chr(i)) for i in xrange(redundancy)]
+        self.space_remaining = self.capacity = self.bloom_filters[0].get_capacity(error_rate)
         if __debug__:
             for bloom_filter in self.bloom_filters:
-                assert self.capacity == bloom_filter.capacity
-                assert 0 < bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
-                assert 0 < bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+                assert self.capacity == bloom_filter.get_capacity(error_rate)
+                assert bloom_filter.size == bits
+                assert 0 < bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
                 assert len(bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
 
     def add(self, packet):
@@ -269,8 +269,8 @@ class Community(object):
         self._sync_ranges = []
         self._initialize_sync_ranges()
         if __debug__:
-            b = BloomFilter(self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_bits)
-            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
+            b = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.get_capacity(self.dispersy_sync_bloom_filter_error_rate), "; error-rate: ", self.dispersy_sync_bloom_filter_error_rate)
 
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
         self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs
@@ -278,8 +278,8 @@ class Community(object):
         self._initialize_subjective_sets()
         if __debug__:
             if any(isinstance(meta.destination, SubjectiveDestination) for meta in self._meta_messages.itervalues()):
-                b = BloomFilter(self.dispersy_subjective_set_error_rate, self.dispersy_subjective_set_bits)
-                dprint("subjective set. size: ", int(ceil(b.size // 8)), "; capacity: ", b.capacity, "; error-rate: ", b.error_rate)
+                b = BloomFilter(self.dispersy_subjective_set_bits, self.dispersy_subjective_set_error_rate)
+                dprint("subjective set. size: ", int(ceil(b.size // 8)), "; capacity: ", b.get_capacity(self.dispersy_subjective_set_error_rate), "; error-rate: ", self.dispersy_subjective_set_error_rate)
 
         # initial timeline.  the timeline will keep track of member permissions
         self._timeline = Timeline(self)
@@ -498,6 +498,8 @@ class Community(object):
     def dispersy_sync_bloom_filter_bits(self):
         """
         The size in bits of this bloom filter.
+
+        Note that the amount must be a multiple of eight.
 
         The sync bloom filter is part of the dispersy-introduction-request message and hence must
         fit within a single MTU.  There are several numbers that need to be taken into account.
@@ -784,7 +786,7 @@ class Community(object):
                             assert index == 0
                             sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
                             self._sync_ranges.insert(0, sync_range)
-                            if __debug__: dprint("new ", sync_range.bloom_filters[0].capacity, " capacity filter created for range [", sync_range.time_low, ":inf]")
+                            if __debug__: dprint("new ", sync_range.bloom_filters[0].get_capacity(self.dispersy_sync_bloom_filter_error_rate), " capacity filter created for range [", sync_range.time_low, ":inf]")
 
                     # add the packet
                     sync_range.add(message.packet)

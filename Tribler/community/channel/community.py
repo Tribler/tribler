@@ -5,7 +5,6 @@ from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
 
-from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion

@@ -538,26 +538,30 @@ class BinaryConversion(Conversion):
 
     def _encode_subjective_set(self, message):
         payload = message.payload
-        assert 0 < payload.subjective_set.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
-        assert 0 < payload.subjective_set.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+        assert payload.subjective_set.size % 8 == 0
+        assert 0 < payload.subjective_set.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
         assert len(payload.subjective_set.prefix) == 0, "Should not have a prefix"
-        return pack("!BBH", payload.cluster, payload.subjective_set.num_slices, payload.subjective_set.bits_per_slice), payload.subjective_set.bytes
+        assert len(payload.subjective_set.bytes) == int(ceil(payload.subjective_set.size / 8))
+        return pack("!BBH", payload.cluster, payload.subjective_set.functions, payload.subjective_set.size), payload.subjective_set.bytes
 
     def _decode_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
-        cluster, num_slices, bits_per_slice = unpack_from("!BBH", data, offset)
+        cluster, functions, size = unpack_from("!BBH", data, offset)
         offset += 4
-        if not num_slices > 0:
-            raise DropPacket("Invalid num_slices value")
-        if not bits_per_slice > 0:
-            raise DropPacket("Invalid bits_per_slice value")
-        if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
+        if not 0 < functions:
+            raise DropPacket("Invalid functions value")
+        if not 0 < size:
+            raise DropPacket("Invalid size value")
+        if not size % 8 == 0:
+            raise DropPacket("Invalid size value, must be a multiple of eight")
+        length = int(ceil(size / 8))
+        if not length == len(data) - offset:
             raise DropPacket("Invalid number of bytes available")
         
-        subjective_set = BloomFilter(data, num_slices, bits_per_slice, offset=offset)
-        offset += int(ceil(num_slices * bits_per_slice / 8.0))
+        subjective_set = BloomFilter(data[offset:offset + length], functions)
+        offset += length
 
         return offset, placeholder.meta.payload.implement(cluster, subjective_set)
 
@@ -674,9 +678,10 @@ class BinaryConversion(Conversion):
         payload = message.payload
         if __debug__:
             if payload.sync:
-                assert 0 < payload.bloom_filter.num_slices < 2**8, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 20 slices"
-                assert 0 < payload.bloom_filter.bits_per_slice < 2**16, "Assuming the sync message fits within a single MTU, it is -extremely- unlikely to have more than 30000 bits per slice"
+                assert payload.bloom_filter.size % 8 == 0
+                assert 0 < payload.bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
                 assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
+                assert len(payload.bloom_filter.bytes) == int(ceil(payload.bloom_filter.size / 8))
             else:
                 assert payload.bloom_filter is None
 
@@ -688,7 +693,11 @@ class BinaryConversion(Conversion):
         
         # add optional sync
         if payload.sync:
-            data.extend((pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.num_slices, payload.bloom_filter.bits_per_slice), 
+            assert payload.bloom_filter.size % 8 == 0
+            assert 0 < payload.bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
+            assert len(payload.bloom_filter.prefix) == 1, "must have a one character prefix"
+            assert len(payload.bloom_filter.bytes) == int(ceil(payload.bloom_filter.size / 8))
+            data.extend((pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.functions, payload.bloom_filter.size), 
                          payload.bloom_filter.prefix, payload.bloom_filter.bytes))
 
         return data
@@ -723,25 +732,28 @@ class BinaryConversion(Conversion):
             if len(data) < offset + 20:
                 raise DropPacket("Insufficient packet size")
 
-            time_low, time_high, num_slices, bits_per_slice = unpack_from("!QQBH", data, offset)
+            time_low, time_high, functions, size = unpack_from("!QQBH", data, offset)
             offset += 19
             if not time_low > 0:
                 raise DropPacket("Invalid time_low value")
             if not (time_high == 0 or time_low <= time_high):
                 raise DropPacket("Invalid time_high value")
-            if not num_slices > 0:
-                raise DropPacket("Invalid num_slices value")
-            if not bits_per_slice > 0:
-                raise DropPacket("Invalid bits_per_slice value")
+            if not 0 < functions:
+                raise DropPacket("Invalid functions value")
+            if not 0 < size:
+                raise DropPacket("Invalid size value")
+            if not size % 8 == 0:
+                raise DropPacket("Invalid size value, must be a multiple of eight")
 
             prefix = data[offset]
             offset += 1
 
-            if not ceil(num_slices * bits_per_slice / 8.0) == len(data) - offset:
+            length = int(ceil(size / 8))
+            if not length == len(data) - offset:
                 raise DropPacket("Invalid number of bytes available")
 
-            bloom_filter = BloomFilter(data, num_slices, bits_per_slice, offset=offset, prefix=prefix)
-            offset += int(ceil(num_slices * bits_per_slice / 8.0))
+            bloom_filter = BloomFilter(data[offset:offset + length], functions, prefix=prefix)
+            offset += length
 
             sync = (time_low, time_high, bloom_filter)
 

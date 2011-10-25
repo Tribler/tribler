@@ -319,7 +319,7 @@ class Node(object):
             assert isinstance(time_high, (int, long))
             assert isinstance(bloom_packets, list)
             assert not filter(lambda x: not isinstance(x, str), bloom_packets)
-            bloom_filter = BloomFilter(700, 0.001, prefix="x")
+            bloom_filter = BloomFilter(512*8, 0.001, prefix="x")
             map(bloom_filter.add, bloom_packets)
             sync = (time_low, time_high, bloom_filter)
         assert isinstance(global_time, (int, long))

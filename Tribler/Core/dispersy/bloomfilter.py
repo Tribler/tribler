@@ -15,10 +15,9 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 @contact: dispersy@frayja.com
 """
 
-from array import array
 from hashlib import sha1, sha256, sha384, sha512, md5
-from math import ceil, log, exp
-from struct import unpack, pack
+from math import ceil, log
+from struct import unpack
 
 from decorator import Constructor, constructor
 
@@ -26,515 +25,41 @@ if __debug__:
     from dprint import dprint
     from time import time
 
-def _make_hashfuncs(num_slices, num_bits, prefix):
-    if num_bits >= (1 << 31):
-        fmt_code, chunk_size = 'Q', 8
-    elif num_bits >= (1 << 15):
-        fmt_code, chunk_size = 'L', 4
-    else:
-        fmt_code, chunk_size = 'H', 2
-    total_hash_bits = 8 * num_slices * chunk_size
-    if total_hash_bits > 384:
-        hashfn = sha512
-    elif total_hash_bits > 256:
-        hashfn = sha384
-    elif total_hash_bits > 160:
-        hashfn = sha256
-    elif total_hash_bits > 128:
-        hashfn = sha1
-    else:
-        hashfn = md5
-    fmt = "!" + fmt_code * (hashfn().digest_size // chunk_size)
-    num_salts, extra = divmod(num_slices, len(fmt))
-    if extra:
-        num_salts += 1
-    salts = [hashfn(hashfn(pack('!L', i)).digest() + prefix) for i in xrange(num_salts)]
-    def _make_hashfuncs_helper(key):
-        assert isinstance(key, str), "KEY must be a binary string"
-        rval = []
-        for salt in salts:
-            h = salt.copy()
-            h.update(key)
-            rval.extend(uint % num_bits for uint in unpack(fmt, h.digest()))
-
-        # if __debug__:
-        #     if len(rval) > num_slices:
-        #         print "Wasted", len(rval) - num_slices, "cycles"
-
-        del rval[num_slices:]
-        return rval
-    return _make_hashfuncs_helper
-
 class BloomFilter(Constructor):
-    """
-    Implements a space-efficient probabilistic data structure.
-
-    There are three overloaded constructors:
-     - __init__(CAPACITY, ERROR_RATE)
-     - __init__(NUM_SLICES, BITS_PER_SLICE)
-     - __init__(DATA, OFFSET)
-
-    CAPACITY: this BloomFilter must be able to store at least CAPACITY elements while maintaining no
-    more than ERROR_RATE chance of false positives.
-
-    ERROR_RATE: the error_rate of the filter returning false positives. This determines the filters
-    capacity. Inserting more than capacity elements greatly increases the chance of false positives.
-
-    NUM_SLICES: the number of slices.  More slices makes the BloomFilter more fault tolerant as well
-    as bigger.  Each slice has its own hash function, and each key added to the BloomFilter will
-    (potentially) set one bit per slice.
-
-    BITS_PER_SLICE: the number of bits in each slice.
-
-    DATA: the stream contains binary data for a BloomFilter.
-
-    OFFSET: the start of the bloomfiter in DATA
-
-    >>> # use CAPACITY, ERROR_RATE constructor
-    >>> b = BloomFilter(100000, 0.001)
-    >>> b.add("test")
-    True
-    >>> "test" in b
-    True
-
-    >>> # use NUM_SLICES, BITS_PER_SLICE constructor
-    >>> b = BloomFilter(1, 1024)
-    >>> b.add("test")
-    True
-    >>> "test" in b
-    True
-
-    >>> # use DATA, OFFSET constructor
-    >>> b = BloomFilter(100000, 0.001)
-    >>> b.add("test")
-    >>> data = str(b)
-    >>> c = BloomFilter(data, 0)
-    >>> "test" in c
-    True
-    """
-
-    @constructor((int, long), (int, long))
-    def _init_size_(self, num_slices, bits_per_slice, prefix=""):
-        """
-        Initialize a new BloomFilter instance.
-
-        Each time an item is added to the BloomFilter a bit will be set in each slice.  Therefore,
-        having more slices will reduce the chance of false positives at the cost of using more bits.
-
-        @param num_slices: The number of slices.
-        @type num_slices: int or long
-
-        @param bits_per_slice: The number of bits per slice.
-        @type bits_per_slice: int or long
-
-        @param prefix: A prefix used for each key.
-        @type prefix: string
-        """
-        assert isinstance(num_slices, (int, long))
-        assert num_slices > 0
-        assert isinstance(bits_per_slice, (int, long))
-        assert bits_per_slice > 0
+    def _init_(self, m_size, k_functions, prefix, filter_):
+        assert isinstance(m_size, int)
+        assert 0 < m_size
+        assert m_size % 8 == 0, "size must be a multiple of eight (%d)" % m_size
+        assert isinstance(k_functions, int)
+        assert 0 < k_functions <= m_size
         assert isinstance(prefix, str)
-        assert len(prefix) <= 255
-        
-        self._num_slices = num_slices
-        self._bits_per_slice = bits_per_slice
-        
+        assert 0 <= len(prefix) < 256
+        assert isinstance(filter_, long)
+
+        self._m_size = m_size
+        self._k_functions = k_functions
         self._prefix = prefix
-        self._make_hashes = _make_hashfuncs(num_slices, bits_per_slice, prefix)
-        self._bytes = array("B", (0 for _ in xrange(int(ceil(num_slices * bits_per_slice / 8.0)))))
+        self._filter = filter_
 
-    @constructor((int, long), float)
-    def _init_capacity_(self, capacity, error_rate, prefix=""):
-        """
-        Initialize a new BloomFilter instance.
-
-        The optimal number of slices and slice size is choosen based on how many items are expected
-        to be stored in the BloomFilter and how many false positives are allowed to occur.
-
-        @param capacity: How many items are expected to be stored in the BloomFilter.  Storing more
-         than this value will result in higher chances for false positives.
-        @type capacity: (int, long)
-
-        @param error_rate: The chance a false positive occurs given that there are no more than
-         capacity items in the BloomFilter.
-        @type error_rate: float
-
-        @param prefix: A prefix used for each key.
-        @type prefix: string
-        """
-        assert isinstance(capacity, (int, long))
-        assert isinstance(error_rate, float)
-        assert 0 < error_rate < 1, "Error_Rate must be between 0 and 1"
-        assert capacity > 0, "Capacity must be > 0"
-        assert isinstance(prefix, str)
-        assert len(prefix) <= 255
-        
-        
-        self._capacity = capacity
-        self._num_slices = int(ceil(log(1 / error_rate, 2)))
-        assert self._num_slices > 0
-        
-        # the error_rate constraint assumes a fill rate of 1/2
-        # so we double the capacity to simplify the API
-        
-        bits = ceil (-(capacity * log(error_rate)) / (log(2) ** 2))  
-        self._bits_per_slice = int(bits / self._num_slices)
-        assert self._bits_per_slice > 0
-        
-        self._prefix = prefix
-        self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice, prefix)
-        self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
-
-    @constructor(float, (int, long))
-    def _init_length(self, error_rate, bits, prefix=""):
-        """
-        Initialize a new BloomFilter instance.
-
-        The optimal number of slices and slice size is choosen based on how many false positives are
-        allowed to occur and the total number of bits available to the bloom filter.
-
-        @param error_rate: The chance a false positive occurs given that there are no more than
-         capacity items in the BloomFilter.
-        @type error_rate: float
-
-        @param bits: The number of bits available to the bloom filter.  Must be a multiple of 8.
-        @type bits: int or long
-
-        @param prefix: A prefix used for each key.
-        @type prefix: string
-        """
-        assert isinstance(error_rate, float)
-        assert 0 < error_rate < 1, "Error_Rate must be between 0 and 1"
-        assert isinstance(bits, (int, long))
-        assert bits > 0, "Bits must be > 0"
-        assert isinstance(prefix, str)
-        assert len(prefix) <= 255
-        
-        #from Scalable Bloom filters
-        #n ~= bits * ((ln 2)^2) / | ln error_rate |
-        #k = log2(1 / error_rate)
-        self._capacity = bits * ((log(2) ** 2) / abs(log(error_rate)))
-        
-        self._num_slices = int(ceil(log(1 / error_rate, 2)))
-        assert self._num_slices > 0
-        
-        self._bits_per_slice = bits / self._num_slices
-        assert self._bits_per_slice > 0
-        
-        self._prefix = prefix
-        self._make_hashes = _make_hashfuncs(self._num_slices, self._bits_per_slice, prefix)
-        self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
-
-    @constructor(str, (int, long), (int, long))
-    def _init_load_(self, data, num_slices, bits_per_slice, offset=0, prefix=""):
-        """
-        Initialize a new BloomFilter instance.
-
-        Loads an existing BloomFilter from a string representation.
-
-        @param data: The binary sting containing the BloomFilter.
-        @type data: string
-
-        @param num_slices: The number of slices.
-        @type num_slices: int or long
-
-        @param bits_per_slice: The number of bits per slice.
-        @type bits_per_slice: int or long
-
-        @param offset: The first index in the binary string where the BloomFilter starts.
-        @type offset: int or long
-        @note: offset should have a default value of zero.  However, currently the Constructor
-               overloading does not support this.
-
-        @param prefix: A prefix used for each key.
-        @type prefix: string
-        """
-        assert isinstance(data, str)
-        assert isinstance(num_slices, (int, long))
-        assert num_slices > 0
-        assert isinstance(bits_per_slice, (int, long))
-        assert bits_per_slice > 0
-        assert len(data) >= offset + ceil(num_slices * bits_per_slice / 8.0), (len(data), offset + ceil(num_slices * bits_per_slice / 8.0))
-        assert isinstance(offset, (int, long))
-        assert isinstance(prefix, str)
-        assert len(prefix) <= 255
-        
-        self._num_slices = num_slices
-        self._bits_per_slice = bits_per_slice
-        
-        self._prefix = prefix
-        self._make_hashes = _make_hashfuncs(num_slices, bits_per_slice, prefix)
-        self._bytes = array("B", data[offset:offset+int(ceil(num_slices*bits_per_slice/8.0))])
-
-    @property
-    def error_rate(self):
-        """
-        Calculate the optimal error rate from the current settings.
-        @rtype: float
-        """
-        p = exp(- self._num_slices * self._capacity/self.size)
-        return (1 - p) ** self._num_slices
-
-    @property
-    def capacity(self):
-        """
-        Calculate the optimal capacity from the current setting.
-        @rtype: long
-        """
-        
-        #from Scalable Bloom filters
-        #n ~= bits * ((ln 2)^2) / | ln error_rate |
-        return int(self.size * ((log(2) ** 2) / abs(log(self.error_rate))))
-
-    @property
-    def num_slices(self):
-        return self._num_slices
-
-    @property
-    def bits_per_slice(self):
-        return self._bits_per_slice
-
-    @property
-    def prefix(self):
-        """
-        The prefix.
-        @rtype: string
-        """
-        return self._prefix
-
-    @property
-    def bytes(self):
-        """
-        Returns the raw bloom filter bytes.
-        @rtype: string
-        """
-        return self._bytes.tostring()
-
-    @property
-    def size(self):
-        """
-        The size of the bloom filter in bits, i.e. how many bits the bloom filter uses.
-        @rtype: int or long
-        """
-        return self._num_slices * self._bits_per_slice
-
-    def __contains__(self, key):
-        """
-        Tests a key's membership in this bloom filter.
-
-        >>> b = BloomFilter(capacity=100)
-        >>> b.add("hello")
-        >>> "hello" in b
-        True
-
-        @param key: The key to test.
-        @type key: string
-
-        @return: True when key is contained in the BloomFilter.
-        @rtype: bool
-        """
-        assert isinstance(key, str), "Key must be a binary string"
-        bits_per_slice = self._bits_per_slice
-        bytes = self._bytes
-        offset = 0
-        for i in self._make_hashes(key):
-            if not bytes[(offset + i) / 8] & 1<<(offset + i) % 8:
-                return False
-            offset += bits_per_slice
-        return True
-
-    def add(self, key):
-        """
-        Adds a key to this bloom filter.
-
-        >>> b = BloomFilter(capacity=100)
-        >>> b.add("hello")
-        >>> b.add("hello")
-
-        @param key: The key to add.
-        @type key: string
-        """
-        assert isinstance(key, str), "Key must be a binary string"
-        bytes = self._bytes
-        bits_per_slice = self._bits_per_slice
-        offset = 0
-        for i in self._make_hashes(key):
-            bytes[(offset + i) / 8] |=  1<<(offset + i) % 8
-            offset += bits_per_slice
-
-    def clear(self):
-        """
-        Sets all bits in the filter to zero.
-        """
-        self._bytes = array("B", (0 for _ in xrange(int(ceil(self._num_slices * self._bits_per_slice / 8.0)))))
-
-    def and_occurrence(self, other):
-        """
-        Counts the number of bits that are set at the same indexes in this and the other
-        BloomFilter.
-
-        >>> b = BloomFilter(binary_to_string("01110"))
-        >>> o = BloomFilter(binary_to_string("01000"))
-        >>> b.and_occurrence(o)             #  ^
-        >>> 1
-
-        In order to compare, both BloomFilters need to be compatible.  In other words, they need to
-        have the same number of slices and number of bits per slice.
-
-        @param other: The other BloomFilter to compare with.
-        @type other: BloomFilter
-
-        @return: The number of bits counted.
-        @rtype: int or long
-        @raise ValueError: When both BloomFilters are are incompatible, i.e. have different number
-         of slices or bits per slice.
-        """
-        assert isinstance(other, BloomFilter)
-        if not (self._num_slices == other._num_slices and self._bits_per_slice == other._bits_per_slice and self._prefix == other._prefix):
-            raise ValueError("Both bloom filters need to have the same size and prefix")
-
-        bits = (1, 2, 4, 8, 16, 32, 64, 128)
-        count = 0
-        for c in (a & b for a, b in zip(self._bytes, other._bytes)):
-            count += len(filter(lambda bit: bit & c, bits))
-        return count
-
-    def xor_occurrence(self, other):
-        """
-        Counts the number of bits that are set in either this of the other BloomFilter, at the same
-        indexes, but not in both at the same time.
-
-        >>> b = BloomFilter(binary_to_string("01110"))
-        >>> o = BloomFilter(binary_to_string("01000"))
-        >>> b.xor_occurrence(o)             #   ^^
-        >>> 2
-
-        In order to compare, both BloomFilters need to be compatible.  In other words, they need to
-        have the same number of slices and number of bits per slice.
-
-        @param other: The other BloomFilter to compare with.
-        @type other: BloomFilter
-
-        @return: The number of bits counted.
-        @rtype: int or long
-        @raise ValueError: When both BloomFilters are are incompatible, i.e. have different number
-         of slices or bits per slice.
-        """
-        assert isinstance(other, BloomFilter)
-        if not (self._num_slices == other._num_slices and self._bits_per_slice == other._bits_per_slice and self._prefix == other._prefix):
-            raise ValueError("Both bloom filters need to have the same size and prefix")
-
-        bits = (1, 2, 4, 8, 16, 32, 64, 128)
-        count = 0
-        for c in (a ^ b for a, b in zip(self._bytes, other._bytes)):
-            count += len(filter(lambda bit: bit & c, bits))
-        return count
-
-    def bic_occurrence(self, other):
-        """
-        Counts the number of bits that are biconditional, i.e. have the same value in both this and
-        the other BloomFilter, at the same indexes.
-
-        >>> b = BloomFilter(binary_to_string("01110"))
-        >>> o = BloomFilter(binary_to_string("01000"))
-        >>> b.bic_occurrence(o)             # ^^  ^
-        >>> 3
-
-        In order to compare, both BloomFilters need to be compatible.  In other words, they need to
-        have the same number of slices and number of bits per slice.
-
-        @param other: The other BloomFilter to compare with.
-        @type other: BloomFilter
-
-        @return: The number of bits counted.
-        @rtype: int or long
-        @raise ValueError: When both BloomFilters are are incompatible, i.e. have different number
-         of slices or bits per slice.
-        """
-        assert isinstance(other, BloomFilter)
-        if not (self._num_slices == other._num_slices and self._bits_per_slice == other._bits_per_slice and self._prefix == other._prefix):
-            raise ValueError("Both bloom filters need to have the same size and prefix")
-
-        bits = (1, 2, 4, 8, 16, 32, 64, 128)
-        count = 0
-        for c in (a ^ b for a, b in zip(self._bytes, other._bytes)):
-            count += len(filter(lambda bit: bit & c, bits))
-        return (self._num_slices * self._bits_per_slice) - count
-
-    def __and__(self, other):
-        """
-        Create a new BloomFilter by merging this and the other BloomFilter using the AND operator.
-
-        In order to merge, both BloomFilters need to be compatible.  In other words, they need to
-        have the same number of slices and number of bits per slice.
-
-        @param other: The other BloomFilter to merge with.
-        @type other: BloomFilter
-
-        @return: A new BloomFilter.
-        @rtype: BloomFilter
-        @raise ValueError: When both BloomFilters are are incompatible, i.e. have different number
-         of slices or bits per slice.
-        """
-        assert isinstance(other, BloomFilter)
-        if not (self._num_slices == other._num_slices and self._bits_per_slice == other._bits_per_slice and self._prefix == other._prefix):
-            raise ValueError("Both bloom filters need to have the same size and prefix")
-        return BloomFilter(pack("!LL", self._num_slices, self._bits_per_slice) + array("B", [i&j for i, j in zip(self._bytes, other._bytes)]).tostring(), 0)
-
-    def __xor__(self, other):
-        """
-        Create a new BloomFilter by merging this and the other BloomFilter using the XOR operator.
-
-        In order to merge, both BloomFilters need to be compatible.  In other words, they need to
-        have the same number of slices and number of bits per slice.
-
-        @param other: The other BloomFilter to merge with.
-        @type other: BloomFilter
-
-        @return: A new BloomFilter.
-        @rtype: BloomFilter
-        @raise ValueError: When both BloomFilters are are incompatible, i.e. have different number
-         of slices or bits per slice.
-        """
-        assert isinstance(other, BloomFilter)
-        if not (self._num_slices == other._num_slices and self._bits_per_slice == other._bits_per_slice and self._prefix == other._prefix):
-            raise ValueError("Both bloom filters need to have the same size and prefix")
-        return BloomFilter(pack("!LL", self._num_slices, self._bits_per_slice) + array("B", [i^j for i, j in zip(self._bytes, other._bytes)]).tostring(), 0)
-
-    # def __str__(self):
-    #     """
-    #     Create a string representation of the BloomFilter.
-
-    #     @return: The string representation.
-    #     @rtype: string
-    #     @note: This method will change in the future.  The num_slices and bits_per_slice will be
-    #      removed and the method renamed.
-    #     """
-    #     return pack("!LLB", self._num_slices, self._bits_per_slice, len(self._prefix)) + self._prefix + self._bytes.tostring()
-
-
-class FasterBloomFilter(object):
-    def __init__(self, f, m, prefix = ''):
-        self._f = f 
-        self._m = m
-        self._prefix = prefix
-          
-        #calculate others
-        self._n = int(m * ((log(2) ** 2) / abs(log(f))))
-        self._k = int(ceil(log(2) * (m / self._n)))
-        
-        #determine hash function
-        if m >= (1 << 31):
-            fmt_code, chunk_size = 'Q', 8
-        elif m >= (1 << 15):
-            fmt_code, chunk_size = 'L', 4
+        if __debug__:
+            dprint("m size:      ", m_size, "    ~", m_size / 8, " bytes")
+            dprint("k functions: ", k_functions)
+            dprint("filter:      ", filter_)
+            hypothetical_error_rates = [0.4, 0.3, 0.2, 0.1, 0.01, 0.001, 0.0001]
+            dprint("hypothetical error rate: ", " | ".join("%.4f" % hypothetical_error_rate for hypothetical_error_rate in hypothetical_error_rates))
+            dprint("hypothetical capacity:   ", " | ".join("%6d" % self.get_capacity(hypothetical_error_rate) for hypothetical_error_rate in hypothetical_error_rates))
+    
+        # determine hash function
+        if m_size >= (1 << 31):
+            fmt_code, chunk_size = "Q", 8
+        elif m_size >= (1 << 15):
+            fmt_code, chunk_size = "L", 4
         else:
-            fmt_code, chunk_size = 'H', 2
+            fmt_code, chunk_size = "H", 2
         
-        #we need atmost chunk_size * k bits from our hash function
-        bits_required = chunk_size * self._k * 8
-        assert bits_required <= 512, 'Combining multiple hashfunctions is not implemented, cannot create a hash for %d bits'%bits_required
+        # we need at most chunk_size * k bits from our hash function
+        bits_required = chunk_size * k_functions * 8
+        assert bits_required <= 512, "Combining multiple hashfunctions is not implemented, cannot create a hash for %d bits" % bits_required
 
         if bits_required > 384:
             hashfn = sha512
@@ -546,54 +71,83 @@ class FasterBloomFilter(object):
             hashfn = sha1
         else:
             hashfn = md5
-        self._fmt = '!' + (fmt_code * self._k) + ('x' * (hashfn().digest_size - bits_required/8))
+
+        self._fmt = ">" + (fmt_code * k_functions) + ("x" * (hashfn().digest_size - bits_required / 8))
         self._salt = hashfn(prefix)
-        
-        #python documentation states: a long is a signed number of arbitrary length
-        self.filter = 0L
+
+    @constructor(str, int)
+    def _init_bytes_k_(self, bytes_, k_functions, prefix=""):
+        assert isinstance(bytes_, str)
+        assert 0 < len(bytes_)
+        if __debug__: dprint("constructing bloom filter based on ", len(bytes_), " bytes and k_functions ", k_functions)
+        self._init_(len(bytes_) * 8, k_functions, prefix, long(sum(ord(bytes_[i]) << (i*8) for i in xrange(len(bytes_)))))
+
+    @constructor(int, float)
+    def _init_m_f(self, m_size, f_error_rate, prefix=""):
+        assert isinstance(m_size, int)
+        assert 0 < m_size
+        assert m_size % 8 == 0, "size must be a multiple of eight (%d)" % m_size
+        assert isinstance(f_error_rate, float)
+        assert 0 < f_error_rate < 1
+        # calculate others
+        # self._n = int(m * ((log(2) ** 2) / abs(log(f))))
+        # self._k = int(ceil(log(2) * (m / self._n)))
+        if __debug__: dprint("constructing bloom filter based on m_size ", m_size, " bits and f_error_rate ", f_error_rate)
+        self._init_(m_size, self._get_k_functions(m_size, self._get_n_capacity(m_size, f_error_rate)), prefix, 0L)
     
     def _hashes(self, key):
         h = self._salt.copy()
         h.update(key)
-        
-        digest = h.digest()
-        indexes = unpack(self._fmt, digest)
-        return [index % self._m for index in indexes]
+        return (index % self._m_size for index in unpack(self._fmt, h.digest()))
         
     def add(self, key):
         bits = 0L
         for pos in self._hashes(key):
             bits |= 1 << pos
-        
-        self.filter |= bits
+        self._filter |= bits
       
+    def clear(self):
+        """
+        Set all bits in the filter to zero.
+        """
+        self._filter = 0L
+
     def __contains__(self, key):
-        filter = self.filter
+        filter_ = self._filter
         for pos in self._hashes(key):
-            if not filter & (1 << pos):
+            if not filter_ & (1 << pos):
                 return False 
         return True
-    
-    
-    @property
-    def error_rate(self):
-        return self._f
 
-    @property
-    def capacity(self):
-        return self._n
+    def _get_k_functions(self, m_size, n_capacity):
+        return int(ceil(log(2) * m_size / n_capacity))
+        
+    def _get_n_capacity(self, m_size, f_error_rate):
+        return int(m_size * (log(2) ** 2 / abs(log(f_error_rate))))
     
+    def get_capacity(self, f_error_rate):
+        """
+        Returns the capacity given a certain error rate.
+        @rtype: int
+        """
+        assert isinstance(f_error_rate, float)
+        assert 0 < f_error_rate < 1
+        return self._get_n_capacity(self._m_size, f_error_rate)
+        
     @property
     def size(self):
-        return self._m
+        """
+        The size of the bloom filter in bits (m).
+        @rtype: int
+        """
+        return self._m_size
 
     @property
-    def num_slices(self):
-        return -1
-
-    @property
-    def bits_per_slice(self):
-        return -1
+    def functions(self):
+        """
+        The number of functions used for each item (k).
+        """
+        return self._k_functions
 
     @property
     def prefix(self):
@@ -605,9 +159,29 @@ class FasterBloomFilter(object):
 
     @property
     def bytes(self):
-        return bin(self.filter)
-
+        return "".join(chr((self._filter & (0xff << c)) >> c) for c in xrange(0, self._m_size, 8))
+    
 if __debug__:
+    def _test_behavior():
+        length = 1024
+        f_error_rate = 0.15
+        m_size = length * 8
+        
+        b = BloomFilter(m_size, f_error_rate)
+        assert len(b.bytes) == length, b.bytes
+
+        for i in xrange(1000):
+            b.add(str(i))
+        print b.size, b.get_capacity(f_error_rate), b.bytes.encode("HEX")
+
+        d = BloomFilter(b.bytes, b.functions)
+        assert b.size == d.size
+        assert b.functions == d.functions
+        assert b.bytes == d.bytes
+        for i in xrange(1000):
+            assert str(i) in d
+        print d.size, d.get_capacity(f_error_rate), d.bytes.encode("HEX")
+        
     def _performance_test():
         def test2(bits, count, constructor = BloomFilter):
             generate_begin = time()
@@ -896,22 +470,45 @@ if __debug__:
             for d in ["%i" % i for i in xrange(10000, 1100)]:
                 assert not d in b
 
-    def _test_false_positives(constructor = BloomFilter):
-        for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4]:
-            a = constructor(error_rate, 1024*8)
-            p(a)
+    # def _test_false_positives(constructor = BloomFilter):
+    #     for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4]:
+    #         a = constructor(error_rate, 1024*8)
+    #         p(a)
             
-            data = ["%i" % i for i in xrange(int(a.capacity))]
+    #         data = ["%i" % i for i in xrange(int(a.capacity))]
+    #         map(a.add, data)
+
+    #         errors = 0
+    #         for i in xrange(100000):
+    #             if "X%i" % i in a:
+    #                 errors += 1
+
+    #         print "Errors:", errors, "/", i + 1, " ~ ", errors / (i + 1.0)
+    #         print
+
+    def _test_false_positives(constructor = BloomFilter):
+        for error_rate in [0.001, 0.01, 0.1, 0.5]:
+            begin = time()
+            # if constructor == BloomFilter:
+            #     a = constructor(error_rate, 1024*8)
+            #     capacity = a.capacity
+            # else:
+            a = constructor(1024*8, error_rate)
+            capacity = a.get_capacity(error_rate)
+            print "capacity:", capacity, " error-rate:", error_rate, "bits:", a.size, "bytes:", a.size / 8
+            
+            data = ["%i" % i for i in xrange(capacity)]
             map(a.add, data)
 
             errors = 0
-            for i in xrange(100000):
+            for i in xrange(200000):
                 if "X%i" % i in a:
                     errors += 1
-
-            print "Errors:", errors, "/", i + 1, " ~ ", errors / (i + 1.0)
+            end = time()
+                    
+            print "%.3f"%(end-begin), "Errors:", errors, "/", i + 1, " ~ ", errors / (i + 1.0)
             print
-
+            
     def _test_prefix_false_positives(constructor = BloomFilter):
         for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
             a = constructor(error_rate, 10374, prefix="A")
@@ -1015,20 +612,22 @@ if __debug__:
         print "1500", sum(check1500)
             
     def p(b, postfix=""):
-        print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
+        # print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
+        print "error-rate", b.error_rate, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
 
     if __name__ == "__main__":
+        _test_behavior()
         #_performance_test()
         # _taste_test()
         # _test_occurrence()
         # _test_documentation()
         # _test_save_load()
-        _test_performance()
-        # _test_false_positives()
-        # _test_false_positives(FasterBloomFilter)
+        # _test_performance()
+        _test_false_positives()
         # _test_prefix_false_positives()
         # _test_prefix_false_positives(FasterBloomFilter)
-
+        # _test_behavior(FasterBloomFilter)
+        
         # MTU = 1500 # typical MTU
         # # MTU = 576 # ADSL
         # DISP = 51 + 60 + 16 + 8

@@ -74,11 +74,11 @@ class Script(Singleton):
             call = self._testcases.pop(0)
             dprint("start ", call, line=True, force=True)
             if call.__doc__:
-                dprint(call.__doc__, box=True, force=True)
+                dprint(call.__doc__, box=True)
             self._callback.register(call, callback=self._next_testcase)
 
         else:
-            dprint("shutdown", box=True, force=True)
+            dprint("shutdown", box=True)
             self._callback.stop(wait=False)
 
 class ScriptBase(object):
@@ -1353,14 +1353,15 @@ class DispersySyncScript(ScriptBase):
 
     def batch_reversed_enlarging_sync_bloom(self):
         """
-        The sync bloomfilter should grow when to many packets are received in that time range.  Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        The sync bloom filter should grow when to many packets are received in that time range.
+        Also tests that the sync bloom filters are initialized correctly when the community is
+        loaded.
         """
         class TestCommunity(DebugCommunity):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1382,7 +1383,7 @@ class DispersySyncScript(ScriptBase):
             node.set_community(community)
             node.init_my_member()
 
-            # create a few messages in each sync bloomfilter range
+            # create a few messages in each sync bloom filter range
             for global_time in xrange(20, 10, -1):
                 messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
@@ -1405,14 +1406,15 @@ class DispersySyncScript(ScriptBase):
 
     def batch_enlarging_sync_bloom(self):
         """
-        The sync bloomfilter should grow when to many packets are received in that time range.  Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        The sync bloom filter should grow when to many packets are received in that time range.
+        Also tests that the sync bloom filters are initialized correctly when the community is
+        loaded.
         """
         class TestCommunity(DebugCommunity):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1436,7 +1438,7 @@ class DispersySyncScript(ScriptBase):
             node.init_my_member()
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
 
-            # create a few messages in each sync bloomfilter range
+            # create a few messages in each sync bloom filter range
             for global_time in xrange(10, 20):
                 messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
@@ -1459,14 +1461,15 @@ class DispersySyncScript(ScriptBase):
 
     def reversed_enlarging_sync_bloom(self):
         """
-        The sync bloomfilter should grow when to many packets are received in that time range Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        The sync bloom filter should grow when to many packets are received in that time range.
+        Also tests that the sync bloom filters are initialized correctly when the community is
+        loaded.
         """
         class TestCommunity(DebugCommunity):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1489,7 +1492,7 @@ class DispersySyncScript(ScriptBase):
             node.set_community(community)
             node.init_my_member()
 
-            # create a few messages in each sync bloomfilter range
+            # create a few messages in each sync bloom filter range
             for global_time in xrange(20, 10, -1):
                 messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
@@ -1512,8 +1515,9 @@ class DispersySyncScript(ScriptBase):
 
     def enlarging_sync_bloom(self):
         """
-        The sync bloomfilter should grow when to many packets are received in that time range.  Also
-        tests that the sync bloom filters are initialized correctly when the community is loaded.
+        The sync bloom filter should grow when to many packets are received in that time range.
+        Also tests that the sync bloom filters are initialized correctly when the community is
+        loaded.
         """
         # for some reason it takes a long time before this test starts... try to debug...
         dprint("---- actual start ----")
@@ -1522,7 +1526,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1546,7 +1550,7 @@ class DispersySyncScript(ScriptBase):
             node.init_my_member()
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
 
-            # create a few messages in each sync bloomfilter range
+            # create a few messages in each sync bloom filter range
             for global_time in xrange(10, 20):
                 messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
             self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
@@ -1569,8 +1573,8 @@ class DispersySyncScript(ScriptBase):
 
     def large_sync(self):
         """
-        The sync bloomfilter covers a certain global-time range.  Hence, as time goes on, multiple
-        bloomfilters should be generated and periodically synced.
+        The sync bloom filter covers a certain global-time range.  Hence, as time goes on, multiple
+        bloom filters should be generated and periodically synced.
 
         We use a dispersy_sync_bloom_filter_capacity of 25.  Hence each bloom filter must hold no
         more than 25 packets.
@@ -1579,7 +1583,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 25
-                return 245
+                return 248
         space_remaining = 25 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1596,7 +1600,7 @@ class DispersySyncScript(ScriptBase):
         assert len(community._sync_ranges) == 1
         assert community._sync_ranges[0].space_remaining == space_remaining - 1
 
-        # create a few messages in each sync bloomfilter range
+        # create a few messages in each sync bloom filter range
         messages = []
         for global_time in xrange(10, 110):
             messages.append(node.give_message(node.create_in_order_text_message("global-time: %d" % global_time, global_time)))
@@ -1622,7 +1626,7 @@ class DispersySyncScript(ScriptBase):
 
     def shrinking_sync_bloom(self):
         """
-        The sync bloomfilter should shrink when there is too much free space in that time range.
+        The sync bloom filter should shrink when there is too much free space in that time range.
 
         One trivial way to shrink is to remove any sync ranges that no longer store -any- messages.
         We will add messages until this happens.
@@ -1631,7 +1635,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1663,7 +1667,7 @@ class DispersySyncScript(ScriptBase):
 
     def merge_sync_bloom_one_choice(self):
         """
-        The sync bloomfilter should shrink when there is too much free space in that time range.
+        The sync bloom filter should shrink when there is too much free space in that time range.
 
         Whenever two neighboring sync ranges could fit in a single range, they could be merged.
         Important is that they are merged with the oldest neighboring ranges.
@@ -1681,7 +1685,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1777,7 +1781,7 @@ class DispersySyncScript(ScriptBase):
 
     def merge_sync_bloom_two_choices(self):
         """
-        The sync bloomfilter should shrink when there is too much free space in that time range.
+        The sync bloom filter should shrink when there is too much free space in that time range.
 
         Whenever two neighboring sync ranges could fit in a single range, they could be merged.
         Important is that they are merged with the oldest neighboring ranges.
@@ -1797,7 +1801,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -1914,7 +1918,7 @@ class DispersySyncScript(ScriptBase):
 
     def merge_three_sync_bloom_ranges(self):
         """
-        The sync bloomfilter should shrink when there is too much free space in that time range.
+        The sync bloom filter should shrink when there is too much free space in that time range.
 
         Whenever three neighboring sync ranges could fit in a single range, they could be merged.
 
@@ -1931,7 +1935,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -2552,7 +2556,7 @@ class DispersySyncScript(ScriptBase):
             @property
             def dispersy_sync_bloom_filter_bits(self):
                 # this results in a capacity off 10
-                return 100
+                return 104
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
@@ -2990,7 +2994,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         node.init_my_member()
 
         # make available the subjective set
-        subjective_set = BloomFilter(100, 0.1)
+        subjective_set = BloomFilter(512 * 8, 0.1)
         subjective_set.add(node.my_member.public_key)
         node.give_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10))
 
@@ -3053,7 +3057,7 @@ class DispersySubjectiveSetScript(ScriptBase):
             assert False, "should be no more messages"
 
         # make available the subjective set
-        subjective_set = BloomFilter(100, 0.1)
+        subjective_set = BloomFilter(512 * 8, 0.1)
         subjective_set.add(node.my_member.public_key)
         node.give_message(node.create_dispersy_subjective_set_message(meta_message.destination.cluster, subjective_set, 10))
         yield 1.11
@@ -3193,7 +3197,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node.send_message(node.create_taste_aware_message(5, 10, 1), address)
 #         yield 0.555
 
-#         # node-02 sends an sync message with an empty bloomfilter
+#         # node-02 sends an sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
@@ -3213,7 +3217,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 30), address)
 #         yield 0.555
 
-#         # node-02 sends an sync message with an empty bloomfilter
+#         # node-02 sends an sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
@@ -3233,7 +3237,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 40), address)
 #         yield 0.555
 
-#         # node-02 sends an sync message with an empty bloomfilter
+#         # node-02 sends an sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
@@ -3258,7 +3262,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node2.send_message(node2.create_dispersy_similarity_message(1, community.database_id, bf, 50), address)
 #         yield 0.555
 
-#         # node-02 sends an sync message with an empty bloomfilter
+#         # node-02 sends an sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
@@ -3319,7 +3323,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # node-01 creates and sends a message to 'self'
 #         node.send_message(node.create_taste_aware_message_last(5, 30, 1), address)
 
-#         # node-02 sends a sync message with an empty bloomfilter
+#         # node-02 sends a sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
@@ -3339,7 +3343,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node2.send_message(node2.create_dispersy_similarity_message(2, community.database_id, bf, 30), address)
 #         yield 0.555
 
-#         # node-02 sends an sync message with an empty bloomfilter
+#         # node-02 sends an sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
@@ -3389,7 +3393,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         node.send_message(node.create_taste_aware_message(5, 10, 1), address)
 #         yield 0.555
 
-#         # node-02 sends a sync message with an empty bloomfilter
+#         # node-02 sends a sync message with an empty bloom filter
 #         # to 'self'. It should collect the message
 #         node2.send_message(node2.create_dispersy_sync_message(1, 100, [], 3), address)
 #         yield 0.555
