@@ -54,10 +54,10 @@ PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
 echo "* Counting number of delayed cycles (too much to process within a cycle)..."
 c_ratio=0.0
 t_cycles="(not-counted)"
-d_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*delay:f' | grep 'diff:f-' | wc -l)
+d_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*desync:f' | grep 'diff:f-' | wc -l)
 if test $d_cycles -gt 0; then
     echo "  * Counting number of total cycles..."
-    t_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*delay:f' | wc -l)
+    t_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*desync:f' | wc -l)
     c_ratio=$(echo "scale=2; 100*${d_cycles}/${t_cycles}" | bc -l)
     echo "  * Delayed cycles: ${d_cycles}/${t_cycles} (${c_ratio}%)"
     sleep 2
