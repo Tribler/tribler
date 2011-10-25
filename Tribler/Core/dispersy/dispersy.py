@@ -792,20 +792,17 @@ class Dispersy(Singleton):
                 # 21/10/11 Boudewijn: since the community/member/global-time is already in the
                 # database, the associated packet should also be in the sync bloom filter to prevent
                 # us from receiving it again
-                #if __debug__:
-                log('dispersy.log', 'Checking bloomfilters', syn_ranges=len(message.community._sync_ranges), name=message.name, gt = message.distribution.global_time)
-                
-                for sync_range in message.community._sync_ranges:
-                    if sync_range.time_low <= message.distribution.global_time:
-                        log('dispersy.log', 'Found syncrange', bloom_filters = len(sync_range.bloom_filters), sync_low=sync_range.time_low)
-                        
-                        for bloom_filter in sync_range.bloom_filters:
-                            assert message.packet in bloom_filter
-                            log('dispersy.log', 'Packet in bloomfilter', check = message.packet in bloom_filter)
-        
+                if __debug__ or True:
+                    for sync_range in message.community._sync_ranges:
+                        if sync_range.time_low <= message.distribution.global_time:
+                            log('dispersy.log', 'Found syncrange', bloom_filters = len(sync_range.bloom_filters), sync_low=sync_range.time_low)
+                            
+                            for bloom_filter in sync_range.bloom_filters:
+                                assert message.packet in bloom_filter
+                                log('dispersy.log', 'Packet in bloomfilter', check = message.packet in bloom_filter)
+                                
+                            break
             else:
-                
-                
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
                     # the message payload is binary unique (only the signature is different)
