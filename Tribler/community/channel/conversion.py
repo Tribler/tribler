@@ -59,7 +59,6 @@ class ChannelConversion(BinaryConversion):
         def create_msg():
             normal_msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, tuple(files), tuple(trackers)
             normal_msg = encode(normal_msg)
-            return normal_msg
             return zlib.compress(normal_msg)
         
         compressed_msg = create_msg()
@@ -77,8 +76,7 @@ class ChannelConversion(BinaryConversion):
         return compressed_msg,
 
     def _decode_torrent(self, placeholder, offset, data):
-        #uncompressed_data = zlib.decompress(data[offset:])
-        uncompressed_data = data[offset:]
+        uncompressed_data = zlib.decompress(data[offset:])
         offset = len(data)
         
         try:
