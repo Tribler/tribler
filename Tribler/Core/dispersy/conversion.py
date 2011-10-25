@@ -1237,7 +1237,7 @@ class BinaryConversion(Conversion):
         assert data[:22] == self._prefix, (data[:22].encode("HEX"), self._prefix.encode("HEX"))
 
         if len(data) < 23:
-            DropPacket("Packet is to small to decode")
+            raise DropPacket("Packet is to small to decode")
 
         # meta_message
         meta_message, _ = self._decode_message_map.get(data[22], (None, None))
