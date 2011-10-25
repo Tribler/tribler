@@ -153,6 +153,64 @@ def plot_received(peers_directory, first, last):
         print "title '%s'" % get_title(node),
         print "with steps",
     print ""
+    
+def write_stat(outputfile, averagefile, peers_directory, column):
+    print >> outputfile, '#timeoffset, kb diff+'
+
+    node_dict = {}
+    node_max = {}
+    timeoffsets = set()
+
+    for node in get_nodes(peers_directory):
+        stat = open(node + "/output/stat.txt", 'r')
+        
+        _, node_name = os.path.split(node)
+
+        for line in stat.readlines():
+            if not line.startswith('#'):
+                columns = line.split()
+                if len(columns) == 4:
+                    timeoffsets.add(int(columns[1]))
+                    
+                    if node_name not in node_dict:
+                        node_dict[node_name] = {}
+                    node_dict[node_name][int(columns[1])] = int(columns[column])
+                    node_max[node_name] = max(node_max.get(node_name, 0), int(columns[column]))
+
+    def intsort(a, b):
+        return cmp(int(a), int(b))
+
+    peer_names = node_dict.keys()
+    peer_names.sort(cmp = intsort)
+    print >> outputfile, ' '.join(peer_names)
+    print >> averagefile, ' '.join(peer_names)
+
+    timeoffsets = list(timeoffsets)
+    timeoffsets.sort(cmp = intsort)
+
+    prev_values = {}
+
+    for timeoffset in timeoffsets:
+        print >> outputfile, timeoffset, 
+
+        for peer in peer_names: 
+            prev_value = prev_values.get(peer, 0)
+            cur_value = int(node_dict[peer].get(timeoffset, prev_value))
+            diff = (cur_value - prev_value)/1024.0
+            
+            if diff == 0:
+                print >> outputfile, '?',                 
+            else:
+                print >> outputfile, diff,
+            prev_values[peer] = cur_value
+
+        print >> outputfile, ''
+    
+    max_time = float(max(timeoffsets))
+    
+    for peer in peer_names:
+        print >> sys.stderr, peer, node_max[peer], max_time
+        print >> averagefile, (int(node_max[peer])/max_time)/1024.0, 
 
 def header(peers_directory, filename):
     print "reset"
@@ -219,6 +277,18 @@ def main(peers_directory):
  
     for func in [records, drops, received, sent, received_records]:
         func(peers_directory, first, last+100)
+        
+    received_f = open(peers_directory + "/output/received.txt", "w")
+    avg_received_f = open(peers_directory + "/output/avgreceived.txt", "w")
+    write_stat(received_f, avg_received_f, peers_directory, 3)
+    avg_received_f.close()
+    received_f.close()
+
+    send_f = open(peers_directory + "/output/send.txt", "w")
+    avg_send_f = open(peers_directory + "/output/avgsend.txt", "w")
+    write_stat(send_f, avg_send_f, peers_directory, 2)
+    avg_send_f.close()
+    send_f.close()
 
 if __name__ == "__main__":
     main(argv[1])
