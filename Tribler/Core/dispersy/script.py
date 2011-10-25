@@ -185,7 +185,7 @@ class ScenarioScriptBase(ScriptBase):
         
     def log_desync(self, desync):
         delay = 1.0 - desync
-        log(self._logfile, "sleep", delay=delay, stepcount=self._stepcount)
+        log(self._logfile, "sleep", desync=desync, diff=delay, stepcount=self._stepcount)
     
     def join_community(self, my_member):
         pass
