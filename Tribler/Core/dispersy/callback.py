@@ -500,7 +500,7 @@ class Callback(object):
                                 dprint("call took %.4fs to " % debug_delay, call[0], level=debug_level)
                     
                     if call_name not in self._statistics:
-                        self._statistics[call_name] = (0,0)
+                        self._statistics[call_name] = [0,0]
                     
                     self._statistics[call_name][0] += (time() - call_start)
                     self._statistics[call_name][1] += 1
