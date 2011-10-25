@@ -498,8 +498,12 @@ class Callback(object):
                                 debug_delay = get_timestamp() - debug_begin
                                 debug_level = "warning" if debug_delay > CALL_DELAY_FOR_WARNING else "normal"
                                 dprint("call took %.4fs to " % debug_delay, call[0], level=debug_level)
-
-                    self._statistics[call_name] = self._statistics.get(call_name, 0) + (time() - call_start)
+                    
+                    if call_name not in self._statistics:
+                        self._statistics[call_name] = (0,0)
+                    
+                    self._statistics[call_name][0] += (time() - call_start)
+                    self._statistics[call_name][1] += 1
 
                     # break out of the while loop
                     break

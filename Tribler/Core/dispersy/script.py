@@ -335,7 +335,7 @@ class ScenarioScriptBase(ScriptBase):
                 log("dispersy.log", "statistics-dropped-messages", **total_dropped)
             
             def callback_cmp(a, b):
-                return cmp(self._dispersy.callback._statistics[a], self._dispersy.callback._statistics[b])
+                return cmp(self._dispersy.callback._statistics[a][0], self._dispersy.callback._statistics[b][0])
             keys = self._dispersy.callback._statistics.keys()
             keys.sort(reverse = True)
             
