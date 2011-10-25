@@ -181,8 +181,11 @@ class ScenarioScriptBase(ScriptBase):
         diff = expected_time - time()
         
         delay = max(0.0, diff)
-        log(self._logfile, "sleep", delay=delay, diff=diff, stepcount=self._stepcount)
         return delay
+        
+    def log_desync(self, desync):
+        delay = 1.0 - desync
+        log(self._logfile, "sleep", delay=delay, stepcount=self._stepcount)
     
     def join_community(self, my_member):
         pass
@@ -331,7 +334,6 @@ class ScenarioScriptBase(ScriptBase):
             if len(total_dropped) > 0:    
                 log("dispersy.log", "statistics-dropped-messages", **total_dropped)
             
-            
             def callback_cmp(a, b):
                 return cmp(self._dispersy.callback._statistics[a], self._dispersy.callback._statistics[b])
             keys = self._dispersy.callback._statistics.keys()
@@ -339,15 +341,13 @@ class ScenarioScriptBase(ScriptBase):
             
             total_run = {}
             for key in keys[:10]:
-                total_dropped[make_valid_key(key)] = self._dispersy.callback._statistics[key]
-
+                total_run[make_valid_key(key)] = self._dispersy.callback._statistics[key]
             if len(total_run) > 0:    
                 log("dispersy.log", "statistics-callback-run", **total_run)
 
-            #log delay
-            self.sleep()
+            desync = yield self._timestep
+            self.log_desync(desync)
             
-            yield self._timestep
             self._stepcount += 1
 
 class DispersyClassificationScript(ScriptBase):
