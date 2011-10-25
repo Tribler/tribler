@@ -12,6 +12,7 @@ from Tribler.Core.Session import Session
 from bgPanel import bgPanel
 from tribler_topButton import *
 from traceback import print_exc
+from Tribler.Main.vwxGUI import forceWxThread
 
 DEBUG = False
 
@@ -289,6 +290,7 @@ class TopSearchPanel(bgPanel):
         self.Refresh()
         event.Skip()
     
+    @forceWxThread
     def Notify(self, msg, icon= -1):
         self.notify.SetLabel(msg)
         self.notify.SetSize(self.notify.GetBestSize())

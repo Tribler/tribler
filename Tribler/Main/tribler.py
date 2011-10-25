@@ -32,6 +32,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.CacheDB.Notifier import Notifier
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -283,6 +284,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_torrentfinished,NTFY_TORRENTS,[NTFY_FINISHED])
         
         if Dispersy.has_instance():
             self.sesscb_ntfy_dispersy()
@@ -431,7 +433,7 @@ class ABCApp():
         self.sconfig.set_torrent_collecting_max_torrents(50000)
         
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
-        #only seen on windows
+        # only seen on windows
         
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
@@ -481,9 +483,6 @@ class ABCApp():
         self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
 
         s.set_proxy_default_dlcfg(defaultDLConfig)
-
-        # Loading of checkpointed Downloads delayed to allow GUI to paint,
-        # see loadSessionCheckpoint
 
         # Create global rate limiter
         progress('Setting up ratelimiters')
@@ -677,9 +676,13 @@ class ABCApp():
                 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
+                    
                 elif state == DLSTATUS_SEEDING:
                     if safename in self.prevActiveDownloads:
-                        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+                        infohash = ds.get_download().get_def().get_infohash()
+                        
+                        notifier = Notifier.getInstance()
+                        notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash)
                         
             self.prevActiveDownloads = newActiveDownloads
             
@@ -805,6 +808,12 @@ class ABCApp():
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.torrentUpdated(objectID)
+            
+    def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
+        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+        
+        if self.ready and self.frame.ready:
+            self.guiUtility.torrentstate_manager.torrentFinished(objectID)
         
     @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):

@@ -21,6 +21,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 
 DEBUG = False
 
@@ -77,10 +78,12 @@ class GUIUtility:
         self.torrentsearch_manager = TorrentManager.getInstance(self)
         self.channelsearch_manager = ChannelManager.getInstance()
         self.library_manager = LibraryManager.getInstance(self)
+        self.torrentstate_manager = TorrentStateManager.getInstance(self)
         
         self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
         self.channelsearch_manager.connect(self.utility.session, self.torrentsearch_manager)
         self.library_manager.connect(self.utility.session, self.torrentsearch_manager)
+        self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
     
     def ShowPlayer(self, show):
         if self.frame.videoparentpanel:

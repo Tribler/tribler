@@ -3780,6 +3780,12 @@ class ChannelCastDBHandler(object):
         
         return self.__fixTorrent(keys, result)
     
+    def getChannelTorrents(self, infohash, keys):
+        sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND infohash = ?"
+        results = self._db.fetchall(sql, (bin2str(infohash), ))
+        
+        return self.__fixTorrents(keys, results)
+    
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = ?"
         result = self._db.fetchone(sql, (channeltorrent_id,))

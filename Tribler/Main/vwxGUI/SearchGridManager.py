@@ -50,7 +50,7 @@ class TorrentManager:
    
     def __init__(self, guiUtility):
         if TorrentManager.__single:
-            raise RuntimeError, "TorrentSearchGridManager is singleton"
+            raise RuntimeError, "TorrentManager is singleton"
         TorrentManager.__single = self
         self.guiUtility = guiUtility
         
@@ -857,7 +857,7 @@ class LibraryManager:
             self.gui_callback.remove(callback)
     
     def addDownloadState(self, torrent):
-        # Add downloadstate data to list of torrent dicts
+        # Add downloadstate data to a torrent instance
         for ds in self.dslist:
             try:
                 infohash = ds.get_download().get_def().get_infohash()
@@ -1112,6 +1112,10 @@ class ChannelManager:
     def getTorrentFromChannel(self, channel, infohash, collectedOnly = True):
         data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
         return self._createTorrent(data, channel, collectedOnly)
+    
+    def getChannnelTorrents(self, infohash, filterTorrents = False):
+        hits = self.channelcast_db.getChannelTorrents(infohash, CHANNEL_REQ_COLUMNS)
+        return self._createTorrents(hits, filterTorrents)
     
     def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)

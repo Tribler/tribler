@@ -120,6 +120,8 @@ class Callback(object):
         self._new_actions = []  # (type, action)
                                 # type=register, action=(deadline, priority, root_id, (call, args, kargs), callback)
                                 # type=unregister, action=root_id
+                                
+        self._statistics = {}
 
         if __debug__:
             def must_close(callback):
@@ -419,6 +421,10 @@ class Callback(object):
                     deadline = actual_time
 
                 while True:
+                    call_name = call[0].__name__
+                    self._statistics[call_name] = self._statistics.get(call_name, 0) + 1
+                    
+                    
                     # call can be either:
                     # 1. A (generator, arg)
                     # 2. A (callable, args, kargs) tuple

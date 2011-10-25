@@ -330,6 +330,19 @@ class ScenarioScriptBase(ScriptBase):
                 
             if len(total_dropped) > 0:    
                 log("dispersy.log", "statistics-dropped-messages", **total_dropped)
+            
+            
+            def callback_cmp(a, b):
+                return cmp(self._dispersy.callback._statistics[a], self._dispersy.callback._statistics[b])
+            keys = self._dispersy.callback._statistics.keys()
+            keys.sort(reverse = True)
+            
+            total_run = {}
+            for key in keys[:10]:
+                total_dropped[make_valid_key(key)] = self._dispersy.callback._statistics[key]
+
+            if len(total_run) > 0:    
+                log("dispersy.log", "statistics-callback-run", **total_run)
 
             #log delay
             self.sleep()

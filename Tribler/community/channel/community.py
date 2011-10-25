@@ -52,18 +52,17 @@ def forceAndReturnDispersyThread(func):
         if not currentThread().getName()== 'Dispersy':
             event = Event()
             
-            result = None
+            result = [None]
             def dispersy_thread():
                 try:
-                    result = func(*args, **kwargs)
-                    
+                    result[0] = func(*args, **kwargs)
                 finally:
                     event.set()
                 
             register_task(dispersy_thread)
             
             if event.wait(100) or event.isSet():
-                return result
+                return result[0]
             
             print_stack()
             print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__

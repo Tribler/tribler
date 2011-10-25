@@ -174,7 +174,7 @@ class ChannelManager():
             else:
                 self.dirtyset.add(playlist_id)
                 self.list.dirty = True
-
+          
 class SelectedChannelList(GenericSearchList):
     def __init__(self, parent):
         self.guiutility = GUIUtility.getInstance()
