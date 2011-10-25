@@ -21,6 +21,7 @@ from os import listdir, path
 from ldecoder import parse
 from sys import argv
 import os.path
+import sys
 
 #def get_nodes():
 #    for node in glob("peers/*"):
