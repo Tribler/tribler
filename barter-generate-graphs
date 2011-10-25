@@ -216,8 +216,9 @@ def write_stat(outputfile, averagefile, peers_directory, column):
 
 def header(peers_directory, filename):
     print "reset"
-    print "set terminal png enhanced large # size 1024, 1024"
-    print "set output '"+ peers_directory + "/output/%s.png'" % filename
+    print "set terminal postscript eps enhanced color \"Helvetica\" 16 solid"
+    print "set output '"+ peers_directory + "/output/%s.eps'" % filename
+    
     # print "set term epslatex"
     # print "set output 'peers/%s.eps'" % filename
     #print "set key outside" #MB
