@@ -4060,7 +4060,7 @@ class Dispersy(Singleton):
                 dprint("---", style="short")
                 for community in self._communities.itervalues():
                     candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
-                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:10] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10]), style="short")
+                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:5] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:5]), style="short")
 
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """

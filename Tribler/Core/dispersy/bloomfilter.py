@@ -44,6 +44,7 @@ class BloomFilter(Constructor):
         if __debug__:
             dprint("m size:      ", m_size, "    ~", m_size / 8, " bytes")
             dprint("k functions: ", k_functions)
+            dprint("prefix:      ", prefix.encode("HEX"))
             dprint("filter:      ", filter_)
             hypothetical_error_rates = [0.4, 0.3, 0.2, 0.1, 0.01, 0.001, 0.0001]
             dprint("hypothetical error rate: ", " | ".join("%.4f" % hypothetical_error_rate for hypothetical_error_rate in hypothetical_error_rates))
