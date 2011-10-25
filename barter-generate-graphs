@@ -17,7 +17,7 @@ display peers/records.png
 
 from time import mktime
 import re
-from os import listdir
+from os import listdir, path
 from ldecoder import parse
 from sys import argv
 
