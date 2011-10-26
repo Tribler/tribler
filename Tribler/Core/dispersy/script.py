@@ -745,11 +745,12 @@ class DispersyTimelineScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        self.caller(self.succeed_check)
-        self.caller(self.fail_check)
-        self.caller(self.loading_community)
-        self.caller(self.delay_by_proof)
-        self.caller(self.missing_proof)
+        # self.caller(self.succeed_check)
+        # self.caller(self.fail_check)
+        # self.caller(self.loading_community)
+        # self.caller(self.delay_by_proof)
+        # self.caller(self.missing_proof)
+        self.caller(self.delay_by_authorize_proof)
 
     def succeed_check(self):
         """
@@ -935,6 +936,55 @@ class DispersyTimelineScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
+    def missing_authorize_proof(self):
+        """
+             MASTER
+               |        authorize(MASTER, OWNER)
+              \./
+             OWNER
+               |        authorize(OWNER, NODE1)
+              \./
+             NODE1
+
+        When SELF receives a dispersy-missing-proof message from NODE2 for authorize(OWNER, NODE1)
+        the dispersy-authorize message for authorize(MASTER, OWNER) must be returned.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        # create node and ensure that SELF knows the node address
+        node1 = DebugNode()
+        node1.init_socket()
+        node1.set_community(community)
+        node1.init_my_member()
+        yield 0.555
+
+        # create node and ensure that SELF knows the node address
+        node2 = DebugNode()
+        node2.init_socket()
+        node2.set_community(community)
+        node2.init_my_member()
+        yield 0.555
+
+        # permit NODE1
+        message = community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit"),
+                                                       (node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"authorize")])
+
+        # flush incoming socket buffer
+        
+        # NODE2 wants the proof that OWNER is allowed to grant authorization to NODE1
+        node2.give_message(node2.create_dispersy_missing_proof_message(message.authorization.member, message.distribution.global_time))
+        yield 0.555
+        
+        # SELF sends dispersy-authorize containing authorize(MASTER, OWNER) to NODE
+        _, authorize = node2.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
+
+        # TODO: check that the received authorize message contains the required proof
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+        
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
