@@ -311,7 +311,8 @@ class Dispersy(Singleton):
         self._statistics = Statistics()
 
         if __debug__:
-            self._callback.register(self._stats)
+            self._callback.register(self._stats_candidates)
+            self._callback.register(self._stats_conversion)
 
     def _retry_bootstrap_candidates(self):
         """
@@ -4054,7 +4055,7 @@ class Dispersy(Singleton):
                     yield desync
 
     if __debug__:
-        def _stats(self):
+        def _stats_candidates(self):
             while True:
                 yield 10.0
                 dprint("---", style="short")
@@ -4062,6 +4063,25 @@ class Dispersy(Singleton):
                     candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
                     dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:5] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:5]), style="short")
 
+        def _stats_conversion(self):
+            # pylint: disable-msg=W0404
+            from conversion import Conversion
+            
+            while True:
+                yield 10.0
+                stats = Conversion.debug_stats
+                total = stats["encode-message"]
+                dprint("=== encoded ", stats["-encode-count"], " messages in ", "%.2fs" % total)
+                for key, value in sorted(stats.iteritems()):
+                    if key.startswith("encode") and not key == "encode-message" and total:
+                        dprint("%7.2fs" % value, " ~%5.1f%%" % (100.0 * value / total), " ", key)
+
+                total = stats["decode-message"]
+                dprint("=== decoded ", stats["-decode-count"], " messages in ", "%.2fs" % total)
+                for key, value in sorted(stats.iteritems()):
+                    if key.startswith("decode") and not key == "decode-message" and total:
+                        dprint("%7.2fs" % value, " ~%5.1f%%" % (100.0 * value / total), " ", key)
+                
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
         Returns a dictionary with runtime statistical information.
