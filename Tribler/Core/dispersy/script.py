@@ -1361,11 +1361,9 @@ class DispersySyncScript(ScriptBase):
         # different sync policies
         self.caller(self.in_order_test)
         self.caller(self.out_order_test)
-        # self.caller(self.random_order_test)
         self.caller(self.mixed_order_test)
         self.caller(self.last_1_test)
         self.caller(self.last_9_test)
-        # self.caller(self.last_9_sequence_test)
 
         # multimember authentication and last sync policies
         self.caller(self.last_1_multimember)
@@ -2148,51 +2146,6 @@ class DispersySyncScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
-
-    # def random_order_test(self):
-    #     community = DebugCommunity.create_community(self._my_member)
-    #     address = self._dispersy.socket.get_address()
-    #     message = community.get_meta_message(u"random-order-text")
-
-    #     # create node and ensure that SELF knows the node address
-    #     node = DebugNode()
-    #     node.init_socket()
-    #     node.set_community(community)
-    #     node.init_my_member()
-
-    #     # should be no messages from NODE yet
-    #     times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-    #     assert_(len(times) == 0, times)
-
-    #     # create some data
-    #     global_times = range(10, 15)
-    #     for global_time in global_times:
-    #         node.give_message(node.create_random_order_text_message("Message #%d" % global_time, global_time))
-
-    #     def get_messages_back():
-    #         received_times = []
-    #         for _ in range(len(global_times)):
-    #             _, message = node.receive_message(addresses=[address], message_names=[u"random-order-text"])
-    #             received_times.append(message.distribution.global_time)
-
-    #         return received_times
-
-    #     lists = []
-    #     for _ in range(5):
-    #         # send an empty sync message to obtain all messages in random-order
-    #         node.give_message(node.create_dispersy_sync_message(min(global_times), max(global_times), [], max(global_times)))
-    #         yield 0.1
-
-    #         received_times = get_messages_back()
-    #         if not received_times in lists:
-    #             lists.append(received_times)
-
-    #     dprint(lists, lines=True)
-    #     assert_(len(lists) > 1)
-
-    #     # cleanup
-    #     community.create_dispersy_destroy_community(u"hard-kill")
-    #     community.unload_community()
 
     def mixed_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
