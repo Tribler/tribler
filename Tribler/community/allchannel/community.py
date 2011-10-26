@@ -415,6 +415,9 @@ class ChannelCastDBStub():
             torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
             last_result_time = message.payload.timestamp
             
+            if message.payload.infohash not in self._cachedTorrents:
+                self._cachedTorrents[message.payload.infohash] = message
+            
         if len(messages) == NUM_OWN_RECENT_TORRENTS:
             sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
             results = list(self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS)))
@@ -423,6 +426,10 @@ class ChannelCastDBStub():
             for cid, message in messages:
                 torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
                 last_result_time = message.payload.timestamp
+                
+                if message.payload.infohash not in self._cachedTorrents:
+                    self._cachedTorrents[message.payload.infohash] = message
+                
         return torrent_dict
     
     def getRandomTorrents(self, channel_id, limit = 15):
@@ -430,14 +437,17 @@ class ChannelCastDBStub():
         results = list(self._dispersy.database.execute(sql, (limit,)))
         messages = self.convert_to_messages(results)
         
-        return [message.payload.infohash for cid, message in messages]
+        for _, message in messages:
+            if message.payload.infohash not in self._cachedTorrents:
+                self._cachedTorrents[message.payload.infohash] = message
+        
+        return [message.payload.infohash for _, message in messages]
     
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
         results = list(self._dispersy.database.execute(sql))
         messages = self.convert_to_messages(results)
         
-        self._cachedTorrents = {}
         for _, message in messages:
             self._cachedTorrents[message.payload.infohash] = message  
             
