@@ -30,6 +30,7 @@ from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 
 from debugcommunity import DebugCommunity, DebugNode
+from Tribler.community.simpledispersytest.conversion import Conversion
 
 class Script(Singleton):
     def __init__(self, callback):
@@ -344,6 +345,21 @@ class ScenarioScriptBase(ScriptBase):
                 total_run[make_valid_key(key)] = self._dispersy.callback._statistics[key]
             if len(total_run) > 0:    
                 log("dispersy.log", "statistics-callback-run", **total_run)
+                
+            stats = Conversion.debug_stats
+            total = stats["encode-message"]
+            nice_total = {'encoded':stats["-encode-count"], 'total':"%.2fs"%total}
+            for key, value in sorted(stats.iteritems()):
+                if key.startswith("encode") and not key == "encode-message" and total:
+                    nice_total[make_valid_key(key)] = "%7.2fs ~%5.1f%%" % (value, 100.0 * value / total)
+            log("dispersy.log", "statistics-encode", **nice_total)
+            
+            total = stats["decode-message"]
+            nice_total = {'decoded':stats["-decode-count"], 'total':"%.2fs"%total}
+            for key, value in sorted(stats.iteritems()):
+                if key.startswith("decode") and not key == "decode-message" and total:
+                    nice_total[make_valid_key(key)] = "%7.2fs ~%5.1f%%" % (value, 100.0 * value / total)
+            log("dispersy.log", "statistics-decode", **nice_total)
 
             desync = yield self._timestep
             self.log_desync(desync)
