@@ -193,23 +193,36 @@ class ChannelCommunity(Community):
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
-    @property
-    def dispersy_sync_bloom_filters(self):
-        #return self.bloom_option_1()
-        log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
-        
-        return self.bloom_option_2()
+#    @property
+#    def dispersy_sync_bloom_filters(self):
+#        #return self.bloom_option_1()
+#        log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
 #        
-#    def bloom_option_1(self):
-#        #did we choose a sync range in the previous run where we got data?
-#        if self._last_sync_range and self._last_sync_space_remaining != self._last_sync_range.space_remaining:
-#            #stick to this one, try again
-#            index = self._sync_ranges.index(self._last_sync_range)
-#        else:
-#            #first time or choose a different one
-#            lambd = 1.0 / (len(self._sync_ranges) / 2.0)
-#            index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
-#        
+#        return self.bloom_option_2()
+##        
+##    def bloom_option_1(self):
+##        #did we choose a sync range in the previous run where we got data?
+##        if self._last_sync_range and self._last_sync_space_remaining != self._last_sync_range.space_remaining:
+##            #stick to this one, try again
+##            index = self._sync_ranges.index(self._last_sync_range)
+##        else:
+##            #first time or choose a different one
+##            lambd = 1.0 / (len(self._sync_ranges) / 2.0)
+##            index = min(int(expovariate(lambd)), len(self._sync_ranges) - 1)
+##        
+##        sync_range = self._sync_ranges[index]
+##        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
+##        
+##        self._last_sync_range = None
+##        self._last_sync_space_remaining = None
+##        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
+##            self._last_sync_range = sync_range
+##            self._last_sync_space_remaining = sync_range.space_remaining
+##            
+##        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]        
+##    
+#    def bloom_option_2(self):
+#        index = randint(0, len(self._sync_ranges) - 1)
 #        sync_range = self._sync_ranges[index]
 #        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
 #        
@@ -219,24 +232,15 @@ class ChannelCommunity(Community):
 #            self._last_sync_range = sync_range
 #            self._last_sync_space_remaining = sync_range.space_remaining
 #            
-#        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]        
+#        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
 #    
-    def bloom_option_2(self):
-        index = randint(0, len(self._sync_ranges) - 1)
-        sync_range = self._sync_ranges[index]
-        time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
-        
-        self._last_sync_range = None
-        self._last_sync_space_remaining = None
-        if index != 0: #first sync range will probably always have 'new' data, do not stick to that one  
-            self._last_sync_range = sync_range
-            self._last_sync_space_remaining = sync_range.space_remaining
-            
-        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
-    
-    @property    
-    def dispersy_sync_bloom_filter_error_rate(self):
-        return 0.3
+#    @property    
+#    def dispersy_sync_bloom_filter_error_rate(self):
+#        return 0.3
+#    
+#    @property
+#    def dispersy_sync_bloom_filter_redundancy(self):
+#        return 10
     
     @property
     def dispersy_sync_response_limit(self):
