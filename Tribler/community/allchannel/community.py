@@ -393,6 +393,8 @@ class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
         self._cachedTorrents = {}
+        
+        self._cacheTorrents()
     
     def convert_to_messages(self, results):
         messages = self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
@@ -438,10 +440,11 @@ class ChannelCastDBStub():
         self._cachedTorrents = {}
         for _, message in messages:
             self._cachedTorrents[message.payload.infohash] = message  
+            
+    def newTorrent(self, message):
+        self._cachedTorrents[message.payload.infohash] = message
 
     def hasTorrents(self, channel_id, infohashes):
-        self._cacheTorrents()
-
         returnAr = []
         for infohash in infohashes:
             if infohash in self._cachedTorrents:
@@ -451,9 +454,6 @@ class ChannelCastDBStub():
         return returnAr
     
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if not infohash in self._cachedTorrents:
-            self._cacheTorrents()
-        
         if infohash in self._cachedTorrents:
             return self._cachedTorrents[infohash].packet_id
 

@@ -157,8 +157,9 @@ class ChannelCommunity(Community):
                 return
             
             def handled_function(messages):
-                for _ in messages:
+                for message in messages:
                     log("dispersy.log", "handled-record",type = "torrent")
+                    self._channelcast_db.newTorrent(message)
                         
             def handled_channel_function(messages):
                 log("dispersy.log", "handled-record", type = "channel")
