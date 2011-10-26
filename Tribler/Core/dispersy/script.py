@@ -32,6 +32,10 @@ from singleton import Singleton
 from debugcommunity import DebugCommunity, DebugNode
 from Tribler.community.simpledispersytest.conversion import Conversion
 
+def assert_(value, *args):
+    if not value:
+        raise AssertionError(*args)
+
 class Script(Singleton):
     def __init__(self, callback):
         self._scripts = {}
@@ -39,9 +43,9 @@ class Script(Singleton):
         self._testcases = []
 
     def add(self, name, script, kargs={}, include_with_all=True):
-        assert isinstance(name, str)
-        assert not name in self._scripts
-        assert issubclass(script, ScriptBase)
+        assert_(isinstance(name, str))
+        assert_(not name in self._scripts)
+        assert_(issubclass(script, ScriptBase))
         self._scripts[name] = (include_with_all, script, kargs)
 
     def load(self, name):
@@ -108,7 +112,7 @@ class ScenarioScriptBase(ScriptBase):
         self._logfile = logfile
 
     def find_peer_by_name(self, peername):
-        assert isinstance(peername, str)
+        assert_(isinstance(peername, str))
         if not peername in self._members:
             with open('data/peers') as fp:
                 for line in fp:
@@ -210,8 +214,8 @@ class ScenarioScriptBase(ScriptBase):
         
         # create my member
         my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
-        assert my_member.public_key
-        assert my_member.private_key
+        assert_(my_member.public_key)
+        assert_(my_member.private_key)
         dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
         if __debug__:
@@ -393,8 +397,8 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert [ClassTestA.load_community(master) for master in ClassTestA.get_master_members()] == [], "Did you remove the database before running this testcase?"
-        assert [ClassTestB.load_community(master) for master in ClassTestB.get_master_members()] == [], "Did you remove the database before running this testcase?"
+        assert_([ClassTestA.load_community(master) for master in ClassTestA.get_master_members()] == [], "Did you remove the database before running this testcase?")
+        assert_([ClassTestB.load_community(master) for master in ClassTestB.get_master_members()] == [], "Did you remove the database before running this testcase?")
 
         # create master member
         ec = ec_generate_key(u"high")
@@ -406,13 +410,13 @@ class DispersyClassificationScript(ScriptBase):
 
         # reclassify
         community = self._dispersy.reclassify_community(master, ClassTestB)
-        assert isinstance(community, ClassTestB)
-        assert community.cid == master.mid
+        assert_(isinstance(community, ClassTestB))
+        assert_(community.cid == master.mid)
         try:
             classification, = self._dispersy_database.execute(u"SELECT classification FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            assert False
-        assert classification == ClassTestB.get_classification()
+            assert_(False)
+        assert_(classification == ClassTestB.get_classification())
 
         # cleanup
         community.unload_community()
@@ -429,22 +433,22 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert [ClassTestC.load_community(master) for master in ClassTestC.get_master_members()] == [], "Did you remove the database before running this testcase?"
-        assert [ClassTestD.load_community(master) for master in ClassTestD.get_master_members()] == [], "Did you remove the database before running this testcase?"
+        assert_([ClassTestC.load_community(master) for master in ClassTestC.get_master_members()] == [], "Did you remove the database before running this testcase?")
+        assert_([ClassTestD.load_community(master) for master in ClassTestD.get_master_members()] == [], "Did you remove the database before running this testcase?")
 
         # create community
         community_c = ClassTestC.create_community(self._my_member)
-        assert len(list(self._dispersy_database.execute(u"SELECT * FROM community WHERE classification = ?", (ClassTestC.get_classification(),)))) == 1
+        assert_(len(list(self._dispersy_database.execute(u"SELECT * FROM community WHERE classification = ?", (ClassTestC.get_classification(),)))) == 1)
 
         # reclassify
         community_d = self._dispersy.reclassify_community(community_c, ClassTestD)
-        assert isinstance(community_d, ClassTestD)
-        assert community_c.cid == community_d.cid
+        assert_(isinstance(community_d, ClassTestD))
+        assert_(community_c.cid == community_d.cid)
         try:
             classification, = self._dispersy_database.execute(u"SELECT classification FROM community WHERE master = ?", (community_c.master_member.database_id,)).next()
         except StopIteration:
-            assert False
-        assert classification == ClassTestD.get_classification()
+            assert_(False)
+        assert_(classification == ClassTestD.get_classification())
 
         # cleanup
         community_d.unload_community()
@@ -456,7 +460,7 @@ class DispersyClassificationScript(ScriptBase):
         """
         class ClassificationLoadNoCommunities(DebugCommunity):
             pass
-        assert [ClassificationLoadNoCommunities.load_community(master) for master in ClassificationLoadNoCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?"
+        assert_([ClassificationLoadNoCommunities.load_community(master) for master in ClassificationLoadNoCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?")
         yield 0.0
 
     def load_one_communities(self):
@@ -468,7 +472,7 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert [ClassificationLoadOneCommunities.load_community(master) for master in ClassificationLoadOneCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?"
+        assert_([ClassificationLoadOneCommunities.load_community(master) for master in ClassificationLoadOneCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?")
 
         # create master member
         ec = ec_generate_key(u"high")
@@ -481,8 +485,8 @@ class DispersyClassificationScript(ScriptBase):
 
         # load one community
         communities = [ClassificationLoadOneCommunities.load_community(master) for master in ClassificationLoadOneCommunities.get_master_members()]
-        assert len(communities) == 1
-        assert isinstance(communities[0], ClassificationLoadOneCommunities)
+        assert_(len(communities) == 1)
+        assert_(isinstance(communities[0], ClassificationLoadOneCommunities))
 
         # cleanup
         communities[0].unload_community()
@@ -497,7 +501,7 @@ class DispersyClassificationScript(ScriptBase):
             pass
 
         # no communities should exist
-        assert [LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()] == []
+        assert_([LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()] == [])
 
         # create two master members
         ec = ec_generate_key(u"high")
@@ -515,9 +519,9 @@ class DispersyClassificationScript(ScriptBase):
 
         # load two community
         communities = [LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()]
-        assert len(communities) == 2, len(communities)
-        assert isinstance(communities[0], LoadTwoCommunities)
-        assert isinstance(communities[1], LoadTwoCommunities)
+        assert_(len(communities) == 2, len(communities))
+        assert_(isinstance(communities[0], LoadTwoCommunities))
+        assert_(isinstance(communities[1], LoadTwoCommunities))
 
         # cleanup
         communities[0].unload_community()
@@ -552,14 +556,14 @@ class DispersyClassificationScript(ScriptBase):
         master = community.master_member
         cid = community.cid
         del community
-        assert isinstance(self._dispersy.get_community(cid), ClassificationUnloadingCommunity)
-        assert check() == 1
+        assert_(isinstance(self._dispersy.get_community(cid), ClassificationUnloadingCommunity))
+        assert_(check() == 1)
 
         # unload the community
         self._dispersy.get_community(cid).unload_community()
         try:
             self._dispersy.get_community(cid, auto_load=False)
-            assert False
+            assert_(False)
         except KeyError:
             pass
 
@@ -572,11 +576,11 @@ class DispersyClassificationScript(ScriptBase):
                 break
             else:
                 yield 1.0
-        assert check(True) == 0
+        assert_(check(True) == 0)
 
         # load the community for cleanup
         community = ClassificationUnloadingCommunity.load_community(master)
-        assert check() == 1
+        assert_(check() == 1)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -605,7 +609,7 @@ class DispersyClassificationScript(ScriptBase):
         yield 0.555
 
         dprint("verify auto-load is enabled (default)")
-        assert community.dispersy_auto_load == True
+        assert_(community.dispersy_auto_load == True)
         yield 0.555
 
         dprint("define auto load")
@@ -616,7 +620,7 @@ class DispersyClassificationScript(ScriptBase):
         community.unload_community()
         try:
             self._dispersy.get_community(community.cid, auto_load=False)
-            assert False
+            assert_(False)
         except KeyError:
             pass
         yield 0.555
@@ -630,10 +634,10 @@ class DispersyClassificationScript(ScriptBase):
         try:
             self._dispersy.get_community(community.cid)
         except KeyError:
-            assert False
+            assert_(False)
         # verify that the message was received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert global_time in times
+        assert_(global_time in times)
         yield 0.555
 
         dprint("undefine auto load")
@@ -669,7 +673,7 @@ class DispersyClassificationScript(ScriptBase):
         node.init_my_member(candidate=False)
 
         dprint("verify auto-load is enabled (default)")
-        assert community.dispersy_auto_load == True
+        assert_(community.dispersy_auto_load == True)
 
         dprint("define auto load")
         self._dispersy.define_auto_load(DebugCommunity)
@@ -678,7 +682,7 @@ class DispersyClassificationScript(ScriptBase):
         community.unload_community()
         try:
             self._dispersy.get_community(community.cid, auto_load=False)
-            assert False
+            assert_(False)
         except KeyError:
             pass
 
@@ -690,20 +694,20 @@ class DispersyClassificationScript(ScriptBase):
         try:
             self._dispersy.get_community(community.cid)
         except KeyError:
-            assert False
+            assert_(False)
         # verify that the message was received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert global_time in times
+        assert_(global_time in times)
 
         dprint("disable auto-load")
         community.dispersy_auto_load = False
-        assert community.dispersy_auto_load == False
+        assert_(community.dispersy_auto_load == False)
 
         dprint("unload community")
         community.unload_community()
         try:
             self._dispersy.get_community(community.cid, auto_load=False)
-            assert False
+            assert_(False)
         except KeyError:
             pass
 
@@ -714,12 +718,12 @@ class DispersyClassificationScript(ScriptBase):
         dprint("verify that the community did not get auto-loaded")
         try:
             self._dispersy.get_community(community.cid, auto_load=False)
-            assert False
+            assert_(False)
         except KeyError:
             pass
         # verify that the message was NOT received
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert not global_time in times
+        assert_(not global_time in times)
 
         dprint("undefine auto load")
         self._dispersy.undefine_auto_load(DebugCommunity)
@@ -734,10 +738,10 @@ class DispersyTimelineScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        # self.caller(self.succeed_check)
-        # self.caller(self.fail_check)
-        # self.caller(self.loading_community)
-        # self.caller(self.delay_by_proof)
+        self.caller(self.succeed_check)
+        self.caller(self.fail_check)
+        self.caller(self.loading_community)
+        self.caller(self.delay_by_proof)
         self.caller(self.missing_proof)
 
     def succeed_check(self):
@@ -758,9 +762,9 @@ class DispersyTimelineScript(ScriptBase):
 
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
-        assert message.authentication.member == self._my_member
+        assert_(message.authentication.member == self._my_member)
         result = list(message.check_callback([message]))
-        assert result == [message], "check_... methods should return a generator with the accepted messages"
+        assert_(result == [message], "check_... methods should return a generator with the accepted messages")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -787,10 +791,10 @@ class DispersyTimelineScript(ScriptBase):
 
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
-        assert message.authentication.member == self._my_member
+        assert_(message.authentication.member == self._my_member)
         result = list(message.check_callback([message]))
-        assert len(result) == 1, "check_... methods should return a generator with the accepted messages"
-        assert isinstance(result[0], DelayMessageByProof), "check_... methods should return a generator with the accepted messages"
+        assert_(len(result) == 1, "check_... methods should return a generator with the accepted messages")
+        assert_(isinstance(result[0], DelayMessageByProof), "check_... methods should return a generator with the accepted messages")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
@@ -817,11 +821,11 @@ class DispersyTimelineScript(ScriptBase):
 
         # load the same community and see if the same permissions are loaded
         communities = [LoadingCommunityTestCommunity.load_community(master) for master in LoadingCommunityTestCommunity.get_master_members()]
-        assert len(communities) == 1
+        assert_(len(communities) == 1)
 
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
-        assert community._timeline.check(message)
+        assert_(community._timeline.check(message))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -867,12 +871,12 @@ class DispersyTimelineScript(ScriptBase):
             pass
 
         else:
-            assert False, "should not have stored, did not have permission"
+            assert_(False, "should not have stored, did not have permission")
 
         # SELF sends dispersy-missing-proof to NODE2
         _, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-missing-proof"])
-        assert message.payload.member.public_key == node2.my_member.public_key
-        assert message.payload.global_time == global_time
+        assert_(message.payload.member.public_key == node2.my_member.public_key)
+        assert_(message.payload.global_time == global_time)
 
         # NODE1 provides proof
         sequence_number = 1
@@ -885,7 +889,7 @@ class DispersyTimelineScript(ScriptBase):
             packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                        (community.database_id, node2.my_member.database_id, global_time)).next()
         except StopIteration:
-            assert False, "should have been stored"
+            assert_(False, "should have been stored")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -947,14 +951,14 @@ class DispersyDestroyCommunityScript(ScriptBase):
         
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # send a message
         global_time = 10
         node.give_message(node.create_full_sync_text_message("should be accepted (1)", global_time))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time in times
+        assert_(len(times) == 1)
+        assert_(global_time in times)
 
         # destroy the community
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -962,11 +966,11 @@ class DispersyDestroyCommunityScript(ScriptBase):
 
         # node should receive the dispersy-destroy-community message
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-destroy-community"])
-        assert not message.payload.is_soft_kill
-        assert message.payload.is_hard_kill
+        assert_(not message.payload.is_soft_kill)
+        assert_(message.payload.is_hard_kill)
 
         # the malicious_proof table must be empty
-        assert not list(self._dispersy_database.execute(u"SELECT * FROM malicious_proof WHERE community = ?", (community.database_id,)))
+        assert_(not list(self._dispersy_database.execute(u"SELECT * FROM malicious_proof WHERE community = ?", (community.database_id,))))
 
         # the database should have been cleaned
         # todo
@@ -999,20 +1003,20 @@ class DispersyMemberTagScript(ScriptBase):
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # send a message
         global_time = 10
         node.give_message(node.create_full_sync_text_message("should be accepted (1)", global_time))
         yield 0.555
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [10], times
+        assert_(times == [10], times)
 
         # we now tag the member as ignore
         Member.get_instance(node.my_member.public_key).must_ignore = True
 
         tags, = self._dispersy_database.execute(u"SELECT tags FROM member WHERE id = ?", (node.my_member.database_id,)).next()
-        assert u"ignore" in tags.split(",")
+        assert_(u"ignore" in tags.split(","))
 
         # send a message and ensure it is in the database (ignore still means it must be stored in
         # the database)
@@ -1020,7 +1024,7 @@ class DispersyMemberTagScript(ScriptBase):
         node.give_message(node.create_full_sync_text_message("should be accepted (2)", global_time))
         yield 0.555
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert sorted(times) == [10, 20], times
+        assert_(sorted(times) == [10, 20], times)
 
         # we now tag the member not to ignore
         Member.get_instance(node.my_member.public_key).must_ignore = False
@@ -1030,7 +1034,7 @@ class DispersyMemberTagScript(ScriptBase):
         node.give_message(node.create_full_sync_text_message("should be accepted (3)", global_time))
         yield 0.555
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert sorted(times) == [10, 20, 30], times
+        assert_(sorted(times) == [10, 20, 30], times)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1056,29 +1060,29 @@ class DispersyMemberTagScript(ScriptBase):
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # send a message
         global_time = 10
         node.give_message(node.create_full_sync_text_message("should be accepted (1)", global_time))
         yield 0.555
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time in times
+        assert_(len(times) == 1)
+        assert_(global_time in times)
 
         # we now tag the member as blacklist
         Member.get_instance(node.my_member.public_key).must_blacklist = True
 
         tags, = self._dispersy_database.execute(u"SELECT tags FROM member WHERE id = ?", (node.my_member.database_id,)).next()
-        assert u"blacklist" in tags.split(",")
+        assert_(u"blacklist" in tags.split(","))
 
         # send a message and ensure it is not in the database
         global_time = 20
         node.give_message(node.create_full_sync_text_message("should NOT be accepted (2)", global_time))
         yield 0.555
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time not in times
+        assert_(len(times) == 1)
+        assert_(global_time not in times)
 
         # we now tag the member not to blacklist
         Member.get_instance(node.my_member.public_key).must_blacklist = False
@@ -1088,8 +1092,8 @@ class DispersyMemberTagScript(ScriptBase):
         node.give_message(node.create_full_sync_text_message("should be accepted (3)", global_time))
         yield 0.555
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 2
-        assert global_time in times
+        assert_(len(times) == 2)
+        assert_(global_time in times)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1132,7 +1136,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [global_time], (times, [global_time])
+        assert_(times == [global_time], (times, [global_time]))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1164,7 +1168,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # second batch
         for _ in range(10):
@@ -1173,7 +1177,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1204,7 +1208,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1239,7 +1243,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # second batch
         for index in range(10):
@@ -1248,7 +1252,7 @@ class DispersyBatchScript(ScriptBase):
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1322,7 +1326,7 @@ class DispersyBatchScript(ScriptBase):
 
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
-        assert self._big_batch_took < self._small_batches_took
+        assert_(self._big_batch_took < self._small_batches_took, [self._big_batch_took, self._small_batches_took])
 
 class DispersySyncScript(ScriptBase):
     def run(self):
@@ -1367,17 +1371,17 @@ class DispersySyncScript(ScriptBase):
         time_high = 0
         for index, sync_range in zip(count(), community._sync_ranges):
             if verbose: dprint(index, ": range [", sync_range.time_low, ":", time_high if time_high else "inf", "] space_remaining: ", sync_range.space_remaining, "; freed: ", sync_range.space_freed, "; used: ", sync_range.capacity - sync_range.space_remaining - sync_range.space_freed, "; capacity: ", sync_range.capacity)
-            assert sync_range.space_remaining >= minimal_remaining, (sync_range.space_remaining, ">=", minimal_remaining)
+            assert_(sync_range.space_remaining >= minimal_remaining, (sync_range.space_remaining, ">=", minimal_remaining))
             time_high = sync_range.time_low - 1
 
         for message in messages:
             for sync_range in community._sync_ranges:
                 if sync_range.time_low <= message.distribution.global_time:
                     for bloom_filter in sync_range.bloom_filters:
-                        assert message.packet in bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time]))
+                        assert_(message.packet in bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time])))
                     break
             else:
-                assert False, "should always find the sync_range"
+                assert_(False, "should always find the sync_range")
         if verbose: dprint("Verified ", len(messages), " messages")
 
     def batch_reversed_enlarging_sync_bloom(self):
@@ -1394,9 +1398,9 @@ class DispersySyncScript(ScriptBase):
         space_remaining = 10 - self._initial_spaces_used_in_sync
 
         community = TestCommunity.create_community(self._my_member)
-        assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining, [community._sync_ranges[0].space_remaining, space_remaining]
+        assert_(community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining, [community._sync_ranges[0].space_remaining, space_remaining])
 
         messages = []
         for counter in xrange(11):
@@ -1427,7 +1431,7 @@ class DispersySyncScript(ScriptBase):
 
         # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
         # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1448,9 +1452,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         messages = []
         for counter in xrange(11):
@@ -1482,7 +1486,7 @@ class DispersySyncScript(ScriptBase):
 
         # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
         # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1503,9 +1507,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         messages = []
         for counter in xrange(11):
@@ -1536,7 +1540,7 @@ class DispersySyncScript(ScriptBase):
 
         # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
         # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1560,9 +1564,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         messages = []
         for counter in xrange(11):
@@ -1594,7 +1598,7 @@ class DispersySyncScript(ScriptBase):
 
         # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
         # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal)
+        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1617,17 +1621,17 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 1
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
 
         # create a few messages in each sync bloom filter range
         messages = []
@@ -1637,17 +1641,17 @@ class DispersySyncScript(ScriptBase):
         # we should have around (100+4) / 25 = 4.16 = 5 sync ranges
         for sync_range in community._sync_ranges:
             dprint("range [", sync_range.time_low, ":... space_remaining: ", sync_range.space_remaining)
-            assert sync_range.space_remaining >= 0
-        assert len(community._sync_ranges) == 5
+            assert_(sync_range.space_remaining >= 0)
+        assert_(len(community._sync_ranges) == 5)
 
         for message in messages:
             for sync_range in community._sync_ranges:
                 if sync_range.time_low <= message.distribution.global_time:
                     for bloom_filter in sync_range.bloom_filters:
-                        assert message.packet in bloom_filter
+                        assert_(message.packet in bloom_filter)
                     break
             else:
-                assert False, "should always find the sync_range"
+                assert_(False, "should always find the sync_range")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1669,9 +1673,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1679,7 +1683,7 @@ class DispersySyncScript(ScriptBase):
         node.set_community(community)
         node.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert community._sync_ranges[0].space_remaining == space_remaining - 1
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
 
         # create a lot of messages, the first few sync ranges should go 'empty'
         for global_time in xrange(10, 51):
@@ -1688,7 +1692,7 @@ class DispersySyncScript(ScriptBase):
 
         # at least one sync range must have been removed!  in total there should be 4 + 9 = 13
         # messages (disp-identity*3, disp-authorize, last9*9) hence there will be two sync ranges
-        assert len(community._sync_ranges) == 2
+        assert_(len(community._sync_ranges) == 2)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1719,9 +1723,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -1729,8 +1733,8 @@ class DispersySyncScript(ScriptBase):
         nodeA.set_community(community)
         nodeA.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 1
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
@@ -1738,8 +1742,8 @@ class DispersySyncScript(ScriptBase):
         nodeB.set_community(community)
         nodeB.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 2
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 2)
 
         # the remaining_messages will contain messages that must be in the sync ranges after the merge
         remaining_messages = []
@@ -1747,15 +1751,15 @@ class DispersySyncScript(ScriptBase):
         # ensure that range (100:1] is completely filled (index 0)
         for i in xrange(5):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # ensure that range (200:100] is completely filled (index 1)
         for i in xrange(10):
             remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
-        assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 2)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # fill range (300:200] with 50% filler and 50% removable (index 2)
         for i in xrange(5):
@@ -1764,10 +1768,10 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(210, 215)]
         nodeA.give_messages(messages)
-        assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 3)
+        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # fill range (400:300] with 50% filler and 50% removable (index 3)
         for i in xrange(5):
@@ -1776,11 +1780,11 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(310, 315)]
         nodeB.give_messages(messages)
-        assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining
-        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 4)
+        assert_(community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining)
+        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # now we will free 50% of in the (500:400] range (index 2)
         messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
@@ -1797,12 +1801,12 @@ class DispersySyncScript(ScriptBase):
 
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        assert len(community._sync_ranges) == 5
-        assert community._sync_ranges[4].space_remaining == 0, community._sync_ranges[4].space_remaining
-        assert community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining
-        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 2, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 5)
+        assert_(community._sync_ranges[4].space_remaining == 0, community._sync_ranges[4].space_remaining)
+        assert_(community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining)
+        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 2, community._sync_ranges[0].space_remaining)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1835,9 +1839,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -1845,8 +1849,8 @@ class DispersySyncScript(ScriptBase):
         nodeA.set_community(community)
         nodeA.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 1
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
@@ -1854,8 +1858,8 @@ class DispersySyncScript(ScriptBase):
         nodeB.set_community(community)
         nodeB.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 2
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 2)
 
         # create node and ensure that SELF knows the node address
         nodeC = DebugNode()
@@ -1863,8 +1867,8 @@ class DispersySyncScript(ScriptBase):
         nodeC.set_community(community)
         nodeC.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 3
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 3)
 
         # the remaining_messages will contain messages that must be in the sync ranges after the merge
         remaining_messages = []
@@ -1872,8 +1876,8 @@ class DispersySyncScript(ScriptBase):
         # ensure that range (100:1] is completely filled (index 0)
         for i in xrange(4):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # fill range (200:100] with 50% filler and 50% removable (index 1)
         for i in xrange(5):
@@ -1882,9 +1886,9 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(110, 115)]
         nodeA.give_messages(messages)
-        assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 2)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # fill range (300:200] with 50% filler and 50% removable (index 2)
         for i in xrange(5):
@@ -1893,10 +1897,10 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(210, 215)]
         nodeB.give_messages(messages)
-        assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 3)
+        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # fill range (400:300] with 50% filler and 50% removable (index 3)
         for i in xrange(5):
@@ -1905,11 +1909,11 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(310, 315)]
         nodeC.give_messages(messages)
-        assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining
-        assert community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining
-        assert community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 4)
+        assert_(community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining)
+        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
+        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # now we will free 50% in the (200:100] range (index 1)
         messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
@@ -1926,20 +1930,20 @@ class DispersySyncScript(ScriptBase):
                      for global_time in
                      xrange(430, 439)]
         messages = messagesA + messagesB + messagesC
-        assert len(messages) == 3 * 9
+        assert_(len(messages) == 3 * 9)
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
         remaining_messages.extend(messages)
         nodeC.give_messages(messages)
 
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        assert len(community._sync_ranges) >= 6
-        assert community._sync_ranges[-1].space_remaining == 0, community._sync_ranges[-1].space_remaining
-        assert community._sync_ranges[-1].space_freed == 0
-        assert community._sync_ranges[-2].space_remaining == 0, community._sync_ranges[-2].space_remaining
-        assert community._sync_ranges[-2].space_freed == 0
-        assert community._sync_ranges[-3].space_remaining == 0, community._sync_ranges[-3].space_remaining
-        assert community._sync_ranges[-3].space_freed == 5
+        assert_(len(community._sync_ranges) >= 6)
+        assert_(community._sync_ranges[-1].space_remaining == 0, community._sync_ranges[-1].space_remaining)
+        assert_(community._sync_ranges[-1].space_freed == 0)
+        assert_(community._sync_ranges[-2].space_remaining == 0, community._sync_ranges[-2].space_remaining)
+        assert_(community._sync_ranges[-2].space_freed == 0)
+        assert_(community._sync_ranges[-3].space_remaining == 0, community._sync_ranges[-3].space_remaining)
+        assert_(community._sync_ranges[-3].space_freed == 5)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1969,9 +1973,9 @@ class DispersySyncScript(ScriptBase):
 
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert community._sync_ranges[0].capacity == 10
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -1979,8 +1983,8 @@ class DispersySyncScript(ScriptBase):
         nodeA.set_community(community)
         nodeA.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 1
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
 
         # create node and ensure that SELF knows the node address
         nodeB = DebugNode()
@@ -1988,8 +1992,8 @@ class DispersySyncScript(ScriptBase):
         nodeB.set_community(community)
         nodeB.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 2
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 2)
 
         # create node and ensure that SELF knows the node address
         nodeC = DebugNode()
@@ -1997,8 +2001,8 @@ class DispersySyncScript(ScriptBase):
         nodeC.set_community(community)
         nodeC.init_my_member()
         self.assert_sync_ranges(community, [])
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining - 3
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining - 3)
 
         # the remaining_messages will contain messages that must be in the sync ranges after the merge
         remaining_messages = []
@@ -2006,8 +2010,8 @@ class DispersySyncScript(ScriptBase):
         # ensure that range (100:1] is completely filled (index 0)
         for i in xrange(4):
             remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
 
         # fill range (200:100] with 30% filler and 70% removable (index 1)
         for i in xrange(3):
@@ -2016,9 +2020,9 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(110, 117)]
         nodeA.give_messages(messages)
-        assert len(community._sync_ranges) == 2
-        assert community._sync_ranges[1].space_remaining == 0
-        assert community._sync_ranges[0].space_remaining == 0
+        assert_(len(community._sync_ranges) == 2)
+        assert_(community._sync_ranges[1].space_remaining == 0)
+        assert_(community._sync_ranges[0].space_remaining == 0)
 
         # fill range (300:200] with 30% filler and 70% removable (index 2)
         for i in xrange(3):
@@ -2027,10 +2031,10 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(210, 217)]
         nodeB.give_messages(messages)
-        assert len(community._sync_ranges) == 3
-        assert community._sync_ranges[2].space_remaining == 0
-        assert community._sync_ranges[1].space_remaining == 0
-        assert community._sync_ranges[0].space_remaining == 0
+        assert_(len(community._sync_ranges) == 3)
+        assert_(community._sync_ranges[2].space_remaining == 0)
+        assert_(community._sync_ranges[1].space_remaining == 0)
+        assert_(community._sync_ranges[0].space_remaining == 0)
 
         # fill range (400:300] with 30% filler and 70% removable (index 3)
         for i in xrange(3):
@@ -2039,11 +2043,11 @@ class DispersySyncScript(ScriptBase):
                     for global_time in
                     xrange(310, 317)]
         nodeC.give_messages(messages)
-        assert len(community._sync_ranges) == 4
-        assert community._sync_ranges[3].space_remaining == 0
-        assert community._sync_ranges[2].space_remaining == 0
-        assert community._sync_ranges[1].space_remaining == 0
-        assert community._sync_ranges[0].space_remaining == 0
+        assert_(len(community._sync_ranges) == 4)
+        assert_(community._sync_ranges[3].space_remaining == 0)
+        assert_(community._sync_ranges[2].space_remaining == 0)
+        assert_(community._sync_ranges[1].space_remaining == 0)
+        assert_(community._sync_ranges[0].space_remaining == 0)
 
         # now we will free 70% in the (200:100] range (index 1)
         messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
@@ -2066,9 +2070,9 @@ class DispersySyncScript(ScriptBase):
 
         # merge should be complete
         self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        assert len(community._sync_ranges) >= 6
-        assert community._sync_ranges[-1].space_remaining == 0
-        assert community._sync_ranges[-2].space_remaining == 1
+        assert_(len(community._sync_ranges) >= 6)
+        assert_(community._sync_ranges[-1].space_remaining == 0)
+        assert_(community._sync_ranges[-2].space_remaining == 1)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2087,7 +2091,7 @@ class DispersySyncScript(ScriptBase):
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # create some data
         global_times = range(10, 15)
@@ -2100,7 +2104,7 @@ class DispersySyncScript(ScriptBase):
 
         for global_time in global_times:
             _, message = node.receive_message(addresses=[address], message_names=[u"ASC-text"])
-            assert message.distribution.global_time == global_time
+            assert_(message.distribution.global_time == global_time)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2119,7 +2123,7 @@ class DispersySyncScript(ScriptBase):
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # create some data
         global_times = range(10, 15)
@@ -2132,7 +2136,7 @@ class DispersySyncScript(ScriptBase):
 
         for global_time in reversed(global_times):
             _, message = node.receive_message(addresses=[address], message_names=[u"DESC-text"])
-            assert message.distribution.global_time == global_time
+            assert_(message.distribution.global_time == global_time)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2151,7 +2155,7 @@ class DispersySyncScript(ScriptBase):
 
     #     # should be no messages from NODE yet
     #     times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-    #     assert len(times) == 0, times
+    #     assert_(len(times) == 0, times)
 
     #     # create some data
     #     global_times = range(10, 15)
@@ -2177,7 +2181,7 @@ class DispersySyncScript(ScriptBase):
     #             lists.append(received_times)
 
     #     dprint(lists, lines=True)
-    #     assert len(lists) > 1
+    #     assert_(len(lists) > 1)
 
     #     # cleanup
     #     community.create_dispersy_destroy_community(u"hard-kill")
@@ -2199,7 +2203,7 @@ class DispersySyncScript(ScriptBase):
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN reference_member_sync ON (reference_member_sync.sync = sync.id) WHERE sync.community = ? AND reference_member_sync.member = ? AND sync.meta_message IN (?, ?)", (community.database_id, node.my_member.database_id, in_order_message.database_id, out_order_message.database_id)))
         #, random_order_message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # create some data
         global_times = range(10, 25, 2)
@@ -2237,22 +2241,22 @@ class DispersySyncScript(ScriptBase):
 
             # followed by DESC
             received_out_times = received_times[0:len(out_order_times)]
-            assert out_order_times == received_out_times, (out_order_times, received_out_times)
+            assert_(out_order_times == received_out_times, (out_order_times, received_out_times))
 
             # the first items must be ASC
             received_in_times = received_times[len(out_order_times):len(in_order_times) + len(out_order_times)]
-            assert in_order_times == received_in_times, (in_order_times, received_in_times)
+            assert_(in_order_times == received_in_times, (in_order_times, received_in_times))
 
             # # followed by random-order
             # received_random_times = received_times[len(in_order_times) + len(out_order_times):]
             # for global_time in received_random_times:
-            #     assert global_time in random_order_times
+            #     assert_(global_time in random_order_times)
 
             # if not received_times in lists:
             #     lists.append(received_times)
 
         # dprint(lists, lines=True)
-        # assert len(lists) > 1
+        # assert_(len(lists) > 1)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2271,45 +2275,45 @@ class DispersySyncScript(ScriptBase):
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0, times
+        assert_(len(times) == 0, times)
 
         # send a message
         global_time = 10
         node.give_message(node.create_last_1_test_message("should be accepted (1)", global_time))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time in times
+        assert_(len(times) == 1)
+        assert_(global_time in times)
 
         # send a message
         global_time = 11
         node.give_message(node.create_last_1_test_message("should be accepted (2)", global_time))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1, len(times)
-        assert global_time in times
+        assert_(len(times) == 1, len(times))
+        assert_(global_time in times)
 
         # send a message (older: should be dropped)
         node.give_message(node.create_last_1_test_message("should be dropped (1)", 8))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time in times
+        assert_(len(times) == 1)
+        assert_(global_time in times)
 
         # as proof for the drop, the newest message should be sent back
         yield 0.1
         _, message = node.receive_message(addresses=[address], message_names=[u"last-1-test"])
-        assert message.distribution.global_time == 11
+        assert_(message.distribution.global_time == 11)
 
         # send a message (duplicate: should be dropped)
         node.give_message(node.create_last_1_test_message("should be dropped (2)", global_time))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time in times
+        assert_(len(times) == 1)
+        assert_(global_time in times)
 
         # send a message
         global_time = 12
         node.give_message(node.create_last_1_test_message("should be accepted (3)", global_time))
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert len(times) == 1
-        assert global_time in times
+        assert_(len(times) == 1)
+        assert_(global_time in times)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2328,7 +2332,7 @@ class DispersySyncScript(ScriptBase):
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
-        assert len(times) == 0
+        assert_(len(times) == 0)
 
         number_of_messages = 0
         for global_time in [21, 20, 28, 27, 22, 23, 24, 26, 25]:
@@ -2339,21 +2343,21 @@ class DispersySyncScript(ScriptBase):
             try:
                 packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             except StopIteration:
-                assert False
-            assert str(packet) == message.packet
+                assert_(False)
+            assert_(str(packet) == message.packet)
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             dprint(sorted(times))
-            assert len(times) == number_of_messages, (len(times), number_of_messages)
-            assert global_time in times
-        assert number_of_messages == 9, number_of_messages
+            assert_(len(times) == number_of_messages, (len(times), number_of_messages))
+            assert_(global_time in times)
+        assert_(number_of_messages == 9, number_of_messages)
 
         dprint("Older: should be dropped")
         for global_time in [11, 12, 13, 19, 18, 17]:
             # send a message (older: should be dropped)
             node.give_message(node.create_last_9_test_message(str(global_time), global_time))
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-            assert len(times) == 9, len(times)
-            assert not global_time in times
+            assert_(len(times) == 9, len(times))
+            assert_(not global_time in times)
 
         dprint("Duplicate: should be dropped")
         for global_time in [21, 20, 28, 27, 22, 23, 24, 26, 25]:
@@ -2363,10 +2367,10 @@ class DispersySyncScript(ScriptBase):
             try:
                 packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             except StopIteration:
-                assert False
-            assert not str(packet) == message.packet
+                assert_(False)
+            assert_(not str(packet) == message.packet)
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-            assert sorted(times) == range(20, 29), sorted(times)
+            assert_(sorted(times) == range(20, 29), sorted(times))
 
         dprint("Should be added and old one removed")
         match_times = sorted(times[:])
@@ -2380,11 +2384,11 @@ class DispersySyncScript(ScriptBase):
             try:
                 packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, global_time, message.database_id)).next()
             except StopIteration:
-                assert False
-            assert str(packet) == message.packet
+                assert_(False)
+            assert_(str(packet) == message.packet)
             times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
             dprint(sorted(times))
-            assert sorted(times) == match_times, sorted(times)
+            assert_(sorted(times) == match_times, sorted(times))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2449,11 +2453,11 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1)", other_global_time))
         nodeA.give_messages(messages)
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.member, reference_member_sync.member FROM sync JOIN reference_member_sync ON reference_member_sync.sync = sync.id WHERE sync.community = ? AND sync.member = ? AND sync.meta_message = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
-        assert len(entries) == 4, entries
-        assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
+        assert_(len(entries) == 4, entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries)
 
         # send a message
         global_time = 20
@@ -2463,11 +2467,11 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2) @%d" % other_global_time, other_global_time))
         nodeA.give_messages(messages)
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.member, reference_member_sync.member FROM sync JOIN reference_member_sync ON reference_member_sync.sync = sync.id WHERE sync.community = ? AND sync.member = ? AND sync.meta_message = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
-        assert len(entries) == 4, entries
-        assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
+        assert_(len(entries) == 4, entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries)
 
         # send a message (older: should be dropped)
         old_global_time = 8
@@ -2476,11 +2480,11 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be dropped (1)", old_global_time))
         nodeA.give_messages(messages)
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.member, reference_member_sync.member FROM sync JOIN reference_member_sync ON reference_member_sync.sync = sync.id WHERE sync.community = ? AND sync.member = ? AND sync.meta_message = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
-        assert len(entries) == 4, entries
-        assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries, entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
+        assert_(len(entries) == 4, entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries, entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries)
 
         yield 0.1
         nodeA.drop_packets()
@@ -2492,11 +2496,11 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (1)", old_global_time))
         nodeA.give_messages(messages)
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.member, reference_member_sync.member FROM sync JOIN reference_member_sync ON reference_member_sync.sync = sync.id WHERE sync.community = ? AND sync.member = ? AND sync.meta_message = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
-        assert len(entries) == 4, entries
-        assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
+        assert_(len(entries) == 4, entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries)
 
         # as proof for the drop, the newest message should be sent back
         yield 0.1
@@ -2505,7 +2509,7 @@ class DispersySyncScript(ScriptBase):
         times.append(message.distribution.global_time)
         _, message = nodeA.receive_message(addresses=[address], message_names=[u"last-1-multimember-text"])
         times.append(message.distribution.global_time)
-        assert sorted(times) == [global_time, other_global_time]
+        assert_(sorted(times) == [global_time, other_global_time])
 
         # send a message (older + different member combination: should be dropped)
         old_global_time = 9
@@ -2514,11 +2518,11 @@ class DispersySyncScript(ScriptBase):
         messages.append(nodeC.create_last_1_multimember_text_message([nodeA.my_member], "should be dropped (2)", old_global_time))
         nodeA.give_messages(messages)
         entries = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.member, reference_member_sync.member FROM sync JOIN reference_member_sync ON reference_member_sync.sync = sync.id WHERE sync.community = ? AND sync.member = ? AND sync.meta_message = ?", (community.database_id, nodeA.my_member.database_id, message.database_id)))
-        assert len(entries) == 4, entries
-        assert (global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries
-        assert (other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries
+        assert_(len(entries) == 4, entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((global_time, nodeA.my_member.database_id, nodeB.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeA.my_member.database_id) in entries)
+        assert_((other_global_time, nodeA.my_member.database_id, nodeC.my_member.database_id) in entries)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2561,7 +2565,7 @@ class DispersySyncScript(ScriptBase):
         nodeA.give_messages(messages)
 
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, nodeA.my_member.database_id, message.database_id))]
-        assert times == [global_time], times
+        assert_(times == [global_time], times)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2591,9 +2595,9 @@ class DispersySyncScript(ScriptBase):
         community = TestCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"last-1-multimember-text")
-        assert community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity
-        assert len(community._sync_ranges) == 1
-        assert community._sync_ranges[0].space_remaining == space_remaining
+        assert_(community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity)
+        assert_(len(community._sync_ranges) == 1)
+        assert_(community._sync_ranges[0].space_remaining == space_remaining)
 
         # create node and ensure that SELF knows the node address
         nodeA = DebugNode()
@@ -2679,7 +2683,7 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         messages = []
         messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
         messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
-        assert messages[0].packet != messages[1].packet, "the signature must make the messages unique"
+        assert_(messages[0].packet != messages[1].packet, "the signature must make the messages unique")
 
         # sort.  we now know that the first message must be dropped
         messages.sort(key=lambda x: x.packet)
@@ -2695,16 +2699,16 @@ class DispersyIdenticalPayloadScript(ScriptBase):
             packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                        (community.database_id, node.my_member.database_id, global_time)).next()
         except StopIteration:
-            assert False, "neither messages is stored"
+            assert_(False, "neither messages is stored")
 
         packet = str(packet)
-        assert packet == messages[1].packet
+        assert_(packet == messages[1].packet)
 
         # both packets must be in the bloom filter
-        assert len(community._sync_ranges) == 1
+        assert_(len(community._sync_ranges) == 1)
         for message in messages:
             for bloom_filter in community._sync_ranges[0].bloom_filters:
-                assert message.packet in bloom_filter
+                assert_(message.packet in bloom_filter)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2732,7 +2736,7 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         messages = []
         messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
         messages.append(node.create_full_sync_text_message("Identical payload message", global_time))
-        assert messages[0].packet != messages[1].packet, "the signature must make the messages unique"
+        assert_(messages[0].packet != messages[1].packet, "the signature must make the messages unique")
 
         # sort.  we now know that the first message must be dropped
         messages.sort(key=lambda x: x.packet)
@@ -2748,16 +2752,16 @@ class DispersyIdenticalPayloadScript(ScriptBase):
             packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                        (community.database_id, node.my_member.database_id, global_time)).next()
         except StopIteration:
-            assert False, "neither messages is stored"
+            assert_(False, "neither messages is stored")
 
         packet = str(packet)
-        assert packet == messages[1].packet
+        assert_(packet == messages[1].packet)
 
         # both packets must be in the bloom filter
-        assert len(community._sync_ranges) == 1
+        assert_(len(community._sync_ranges) == 1)
         for message in messages:
             for bloom_filter in community._sync_ranges[0].bloom_filters:
-                assert message.packet in bloom_filter
+                assert_(message.packet in bloom_filter)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2791,7 +2795,7 @@ class DispersySignatureScript(ScriptBase):
 
         dprint("SELF requests NODE to double sign")
         def on_response(response):
-            assert response is None
+            assert_(response is None)
             container["timeout"] += 1
         request = community.create_double_signed_text("Accept=<does not reach this point>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
         yield 0.11
@@ -2807,7 +2811,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         dprint("SELF must have timed out by now")
-        assert container["timeout"] == 1, container["timeout"]
+        assert_(container["timeout"] == 1, container["timeout"])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2832,8 +2836,8 @@ class DispersySignatureScript(ScriptBase):
 
         dprint("SELF requests NODE to double sign")
         def on_response(response):
-            assert container["response"] == 0, container["response"]
-            assert request.authentication.is_signed
+            assert_(container["response"] == 0, container["response"])
+            assert_(request.authentication.is_signed)
             container["response"] += 1
         request = community.create_double_signed_text("Accept=<does not matter>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
         yield 0.11
@@ -2843,7 +2847,7 @@ class DispersySignatureScript(ScriptBase):
         submsg = message.payload.message
         second_signature_offset = len(submsg.packet) - community.my_member.signature_length
         first_signature_offset = second_signature_offset - node.my_member.signature_length
-        assert submsg.packet[second_signature_offset:] == "\x00" * node.my_member.signature_length, "The first signature MUST BE \x00's.  The creator must hold control over the community+member+global_time triplet"
+        assert_(submsg.packet[second_signature_offset:] == "\x00" * node.my_member.signature_length, "The first signature MUST BE \x00's.  The creator must hold control over the community+member+global_time triplet")
         signature = node.my_member.sign(submsg.packet, length=first_signature_offset)
 
         dprint("NODE sends dispersy-signature-response message to SELF")
@@ -2851,7 +2855,7 @@ class DispersySignatureScript(ScriptBase):
         global_time = community.global_time
         node.give_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address))
         yield 1.11
-        assert container["response"] == 1, container["response"]
+        assert_(container["response"] == 1, container["response"])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2883,7 +2887,7 @@ class DispersySignatureScript(ScriptBase):
 
         # SELF requests NODE1 and NODE2 to double sign
         def on_response(response):
-            assert response is None
+            assert_(response is None)
             container["timeout"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
         yield 0.11
@@ -2898,7 +2902,7 @@ class DispersySignatureScript(ScriptBase):
             dprint("waiting... ", 4 - counter)
             yield 1.0
 
-        assert container["timeout"] == 1, container["timeout"]
+        assert_(container["timeout"] == 1, container["timeout"])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2929,7 +2933,7 @@ class DispersySignatureScript(ScriptBase):
 
         # SELF requests NODE1 and NODE2 to add their signature
         def on_response(response):
-            assert container["response"] == 0 or request.authentication.is_signed
+            assert_(container["response"] == 0 or request.authentication.is_signed)
             container["response"] += 1
         request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
         yield 0.11
@@ -2940,7 +2944,7 @@ class DispersySignatureScript(ScriptBase):
         third_signature_offset = len(submsg.packet) - node2.my_member.signature_length
         second_signature_offset = third_signature_offset - node1.my_member.signature_length
         first_signature_offset = second_signature_offset - community.my_member.signature_length
-        assert submsg.packet[second_signature_offset:third_signature_offset] == "\x00" * node1.my_member.signature_length
+        assert_(submsg.packet[second_signature_offset:third_signature_offset] == "\x00" * node1.my_member.signature_length)
         signature1 = node1.my_member.sign(submsg.packet, length=first_signature_offset)
 
         # send dispersy-signature-response message
@@ -2954,7 +2958,7 @@ class DispersySignatureScript(ScriptBase):
         third_signature_offset = len(submsg.packet) - node2.my_member.signature_length
         second_signature_offset = third_signature_offset - node1.my_member.signature_length
         first_signature_offset = second_signature_offset - community.my_member.signature_length
-        assert submsg.packet[third_signature_offset:] == "\x00" * node2.my_member.signature_length
+        assert_(submsg.packet[third_signature_offset:] == "\x00" * node2.my_member.signature_length)
         signature2 = node2.my_member.sign(submsg.packet, length=first_signature_offset)
 
         # send dispersy-signature-response message
@@ -2962,7 +2966,7 @@ class DispersySignatureScript(ScriptBase):
         global_time = community.global_time
         node2.give_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address))
         yield 1.11
-        assert container["response"] == 2, container["response"]
+        assert_(container["response"] == 2, container["response"])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2994,14 +2998,14 @@ class DispersySubjectiveSetScript(ScriptBase):
         global_time = 10
         node.give_message(node.create_subjective_set_text_message("Must not be stored", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [], times
+        assert_(times == [], times)
 
         # node is in self._my_member's subjective set.  the message MUST be stored
         community.create_dispersy_subjective_set(message.destination.cluster, [node.my_member])
         global_time = 20
         node.give_message(node.create_subjective_set_text_message("Must be stored", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert times == [global_time], times
+        assert_(times == [global_time], times)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3032,13 +3036,13 @@ class DispersySubjectiveSetScript(ScriptBase):
         global_time = 20
         node.give_message(node.create_subjective_set_text_message("Must be synced", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # a sync MUST return the message that was just sent
         node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
-        assert message.distribution.global_time == global_time
+        assert_(message.distribution.global_time == global_time)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3070,20 +3074,20 @@ class DispersySubjectiveSetScript(ScriptBase):
         global_time = 20
         node.give_message(node.create_subjective_set_text_message("Must be stored", global_time))
         times = [global_time for global_time, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta_message.database_id))]
-        assert times == [global_time]
+        assert_(times == [global_time])
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
         node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
-        assert message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name)
-        assert message.payload.cluster == meta_message.destination.cluster
+        assert_(message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name))
+        assert_(message.payload.cluster == meta_message.destination.cluster)
         try:
             _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         except:
             pass
         else:
-            assert False, "should be no more messages"
+            assert_(False, "should be no more messages")
 
         # make available the subjective set
         subjective_set = BloomFilter(512 * 8, 0.1)
@@ -3094,7 +3098,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         # the dispersy-sync message should now be processed (again) and result in the missing
         # subjective-set-text message
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
-        assert message.distribution.global_time == global_time
+        assert_(message.distribution.global_time == global_time)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3151,13 +3155,13 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         dprint(len(msg_blob), "-", len(msg.packet))
 #         dprint(msg_blob.encode("HEX"))
 #         dprint(msg.packet.encode("HEX"))
-#         assert msg_blob == msg.packet
+#         assert_(msg_blob == msg.packet)
 
 #         dprint(msg_blob.encode("HEX"))
 
 #         with self._dispersy.database as execute:
 #             d, = execute(u"SELECT count(*) FROM sync WHERE packet = ?", (buffer(msg.packet),)).next()
-#             assert d == 1, d
+#             assert_(d == 1, d)
 
 #         ##
 #         ## Not Similar Nodes
@@ -3175,7 +3179,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
 #         with self._dispersy.database as execute:
 #             d,= execute(u"SELECT count(*) FROM sync WHERE packet = ?", (buffer(str(msg_blob)),)).next()
-#             assert d == 0
+#             assert_(d == 0)
 
 #     def similarity_fullsync(self):
 #         # create community
@@ -3274,7 +3278,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # should NOT receive a message
 #         try:
 #             _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])
-#             assert False
+#             assert_(False)
 #         except:
 #             pass
 
@@ -3299,7 +3303,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # should NOT receive a message
 #         try:
 #             _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])
-#             assert False
+#             assert_(False)
 #         except:
 #             pass
 
@@ -3380,7 +3384,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 #         # receive a message
 #         try:
 #             _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record-last"])
-#             assert False
+#             assert_(False)
 #         except:
 #             pass
 
@@ -3438,7 +3442,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
 #         # receive the taste message
 #         _, message = node2.receive_message(addresses=[address], message_names=[u"taste-aware-record"])
-#         assert  message.payload.number == 5
+#         assert_( message.payload.number == 5)
 
 class DispersyMissingMessageScript(ScriptBase):
     def run(self):
@@ -3476,8 +3480,8 @@ class DispersyMissingMessageScript(ScriptBase):
 
             # receive response
             _, response = node.receive_message(addresses=[address], message_names=[message.name])
-            assert response.distribution.global_time == message.distribution.global_time
-            assert response.payload.text == message.payload.text
+            assert_(response.distribution.global_time == message.distribution.global_time)
+            assert_(response.payload.text == message.payload.text)
             dprint("ok @", response.distribution.global_time)
 
         # cleanup
@@ -3512,8 +3516,8 @@ class DispersyMissingMessageScript(ScriptBase):
 
             # receive response
             _, response = node.receive_message(addresses=[address], message_names=[message.name])
-            assert response.distribution.global_time == message.distribution.global_time
-            assert response.payload.text == message.payload.text
+            assert_(response.distribution.global_time == message.distribution.global_time)
+            assert_(response.payload.text == message.payload.text)
             dprint("ok @", response.distribution.global_time)
 
         # cleanup
@@ -3555,7 +3559,7 @@ class DispersyMissingMessageScript(ScriptBase):
         _, response = node.receive_message(addresses=[address], message_names=[meta.name])
         responses.append(response)
 
-        assert sorted(response.distribution.global_time for response in responses) == global_times
+        assert_(sorted(response.distribution.global_time for response in responses) == global_times)
         dprint("ok @", global_times)
 
         # cleanup
@@ -3587,7 +3591,7 @@ class DispersyUndoScript(ScriptBase):
         for message in messages:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, community.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(0,)], undone
+            assert_(undone == [(0,)], undone)
 
         # undo all messages
         undoes = [community.create_dispersy_undo(message, forward=False) for message in messages]
@@ -3596,13 +3600,13 @@ class DispersyUndoScript(ScriptBase):
         for message in messages:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, community.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(1,)], undone
+            assert_(undone == [(1,)], undone)
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, community.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(0,)], undone
+            assert_(undone == [(0,)], undone)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", forward=False)
@@ -3628,7 +3632,7 @@ class DispersyUndoScript(ScriptBase):
         for message in messages:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(0,)], undone
+            assert_(undone == [(0,)], undone)
 
         # undo all messages
         sequence_number = 1
@@ -3639,13 +3643,13 @@ class DispersyUndoScript(ScriptBase):
         for message in messages:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(1,)], undone
+            assert_(undone == [(1,)], undone)
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(0,)], undone
+            assert_(undone == [(0,)], undone)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3665,12 +3669,12 @@ class DispersyUndoScript(ScriptBase):
 
         # undo once
         undo1 = community.create_dispersy_undo(message)
-        assert isinstance(undo1, Message.Implementation)
+        assert_(isinstance(undo1, Message.Implementation))
 
         # undo twice.  instead of a new dispersy-undo, a new instance of the previous UNDO1 must be
         # returned
         undo2 = community.create_dispersy_undo(message)
-        assert undo1.packet == undo2.packet
+        assert_(undo1.packet == undo2.packet)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3712,12 +3716,12 @@ class DispersyUndoScript(ScriptBase):
         node.give_message(undo2)
 
         # check that the member is declared malicious
-        assert Member.get_instance(node.my_member.public_key).must_blacklist
+        assert_(Member.get_instance(node.my_member.public_key).must_blacklist)
 
         # all messages for the malicious member must be removed
         packets = list(self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ?",
                                                        (community.database_id, node.my_member.database_id)))
-        assert packets == []
+        assert_(packets == [])
 
         node2 = DebugNode()
         node2.init_socket()
@@ -3737,7 +3741,7 @@ class DispersyUndoScript(ScriptBase):
         malicious_packets.append(response)
         _, response = node2.receive_packet(addresses=[address])
         malicious_packets.append(response)
-        assert sorted(malicious_packets) == sorted([undo1.packet, undo2.packet])
+        assert_(sorted(malicious_packets) == sorted([undo1.packet, undo2.packet]))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3770,11 +3774,11 @@ class DispersyUndoScript(ScriptBase):
         global_times = [message.distribution.global_time for message in messages]
         for _ in xrange(len(messages)):
             _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-message"])
-            assert len(message.payload.global_times) == 1, "we currently only support one global time in an undo message"
-            assert message.payload.member.public_key == node.my_member.public_key
-            assert message.payload.global_times[0] in global_times
+            assert_(len(message.payload.global_times) == 1, "we currently only support one global time in an undo message")
+            assert_(message.payload.member.public_key == node.my_member.public_key)
+            assert_(message.payload.global_times[0] in global_times)
             global_times.remove(message.payload.global_times[0])
-        assert global_times == []
+        assert_(global_times == [])
 
         # give all 'delayed' messages
         node.give_messages(messages)
@@ -3786,13 +3790,13 @@ class DispersyUndoScript(ScriptBase):
         for message in messages:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(1,)], undone
+            assert_(undone == [(1,)], undone)
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert undone == [(0,)], undone
+            assert_(undone == [(0,)], undone)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3823,9 +3827,9 @@ class DispersyCryptoScript(ScriptBase):
 
         # replace the valid public-key with an invalid one
         public_key = node.my_member.public_key
-        assert public_key in message.packet
+        assert_(public_key in message.packet)
         invalid_packet = message.packet.replace(public_key, "I" * len(public_key))
-        assert message.packet != invalid_packet
+        assert_(message.packet != invalid_packet)
 
         # give invalid message to SELF
         node.give_packet(invalid_packet)
@@ -3833,7 +3837,7 @@ class DispersyCryptoScript(ScriptBase):
         # ensure that the message was not stored in the database
         ids = list(self._dispersy_database.execute(u"SELECT id FROM sync WHERE community = ? AND packet = ?",
                                                    (community.database_id, buffer(invalid_packet))))
-        assert ids == [], ids
+        assert_(ids == [], ids)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3863,8 +3867,8 @@ class DispersyDynamicSettings(ScriptBase):
 
         # check default policy
         policy, proof = community._timeline.get_resolution_policy(meta, community.global_time)
-        assert isinstance(policy, PublicResolution)
-        assert proof == []
+        assert_(isinstance(policy, PublicResolution))
+        assert_(proof == [])
 
         # NODE creates a message (should allow, because the default policy is PublicResolution)
         global_time = 10
@@ -3874,8 +3878,8 @@ class DispersyDynamicSettings(ScriptBase):
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3897,14 +3901,14 @@ class DispersyDynamicSettings(ScriptBase):
 
         # check default policy
         public_policy, proof = community._timeline.get_resolution_policy(meta, community.global_time + 1)
-        assert isinstance(public_policy, PublicResolution)
-        assert proof == []
+        assert_(isinstance(public_policy, PublicResolution))
+        assert_(proof == [])
 
         # change and check policy
         message = community.create_dispersy_dynamic_settings([(meta, linear)])
         linear_policy, proof = community._timeline.get_resolution_policy(meta, community.global_time + 1)
-        assert isinstance(linear_policy, LinearResolution)
-        assert proof == [message]
+        assert_(isinstance(linear_policy, LinearResolution))
+        assert_(proof == [message])
 
         # NODE creates a message (should allow)
         global_time = message.distribution.global_time
@@ -3913,8 +3917,8 @@ class DispersyDynamicSettings(ScriptBase):
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         # NODE creates a message (should drop)
         global_time += 1
@@ -3925,13 +3929,13 @@ class DispersyDynamicSettings(ScriptBase):
         except StopIteration:
             pass
         else:
-            assert False, "must not accept the message"
+            assert_(False, "must not accept the message")
 
         # change and check policy
         message = community.create_dispersy_dynamic_settings([(meta, public)])
         public_policy, proof = community._timeline.get_resolution_policy(meta, community.global_time + 1)
-        assert isinstance(public_policy, PublicResolution)
-        assert proof == [message]
+        assert_(isinstance(public_policy, PublicResolution))
+        assert_(proof == [message])
 
         # NODE creates a message (should drop)
         global_time = message.distribution.global_time
@@ -3942,7 +3946,7 @@ class DispersyDynamicSettings(ScriptBase):
         except StopIteration:
             pass
         else:
-            assert False, "must not accept the message"
+            assert_(False, "must not accept the message")
 
         # NODE creates a message (should allow)
         global_time += 1
@@ -3951,8 +3955,8 @@ class DispersyDynamicSettings(ScriptBase):
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3977,16 +3981,16 @@ class DispersyDynamicSettings(ScriptBase):
         global_time = community._global_time
         community._global_time = 10
         policy_linear = community.create_dispersy_dynamic_settings([(meta, linear)], store=False, update=False, forward=False)
-        assert policy_linear.distribution.global_time == 11 # hence the policy starts at 12
+        assert_(policy_linear.distribution.global_time == 11) # hence the policy starts at 12
         community._global_time = 20
         policy_public = community.create_dispersy_dynamic_settings([(meta, public)], store=False, update=False, forward=False)
-        assert policy_public.distribution.global_time == 21 # hence the policy starts at 22
+        assert_(policy_public.distribution.global_time == 21) # hence the policy starts at 22
         community._global_time = global_time
 
         for global_time in range(1, 32):
             policy, proof = community._timeline.get_resolution_policy(meta, global_time)
-            assert isinstance(policy, PublicResolution)
-            assert proof == []
+            assert_(isinstance(policy, PublicResolution))
+            assert_(proof == [])
 
         # NODE creates a message (should allow)
         global_time = 25
@@ -3995,8 +3999,8 @@ class DispersyDynamicSettings(ScriptBase):
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, text_message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         dprint("-- apply linear")
 
@@ -4005,19 +4009,19 @@ class DispersyDynamicSettings(ScriptBase):
 
         for global_time in range(1, 12):
             policy, proof = community._timeline.get_resolution_policy(meta, global_time)
-            assert isinstance(policy, PublicResolution)
-            assert proof == []
+            assert_(isinstance(policy, PublicResolution))
+            assert_(proof == [])
         for global_time in range(12, 32):
             policy, proof = community._timeline.get_resolution_policy(meta, global_time)
-            assert isinstance(policy, LinearResolution)
-            assert [message.packet for message in proof] == [policy_linear.packet]
+            assert_(isinstance(policy, LinearResolution))
+            assert_([message.packet for message in proof] == [policy_linear.packet])
 
         try:
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, text_message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "the message must be in the database with undone = 1"
-        assert undone, "must have undone the message"
+            assert_(False, "the message must be in the database with undone = 1")
+        assert_(undone, "must have undone the message")
 
         dprint("-- apply public")
 
@@ -4026,23 +4030,23 @@ class DispersyDynamicSettings(ScriptBase):
 
         for global_time in range(1, 12):
             policy, proof = community._timeline.get_resolution_policy(meta, global_time)
-            assert isinstance(policy, PublicResolution)
-            assert proof == []
+            assert_(isinstance(policy, PublicResolution))
+            assert_(proof == [])
         for global_time in range(12, 22):
             policy, proof = community._timeline.get_resolution_policy(meta, global_time)
-            assert isinstance(policy, LinearResolution)
-            assert [message.packet for message in proof] == [policy_linear.packet]
+            assert_(isinstance(policy, LinearResolution))
+            assert_([message.packet for message in proof] == [policy_linear.packet])
         for global_time in range(22, 32):
             policy, proof = community._timeline.get_resolution_policy(meta, global_time)
-            assert isinstance(policy, PublicResolution)
-            assert [message.packet for message in proof] == [policy_public.packet]
+            assert_(isinstance(policy, PublicResolution))
+            assert_([message.packet for message in proof] == [policy_public.packet])
 
         try:
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, text_message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -4079,8 +4083,8 @@ class DispersyDynamicSettings(ScriptBase):
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         # NODE creates a message (should drop because we use public resolution while linear is
         # currently configured)
@@ -4093,7 +4097,7 @@ class DispersyDynamicSettings(ScriptBase):
         except StopIteration:
             pass
         else:
-            assert False, "must NOT accept the message"
+            assert_(False, "must NOT accept the message")
 
         # set public policy
         policy_public = community.create_dispersy_dynamic_settings([(meta, public)])
@@ -4106,8 +4110,8 @@ class DispersyDynamicSettings(ScriptBase):
             undone, = self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                      (community.database_id, node.my_member.database_id, message.distribution.global_time)).next()
         except StopIteration:
-            assert False, "must accept the message"
-        assert not undone, "must accept the message"
+            assert_(False, "must accept the message")
+        assert_(not undone, "must accept the message")
 
         # NODE creates a message (should drop because we use linear resolution while public is
         # currently configured)
@@ -4120,7 +4124,7 @@ class DispersyDynamicSettings(ScriptBase):
         except StopIteration:
             pass
         else:
-            assert False, "must NOT accept the message"
+            assert_(False, "must NOT accept the message")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

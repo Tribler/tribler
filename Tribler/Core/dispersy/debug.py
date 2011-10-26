@@ -225,7 +225,7 @@ class Node(object):
 
     def create_dispersy_authorize(self, permission_triplets, sequence_number, global_time):
         meta = self._community.get_meta_message(u"dispersy-authorize")
-        return meta.impl(authentication=(self._my_member),
+        return meta.impl(authentication=(self._my_member,),
                          distribution=(global_time, sequence_number),
                          payload=(permission_triplets,))
 

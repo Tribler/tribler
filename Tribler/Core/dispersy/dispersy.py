@@ -3839,7 +3839,7 @@ class Dispersy(Singleton):
                 else:
                     break
 
-        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check", time=True, force=True)
+        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
 
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
         
@@ -3942,7 +3942,7 @@ class Dispersy(Singleton):
                             if __debug__: dprint("decayed packet ", packet_id, " still in database", level="error")
                             return False
                     
-        if __debug__: dprint(community.cid.encode("HEX"), " success", time=True, force=True)
+        if __debug__: dprint(community.cid.encode("HEX"), " success")
         return True
             
     def _generic_timeline_check(self, messages):
