@@ -4058,10 +4058,10 @@ class Dispersy(Singleton):
         def _stats_candidates(self):
             while True:
                 yield 10.0
-                dprint("---", style="short")
+                dprint("---")
                 for community in self._communities.itervalues():
                     candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
-                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:5] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:5]), style="short")
+                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:5] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:5]))
 
         def _stats_conversion(self):
             # pylint: disable-msg=W0404
@@ -4071,13 +4071,13 @@ class Dispersy(Singleton):
                 yield 10.0
                 stats = Conversion.debug_stats
                 total = stats["encode-message"]
-                dprint("=== encoded ", stats["-encode-count"], " messages in ", "%.2fs" % total)
+                dprint("=== encoding ", stats["-encode-count"], " messages took ", "%.2fs" % total)
                 for key, value in sorted(stats.iteritems()):
                     if key.startswith("encode") and not key == "encode-message" and total:
                         dprint("%7.2fs" % value, " ~%5.1f%%" % (100.0 * value / total), " ", key)
 
                 total = stats["decode-message"]
-                dprint("=== decoded ", stats["-decode-count"], " messages in ", "%.2fs" % total)
+                dprint("=== decoding ", stats["-decode-count"], " messages took ", "%.2fs" % total)
                 for key, value in sorted(stats.iteritems()):
                     if key.startswith("decode") and not key == "decode-message" and total:
                         dprint("%7.2fs" % value, " ~%5.1f%%" % (100.0 * value / total), " ", key)

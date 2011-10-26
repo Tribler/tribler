@@ -9,13 +9,14 @@ Run some python code, usually to test one or more features.
 @contact: dispersy@frayja.com
 """
 
-from itertools import count
 from hashlib import sha1
+from itertools import count
+from lencoder import log, make_valid_key
 from random import random, shuffle
 from time import clock, time
-from lencoder import log, make_valid_key
 import gc
 import hashlib
+import inspect
 
 from bloomfilter import BloomFilter
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -378,7 +379,7 @@ class DispersyClassificationScript(ScriptBase):
         self.caller(self.load_no_communities)
         self.caller(self.load_one_communities)
         self.caller(self.load_two_communities)
-        # self.caller(self.unloading_community)
+        self.caller(self.unloading_community)
 
         self.caller(self.enable_autoload)
         self.caller(self.enable_disable_autoload)
@@ -548,6 +549,12 @@ class DispersyClassificationScript(ScriptBase):
                         j += 1
                         if verbose:
                             dprint(type(obj))
+                            try:
+                                lines, lineno = inspect.getsourcelines(obj)
+                                dprint([line.rstrip() for line in lines], lines=1)
+                            except TypeError:
+                                dprint("TypeError")
+                                pass
 
             dprint(j, " referrers")
             return i

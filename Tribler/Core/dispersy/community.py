@@ -239,6 +239,11 @@ class Community(object):
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
 
+        # _pending_callbacks contains all id's for registered calls that should be removed when the
+        # community is unloaded.  most of the time this contains all the generators that are being
+        # used by the community
+        self._pending_callbacks = []
+        
         try:
             self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
@@ -390,7 +395,7 @@ class Community(object):
 
             # if self._subjective_sets:
             #     # apparently we have one or more subjective sets
-            self._dispersy.callback.register(self._periodically_cleanup_subjective_sets)
+            self._pending_callbacks.append(self._dispersy.callback.register(self._periodically_cleanup_subjective_sets))
 
     def _periodically_cleanup_subjective_sets(self):
         while True:
@@ -668,6 +673,11 @@ class Community(object):
         """
         Unload a single community.
         """
+        # remove all pending callbacks
+        for id_ in self._pending_callbacks:
+            self._dispersy.callback.unregister(id_)
+        self._pending_callbacks = []
+
         self._dispersy.detach_community(self)
 
     def claim_global_time(self):
