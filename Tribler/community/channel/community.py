@@ -1021,9 +1021,10 @@ class ChannelCommunity(Community):
         # 1. get the dispersy identifier from the channel_id
         dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id, torrent_infohash, ['dispersy_id'])
         
-        # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
-        return message
+        if dispersy_id:
+            # 2. get the message
+            message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
+            return message
     
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long)), "dispersy_id type is '%s'"%type(dispersy_id)

@@ -220,8 +220,9 @@ class AllChannelCommunity(Community):
                 
                 for infohash in torrents:
                     tormessage = community._get_message_from_torrent_infohash(infohash)
-                    assert infohash == tormessage.payload.infohash
-                    requested_packets.append(tormessage.packet)
+                    if tormessage:
+                        assert infohash == tormessage.payload.infohash
+                        requested_packets.append(tormessage.packet)
             
             self._dispersy._send([message.address], requested_packets)
             
@@ -392,8 +393,8 @@ class AllChannelCommunity(Community):
 class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
+
         self._cachedTorrents = {}
-        
         self._cacheTorrents()
     
     def convert_to_messages(self, results):
