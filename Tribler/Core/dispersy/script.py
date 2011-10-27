@@ -745,12 +745,12 @@ class DispersyTimelineScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        # self.caller(self.succeed_check)
-        # self.caller(self.fail_check)
-        # self.caller(self.loading_community)
-        # self.caller(self.delay_by_proof)
-        # self.caller(self.missing_proof)
-        self.caller(self.delay_by_authorize_proof)
+        self.caller(self.succeed_check)
+        self.caller(self.fail_check)
+        self.caller(self.loading_community)
+        self.caller(self.delay_by_proof)
+        self.caller(self.missing_proof)
+        self.caller(self.missing_authorize_proof)
 
     def succeed_check(self):
         """
@@ -862,10 +862,12 @@ class DispersyTimelineScript(ScriptBase):
         yield 0.555
 
         # permit NODE1
+        dprint("SELF creates dispersy-authorize for NODE1")
         community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit"),
                                              (node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"authorize")])
 
         # NODE2 created message @20
+        dprint("NODE2 creates protected-full-sync-text, should be delayed for missing proof")
         global_time = 20
         message = node2.create_protected_full_sync_text_message("Protected message", global_time)
         node2.give_message(message)
@@ -882,17 +884,26 @@ class DispersyTimelineScript(ScriptBase):
             assert_(False, "should not have stored, did not have permission")
 
         # SELF sends dispersy-missing-proof to NODE2
+        dprint("NODE2 receives dispersy-missing-proof")
         _, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-missing-proof"])
         assert_(message.payload.member.public_key == node2.my_member.public_key)
         assert_(message.payload.global_time == global_time)
 
+        dprint("=====")
+        dprint("node1: ", node1.my_member.database_id)
+        dprint("node2: ", node2.my_member.database_id)
+        
         # NODE1 provides proof
+        dprint("NODE1 creates and provides missing proof")
         sequence_number = 1
         proof_global_time = 10
         node2.give_message(node1.create_dispersy_authorize([(node2.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit")], sequence_number, proof_global_time))
         yield 0.555
 
+        dprint("=====")
+        
         # must have been stored in the database
+        dprint("SELF must have processed both the proof and the protected-full-sync-text message")
         try:
             packet, =  self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                        (community.database_id, node2.my_member.database_id, global_time)).next()
@@ -930,7 +941,8 @@ class DispersyTimelineScript(ScriptBase):
         # SELF sends dispersy-authorize to NODE
         _, authorize = node.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
 
-        # TODO: check that the received authorize message contains the required proof
+        permission_triplet = (community.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit")
+        assert_(permission_triplet in authorize.payload.permission_triplets)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -939,12 +951,12 @@ class DispersyTimelineScript(ScriptBase):
     def missing_authorize_proof(self):
         """
              MASTER
-               |        authorize(MASTER, OWNER)
-              \./
-             OWNER
-               |        authorize(OWNER, NODE1)
-              \./
-             NODE1
+               \\        authorize(MASTER, OWNER)
+                \\
+                OWNER
+                  \\        authorize(OWNER, NODE1)
+                   \\
+                   NODE1
 
         When SELF receives a dispersy-missing-proof message from NODE2 for authorize(OWNER, NODE1)
         the dispersy-authorize message for authorize(MASTER, OWNER) must be returned.
@@ -967,19 +979,34 @@ class DispersyTimelineScript(ScriptBase):
         yield 0.555
 
         # permit NODE1
+        dprint("SELF creates dispersy-authorize for NODE1")
         message = community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit"),
                                                        (node1.my_member, community.get_meta_message(u"protected-full-sync-text"), u"authorize")])
 
         # flush incoming socket buffer
+        node2.drop_packets()
+
+        dprint("===")
+        dprint("master: ", community.master_member.database_id)
+        dprint("member: ", community.my_member.database_id)
+        dprint("node1:  ", node1.my_member.database_id)
+        dprint("node2:  ", node2.my_member.database_id)
         
         # NODE2 wants the proof that OWNER is allowed to grant authorization to NODE1
-        node2.give_message(node2.create_dispersy_missing_proof_message(message.authorization.member, message.distribution.global_time))
+        dprint("NODE2 asks for proof that NODE1 is allowed to authorize")
+        node2.give_message(node2.create_dispersy_missing_proof_message(message.authentication.member, message.distribution.global_time))
         yield 0.555
+
+        dprint("===")
         
         # SELF sends dispersy-authorize containing authorize(MASTER, OWNER) to NODE
+        dprint("NODE2 receives the proof from SELF")
         _, authorize = node2.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
 
-        # TODO: check that the received authorize message contains the required proof
+        permission_triplet = (message.authentication.member, community.get_meta_message(u"protected-full-sync-text"), u"permit")
+        dprint((permission_triplet[0].database_id, permission_triplet[1].name, permission_triplet[2]))
+        dprint([(x.database_id, y.name, z) for x, y, z in authorize.payload.permission_triplets], lines=1)
+        assert_(permission_triplet in authorize.payload.permission_triplets) 
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

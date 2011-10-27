@@ -14,7 +14,6 @@ if __debug__:
         assert address[1] >= 0, address[1]
         return True
 
-
 class Payload(MetaObject):
     class Implementation(MetaObject.Implementation):
         @property

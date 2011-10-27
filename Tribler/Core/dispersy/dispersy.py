@@ -3260,12 +3260,12 @@ class Dispersy(Singleton):
                 packet = str(packet)
                 msg = community.get_conversion(packet[:22]).decode_message(("", -1), packet)
                 allowed, proofs = community._timeline.check(msg)
-                if allowed:
+                if allowed and proofs:
                     if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)")
                     self._send([message.address], [proof.packet for proof in proofs], u"-proof-")
 
                 else:
-                    if __debug__: dprint("someone asked for proof for a message that is not allowed (", len(proofs), " packets)")
+                    if __debug__: dprint("unable to give missing proof.  allowed:", allowed, ".  proofs:", len(proofs), " packets")
 
     def check_sync(self, messages):
         """

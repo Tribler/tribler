@@ -3,10 +3,9 @@ The Timeline is an important part of Dispersy.  The Timeline can be
 queried as to who had what actions at some point in time.
 """
 
-from itertools import count
+from itertools import count, groupby
 
 from authentication import MemberAuthentication, MultiMemberAuthentication
-from member import Member
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
@@ -29,9 +28,32 @@ class Timeline(object):
         # [(global_time, {u'resolution^message-name':(resolution-policy, [Message.Implementation])})]
         self._policies = []
 
+    if __debug__:
+        def printer(self):
+            for global_time, dic in self._policies:
+                dprint("policy @", global_time)
+                for key, (policy, proofs) in dic.iteritems():
+                    dprint("policy ", "%50s" % key, "  ", policy, " based on ", len(proofs), " proofs")
+                    
+            for member, lst in self._members.iteritems():
+                dprint("member ", member.database_id, " ", member.mid.encode("HEX"))
+                for global_time, dic in lst:
+                    dprint("member ", member.database_id, " @", global_time)
+                    for key, (allowed, proofs) in dic.iteritems():
+                        if allowed:
+                            assert all(proof.name == u"dispersy-authorize" for proof in proofs)
+                            dprint("member ", member.database_id, " ", "%50s" % key, "  ", allowed, " granted by ", ", ".join(str(proof.authentication.member.database_id) for proof in proofs), " in ", ", ".join(str(proof.packet_id) for proof in proofs))
+                        else:
+                            assert all(proof.name == u"dispersy-revoke" for proof in proofs)
+                            dprint("member ", member.database_id, " ", "%50s" % key, "  ", allowed, " revoked by ", ", ".join(str(proof.authentication.member.database_id) for proof in proofs), " in ", ", ".join(str(proof.packet_id) for proof in proofs))
+        
     def check(self, message, permission=u"permit"):
         """
         Check if message is allowed.
+
+        Returns an (allowed, proofs) tuple where allowed is either True or False and proofs is a
+        list containing zero or more Message.Implementation instances that grant or revoke
+        permissions.
         """
         if __debug__:
             from message import Message
@@ -41,16 +63,43 @@ class Timeline(object):
         assert permission in (u'permit', u'authorize', u'revoke')
         if isinstance(message.authentication, MemberAuthentication.Implementation):
             # MemberAuthentication
-            return self._check(message.authentication.member, message.distribution.global_time, message.resolution, [(message.meta, permission)])
+
+            if message.name == u"dispersy-authorize" or message.name == u"dispersy-revoke":
+                if __debug__:
+                    dprint("collecting proof for container message ", message.name)
+                    self.printer()
+
+                # if one or more of the contained permission_triplets are allowed, we will allow the
+                # entire message.  when the message is processed only the permission_triplets that
+                # are still valid will be used
+                all_allowed = []
+                all_proofs = set()
+
+                # question: is message.authentication.member allowed to authorize or revoke one or
+                # more of the contained permission triplets?
+                
+                # proofs for the permission triplets in the payload
+                key = lambda (member, sub_message, _): sub_message
+                for sub_message, iterator in groupby(message.payload.permission_triplets, key=key):
+                    permission_pairs = [(sub_message, sub_permission) for _, _, sub_permission in iterator]
+                    allowed, proofs = self._check(message.authentication.member, message.distribution.global_time, sub_message.resolution, permission_pairs)
+                    all_allowed.append(allowed)
+                    all_proofs.update(proofs)
+                if __debug__: dprint("is one or more permission triplets allowed? ", any(all_allowed), ".  based on ", len(all_proofs), " proofs")
+
+                return any(all_allowed), [proof for proof in all_proofs]
+
+            else:
+                return self._check(message.authentication.member, message.distribution.global_time, message.resolution, [(message.meta, permission)])
         else:
             # MultiMemberAuthentication
-            all_proofs = []
-            for member in  message.authentication.members:
+            all_proofs = set()
+            for member in message.authentication.members:
                 allowed, proofs = self._check(member, message.distribution.global_time, message.resolution, [(message.meta, permission)])
-                all_proofs.extend(proofs)
+                all_proofs.update(proofs)
                 if not allowed:
-                    return (False, all_proofs)
-            return (True, all_proofs)
+                    return (False, [proof for proof in all_proofs])
+            return (True, [proof for proof in all_proofs])
 
     def allowed(self, meta, global_time=0, permission=u"permit"):
         """
