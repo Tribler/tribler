@@ -54,6 +54,7 @@ class TopSearchPanel(bgPanel):
          
         bgPanel.__init__(self, parent, 'top_search')
         
+        
         self.selectTab('home')
         
     def OnAutoComplete(self):
@@ -178,10 +179,11 @@ class TopSearchPanel(bgPanel):
         return wx.Bitmap(path, type)
         
     def _PostInit(self):
+        self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
+        self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND))
+        
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnCreate"
-        
-        self.SetBackgroundColour(wx.Colour(255, 255, 255))
         
         if sys.platform == 'darwin':
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)

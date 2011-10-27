@@ -256,8 +256,8 @@ class TorrentDetails(AbstractDetails):
                 self.notebook.SetMinSize((-1, notebook))
                 self.parent.parent_list.OnChange()
             wx.CallAfter(resize)
-        self.overview.OnChange = OnChange 
-        
+        self.overview.OnChange = OnChange
+       
         self.torrentSizer = wx.BoxSizer(wx.VERTICAL)
         self.overview.SetSizer(self.torrentSizer)
         
@@ -330,7 +330,7 @@ class TorrentDetails(AbstractDetails):
         if len(self.torrent.files) > 0:
             if self.saveSpace and not isinstance(self, LibraryDetails):
                 parent = wx.Panel(self.notebook)
-                parent.SetBackgroundColour(wx.WHITE)
+                parent.SetBackgroundColour(DEFAULT_BACKGROUND)
             else:
                 parent = self.notebook    
             

@@ -10,6 +10,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from __init__ import LIST_GREY, LIST_BLUE, TRIBLER_RED, LIST_HIGHTLIGHT
 from wx.lib.stattext import GenStaticText
 from wx.lib.stattext import GenStaticText
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
@@ -29,7 +30,7 @@ class tribler_topButton(wx.Panel):
     def __init__(self, *args, **kw):
         self.ready = False
         if len(args) == 0: 
-            self.backgroundColor = wx.WHITE
+            self.backgroundColor = DEFAULT_BACKGROUND
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
             self.PostCreate(pre) 
@@ -795,6 +796,8 @@ class EditStaticText(wx.Panel):
 class NotebookPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
+        self.SetForegroundColour(self.GetParent().GetForegroundColour())
+        
         self.sizer = wx.BoxSizer()
         self.SetSizer(self.sizer)
     
@@ -899,7 +902,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.screenheight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
          
         self.dropdown = wx.PopupWindow(self)
-        self.dropdown.SetBackgroundColour(wx.WHITE)
+        self.dropdown.SetBackgroundColour(DEFAULT_BACKGROUND)
         sizer = wx.BoxSizer()
         
         self.dropdownlistbox = AutoWidthListCtrl(self.dropdown, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER) 

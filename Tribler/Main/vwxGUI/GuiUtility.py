@@ -55,13 +55,6 @@ class GUIUtility:
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
      
-        self.mainColour = wx.Colour(216,233,240) # main color theme used throughout the interface      
-
-        self.selectedColour = self.mainColour
-        self.unselectedColour = wx.WHITE ## 102,102,102      
-        self.unselectedColour2 = wx.WHITE ## 230,230,230       
-        self.selectedColourPending = self.mainColour  ## 208,251,244
-        self.bgColour = wx.Colour(102,102,102)
 
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
         self.max_remote_queries = 20    # max number of remote peers to query

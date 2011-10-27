@@ -17,6 +17,8 @@ class SearchSideBar(wx.Panel):
     
     def __init__(self, parent, parent_list, size):
         wx.Panel.__init__(self, parent, size = size)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
         self.guiutility =  GUIUtility.getInstance()
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.parent = parent

@@ -200,7 +200,7 @@ class BundlePanel(wx.BoxSizer):
         self.font_increment = font_increment
         self.vsizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
         self.indent = parent.expandedState.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
         

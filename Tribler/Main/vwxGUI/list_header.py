@@ -8,6 +8,7 @@ from __init__ import LIST_RADIUS
 import sys
 import wx
 import os
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
@@ -67,6 +68,7 @@ class ListHeader(wx.Panel):
         self.sortedDirection = False
         
         self.scrollBar = None
+        self.SetForegroundColour(parent.GetForegroundColour())
 
         self.AddComponents(columns, spacers)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -543,7 +545,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         
         dlg = wx.Dialog(GUIUtility.getInstance().frame, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
         dlg.CenterOnParent()
-        dlg.SetBackgroundColour(wx.WHITE)
+        dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         sizer = wx.FlexGridSizer(2,2)
         
@@ -581,7 +583,7 @@ class ChannelHeader(SearchHeader):
 
     def GetBelowPanel(self, parent):
         self.descriptionPanel = ImageScrollablePanel(parent)
-        self.descriptionPanel.SetBackgroundColour(wx.WHITE)
+        self.descriptionPanel.SetBackgroundColour(DEFAULT_BACKGROUND)
         
         self.description = StaticText(self.descriptionPanel)
         sizer = wx.BoxSizer(wx.VERTICAL)

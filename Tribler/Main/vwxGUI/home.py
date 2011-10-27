@@ -27,6 +27,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.dispersy.dispersy import Dispersy
 from traceback import print_exc
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -37,7 +38,8 @@ class Home(XRCPanel):
     def _PostInit(self):
         self.guiutility = GUIUtility.getInstance()
 
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
+
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         vSizer.AddStretchSpacer()
@@ -133,7 +135,7 @@ class Stats(XRCPanel):
             print_exc()
             return
 
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
         vSizer.Add(disp, 0, wx.EXPAND|wx.BOTTOM, 10)
@@ -227,6 +229,7 @@ class HomePanel(wx.Panel):
         self.utility = self.guiutility.utility
         self.guiserver = GUITaskQueue.getInstance()
         self.SetBackgroundColour(background)
+        self.SetForegroundColour(parent.GetForegroundColour())
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -276,7 +279,7 @@ class NetworkPanel(HomePanel):
 
     def CreatePanel(self):
         panel = wx.Panel(self)
-        panel.SetBackgroundColour(wx.WHITE)
+        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.nrTorrents = StaticText(panel)
@@ -365,7 +368,7 @@ class DispersyPanel(HomePanel):
 
     def CreatePanel(self):
         panel = wx.Panel(self)
-        panel.SetBackgroundColour(wx.WHITE)
+        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
@@ -705,7 +708,7 @@ class BuzzPanel(HomePanel):
 
     def CreatePanel(self):
         panel = wx.Panel(self)
-        panel.SetBackgroundColour(wx.WHITE)
+        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         panel.SetSizer(self.vSizer)
@@ -779,7 +782,7 @@ class BuzzPanel(HomePanel):
 
         else:
             text = LinkText(self.panel, term, fonts=[font, font], colours = [BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
-            text.SetBackgroundColour(wx.WHITE)
+            text.SetBackgroundColour(DEFAULT_BACKGROUND)
             text.Bind(wx.EVT_LEFT_UP, self.OnClick)
         text.SetToolTipString("Click to search for '%s'"%term)
         return text
@@ -893,7 +896,7 @@ class BuzzPanel(HomePanel):
 #
 #    def CreatePanel(self):
 #        panel = wx.Panel(self)
-#        panel.SetBackgroundColour(wx.WHITE)
+#        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
 #        vSizer = wx.BoxSizer(wx.VERTICAL)
 #
 #        self.eligibleCandidate = wx.StaticText(panel)

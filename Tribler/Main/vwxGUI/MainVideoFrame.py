@@ -29,7 +29,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
             title = self.utility.lang.get('tb_video_short')
         
         wx.Frame.__init__(self, None, -1, title)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
         # Set icons for Frame
         self.icons = wx.IconBundle()

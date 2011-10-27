@@ -223,9 +223,12 @@ class SelectedChannelList(GenericSearchList):
         else:
             self.notebook.SetWindowStyleFlag(style)
         self.notebook.SetTabAreaColour(self.background)
+        self.notebook.SetForegroundColour(self.parent.GetForegroundColour())
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
         list = wx.Panel(self.notebook)
+        list.SetForegroundColour(self.notebook.GetForegroundColour())
+
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.subheader = self.CreateHeader(list)
@@ -2242,10 +2245,10 @@ class ModificationList(List):
         
     def OnRevertModification(self, modification):
         dlg = wx.Dialog(None, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
-        dlg.SetBackgroundColour(wx.WHITE)
+        dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected = wx.WHITE), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
+        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected = DEFAULT_BACKGROUND), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout 
         
@@ -2260,7 +2263,7 @@ class ModificationList(List):
             givenReason = reason.GetValue().strip()
             if givenReason == '':
                 reason.SetBackgroundColour(wx.RED)
-                wx.CallLater(500, reason.SetBackgroundColour, wx.WHITE)
+                wx.CallLater(500, reason.SetBackgroundColour, DEFAULT_BACKGROUND)
             else:
                 button = event.GetEventObject()
                 dlg.EndModal(button.GetId())

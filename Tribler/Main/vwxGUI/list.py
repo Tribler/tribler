@@ -290,6 +290,7 @@ class XRCPanel(wx.Panel):
         
         if parent:
             wx.Panel.__init__(self, parent)
+            self.SetForegroundColour(parent.GetForegroundColour())
             self._PostInit()
             self.isReady = True
         else:
@@ -724,7 +725,7 @@ class GenericSearchList(SizeList):
         
         control = SwarmHealth(parent)
         control.SetMinSize((self.columns[-2]['width'],7))
-        control.SetBackgroundColour(wx.WHITE)
+        control.SetBackgroundColour(DEFAULT_BACKGROUND)
         control.SetRatio(seeders, leechers)
         return control
         
@@ -934,6 +935,7 @@ class SearchList(GenericSearchList):
         hSizer.Add(self.leftLine, 0, wx.EXPAND)
         
         list = wx.Panel(self.parent)
+        list.SetForegroundColour(self.parent.GetForegroundColour())
         self.subheader = ListHeader(list, self, self.columns, radius = 0, spacers=[7,7])
         
         self.list = self.CreateList(list, listRateLimit=0.5)
@@ -1438,7 +1440,7 @@ class ChannelList(List):
         
         control = ChannelPopularity(parent, self.normal, self.favorite)
         control.SetMinSize((self.columns[2]['width'],15))
-        control.SetBackgroundColour(wx.WHITE)
+        control.SetBackgroundColour(DEFAULT_BACKGROUND)
         control.SetVotes(ratio)
         control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
         return control

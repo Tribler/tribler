@@ -11,6 +11,8 @@ from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
 class ListFooter(wx.Panel):
     def __init__(self, parent, radius = LIST_RADIUS, spacers = [0,0]):
         wx.Panel.__init__(self, parent)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
         self.originalColor = None
         self.radius = radius
         self.spacers = spacers
@@ -32,6 +34,7 @@ class ListFooter(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.OnResize)
         
         self.background = wx.Brush(self.GetBackgroundColour())
+       
         
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()

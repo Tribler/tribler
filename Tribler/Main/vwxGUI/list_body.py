@@ -400,7 +400,7 @@ class AbstractListBody():
     
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
-        self.messagePanel.SetBackgroundColour(wx.WHITE)
+        self.messagePanel.SetBackgroundColour(DEFAULT_BACKGROUND)
         self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -449,7 +449,7 @@ class AbstractListBody():
     
     @warnWxThread
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, wx.WHITE)
+        wx.Panel.SetBackgroundColour(self, DEFAULT_BACKGROUND)
         self.listpanel.SetBackgroundColour(colour)
     
     @warnWxThread
@@ -941,6 +941,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
         
+        self.SetForegroundColour(parent.GetForegroundColour())
         self.SetupScrolling()
                 
     def OnChildFocus(self, event):
@@ -950,6 +951,8 @@ class FixedListBody(wx.Panel, AbstractListBody):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
         wx.Panel.__init__(self, parent)
         AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max = list_item_max, hasFilter = False)
+        
+        self.SetForegroundColour(parent.GetForegroundColour())
     
     def Scroll(self, x, y):
         pass

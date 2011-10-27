@@ -30,6 +30,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
 from wx.html import HtmlWindow
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 import traceback
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 try:
     import wxversion
@@ -154,10 +155,15 @@ class MainFrame(wx.Frame):
             if font.GetPointSize() > 9:
                 font.SetPointSize(9)
                 self.SetFont(font)
-        
+                
         self.Freeze()
         self.SetDoubleBuffered(True)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
+        
+        themeColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+        r, g, b = themeColour.Get(False)
+        if r > 190 or g > 190 or b > 190: #Grey == 190,190,190
+            self.SetForegroundColour(wx.BLACK)
             
         #Create all components        
         progress('Creating panels')
