@@ -12,7 +12,7 @@ from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistr
 from message import DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 
-if True or __debug__:
+if __debug__:
     from dprint import dprint
     from time import time
 
@@ -34,7 +34,7 @@ class Conversion(object):
     community version.  If also allows outgoing messages to be converted to a different, possibly
     older, community version.
     """
-    if True or __debug__:
+    if __debug__:
         debug_stats = {"encode-meta":0.0, "encode-authentication":0.0, "encode-destination":0.0, "encode-distribution":0.0, "encode-payload":0.0,
                        "decode-meta":0.0, "decode-authentication":0.0, "decode-destination":0.0, "decode-distribution":0.0, "decode-payload":0.0,
                        "decode-authentication-verify-true":0.0, "decode-authentication-verify-false":0.0, "encode-message-sign":0.0,
@@ -887,7 +887,7 @@ class BinaryConversion(Conversion):
         # Community prefix, message-id
         container = [self._prefix, message_id]
 
-        if True or __debug__:
+        if __debug__:
             debug_begin_encode = debug_begin = time()
 
         # authentication
@@ -907,7 +907,7 @@ class BinaryConversion(Conversion):
         else:
             raise NotImplementedError(type(message.authentication))
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["encode-meta"] += time() - debug_begin
             debug_begin = time()
 
@@ -921,7 +921,7 @@ class BinaryConversion(Conversion):
         assert type(message.distribution) in self._encode_distribution_map
         self._encode_distribution_map[type(message.distribution)](container, message)
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["encode-distribution"] += time() - debug_begin
             dprint(message.name, "          head ", sum(map(len, container)) + 1, " bytes")
             debug_begin = time()
@@ -932,7 +932,7 @@ class BinaryConversion(Conversion):
         assert not filter(lambda x: not isinstance(x, str), itererator)
         container.extend(itererator)
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["encode-payload"] += time() - debug_begin
             dprint(message.name, "     head+body ", sum(map(len, container)), " bytes")
             debug_begin = time()
@@ -965,7 +965,7 @@ class BinaryConversion(Conversion):
         else:
             raise NotImplementedError(type(message.authentication))
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["encode-message-sign"] += time() - debug_begin
             self.debug_stats["encode-message"] += time() - debug_begin_encode
             self.debug_stats["-encode-count"] += 1
@@ -1050,14 +1050,14 @@ class BinaryConversion(Conversion):
                 offset += 20
 
                 for member in members:
-                    if True or __debug__:
+                    if __debug__:
                         debug_begin = time()
                     first_signature_offset = len(data) - member.signature_length
                     if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
-                        if True or __debug__:
+                        if __debug__:
                             self.debug_stats["decode-authentication-verify-true"] += time() - debug_begin
                         return offset, authentication.implement(member, is_signed=True), first_signature_offset
-                    if True or __debug__:
+                    if __debug__:
                         self.debug_stats["decode-authentication-verify-false"] += time() - debug_begin
 
                 raise DelayPacketByMissingMember(self._community, member_id)
@@ -1163,7 +1163,7 @@ class BinaryConversion(Conversion):
 
         placeholder = Placeholder(22, data)
 
-        if True or __debug__:
+        if __debug__:
             debug_begin_decode = debug_begin = time()
 
         # meta_message
@@ -1172,7 +1172,7 @@ class BinaryConversion(Conversion):
             raise DropPacket("Unknown message code %d" % ord(placeholder.data[placeholder.offset]))
         placeholder.offset += 1
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["decode-meta"] += time() - debug_begin
             debug_begin = time()
 
@@ -1188,7 +1188,7 @@ class BinaryConversion(Conversion):
             self._community.dispersy.send_malicious_proof(self._community, placeholder.authentication.member, address)
             raise DropPacket("Creator is blacklisted")
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["decode-authentication"] += time() - debug_begin
             debug_begin = time()
 
@@ -1207,7 +1207,7 @@ class BinaryConversion(Conversion):
         else:
             placeholder.destination = placeholder.meta.destination.implement()
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["decode-destination"] += time() - debug_begin
             debug_begin = time()
 
@@ -1215,7 +1215,7 @@ class BinaryConversion(Conversion):
         assert type(placeholder.meta.distribution) in self._decode_distribution_map, type(placeholder.meta.distribution)
         placeholder.offset, placeholder.distribution = self._decode_distribution_map[type(placeholder.meta.distribution)](placeholder, placeholder.offset, placeholder.data)
 
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["decode-distribution"] += time() - debug_begin
             debug_begin = time()
 
@@ -1225,7 +1225,7 @@ class BinaryConversion(Conversion):
             if __debug__: dprint("invalid packet size for ", placeholder.meta.name, " data:", placeholder.first_signature_offset, "; offset:", placeholder.offset, level="warning")
             raise DropPacket("Invalid packet size (there are unconverted bytes)")
         
-        if True or __debug__:
+        if __debug__:
             self.debug_stats["decode-payload"] += time() - debug_begin
             self.debug_stats["decode-message"] += time() - debug_begin_decode
             self.debug_stats["-decode-count"] += 1

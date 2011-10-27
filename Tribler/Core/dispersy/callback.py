@@ -14,7 +14,8 @@ from time import sleep, time
 from types import GeneratorType
 
 if __debug__:
-    import atexit
+    from itertools import islice
+    from atexit import register as atexit_register
     # dprint warning when registered call, or generator call, takes more than N seconds
     CALL_DELAY_FOR_WARNING = 0.5
     # dprint warning when registered call, or generator call, should have run N seconds ago
@@ -120,13 +121,12 @@ class Callback(object):
         self._new_actions = []  # (type, action)
                                 # type=register, action=(deadline, priority, root_id, (call, args, kargs), callback)
                                 # type=unregister, action=root_id
-                                
-        self._statistics = {}
 
         if __debug__:
             def must_close(callback):
                 assert callback.is_finished
-            atexit.register(must_close, self)
+            atexit_register(must_close, self)
+            self._debug_statistics = {}
 
     @property
     def is_running(self):
@@ -421,8 +421,9 @@ class Callback(object):
                     deadline = actual_time
 
                 while True:
-                    call_name = call[0].__name__
-                    call_start = time()
+                    if __debug__:
+                        debug_call_name = call[0].__name__
+                        debug_call_start = time()
                     
                     # call can be either:
                     # 1. A (generator, arg)
@@ -498,12 +499,13 @@ class Callback(object):
                                 debug_delay = get_timestamp() - debug_begin
                                 debug_level = "warning" if debug_delay > CALL_DELAY_FOR_WARNING else "normal"
                                 dprint("call took %.4fs to " % debug_delay, call[0], level=debug_level)
+
+                    if __debug__:
+                        if debug_call_name not in self._debug_statistics:
+                            self._debug_statistics[debug_call_name] = [0.0, 0]
                     
-                    if call_name not in self._statistics:
-                        self._statistics[call_name] = [0,0]
-                    
-                    self._statistics[call_name][0] += (time() - call_start)
-                    self._statistics[call_name][1] += 1
+                        self._debug_statistics[debug_call_name][0] += time() - debug_call_start
+                        self._debug_statistics[debug_call_name][1] += 1
 
                     # break out of the while loop
                     break
@@ -535,6 +537,17 @@ class Callback(object):
             if __debug__: dprint("STATE_FINISHED")
             self._state = "STATE_FINISHED"
 
+        if __debug__:
+            dprint("top ten calls, sorted by cumulative time", line=True, force=True)
+            key = lambda (_, (cumulative_time, __)): cumulative_time
+            for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
+                dprint("%8.2fs %5dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
+
+            dprint("top ten calls, sorted by execution count", line=True, force=True)
+            key = lambda (_, (__, call_count)): call_count
+            for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
+                dprint("%8.2fs %5dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
+                
 if __debug__:
     def main():
         c = Callback()

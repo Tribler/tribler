@@ -772,8 +772,6 @@ class Dispersy(Singleton):
         Returns False when the message is not a duplicate with anything in the database.
         Otherwise returns True when the message is a duplicate and must be dropped.
         """
-        from lencoder import log
-        
         # fetch the duplicate binary packet from the database
         try:
             packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
@@ -784,8 +782,6 @@ class Dispersy(Singleton):
             return False
 
         else:
-            
-            
             packet = str(packet)
             if packet == message.packet:
                 # exact duplicates, do NOT process the message
@@ -793,41 +789,28 @@ class Dispersy(Singleton):
                 # 21/10/11 Boudewijn: since the community/member/global-time is already in the
                 # database, the associated packet should also be in the sync bloom filter to prevent
                 # us from receiving it again
-                if __debug__ or True:
+                if __debug__:
                     for sync_range in message.community._sync_ranges:
                         if sync_range.time_low <= message.distribution.global_time:
-                            log('dispersy.log', 'Found syncrange', bloom_filters = len(sync_range.bloom_filters), sync_low=sync_range.time_low)
-                            
                             for bloom_filter in sync_range.bloom_filters:
                                 assert message.packet in bloom_filter
-                                log('dispersy.log', 'Packet in bloomfilter', check = message.packet in bloom_filter)
-                                
                             break
             else:
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
                     # the message payload is binary unique (only the signature is different)
                     if __debug__: dprint("received identical message with different signature [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
-                    log('dispersy.log', 'Identical with different signature')
                     
                     if packet < message.packet:
                         # replace our current message with the other one
                         self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND member = ? AND global_time = ?",
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
                         
-                        log('dispersy.log', 'replacing...')
-                    else:
-                        log('dispersy.log', 'not-replacing...')
-                        
                     # add the newly received message.packet to the bloom filter
                     message.community.update_sync_range([message])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
-                    
-                    log('dispersy.log', 'Identical, but different')
-                    
-                    
 
                 # TODO: if we decide that this is malicious behavior, handle it (note that this code
                 # is checked into release-5.3.x while the declare_malicious_member code is currently
@@ -841,7 +824,6 @@ class Dispersy(Singleton):
                 #             self.declare_malicious_member(message.authentication.member, [message, Packet(packet_meta, packet, packet_id)])
                 #             break
 
-            log('dispersy.log', 'found it in database')
             # do NOT process the message
             return True
 
