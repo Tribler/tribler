@@ -222,27 +222,27 @@ class ScenarioScriptBase(ScriptBase):
         if __debug__:
             _peer_counter = 0
             
-        import bootstrap
-        trackers = []
-        with open('data/peers') as file:
-            for line in file:
-                name, ip, port, public_key, _ = line.split(' ', 4)
-                public_key = public_key.decode("HEX")
-                if __debug__:
-                    _peer_counter += 1
-                    log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                    
-                if public_key == my_member.public_key:
-                    continue
-                trackers.append((ip, int(port)))
-
-                # ensure that everyone has the public key (doesn't need to request a
-                # dispersy-identity msg)
-                self._dispersy_database.execute(u"INSERT INTO member (mid, public_key) VALUES (?, ?)",
-                                                (buffer(sha1(public_key).digest()), buffer(public_key)))
-        
-        shuffle(trackers)
-        bootstrap._trackers = trackers
+#        import bootstrap
+#        trackers = []
+#        with open('data/peers') as file:
+#            for line in file:
+#                name, ip, port, public_key, _ = line.split(' ', 4)
+#                public_key = public_key.decode("HEX")
+#                if __debug__:
+#                    _peer_counter += 1
+#                    log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
+#                    
+#                if public_key == my_member.public_key:
+#                    continue
+#                trackers.append((ip, int(port)))
+#
+#                # ensure that everyone has the public key (doesn't need to request a
+#                # dispersy-identity msg)
+#                self._dispersy_database.execute(u"INSERT INTO member (mid, public_key) VALUES (?, ?)",
+#                                                (buffer(sha1(public_key).digest()), buffer(public_key)))
+#        
+#        shuffle(trackers)
+#        bootstrap._trackers = trackers
         if __debug__:
             log(self._logfile, "done-reading-peers")
 
