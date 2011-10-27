@@ -253,7 +253,7 @@ class ChannelCommunity(Community):
         
         sync_range = self._sync_ranges[index]
         time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
-        return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
+        return sync_range.time_low, time_high, choice(sync_range.bloom_filters)
 
     # def bloom_option_4(self):
     #     """
