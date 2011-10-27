@@ -239,7 +239,7 @@ class ChannelCommunity(Community):
 
         catchup is a bit slow because old ranges are not chosen frequently.
         """
-        if len(self._sync_ranges) == 1:
+        if len(self._sync_ranges) > 1:
             desired_mean = len(self._sync_ranges) / 2.0
             
             #lambd should be 1.0/desired mean
