@@ -193,8 +193,7 @@ class ChannelCommunity(Community):
                 Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
-    @property
-    def dispersy_sync_bloom_filters(self):
+    def dispersy_claim_sync_bloom_filter(self, identifier):
         #return self.bloom_option_1()
         log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
         
@@ -235,6 +234,11 @@ class ChannelCommunity(Community):
         return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
     
     def bloom_option_3(self):
+        """
+        exponential distribution
+
+        catchup is a bit slow because old ranges are not chosen frequently.
+        """
         if len(self._sync_ranges) == 1:
             desired_mean = len(self._sync_ranges) / 2.0
             
@@ -250,7 +254,14 @@ class ChannelCommunity(Community):
         sync_range = self._sync_ranges[index]
         time_high = 0 if index == 0 else self._sync_ranges[index - 1].time_low
         return [(sync_range.time_low, time_high, choice(sync_range.bloom_filters))]
-    
+
+    # def bloom_option_4(self):
+    #     """
+    #     50% chance to pick the most recent range
+    #     50% chance to pick a random range (including the most recent range)
+    #     """
+    #     self._
+        
 #    
 #    @property    
 #    def dispersy_sync_bloom_filter_error_rate(self):
