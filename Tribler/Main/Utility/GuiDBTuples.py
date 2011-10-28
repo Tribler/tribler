@@ -374,6 +374,10 @@ class Channel(Helper):
     def isEmpty(self):
         return self.nr_torrents == 0
     
+    def isOpen(self):
+        state, myChannel = self.getState()
+        return state == ChannelCommunity.CHANNEL_OPEN
+    
     @cache
     def getState(self):
         if self.isDispersy():

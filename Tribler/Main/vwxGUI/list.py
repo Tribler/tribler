@@ -916,11 +916,12 @@ class SearchList(GenericSearchList):
         self.total_channels = None
         self.keywords = None
         
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'fontWeight': wx.FONTWEIGHT_BOLD}, \
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'icon_right': self.__special_icon, 'fontWeight': wx.FONTWEIGHT_BOLD}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
+        self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
@@ -963,6 +964,11 @@ class SearchList(GenericSearchList):
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
+    def __special_icon(self, item):
+        torrent = item.original_data
+        if torrent.hasChannel() and torrent.channel.isFavorite():
+            return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
+    
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = RemoteSearchManager(self) 
@@ -982,7 +988,7 @@ class SearchList(GenericSearchList):
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
         
-        #indentify popular associated channels
+        #identify popular associated channels
         channel_hits = {}
         for hit in data:
             if hit.get('channel', False):

@@ -185,6 +185,7 @@ class SelectedChannelList(GenericSearchList):
         self.channel = None
         self.iamModerator = False
         self.my_channel = False
+        self.state = ChannelCommunity.CHANNEL_CLOSED
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
@@ -314,6 +315,7 @@ class SelectedChannelList(GenericSearchList):
             manager.SetIds(channel = self.channel)
         else:
             self.my_channel = False
+            self.iamModerator = False
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
@@ -328,6 +330,7 @@ class SelectedChannelList(GenericSearchList):
     @warnWxThread
     def SetChannelState(self, state, iamModerator):
         self.iamModerator = iamModerator
+        self.state = state
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.commentList.Show(True)
@@ -384,7 +387,9 @@ class SelectedChannelList(GenericSearchList):
             self.SetNrResults(len(data))
         else:
             header =  'No torrents or playlists found.'
-            message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
+            
+            if self.state == ChannelCommunity.CHANNEL_OPEN:
+                message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
             self.list.ShowMessage(message, header = header)
             
             self.SetNrResults(0)
@@ -424,8 +429,10 @@ class SelectedChannelList(GenericSearchList):
     @warnWxThread
     def Reset(self):
         GenericSearchList.Reset(self)
+        
         self.SetId(0)
         self.notebook.SetSelection(0)
+        self.state = ChannelCommunity.CHANNEL_CLOSED
     
     @warnWxThread
     def OnExpand(self, item):
@@ -767,8 +774,7 @@ class PlaylistItem(ListItem):
         if leftSpacer > 0:
             titleRow.AddSpacer((leftSpacer, -1))
         
-        self.icontype = 'tree'
-        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
+        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon('tree', LIST_DESELECTED, 0))
         titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
         self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)

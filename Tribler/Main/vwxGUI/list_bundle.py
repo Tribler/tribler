@@ -115,7 +115,7 @@ class BundleListItem(ListItem):
     def ShowExpandedPanel(self, show = True):
         panel = self.expanded_panel
         
-        if panel:
+        if panel and panel.IsShown() != show:
             self.Freeze()
             
             if DEBUG:
@@ -202,7 +202,7 @@ class BundlePanel(wx.BoxSizer):
         
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
-        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
+        self.indent = parent.controls[0].icon.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
         
         self.AddHeader()
         self.AddGrid()
@@ -358,6 +358,8 @@ class BundlePanel(wx.BoxSizer):
         
         if self.bundlelist:
             self.bundlelist.SetData(hits)
+            if self.state == BundlePanel.FULL:
+                self.bundlelist.OnLoadAll()
     
     def ShowList(self, show):
         if self.bundlelist is None and show:
