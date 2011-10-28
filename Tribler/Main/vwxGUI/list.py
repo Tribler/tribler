@@ -1099,7 +1099,7 @@ class LibraryList(SizeList):
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
      
-        List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
+        List.__init__(self, columns, LIST_GREY, [10,10], True, parent = parent)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1108,10 +1108,10 @@ class LibraryList(SizeList):
     
     def CreateHeader(self, parent):
         if parent.top_bg:
-            header = LibraryHeader(parent, self, self.columns)
+            header = LibraryHeader(parent, self, self.columns, spacers=[3,3])
             header.SetEvents(self.OnAdd)
         else:
-            header = LibraryOnlyHeader(parent, self, self.columns)
+            header = LibraryOnlyHeader(parent, self, self.columns, spacers=[3,3])
             def showSettings(event):
                 self.guiutility.ShowPage('settings')
                 
@@ -1412,7 +1412,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.max_votes = 5
-        List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True, parent = parent)
+        List.__init__(self, columns, LIST_BLUE, [10,10], showChange = True, parent = parent)
     
     def __favorite_icon(self, item):
         channel = item.original_data
@@ -1431,7 +1431,7 @@ class ChannelList(List):
         return str(val)
     
     def CreateHeader(self, parent):
-        return SubTitleSeachHeader(parent, self, self.columns)
+        return SubTitleSeachHeader(parent, self, self.columns, spacers=[3,3])
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -1551,10 +1551,10 @@ class ChannelCategoriesList(List):
         self.searchSelected = False
         columns = [{'width': wx.LIST_AUTOSIZE}]
     
-        List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
+        List.__init__(self, columns, LIST_GREY, [10,10], True, parent = parent)
     
     def CreateHeader(self, parent):
-        title = TitleHeader(parent, self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
+        title = TitleHeader(parent, self, self.columns, 1, wx.FONTWEIGHT_NORMAL, spacers=[3,3])
         title.SetTitle('Categories')
         return title
     

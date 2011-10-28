@@ -1442,7 +1442,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MetaDataPlaylist(playlist_id);
             
-            CREATE TABLE ChannelVotes (
+            CREATE TABLE IF NOT EXISTS ChannelVotes (
               channel_id            integer,
               voter_id              integer,
               dispersy_id           integer,
@@ -1456,7 +1456,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             INSERT INTO MetaDataTypes ('name') VALUES ('name');
             INSERT INTO MetaDataTypes ('name') VALUES ('description');
             
-            CREATE TABLE TorrentFiles (
+            CREATE TABLE IF NOT EXISTS TorrentFiles (
               torrent_id            integer NOT NULL,
               path                  text    NOT NULL,
               length                integer NOT NULL,
@@ -1464,14 +1464,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             CREATE INDEX IF NOT EXISTS TorFileIndex ON TorrentFiles(torrent_id);
             
-            CREATE TABLE TorrentCollecting (
+            CREATE TABLE IF NOT EXISTS TorrentCollecting (
               torrent_id            integer NOT NULL,
               source                text    NOT NULL,
               PRIMARY KEY (torrent_id, source)
             );
             CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
             
-            CREATE TABLE TorrentMarkings (
+            CREATE TABLE IF NOT EXISTS TorrentMarkings (
               dispersy_id           integer NOT NULL,
               channeltorrent_id     integer NOT NULL,
               peer_id               integer,

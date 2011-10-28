@@ -390,7 +390,9 @@ class SelectedChannelList(GenericSearchList):
             
             if self.state == ChannelCommunity.CHANNEL_OPEN:
                 message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
-            self.list.ShowMessage(message, header = header)
+                self.list.ShowMessage(message, header = header)
+            else:
+                self.list.ShowMessage(header)
             
             self.SetNrResults(0)
     

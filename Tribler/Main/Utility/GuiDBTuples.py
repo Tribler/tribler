@@ -384,7 +384,9 @@ class Channel(Helper):
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
             searchManager = ChannelManager.getInstance()
-            return searchManager.getChannelStateByCID(self.dispersy_cid)
+            result = searchManager.getChannelStateByCID(self.dispersy_cid)
+            if result:
+                return result 
         
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
     

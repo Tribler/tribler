@@ -36,6 +36,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation,\
     RemoteChannelTorrent
 import threading
+from copy import copy
 
 DEBUG = False
 
@@ -182,7 +183,7 @@ class TorrentManager:
         if not duplicate and torrent.infohash in self.requestedTorrents:
             return False
         
-        peers = torrent.query_permids
+        peers = list(torrent.query_permids)
         if peers == None or len(peers) == 0:
             self.session.download_torrentfile(torrent.infohash, callback, prio)
             
@@ -1064,7 +1065,8 @@ class ChannelManager:
     
     def getChannelStateByCID(self, dispersy_cid):
         community = self._disp_get_community_from_cid(dispersy_cid)
-        return community.get_channel_mode()
+        if community:
+            return community.get_channel_mode()
     
     def setChannelState(self, channel_id, channel_mode):
         community = self._disp_get_community_from_channel_id(channel_id)
@@ -1353,10 +1355,10 @@ class ChannelManager:
     def _disp_get_community_from_cid(self, dispersy_cid):
         try:
             community = self.dispersy.get_community(dispersy_cid)
+            return community
+        
         except KeyError:
-            raise RuntimeError("Unknown community identifier")
-
-        return community
+            return None
     
     @forceDispersyThread
     def createChannel(self, name, description):

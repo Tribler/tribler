@@ -103,7 +103,10 @@ class ListHeader(wx.Panel):
                     label.column = i
                     label.Bind(wx.EVT_LEFT_UP, self.OnClick)
                     
-                    sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                    if i == 0:
+                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
+                    else:
+                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
 
                     if columns[i].get('defaultSorted', False):
                         if columns[i].get('sortAsc', False):
@@ -273,7 +276,7 @@ class TitleHeader(ListHeader):
         if titlePanel:
             subSizer = wx.BoxSizer(wx.HORIZONTAL)
             subSizer.Add(self.title)
-            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL)
             titlePanel = subSizer
         else:
             titlePanel = self.title
@@ -287,7 +290,7 @@ class TitleHeader(ListHeader):
             subtitlePanel = titlePanel
         
         subSizer = wx.BoxSizer(wx.HORIZONTAL)
-        subSizer.Add(subtitlePanel, 0, wx.LEFT, 3)
+        subSizer.Add(subtitlePanel)
         if righttitlePanel:
             subSizer.Add(righttitlePanel, 1, wx.LEFT, 3)
         righttitlePanel = subSizer

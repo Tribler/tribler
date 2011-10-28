@@ -56,7 +56,6 @@ class ListItem(wx.Panel):
             self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
-            
             if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                 option = 1
                 size = wx.DefaultSize
@@ -84,10 +83,14 @@ class ListItem(wx.Panel):
                 control.icon_right = self._get_icon(i, 'icon_right')
                 self.controls.append(control)
                 
-                if control.icon:
-                    self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+                
+                if i != 0:
+                    self.hSizer.AddSpacer((3, -1))
                     
-                self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                if control.icon:
+                    self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                
+                self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
                 
                 if control.icon_right:
                     self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
