@@ -9,9 +9,10 @@ Community instance.
 """
 
 from hashlib import sha1
-from itertools import count
-from math import sqrt
-from random import gauss, choice
+# from itertools import count
+# from math import sqrt
+# from random import gauss, choice
+from random import expovariate, random
 
 from bloomfilter import BloomFilter
 from cache import CacheDict
@@ -29,44 +30,44 @@ if __debug__:
     from dprint import dprint
     from math import ceil
 
-class SyncRange(object):
-    def __init__(self, time_low, bits, error_rate, redundancy):
-        assert isinstance(time_low, (int, long))
-        assert time_low > 0
-        assert isinstance(bits, (int, long))
-        assert bits > 0
-        assert isinstance(error_rate, float)
-        assert 0.0 < error_rate < 1.0
-        assert isinstance(redundancy, int)
-        assert redundancy > 0
-        self.time_low = time_low
-        self.space_freed = 0
-        self.bloom_filters = [BloomFilter(bits, error_rate, prefix=chr(i)) for i in xrange(redundancy)]
-        self.space_remaining = self.capacity = self.bloom_filters[0].get_capacity(error_rate)
-        if __debug__:
-            for bloom_filter in self.bloom_filters:
-                assert self.capacity == bloom_filter.get_capacity(error_rate)
-                assert bloom_filter.size == bits
-                assert 0 < bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
-                assert len(bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
+# class SyncRange(object):
+#     def __init__(self, time_low, bits, error_rate, redundancy):
+#         assert isinstance(time_low, (int, long))
+#         assert time_low > 0
+#         assert isinstance(bits, (int, long))
+#         assert bits > 0
+#         assert isinstance(error_rate, float)
+#         assert 0.0 < error_rate < 1.0
+#         assert isinstance(redundancy, int)
+#         assert redundancy > 0
+#         self.time_low = time_low
+#         self.space_freed = 0
+#         self.bloom_filters = [BloomFilter(bits, error_rate, prefix=chr(i)) for i in xrange(redundancy)]
+#         self.space_remaining = self.capacity = self.bloom_filters[0].get_capacity(error_rate)
+#         if __debug__:
+#             for bloom_filter in self.bloom_filters:
+#                 assert self.capacity == bloom_filter.get_capacity(error_rate)
+#                 assert bloom_filter.size == bits
+#                 assert 0 < bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
+#                 assert len(bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
 
-    def add(self, packet):
-        assert isinstance(packet, str)
-        assert len(packet) > 0
-        self.space_remaining -= 1
-        for bloom_filter in self.bloom_filters:
-            bloom_filter.add(packet)
-        if __debug__: dprint("add ", len(packet), " byte packet to sync range. ", self.space_remaining, " space remaining")
+#     def add(self, packet):
+#         assert isinstance(packet, str)
+#         assert len(packet) > 0
+#         self.space_remaining -= 1
+#         for bloom_filter in self.bloom_filters:
+#             bloom_filter.add(packet)
+#         if __debug__: dprint("add ", len(packet), " byte packet to sync range. ", self.space_remaining, " space remaining")
 
-    def free(self):
-        self.space_freed += 1
-        assert self.space_freed <= self.capacity - self.space_remaining, "May never free more than added"
+#     def free(self):
+#         self.space_freed += 1
+#         assert self.space_freed <= self.capacity - self.space_remaining, "May never free more than added"
 
-    def clear(self):
-        self.space_freed = 0
-        self.space_remaining = self.capacity
-        for bloom_filter in self.bloom_filters:
-            bloom_filter.clear()
+#     def clear(self):
+#         self.space_freed = 0
+#         self.space_remaining = self.capacity
+#         for bloom_filter in self.bloom_filters:
+#             bloom_filter.clear()
 
 class SubjectiveSetCache(object):
     def __init__(self, packet, subjective_set):
@@ -270,9 +271,9 @@ class Community(object):
         # ranges are at higher indexes in the list, new time ranges are inserted at the start of the
         # list.
         self._global_time = 0
-        self._time_high = 1
-        self._sync_ranges = []
-        self._initialize_sync_ranges()
+        # self._time_high = 1
+        # self._sync_ranges = []
+        # self._initialize_sync_ranges()
         if __debug__:
             b = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
             dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.get_capacity(self.dispersy_sync_bloom_filter_error_rate), "; error-rate: ", self.dispersy_sync_bloom_filter_error_rate)
@@ -311,48 +312,48 @@ class Community(object):
                 if isinstance(meta_message.distribution, SyncDistribution):
                     assert meta_message.delay < sync_delay, (meta_message.name, "when sync is enabled the interval should be greater than the walking frequency.  otherwise you are likely to receive duplicate packets")
         
-    def _initialize_sync_ranges(self):
-        assert isinstance(self._sync_ranges, list)
-        assert len(self._sync_ranges) == 0
-        assert self._global_time == 0
-        assert self._time_high == 1
+    # def _initialize_sync_ranges(self):
+    #     assert isinstance(self._sync_ranges, list)
+    #     assert len(self._sync_ranges) == 0
+    #     assert self._global_time == 0
+    #     assert self._time_high == 1
 
-        # ensure that at least one bloom filter exists
-        sync_range = SyncRange(1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
-        self._sync_ranges.insert(0, sync_range)
+    #     # ensure that at least one bloom filter exists
+    #     sync_range = SyncRange(1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
+    #     self._sync_ranges.insert(0, sync_range)
 
-        current_global_time, global_time = self._dispersy.database.execute(u"SELECT MIN(global_time), MAX(global_time) FROM sync WHERE community = ?", (self.database_id,)).next()
-        if __debug__: dprint("MIN:", current_global_time, "; MAX:", global_time)
-        if not global_time:
-            return
-        self._global_time = self._time_high = global_time
+    #     current_global_time, global_time = self._dispersy.database.execute(u"SELECT MIN(global_time), MAX(global_time) FROM sync WHERE community = ?", (self.database_id,)).next()
+    #     if __debug__: dprint("MIN:", current_global_time, "; MAX:", global_time)
+    #     if not global_time:
+    #         return
+    #     self._global_time = self._time_high = global_time
 
-        # load all messages into the bloom filters
-        packets = []
-        for global_time, packet in self._dispersy.database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time, packet", (self.database_id,)):
-            if global_time == current_global_time:
-                packets.append(str(packet))
-            else:
-                if len(packets) > sync_range.space_remaining:
-                    sync_range = SyncRange(current_global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
-                    self._sync_ranges.insert(0, sync_range)
+    #     # load all messages into the bloom filters
+    #     packets = []
+    #     for global_time, packet in self._dispersy.database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? ORDER BY global_time, packet", (self.database_id,)):
+    #         if global_time == current_global_time:
+    #             packets.append(str(packet))
+    #         else:
+    #             if len(packets) > sync_range.space_remaining:
+    #                 sync_range = SyncRange(current_global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
+    #                 self._sync_ranges.insert(0, sync_range)
 
-                map(sync_range.add, packets)
-                if __debug__: dprint("add in [", sync_range.time_low, ":inf] ", len(packets), " packets @", current_global_time, "; remaining: ", sync_range.space_remaining)
+    #             map(sync_range.add, packets)
+    #             if __debug__: dprint("add in [", sync_range.time_low, ":inf] ", len(packets), " packets @", current_global_time, "; remaining: ", sync_range.space_remaining)
 
-                packets = [str(packet)]
-                current_global_time = global_time
+    #             packets = [str(packet)]
+    #             current_global_time = global_time
 
-        if packets:
-            if len(packets) > sync_range.space_remaining:
-                sync_range = SyncRange(global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
-                self._sync_ranges.insert(0, sync_range)
+    #     if packets:
+    #         if len(packets) > sync_range.space_remaining:
+    #             sync_range = SyncRange(global_time, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
+    #             self._sync_ranges.insert(0, sync_range)
 
-            map(sync_range.add, packets)
-            if __debug__: dprint("add in [", sync_range.time_low, ":inf] ", len(packets), " packets @", current_global_time, "; remaining: ", sync_range.space_remaining)
+    #         map(sync_range.add, packets)
+    #         if __debug__: dprint("add in [", sync_range.time_low, ":inf] ", len(packets), " packets @", current_global_time, "; remaining: ", sync_range.space_remaining)
 
-        # todo: maybe we can add a callback or event notifier to give a progress indication while
-        # loading millions of packets...
+    #     # todo: maybe we can add a callback or event notifier to give a progress indication while
+    #     # loading millions of packets...
 
     def _initialize_subjective_sets(self):
         assert isinstance(self._subjective_sets, CacheDict)
@@ -487,17 +488,17 @@ class Community(object):
         """
         return 0.01
 
-    @property
-    def dispersy_sync_bloom_filter_redundancy(self):
-        """
-        The number of bloom filters, each with a unique prefix, that are used to represent one sync
-        range.
+    # @property
+    # def dispersy_sync_bloom_filter_redundancy(self):
+    #     """
+    #     The number of bloom filters, each with a unique prefix, that are used to represent one sync
+    #     range.
 
-        The effective error rate for a sync range then becomes redundancy * error_rate.
+    #     The effective error rate for a sync range then becomes redundancy * error_rate.
 
-        @rtype: int
-        """
-        return 3
+    #     @rtype: int
+    #     """
+    #     return 3
 
     @property
     def dispersy_sync_bloom_filter_bits(self):
@@ -530,30 +531,81 @@ class Community(object):
         """
         return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 21 - 16 - 4) * 8
 
+    # def dispersy_claim_sync_bloom_filter(self, identifier):
+    #     """
+    #     The bloom filter that should be sent this interval.
+
+    #     Returns a (time_low, time_high, bloom_filter) tuple.  For the most recent bloom filter it is
+    #     good practice to send 0 (zero) instead of time_high, this will ensure that messages newer
+    #     than time_high are also retrieved.
+
+    #     Bloom filters at index 0 indicates the most recent bloom filter range, while a higher number
+    #     indicates an older range.
+    #     """
+    #     size = len(self._sync_ranges)
+    #     index = int(abs(gauss(0, sqrt(size))))
+    #     while index >= size:
+    #         index = int(abs(gauss(0, sqrt(size))))
+
+    #     if index == 0:
+    #         sync_range = self._sync_ranges[index]
+    #         return sync_range.time_low, 0, choice(sync_range.bloom_filters)
+
+    #     else:
+    #         newer_range, sync_range = self._sync_ranges[index - 1:index + 1]
+    #         return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
+
     def dispersy_claim_sync_bloom_filter(self, identifier):
         """
-        The bloom filter that should be sent this interval.
-
-        Returns a (time_low, time_high, bloom_filter) tuple.  For the most recent bloom filter it is
-        good practice to send 0 (zero) instead of time_high, this will ensure that messages newer
-        than time_high are also retrieved.
-
-        Bloom filters at index 0 indicates the most recent bloom filter range, while a higher number
-        indicates an older range.
+        Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
-        size = len(self._sync_ranges)
-        index = int(abs(gauss(0, sqrt(size))))
-        while index >= size:
-            index = int(abs(gauss(0, sqrt(size))))
+        count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32", (self._database_id,)).next()
+        if count:
+            bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+            capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+            
+            desired_mean = count / 2.0
+            lambd = 1.0 / desired_mean
+            offset = count - int(expovariate(lambd))
+            while offset < 0:
+                offset = count - int(expovariate(lambd))
 
-        if index == 0:
-            sync_range = self._sync_ranges[index]
-            return sync_range.time_low, 0, choice(sync_range.bloom_filters)
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY global_time LIMIT ? OFFSET ?",
+                                                        (self._database_id, capacity + 2, max(0, offset - capacity - 1))))
 
-        else:
-            newer_range, sync_range = self._sync_ranges[index - 1:index + 1]
-            return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
+            for _, packet in data[1:-1]:
+                bloom.add(str(packet))
+                
+            if len(data) > capacity:
+                time_low, time_high = data[1][0], data[-2][0]
+            else:
+                time_low, time_high = data[0][0], data[-1][0]
 
+            if data[0][0] == time_low:
+                # also include all packets with global time data[0][0]
+                for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
+                                                               (self._database_id, time_low)):
+                    bloom.add(str(packet))
+
+            if data[-1][0] == time_high:
+                # also include all packets with global time data[-1][0]
+                for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
+                                                               (self._database_id, time_high)):
+                    bloom.add(str(packet))
+
+            if len(data) < capacity + 2:
+                time_high = 0
+                    
+            if __debug__:
+                if len(data) > 1:
+                    low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
+                                                                (self._database_id,)).next()
+                    dprint(self.cid.encode("HEX"), " syncing <<", data[0][0], " <", data[1][0], "-", data[-2][0], "> ", data[-1][0], ">> sync:[", time_low, ":", time_high, "] db:[", low, ":", high, "] len:", len(data), " cap:", capacity, force=1)
+
+            return (time_low, time_high, bloom)
+                
+        return None
+    
     @property
     def dispersy_sync_response_limit(self):
         """
@@ -699,175 +751,175 @@ class Community(object):
             dprint(previous, " -> ", new, level=level)
         self._global_time = max(self._global_time, global_time)
 
-    def free_sync_range(self, global_times):
-        """
-        Update the sync ranges to reflect that previously stored messages, at the indicated
-        global_times, are no longer stored.
+    # def free_sync_range(self, global_times):
+    #     """
+    #     Update the sync ranges to reflect that previously stored messages, at the indicated
+    #     global_times, are no longer stored.
 
-        @param global_times: The global_time values for each message that has been removed from the
-         database.
-        @type global_time: [int or long]
-        """
-        assert isinstance(global_times, (tuple, list))
-        assert len(global_times) > 0
-        assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
+    #     @param global_times: The global_time values for each message that has been removed from the
+    #      database.
+    #     @type global_time: [int or long]
+    #     """
+    #     assert isinstance(global_times, (tuple, list))
+    #     assert len(global_times) > 0
+    #     assert not filter(lambda x: not isinstance(x, (int, long)), global_times)
 
-        if __debug__: dprint("freeing ", len(global_times), " messages")
+    #     if __debug__: dprint("freeing ", len(global_times), " messages")
 
-        # update
-        if __debug__: debug_time_high = 0
-        for global_time in global_times:
-            for sync_range in self._sync_ranges:
-                if sync_range.time_low <= global_time:
-                    sync_range.free()
-                    if __debug__: dprint("free from [", sync_range.time_low, ":", debug_time_high if debug_time_high else "inf", "] @", global_time)
-                    break
-                if __debug__: debug_time_high = sync_range.time_low
+    #     # update
+    #     if __debug__: debug_time_high = 0
+    #     for global_time in global_times:
+    #         for sync_range in self._sync_ranges:
+    #             if sync_range.time_low <= global_time:
+    #                 sync_range.free()
+    #                 if __debug__: dprint("free from [", sync_range.time_low, ":", debug_time_high if debug_time_high else "inf", "] @", global_time)
+    #                 break
+    #             if __debug__: debug_time_high = sync_range.time_low
 
-        # remove completely freed ranges
-        if __debug__:
-            time_high = 0
-            for sync_range in self._sync_ranges:
-                if sync_range.space_freed >= sync_range.capacity - sync_range.space_remaining:
-                    dprint("remove obsolete sync range [", sync_range.time_low, ":", time_high if time_high else "inf", "]")
-                time_high = sync_range.time_low
-        self._sync_ranges = [sync_range for sync_range in self._sync_ranges if sync_range.space_freed < sync_range.capacity - sync_range.space_remaining]
+    #     # remove completely freed ranges
+    #     if __debug__:
+    #         time_high = 0
+    #         for sync_range in self._sync_ranges:
+    #             if sync_range.space_freed >= sync_range.capacity - sync_range.space_remaining:
+    #                 dprint("remove obsolete sync range [", sync_range.time_low, ":", time_high if time_high else "inf", "]")
+    #             time_high = sync_range.time_low
+    #     self._sync_ranges = [sync_range for sync_range in self._sync_ranges if sync_range.space_freed < sync_range.capacity - sync_range.space_remaining]
 
-        # merge neighboring ranges
-        if len(self._sync_ranges) > 1:
-            for low_index in xrange(len(self._sync_ranges)-1, 0, -1):
+    #     # merge neighboring ranges
+    #     if len(self._sync_ranges) > 1:
+    #         for low_index in xrange(len(self._sync_ranges)-1, 0, -1):
 
-                start = self._sync_ranges[low_index]
-                end_index = -1
-                used = start.capacity - start.space_remaining - start.space_freed
-                if used == start.capacity:
-                    continue
+    #             start = self._sync_ranges[low_index]
+    #             end_index = -1
+    #             used = start.capacity - start.space_remaining - start.space_freed
+    #             if used == start.capacity:
+    #                 continue
 
-                for index in xrange(low_index-1, -1, -1):
-                    current = self._sync_ranges[index]
-                    current_used = current.capacity - current.space_remaining - current.space_freed
-                    if current_used == current.capacity:
-                        break
-                    used += current_used
-                    if used <= start.capacity:
-                        end_index = index
-                    else:
-                        break
+    #             for index in xrange(low_index-1, -1, -1):
+    #                 current = self._sync_ranges[index]
+    #                 current_used = current.capacity - current.space_remaining - current.space_freed
+    #                 if current_used == current.capacity:
+    #                     break
+    #                 used += current_used
+    #                 if used <= start.capacity:
+    #                     end_index = index
+    #                 else:
+    #                     break
 
-                if end_index >= 0:
-                    time_high = self._sync_ranges[end_index - 1].time_low - 1 if end_index > 0 else self._time_high
-                    if __debug__:
-                        dprint("merge sync range [", self._sync_ranges[low_index].time_low, ":", time_high, "]")
-                        dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
+    #             if end_index >= 0:
+    #                 time_high = self._sync_ranges[end_index - 1].time_low - 1 if end_index > 0 else self._time_high
+    #                 if __debug__:
+    #                     dprint("merge sync range [", self._sync_ranges[low_index].time_low, ":", time_high, "]")
+    #                     dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
 
-                    self._sync_ranges[low_index].clear()
-                    map(self._sync_ranges[low_index].add, (str(packet) for packet, in self._dispersy.database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ?",
-                                                                                                                      (self._database_id, self._sync_ranges[low_index].time_low, time_high))))
-                    del self._sync_ranges[end_index:low_index]
+    #                 self._sync_ranges[low_index].clear()
+    #                 map(self._sync_ranges[low_index].add, (str(packet) for packet, in self._dispersy.database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ?",
+    #                                                                                                                   (self._database_id, self._sync_ranges[low_index].time_low, time_high))))
+    #                 del self._sync_ranges[end_index:low_index]
 
-                    if __debug__:
-                        dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
+    #                 if __debug__:
+    #                     dprint([dict(low=r.time_low, freed=r.space_freed, remaining=r.space_remaining) for r in self._sync_ranges], pprint=1)
 
-                    # break.  because the loop over low_index may be invalid now
-                    break
+    #                 # break.  because the loop over low_index may be invalid now
+    #                 break
 
-    def update_sync_range(self, messages):
-        """
-        Update our local view of the global time and the sync ranges using the given messages.
+    # def update_sync_range(self, messages):
+    #     """
+    #     Update our local view of the global time and the sync ranges using the given messages.
 
-        @param messages: The messages that need to update the global time and sync ranges.
-        @type messages: [Message.Implementation]
-        """
-        assert isinstance(messages, list)
-        assert len(messages) > 0
+    #     @param messages: The messages that need to update the global time and sync ranges.
+    #     @type messages: [Message.Implementation]
+    #     """
+    #     assert isinstance(messages, list)
+    #     assert len(messages) > 0
 
-        if __debug__: dprint("updating ", len(messages), " messages")
+    #     if __debug__: dprint("updating ", len(messages), " messages")
 
-        for message in sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet)):
-            if __debug__: last_time_low = 0
+    #     for message in sorted(messages, lambda a, b: a.distribution.global_time - b.distribution.global_time or cmp(a.packet, b.packet)):
+    #         if __debug__: last_time_low = 0
 
-            for index, sync_range in zip(count(), self._sync_ranges):
-                if sync_range.time_low <= message.distribution.global_time:
+    #         for index, sync_range in zip(count(), self._sync_ranges):
+    #             if sync_range.time_low <= message.distribution.global_time:
 
-                    # possibly add a new sync range
-                    if sync_range.space_remaining <= sync_range.space_freed:
-                        if message.distribution.global_time > self._time_high:
-                            assert last_time_low == last_time_low if last_time_low else self._time_high
-                            assert index == 0
-                            sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
-                            self._sync_ranges.insert(0, sync_range)
-                            if __debug__: dprint("new ", sync_range.bloom_filters[0].get_capacity(self.dispersy_sync_bloom_filter_error_rate), " capacity filter created for range [", sync_range.time_low, ":inf]")
+    #                 # possibly add a new sync range
+    #                 if sync_range.space_remaining <= sync_range.space_freed:
+    #                     if message.distribution.global_time > self._time_high:
+    #                         assert last_time_low == last_time_low if last_time_low else self._time_high
+    #                         assert index == 0
+    #                         sync_range = SyncRange(self._time_high + 1, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
+    #                         self._sync_ranges.insert(0, sync_range)
+    #                         if __debug__: dprint("new ", sync_range.bloom_filters[0].get_capacity(self.dispersy_sync_bloom_filter_error_rate), " capacity filter created for range [", sync_range.time_low, ":inf]")
 
-                    # add the packet
-                    sync_range.add(message.packet)
-                    if __debug__: dprint("add in [", sync_range.time_low, ":", last_time_low - 1 if last_time_low else "inf", "] ", message.name, "@", message.distribution.global_time, "; remaining: ", sync_range.space_remaining, " (", sync_range.space_remaining - sync_range.space_freed, " effectively)")
-                    assert message.distribution.global_time >= sync_range.time_low
-                    break
+    #                 # add the packet
+    #                 sync_range.add(message.packet)
+    #                 if __debug__: dprint("add in [", sync_range.time_low, ":", last_time_low - 1 if last_time_low else "inf", "] ", message.name, "@", message.distribution.global_time, "; remaining: ", sync_range.space_remaining, " (", sync_range.space_remaining - sync_range.space_freed, " effectively)")
+    #                 assert message.distribution.global_time >= sync_range.time_low
+    #                 break
 
-                if __debug__: last_time_low = sync_range.time_low
-            self._time_high = max(self._time_high, message.distribution.global_time)
-        self._global_time = max(self._global_time, self._time_high)
+    #             if __debug__: last_time_low = sync_range.time_low
+    #         self._time_high = max(self._time_high, message.distribution.global_time)
+    #     self._global_time = max(self._global_time, self._time_high)
 
-        # possibly split sync ranges
-        while True:
-            last_time_low = self._time_high + 1
-            for index, sync_range in zip(count(), self._sync_ranges):
-                if sync_range.space_remaining < sync_range.space_freed and sync_range.time_low < last_time_low:
-                    assert last_time_low >= 0
-                    assert index >= 0
+    #     # possibly split sync ranges
+    #     while True:
+    #         last_time_low = self._time_high + 1
+    #         for index, sync_range in zip(count(), self._sync_ranges):
+    #             if sync_range.space_remaining < sync_range.space_freed and sync_range.time_low < last_time_low:
+    #                 assert last_time_low >= 0
+    #                 assert index >= 0
 
-                    # get all items in this range (from the database, and from this call to update_sync_range)
-                    items = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ? ORDER BY global_time, packet", (self.database_id, sync_range.time_low, last_time_low - 1)))
-                    # split the current range
-                    index_middle = int((len(items) + 1) / 2)
-                    time_middle = items[index_middle][0]
-                    # the middle index may not be the same as len(ITEMS)/2 because
-                    # TIME_MIDDLE may occur any number of times in ITEMS.  It may even be
-                    # that all elements in ITEMS are at TIME_MIDDLE.
-                    for skew in xrange(1, index_middle + 1):
-                        if items[index_middle-skew][0] != time_middle:
-                            index_middle -= skew - 1
-                            break
-                        if len(items) > index_middle+skew and items[index_middle+skew][0] != time_middle:
-                            index_middle += skew
-                            break
-                    else:
-                        # did not break, meaning, every items in this sync range has the
-                        # same global time.  we can not split this range, this will result
-                        # in an increased chance for false positives
-                        if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
-                        assert all(item[0] == time_middle for item in items)
-                        index_middle = 0
+    #                 # get all items in this range (from the database, and from this call to update_sync_range)
+    #                 items = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time BETWEEN ? AND ? ORDER BY global_time, packet", (self.database_id, sync_range.time_low, last_time_low - 1)))
+    #                 # split the current range
+    #                 index_middle = int((len(items) + 1) / 2)
+    #                 time_middle = items[index_middle][0]
+    #                 # the middle index may not be the same as len(ITEMS)/2 because
+    #                 # TIME_MIDDLE may occur any number of times in ITEMS.  It may even be
+    #                 # that all elements in ITEMS are at TIME_MIDDLE.
+    #                 for skew in xrange(1, index_middle + 1):
+    #                     if items[index_middle-skew][0] != time_middle:
+    #                         index_middle -= skew - 1
+    #                         break
+    #                     if len(items) > index_middle+skew and items[index_middle+skew][0] != time_middle:
+    #                         index_middle += skew
+    #                         break
+    #                 else:
+    #                     # did not break, meaning, every items in this sync range has the
+    #                     # same global time.  we can not split this range, this will result
+    #                     # in an increased chance for false positives
+    #                     if __debug__: dprint("unable to split sync range [", sync_range.time_low, ":", last_time_low - 1, "] @", time_middle, " further because all items have the same global time", level="warning")
+    #                     assert all(item[0] == time_middle for item in items)
+    #                     index_middle = 0
 
-                    if index_middle > 0:
-                        time_middle = items[index_middle][0]
+    #                 if index_middle > 0:
+    #                     time_middle = items[index_middle][0]
 
-                        if __debug__: dprint("split [", sync_range.time_low, ":", last_time_low - 1, "] into [", sync_range.time_low, ":", time_middle - 1, "] and [", time_middle, ":", last_time_low - 1, "] with ", len(items[:index_middle]), " and ", len(items[index_middle:]), " items, respectively")
-                        assert index_middle == 0 or items[index_middle-1][0] < items[index_middle][0]
+    #                     if __debug__: dprint("split [", sync_range.time_low, ":", last_time_low - 1, "] into [", sync_range.time_low, ":", time_middle - 1, "] and [", time_middle, ":", last_time_low - 1, "] with ", len(items[:index_middle]), " and ", len(items[index_middle:]), " items, respectively")
+    #                     assert index_middle == 0 or items[index_middle-1][0] < items[index_middle][0]
 
-                        # clear and fill range [sync_range.time_low:time_middle-1]
-                        sync_range.clear()
-                        map(sync_range.add, (str(packet) for _, packet in items[:index_middle]))
-                        if __debug__:
-                            for global_time, _, in items[:index_middle]:
-                                dprint("re-add in [", sync_range.time_low, ":", time_middle - 1, "] @", global_time)
-                                assert sync_range.time_low <= global_time < time_middle
+    #                     # clear and fill range [sync_range.time_low:time_middle-1]
+    #                     sync_range.clear()
+    #                     map(sync_range.add, (str(packet) for _, packet in items[:index_middle]))
+    #                     if __debug__:
+    #                         for global_time, _, in items[:index_middle]:
+    #                             dprint("re-add in [", sync_range.time_low, ":", time_middle - 1, "] @", global_time)
+    #                             assert sync_range.time_low <= global_time < time_middle
 
-                        # create and fill range [time_middle:last_time_low-1]
-                        new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
-                        self._sync_ranges.insert(index, new_sync_range)
-                        map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
-                        if __debug__:
-                            for global_time, _, in items[index_middle:]:
-                                dprint("re-add in [", new_sync_range.time_low, ":", last_time_low - 1, "] @", global_time)
-                                assert new_sync_range.time_low <= global_time < last_time_low
-                        break
+    #                     # create and fill range [time_middle:last_time_low-1]
+    #                     new_sync_range = SyncRange(time_middle, self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, self.dispersy_sync_bloom_filter_redundancy)
+    #                     self._sync_ranges.insert(index, new_sync_range)
+    #                     map(new_sync_range.add, (str(packet) for _, packet in items[index_middle:]))
+    #                     if __debug__:
+    #                         for global_time, _, in items[index_middle:]:
+    #                             dprint("re-add in [", new_sync_range.time_low, ":", last_time_low - 1, "] @", global_time)
+    #                             assert new_sync_range.time_low <= global_time < last_time_low
+    #                     break
 
-                last_time_low = sync_range.time_low
+    #             last_time_low = sync_range.time_low
 
-            else:
-                # did not break, meaning, we can not split any more sync ranges
-                return
+    #         else:
+    #             # did not break, meaning, we can not split any more sync ranges
+    #             return
 
     def clear_subjective_set_cache(self, member, cluster, packet="", subjective_set=None):
         """

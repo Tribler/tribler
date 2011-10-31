@@ -785,16 +785,16 @@ class Dispersy(Singleton):
             packet = str(packet)
             if packet == message.packet:
                 # exact duplicates, do NOT process the message
-                
-                # 21/10/11 Boudewijn: since the community/member/global-time is already in the
-                # database, the associated packet should also be in the sync bloom filter to prevent
-                # us from receiving it again
-                if __debug__:
-                    for sync_range in message.community._sync_ranges:
-                        if sync_range.time_low <= message.distribution.global_time:
-                            for bloom_filter in sync_range.bloom_filters:
-                                assert message.packet in bloom_filter
-                            break
+                pass
+                # # 21/10/11 Boudewijn: since the community/member/global-time is already in the
+                # # database, the associated packet should also be in the sync bloom filter to prevent
+                # # us from receiving it again
+                # if __debug__:
+                #     for sync_range in message.community._sync_ranges:
+                #         if sync_range.time_low <= message.distribution.global_time:
+                #             for bloom_filter in sync_range.bloom_filters:
+                #                 assert message.packet in bloom_filter
+                #             break
             else:
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
@@ -806,8 +806,8 @@ class Dispersy(Singleton):
                         self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND member = ? AND global_time = ?",
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
                         
-                    # add the newly received message.packet to the bloom filter
-                    message.community.update_sync_range([message])
+                    # # add the newly received message.packet to the bloom filter
+                    # message.community.update_sync_range([message])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
@@ -1639,8 +1639,8 @@ class Dispersy(Singleton):
         is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
         is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
 
-        update_sync_range = []
-        free_sync_range = []
+        # update_sync_range = []
+        # free_sync_range = []
         for message in messages:
             # the signature must be set
             assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
@@ -1662,7 +1662,7 @@ class Dispersy(Singleton):
                      message.database_id,
                      buffer(message.packet)))
             assert self._database.changes == 1
-            update_sync_range.append(message)
+            # update_sync_range.append(message)
 
             # ensure that we can reference this packet
             message.packet_id = self._database.last_insert_rowid
@@ -1716,7 +1716,7 @@ class Dispersy(Singleton):
                     self._database.executemany(u"DELETE FROM reference_member_sync WHERE sync = ?", [(id_,) for id_, _, _ in items])
                     assert len(items) * meta.authentication.count == self._database.changes
 
-                free_sync_range.extend(global_time for _, _, global_time in items)
+                # free_sync_range.extend(global_time for _, _, global_time in items)
 
             # 12/10/11 Boudewijn: verify that we do not have to many packets in the database
             if __debug__:
@@ -1725,13 +1725,13 @@ class Dispersy(Singleton):
                         history_size, = self._database.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ? AND member = ?", (message.database_id, message.authentication.member.database_id)).next()
                         assert history_size <= message.distribution.history_size, [count, message.distribution.history_size, message.authentication.member.database_id]
 
-        if update_sync_range:
-            # add items to the sync bloom filters
-            meta.community.update_sync_range(update_sync_range)
+        # if update_sync_range:
+        #     # add items to the sync bloom filters
+        #     meta.community.update_sync_range(update_sync_range)
 
-        if free_sync_range:
-            # update bloom filters
-            meta.community.free_sync_range(free_sync_range)
+        # if free_sync_range:
+        #     # update bloom filters
+        #     meta.community.free_sync_range(free_sync_range)
 
     def yield_all_candidates(self, community, blacklist=()):
         """
@@ -4089,6 +4089,7 @@ class Dispersy(Singleton):
         # 1.6: new random walk candidates and my LAN and WAN addresses
         # 1.7: removed several community attributes, no longer calling reset on self._statistics
         # 1.8: added busy_time to the statistics (delay caused by overloaded cpu/disk)
+        # 1.9: removed sync_ranges
 
         info = {"version":1.8, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
@@ -4109,10 +4110,10 @@ class Dispersy(Singleton):
                                                         "dispersy_sync_response_limit",
                                                         "dispersy_missing_sequence_response_limit"))
 
-            if sync_ranges:
-                community_info["sync_ranges"] = [{"time_low":range_.time_low, "space_freed":range_.space_freed, "space_remaining":range_.space_remaining, "capacity":range_.capacity}
-                                                 for range_
-                                                 in community._sync_ranges]
+            # if sync_ranges:
+            #     community_info["sync_ranges"] = [{"time_low":range_.time_low, "space_freed":range_.space_freed, "space_remaining":range_.space_remaining, "capacity":range_.capacity}
+            #                                      for range_
+            #                                      in community._sync_ranges]
 
             if database_sync:
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
