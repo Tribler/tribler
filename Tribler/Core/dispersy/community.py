@@ -569,32 +569,40 @@ class Community(object):
             offset = count - int(expovariate(lambd))
             while offset < 0:
                 offset = count - int(expovariate(lambd))
-
+            
+            #fix offset to always include last CAPACITY items
+            offset = min(offset, count - capacity)
+            
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY global_time LIMIT ? OFFSET ?",
-                                                        (self._database_id, capacity + 2, max(0, offset - capacity - 1))))
+                                                        (self._database_id, capacity + 2, max(0, offset - 1))))
 
             for _, packet in data[1:-1]:
                 bloom.add(str(packet))
                 
             if len(data) > capacity:
                 time_low, time_high = data[1][0], data[-2][0]
+                
+                if data[0][0] == time_low:
+                    # also include all packets with global time data[0][0]
+                    for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
+                                                                   (self._database_id, time_low)):
+                        bloom.add(str(packet))
+    
+                if data[-1][0] == time_high:
+                    # also include all packets with global time data[-1][0]
+                    for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
+                                                                   (self._database_id, time_high)):
+                        bloom.add(str(packet))
+                        
+                        
+                if len(data) < capacity + 2:
+                    time_high = 0
+                        
             else:
-                time_low, time_high = data[0][0], data[-1][0]
-
-            if data[0][0] == time_low:
-                # also include all packets with global time data[0][0]
-                for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
-                                                               (self._database_id, time_low)):
-                    bloom.add(str(packet))
-
-            if data[-1][0] == time_high:
-                # also include all packets with global time data[-1][0]
-                for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
-                                                               (self._database_id, time_high)):
-                    bloom.add(str(packet))
-
-            if len(data) < capacity + 2:
-                time_high = 0
+                time_low, time_high = 1, 0
+                
+                bloom.add(str(data[0][1]))
+                bloom.add(str(data[-1][1]))
                     
             if __debug__:
                 if len(data) > 1:
@@ -604,7 +612,7 @@ class Community(object):
 
             return (time_low, time_high, bloom)
                 
-        return None
+        return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
     
     @property
     def dispersy_sync_response_limit(self):
