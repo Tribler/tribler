@@ -189,8 +189,10 @@ class AllChannelCommunity(Community):
                 
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
             if nr_requests > 0:
-                log("dispersy.log", "requesting-torrents", nr_requests = nr_requests)
                 self.create_channelcast_request(toCollect, message.address)
+                
+                if not self.integrate_with_tribler:
+                    log("dispersy.log", "requesting-torrents", nr_requests = nr_requests)
     
     def create_channelcast_request(self, toCollect, address):
         #create channelcast request message

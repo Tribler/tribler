@@ -149,8 +149,6 @@ class ChannelCommunity(Community):
             disp_undo_mark_torrent = self._disp_undo_mark_torrent
             
         else:
-            log("dispersy.log", "channel community starting in not integrated mode")
-            
             batch_delay = 1.0
             
             def dummy_function(*params):
@@ -195,7 +193,8 @@ class ChannelCommunity(Community):
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
         #return self.bloom_option_1()
-        log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
+        if not self.integrate_with_tribler:
+            log("dispersy.log", "syncing-bloom-filters", nrfilters = len(self._sync_ranges))
         
         return self.bloom_option_3()
         
@@ -380,7 +379,8 @@ class ChannelCommunity(Community):
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
-        log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
+        if not self.integrate_with_tribler:
+            log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
@@ -394,7 +394,8 @@ class ChannelCommunity(Community):
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, timestamp, name, files, trackers))
             
-            log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
+            if not self.integrate_with_tribler:
+                log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
             messages.append(message)
             
         self._dispersy.store_update_forward(messages, store, update, forward)
@@ -852,8 +853,6 @@ class ChannelCommunity(Community):
         snapshot = None
         
         for message in messages:
-            log("dispersy.log", "sending-channel-record", address = message.address)
-
             self._dispersy._send([message.address], [channelmessage.packet])
             if message.payload.includeSnapshot:
                 if snapshot is None:
@@ -864,7 +863,6 @@ class ChannelCommunity(Community):
                         snapshot.append(tormessage.packet)
                 
                 if len(snapshot) > 0:
-                    log("dispersy.log", "sending-channel-snapshot", address = message.address, nr_torrents = len(snapshot))
                     self._dispersy._send([message.address], snapshot)
             
     #check or receive moderation messages
