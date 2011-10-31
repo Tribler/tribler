@@ -713,7 +713,7 @@ class AbstractListBody():
         
         diff = time() - (self.listRateLimit + self.lastData)
         call_in = -diff * 1000
-        if call_in < 0:
+        if call_in <= 0:
             doSetData()
         else:
             if self.dataTimer == None:
