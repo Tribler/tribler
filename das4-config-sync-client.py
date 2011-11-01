@@ -17,6 +17,7 @@ class ConfigClientProtocol(LineReceiver):
         self.sendLine("IP "+my_ip)
 
     def lineReceived(self, data):
+        print data
         username = getuser()
         parts = data.strip().split('#')
         starting_timestamp = int(parts[0])
