@@ -12,12 +12,10 @@ from twisted.internet import reactor
 
 class ConfigClientProtocol(LineReceiver):
     def connectionMade(self):
-        print my_ip
         my_ip = argv[2]
         self.sendLine("IP "+my_ip)
 
     def lineReceived(self, data):
-        print data
         username = getuser()
         parts = data.strip().split('#')
         starting_timestamp = int(parts[0])
@@ -28,6 +26,9 @@ class ConfigClientProtocol(LineReceiver):
         f.write(data)
         f.close()
         print my_id_str, starting_timestamp
+        
+        self.transport.loseConnection()
+        reactor.stop()
 
 class ConfigClientFactory(ClientFactory):
     def buildProtocol(self, addr):
