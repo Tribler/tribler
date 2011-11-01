@@ -8,6 +8,8 @@ PEERS=$1
 EXPERIMENT_CONFIG=$2
 source $EXPERIMENT_CONFIG # $BRANCH, $DISPERSY_ARGS
 
+echo hallo
+
 cd ${PEERS}
 PEERS=$(pwd)
 
@@ -57,11 +59,13 @@ fi
 
 # determine the IP of the usable interface
 MY_IP=$(ip address show dev $iface | grep 'inet ' | awk -F '[/ ]' '{print $6}')
+echo $MY_IP
 
 export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
 export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
 
 config="$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)"
+echo $config
 MY_ID=$(echo $config | cut -d' ' -f1)
 STARTING_TIMESTAMP=$(echo $config | cut -d' ' -f2)
 source $EXPERIMENT_CONFIG # reload config with the new STARTING_TIMESTAMP
