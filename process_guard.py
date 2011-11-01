@@ -93,7 +93,7 @@ class ProcessController(object):
         stderr = open(error_filename, "w")
         print >> stdout, "Starting #%05d: %s" %(self.cmd_id, cmd)
         
-        p = subprocess.Popen(cmd, shell=True, stdout=stdout, stderr=stderr)
+        p = subprocess.Popen(cmd, shell=True, stdout=stdout, stderr=stderr, close_fds=True)
         
         self.processes.append(p)
         self.files.append(stdout)
@@ -104,8 +104,11 @@ class ProcessController(object):
 
     def terminate(self):
         for file in self.files:
-            file.flush()
-            file.close()
+            try:
+                file.flush()
+                file.close()
+            except:
+                pass
         
         killpg(0, SIGKILL) # kill the entire process group
         #for p in self.processes:
