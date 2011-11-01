@@ -147,7 +147,7 @@ class DelayMessageByProof(DelayMessage):
         # the footprint that will trigger the delayed packet
         footprint = "".join(("(dispersy-authorize|dispersy-dynamic-settings)",
                              " Community:", delayed.community.cid.encode("HEX"),
-                             "(?", delayed.name.encode("UTF-8"), ")"))
+                             "(?#", delayed.name.encode("UTF-8"), ")"))
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-proof")
