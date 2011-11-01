@@ -64,6 +64,7 @@ echo $MY_IP
 export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
 export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
 
+echo ${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP
 config="$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)"
 echo $config
 MY_ID=$(echo $config | cut -d' ' -f1)
