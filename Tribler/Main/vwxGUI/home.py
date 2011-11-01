@@ -381,6 +381,10 @@ class DispersyPanel(HomePanel):
         self.summary_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.summary_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
         
+        font = self.summary_tree.GetFont()
+        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.summary_tree.SetFont(font)
+        
         vSizer.Add(self.summary_tree, 2, wx.EXPAND|wx.LEFT, 10)
 
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
