@@ -213,7 +213,7 @@ class Timeline(object):
                         if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " -> ", key, " (no authorization)", level="warning")
                         return (False, [])
 
-                    if __debug__: dprint("ACCEPT time:", global_time, " user:", member.database_id, " -> ", permission, "^", message.name, " (see above)")
+                    # accept with proof
                     assert len(all_proofs) > 0
 
                 else:

@@ -139,9 +139,15 @@ class DelayMessageByProof(DelayMessage):
         if __debug__:
             from message import Message
         assert isinstance(delayed, Message.Implementation)
+
+        # 01/11/11 Boudewijn: adding "(?MESSAGE-NAME)" too the pattern will ensure that we create
+        # different trigger object for different meta messages, note that a 'missing-proof' message
+        # is ONLY sent when a new trigger is created...
+
         # the footprint that will trigger the delayed packet
         footprint = "".join(("(dispersy-authorize|dispersy-dynamic-settings)",
-                             " Community:", delayed.community.cid.encode("HEX")))
+                             " Community:", delayed.community.cid.encode("HEX"),
+                             "(?", delayed.name.encode("UTF-8"), ")"))
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-proof")

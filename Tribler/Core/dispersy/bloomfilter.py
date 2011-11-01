@@ -611,23 +611,29 @@ if __debug__:
         print "10  ", sum(check10)
         print "500 ", sum(check500)
         print "1500", sum(check1500)
-            
+
+    def _test_size():
+        # 01/11/11 currently bloom filters get 10240 bits of space
+        b = BloomFilter(10240, 0.01)
+        b = BloomFilter(128*2, 0.01)
+        
     def p(b, postfix=""):
         # print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
         print "error-rate", b.error_rate, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
 
     if __name__ == "__main__":
-        _test_behavior()
+        # _test_behavior()
         #_performance_test()
         # _taste_test()
         # _test_occurrence()
         # _test_documentation()
         # _test_save_load()
         # _test_performance()
-        _test_false_positives()
+        # _test_false_positives()
         # _test_prefix_false_positives()
         # _test_prefix_false_positives(FasterBloomFilter)
         # _test_behavior(FasterBloomFilter)
+        _test_size()
         
         # MTU = 1500 # typical MTU
         # # MTU = 576 # ADSL

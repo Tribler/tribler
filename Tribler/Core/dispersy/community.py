@@ -608,7 +608,7 @@ class Community(object):
                 if len(data) > 1:
                     low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
                                                                 (self._database_id,)).next()
-                    dprint(self.cid.encode("HEX"), " syncing <<", data[0][0], " <", data[1][0], "-", data[-2][0], "> ", data[-1][0], ">> sync:[", time_low, ":", time_high, "] db:[", low, ":", high, "] len:", len(data), " cap:", capacity, force=1)
+                    dprint(self.cid.encode("HEX"), " syncing <<", data[0][0], " <", data[1][0], "-", data[-2][0], "> ", data[-1][0], ">> sync:[", time_low, ":", time_high, "] db:[", low, ":", high, "] len:", len(data), " cap:", capacity)
 
             return (time_low, time_high, bloom)
                 
@@ -1347,30 +1347,10 @@ class HardKilledCommunity(Community):
             self._meta_messages[name] = meta_messages[name]
 
     @property
-    def dispersy_candidate_request_initial_delay(self):
-        # we no longer send candidate messages
-        return 0.0
-
-    @property
-    def dispersy_candidate_request_interval(self):
-        # we no longer send candidate messages
-        return 0.0
-
-    @property
-    def dispersy_candidate_cleanup_age_threshold(self):
-        # all candidated can be removed
-        return 0.0
-
-    @property
-    def dispersy_sync_initial_delay(self):
-        # we no longer send sync messages
-        return 0.0
-
-    @property
-    def dispersy_sync_interval(self):
-        # we no longer send sync messages
-        return 0.0
-
+    def dispersy_enable_candidate_walker(self):
+        # disable candidate walker
+        return False
+        
     def initiate_meta_messages(self):
         # there are no community messages
         return []
