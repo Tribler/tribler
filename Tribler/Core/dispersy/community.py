@@ -566,15 +566,13 @@ class Community(object):
             
             desired_mean = count / 2.0
             lambd = 1.0 / desired_mean
-            offset = count - int(expovariate(lambd))
-            while offset < 0:
-                offset = count - int(expovariate(lambd))
+            offset = max(0, count - int(expovariate(lambd)) - 1)
             
             #fix offset to always include last CAPACITY items
             offset = min(offset, count - capacity)
             
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY global_time LIMIT ? OFFSET ?",
-                                                        (self._database_id, capacity + 2, max(0, offset - 1))))
+                                                        (self._database_id, capacity + 2, offset)))
 
             for _, packet in data[1:-1]:
                 bloom.add(str(packet))
@@ -593,7 +591,10 @@ class Community(object):
                     for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND global_time = ?",
                                                                    (self._database_id, time_high)):
                         bloom.add(str(packet))
-                        
+
+
+                if offset == 0:
+                    time_low = 1
                         
                 if len(data) < capacity + 2:
                     time_high = 0
