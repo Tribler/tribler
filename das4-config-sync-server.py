@@ -40,7 +40,7 @@ class ConfigProtocol(LineReceiver):
             
             port = 12000 + subscribers
             config_line = str(start_timestamp) + "#%d %s:%d"%(subscribers, subscriber_ip, port)
-            self.transport.write(str(start_timestamp) + config_line + "\r\n")
+            self.transport.write(config_line + "\r\n")
             print "* Peer #%d (%s:%d)" %(subscribers, subscriber_ip, port)
 
             config_lock.release()
