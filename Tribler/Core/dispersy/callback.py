@@ -211,8 +211,10 @@ class Callback(object):
         same ID_ is allowed, all calls will be handled normally, however, all these calls will be
         removed if the associated ID_ is unregistered.
 
-        Once the call is performed the optional CALLBACK is registered to be called immediately.  In
-        this case CALLBACK_ARGS and CALLBACK_KARGS are the calls arguments and keyword arguments.
+        Once the call is performed the optional CALLBACK is registered to be called immediately.
+        The first parameter of the CALLBACK will always be either the returned value or the raised
+        exception.  If CALLBACK_ARGS is given it will be appended to the first argument.  If
+        CALLBACK_KARGS is given it is added to the callback as keyword arguments.
 
         Returns ID_ if specified or a uniquely generated numerical identifier
         
@@ -298,6 +300,40 @@ class Callback(object):
         with self._lock:
             self._new_actions.append(("unregister", id_))
 
+    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", timeout=0.0, default=None):
+        """
+        Register a blocking CALL to be made, waits for the call to finish, and returns or raises the
+        result.
+
+        TIMEOUT gives the maximum amount of time to wait before un-registering CALL.  No timeout
+        will occur when TIMEOUT is 0.0.  When a timeout occurs the DEFAULT value is returned.
+
+        DEFAULT can be anything.  The DEFAULT value is returned when a TIMEOUT occurs.  When DEFAULT
+        is an Exception instance it will be raised instead of returned.
+        
+        For the arguments CALL, ARGS, KARGS, DELAY, PRIORITY, and ID_: see the register(...) method.
+        """
+        assert isinstance(timeout, float)
+        assert 0.0 <= timeout
+        def callback(result):
+            container[0] = result
+            event.set()
+
+        # result container
+        container = [default]
+        event = Event()
+
+        # register the call
+        id_ = self.register(call, args, kargs, delay, priority, id_, callback)
+
+        # wait for call to finish
+        event.wait(None if timeout is 0.0 else timeout)
+
+        if isinstance(container[0], Exception):
+            raise container[0]
+        else:
+            return container[0]
+        
     def start(self, name="Generic-Callback", wait=True):
         """
         Start the asynchronous thread.
@@ -417,7 +453,7 @@ class Callback(object):
 
                 assert deadline <= actual_time
                 if actual_time - deadline >= MAX_DESYNC_TIME:
-                    if __debug__: dprint("MAX_DESYNC_TIME exceeded.  resetting deadline", level="warning")
+                    dprint("MAX_DESYNC_TIME exceeded.  resetting deadline.  requests: ", len(requests), ".  expired: ", len(expired), level="warning")
                     deadline = actual_time
 
                 while True:
