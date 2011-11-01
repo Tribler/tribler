@@ -12,7 +12,7 @@ from twisted.internet import reactor
 
 class ConfigClientProtocol(LineReceiver):
     def connectionMade(self):
-        self.state = 1
+        print my_ip
         my_ip = argv[2]
         self.sendLine("IP "+my_ip)
 
