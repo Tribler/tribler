@@ -273,10 +273,6 @@ class ChannelCommunity(Community):
     @property
     def dispersy_sync_response_limit(self):
         return 50 * 1024
-    
-    @property
-    def dispersy_sync_bloom_filter_bits(self):
-        return 2560 #force bloomfilter capactiy to 1/4th
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
