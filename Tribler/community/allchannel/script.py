@@ -172,10 +172,22 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             elif cur_command[0] == 'publish':
                 if self.my_channel:
                     infohash = str(self.torrentindex)
-                    infohash += ''.join(choice(letters) for i in xrange(20-len(infohash)))
+                    infohash += ''.join(choice(letters) for _ in xrange(20-len(infohash)))
+                    
+                    name = u''.join(choice(letters) for _ in xrange(100))
+                    files = []
+                    for _ in range(10):
+                        files.append((''.join(choice(letters) for _ in xrange(30)), 123455))
+                    
+                    trackers = []
+                    for _ in range(10):
+                        trackers.append(''.join(choice(letters) for _ in xrange(30))) 
+                    
+                    files = tuple(files)
+                    trackers = tuple(trackers)
                     
                     self.torrentindex += 1
-                    torrents.append((infohash, int(time()), u'', (), ()))
+                    torrents.append((infohash, int(time()), name, files, trackers))
             
             elif cur_command[0] == 'post':
                 if self.joined_community:
