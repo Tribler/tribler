@@ -79,8 +79,9 @@ class ResourceMonitor(object):
 class ProcessController(object):
     def __init__(self, output_dir):
         self.cmd_id = 0
-        self.pid_list = []
+        self.pid_list = {}
         self.processes = []
+        self.files = []
         self.output_dir = output_dir
         setpgrp() # creat new process group and become its leader
 
@@ -88,30 +89,35 @@ class ProcessController(object):
         output_filename = output_dir + "/%05d.out" %self.cmd_id
         error_filename = output_dir + "/%05d.err" %self.cmd_id
         
-        output = open(output_filename, 'w')
-        print >> output, "Starting #%05d: %s" %(self.cmd_id, cmd)
-        output.close()
+        stdout = open(output_filename, "w")
+        stderr = open(error_filename, "w")
+        print >> stdout, "Starting #%05d: %s" %(self.cmd_id, cmd)
         
-        p = subprocess.Popen(cmd, shell=True, \
-            stdout = open(output_filename, "w"), \
-            stderr = open(error_filename, "w"))
+        p = subprocess.Popen(cmd, shell=True, stdout=stdout, stderr=stderr)
+        
         self.processes.append(p)
-        self.pid_list.append(p.pid)
+        self.files.append(stdout)
+        self.files.append(stderr)
+        
+        self.pid_list[p.pid] = self.cmd_id
         self.cmd_id = self.cmd_id + 1
 
     def terminate(self):
+        for file in self.files:
+            file.flush()
+            file.close()
+        
         killpg(0, SIGKILL) # kill the entire process group
         #for p in self.processes:
         #    p.kill()
 
     def get_pid_list(self):
-        return self.pid_list
-
+        return self.pid_list.keys()
 
 class ProcessMonitor(object):
     def __init__(self, process_list_file, output_dir, time_limit):
         self.time_limit = time_limit
-        self._pc = pc = ProcessController(output_dir)
+        self._pc = ProcessController(output_dir)
         self.command_count = 0
         for f in open(process_list_file).readlines():
             cmd = f.strip()
