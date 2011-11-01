@@ -118,11 +118,12 @@ class ProcessMonitor(object):
             if cmd == "": continue
             self._pc.run(cmd)
             self.command_count = self.command_count + 1
+            
         self._rm = ResourceMonitor(self._pc.get_pid_list())
-        #self.monitor_file = open(output_dir+"/resource_usage.log","w")
+        self.monitor_file = open(output_dir+"/resource_usage.log","w")
 
     def stop(self):
-        #self.monitor_file.close()
+        self.monitor_file.close()
         self._pc.terminate()
 
     def monitoring_loop(self):
@@ -135,9 +136,12 @@ class ProcessMonitor(object):
                 print "All child processes have finished."
                 self.stop()
                 break
+            
             time_elapsed = (time() - time_start)
-            #self.monitor_file.write("%d %d %3.2f %3.2f\n" %(int(time_elapsed), resource_usage['memory']/1024, resource_usage['cpu'], resource_usage['cpu'] / self.command_count))
-            #self.monitor_file.flush()
+            
+            self.monitor_file.write("%d %d %3.2f %3.2f\n" %(int(time_elapsed), resource_usage['memory']/1024, resource_usage['cpu'], resource_usage['cpu'] / self.command_count))
+            self.monitor_file.flush()
+            
             if time_elapsed > self.time_limit:
                 print "Killing monitored processes (time elapsed: %d sec)" %(self.time_limit)
                 self.stop()
@@ -146,7 +150,6 @@ class ProcessMonitor(object):
 
     def terminate(self):
         self._pc.terminate()
-
 
 if __name__ == "__main__":
     process_list_file = argv[1]
