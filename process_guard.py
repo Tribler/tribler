@@ -87,7 +87,11 @@ class ProcessController(object):
     def run(self, cmd):
         output_filename = output_dir + "/%05d.out" %self.cmd_id
         error_filename = output_dir + "/%05d.err" %self.cmd_id
-        print "Starting #%05d: %s" %(self.cmd_id, cmd)
+        
+        output = open(output_filename, 'w')
+        print >> output, "Starting #%05d: %s" %(self.cmd_id, cmd)
+        output.close()
+        
         p = subprocess.Popen(cmd, shell=True, \
             stdout = open(output_filename, "w"), \
             stderr = open(error_filename, "w"))
