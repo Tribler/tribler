@@ -207,46 +207,16 @@ class ScenarioScriptBase(ScriptBase):
         # name, ip, port, public and private key
         #
         with open('data/peer.conf') as fp:
-            my_name, ip, port, public_key, private_key = fp.readline().split()
-            public_key = public_key.decode("HEX")
-            private_key = private_key.decode("HEX")
+            my_name, ip, port = fp.readline().split()
             my_address = (ip, int(port))
-        if __debug__: log(self._logfile, "read-config-done")
+            
+        if __debug__: log(self._logfile, "read-config-done", my_name = my_name, my_address = my_address)
         
         # create my member
-        my_member = Member.get_instance(public_key, private_key, sync_with_database=True)
-        assert_(my_member.public_key)
-        assert_(my_member.private_key)
+        ec = ec_generate_key(u"low")
+        my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
         dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
-        if __debug__:
-            _peer_counter = 0
-            
-#        import bootstrap
-#        trackers = []
-#        with open('data/peers') as file:
-#            for line in file:
-#                name, ip, port, public_key, _ = line.split(' ', 4)
-#                public_key = public_key.decode("HEX")
-#                if __debug__:
-#                    _peer_counter += 1
-#                    log(self._logfile, "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-#                    
-#                if public_key == my_member.public_key:
-#                    continue
-#                trackers.append((ip, int(port)))
-#
-#                # ensure that everyone has the public key (doesn't need to request a
-#                # dispersy-identity msg)
-#                self._dispersy_database.execute(u"INSERT INTO member (mid, public_key) VALUES (?, ?)",
-#                                                (buffer(sha1(public_key).digest()), buffer(public_key)))
-#        
-#        shuffle(trackers)
-#        bootstrap._trackers = trackers
-        if __debug__:
-            log(self._logfile, "done-reading-peers")
-
-        self._members = {}
         self.original_on_incoming_packets = self._dispersy.on_incoming_packets
         self.original_send = self._dispersy._send
 
@@ -258,26 +228,6 @@ class ScenarioScriptBase(ScriptBase):
         log(self._logfile, "community-property", name="timestep", value=self._timestep)
         log(self._logfile, "community-property", name="sync_response_limit", value=self._community.dispersy_sync_response_limit)
         log(self._logfile, "community-property", name="starting_timestamp", value=self._starting_timestamp)
-
-        # 30/08/11 boudewijn: we do not need to create a dispersy-identity message.  it is created
-        # when we join the community and transferred on demand
-        #
-        # # create a dispersy-identity message for my_member and the
-        # # self._community community.  This message will be sent to all
-        # # the peers in the 'peers' file to (a) add them to our candidate
-        # # table (b) let them know about our existance and our public
-        # # key
-        # meta = self._community.get_meta_message(u"dispersy-identity")
-        # message = meta.implement(meta.authentication.implement(meta.community._my_member),
-        #                         meta.distribution.implement(meta.community.claim_global_time()),
-        #                         meta.destination.implement(),
-        #                         meta.payload.implement(my_address))
-        # self._dispersy.store_update_forward([message], True, True, False)
-
-        # yield 2.0
-
-        # open the scenario files, as generated from Mircea's Scenario
-        # Generator
 
         self._stepcount = 0
 

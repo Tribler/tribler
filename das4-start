@@ -53,15 +53,16 @@ import re
 compile_dir('.', rx=re.compile('/[.]svn'), force=False)
 END
 
+cd $PEERS_DIRECTORY
+PEER_COUNT=$(cat peer.count)
 
 cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
-./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys $INITIAL_DELAY & # it automatically stops after all peers received their config
+./das4-config-sync-server.py $PEER_COUNT $INITIAL_DELAY & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
 #disown  # remove job from the job table of the current bash process
 
 cd $PEERS_DIRECTORY
-PEER_COUNT=$(cat peer.count)
 
 echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
 
