@@ -38,7 +38,7 @@ class ConfigProtocol(LineReceiver):
             subscriber_ip = line[3:]
             
             port = 12000 + subscribers
-            config_line = str(start_timestamp) + "#%d %s"%(subscribers, subscriber_ip, port)
+            config_line = str(start_timestamp) + "#%d %s:%d"%(subscribers, subscriber_ip, port)
             self.transport.write(str(start_timestamp) + config_line + "\r\n")
             print "* Peer #%d (%s:%d)" %(subscribers, subscriber_ip, port)
 
