@@ -11,6 +11,7 @@ from hashlib import md5
 
 start_timestamp = 0
 initial_peer_delay = 0
+expected_subscribers = 0
 subscribers = 0
 
 config_lock = Lock()
@@ -43,21 +44,15 @@ class ConfigProtocol(LineReceiver):
             print "* Peer #%d (%s:%d)" %(subscribers, subscriber_ip, port)
 
             config_lock.release()
-
-    def connectionLost(self, reason):
-        global subscribers, config_lock
-        config_lock.acquire()
-        subscribers -= 1
-        if subscribers == 0:
-            reactor.stop()
-        config_lock.release()
-
-
+            if subscribers == expected_subscribers:
+                print "*** Stopping reactor ***"
+                reactor.stop()
+                
 class ConfigFactory(Factory):
     protocol = ConfigProtocol
 
 def main():
-    global start_timestamp, initial_peer_delay
+    global start_timestamp, expected_subscribers, initial_peer_delay
     expected_subscribers = int(argv[1])
     initial_peer_delay = int(argv[2])
     print "* Config server expecting %d peers..." %(expected_subscribers)
