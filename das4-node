@@ -44,7 +44,7 @@ rm -rf /tmp/$USER/dispersy/
 mkdir -p /tmp/$USER/dispersy/
 
 for i in $(seq 1 1 $PEERS_PER_NODE); do
-	echo "${BRANCH}/das4-peer $PEERS_DIRECTORY $EXPERIMENT_CONFIG > $PEERS_DIRECTORY/control/$(hostname)/output" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
+	echo "${BRANCH}/das4-peer $PEERS_DIRECTORY $EXPERIMENT_CONFIG > $PEERS_DIRECTORY/control/$(hostname)/debug_output" >> $PEERS_DIRECTORY/control/$(hostname)/start_commands
 done
 
 export PYTHONPATH=${BRANCH}
