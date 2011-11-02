@@ -74,6 +74,12 @@ class TriggerCallback(Trigger):
         self._response_args = response_args
         self._responses_remaining = max_responses
 
+    def __str__(self):
+        if __debug__:
+            return "<TriggerCallback %d left %s>" % (self._responses_remaining, self._debug_pattern)
+        else:
+            return "<TriggerCallback %d left>" % self._responses_remaining
+        
     def extend(self):
         """
         We can never extend this Trigger because of the responses_remaining property.
@@ -141,7 +147,10 @@ class TriggerPacket(Trigger):
         self._search = expression_compile(pattern).search
         self._callback = callback
         self._packets = packets
-
+        
+    def __str__(self):
+        return "<TriggerPacket %dx %s>" % (len(self._packets), self._pattern)
+        
     def extend(self, pattern, packets):
         """
         When this trigger has the same pattern we will extend with packets and return True.
@@ -229,6 +238,9 @@ class TriggerMessage(Trigger):
         self._callback = callback
         self._messages = messages
 
+    def __str__(self):
+        return "<TriggerMessage %dx %s>" % (len(self._messages), self._pattern)
+    
     def extend(self, pattern, messages):
         """
         When this trigger has the same pattern we will extend with packets and return True.
