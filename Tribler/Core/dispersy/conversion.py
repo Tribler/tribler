@@ -37,7 +37,7 @@ class Conversion(object):
     if __debug__:
         debug_stats = {"encode-meta":0.0, "encode-authentication":0.0, "encode-destination":0.0, "encode-distribution":0.0, "encode-payload":0.0,
                        "decode-meta":0.0, "decode-authentication":0.0, "decode-destination":0.0, "decode-distribution":0.0, "decode-payload":0.0,
-                       "decode-authentication-verify-true":0.0, "decode-authentication-verify-false":0.0, "encode-message-sign":0.0,
+                       "decode-authentication-verify":0.0, "decode-authentication-check":0.0, "decode-authentication-get-member":0.0, "decode-authentication-get-member-from-id":0.0, "encode-message-sign":0.0,
                        "encode-message":0.0, "decode-message":0.0,
                        "-encode-count":0, "-decode-count":0}
 
@@ -1044,21 +1044,27 @@ class BinaryConversion(Conversion):
                 if len(data) < offset + 20:
                     raise DropPacket("Insufficient packet size (_decode_authentication sha1)")
                 member_id = data[offset:offset+20]
-                members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
-                if not members:
-                    raise DelayPacketByMissingMember(self._community, member_id)
                 offset += 20
 
+                if __debug__:
+                    debug_begin = time()
+                members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
+                if __debug__:
+                    self.debug_stats["decode-authentication-get-member-from-id"] += time() - debug_begin
+                if not members:
+                    raise DelayPacketByMissingMember(self._community, member_id)
+
                 for member in members:
+                    first_signature_offset = len(data) - member.signature_length
+
                     if __debug__:
                         debug_begin = time()
-                    first_signature_offset = len(data) - member.signature_length
                     if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
                         if __debug__:
-                            self.debug_stats["decode-authentication-verify-true"] += time() - debug_begin
+                            self.debug_stats["decode-authentication-verify"] += time() - debug_begin
                         return offset, authentication.implement(member, is_signed=True), first_signature_offset
                     if __debug__:
-                        self.debug_stats["decode-authentication-verify-false"] += time() - debug_begin
+                        self.debug_stats["decode-authentication-verify"] += time() - debug_begin
 
                 raise DelayPacketByMissingMember(self._community, member_id)
 
@@ -1068,24 +1074,38 @@ class BinaryConversion(Conversion):
                 if len(data) < offset + key_length:
                     raise DropPacket("Insufficient packet size (_decode_authentication bin)")
                 key = data[offset:offset+key_length]
+                offset += key_length
+
+                if __debug__:
+                    debug_begin = time()
                 if not ec_check_public_bin(key):
-                    if __debug__: dprint(key_length, " ", key.encode("HEX"), level="warning")
+                    if __debug__:
+                        dprint(key_length, " ", key.encode("HEX"), level="warning")
+                        self.debug_stats["decode-authentication-check"] += time() - debug_begin
                     raise DropPacket("Invalid cryptographic key (_decode_authentication)")
+                if __debug__:
+                    self.debug_stats["decode-authentication-check"] += time() - debug_begin
+
+                if __debug__:
+                    debug_begin = time()
                 member = self._community.get_member(key)
+                if __debug__:
+                    self.debug_stats["decode-authentication-get-member"] += time() - debug_begin
+
                 # TODO we should ensure that member.had_identity(self._community), however, the
                 # exception is the dispersy-identity message.  hence we need the placeholder
                 # parameter to check this
-                offset += key_length
                 first_signature_offset = len(data) - member.signature_length
+
                 if __debug__:
                     debug_begin = time()
                 if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
                     if __debug__:
-                        self.debug_stats["decode-authentication-verify-true"] += time() - debug_begin
+                        self.debug_stats["decode-authentication-verify"] += time() - debug_begin
                     return offset, authentication.implement(member, is_signed=True), first_signature_offset
                 else:
                     if __debug__:
-                        self.debug_stats["decode-authentication-verify-false"] += time() - debug_begin
+                        self.debug_stats["decode-authentication-verify"] += time() - debug_begin
                     raise DropPacket("Invalid signature")
 
             else:
