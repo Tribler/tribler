@@ -1077,9 +1077,15 @@ class BinaryConversion(Conversion):
                 # parameter to check this
                 offset += key_length
                 first_signature_offset = len(data) - member.signature_length
+                if __debug__:
+                    debug_begin = time()
                 if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
+                    if __debug__:
+                        self.debug_stats["decode-authentication-verify-true"] += time() - debug_begin
                     return offset, authentication.implement(member, is_signed=True), first_signature_offset
                 else:
+                    if __debug__:
+                        self.debug_stats["decode-authentication-verify-false"] += time() - debug_begin
                     raise DropPacket("Invalid signature")
 
             else:
