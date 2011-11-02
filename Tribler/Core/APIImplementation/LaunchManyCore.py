@@ -731,18 +731,18 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         if checkpoint:
             for d in dllist:
-                # Tell all downloads to stop, and save their persistent state
-                # in a infohash -> pstate dict which is then passed to the user
-                # for storage.
-                #
-                if DEBUG:
-                    print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
-                if stop:
-                    (infohash,pstate) = d.network_stop(False,False)
-                else:
-                    (infohash,pstate) = d.network_checkpoint()
-                    
                 try:
+                    # Tell all downloads to stop, and save their persistent state
+                    # in a infohash -> pstate dict which is then passed to the user
+                    # for storage.
+                    #
+                    if DEBUG:
+                        print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
+                    if stop:
+                        (infohash,pstate) = d.network_stop(False,False)
+                    else:
+                        (infohash,pstate) = d.network_checkpoint()
+                    
                     self.save_download_pstate(infohash,pstate)
                 except Exception,e:
                     self.rawserver_nonfatalerrorfunc(e)

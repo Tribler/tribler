@@ -883,15 +883,18 @@ class ABCApp():
         #friends.done(self.utility.session)
         
         self.torrentfeed.shutdown()
-
+        
+        
+        # Niels: lets add a max waiting time for this session shutdown.
+        session_shutdown_start = time()
+        
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
         self.utility.session.shutdown(hacksessconfcheckpoint=False) 
 
-        while not self.utility.session.has_shutdown():
+        while not self.utility.session.has_shutdown() or (time() - session_shutdown_start) > 300:
             print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown"
             sleep(1)
-            
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker

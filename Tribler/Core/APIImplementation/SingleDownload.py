@@ -273,16 +273,21 @@ class SingleDownload:
         if DEBUG:
             print >>sys.stderr,"SingleDownload: shutdown"
         resumedata = None
+        
         if self.dow is not None:
             # RePEX: unhook and abort RePEXer
             if self.repexer:
                 repexer = self.unhook_repexer()
                 repexer.repex_aborted(self.infohash, DLSTATUS_STOPPED)
-
+            
             self.dldoneflag.set()
             self.dlrawserver.shutdown()
-            resumedata = self.dow.shutdown()
+            
+            # Niels: setting self.dow to None to prevent io-errors to call shutdown and cause a loop
+            dow = self.dow
             self.dow = None
+            resumedata = dow.shutdown()
+            
             #if DEBUG:
             #    print >>sys.stderr,"SingleDownload: stopped dow"
                 
