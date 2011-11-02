@@ -51,6 +51,8 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     node_count = int(peer_count.readline())
     peer_count.close()
     
+    print >> sys.stderr, node_count
+    
     first = int(mktime(get_first_datetime(peers_directory, node_count).timetuple()))
     lasts = []
 
