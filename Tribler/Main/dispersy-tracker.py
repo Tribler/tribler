@@ -92,7 +92,7 @@ class TrackerDispersy(Dispersy):
         ec = ec_generate_key(u"very-low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
-        callback.register(self._unload_communities)
+        callback.register(self._unload_communities, priority=-128)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
