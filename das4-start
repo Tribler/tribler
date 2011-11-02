@@ -30,7 +30,8 @@ fi
 rm -rf $PEERS_DIRECTORY/control
 rm -f $PEERS_DIRECTORY/peers
 
-rm -rf $PEERS_DIRECTORY/output
+cd $PEERS_DIRECTORY
+rm -rf `find . -type d -name 'output'`
 mkdir -p $PEERS_DIRECTORY/output
 
 # save SVN version of ${BRANCH}
@@ -65,7 +66,6 @@ CONFIG_SERVER_PID=$!
 cd $PEERS_DIRECTORY
 
 echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
-find . -regextype posix-egrep  -type d -regex '\./[0-9]{5}/output/' -exec rm -r {} \;
 
 #echo "* Reserving $NODE_COUNT nodes... "
 reservation_length=$[$EXPERIMENT_LENGTH * 60 + 60]
