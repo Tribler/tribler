@@ -129,7 +129,22 @@ class Statistics(object):
                 "busy_time":self._busy_time,
                 "start":self._start,
                 "runtime":time() - self._start}
-        
+
+    def summary(self):
+        """
+        Returns a summary of the statistics.
+
+        Essentially it removes all address specific information.
+        """
+        info = self.info()
+        outgoing = {}
+        for subdict in info["outgoing"].itervalues():
+            for key, (amount, byte_count) in subdict.iteritems():
+                a, b = outgoing.get(key, (0, 0))
+                outgoing[key] = (a+amount, b+byte_count)
+        info["outgoing"] = outgoing
+        return info
+    
     def reset(self):
         """
         Returns, and subsequently removes, all statistics.
@@ -1966,10 +1981,9 @@ class Dispersy(Singleton):
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
         footprint = meta_response.generate_footprint(payload=(identifier,))
-        assert meta_request.delay == 0.0
-        assert meta_response.delay == 0.0
         # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
         timeout = 4.5
+        assert meta_request.delay + meta_response.delay < timeout
         self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination,), timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
@@ -4082,7 +4096,7 @@ class Dispersy(Singleton):
         def _stats_info(self):
             while True:
                 yield 10.0
-                dprint(self._statistics.info(), pprint=True)
+                dprint(self._statistics.summary(), pprint=True)
                 
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """

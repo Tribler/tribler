@@ -56,7 +56,6 @@ _dprint_settings = {
     "binary":False,                     # print a binary representation of the arguments
     "box":False,                        # add a single line above and below the message
     "box_char":"-",                     # when a box is added to the message use this character to generate the line
-    "box_width":80,                     # when a box is added to the message make the lines this long
     "callback":None,                    # optional callback. the callback is only performed if the filters accept the message. the callback result is added to the displayed message
     "exception":False,                  # add the last occured exception, including its stacktrace, to the message
     "force":False,                      # ignore all filters, equivalent to level="force"
@@ -64,7 +63,6 @@ _dprint_settings = {
     "level":LEVEL_NORMAL,               # either "debug", "normal", "warning", "error", or a number in the range [0, 255]
     "line":False,                       # add a single line above the message
     "line_char":"-",                    # when a line is added to the message use this character to generate the line
-    "line_width":80,                    # when a line is added to the message make the line this long
     "lines":False,                      # write each value on a seperate line
     "meta":False,                       # write each value on a seperate line including metadata
     "pprint":False,                     # pretty print arg[0] if there is only one argument, otherwize pretty print arg
@@ -81,7 +79,8 @@ _dprint_settings = {
     "stdout":True,                      # write message to sys.stdout
     "style":"column",                   # output style. either "short" or "column"
     "time":False,                       # include a timestamp at the start of each line
-    "time_format":"%H:%M:%S"}           # the timestamp format (see strftime)
+    "time_format":"%H:%M:%S",           # the timestamp format (see strftime)
+    "width":80}
 
 # We allow message filtering in a 'iptables like' fashion. Each
 # messages is passed to the ENTRY chain in _filters, when a
@@ -397,7 +396,7 @@ def _config_read():
                     continue
 
     string = ["box_char", "glue", "line_char", "remote_host", "source_file", "source_function", "style", "time_format"]
-    int_ = ["box_width", "line_width", "remote_port", "source_line", "stack_origin_modifier"]
+    int_ = ["width", "remote_port", "source_line", "stack_origin_modifier"]
     boolean = ["box", "binary", "exception", "force", "line", "lines", "meta", "pprint", "remote", "stack", "stderr", "stdout", "time"]
     for line_number, line, before, after in sections["default"]:
         try:
@@ -751,20 +750,20 @@ def dprint(*args, **kargs):
     elif kargs["lines"]:
         messages.extend([str(v) for v in args])
     elif kargs["pprint"] and len(args) == 1:
-        messages.extend(pformat(args[0]).split("\n"))
+        messages.extend(pformat(args[0], width=kargs["width"]).split("\n"))
     elif kargs["pprint"]:
-        messages.extend(pformat(args).split("\n"))
+        messages.extend(pformat(args, width=kargs["width"]).split("\n"))
     else:
         messages.append(kargs["glue"].join([str(v) for v in args]))
 
     # add a line of characters at the top to seperate messages
     if kargs["line"]:
-        messages.insert(0, "".join(kargs["line_char"] * kargs["line_width"]))
+        messages.insert(0, "".join(kargs["line_char"] * kargs["width"]))
 
     # add a line of characters above and below to seperate messages
     if kargs["box"]:
-        messages.insert(0, "".join(kargs["box_char"] * kargs["box_width"]))
-        messages.append("".join(kargs["box_char"] * kargs["box_width"]))
+        messages.insert(0, "".join(kargs["box_char"] * kargs["width"]))
+        messages.append("".join(kargs["box_char"] * kargs["width"]))
 
     # always add stderr to output if level is error or exception is set
     global _last_dprint_see_stderr
