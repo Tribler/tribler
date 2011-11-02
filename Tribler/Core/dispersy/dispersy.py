@@ -3845,7 +3845,8 @@ class Dispersy(Singleton):
                 else:
                     break
 
-        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
+        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check", force=1)
+        return
 
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
         
