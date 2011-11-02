@@ -415,12 +415,12 @@ class DispersyPanel(HomePanel):
                         addColumn('total_down')
                     if 'runtime' in value:
                         addColumn('runtime')
+                        if 'busy_time' in value:
+                            addColumn('busy_time')
                         if "total_up" in value:
                             addColumn("avg_up")
                         if "total_down" in value:
                             addColumn("avg_down")
-                    if 'busy_time' in value:
-                        addColumn('busy_time')
                 else:
                     addColumn(key)
 
@@ -481,8 +481,8 @@ class DispersyPanel(HomePanel):
             self.summary_tree.DeleteAllItems()
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
-                for community in info["communities"]:
-                    parent = self.summary_tree.AppendItem(root, unicode(community["hex_cid"]))
+                for community in sorted(info["communities"], key=lambda community: community["hex_cid"]):
+                    parent = self.summary_tree.AppendItem(root, u"%s %4d %2d %s" % (community["hex_cid"], sum(community["database_sync"].itervalues()), len(community["candidates"]), community["classification"]))
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
                     sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %d" % len(community["candidates"]))
                     for lan_address, wan_address in community["candidates"]:
@@ -503,12 +503,12 @@ class DispersyPanel(HomePanel):
                     updateColumn(key, value)
                 else:
                     if key == 'statistics':
-                        updateColumn('total_down', self.utility.size_format(value['total_down']))
-                        updateColumn('total_up', self.utility.size_format(value['total_up']))
+                        updateColumn('total_down', self.utility.size_format(value['total_down'][1]))
+                        updateColumn('total_up', self.utility.size_format(value['total_up'][1]))
                         updateColumn('runtime', self.utility.eta_value(value['runtime']))
                         updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
-                        updateColumn("avg_down", self.utility.size_format(int(value["total_down"] / value["runtime"])) + "/s")
-                        updateColumn("avg_up", self.utility.size_format(int(value["total_up"] / value["runtime"])) + "/s")
+                        updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")
+                        updateColumn("avg_up", self.utility.size_format(int(value["total_up"][1] / value["runtime"])) + "/s")
     
                     parentNode = self.tree.AppendItem(fakeRoot, key)
                     addValue(parentNode, value)

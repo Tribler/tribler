@@ -118,7 +118,9 @@ class TrackerDispersy(Dispersy):
             return False
         
         while True:
-            yield 120.0
+            desync = (yield 120.0)
+            if desync > 0.1:
+                yield desync
             for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
 
