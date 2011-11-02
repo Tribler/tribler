@@ -314,6 +314,7 @@ class Dispersy(Singleton):
             self._callback.register(self._stats_candidates)
             self._callback.register(self._stats_conversion)
             self._callback.register(self._stats_triggers)
+            self._callback.register(self._stats_info)
 
     def _retry_bootstrap_candidates(self):
         """
@@ -4077,6 +4078,11 @@ class Dispersy(Singleton):
                 yield 10.0
                 for counter, trigger in enumerate(self._triggers, 1):
                     dprint("%3d " % counter, trigger)
+
+        def _stats_info(self):
+            while True:
+                yield 10.0
+                dprint(self._statistics.info(), pprint=True)
                 
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
@@ -4109,7 +4115,6 @@ class Dispersy(Singleton):
 
         if statistics:
             info["statistics"] = self._statistics.info()
-            # if __debug__: dprint(info["statistics"], pprint=1)
 
         info["communities"] = []
         for community in self._communities.itervalues():
