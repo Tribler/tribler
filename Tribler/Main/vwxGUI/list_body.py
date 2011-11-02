@@ -49,8 +49,6 @@ class ListItem(wx.Panel):
     
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
-        
-        
         self.controls = []
         if leftSpacer > 0:
             self.hSizer.AddSpacer((leftSpacer, -1))
@@ -105,10 +103,9 @@ class ListItem(wx.Panel):
             else:
                 if self.columns[i]['width'] != LIST_AUTOSIZEHEADER:
                     self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT, 3)    
-        
-        #always end with a spacer of size 3
-        rightSpacer += 3
-        self.hSizer.AddSpacer((rightSpacer, -1))
+
+        if rightSpacer > 0:
+            self.hSizer.AddSpacer((rightSpacer, -1))
         self.hSizer.Layout()
         
         self.AddEvents(self)
@@ -205,7 +202,7 @@ class ListItem(wx.Panel):
                                 break
                             else:
                                 cur_sizeritem_index += 1
-                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
                         
                         self.hSizer.Detach(self.controls[control_index])
                         self.controls[control_index].Hide()

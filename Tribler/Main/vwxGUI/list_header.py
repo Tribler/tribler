@@ -144,7 +144,7 @@ class ListHeader(wx.Panel):
                     spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                     self.columnHeaders.append(spacer)
 
-        self.scrollBar = sizer.AddSpacer((3,0))
+        self.scrollBar = sizer.AddSpacer((0,0))
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
@@ -161,7 +161,7 @@ class ListHeader(wx.Panel):
 
     def SetSpacerRight(self, right):
         if self.scrollBar:
-            right = max(3, right + 3)
+            right = max(0, right)
             
             if self.scrollBar.GetSize()[0] != right:
                 self.scrollBar.SetSpacer((right, 0))
