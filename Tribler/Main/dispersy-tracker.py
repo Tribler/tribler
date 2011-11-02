@@ -102,17 +102,24 @@ class TrackerDispersy(Dispersy):
             return self._communities[cid]
 
     def _unload_communities(self):
-        def has_candidates(community):
+        def is_active(community):
+            # check 1: does the community have any candidates
             try:
                 self.yield_all_candidates(community).next()
-            except StopIteration:
-                return False
-            else:
                 return True
+            except StopIteration:
+
+                # check 2: does the community have any cached messages waiting to be processed
+                for meta in self._batch_cache.iterkeys():
+                    if meta.community == community:
+                        return True
+
+            # the community is inactive
+            return False
         
         while True:
-            yield 60.0
-            for community in [community for community in self._communities.itervalues() if not has_candidates(community)]:
+            yield 120.0
+            for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
 
 class DispersySocket(object):
