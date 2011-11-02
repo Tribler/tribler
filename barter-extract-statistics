@@ -36,7 +36,7 @@ def get_first_datetime(peers_directory):
     return min(datetimes)
 
 def generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
-    first = int(mktime(get_first_datetime(peers_directory, node_count).timetuple()))
+    first = int(mktime(get_first_datetime(peers_directory).timetuple()))
     lasts = []
 
     node_list = [x for x in get_nodes(peers_directory)]
