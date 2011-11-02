@@ -6,25 +6,14 @@ from os import listdir
 from ldecoder import parse
 from sys import argv, exit
 
-#def get_nodes():
-#    for node in glob("peers/*"):
-#        if node.startswith("peers/peer-"):
-#            yield node
-
-#def get_title(node):
-#    if node.startswith("peers/peer-"):
-#        return node[11:]
-#    elif node == "peers/tracker":
-#        return "tracker"
-#    return "???"
-
 # Global variable (yes, not the brightest thing)
 measured_record_count = {} # dictionary with the total record count per node at time measure_interval_stop
 record_count = {} # same as before but at experiment end
-
 traffic_count = {} # dictionary with the total traffic count per node at time measure_interval_stop
+node_count = 0 
 
-def get_nodes(peer_dir, node_count):
+def get_nodes(peer_dir):
+    global node_count
     pattern = re.compile('[0-9]{5}')
     for d in listdir(peer_dir):
         if pattern.match(d):
@@ -39,25 +28,18 @@ def get_title(node):
         return "tracker"
     return "???"
 
-def get_first_datetime(peers_directory, node_count):
+def get_first_datetime(peers_directory):
     datetimes = []
-    for node in get_nodes(peers_directory, node_count):
+    for node in get_nodes(peers_directory):
         _, datetime, _, _ = parse(node + "/output/dispersy.log").next()
         datetimes.append(datetime)
     return min(datetimes)
 
 def generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
-    peer_count = open(peers_directory+'/peer.count', 'r')
-    node_count = int(peer_count.readline())
-    peer_count.close()
-    
-    import sys
-    print >> sys.stderr, node_count
-    
     first = int(mktime(get_first_datetime(peers_directory, node_count).timetuple()))
     lasts = []
 
-    node_list = [x for x in get_nodes(peers_directory, node_count)]
+    node_list = [x for x in get_nodes(peers_directory)]
     measure_interval_length = measure_interval_stop - measure_interval_start
 
     dispersy_msg_distribution = {}
@@ -300,12 +282,9 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
     """ I create a file under 'peers/' called 'sum_created_records.txt'
     with all the available records in the system per timestamp
     """
-    peer_count = open(peers_directory+'/peer.count', 'r')
-    node_count = int(peer_count.readline())
-    peer_count.close()
     
     sum_records = {}
-    for node in get_nodes(peers_directory, node_count):
+    for node in get_nodes(peers_directory):
         fn_created_record = node + "/output/created-record.txt"
         h_created_record = open(fn_created_record)
         if True:
@@ -341,6 +320,11 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
 
 
 def main(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
+    global node_count
+    peer_count = open(peers_directory+'/peer.count', 'r')
+    node_count = int(peer_count.readline())
+    peer_count.close()
+    
     first, last = generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio)
     # first = int(mktime(get_first_datetime().timetuple()))
     # last = first + 200

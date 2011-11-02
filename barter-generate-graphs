@@ -23,23 +23,15 @@ from sys import argv
 import os.path
 import sys
 
-#def get_nodes():
-#    for node in glob("peers/*"):
-#        if node.startswith("peers/peer-"):
-#            yield node
-
-#def get_title(node):
-#    if node.startswith("peers/peer-"):
-#        return node[11:]
-#    elif node == "peers/tracker":
-#        return "tracker"
-#    return "???"
+node_count = 0
 
 def get_nodes(peer_dir):
+    global node_count
     pattern = re.compile('[0-9]{5}')
     for d in listdir(peer_dir):
         if pattern.match(d):
-            yield peer_dir + "/" + d
+            if int(d) <= node_count:
+                yield peer_dir + "/" + d
 
 def get_title(node):
     if re.match(".*[0-9]{5}", node):
@@ -273,6 +265,11 @@ def multiplot(peers_directory, first, last):
     print "unset multiplot"
 
 def main(peers_directory):
+    global node_count
+    peer_count = open(peers_directory+'/peer.count', 'r')
+    node_count = int(peer_count.readline())
+    peer_count.close()
+    
     fn_first_last = peers_directory + "/output/first_last.txt"
     h_first_last = open(fn_first_last, "r")
     [ first, last ] = [int(i) for i in h_first_last.readline().strip().split()]
