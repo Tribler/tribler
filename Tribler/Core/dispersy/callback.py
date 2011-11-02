@@ -14,7 +14,7 @@ from time import sleep, time
 from types import GeneratorType
 
 if __debug__:
-    from itertools import islice
+    from itertools import islice, groupby
     from atexit import register as atexit_register
     # dprint warning when registered call, or generator call, takes more than N seconds
     CALL_DELAY_FOR_WARNING = 0.5
@@ -453,7 +453,14 @@ class Callback(object):
 
                 assert deadline <= actual_time
                 if actual_time - deadline >= MAX_DESYNC_TIME:
-                    dprint("MAX_DESYNC_TIME exceeded.  resetting deadline.  requests: ", len(requests), ".  expired: ", len(expired), level="warning")
+                    if __debug__:
+                        # sort and group by call[0].__name__
+                        debug_key = lambda debug_tup: debug_tup[3][0].__name__
+                        for debug_call_name, debug_iterator in groupby(sorted(expired, key=debug_key), key=debug_key):
+                            debug_list = list(debug_iterator)
+                            dprint("%3dx expired " % len(debug_list), debug_call_name, level="warning")
+                            
+                    dprint("MAX_DESYNC_TIME exceeded.  resetting deadline.  scheduled: ", len(requests), ".  expired: ", len(expired) + 1, level="warning")
                     deadline = actual_time
 
                 while True:

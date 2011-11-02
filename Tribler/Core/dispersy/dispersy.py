@@ -313,6 +313,7 @@ class Dispersy(Singleton):
         if __debug__:
             self._callback.register(self._stats_candidates)
             self._callback.register(self._stats_conversion)
+            self._callback.register(self._stats_triggers)
 
     def _retry_bootstrap_candidates(self):
         """
@@ -2322,32 +2323,38 @@ class Dispersy(Singleton):
         assert all(message.community == messages[0].community for message in messages)
         assert all(message.meta == messages[0].meta for message in messages)
 
-        for message in messages:
-            if isinstance(message.destination, CommunityDestination.Implementation):
-                if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
-                    addresses = [candidate.address for candidate in self.yield_random_candidates(message.community, message.destination.node_count)]
+        meta = messages[0].meta
+        if isinstance(meta.destination, CommunityDestination):
+            # CommunityDestination.node_count is allowed to be zero
+            if meta.destination.node_count > 0:
+                for message in messages:
+                    addresses = [candidate.address for candidate in self.yield_random_candidates(meta.community, meta.destination.node_count)]
                     if addresses:
-                        self._send(addresses, [message.packet], message.name)
+                        self._send(addresses, [message.packet], meta.name)
 
-            elif isinstance(message.destination, SubjectiveDestination.Implementation):
-                if message.destination.node_count > 0: # CommunityDestination.node_count is allowed to be zero
-                    addresses = [candidate.address for candidate in self.yield_subjective_candidates(message.community, message.destination.node_count, message.destination.cluster)]
+        elif isinstance(meta.destination, SubjectiveDestination):
+            # SubjectiveDestination.node_count is allowed to be zero
+            if meta.destination.node_count > 0:
+                for message in messages:
+                    addresses = [candidate.address for candidate in self.yield_subjective_candidates(meta.community, meta.destination.node_count, meta.destination.cluster)]
                     if addresses:
-                        self._send(addresses, [message.packet], message.name)
+                        self._send(addresses, [message.packet], meta.name)
 
-            elif isinstance(message.destination, AddressDestination.Implementation):
-                self._send(message.destination.addresses, [message.packet], message.name)
+        elif isinstance(meta.destination, AddressDestination):
+            for message in messages:
+                self._send(message.destination.addresses, [message.packet], meta.name)
 
-            elif isinstance(message.destination, MemberDestination.Implementation):
+        elif isinstance(meta.destination, MemberDestination):
+            for message in messages:
                 addresses = [candidate.address
                              for _, candidate
-                             in self.yield_all_candidates(message.community)
-                             if any(member in message.destination.members for member in candidate.members_in_community(message.community))]
+                             in self.yield_all_candidates(meta.community)
+                             if any(member in message.destination.members for member in candidate.members_in_community(meta.community))]
                 if addresses:
-                    self._send(addresses, [message.packet], message.name)
+                    self._send(addresses, [message.packet], meta.name)
 
-            else:
-                raise NotImplementedError(message.destination)
+        else:
+            raise NotImplementedError(meta.destination)
 
     def _send(self, addresses, packets, key=u"unspecified"):
         """
@@ -2865,6 +2872,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("responding with ", len(packets), " identity messages")
                 self._send([message.address], packets, u"dispersy-identity")
             else:
+                assert not message.payload.mid == message.community.my_member.mid, "we should always have our own dispersy-identity"
                 if __debug__: dprint("could not find any missing members.  no response is sent", level="warning")
 
     def create_subjective_set(self, community, cluster, members, reset=True, store=True, update=True, forward=True):
@@ -4041,7 +4049,7 @@ class Dispersy(Singleton):
             while True:
                 yield 10.0
                 dprint("---")
-                for community in self._communities.itervalues():
+                for community in sorted(self._communities.itervalues(), key=lambda community: community.cid):
                     candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
                     dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:5] ", ", ".join("%s:%d" % sock_address for sock_address in candidates[:5]))
 
@@ -4063,6 +4071,12 @@ class Dispersy(Singleton):
                 for key, value in sorted(stats.iteritems()):
                     if key.startswith("decode") and not key == "decode-message" and total:
                         dprint("%7.2fs" % value, " ~%5.1f%%" % (100.0 * value / total), " ", key)
+
+        def _stats_triggers(self):
+            while True:
+                yield 10.0
+                for counter, trigger in enumerate(self._triggers, 1):
+                    dprint("%3d " % counter, trigger)
                 
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
