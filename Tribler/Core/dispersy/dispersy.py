@@ -111,8 +111,8 @@ class Statistics(object):
         self._success = {}
         self._outgoing = {}
         self._sequence_number = 0
-        self._total_up = 0
-        self._total_down = 0
+        self._total_up = 0, 0
+        self._total_down = 0, 0
         self._busy_time = 0.0
         
     def info(self):
@@ -158,8 +158,8 @@ class Statistics(object):
             self._success = {}
             self._outgoing = {}
             self._sequence_number += 1
-            self._total_up = 0
-            self._total_down = 0
+            self._total_up = 0, 0
+            self._total_down = 0, 0
 
     def drop(self, key, byte_count, amount=1):
         """
@@ -206,13 +206,16 @@ class Statistics(object):
         a, b = subdict.get(key, (0, 0))
         subdict[key] = (a+amount, b+byte_count)
 
-    def increment_total_up(self, byte_count):
+    def increment_total_up(self, byte_count, amount):
         assert isinstance(byte_count, (int, long))
-        self._total_up += byte_count
+        assert isinstance(amount, (int, long))
+        a, b = self._total_up
+        self._total_up = (a+amount, b+byte_count)
 
-    def increment_total_down(self, byte_count):
+    def increment_total_down(self, byte_count, amount):
         assert isinstance(byte_count, (int, long))
-        self._total_down += byte_count
+        a, b = self._total_down
+        self._total_down = (a+amount, b+byte_count)
 
     def increment_busy_time(self, busy_time):
         assert isinstance(busy_time, float)
@@ -463,10 +466,10 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.0),
-                Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.0),
-                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.0),
-                Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.0),
+        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.1),
+                Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.1),
+                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.1),
+                Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.1),
                 Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
                 Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
@@ -1299,8 +1302,7 @@ class Dispersy(Singleton):
         assert all(len(packet) == 2 for packet in packets)
         assert isinstance(cache, bool)
 
-        bytes_received = sum(len(packet) for _, packet in packets)
-        self._statistics.increment_total_down(bytes_received)
+        self._statistics.increment_total_down(sum(len(packet) for _, packet in packets), len(packets))
 
         addresses = set()
         sort_key = lambda tup: (tup[0].priority, tup[0]) # meta, address, packet, conversion
@@ -2393,8 +2395,7 @@ class Dispersy(Singleton):
         assert isinstance(packets, (tuple, list, set)), type(packets)
         assert isinstance(key, unicode), type(key)
 
-        bytes_send = sum(len(packet) for packet in packets)
-        self._statistics.increment_total_up(bytes_send)
+        self._statistics.increment_total_up(sum(len(packet) for packet in packets), len(packets))
 
         if __debug__:
             if not addresses:
@@ -4124,8 +4125,9 @@ class Dispersy(Singleton):
         # 1.7: removed several community attributes, no longer calling reset on self._statistics
         # 1.8: added busy_time to the statistics (delay caused by overloaded cpu/disk)
         # 1.9: removed sync_ranges
+        # 2.0: changed the statistics.  total_up and total_down are now both (amount, byte_count) tuples
 
-        info = {"version":1.8, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        info = {"version":2.0, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
         if statistics:
             info["statistics"] = self._statistics.info()
