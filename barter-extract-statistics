@@ -127,6 +127,9 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 time = int(mktime(datetime.timetuple()))
                 
                 if "total_send" in kargs and "total_received" in kargs:
+                    kargs["total_send"] = kargs["total_send"][1]
+                    kargs["total_received"] = kargs["total_received"][1]
+                    
                     h_stat.write(str(time))
                     h_stat.write(" ")
                     timeoffset = time - first
