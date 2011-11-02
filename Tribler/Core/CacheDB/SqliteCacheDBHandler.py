@@ -4085,7 +4085,7 @@ class ChannelCastDBHandler(object):
     def getMySubscribedChannels(self, includeDispsersy = False):
         sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels, ChannelVotes WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         if not includeDispsersy:
-            sql += " AND dispersy_cid <> -1"
+            sql += " AND dispersy_cid == -1"
         
         return self._getChannels(sql)
     
