@@ -775,13 +775,6 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
-        def guiCall():
-            wx.CallAfter(self.gui_ntfy_channelupdates, subject,changeType, objectID, *args)
-            
-        #wrap in guiserver to prevent multiple refreshes
-        self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
-            
-    def gui_ntfy_channelupdates(self, subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
             if self.frame.channellist:
                 manager = self.frame.channellist.GetManager()

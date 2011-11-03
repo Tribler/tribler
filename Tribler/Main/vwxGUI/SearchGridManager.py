@@ -183,14 +183,14 @@ class TorrentManager:
         if not duplicate and torrent.infohash in self.requestedTorrents:
             return False
         
-        peers = list(torrent.query_permids)
-        if peers == None or len(peers) == 0:
+        if torrent.query_permids == None or len(torrent.query_permids):
             self.session.download_torrentfile(torrent.infohash, callback, prio)
             
         else:
             #only add to requestedTorrents if we have peers
             self.requestedTorrents.add(torrent.infohash)
             
+            peers = list(torrent.query_permids)
             for permid in peers:
                 self.session.download_torrentfile_from_peer(permid, torrent.infohash, callback, prio)
                 

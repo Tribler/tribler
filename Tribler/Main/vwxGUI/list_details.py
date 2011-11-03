@@ -1142,7 +1142,8 @@ class TorrentDetails(AbstractDetails):
             del self.torrent.swarminfo
             
             self._addOverview(self.overview, self.torrentSizer)
-   
+    
+    @forceDBThread
     def UpdateStatus(self):
         #touch swarminfo property        
         swarmInfo = self.torrent.swarminfo
