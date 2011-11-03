@@ -43,6 +43,12 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     lasts = []
 
     node_list = [x for x in get_nodes(peers_directory)]
+    def node_cmp(a, b):
+        a = int(a[-5:])
+        b = int(b[-5:])
+        return cmp(a, b)
+    node_list.sort(cmp=node_cmp)
+    
     measure_interval_length = measure_interval_stop - measure_interval_start
 
     dispersy_msg_distribution = {}
