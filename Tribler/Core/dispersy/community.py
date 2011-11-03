@@ -558,16 +558,16 @@ class Community(object):
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
-        count, max_gbtime = self._dispersy_database.execute(u"SELECT COUNT(1), max(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32", (self._database_id,)).next()
+        count,  = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32", (self._database_id,)).next()
         if count:
             bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
             capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
             
             if count > capacity:
-                desired_mean = max_gbtime / 2.0
+                desired_mean = self.global_time() / 2.0
                 
                 lambd = 1.0 / desired_mean
-                from_gbtime = max_gbtime - int(self._random.expovariate(lambd))
+                from_gbtime = self.global_time() - int(self._random.expovariate(lambd))
                 if from_gbtime < 1:
                     from_gbtime = 1
                 
