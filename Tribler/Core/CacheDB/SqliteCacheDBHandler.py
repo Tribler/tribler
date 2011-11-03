@@ -1880,8 +1880,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent = dict(zip(value_name,result[:-1]))
             
             channel = channel_dict.get(torrent['channel_id'], (torrent['channel_id'], -1, '', '', 0, 0, 0, 0, 0))
-            channel[5] = channel[5] or 0
-            channel[6] = channel[6] or 0
             
             #ignoring spam channels
             if channel[7] < 0:
@@ -1896,7 +1894,10 @@ class TorrentDBHandler(BasicDBHandler):
                         # allways prefer my channel
                         myChannel = torrent['channel_id'] == myChannelId
                         myHigherVote = channel[7] > old_record['channel_vote']
-                        higherVotes = (channel[5] - channel[6]) > old_record['channel_votes']
+                        
+                        sub = channel[5] or 0
+                        spam = channel[6] or 0
+                        higherVotes = (sub-spam) > old_record['channel_votes']
                         
                         if not (myChannel or myHigherVote or higherVotes):
                             #previous one is better
@@ -1907,8 +1908,8 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['channel_description'] = channel[3]
             torrent['channel_nr_torrents'] = channel[4]
             torrent['channel_permid'] = channel_permid.get(torrent['channel_id'], '')
-            torrent['subscriptions'] = channel[5]
-            torrent['neg_votes'] = channel[6]
+            torrent['subscriptions'] = channel[5] or 0
+            torrent['neg_votes'] = channel[6] or 0
             torrent['channel_vote'] = channel[7]
             torrent['channel_modified'] = channel[8]
             torrent['channel_votes'] = torrent['subscriptions'] - torrent['neg_votes']
