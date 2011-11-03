@@ -20,6 +20,7 @@ def get_nodes(peer_dir):
         if pattern.match(d):
             node_nr = int(d)
             
+            import sys
             print >> sys.stderr, os.path.join(peer_dir, d, 'output' 'dispersy.log')
             dispersy_exists = os.path.exists(os.path.join(peer_dir, d, 'output' 'dispersy.log'))
             if node_nr <= node_count and dispersy_exists:
