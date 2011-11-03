@@ -3,6 +3,7 @@
 from time import mktime
 import re
 from os import listdir
+import os
 from ldecoder import parse
 from sys import argv, exit
 
