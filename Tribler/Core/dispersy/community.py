@@ -608,6 +608,10 @@ class Community(object):
                     #as we did not select enough packets set time_high to 0 to indicate this
                     time_high = 0
                     
+                else:
+                    #we selected exactly enough packets
+                    time_high = 0
+                    
                 time_low = min(from_gbtime, data[0][0])
             else:
                 data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY sync.global_time",
