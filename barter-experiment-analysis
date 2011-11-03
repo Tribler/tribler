@@ -43,9 +43,7 @@ actual_count=$(find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/barter
 if test $actual_count -ne $PEERS_COUNT; then
     echo
     echo "!!! ERROR !!!"
-    echo "!!! We have counted $actual_count peers (expected $PEERS_COUNT peers). Quota problems?"
-    quota
-    exit 1
+    echo "!!! We have counted $actual_count peers (expected $PEERS_COUNT peers). !!!"
 fi
 
 PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
@@ -76,7 +74,7 @@ time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
 echo "* Summing up incoming and outgoing traffic..."
 o=$(
 find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:i\([0-9]*\).*send:i\([0-9]*\).*/\1 \2/g'
+    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:t2:.i[0-9]*, i\([0-9]*\).*send:t2:.i[0-9]*, i\([0-9]*\).*/\1 \2/g'
 done | awk '{received += $1; sent += $2 } END { print received, sent }'
 )
 in_bytes=$(echo $o | cut -d' ' -f1)
