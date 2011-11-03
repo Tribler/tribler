@@ -3828,8 +3828,9 @@ class Dispersy(Singleton):
 
         Note that messages that are disabled, i.e. not included in community.get_meta_messages(),
         will NOT be checked.
-        
+
         - all packets in the database must be valid
+        - the dispersy-identity for community.my_member must be in the database
         - check sequence numbers for FullSyncDistribution
         - check history size for LastSyncDistribution
         """
@@ -3882,6 +3883,32 @@ class Dispersy(Singleton):
                     if __debug__: dprint("inconsistent binary in packet ", packet_id, level="error")
                     return False
 
+        #
+        # ensure that the dispersy-identity for community.my_member must be in the database
+        #
+        try:
+            meta_identity = community.get_meta_message(u"dispersy-identity")
+        except KeyError:
+            # identity is not enabled
+            pass
+        else:
+            try:
+                member_id, = self._dispersy_database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.mid),)).next()
+            except StopIteration:
+                if __debug__: dprint("unable to find the public key for my member", level="error")
+                return False
+
+            try:
+                self._dispersy_database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
+            except StopIteration:
+                if __debug__: dprint("unable to find the private key for my member", level="error")
+                return False
+
+            try:
+                self._dispersy_database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?", (member_id, meta_identity.database_id)).next()
+            except StopIteration:
+                if __debug__: dprint("unable to find the dispersy-identity message for my member", level="error")
+                return False
 
         for meta in community.get_meta_messages():
             #
