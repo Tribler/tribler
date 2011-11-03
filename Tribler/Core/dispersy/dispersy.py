@@ -559,8 +559,15 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
         self._community_dict_modified = True
-        assert self.sanity_check(community), "there are unrecoverable problems with your dispersy database"
 
+        # run the sanity check after the bit... it also checks that the dispersy-identity is
+        # available and when this is a create or join this message is created only after the
+        # attach_community
+        if __debug__:
+            def sanity_check():
+                assert self.sanity_check(community), "there are unrecoverable problems with your dispersy database"
+            self._callback.register(sanity_check)
+        
     def detach_community(self, community):
         """
         Remove an attached community from the Dispersy instance.

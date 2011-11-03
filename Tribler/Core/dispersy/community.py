@@ -126,7 +126,7 @@ class Community(object):
         message = meta.impl(authentication=(master,), distribution=(community.claim_global_time(),))
         community.dispersy.store_update_forward([message], True, True, False)
 
-        # create the dispersy-identity for my member
+        # create my dispersy-identity
         community.create_dispersy_identity()
 
         # authorize MY_MEMBER for each message
@@ -181,7 +181,7 @@ class Community(object):
         # new community instance
         community = cls.load_community(master, *args, **kargs)
 
-        # send out my initial dispersy-identity
+        # create my dispersy-identity
         community.create_dispersy_identity()
 
         return community
