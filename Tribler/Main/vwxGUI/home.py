@@ -27,7 +27,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.dispersy.dispersy import Dispersy
 from traceback import print_exc
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -227,7 +227,6 @@ class HomePanel(wx.Panel):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.guiserver = GUITaskQueue.getInstance()
         self.SetBackgroundColour(background)
         self.SetForegroundColour(parent.GetForegroundColour())
 
@@ -694,9 +693,8 @@ class BuzzPanel(HomePanel):
 
         self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
 
-        self.GetBuzzFromDB()
         self.refresh = 5
-        self.OnRefreshTimer(force = True)
+        self.GetBuzzFromDB()
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
@@ -728,6 +726,7 @@ class BuzzPanel(HomePanel):
         self.GetBuzzFromDB()
         self.refresh = 1
 
+    @forceDBThread
     def GetBuzzFromDB(self):
         # needs fine-tuning:
         # (especially for cold-start/fresh Tribler install?)
@@ -738,7 +737,11 @@ class BuzzPanel(HomePanel):
         for i in range(len(buzz)):
             random.shuffle(buzz[i])
             self.buzz_cache[i] = buzz[i]
+            
+        if len(self.tags) <= 1 and len(buzz) > 0:
+            self.OnRefreshTimer(force = True)
 
+    @forceWxThread
     def OnRefreshTimer(self, event = None, force = False):
         self.refresh -= 1
         if self.refresh <= 0 or force:
@@ -746,7 +749,7 @@ class BuzzPanel(HomePanel):
                 # simple caching
                 # (does not check for possible duplicates within display_size-window!)
                 if any(len(row) < 10 for row in self.buzz_cache):
-                    self.guiserver.add_task(self.GetBuzzFromDB, id = "BuzzPanel_GetBuzzFromDB")
+                    self.GetBuzzFromDB()
 
                 if self.guiutility.getFamilyFilter():
                     xxx_filter = self.xxx_filter.isXXX
