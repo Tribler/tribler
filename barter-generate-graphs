@@ -21,6 +21,7 @@ from os import listdir, path
 from ldecoder import parse
 from sys import argv
 import os.path
+import os
 import sys
 
 node_count = 0
@@ -30,7 +31,9 @@ def get_nodes(peer_dir):
     pattern = re.compile('[0-9]{5}')
     for d in listdir(peer_dir):
         if pattern.match(d):
-            if int(d) <= node_count:
+            
+            dispersy_exists = os.path.exists(os.path.join(peer_dir, d, 'output','dispersy.log'))
+            if int(d) <= node_count and dispersy_exists:
                 yield peer_dir + "/" + d
 
 def get_title(node):
