@@ -3846,7 +3846,7 @@ class Dispersy(Singleton):
                 else:
                     break
 
-        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check", force=1)
+        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
 
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
         
@@ -3893,19 +3893,19 @@ class Dispersy(Singleton):
             pass
         else:
             try:
-                member_id, = self._dispersy_database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.mid),)).next()
+                member_id, = self._database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.my_member.mid),)).next()
             except StopIteration:
                 if __debug__: dprint("unable to find the public key for my member", level="error")
                 return False
 
             try:
-                self._dispersy_database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
+                self._database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
             except StopIteration:
                 if __debug__: dprint("unable to find the private key for my member", level="error")
                 return False
 
             try:
-                self._dispersy_database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?", (member_id, meta_identity.database_id)).next()
+                self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?", (member_id, meta_identity.database_id)).next()
             except StopIteration:
                 if __debug__: dprint("unable to find the dispersy-identity message for my member", level="error")
                 return False
