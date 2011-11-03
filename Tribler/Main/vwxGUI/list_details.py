@@ -69,13 +69,13 @@ class AbstractDetails(wx.Panel):
     @warnWxThread    
     def _add_row(self, parent, sizer, name, value, spacer = 10):
         nametext = name
-        if name:
+        if name != None:
             nametext = wx.StaticText(parent, -1, name)
             _set_font(nametext, fontweight = wx.FONTWEIGHT_BOLD)
 
             sizer.Add(nametext, 0, wx.LEFT, spacer)
         
-        if value:
+        if value != None:
             if isinstance(value, basestring):
                 try:
                     value = MaxBetterText(parent, unicode(value), maxLines = 3, name = name)
@@ -532,7 +532,7 @@ class TorrentDetails(AbstractDetails):
             category = ', '.join(categories)
         else:
             print >> sys.stderr, 'categories is',type(categories)
-            category = ''
+            category = 'Unknown'
 
         if not self.torrent.get('description', ''):
             description = 'No description yet, be the first to add a description.'
