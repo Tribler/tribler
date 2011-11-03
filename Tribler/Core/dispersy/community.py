@@ -603,7 +603,7 @@ class Community(object):
                     
                     data = additionaldata + data
                     
-                time_low = data[0][0]
+                time_low = min(from_gbtime, data[0][0])
                 time_high = data[-1][0]
                 
             else:
