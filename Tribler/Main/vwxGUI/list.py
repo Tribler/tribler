@@ -30,6 +30,7 @@ from list_sidebar import *
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from collections import namedtuple
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
+from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -100,7 +101,11 @@ class RemoteSearchManager:
         
     def refresh_partial(self, ids):
         for infohash in ids:
-            startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
+            curTorrent = self.list.GetItem(infohash).original_data
+            if isinstance(curTorrent, ChannelTorrent):
+                startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel,curTorrent.channeltorrent_id))
+            else:
+                startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):

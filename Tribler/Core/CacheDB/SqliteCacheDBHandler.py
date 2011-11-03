@@ -3765,9 +3765,12 @@ class ChannelCastDBHandler(object):
             
         return torrent_dict
     
-    def getRandomTorrents(self, channel_id, limit = 15):
+    def getRandomTorrents(self, channel_id, limit = 15, dispersyOnly = True):
         twomonthsago = long(time() - 5259487)
-        sql = "select infohash from ChannelTorrents, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND channel_id = ? and ChannelTorrents.time_stamp > ? ORDER BY RANDOM() LIMIT ?"
+        sql = "select infohash from ChannelTorrents, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND channel_id = ? and ChannelTorrents.time_stamp > ?"
+        if dispersyOnly:
+            sql += " and ChannelTorrents.dispersy_id != -1"
+        sql += " ORDER BY RANDOM() LIMIT ?"
         
         returnar = []
         for infohash, in self._db.fetchall(sql, (channel_id, twomonthsago, limit)):

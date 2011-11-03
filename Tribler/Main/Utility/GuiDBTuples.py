@@ -220,10 +220,7 @@ class CollectedTorrent(Helper):
         self.last_check = -1
 
     def __getattr__(self, name):
-        try:
-            Helper.__getattr__(self, name)
-        except:
-            return getattr(self.torrent, name)
+        return getattr(self.torrent, name)
     
     def __setattr__(self, name, value):
         try:

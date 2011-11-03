@@ -195,6 +195,10 @@ class TorrentDetails(AbstractDetails):
                 self.torrent = torrent
                 ds = self.torrent.ds
                 
+                #start with files tab if we are saving space and have a ds
+                if ds and showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
+                    showTab = "Files"
+                
                 if self.noChannel and self.torrent.hasChannel():
                     state, iamModerator = self.torrent.channel.getState()
                     
