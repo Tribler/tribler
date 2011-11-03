@@ -21,8 +21,8 @@ def get_nodes(peer_dir):
             node_nr = int(d)
             
             import sys
-            print >> sys.stderr, os.path.join(peer_dir, d, 'output' 'dispersy.log')
-            dispersy_exists = os.path.exists(os.path.join(peer_dir, d, 'output' 'dispersy.log'))
+            print >> sys.stderr, os.path.join(peer_dir, d, 'output','dispersy.log')
+            dispersy_exists = os.path.exists(os.path.join(peer_dir, d, 'output','dispersy.log'))
             if node_nr <= node_count and dispersy_exists:
                 yield peer_dir + "/" + d
 
