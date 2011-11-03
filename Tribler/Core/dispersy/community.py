@@ -267,16 +267,9 @@ class Community(object):
         # the last conversion in the list will be used as the default conversion
         self._conversions[None] = conversions[-1]
 
-        # the list with bloom filters.  the list will grow as the global time increases.  older time
-        # ranges are at higher indexes in the list, new time ranges are inserted at the start of the
-        # list.
-        self._global_time = 0
-        # self._time_high = 1
-        # self._sync_ranges = []
-        # self._initialize_sync_ranges()
-        if __debug__:
-            b = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
-            dprint("sync range bloom filter. size: ", int(ceil(b.size // 8)), "; capacity: ", b.get_capacity(self.dispersy_sync_bloom_filter_error_rate), "; error-rate: ", self.dispersy_sync_bloom_filter_error_rate)
+        # the global time.  Zero indicates no messages are available, messages must have global
+        # times that are higher than zero.
+        self._global_time, = self._dispersy_database.execute(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (self._database_id,))
 
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
         self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs
