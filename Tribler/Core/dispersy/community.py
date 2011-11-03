@@ -270,6 +270,8 @@ class Community(object):
         # the global time.  Zero indicates no messages are available, messages must have global
         # times that are higher than zero.
         self._global_time, = self._dispersy_database.execute(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (self._database_id,)).next()
+        if self._global_time is None:
+            self._global_time = 0
         assert isinstance(self._global_time, (int, long))
         
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
