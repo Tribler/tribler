@@ -80,9 +80,6 @@ done | awk '{received += $1; sent += $2 } END { print received, sent }'
 in_bytes=$(echo $o | cut -d' ' -f1)
 out_bytes=$(echo $o | cut -d' ' -f2)
 
-echo $in_bytes
-echo $out_bytes
-
 #cd $PEERS_DIRECTORY/control
 #echo "* Summing up incoming traffic..."
 #in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')

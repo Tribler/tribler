@@ -18,7 +18,9 @@ def get_nodes(peer_dir):
     for d in listdir(peer_dir):
         if pattern.match(d):
             node_nr = int(d)
-            if node_nr <= node_count:
+            
+            dispersy_exists = os.path.exists(os.path.join(peer_dir, d, 'dispersy.log'))
+            if node_nr <= node_count and dispersy_exists:
                 yield peer_dir + "/" + d
 
 def get_title(node):
