@@ -3309,7 +3309,8 @@ class ChannelCastDBHandler(object):
         for torrent in torrentlist:
             channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers = torrent
             
-            if infohash in inserted:
+            #if new or not yet collected
+            if infohash in inserted or not self.torrent_db.hasTorrent(infohash):
                 metainfo = {'info':{}}
                 metainfo['info']['name'] = str(name)
                 metainfo['info']['piece length'] = -1 
@@ -3347,7 +3348,7 @@ class ChannelCastDBHandler(object):
             torrent_id = torrent_ids[i]
                           
             for path, length in files:
-                insert_files.append((torrent_id, path, length))
+                insert_files.append((torrent_id, unicode(path), length))
             
             magnetlink = u"magnet:?xt=urn:btih:"+hexlify(infohash)
             for tracker in trackers:
