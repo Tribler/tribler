@@ -812,7 +812,9 @@ class Dispersy(Singleton):
             packet = str(packet)
             if packet == message.packet:
                 # exact duplicates, do NOT process the message
+                if __debug__: dprint("received identical message [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
                 pass
+            
                 # # 21/10/11 Boudewijn: since the community/member/global-time is already in the
                 # # database, the associated packet should also be in the sync bloom filter to prevent
                 # # us from receiving it again
@@ -822,6 +824,7 @@ class Dispersy(Singleton):
                 #             for bloom_filter in sync_range.bloom_filters:
                 #                 assert message.packet in bloom_filter
                 #             break
+                
             else:
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
