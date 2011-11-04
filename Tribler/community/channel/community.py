@@ -40,6 +40,7 @@ def forceDispersyThread(func):
         if not currentThread().getName()== 'Dispersy':
             def dispersy_thread():
                 func(*args, **kwargs)
+            dispersy_thread.__name__ = func.__name__
             register_task(dispersy_thread)
         else:
             return func(*args, **kwargs)
@@ -58,7 +59,8 @@ def forceAndReturnDispersyThread(func):
                     result[0] = func(*args, **kwargs)
                 finally:
                     event.set()
-                
+                    
+            dispersy_thread.__name__ = func.__name__
             register_task(dispersy_thread)
             
             if event.wait(100) or event.isSet():
