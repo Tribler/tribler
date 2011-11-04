@@ -821,7 +821,8 @@ class ManageChannelFilesManager():
     def __init__(self, list):
         self.list = list
         self.list.id = 0
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        self.guiutility = GUIUtility.getInstance()
+        self.channelsearch_manager = self.guiutility.channelsearch_manager
     
     def refreshDirty(self):
         self._refresh()
@@ -869,9 +870,12 @@ class ManageChannelFilesManager():
         except:
             return False
     
-    def startDownload(self, filename, *args, **kwargs):
+    def startDownload(self, torrentfilename, *args, **kwargs):
         try:
-            tdef = TorrentDef.load(filename)
+            tdef = TorrentDef.load(torrentfilename)
+            if 'fixtorrent' not in kwargs:
+                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None))
+
             return self.AddTDef(tdef)
         except:
             return False
@@ -883,6 +887,8 @@ class ManageChannelFilesManager():
     def AddTDef(self, tdef):
         if tdef:
             self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
+            self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+            
             return True
         return False
         
@@ -1135,24 +1141,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
         addSizer.Add(addButton, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
         rssSizer.Add(addSizer, 0, wx.EXPAND, 10)
         sizer.Add(rssSizer, 1, wx.EXPAND|wx.LEFT|wx.TOP|wx.BOTTOM, 10)
-        
-        #manual
-        self._add_subheader(parent, sizer, "Manually import a .torrent file:","(downloaded from another source)")
-        browseButton = wx.Button(parent, -1, "Browse for .torrent files")
-        browseButton.Bind(wx.EVT_BUTTON, self.OnManualAdd)
-        browseButton2 = wx.Button(parent, -1, "Browse for a directory")
-        browseButton2.Bind(wx.EVT_BUTTON, self.OnManualDirAdd)
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(browseButton)
-        hSizer.Add(browseButton2, 0, wx.LEFT, 5)
-        sizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
-        
-        #create
-        self._add_subheader(parent, sizer, "Create .torrents", "(using your local files)")
-        createButton = wx.Button(parent, -1, "Create .torrents")
-        createButton.Bind(wx.EVT_BUTTON, self.OnCreate)
-        sizer.Add(createButton, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
     
     def RebuildRssPanel(self):
         self.gridSizer.ShowItems(False)
@@ -1321,51 +1309,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
         wx.CallLater(5000, button.Enable, True)
         
         self.uelog.addEvent(message="MyChannel: rssfeed refreshed", type = 2)
-        
-    def OnManualAdd(self, event):
-        dlg = wx.FileDialog(self, "Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)
-        
-        path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
-        dlg.SetPath(path)
-        if dlg.ShowModal() == wx.ID_OK:
-            files = dlg.GetPaths()
-            self._import_torrents(files)
-            
-            self.uelog.addEvent(message="MyChannel: manual import files", type = 2)
-    
-        dlg.Destroy()
-            
-    def OnManualDirAdd(self, event):
-        dlg = wx.DirDialog(self, "Choose a directory containing the .torrent files", style = wx.wx.DD_DIR_MUST_EXIST)
-        
-        path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
-        dlg.SetPath(path)
-        
-        if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
-            full_files = []
-            files = os.listdir(dlg.GetPath())
-            for file in files:
-                full_files.append(os.path.join(dlg.GetPath(), file))
-            self._import_torrents(full_files)
-            
-            self.uelog.addEvent(message="MyChannel: manual import directory", type = 2)
-            
-        dlg.Destroy()
-    
-    def OnCreate(self, event):
-        configfile = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_trackers')
-        trackers = self.channelsearch_manager.torrent_db.getPopularTrackers()
-        
-        dlg = CreateTorrent(self, configfile, trackers)
-        if dlg.ShowModal() == wx.ID_OK:
-            #import them into channel
-            self._import_torrents([torrent for _, torrent in dlg.createdTorrents])
-            
-            #start seeding...
-            for destdir, torrentfilename in dlg.createdTorrents:
-                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = destdir)
-                
-        dlg.Destroy()
             
     def CreateJoinChannelFile(self):
         f = open('joinchannel', 'wb')

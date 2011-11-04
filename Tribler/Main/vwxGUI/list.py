@@ -238,10 +238,11 @@ class ChannelSearchManager:
         def mergeChannel(delayedResult, id):
             newChannel = delayedResult.get()
             
-            item = self.list.GetItem(id)
-            oldChannel = item.original_data
-            if oldChannel.torrents:
-                newChannel.torrents = oldChannel.torrents
+            if self.list.InList(id):
+                item = self.list.GetItem(id)
+                oldChannel = item.original_data
+                if oldChannel.torrents:
+                    newChannel.torrents = oldChannel.torrents
             
             self.list.RefreshData(id, newChannel)
             

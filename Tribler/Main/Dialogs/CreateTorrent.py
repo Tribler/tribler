@@ -14,9 +14,10 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import forceWxThread
 
 class CreateTorrent(wx.Dialog):
-    def __init__(self, parent, configfile, suggestedTrackers):
+    def __init__(self, parent, configfile, suggestedTrackers, toChannel = False):
         wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(500,200))
         self.guiutility = GUIUtility.getInstance()
+        self.toChannel = toChannel
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -112,7 +113,6 @@ class CreateTorrent(wx.Dialog):
         self.createdTorrents = []
         self.cancelEvent = Event()
         
-        
     def OnBrowse(self, event):
         dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
@@ -136,7 +136,10 @@ class CreateTorrent(wx.Dialog):
     def OnOk(self, event):
         max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
         
-        dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?"%max, "Are you sure?", style = wx.YES_NO|wx.ICON_QUESTION)
+        if self.toChannel:
+            dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?"%max, "Are you sure?", style = wx.YES_NO|wx.ICON_QUESTION)
+        else:
+            dlg = wx.MessageDialog(self, "This will create %d new .torrents.\nDo you want to continue?"%max, "Are you sure?", style = wx.YES_NO|wx.ICON_QUESTION)
         
         if dlg.ShowModal() == wx.ID_YES:
             dlg.Destroy()
