@@ -874,11 +874,11 @@ class GenericSearchList(SizeList):
             query = ' '.join(keywords)
             
             return \
-            'RelevanceRanking: pos/subpos_v/subpos_h: %s/%s/%s; hits_pos: %s; hits_old_pos: %s; bundle: %s/%s [%s/%s]; family: %s; q=%s' \
+            'RelevanceRanking: pos/subpos_v/subpos_h: %s/%s/%s; hits_pos: %s; hits_old_pos: %s; bundle: %s/%s [%s/%s]; family: %s; relevance: %s; q=%s' \
             % (pos_visual, subpos_visual, subpos_hits,
                hits_pos, hits_old_pos, 
                bundlestate, selected_bundle_mode, bundlestate_str, selected_bundle_mode_str,
-               sidebar.family_filter, query)
+               sidebar.family_filter, torrent.relevance_score, query)
         
         relevance_msg = relevance_ranking_msg()
         def db_callback():
