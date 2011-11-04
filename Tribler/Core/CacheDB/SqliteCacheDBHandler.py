@@ -3311,7 +3311,7 @@ class ChannelCastDBHandler(object):
             
             #if new or not yet collected
             if infohash in inserted or not self.torrent_db.hasTorrent(infohash):
-                metainfo = {'info':{}}
+                metainfo = {'info':{}, 'encoding':'utf_8'}
                 metainfo['info']['name'] = str(name)
                 metainfo['info']['piece length'] = -1 
                 metainfo['info']['pieces'] = ''
@@ -3319,6 +3319,7 @@ class ChannelCastDBHandler(object):
                 if len(files) > 1:
                     files_as_dict = []
                     for filename, file_lenght in files:
+                        filename = filename.decode('utf_8')
                         files_as_dict.append({'path':[filename], 'length':file_lenght})
                     metainfo['info']['files'] = files_as_dict
                 else:
