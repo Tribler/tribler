@@ -247,7 +247,7 @@ class ChannelSearchManager:
             self.list.RefreshData(id, newChannel)
             
         for id in ids:
-            startWorker(mergeChannel, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,))
+            startWorker(mergeChannel, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,), uId = "ChannelSearchManager_refresh_partial_%s"%id)
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:

@@ -880,6 +880,21 @@ class ManageChannelFilesManager():
         except:
             return False
         
+    def startDownloads(self, filenames, *args, **kwargs):
+        torrentdefs = []
+        
+        for torrentfilename in filenames:
+            try:
+                tdef = TorrentDef.load(torrentfilename)
+                if 'fixtorrent' not in kwargs:
+                    self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None))
+
+                torrentdefs.append(tdef)
+            except:
+                pass
+        
+        return self.AddTDefs(torrentdefs)
+        
     def startDownloadFromTorrent(self, torrent):
         self.channelsearch_manager.createTorrent(self.list.channel, torrent)
         return True
@@ -888,6 +903,14 @@ class ManageChannelFilesManager():
         if tdef:
             self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
             self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+            
+            return True
+        return False
+
+    def AddTDefs(self, tdefs):
+        if tdefs:
+            self.channelsearch_manager.createTorrentsFromDefs(self.list.id, tdefs)
+            self.guiutility.frame.top_bg.Notify('%d new torrents added to My Channel'%len(tdefs), wx.ART_INFORMATION)
             
             return True
         return False

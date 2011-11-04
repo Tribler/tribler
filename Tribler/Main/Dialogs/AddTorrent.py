@@ -142,8 +142,11 @@ class AddTorrent(wx.Dialog):
                 if not destdir:
                     return
             
-            for filename in filenames:
-                self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
+            if getattr(self.frame, 'startDownloads', False):
+                self.frame.startDownloads(filenames, fixtorrent = True, destdir = destdir)
+            else:
+                for filename in filenames:
+                    self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
                 
             self.EndModal(wx.ID_OK)
         else:
@@ -178,8 +181,11 @@ class AddTorrent(wx.Dialog):
                     if not destdir:
                         return
                     
-                for filename in filenames:
-                    self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
+                if getattr(self.frame, 'startDownloads', False):
+                    self.frame.startDownloads(filenames, fixtorrent = True, destdir = destdir)
+                else:
+                    for filename in filenames:
+                        self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
             
             dlg.Destroy()
             self.EndModal(wx.ID_OK)
