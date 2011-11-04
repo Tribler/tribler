@@ -177,7 +177,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                     name = u''.join(choice(letters) for _ in xrange(100))
                     files = []
                     for _ in range(10):
-                        files.append((''.join(choice(letters) for _ in xrange(30)), 123455))
+                        files.append((u''.join(choice(letters) for _ in xrange(30)), 123455))
                     
                     trackers = []
                     for _ in range(10):
