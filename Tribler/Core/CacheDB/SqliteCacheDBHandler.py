@@ -3312,7 +3312,7 @@ class ChannelCastDBHandler(object):
             #if new or not yet collected
             if infohash in inserted or not self.torrent_db.hasTorrent(infohash):
                 metainfo = {'info':{}, 'encoding':'utf_8'}
-                metainfo['info']['name'] = str(name)
+                metainfo['info']['name'] = name.encode('utf_8')
                 metainfo['info']['piece length'] = -1 
                 metainfo['info']['pieces'] = ''
                 
