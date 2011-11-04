@@ -3319,7 +3319,7 @@ class ChannelCastDBHandler(object):
                 if len(files) > 1:
                     files_as_dict = []
                     for filename, file_lenght in files:
-                        files_as_dict.append({'path':[str(filename)], 'length':file_lenght})
+                        files_as_dict.append({'path':[filename], 'length':file_lenght})
                     metainfo['info']['files'] = files_as_dict
                 else:
                     metainfo['info']['length'] = files[0][1]
