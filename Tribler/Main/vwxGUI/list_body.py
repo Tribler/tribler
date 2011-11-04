@@ -41,7 +41,8 @@ class ListItem(wx.Panel):
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-         
+        
+        self.controls = []
         self.AddComponents(leftSpacer, rightSpacer)
         
         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
@@ -49,7 +50,6 @@ class ListItem(wx.Panel):
     
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
-        self.controls = []
         if leftSpacer > 0:
             self.hSizer.AddSpacer((leftSpacer, -1))
          
