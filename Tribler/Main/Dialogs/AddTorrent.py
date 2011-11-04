@@ -85,13 +85,12 @@ class AddTorrent(wx.Dialog):
             create.Bind(wx.EVT_BUTTON, self.OnCreate)
             vSizer.Add(create, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
             
+            self.choose = None
+            
         else:
             self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
             self.choose.SetValue(self.defaultDLConfig.get_show_saveas())
             vSizer.Add(self.choose, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
-            
-        
-        
         
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 10)
@@ -101,7 +100,7 @@ class AddTorrent(wx.Dialog):
         input = self.magnet.GetValue().strip()
         if input.startswith("http://"):
             destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose.IsChecked():
+            if self.choose and self.choose.IsChecked():
                 destdir = self._GetDestPath()
                 if not destdir:
                     return
@@ -111,7 +110,7 @@ class AddTorrent(wx.Dialog):
             
         elif input.startswith("magnet:"):
             destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose.IsChecked():
+            if self.choose and self.choose.IsChecked():
                 destdir = self._GetDestPath()
                 if not destdir:
                     return
@@ -138,7 +137,7 @@ class AddTorrent(wx.Dialog):
             dlg.Destroy()
             
             destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose.IsChecked():
+            if self.choose and self.choose.IsChecked():
                 destdir = self._GetDestPath()
                 if not destdir:
                     return
@@ -174,7 +173,7 @@ class AddTorrent(wx.Dialog):
                 
             if not cancel:
                 destdir = self.defaultDLConfig.get_dest_dir()
-                if self.choose.IsChecked():
+                if self.choose and self.choose.IsChecked():
                     destdir = self._GetDestPath()
                     if not destdir:
                         return
