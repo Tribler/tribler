@@ -555,7 +555,7 @@ class Community(object):
     #         return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
-        #return self.dispersy_claim_sync_bloom_filter2()
+        return self.dispersy_claim_sync_bloom_filter2()
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
@@ -631,18 +631,18 @@ class Community(object):
     
     def _select_and_fix(self, global_time, to_select, higher = True):
         if higher:
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time >= ? ORDER BY global_time ASC LIMIT ?",
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time > ? ORDER BY global_time ASC LIMIT ?",
                                                     (self._database_id, global_time, to_select + 1)))
         else:
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time <= ? ORDER BY global_time DESC LIMIT ?",
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time < ? ORDER BY global_time DESC LIMIT ?",
                                                     (self._database_id, global_time, to_select + 1)))
         if len(data) > to_select:
             if data[-1][0] == data[-2][0]:
                 #if last 2 packets are equal, then we need to fetch possible other packets
-                data += list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
+                data = data + list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
                                       (self._database_id, data[-1][0])))
             else:
-                data[:-1]
+                data = data[:-1]
         
         if not higher:
             data.reverse()
@@ -654,31 +654,35 @@ class Community(object):
         count,  = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ?", (self._database_id, min_gbtime, max_gbtime)).next()
         if count > capacity:
             desired_mean = (max_gbtime-min_gbtime) / 2.0
-            lambd = 1.0 / desired_mean
-            
-            pivot = max_gbtime - int(self._random.expovariate(lambd))
-            if pivot <= min_gbtime or pivot == max_gbtime:
-                pivot = self._random.choice(range(min_gbtime+1, max_gbtime))
+#            lambd = 1.0 / desired_mean
+#            
+#            pivot = max_gbtime - int(self._random.expovariate(lambd))
+#            if pivot < min_gbtime:
+#                pivot = min_gbtime
+
+            pivot = self._random.choice(range(min_gbtime, max_gbtime))
             
             if pivot < desired_mean:
-                #print >> sys.stderr, "Choosing lower, pivot",pivot
+                #print >> sys.stderr, "Choosing lower, pivot", pivot
                 return self._recursive_build(bloom, capacity, min_gbtime, pivot)
             else:
-                #print >> sys.stderr, "Choosing higher, pivot",pivot
+                #print >> sys.stderr, "Choosing higher, pivot", pivot
                 return self._recursive_build(bloom, capacity, pivot, max_gbtime)
             
         else:
+            #print >> sys.stderr, "Selecting data between", min_gbtime, max_gbtime
+            
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ? ORDER BY global_time",
                                                         (self._database_id, min_gbtime, max_gbtime)))
             if len(data) < capacity:
                 remaining = capacity - len(data)
                 additionaldata = self._select_and_fix(max_gbtime, remaining)
-                data += additionaldata
+                data = data + additionaldata
                 
-                if len(additionaldata) < remaining:
-                    remaining = capacity - len(data)
-                    additionaldata = self._select_and_fix(min_gbtime, remaining, higher = False)
-                    data = additionaldata + data
+            if len(data) < capacity:
+                remaining = capacity - len(data)
+                additionaldata = self._select_and_fix(min_gbtime, remaining, higher = False)
+                data = additionaldata + data
                         
             if len(data) > 0:
                 assert len(data) == 1 or data[0][0] <= data[1][0]
@@ -692,15 +696,16 @@ class Community(object):
                 
                 for _, packet in data:
                     bloom.add(str(packet))
+                    
+                #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
+                
             else:
                 time_low = 1
                 time_high = 0
                 bloom = BloomFilter(8, 0.1, prefix='\x00')
-            
-            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d"%(time_low, time_high, len(data), capacity)
+                
             return time_low, time_high, bloom
         
-
     # def dispersy_claim_sync_bloom_filter(self, identifier):
     #     """
     #     Returns a (time_low, time_high, bloom_filter) tuple or None.
