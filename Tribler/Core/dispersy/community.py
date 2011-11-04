@@ -555,81 +555,148 @@ class Community(object):
     #         return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
+        return self.dispersy_claim_sync_bloom_filter2()
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
-        count,  = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32", (self._database_id,)).next()
-        if count:
-            bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
-            capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
-            
-            if count > capacity:
-                desired_mean = self.global_time / 2.0
+        bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+        capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+        
+        desired_mean = self.global_time / 2.0
                 
-                lambd = 1.0 / desired_mean
-                from_gbtime = self.global_time - int(self._random.expovariate(lambd))
-                if from_gbtime < 1:
-                    from_gbtime = 1
-                
-                data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time >= ? ORDER BY global_time LIMIT ?",
+        lambd = 1.0 / desired_mean
+        from_gbtime = self.global_time - int(self._random.expovariate(lambd))
+        if from_gbtime < 1:
+            from_gbtime = 1
+        
+        data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time >= ? ORDER BY global_time LIMIT ?",
                                                         (self._database_id, from_gbtime, capacity + 1)))
+        if len(data) > 0:
+            if len(data) > capacity:
+                #see if this is a correct range
+                if data[-1][0] == data[-2][0]:
+                    #if last 2 packets are equal, then we need to fetch possible other packets
+                    data += list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
+                                                               (self._database_id, data[-1][0])))
+                else:
+                    #no problems, remove additionally fetched packet
+                    data = data[:-1]
                 
-                if len(data) > capacity:
-                    #see if this is a correct range
-                    if data[-1][0] == data[-2][0]:
-                        #if last 2 packets are equal, then we need to fetch possible other packets
-                        data += list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
-                                                                   (self._database_id, data[-1][0])))
-                    else:
-                        #no problems, remove additionally fetched packet
-                        data = data[:-1]
+                time_high = data[-1][0]
                     
-                    time_high = data[-1][0]
-                        
-                elif len(data) < capacity:
-                    #we did not select enough packets to completely fill bloomfilter
-                    to_select = capacity - len(data)
-                    additionaldata = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time < ? ORDER By global_time DESC LIMIT ?",
-                                                                   (self._database_id, from_gbtime, to_select + 1)))
-                    additionaldata.reverse()
-                    
+            elif len(data) < capacity:
+                #we did not select enough packets to completely fill bloomfilter
+                to_select = capacity - len(data)
+                additionaldata = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time < ? ORDER By global_time DESC LIMIT ?",
+                                                               (self._database_id, from_gbtime, to_select + 1)))
+                additionaldata.reverse()
+                
+                if len(additionaldata) > to_select:
                     #see if this is a correct range
                     if additionaldata[0][0] == additionaldata[1][0]:
                         #if the first two are equal fetch all packets with this global_time
                         additionaldata = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
                                                                    (self._database_id, additionaldata[0][0]))) + additionaldata
-                    
-                    #if we have indeed selected one more that needed to be, remove it
-                    elif len(additionaldata) > to_select:
+                    else:
+                        #if we have indeed selected one more that needed to be, remove it
                         additionaldata = additionaldata[1:]
-                    
-                    data = additionaldata + data
-                    
-                    #as we did not select enough packets set time_high to 0 to indicate this
-                    time_high = 0
-                    
-                else:
-                    #we selected exactly enough packets
-                    time_high = 0
-                    
-                time_low = min(from_gbtime, data[0][0])
-            else:
-                data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY sync.global_time",
-                                                        (self._database_id,)))
-                time_low, time_high = 1, 0
                 
+                data = additionaldata + data
+                
+                #as we did not select enough packets set time_high to 0 to indicate this
+                time_high = 0
+                
+            else:
+                #we selected exactly enough packets
+                time_high = 0
+                
+            time_low = min(from_gbtime, data[0][0])
+            
             for _, packet in data:
                 bloom.add(str(packet))
-                 
+             
             if __debug__:
-                if len(data) > 1:
-                    low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
-                                                                (self._database_id,)).next()
-                    dprint(self.cid.encode("HEX"), " syncing <<", data[0][0], "-", data[-1][0], ">> sync:[", time_low, ":", time_high, "] db:[", low, ":", high, "] len:", len(data), " cap:", capacity)
+                low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
+                                                            (self._database_id,)).next()
+                dprint(self.cid.encode("HEX"), " syncing <<", data[0][0], "-", data[-1][0], ">> sync:[", time_low, ":", time_high, "] db:[", low, ":", high, "] len:", len(data), " cap:", capacity)
 
             return (time_low, time_high, bloom)
-                
         return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+    
+    def dispersy_claim_sync_bloom_filter2(self):
+        bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+        capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+        
+        return self._recursive_build(bloom, capacity, 1, self.global_time)
+    
+    def _select_and_fix(self, global_time, to_select, higher = True):
+        if higher:
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time >= ? ORDER BY global_time ASC LIMIT ?",
+                                                    (self._database_id, global_time, to_select + 1)))
+        else:
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time <= ? ORDER BY global_time DESC LIMIT ?",
+                                                    (self._database_id, global_time, to_select + 1)))
+        if len(data) > to_select:
+            if data[-1][0] == data[-2][0]:
+                #if last 2 packets are equal, then we need to fetch possible other packets
+                data += list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
+                                      (self._database_id, data[-1][0])))
+            else:
+                data[:-1]
+        
+        if not higher:
+            data.reverse()
+        return data
+    
+    def _recursive_build(self, bloom, capacity, min_gbtime, max_gbtime):
+        import sys
+        
+        count,  = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ?", (self._database_id, min_gbtime, max_gbtime)).next()
+        if count > capacity:
+            desired_mean = (max_gbtime-min_gbtime) / 2.0
+            lambd = 1.0 / desired_mean
+            
+            pivot = max_gbtime - int(self._random.expovariate(lambd))
+            if pivot <= min_gbtime or pivot == max_gbtime:
+                pivot = self._random.choice(range(min_gbtime+1, max_gbtime))
+            
+            if pivot < desired_mean:
+                print >> sys.stderr, "Choosing lower, pivot",pivot
+                return self._recursive_build(bloom, capacity, min_gbtime, pivot)
+            else:
+                print >> sys.stderr, "Choosing higher, pivot",pivot
+                return self._recursive_build(bloom, capacity, pivot, max_gbtime)
+            
+        else:
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ? ORDER BY global_time",
+                                                        (self._database_id, min_gbtime, max_gbtime)))
+            if len(data) < capacity:
+                remaining = capacity - len(data)
+                additionaldata = self._select_and_fix(max_gbtime, remaining)
+                data += additionaldata
+                
+                if len(additionaldata) < remaining:
+                    remaining = capacity - len(data)
+                    additionaldata = self._select_and_fix(min_gbtime, remaining, higher = False)
+                    data = additionaldata + data
+                        
+            if len(data) > 0:
+                assert len(data) == 1 or data[0][0] <= data[1][0]
+                assert len(data) == 1 or data[-2][0] <= data[-1][0]
+                
+                time_low = min(min_gbtime, data[0][0])
+                time_high = max(max_gbtime, data[-1][0])
+                
+                for _, packet in data:
+                    bloom.add(str(packet))
+            else:
+                time_low = 1
+                time_high = 0
+                bloom = BloomFilter(8, 0.1, prefix='\x00')
+            
+            print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d"%(time_low, time_high, len(data), capacity)
+            return time_low, time_high, bloom
+        
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
     #     """
