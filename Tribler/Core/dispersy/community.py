@@ -687,6 +687,9 @@ class Community(object):
                 time_low = min(min_gbtime, data[0][0])
                 time_high = max(max_gbtime, data[-1][0])
                 
+                if len(data) < capacity:
+                    time_high = 0 
+                
                 for _, packet in data:
                     bloom.add(str(packet))
             else:
