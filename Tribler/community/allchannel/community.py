@@ -145,14 +145,18 @@ class AllChannelCommunity(Community):
                     if DEBUG:
                         nr_torrents = sum(len(torrent) for torrent in torrents.values())
                         print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.address,"didFavorite",didFavorite
-                            
+                    
+                    if not self.integrate_with_tribler:
+                        nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                        log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.address,didFavorite))
+                    
                     #we're done
                     break       
 
             else:
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
-                
+                log("dispersy.log", "Could not send channelcast message, no candidates")
         except:
             print_exc()
             raise
