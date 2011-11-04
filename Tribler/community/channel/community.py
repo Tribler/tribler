@@ -366,7 +366,7 @@ class ChannelCommunity(Community):
 
     def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
         files = torrentdef.get_files_as_unicode_with_length()
-        return self._disp_create_torrent(torrentdef.get_infohash(), timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple(), store, update, forward)
+        return self._disp_create_torrent(torrentdef.get_infohash(), timestamp, torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple(), store, update, forward)
 
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")

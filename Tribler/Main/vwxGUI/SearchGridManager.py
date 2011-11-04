@@ -1427,7 +1427,7 @@ class ChannelManager:
             community = self._disp_get_community_from_channel_id(channel_id)
             
             files = tdef.get_files_as_unicode_with_length()
-            community._disp_create_torrent(tdef.infohash, long(time()), unicode(tdef.get_name()), tuple(files), tdef.get_trackers_as_single_tuple(), forward = forward)
+            community._disp_create_torrent(tdef.infohash, long(time()), tdef.get_name_as_unicode(), tuple(files), tdef.get_trackers_as_single_tuple(), forward = forward)
             
             if 'description' in extraInfo:
                 desc = extraInfo['description']
