@@ -216,7 +216,7 @@ class CollectedTorrent(Helper):
         self.comment = torrentdef.get_comment_as_unicode()
         self.trackers = torrentdef.get_trackers_as_single_tuple()
         self.creation_date = torrentdef.get_creation_date()
-        self.files = torrentdef.get_files_with_length()
+        self.files = torrentdef.get_files_as_unicode_with_length()
         self.last_check = -1
 
     def __getattr__(self, name):
