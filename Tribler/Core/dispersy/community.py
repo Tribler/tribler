@@ -555,7 +555,7 @@ class Community(object):
     #         return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
-        return self.dispersy_claim_sync_bloom_filter2()
+        #return self.dispersy_claim_sync_bloom_filter2()
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
