@@ -661,10 +661,10 @@ class Community(object):
                 pivot = self._random.choice(range(min_gbtime+1, max_gbtime))
             
             if pivot < desired_mean:
-                print >> sys.stderr, "Choosing lower, pivot",pivot
+                #print >> sys.stderr, "Choosing lower, pivot",pivot
                 return self._recursive_build(bloom, capacity, min_gbtime, pivot)
             else:
-                print >> sys.stderr, "Choosing higher, pivot",pivot
+                #print >> sys.stderr, "Choosing higher, pivot",pivot
                 return self._recursive_build(bloom, capacity, pivot, max_gbtime)
             
         else:
@@ -694,7 +694,7 @@ class Community(object):
                 time_high = 0
                 bloom = BloomFilter(8, 0.1, prefix='\x00')
             
-            print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d"%(time_low, time_high, len(data), capacity)
+            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d"%(time_low, time_high, len(data), capacity)
             return time_low, time_high, bloom
         
 
