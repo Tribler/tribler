@@ -646,6 +646,8 @@ class Community(object):
         import sys
         #print >> sys.stderr, "Pivot", from_gbtime
         
+        mostRecent = False
+        
         if from_gbtime > 1:
             to_select = capacity / 2
             
@@ -655,8 +657,7 @@ class Community(object):
             #we did not select enough items from right side, increase nr of items for left
             if len(right) < to_select:
                 to_select = capacity - len(right)
-                if len(right) > 0:
-                    right[-1][0] = self.global_time
+                mostRecent = True
                 
             left = self._select_and_fix(from_gbtime, to_select, False)
             
@@ -674,9 +675,11 @@ class Community(object):
         if len(data) > 0:
             if len(data) >= capacity:
                 time_low = min(from_gbtime, data[0][0])
-                time_high = max(from_gbtime, data[-1][0])
-                if time_high == self.global_time:
+                
+                if mostRecent:
                     time_high = 0
+                else:
+                    time_high = max(from_gbtime, data[-1][0])
                 
             #we did not fill complete bloomfiler, assume we selected all items 
             else:
@@ -705,6 +708,7 @@ class Community(object):
         import sys
         #print >> sys.stderr, "Pivot", from_gbtime
         
+        mostRecent = False
         if from_gbtime > 1:
             #use from_gbtime -1/+1 to include from_gbtime
             right = self._select_and_fix(from_gbtime - 1, capacity, True)
@@ -712,10 +716,8 @@ class Community(object):
             
             if len(right) < capacity:
                 to_select = capacity - len(right)
-                if len(right) > 0:
-                    right[-1][0] = self.global_time
-                    
                 right = self._select_and_fix(from_gbtime, to_select, False) + right
+                mostRecent = True
             
             if len(left) < capacity:
                 to_select = capacity - len(left)
@@ -732,8 +734,10 @@ class Community(object):
                 if left_range > right_range:
                     #print >> sys.stderr, "Choosing left",left_range, right_range
                     data = left
+                    mostRecent = False
                 else:
                     #print >> sys.stderr, "Choosing right",left_range, right_range
+                    
                     data = right
         else:
             data = self._select_and_fix(0, capacity, True)
@@ -742,9 +746,11 @@ class Community(object):
         if len(data) > 0:
             if len(data) >= capacity:
                 time_low = min(from_gbtime, data[0][0])
-                time_high = max(from_gbtime, data[-1][0])
-                if time_high == self.global_time:
+                
+                if mostRecent:
                     time_high = 0
+                else:
+                    time_high = max(from_gbtime, data[-1][0])
                 
             #we did not fill complete bloomfiler, assume we selected all items 
             else:
