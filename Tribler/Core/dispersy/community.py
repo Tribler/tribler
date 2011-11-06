@@ -556,7 +556,8 @@ class Community(object):
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
         #return self.dispersy_claim_sync_bloom_filter2()
-        return self.dispersy_claim_sync_bloom_filter_50_50()
+        #return self.dispersy_claim_sync_bloom_filter_50_50()
+        return self.dispersy_claim_sync_bloom_filter_largest()
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
@@ -637,14 +638,13 @@ class Community(object):
         capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
         
         desired_mean = self.global_time / 2.0
-                
         lambd = 1.0 / desired_mean
         from_gbtime = self.global_time - int(self._random.expovariate(lambd))
         if from_gbtime < 1:
             from_gbtime = 1
         
         import sys
-        print >> sys.stderr, "Pivot", from_gbtime
+        #print >> sys.stderr, "Pivot", from_gbtime
         
         if from_gbtime > 1:
             to_select = capacity / 2
@@ -682,7 +682,70 @@ class Community(object):
             for _, packet in data:
                 bloom.add(str(packet))
             
-            print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0]) 
+            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0]) 
+            
+            return (time_low, time_high, bloom)
+        return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+    
+    #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
+    def dispersy_claim_sync_bloom_filter_largest(self):
+        bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+        capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+        
+        desired_mean = self.global_time / 2.0
+        lambd = 1.0 / desired_mean
+        from_gbtime = self.global_time - int(self._random.expovariate(lambd))
+        if from_gbtime < 1:
+            from_gbtime = 1
+            
+        import sys
+        #print >> sys.stderr, "Pivot", from_gbtime
+        
+        if from_gbtime > 1:
+            #use from_gbtime -1/+1 to include from_gbtime
+            right = self._select_and_fix(from_gbtime - 1, capacity, True)
+            left = self._select_and_fix(from_gbtime + 1, capacity, False)
+            
+            if len(right) < capacity:
+                to_select = capacity - len(right)
+                right = self._select_and_fix(from_gbtime, to_select, False) + right
+            
+            if len(left) < capacity:
+                to_select = capacity - len(left)
+                left = left + self._select_and_fix(from_gbtime, to_select, True)
+                
+                
+            #both sides now are correct, choose one with largest globaltime range
+            if len(left) == 0:
+                data = right
+            else:
+                left_range = left[-1][0] - left[0][0]
+                right_range = right[-1][0] - right[0][0]
+                
+                if left_range > right_range:
+                    #print >> sys.stderr, "Choosing left",left_range, right_range
+                    data = left
+                else:
+                    #print >> sys.stderr, "Choosing right",left_range, right_range
+                    data = right
+        else:
+            data = self._select_and_fix(0, capacity, True)
+
+        
+        if len(data) > 0:
+            if len(data) >= capacity:
+                time_low = min(from_gbtime, data[0][0])
+                time_high = max(from_gbtime, data[-1][0])
+                
+            #we did not fill complete bloomfiler, assume we selected all items 
+            else:
+                time_low = 1
+                time_high = 0
+            
+            for _, packet in data:
+                bloom.add(str(packet))
+            
+            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0]) 
             
             return (time_low, time_high, bloom)
         return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
