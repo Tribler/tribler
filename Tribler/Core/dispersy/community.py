@@ -655,6 +655,8 @@ class Community(object):
             #we did not select enough items from right side, increase nr of items for left
             if len(right) < to_select:
                 to_select = capacity - len(right)
+                if len(right) > 0:
+                    right[-1][0] = self.global_time
                 
             left = self._select_and_fix(from_gbtime, to_select, False)
             
@@ -673,6 +675,8 @@ class Community(object):
             if len(data) >= capacity:
                 time_low = min(from_gbtime, data[0][0])
                 time_high = max(from_gbtime, data[-1][0])
+                if time_high == self.global_time:
+                    time_high = 0
                 
             #we did not fill complete bloomfiler, assume we selected all items 
             else:
@@ -708,6 +712,9 @@ class Community(object):
             
             if len(right) < capacity:
                 to_select = capacity - len(right)
+                if len(right) > 0:
+                    right[-1][0] = self.global_time
+                    
                 right = self._select_and_fix(from_gbtime, to_select, False) + right
             
             if len(left) < capacity:
@@ -736,6 +743,8 @@ class Community(object):
             if len(data) >= capacity:
                 time_low = min(from_gbtime, data[0][0])
                 time_high = max(from_gbtime, data[-1][0])
+                if time_high == self.global_time:
+                    time_high = 0
                 
             #we did not fill complete bloomfiler, assume we selected all items 
             else:
