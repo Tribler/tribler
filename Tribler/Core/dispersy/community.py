@@ -556,8 +556,8 @@ class Community(object):
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
         #return self.dispersy_claim_sync_bloom_filter2()
-        #return self.dispersy_claim_sync_bloom_filter_50_50()
-        return self.dispersy_claim_sync_bloom_filter_largest()
+        return self.dispersy_claim_sync_bloom_filter_50_50()
+        #return self.dispersy_claim_sync_bloom_filter_largest()
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
@@ -647,6 +647,7 @@ class Community(object):
         #print >> sys.stderr, "Pivot", from_gbtime
         
         mostRecent = False
+        leastRecent = False
         
         if from_gbtime > 1:
             to_select = capacity / 2
@@ -658,13 +659,18 @@ class Community(object):
             if len(right) < to_select:
                 to_select = capacity - len(right)
                 mostRecent = True
-                
+            
             left = self._select_and_fix(from_gbtime, to_select, False)
             
-            #we did not select enough items from left side, increase nr of items for right if we did select enough items on right side
-            if len(left) < to_select and len(right) >= to_select:
-                to_select = capacity - len(right) - len(left)
-                right = right + self._select_and_fix(right[-1][0], to_select, True)
+            #we did not select enough items from left side
+            if len(left) < to_select:
+                leastRecent = True
+                
+                #increase nr of items for right if we did select enough items on right side
+                if len(right) >= to_select:
+                    to_select = capacity - len(right) - len(left)
+                    right = right + self._select_and_fix(right[-1][0], to_select, True)
+                
                 
             data = left + right
             
@@ -674,7 +680,10 @@ class Community(object):
         
         if len(data) > 0:
             if len(data) >= capacity:
-                time_low = min(from_gbtime, data[0][0])
+                if leastRecent:
+                    time_low = 1
+                else:
+                    time_low = min(from_gbtime, data[0][0])
                 
                 if mostRecent:
                     time_high = 0
