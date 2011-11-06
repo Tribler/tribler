@@ -95,6 +95,9 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(files, tuple):
             raise DropPacket("Invalid 'files' type")
         
+        if len(files) == 0:
+            raise DropPacket("Should have at least one file")
+        
         for file in files:
             if len(file) != 2:
                 raise DropPacket("Invalid 'file_len' type")

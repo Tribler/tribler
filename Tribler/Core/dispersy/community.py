@@ -555,7 +555,8 @@ class Community(object):
     #         return sync_range.time_low, newer_range.time_low, choice(sync_range.bloom_filters)
 
     def dispersy_claim_sync_bloom_filter(self, identifier):
-        return self.dispersy_claim_sync_bloom_filter2()
+        #return self.dispersy_claim_sync_bloom_filter2()
+        return self.dispersy_claim_sync_bloom_filter_50_50()
         """
         Returns a (time_low, time_high, bloom_filter) tuple or None.
         """
@@ -623,11 +624,68 @@ class Community(object):
             return (time_low, time_high, bloom)
         return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
     
+    #inspired by quicksort, does not seem to work
     def dispersy_claim_sync_bloom_filter2(self):
         bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
         capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
         
         return self._recursive_build(bloom, capacity, 1, self.global_time)
+    
+    #instead of pivot + capacity, divide capacity to have 50/50 divivion around pivot
+    def dispersy_claim_sync_bloom_filter_50_50(self):
+        bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+        capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+        
+        desired_mean = self.global_time / 2.0
+                
+        lambd = 1.0 / desired_mean
+        from_gbtime = self.global_time - int(self._random.expovariate(lambd))
+        if from_gbtime < 1:
+            from_gbtime = 1
+        
+        import sys
+        print >> sys.stderr, "Pivot", from_gbtime
+        
+        if from_gbtime > 1:
+            to_select = capacity / 2
+            
+            #use from_gbtime - 1 to include from_gbtime
+            right = self._select_and_fix(from_gbtime - 1, to_select, True)
+            
+            #we did not select enough items from right side, increase nr of items for left
+            if len(right) < to_select:
+                to_select = capacity - len(right)
+                
+            left = self._select_and_fix(from_gbtime, to_select, False)
+            
+            #we did not select enough items from left side, increase nr of items for right if we did select enough items on right side
+            if len(left) < to_select and len(right) >= to_select:
+                to_select = capacity - len(right) - len(left)
+                right = right + self._select_and_fix(right[-1][0], to_select, True)
+                
+            data = left + right
+            
+        else:
+            data = self._select_and_fix(0, capacity, True)
+
+        
+        if len(data) > 0:
+            if len(data) >= capacity:
+                time_low = min(from_gbtime, data[0][0])
+                time_high = max(from_gbtime, data[-1][0])
+                
+            #we did not fill complete bloomfiler, assume we selected all items 
+            else:
+                time_low = 1
+                time_high = 0
+            
+            for _, packet in data:
+                bloom.add(str(packet))
+            
+            print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0]) 
+            
+            return (time_low, time_high, bloom)
+        return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
     
     def _select_and_fix(self, global_time, to_select, higher = True):
         if higher:

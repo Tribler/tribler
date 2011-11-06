@@ -3322,8 +3322,12 @@ class ChannelCastDBHandler(object):
                         filename = filename.encode('utf_8')
                         files_as_dict.append({'path':[filename], 'length':file_lenght})
                     metainfo['info']['files'] = files_as_dict
-                else:
+                    
+                elif len(files) == 1:
                     metainfo['info']['length'] = files[0][1]
+                    
+                else:
+                    continue
                
                 if len(trackers) > 0:
                     metainfo['announce'] = trackers[0]
