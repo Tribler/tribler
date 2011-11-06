@@ -1406,11 +1406,16 @@ class ChannelManager:
             def torrent_loaded(loaded_torrent):
                 self.createTorrent(channel, loaded_torrent)
             self.torrentsearch_manager.loadTorrent(torrent, torrent_loaded)
+            return True
         
         if not channel:
             channel_id = self.channelcast_db.getMyChannelId()
         else:
             channel_id = channel.id
+            
+        if len(torrent.files) == 0:
+            print >> sys.stderr, "Could not create torrent, no files?", torrent.name, torrent.files, torrent.trackers
+            return False
         
         if not self.channelcast_db.hasTorrent(channel_id, torrent.infohash):
             community = self._disp_get_community_from_channel_id(channel_id)
@@ -1427,6 +1432,10 @@ class ChannelManager:
             community = self._disp_get_community_from_channel_id(channel_id)
             
             files = tdef.get_files_as_unicode_with_length()
+            if len(files) == 0:
+                print >> sys.stderr, "Could not create torrent, no files?", tdef.get_name_as_unicode(), files, tdef.get_trackers_as_single_tuple()
+                return False
+            
             community._disp_create_torrent(tdef.infohash, long(time()), tdef.get_name_as_unicode(), tuple(files), tdef.get_trackers_as_single_tuple(), forward = forward)
             
             if 'description' in extraInfo:

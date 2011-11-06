@@ -709,6 +709,7 @@ class Community(object):
         #print >> sys.stderr, "Pivot", from_gbtime
         
         mostRecent = False
+        leastRecent = False
         if from_gbtime > 1:
             #use from_gbtime -1/+1 to include from_gbtime
             right = self._select_and_fix(from_gbtime - 1, capacity, True)
@@ -722,14 +723,17 @@ class Community(object):
             if len(left) < capacity:
                 to_select = capacity - len(left)
                 left = left + self._select_and_fix(from_gbtime, to_select, True)
-                
+                leastRecent = True
                 
             #both sides now are correct, choose one with largest globaltime range
             if len(left) == 0:
                 data = right
             else:
                 left_range = left[-1][0] - left[0][0]
-                right_range = right[-1][0] - right[0][0]
+                
+                #use self.global_time to include a small benefit for right most range
+                right_range = self.global_time if mostRecent else right[-1][0]
+                right_range -= right[0][0]
                 
                 if left_range > right_range:
                     #print >> sys.stderr, "Choosing left",left_range, right_range
@@ -737,15 +741,18 @@ class Community(object):
                     mostRecent = False
                 else:
                     #print >> sys.stderr, "Choosing right",left_range, right_range
-                    
                     data = right
+                    leastRecent = False
         else:
             data = self._select_and_fix(0, capacity, True)
 
         
         if len(data) > 0:
             if len(data) >= capacity:
-                time_low = min(from_gbtime, data[0][0])
+                if leastRecent:
+                    time_low = 1
+                else:
+                    time_low = min(from_gbtime, data[0][0])
                 
                 if mostRecent:
                     time_high = 0
@@ -760,7 +767,7 @@ class Community(object):
             for _, packet in data:
                 bloom.add(str(packet))
             
-            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0]) 
+            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0], from_gbtime) 
             
             return (time_low, time_high, bloom)
         return (1, 0, BloomFilter(8, 0.1, prefix='\x00'))
