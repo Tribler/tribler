@@ -1980,8 +1980,13 @@ class Dispersy(Singleton):
         advice = True
 
         # obtain sync range
-        sync = community.dispersy_claim_sync_bloom_filter(identifier)
-        assert sync is None or isinstance(sync, tuple)
+        if destination in self._bootstrap_candidates:
+            # do not request a sync when we connecting to a bootstrap candidate
+            sync = None
+        else:
+            sync = community.dispersy_claim_sync_bloom_filter(identifier)
+        assert sync is None or isinstance(sync, tuple), sync
+        assert sync is None or len(sync) == 5, sync
 
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),
@@ -3310,7 +3315,7 @@ class Dispersy(Singleton):
                   FROM sync
                   JOIN member ON member.id = sync.member
                   JOIN meta_message ON meta_message.id = sync.meta_message
-                  WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ?
+                  WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0
                   ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction"""
 
         community = messages[0].community
@@ -3333,9 +3338,11 @@ class Dispersy(Singleton):
                 bloom_filter = message.payload.bloom_filter
                 time_low = message.payload.time_low
                 time_high = message.payload.time_high if message.payload.has_time_high else community.global_time
+                modulo = message.payload.modulo
+                offset = message.payload.offset
                 packets = []
 
-                for packet, meta_message_id, packet_public_key in self._database.execute(sql, (community.database_id, time_low, time_high)):
+                for packet, meta_message_id, packet_public_key in self._database.execute(sql, (community.database_id, time_low, time_high, offset, modulo)):
                     packet = str(packet)
                     packet_public_key = str(packet_public_key)
 
@@ -3372,7 +3379,7 @@ class Dispersy(Singleton):
                             break
 
                 if packets:
-                    if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] to " , message.address[0], ":", message.address[1])
+                    if __debug__: dprint("syncing ", len(packets), " packets (", sum(len(packet) for packet in packets), " bytes) over [", time_low, ":", time_high, "] selecting (%", modulo, "+", offset, ") to " , message.address[0], ":", message.address[1])
                     self._send([message.address], packets, u"-sync-")
 
                 else:

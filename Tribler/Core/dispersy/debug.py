@@ -314,14 +314,18 @@ class Node(object):
     def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, connection_type, sync, identifier, global_time):
         # TODO assert other arguments
         if sync:
-            time_low, time_high, bloom_packets = sync
+            assert isinstance(sync, tuple)
+            assert len(sync) == 5
+            time_low, time_high, modulo, offset, bloom_packets = sync
             assert isinstance(time_low, (int, long))
             assert isinstance(time_high, (int, long))
+            assert isinstance(modulo, int)
+            assert isinstance(offset, int)
             assert isinstance(bloom_packets, list)
             assert not filter(lambda x: not isinstance(x, str), bloom_packets)
             bloom_filter = BloomFilter(512*8, 0.001, prefix="x")
             map(bloom_filter.add, bloom_packets)
-            sync = (time_low, time_high, bloom_filter)
+            sync = (time_low, time_high, modulo, offset, bloom_filter)
         assert isinstance(global_time, (int, long))
         meta = self._community.get_meta_message(u"dispersy-introduction-request")
         return meta.impl(authentication=(self._my_member,),

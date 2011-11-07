@@ -57,12 +57,16 @@ class IntroductionRequestPayload(Payload):
             creator has.  Currently the following values are supported: u"unknown", u"public", and
             u"symmetric-NAT".
 
-            SYNC is an optional (TIME_LOW, TIME_HIGH, BLOOM_FILTER) tuple.  When given the
-            introduction-request will also add this sync bloom filter in the message allowing the
-            receiver to respond with missing packets.  No such sync bloom filter will be included
-            when SYNC is None.
+            SYNC is an optional (TIME_LOW, TIME_HIGH, MODULO, OFFSET, BLOOM_FILTER) tuple.  When
+            given the introduction-request will also add this sync bloom filter in the message
+            allowing the receiver to respond with missing packets.  No such sync bloom filter will
+            be included when SYNC is None.
 
                TIME_LOW and TIME_HIGH give the global time range that the sync bloomfilter covers.
+
+               Only packets with (global time + OFFSET % MODULO) == 0 will be taken into account,
+               allowing for sync ranges to cover much larger ranges without including all the
+               packets in that range.
 
                BLOOM_FILTER is a BloomFilter object containing all packets that the sender has in
                the given sync range.
@@ -70,15 +74,15 @@ class IntroductionRequestPayload(Payload):
             IDENTIFIER is a number that must be given in the associated introduction-response.  This
             number allows to distinguish between multiple introduction-response messages.
             """
-            assert is_address(destination_address)
-            assert is_address(source_lan_address)
-            assert is_address(source_wan_address)
-            assert isinstance(advice, bool)
-            assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", u"symmetric-NAT")
-            assert sync is None or isinstance(sync, tuple)
-            assert sync is None or len(sync) == 3
-            assert isinstance(identifier, int)
-            assert 0 <= identifier < 2**16
+            assert is_address(destination_address), destination_address
+            assert is_address(source_lan_address), source_lan_address
+            assert is_address(source_wan_address), source_wan_address
+            assert isinstance(advice, bool), advice
+            assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", u"symmetric-NAT"), connection_type
+            assert sync is None or isinstance(sync, tuple), sync
+            assert sync is None or len(sync) == 5, sync
+            assert isinstance(identifier, int), identifier
+            assert 0 <= identifier < 2**16, identifier
             super(IntroductionRequestPayload.Implementation, self).__init__(meta)
             self._destination_address = destination_address
             self._source_lan_address = source_lan_address
@@ -87,14 +91,18 @@ class IntroductionRequestPayload(Payload):
             self._connection_type = connection_type
             self._identifier = identifier
             if sync:
-                self._time_low, self._time_high, self._bloom_filter = sync
+                self._time_low, self._time_high, self._modulo, self._offset, self._bloom_filter = sync
                 assert isinstance(self._time_low, (int, long))
                 assert 0 < self._time_low
                 assert isinstance(self._time_high, (int, long))
                 assert self._time_high == 0 or self._time_low <= self._time_high
+                assert isinstance(self._modulo, int)
+                assert 0 < self._modulo < 2**16
+                assert isinstance(self._offset, int)
+                assert 0 <= self._offset < self._modulo
                 assert isinstance(self._bloom_filter, BloomFilter)
             else:
-                self._time_low, self._time_high, self._bloom_filter = 0, 0, None
+                self._time_low, self._time_high, self._modulo, self._offset, self._bloom_filter = 0, 0, 1, 0, None
 
         @property
         def destination_address(self):
@@ -132,6 +140,14 @@ class IntroductionRequestPayload(Payload):
         def has_time_high(self):
             return self._time_high > 0
 
+        @property
+        def modulo(self):
+            return self._modulo
+
+        @property
+        def offset(self):
+            return self._offset
+        
         @property
         def bloom_filter(self):
             return self._bloom_filter

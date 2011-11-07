@@ -174,10 +174,15 @@ class BinaryConversion(Conversion):
             debug_non_available = []
 
         define(254, u"dispersy-missing-sequence", self._encode_missing_sequence, self._decode_missing_sequence)
+        define(253, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
         define(252, u"dispersy-signature-request", self._encode_signature_request, self._decode_signature_request)
         define(251, u"dispersy-signature-response", self._encode_signature_response, self._decode_signature_response)
+        define(250, u"dispersy-puncture-request", self._encode_puncture_request, self._decode_puncture_request)
+        define(249, u"dispersy-puncture", self._encode_puncture, self._decode_puncture)
         define(248, u"dispersy-identity", self._encode_identity, self._decode_identity)
         define(247, u"dispersy-missing-identity", self._encode_missing_identity, self._decode_missing_identity)
+        define(246, u"dispersy-introduction-request", self._encode_introduction_request, self._decode_introduction_request)
+        define(245, u"dispersy-introduction-response", self._encode_introduction_response, self._decode_introduction_response)
         define(244, u"dispersy-destroy-community", self._encode_destroy_community, self._decode_destroy_community)
         define(243, u"dispersy-authorize", self._encode_authorize, self._decode_authorize)
         define(242, u"dispersy-revoke", self._encode_revoke, self._decode_revoke)
@@ -185,12 +190,7 @@ class BinaryConversion(Conversion):
         define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
         define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
-        define(237, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
         define(236, u"dispersy-dynamic-settings", self._encode_dynamic_settings, self._decode_dynamic_settings)
-        define(235, u"dispersy-introduction-request", self._encode_introduction_request, self._decode_introduction_request)
-        define(234, u"dispersy-introduction-response", self._encode_introduction_response, self._decode_introduction_response)
-        define(233, u"dispersy-puncture-request", self._encode_puncture_request, self._decode_puncture_request)
-        define(232, u"dispersy-puncture", self._encode_puncture, self._decode_puncture)
 
         if __debug__:
             if debug_non_available:
@@ -678,14 +678,6 @@ class BinaryConversion(Conversion):
 
     def _encode_introduction_request(self, message):
         payload = message.payload
-        if __debug__:
-            if payload.sync:
-                assert payload.bloom_filter.size % 8 == 0
-                assert 0 < payload.bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
-                assert len(payload.bloom_filter.prefix) == 1, "The bloom filter prefix is always one byte"
-                assert len(payload.bloom_filter.bytes) == int(ceil(payload.bloom_filter.size / 8))
-            else:
-                assert payload.bloom_filter is None
 
         data = [inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]),
                 inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]),
@@ -699,9 +691,9 @@ class BinaryConversion(Conversion):
             assert 0 < payload.bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
             assert len(payload.bloom_filter.prefix) == 1, "must have a one character prefix"
             assert len(payload.bloom_filter.bytes) == int(ceil(payload.bloom_filter.size / 8))
-            data.extend((pack("!QQBH", payload.time_low, payload.time_high, payload.bloom_filter.functions, payload.bloom_filter.size), 
+            data.extend((pack("!QQHHBH", payload.time_low, payload.time_high, payload.modulo, payload.offset, payload.bloom_filter.functions, payload.bloom_filter.size), 
                          payload.bloom_filter.prefix, payload.bloom_filter.bytes))
-
+            
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
@@ -731,24 +723,29 @@ class BinaryConversion(Conversion):
         if not flags & 0b10 in self._decode_sync_map:
             raise DropPacket("Invalid sync flag")
         if self._decode_sync_map[flags & 0b10]:
-            if len(data) < offset + 20:
+            if len(data) < offset + 24:
                 raise DropPacket("Insufficient packet size")
 
-            time_low, time_high, functions, size = unpack_from("!QQBH", data, offset)
-            offset += 19
+            time_low, time_high, modulo, modulo_offset, functions, size = unpack_from("!QQHHBH", data, offset)
+            offset += 23
+
+            prefix = data[offset]
+            offset += 1
+
             if not time_low > 0:
                 raise DropPacket("Invalid time_low value")
             if not (time_high == 0 or time_low <= time_high):
                 raise DropPacket("Invalid time_high value")
+            if not 0 < modulo:
+                raise DropPacket("Invalid modulo value")
+            if not 0 <= modulo_offset < modulo:
+                raise DropPacket("Invalid offset value")
             if not 0 < functions:
                 raise DropPacket("Invalid functions value")
             if not 0 < size:
                 raise DropPacket("Invalid size value")
             if not size % 8 == 0:
                 raise DropPacket("Invalid size value, must be a multiple of eight")
-
-            prefix = data[offset]
-            offset += 1
 
             length = int(ceil(size / 8))
             if not length == len(data) - offset:
@@ -757,7 +754,7 @@ class BinaryConversion(Conversion):
             bloom_filter = BloomFilter(data[offset:offset + length], functions, prefix=prefix)
             offset += length
 
-            sync = (time_low, time_high, bloom_filter)
+            sync = (time_low, time_high, modulo, modulo_offset, bloom_filter)
 
         else:
             sync = None

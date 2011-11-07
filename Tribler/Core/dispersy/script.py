@@ -10,13 +10,13 @@ Run some python code, usually to test one or more features.
 """
 
 from hashlib import sha1
-from itertools import count
 from lencoder import log, make_valid_key
-from random import random, shuffle
+from random import shuffle
 from time import clock, time
 import gc
 import hashlib
 import inspect
+import socket
 
 from bloomfilter import BloomFilter
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -31,7 +31,6 @@ from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 
 from debugcommunity import DebugCommunity, DebugNode
-from Tribler.community.simpledispersytest.conversion import Conversion
 
 def assert_(value, *args):
     if not value:
@@ -68,7 +67,7 @@ class Script(Singleton):
 
     def add_testcase(self, call):
         if len(self._testcases) == 0:
-            self._callback.register(self._next_testcase)
+            self._callback.register(self._next_testcase, priority=-1024)
         self._testcases.append(call)
 
     def _next_testcase(self, result=None):
@@ -103,10 +102,10 @@ class ScriptBase(object):
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
 
 class ScenarioScriptBase(ScriptBase):
-    #TODO: all bartercast references should be converted to some universal style    
+    #TODO: all bartercast references should be converted to some universal style
     def __init__(self, script, name, logfile, **kargs):
         ScriptBase.__init__(self, script, name, **kargs)
-        
+
         self._timestep = float(kargs.get('timestep', 1.0))
         self._stepcount = 0
         self._starting_timestamp = float(kargs.get('starting_timestamp', time()))
@@ -185,23 +184,23 @@ class ScenarioScriptBase(ScriptBase):
         #when should we start the next step?
         expected_time = self._starting_timestamp + (self._timestep * (self._stepcount + 1))
         diff = expected_time - time()
-        
+
         delay = max(0.0, diff)
         return delay
-        
+
     def log_desync(self, desync):
         delay = 1.0 - desync
         log(self._logfile, "sleep", desync=desync, diff=delay, stepcount=self._stepcount)
-    
+
     def join_community(self, my_member):
         pass
-    
+
     def execute_scenario_cmds(self, commands):
         pass
 
     def run(self):
         if __debug__: log(self._logfile, "start-scenario-script")
-        
+
         #
         # Read our configuration from the peer.conf file
         # name, ip, port, public and private key
@@ -209,9 +208,9 @@ class ScenarioScriptBase(ScriptBase):
         with open('data/peer.conf') as fp:
             my_name, ip, port = fp.readline().split()
             my_address = (ip, int(port))
-            
+
         if __debug__: log(self._logfile, "read-config-done", my_name = my_name, my_address = my_address)
-        
+
         # create my member
         ec = ec_generate_key(u"low")
         my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
@@ -233,18 +232,18 @@ class ScenarioScriptBase(ScriptBase):
 
         # wait until we reach the starting time
         self._dispersy.callback.register(self.do_steps, delay=self.sleep())
-        
+
         # I finished the scenario execution. I should stay online
         # until killed. Note that I can still sync and exchange
         # messages with other peers.
         while True:
             # wait to be killed
             yield 100.0
-        
+
     def do_steps(self):
         scenario_fp = open('data/bartercast.log')
         availability_fp = open('data/availability.log')
-        
+
         self._stepcount = 1
 
         # start the scenario
@@ -271,36 +270,36 @@ class ScenarioScriptBase(ScriptBase):
                 # offline
                 if availability_cmds != -1 and 'stop' in availability_cmds:
                     self.set_offline()
-                    
+
             #print statistics
             total_dropped = sum([amount for amount, bytes in self._dispersy._statistics._drop.itervalues()])
             log("dispersy.log", "statistics", total_send = self._dispersy._statistics._total_up, total_received = self._dispersy._statistics._total_down, total_dropped = total_dropped)
-            
+
             total_received = {}
             for key, values in self._dispersy._statistics._success.iteritems():
                 total_received[make_valid_key(key)] = values[0]
-                
+
             if len(total_received) > 0:
                 log("dispersy.log", "statistics-successful-messages", **total_received)
-            
+
             total_dropped = {}
             for key, values in self._dispersy._statistics._drop.iteritems():
                 total_dropped[make_valid_key(key)] = values[0]
-                
-            if len(total_dropped) > 0:    
+
+            if len(total_dropped) > 0:
                 log("dispersy.log", "statistics-dropped-messages", **total_dropped)
-            
+
 #            def callback_cmp(a, b):
 #                return cmp(self._dispersy.callback._statistics[a][0], self._dispersy.callback._statistics[b][0])
 #            keys = self._dispersy.callback._statistics.keys()
 #            keys.sort(reverse = True)
-#            
+#
 #            total_run = {}
 #            for key in keys[:10]:
 #                total_run[make_valid_key(key)] = self._dispersy.callback._statistics[key]
-#            if len(total_run) > 0:    
+#            if len(total_run) > 0:
 #                log("dispersy.log", "statistics-callback-run", **total_run)
-                
+
 #            stats = Conversion.debug_stats
 #            total = stats["encode-message"]
 #            nice_total = {'encoded':stats["-encode-count"], 'total':"%.2fs"%total}
@@ -308,7 +307,7 @@ class ScenarioScriptBase(ScriptBase):
 #                if key.startswith("encode") and not key == "encode-message" and total:
 #                    nice_total[make_valid_key(key)] = "%7.2fs ~%5.1f%%" % (value, 100.0 * value / total)
 #            log("dispersy.log", "statistics-encode", **nice_total)
-#            
+#
 #            total = stats["decode-message"]
 #            nice_total = {'decoded':stats["-decode-count"], 'total':"%.2fs"%total}
 #            for key, value in sorted(stats.iteritems()):
@@ -318,7 +317,7 @@ class ScenarioScriptBase(ScriptBase):
 
             desync = yield self._timestep
             self.log_desync(desync)
-            
+
             self._stepcount += 1
 
 class DispersyClassificationScript(ScriptBase):
@@ -572,7 +571,7 @@ class DispersyClassificationScript(ScriptBase):
         dprint("define auto load")
         self._dispersy.define_auto_load(DebugCommunity)
         yield 0.555
-        
+
         dprint("unload community")
         community.unload_community()
         try:
@@ -600,7 +599,7 @@ class DispersyClassificationScript(ScriptBase):
         dprint("undefine auto load")
         self._dispersy.undefine_auto_load(DebugCommunity)
         yield 0.555
-        
+
         dprint("cleanup")
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
@@ -684,7 +683,7 @@ class DispersyClassificationScript(ScriptBase):
 
         dprint("undefine auto load")
         self._dispersy.undefine_auto_load(DebugCommunity)
-        
+
         dprint("cleanup")
         DebugCommunity.load_community(community.master_member)
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -842,7 +841,7 @@ class DispersyTimelineScript(ScriptBase):
         dprint("=====")
         dprint("node1: ", node1.my_member.database_id)
         dprint("node2: ", node2.my_member.database_id)
-        
+
         # NODE1 provides proof
         dprint("NODE1 creates and provides missing proof")
         sequence_number = 1
@@ -851,7 +850,7 @@ class DispersyTimelineScript(ScriptBase):
         yield 0.555
 
         dprint("=====")
-        
+
         # must have been stored in the database
         dprint("SELF must have processed both the proof and the protected-full-sync-text message")
         try:
@@ -941,14 +940,14 @@ class DispersyTimelineScript(ScriptBase):
         dprint("member: ", community.my_member.database_id)
         dprint("node1:  ", node1.my_member.database_id)
         dprint("node2:  ", node2.my_member.database_id)
-        
+
         # NODE2 wants the proof that OWNER is allowed to grant authorization to NODE1
         dprint("NODE2 asks for proof that NODE1 is allowed to authorize")
         node2.give_message(node2.create_dispersy_missing_proof_message(message.authentication.member, message.distribution.global_time))
         yield 0.555
 
         dprint("===")
-        
+
         # SELF sends dispersy-authorize containing authorize(MASTER, OWNER) to NODE
         dprint("NODE2 receives the proof from SELF")
         _, authorize = node2.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
@@ -956,12 +955,12 @@ class DispersyTimelineScript(ScriptBase):
         permission_triplet = (message.authentication.member, community.get_meta_message(u"protected-full-sync-text"), u"permit")
         dprint((permission_triplet[0].database_id, permission_triplet[1].name, permission_triplet[2]))
         dprint([(x.database_id, y.name, z) for x, y, z in authorize.payload.permission_triplets], lines=1)
-        assert_(permission_triplet in authorize.payload.permission_triplets) 
+        assert_(permission_triplet in authorize.payload.permission_triplets)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
-        
+
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -982,7 +981,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        
+
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
         assert_(len(times) == 0, times)
@@ -1367,23 +1366,8 @@ class DispersySyncScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        # one dispersy-identity (master member)
-        # one dispersy-identity (my member)
-        # one dispersy-authorize
-        self._initial_spaces_used_in_sync = 3
-
-        # scaling: when we have to many messages in the sync bloom filter
-        self.caller(self.batch_reversed_enlarging_sync_bloom)
-        self.caller(self.batch_enlarging_sync_bloom)
-        self.caller(self.reversed_enlarging_sync_bloom)
-        self.caller(self.enlarging_sync_bloom)
-        self.caller(self.large_sync)
-
-        # scaling: when we have to few messages in the sync bloom filter
-        self.caller(self.shrinking_sync_bloom)
-        self.caller(self.merge_sync_bloom_one_choice)
-        self.caller(self.merge_sync_bloom_two_choices)
-        self.caller(self.merge_three_sync_bloom_ranges)
+        # modulo sync handling
+        self.caller(self.modulo_test)
 
         # different sync policies
         self.caller(self.in_order_test)
@@ -1395,716 +1379,46 @@ class DispersySyncScript(ScriptBase):
         # multimember authentication and last sync policies
         self.caller(self.last_1_multimember)
         self.caller(self.last_1_multimember_unique_member_global_time)
-        self.caller(self.last_1_multimember_sync_bloom_crash_test)
         # # TODO add more checks for the multimemberauthentication case
         # self.caller(self.last_9_multimember)
 
-    def assert_sync_ranges(self, community, messages, minimal_remaining=0, verbose=False):
-        time_high = 0
-        for index, sync_range in zip(count(), community._sync_ranges):
-            if verbose: dprint(index, ": range [", sync_range.time_low, ":", time_high if time_high else "inf", "] space_remaining: ", sync_range.space_remaining, "; freed: ", sync_range.space_freed, "; used: ", sync_range.capacity - sync_range.space_remaining - sync_range.space_freed, "; capacity: ", sync_range.capacity)
-            assert_(sync_range.space_remaining >= minimal_remaining, (sync_range.space_remaining, ">=", minimal_remaining))
-            time_high = sync_range.time_low - 1
-
-        for message in messages:
-            for sync_range in community._sync_ranges:
-                if sync_range.time_low <= message.distribution.global_time:
-                    for bloom_filter in sync_range.bloom_filters:
-                        assert_(message.packet in bloom_filter, (message.distribution.global_time, "[%d:?]" % sync_range.time_low, len([x for x in messages if x.distribution.global_time == message.distribution.global_time])))
-                    break
-            else:
-                assert_(False, "should always find the sync_range")
-        if verbose: dprint("Verified ", len(messages), " messages")
-
-    def batch_reversed_enlarging_sync_bloom(self):
+    def modulo_test(self):
         """
-        The sync bloom filter should grow when to many packets are received in that time range.
-        Also tests that the sync bloom filters are initialized correctly when the community is
-        loaded.
+        SELF creates several messages, NODE asks for specific modulo to sync and only those modulo
+        may be sent back.
         """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        assert_(community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining, [community._sync_ranges[0].space_remaining, space_remaining])
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-
-            # create a few messages in each sync bloom filter range
-            for global_time in xrange(20, 10, -1):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-            # unload community
-            community.unload_community()
-
-            # load community
-            dprint("loading...")
-            community = TestCommunity.load_community(community.master_member)
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def batch_enlarging_sync_bloom(self):
-        """
-        The sync bloom filter should grow when to many packets are received in that time range.
-        Also tests that the sync bloom filters are initialized correctly when the community is
-        loaded.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
+        community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
-
-            # create a few messages in each sync bloom filter range
-            for global_time in xrange(10, 20):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-            # unload community
-            community.unload_community()
-
-            # load community
-            dprint("loading...")
-            community = TestCommunity.load_community(community.master_member)
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def reversed_enlarging_sync_bloom(self):
-        """
-        The sync bloom filter should grow when to many packets are received in that time range.
-        Also tests that the sync bloom filters are initialized correctly when the community is
-        loaded.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-
-            # create a few messages in each sync bloom filter range
-            for global_time in xrange(20, 10, -1):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-            # unload community
-            community.unload_community()
-
-            # load community
-            dprint("loading...")
-            community = TestCommunity.load_community(community.master_member)
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def enlarging_sync_bloom(self):
-        """
-        The sync bloom filter should grow when to many packets are received in that time range.
-        Also tests that the sync bloom filters are initialized correctly when the community is
-        loaded.
-        """
-        # for some reason it takes a long time before this test starts... try to debug...
-        dprint("---- actual start ----")
-
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        messages = []
-        for counter in xrange(11):
-            if counter >= 9:
-                minimal_remaining = 10 - counter - 2
-            else:
-                minimal_remaining = -1
-            dprint("NODE #", counter, "; minimal_remaining: ", minimal_remaining)
-
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining)
-
-            # create a few messages in each sync bloom filter range
-            for global_time in xrange(10, 20):
-                messages.append(node.give_message(node.create_in_order_text_message("node: %d; global-time: %d; Dprint=False" % (counter, global_time), global_time)))
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-            # unload community
-            community.unload_community()
-
-            # load community
-            dprint("loading...")
-            community = TestCommunity.load_community(community.master_member)
-            self.assert_sync_ranges(community, messages, minimal_remaining=minimal_remaining, verbose=True)
-
-        # TODO: run an 'optimizer' method to cleanup dead space in the sync ranges
-        # optimal = math.ceil((2.0 + counter * 11.0) / 10.0)
-        # assert_(len(community._sync_ranges) in (optimal, optimal+1), (len(community._sync_ranges), optimal))
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def large_sync(self):
-        """
-        The sync bloom filter covers a certain global-time range.  Hence, as time goes on, multiple
-        bloom filters should be generated and periodically synced.
-
-        We use a dispersy_sync_bloom_filter_capacity of 25.  Hence each bloom filter must hold no
-        more than 25 packets.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 25
-                return 248
-        space_remaining = 25 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 25, community._sync_ranges[0].capacity)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
+        message = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
 
-        # create a few messages in each sync bloom filter range
-        messages = []
-        for global_time in xrange(10, 110):
-            messages.append(node.give_message(node.create_in_order_text_message("global-time: %d" % global_time, global_time)))
-
-        # we should have around (100+4) / 25 = 4.16 = 5 sync ranges
-        for sync_range in community._sync_ranges:
-            dprint("range [", sync_range.time_low, ":... space_remaining: ", sync_range.space_remaining)
-            assert_(sync_range.space_remaining >= 0)
-        assert_(len(community._sync_ranges) == 5)
-
-        for message in messages:
-            for sync_range in community._sync_ranges:
-                if sync_range.time_low <= message.distribution.global_time:
-                    for bloom_filter in sync_range.bloom_filters:
-                        assert_(message.packet in bloom_filter)
-                    break
-            else:
-                assert_(False, "should always find the sync_range")
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def shrinking_sync_bloom(self):
-        """
-        The sync bloom filter should shrink when there is too much free space in that time range.
-
-        One trivial way to shrink is to remove any sync ranges that no longer store -any- messages.
-        We will add messages until this happens.
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        # create node and ensure that SELF knows the node address
-        node = DebugNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
-
-        # create a lot of messages, the first few sync ranges should go 'empty'
-        for global_time in xrange(10, 51):
-            node.give_message(node.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time))
-        self.assert_sync_ranges(community, [], verbose=True)
-
-        # at least one sync range must have been removed!  in total there should be 4 + 9 = 13
-        # messages (disp-identity*3, disp-authorize, last9*9) hence there will be two sync ranges
-        assert_(len(community._sync_ranges) == 2)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def merge_sync_bloom_one_choice(self):
-        """
-        The sync bloom filter should shrink when there is too much free space in that time range.
-
-        Whenever two neighboring sync ranges could fit in a single range, they could be merged.
-        Important is that they are merged with the oldest neighboring ranges.
-
-
-        At some point one or more packets are freed in range (300:200].  In the example below it is
-        clear that range (400:300] and (300:200] should be merged together.
-
-        Index:     0     1     2     3                      0        1     2
-        Usage:    50%   50%   100%  100%                   100%     100%  100%
-                |-----|-----|-----|-----|     -->     |-----------|-----|-----|
-        Range: 400   300   200   100    1            400         200   100    1
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        # create node and ensure that SELF knows the node address
-        nodeA = DebugNode()
-        nodeA.init_socket()
-        nodeA.set_community(community)
-        nodeA.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
-
-        # create node and ensure that SELF knows the node address
-        nodeB = DebugNode()
-        nodeB.init_socket()
-        nodeB.set_community(community)
-        nodeB.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 2)
-
-        # the remaining_messages will contain messages that must be in the sync ranges after the merge
-        remaining_messages = []
-
-        # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(5):
-            remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # ensure that range (200:100] is completely filled (index 1)
-        for i in xrange(10):
-            remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
-        assert_(len(community._sync_ranges) == 2)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # fill range (300:200] with 50% filler and 50% removable (index 2)
-        for i in xrange(5):
-            community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(210, 215)]
-        nodeA.give_messages(messages)
-        assert_(len(community._sync_ranges) == 3)
-        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # fill range (400:300] with 50% filler and 50% removable (index 3)
-        for i in xrange(5):
-            community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(310, 315)]
-        nodeB.give_messages(messages)
-        assert_(len(community._sync_ranges) == 4)
-        assert_(community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining)
-        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # now we will free 50% of in the (500:400] range (index 2)
-        messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(410, 419)]
-
-        # now we will free 50% of in the (500:400] range (index 3)
-        messagesB = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(410, 419)]
-        messages = messagesA + messagesB
-        remaining_messages.extend(messages)
-        nodeB.give_messages(messages)
-
-        # merge should be complete
-        self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        assert_(len(community._sync_ranges) == 5)
-        assert_(community._sync_ranges[4].space_remaining == 0, community._sync_ranges[4].space_remaining)
-        assert_(community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining)
-        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 2, community._sync_ranges[0].space_remaining)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def merge_sync_bloom_two_choices(self):
-        """
-        The sync bloom filter should shrink when there is too much free space in that time range.
-
-        Whenever two neighboring sync ranges could fit in a single range, they could be merged.
-        Important is that they are merged with the oldest neighboring ranges.
-
-        At some point one or more packets are freed in range (300:200].  In the example below this
-        range can merge with either of its neighbors.  However, merging with the older (200:100]
-        range is prefered, sine we expect fewer new packets to be added in this range (adding
-        packets might cause a range to split).
-
-        Index:     0     1     2     3                   0        1        2
-        Usage:    50%   50%   50%   100%                50%      100%     100%
-                |-----|-----|-----|-----|     -->     |-----|-----------|-----|
-        Range: 400   300   200   100    1            400   300         100    1
-
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        # create node and ensure that SELF knows the node address
-        nodeA = DebugNode()
-        nodeA.init_socket()
-        nodeA.set_community(community)
-        nodeA.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
-
-        # create node and ensure that SELF knows the node address
-        nodeB = DebugNode()
-        nodeB.init_socket()
-        nodeB.set_community(community)
-        nodeB.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 2)
-
-        # create node and ensure that SELF knows the node address
-        nodeC = DebugNode()
-        nodeC.init_socket()
-        nodeC.set_community(community)
-        nodeC.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 3)
-
-        # the remaining_messages will contain messages that must be in the sync ranges after the merge
-        remaining_messages = []
-
-        # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(4):
-            remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # fill range (200:100] with 50% filler and 50% removable (index 1)
-        for i in xrange(5):
-            remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
-        messages = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(110, 115)]
-        nodeA.give_messages(messages)
-        assert_(len(community._sync_ranges) == 2)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # fill range (300:200] with 50% filler and 50% removable (index 2)
-        for i in xrange(5):
-            community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(210, 215)]
-        nodeB.give_messages(messages)
-        assert_(len(community._sync_ranges) == 3)
-        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # fill range (400:300] with 50% filler and 50% removable (index 3)
-        for i in xrange(5):
-            community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(310, 315)]
-        nodeC.give_messages(messages)
-        assert_(len(community._sync_ranges) == 4)
-        assert_(community._sync_ranges[3].space_remaining == 0, community._sync_ranges[3].space_remaining)
-        assert_(community._sync_ranges[2].space_remaining == 0, community._sync_ranges[2].space_remaining)
-        assert_(community._sync_ranges[1].space_remaining == 0, community._sync_ranges[1].space_remaining)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # now we will free 50% in the (200:100] range (index 1)
-        messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(410, 419)]
-
-        # now we will free 50% in the (300:200] range (index 2)
-        messagesB = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(420, 429)]
-
-        # now we will free 50% in the (400:300] range (index 3)
-        messagesC = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(430, 439)]
-        messages = messagesA + messagesB + messagesC
-        assert_(len(messages) == 3 * 9)
-        self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        remaining_messages.extend(messages)
-        nodeC.give_messages(messages)
-
-        # merge should be complete
-        self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        assert_(len(community._sync_ranges) >= 6)
-        assert_(community._sync_ranges[-1].space_remaining == 0, community._sync_ranges[-1].space_remaining)
-        assert_(community._sync_ranges[-1].space_freed == 0)
-        assert_(community._sync_ranges[-2].space_remaining == 0, community._sync_ranges[-2].space_remaining)
-        assert_(community._sync_ranges[-2].space_freed == 0)
-        assert_(community._sync_ranges[-3].space_remaining == 0, community._sync_ranges[-3].space_remaining)
-        assert_(community._sync_ranges[-3].space_freed == 5)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
-    def merge_three_sync_bloom_ranges(self):
-        """
-        The sync bloom filter should shrink when there is too much free space in that time range.
-
-        Whenever three neighboring sync ranges could fit in a single range, they could be merged.
-
-        At some point three or more packets are freed in ranges (400:300], (300:200], and (200:100].
-        In the example below suffucient packets are freed that the three ranges can now fit in a
-        single range (400:100].
-
-        Index:     0     1     2     3                         0           1
-        Usage:    30%   30%   30%   100%                      90%         100%
-                |-----|-----|-----|-----|     -->     |-----------------|-----|
-        Range: 400   300   200   100    1            400               100    1
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        assert_(community._sync_ranges[0].capacity == 10)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        # create node and ensure that SELF knows the node address
-        nodeA = DebugNode()
-        nodeA.init_socket()
-        nodeA.set_community(community)
-        nodeA.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 1)
-
-        # create node and ensure that SELF knows the node address
-        nodeB = DebugNode()
-        nodeB.init_socket()
-        nodeB.set_community(community)
-        nodeB.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 2)
-
-        # create node and ensure that SELF knows the node address
-        nodeC = DebugNode()
-        nodeC.init_socket()
-        nodeC.set_community(community)
-        nodeC.init_my_member()
-        self.assert_sync_ranges(community, [])
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining - 3)
-
-        # the remaining_messages will contain messages that must be in the sync ranges after the merge
-        remaining_messages = []
-
-        # ensure that range (100:1] is completely filled (index 0)
-        for i in xrange(4):
-            remaining_messages.append(community.create_full_sync_text("filler (100:1] #%d" % i))
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == 0, community._sync_ranges[0].space_remaining)
-
-        # fill range (200:100] with 30% filler and 70% removable (index 1)
-        for i in xrange(3):
-            remaining_messages.append(community.create_full_sync_text("filler (200:100] #%d" % i))
-        messages = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(110, 117)]
-        nodeA.give_messages(messages)
-        assert_(len(community._sync_ranges) == 2)
-        assert_(community._sync_ranges[1].space_remaining == 0)
-        assert_(community._sync_ranges[0].space_remaining == 0)
-
-        # fill range (300:200] with 30% filler and 70% removable (index 2)
-        for i in xrange(3):
-            community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(210, 217)]
-        nodeB.give_messages(messages)
-        assert_(len(community._sync_ranges) == 3)
-        assert_(community._sync_ranges[2].space_remaining == 0)
-        assert_(community._sync_ranges[1].space_remaining == 0)
-        assert_(community._sync_ranges[0].space_remaining == 0)
-
-        # fill range (400:300] with 30% filler and 70% removable (index 3)
-        for i in xrange(3):
-            community.create_full_sync_text("filler (300:200] #%d" % i)
-        messages = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                    for global_time in
-                    xrange(310, 317)]
-        nodeC.give_messages(messages)
-        assert_(len(community._sync_ranges) == 4)
-        assert_(community._sync_ranges[3].space_remaining == 0)
-        assert_(community._sync_ranges[2].space_remaining == 0)
-        assert_(community._sync_ranges[1].space_remaining == 0)
-        assert_(community._sync_ranges[0].space_remaining == 0)
-
-        # now we will free 70% in the (200:100] range (index 1)
-        messagesA = [nodeA.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(410, 419)]
-
-        # now we will free 70% in the (300:100] range (index 2)
-        messagesB = [nodeB.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(410, 419)]
-
-        # now we will free 70% in the (400:500] range (index 3)
-        messagesC = [nodeC.create_last_9_test_message("global-time: %d; Dprint=False" % global_time, global_time)
-                     for global_time in
-                     xrange(410, 419)]
-        messages = messagesA + messagesB + messagesC
-        self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        remaining_messages.extend(messages)
-        nodeC.give_messages(messages)
-
-        # merge should be complete
-        self.assert_sync_ranges(community, remaining_messages, verbose=True)
-        assert_(len(community._sync_ranges) >= 6)
-        assert_(community._sync_ranges[-1].space_remaining == 0)
-        assert_(community._sync_ranges[-2].space_remaining == 1)
+        # SELF creates messages
+        messages = [community.create_full_sync_text("foo-bar", forward=False) for _ in xrange(30)]
+
+        for modulo in xrange(0, 10):
+            for offset in xrange(0, modulo):
+                # global times that we should receive
+                global_times = [message.distribution.global_time for message in messages if (message.distribution.global_time + offset) % modulo == 0]
+
+                sync = (1, 0, modulo, offset, [])
+                node.drop_packets()
+                node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", sync, 42, 110))
+
+                received = []
+                while True:
+                    try:
+                        _, message = node.receive_message(message_names=[u"full-sync-text"])
+                        received.append(message.distribution.global_time)
+                    except socket.error:
+                        break
+
+                assert_(sorted(global_times) == sorted(received), sorted(global_times), sorted(received), modulo, offset)
+                dprint("%", modulo, "+", offset, ": ", sorted(global_times), " -> OK")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2131,7 +1445,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_in_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages ASC
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, []), 42, max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in global_times:
@@ -2163,7 +1477,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_out_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages DESC
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, []), 42, max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in reversed(global_times):
@@ -2221,7 +1535,7 @@ class DispersySyncScript(ScriptBase):
         # lists = []
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
-            node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, []), 42, max(global_times)))
+            node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
             yield 0.1
 
             received_times = get_messages_back()
@@ -2558,88 +1872,6 @@ class DispersySyncScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-    def last_1_multimember_sync_bloom_crash_test(self):
-        """
-        We found a race condition where the sync bloom filter was freed to many times.  This was
-        because the select for items that had to be removed was done several times without an actual
-        delete.
-
-        This test simulates that condition to ensure this bug doesn't happen again.  It will crash
-        on one of the internal asserts in the sync bloom filter free method.
-
-        One key thing here is that multiple last-sync messages must be processed in one batch for it
-        to occur.
-
-        It is proving to be somewhat difficult to repreduce though...
-        """
-        class TestCommunity(DebugCommunity):
-            @property
-            def dispersy_sync_bloom_filter_bits(self):
-                # this results in a capacity off 10
-                return 104
-        space_remaining = 10 - self._initial_spaces_used_in_sync
-
-        community = TestCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        message = community.get_meta_message(u"last-1-multimember-text")
-        assert_(community._sync_ranges[0].capacity == 10, community._sync_ranges[0].capacity)
-        assert_(len(community._sync_ranges) == 1)
-        assert_(community._sync_ranges[0].space_remaining == space_remaining)
-
-        # create node and ensure that SELF knows the node address
-        nodeA = DebugNode()
-        nodeA.init_socket()
-        nodeA.set_community(community)
-        nodeA.init_my_member()
-
-        # create node and ensure that SELF knows the node address
-        nodeB = DebugNode()
-        nodeB.init_socket()
-        nodeB.set_community(community)
-        nodeB.init_my_member()
-
-        # create node and ensure that SELF knows the node address
-        nodeC = DebugNode()
-        nodeC.init_socket()
-        nodeC.set_community(community)
-        nodeC.init_my_member()
-
-        for global_time in xrange(10, 150, 3):
-            # send two messages
-            messages = []
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
-            global_time += 1
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2.1)", global_time))
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2.2)", global_time))
-            global_time += 1
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (3.1)", global_time))
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (3.2)", global_time))
-
-            # we NEED the messages to be handled in one batch.  using the socket may change this
-            nodeA.give_messages(messages)
-
-        for global_time in xrange(300, 150, -3):
-            # send two messages
-            messages = []
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (1.1)", global_time))
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (1.2)", global_time))
-            global_time += 1
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (2.1)", global_time))
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (2.2)", global_time))
-            global_time += 1
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeB.my_member], "should be accepted (3.1)", global_time))
-            messages.append(nodeA.create_last_1_multimember_text_message([nodeC.my_member], "should be accepted (3.2)", global_time))
-
-            # we NEED the messages to be handled in one batch.  using the socket may change this
-            nodeA.give_messages(messages)
-
-        self.assert_sync_ranges(community, [], verbose=True)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
-
 class DispersyIdenticalPayloadScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
@@ -2652,8 +1884,8 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         """
         NODE creates two messages with the same community/member/global-time triplets.
 
-        - One of the two should be droped
-        - Both binary signatures should end up in the bloom filter (temporarily)
+        - One of the two should be dropped
+        - Both binary signatures should end up in the bloom filter (temporarily) (NO LONGER THE CASE)
         """
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -2691,11 +1923,14 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         packet = str(packet)
         assert_(packet == messages[1].packet)
 
-        # both packets must be in the bloom filter
-        assert_(len(community._sync_ranges) == 1)
-        for message in messages:
-            for bloom_filter in community._sync_ranges[0].bloom_filters:
-                assert_(message.packet in bloom_filter)
+        # 03/11/11 Boudewijn: we no longer store the ranges in memory, hence only the new packet
+        # will be in the bloom filter
+        #
+        # # both packets must be in the bloom filter
+        # assert_(len(community._sync_ranges) == 1)
+        # for message in messages:
+        #     for bloom_filter in community._sync_ranges[0].bloom_filters:
+        #         assert_(message.packet in bloom_filter)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -2705,8 +1940,8 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         """
         NODE creates two messages with the same community/member/global-time triplets.
 
-        - One of the two should be droped
-        - Both binary signatures should end up in the bloom filter (temporarily)
+        - One of the two should be dropped
+        - Both binary signatures should end up in the bloom filter (temporarily) (NO LONGER THE CASE)
         """
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -2744,11 +1979,14 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         packet = str(packet)
         assert_(packet == messages[1].packet)
 
-        # both packets must be in the bloom filter
-        assert_(len(community._sync_ranges) == 1)
-        for message in messages:
-            for bloom_filter in community._sync_ranges[0].bloom_filters:
-                assert_(message.packet in bloom_filter)
+        # 03/11/11 Boudewijn: we no longer store the ranges in memory, hence only the new packet
+        # will be in the bloom filter
+        #
+        # # both packets must be in the bloom filter
+        # assert_(len(community._sync_ranges) == 1)
+        # for message in messages:
+        #     for bloom_filter in community._sync_ranges[0].bloom_filters:
+        #         assert_(message.packet in bloom_filter)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3026,7 +2264,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert_(times == [global_time])
 
         # a sync MUST return the message that was just sent
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, []), 42, 20))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
         assert_(message.distribution.global_time == global_time)
@@ -3064,7 +2302,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert_(times == [global_time])
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, []), 42, 20))
+        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         assert_(message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name))
