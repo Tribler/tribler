@@ -78,6 +78,14 @@ class Idle(Yielder):
             self._max_delay -= desync
         heappush(self._expired, (self._origional_priority, time(), self._origional_root_id, (self._origional_generator, None), self._origional_callback))
 
+class Return(Yielder):
+    def __init__(self, *results):
+        self._results = results
+
+    def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
+        if callback:
+            heappush(expired, (priority, deadline, root_id, (callback[0], self._results + callback[1], callback[2]), None))
+        
 class Callback(object):
     def __init__(self):
         # _event is used to wakeup the thread when new actions arrive

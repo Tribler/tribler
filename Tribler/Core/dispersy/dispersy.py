@@ -47,7 +47,7 @@ from time import time
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
-from callback import Callback
+from callback import Callback, Idle, Return
 from candidate import BootstrapCandidate, Candidate
 from decorator import runtime_duration_warning
 from destination import CommunityDestination, AddressDestination, MemberDestination, SubjectiveDestination
@@ -114,7 +114,7 @@ class Statistics(object):
         self._total_up = 0, 0
         self._total_down = 0, 0
         self._busy_time = 0.0
-        
+
     def info(self):
         """
         Returns all statistics.
@@ -144,7 +144,7 @@ class Statistics(object):
                 outgoing[key] = (a+amount, b+byte_count)
         info["outgoing"] = outgoing
         return info
-    
+
     def reset(self):
         """
         Returns, and subsequently removes, all statistics.
@@ -272,10 +272,10 @@ class Dispersy(Singleton):
         # indicates what our connection type is.  currently it can be u"unknown", u"public", or
         # u"symmetric-NAT"
         self._connection_type = u"unknown"
-        
+
         # our LAN and WAN addresses
         self._lan_address = (get_my_wan_ip() or "0.0.0.0", 0)
-        
+
         try:
             host, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_wan_ip' LIMIT 1").next()
             host = str(host)
@@ -293,7 +293,7 @@ class Dispersy(Singleton):
         if __debug__:
             dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1], force=True)
             dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
-        
+
         # bootstrap peers
         bootstrap_addresses = get_bootstrap_addresses()
         self._bootstrap_candidates = dict((address, BootstrapCandidate(address)) for address in bootstrap_addresses if address)
@@ -303,7 +303,7 @@ class Dispersy(Singleton):
 
         # communities that can be auto loaded.  classification:(cls, args, kargs) pairs.
         self._auto_load_communities = {}
-            
+
         # loaded communities.  cid:Community pairs.
         self._communities = {}
 
@@ -324,7 +324,7 @@ class Dispersy(Singleton):
         # candidate walker
         self._community_dict_modified = False
         self._callback.register(self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
-        
+
         # statistics...
         self._statistics = Statistics()
 
@@ -389,7 +389,7 @@ class Dispersy(Singleton):
         if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
             if __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
             self._lan_address = (self._wan_address[0], self._lan_address[1])
-            
+
         # our address may not be a bootstrap address
         if self._lan_address in self._bootstrap_candidates:
             del self._bootstrap_candidates[self._lan_address]
@@ -413,7 +413,7 @@ class Dispersy(Singleton):
         @rtype: (str, int)
         """
         return self._lan_address
-    
+
     @property
     def wan_address(self):
         """
@@ -529,7 +529,7 @@ class Dispersy(Singleton):
     def undefine_auto_load(self, community):
         """
         Tell Dispersy to no longer load COMMUNITY.
-        
+
         COMMUNITY is the community class that is defined.
         """
         if __debug__:
@@ -538,7 +538,7 @@ class Dispersy(Singleton):
         assert issubclass(community, Community)
         assert community.get_classification() in self._auto_load_communities
         del self._auto_load_communities[community.get_classification()]
-        
+
     def attach_community(self, community):
         """
         Add a community to the Dispersy instance.
@@ -560,14 +560,13 @@ class Dispersy(Singleton):
         self._communities[community.cid] = community
         self._community_dict_modified = True
 
-        # run the sanity check after the bit... it also checks that the dispersy-identity is
-        # available and when this is a create or join this message is created only after the
-        # attach_community
+        # schedule the sanity check... it also checks that the dispersy-identity is available and
+        # when this is a create or join this message is created only after the attach_community
         if __debug__:
-            def sanity_check():
-                assert self.sanity_check(community), "there are unrecoverable problems with your dispersy database"
-            self._callback.register(sanity_check)
-        
+            def sanity_check_callback(result):
+                assert result == True, result
+            self._callback.register(self.sanity_check_generator, (community,), callback=sanity_check_callback)
+
     def detach_community(self, community):
         """
         Remove an attached community from the Dispersy instance.
@@ -773,7 +772,7 @@ class Dispersy(Singleton):
                 # our address may not be a candidate
                 if self._wan_address in self._candidates:
                     del self._candidates[self._wan_address]
-                
+
             if __debug__: dprint("got invalid external vote from ", voter_address[0],":",voter_address[1], " received ", address[0], ":", address[1])
 
     def _check_identical_payload_with_different_signature(self, message):
@@ -814,7 +813,7 @@ class Dispersy(Singleton):
                 # exact duplicates, do NOT process the message
                 if __debug__: dprint("received identical message [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
                 pass
-            
+
                 # # 21/10/11 Boudewijn: since the community/member/global-time is already in the
                 # # database, the associated packet should also be in the sync bloom filter to prevent
                 # # us from receiving it again
@@ -824,18 +823,18 @@ class Dispersy(Singleton):
                 #             for bloom_filter in sync_range.bloom_filters:
                 #                 assert message.packet in bloom_filter
                 #             break
-                
+
             else:
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
                     # the message payload is binary unique (only the signature is different)
                     if __debug__: dprint("received identical message with different signature [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
-                    
+
                     if packet < message.packet:
                         # replace our current message with the other one
                         self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND member = ? AND global_time = ?",
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
-                        
+
                     # # add the newly received message.packet to the bloom filter
                     # message.community.update_sync_range([message])
 
@@ -921,7 +920,7 @@ class Dispersy(Singleton):
                             # we accept this message
                             highest[message.authentication.member] += 1
                             yield message
-                            
+
                         # try:
                         #     execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                         #             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
@@ -956,7 +955,7 @@ class Dispersy(Singleton):
                     else:
                         # we accept this message
                         yield message
-                        
+
                     # # check for duplicates based on community, member, and global_time
                     # try:
                     #     execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
@@ -1084,7 +1083,7 @@ class Dispersy(Singleton):
                     if self._check_identical_payload_with_different_signature(message):
                         # we have the previous message (drop)
                         return DropMessage(message, "duplicate message by member^global_time (4)")
-                    
+
                     # # ensure that the community / member / global_time is always unique
                     # try:
                     #     self._database.execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
@@ -1354,7 +1353,7 @@ class Dispersy(Singleton):
             performances = self._debug_batch_cache_performance.pop(meta)
             if meta.delay:
                 dprint("batch size: ", sum(performances), " [", ":".join(str(performance) for performance in performances), "] for ", meta.name, " after ", meta.delay, "s")
-        
+
         if self._communities.get(meta.community.cid, None) == meta.community:
             return self._on_batch_cache(meta, self._batch_cache.pop(meta))
 
@@ -1493,7 +1492,7 @@ class Dispersy(Singleton):
         messages = [message for message in messages if _filter_fail(message)]
         if not messages:
             return 0
-            
+
         # store to disk and update locally
         if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages from ", ", ".join("%s:%d" % address for address in set(message.address for message in messages)))
         self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
@@ -1765,7 +1764,7 @@ class Dispersy(Singleton):
     def yield_all_candidates(self, community, blacklist=()):
         """
         Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
-        
+
         BLACKLIST must contain addresses obtained from socket.recv_from(), not the lan or wan
         addresses.
         """
@@ -1791,7 +1790,7 @@ class Dispersy(Singleton):
         if __debug__:
             for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems(), 1):
                 dprint(counter, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", addr2str(candidate.address, candidate.lan_address, candidate.wan_address))
-            
+
         # get all viable candidates
         return ((sock_address, candidate)
                 for sock_address, candidate
@@ -1816,7 +1815,7 @@ class Dispersy(Singleton):
                 if subjective_set and community.my_member.public_key in subjective_set:
                     return True
             return False
-        
+
         candidates = [candidate
                       for _, candidate
                       in self.yield_all_candidates(community, blacklist)
@@ -1874,7 +1873,7 @@ class Dispersy(Singleton):
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
 
         threshold = time() - 30.0
-        
+
         # SECURE 5 WAY SELECTION POOL
         bootstrap_candidates = [candidate for sock_addr, candidate in self._bootstrap_candidates.iteritems() if candidate.timestamp_last_step_in_community(community) <= threshold and not sock_addr in blacklist]
         candidates = [candidate for _, candidate in self.yield_all_candidates(community, blacklist) if candidate.timestamp_last_step_in_community(community) <= threshold]
@@ -1897,7 +1896,7 @@ class Dispersy(Singleton):
             assert all(not candidate.is_walk and not candidate.is_stumble and candidate.is_introduction for candidate in C)
             assert all(not candidate.is_walk and candidate.is_stumble and not candidate.is_introduction for candidate in D)
             assert all(not candidate.is_walk and candidate.is_stumble and candidate.is_introduction for candidate in E)
-            
+
             while True:
                 r = random()
 
@@ -1946,7 +1945,7 @@ class Dispersy(Singleton):
 
         else:
             if __debug__: dprint("no candidates or bootstrap candidates available")
-        
+
     def take_step(self, community):
         if community.cid in self._communities:
             try:
@@ -1962,7 +1961,7 @@ class Dispersy(Singleton):
                 candidate.out_introduction_request(community)
                 self.create_introduction_request(community, candidate.address)
                 return True
-            
+
     def create_introduction_request(self, community, destination):
         assert isinstance(destination, tuple)
         assert len(destination) == 2
@@ -1983,13 +1982,13 @@ class Dispersy(Singleton):
         # obtain sync range
         sync = community.dispersy_claim_sync_bloom_filter(identifier)
         assert sync is None or isinstance(sync, tuple)
-        
+
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),
                                     distribution=(community.global_time,),
                                     destination=(destination,),
                                     payload=(destination, self._lan_address, self._wan_address, advice, self._connection_type, sync, identifier))
-    
+
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
         footprint = meta_response.generate_footprint(payload=(identifier,))
@@ -2023,7 +2022,7 @@ class Dispersy(Singleton):
                 if wan_address != sock_addr:
                     dprint("estimate a different WAN address ", wan_address[0], ":", wan_address[1], " -> ", sock_addr[0], ":", sock_addr[1])
             wan_address = sock_addr
-        
+
         if sock_addr[0] == self._wan_address[0]:
             # we have the same WAN address, we are probably behind the same NAT
             if __debug__:
@@ -2053,7 +2052,7 @@ class Dispersy(Singleton):
         estimates = [self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address) + (message,)
                      for message
                      in messages]
-        
+
         for source_lan_address, source_wan_address, message in estimates:
             # apply vote to determine our WAN address
             self.wan_address_vote(message.payload.destination_address, message.address)
@@ -2110,7 +2109,7 @@ class Dispersy(Singleton):
                 # will be given but a response will be sent to allow the sender to figure out her
                 # addresses
                 yield message
-                
+
             elif message.payload.wan_introduction_address == message.address:
                 yield DropMessage(message, "invalid WAN introduction address [introducing herself]")
 
@@ -2122,17 +2121,17 @@ class Dispersy(Singleton):
 
             elif message.payload.lan_introduction_address == self._lan_address and message.payload.wan_introduction_address[0] == self._wan_address[0]:
                 yield DropMessage(message, "invalid LAN introduction address [introducing myself]")
-                
+
             else:
                 yield message
 
     def on_introduction_response(self, messages):
         community = messages[0].community
-        
+
         for message in messages:
             # apply vote to determine our WAN address
             self.wan_address_vote(message.payload.destination_address, message.address)
-            
+
             # modify either the senders LAN or WAN address based on how we perceive that node
             source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.address, message.payload.source_lan_address, message.payload.source_wan_address)
             if __debug__: dprint("received introduction response from ", addr2str(message.address, source_lan_address, source_wan_address))
@@ -2148,7 +2147,7 @@ class Dispersy(Singleton):
             lan_introduction_address = message.payload.lan_introduction_address
             wan_introduction_address = message.payload.wan_introduction_address
             if __debug__: dprint("received introduction to ", addr2str(None, lan_introduction_address, wan_introduction_address))
-                
+
             # add introduced node to the candidate pool and mark as an introduced node
             if self._is_valid_lan_address(lan_introduction_address) and self._is_valid_wan_address(wan_introduction_address):
                 sock_address = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
@@ -2178,12 +2177,12 @@ class Dispersy(Singleton):
                 if len(self._candidates) == 1 and message.address in self._bootstrap_candidates:
                     if __debug__: dprint("we have no candidates, immediately contact the introduced node")
                     self.create_introduction_request(community, candidate.address)
-                    
+
             else:
                 if __debug__:
                     level = "normal" if lan_introduction_address == ("0.0.0.0", 0) and wan_introduction_address == ("0.0.0.0", 0) else "warning"
                     dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level=level)
-                
+
     def introduction_response_or_timeout(self, message, community, intermediary_address):
         if message is None:
             # intermediary_address is no longer online
@@ -2199,12 +2198,12 @@ class Dispersy(Singleton):
         for message in messages:
             if message.address in self._candidates:
                 self._candidates[message.address].inc_puncture_request()
-            
+
             # determine if we are in the same LAN as the walker node
             destination = message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address
             punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(destination,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
             if __debug__: dprint(message.address[0], ":", message.address[1], " asked us to send a puncture to ", destination[0], ":", destination[1])
-            
+
         self.store_update_forward(punctures, False, False, True)
 
     def check_puncture(self, messages):
@@ -2214,7 +2213,7 @@ class Dispersy(Singleton):
 
             else:
                 yield message
-        
+
     def on_puncture(self, messages):
         for message in messages:
             # when the sender is behind a symmetric NAT and we are not, we will not be able to get
@@ -2436,7 +2435,7 @@ class Dispersy(Singleton):
         assert self._untriggered_messages, "should not check if there are no messages"
         untriggered_messages = self._untriggered_messages
         self._untriggered_messages = []
-            
+
         for trigger in self._triggers[:]:
             if not trigger.on_messages(untriggered_messages):
                 try:
@@ -2444,7 +2443,7 @@ class Dispersy(Singleton):
                 except ValueError:
                     # apparently this trigger was already removed
                     pass
-    
+
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
         Register a callback to occur when a message with a specific footprint is received, or after
@@ -2710,7 +2709,7 @@ class Dispersy(Singleton):
         """
         TODO we should rename _is_valid_lan_address to _is_valid_address as the way it is used now
         things will fail if it only accepted LAN domain addresses (10.xxx.yyy.zzz, etc.)
-        """        
+        """
         if address[0] == "":
             return False
 
@@ -2745,7 +2744,7 @@ class Dispersy(Singleton):
         # else:
         #     # not in a valid LAN range
         #     return False
-        
+
         if check_my_lan_address and address == self._lan_address:
             return False
 
@@ -2753,7 +2752,7 @@ class Dispersy(Singleton):
             return False
 
         return True
-    
+
     def _is_valid_wan_address(self, address, check_my_wan_address=True):
         if address[0] == "":
             return False
@@ -2797,7 +2796,7 @@ class Dispersy(Singleton):
 
     def is_valid_remote_address(self, address):
         return self._is_valid_lan_address(address) or self._is_valid_wan_address(address)
-    
+
     def create_identity(self, community, store=True, update=True):
         """
         Create a dispersy-identity message for self.my_member.
@@ -2836,7 +2835,7 @@ class Dispersy(Singleton):
             message.authentication.member.update()
             assert self._database.execute(u"SELECT 1 FROM sync WHERE packet = ?", (buffer(message.packet),)).next()
             assert message.authentication.member.has_identity(message.community)
-            
+
     # def create_identity_request(self, community, mid, addresses, forward=True):
     #     """
     #     Create a dispersy-identity-request message.
@@ -3313,7 +3312,7 @@ class Dispersy(Singleton):
                   JOIN meta_message ON meta_message.id = sync.meta_message
                   WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ?
                   ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction"""
-        
+
         community = messages[0].community
 
         # obtain all available messages for this community
@@ -3832,7 +3831,7 @@ class Dispersy(Singleton):
                     meta.handle_callback(redo)
 
     @runtime_duration_warning(1.0)
-    def sanity_check(self, community):
+    def sanity_check_generator(self, community):
         """
         Check everything we can about a community.
 
@@ -3857,41 +3856,38 @@ class Dispersy(Singleton):
                     break
 
         if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
-
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
-        
+
         #
         # ensure all packets in the database are valid and that the binary packets are consistent
         # with the information stored in the database
         #
-        for packet_id, member_id, global_time, meta_message_id, packet in select(u"SELECT id, member, global_time, meta_message, packet FROM sync WHERE community = ? LIMIT ? OFFSET ?", (community.database_id,)):
+        for packet_id, member_id, global_time, meta_message_id, packet in select(u"SELECT id, member, global_time, meta_message, packet FROM sync WHERE community = ? ORDER BY id LIMIT ? OFFSET ?", (community.database_id,)):
             if meta_message_id in enabled_messages:
                 packet = str(packet)
                 message = self.convert_packet_to_message(packet, community)
 
                 if not message:
-                    if __debug__: dprint("unable to convert packet ", packet_id, " to message", level="error")
-                    return False
+                    raise ValueError("unable to convert packet ", packet_id, "@", global_time, " to message")
 
                 if not member_id == message.authentication.member.database_id:
-                    if __debug__: dprint("inconsistent member in packet ", packet_id, level="error")
-                    return False
+                    raise ValueError("inconsistent member in packet ", packet_id, "@", global_time)
 
                 if not message.authentication.member.public_key:
-                    if __debug__: dprint("missing public key for member ", member_id, " in packet ", packet_id, level="error")
-                    return False
+                    raise ValueError("missing public key for member ", member_id, " in packet ", packet_id, "@", global_time)
 
                 if not global_time == message.distribution.global_time:
-                    if __debug__: dprint("inconsistent global time in packet ", packet_id, level="error")
-                    return False
+                    raise ValueError("inconsistent global time in packet ", packet_id, "@", global_time)
 
                 if not meta_message_id == message.database_id:
-                    if __debug__: dprint("inconsistent meta message in packet ", packet_id, level="error")
-                    return False
+                    raise ValueError("inconsistent meta message in packet ", packet_id, "@", global_time)
 
                 if not packet == message.packet:
-                    if __debug__: dprint("inconsistent binary in packet ", packet_id, level="error")
-                    return False
+                    raise ValueError("inconsistent binary in packet ", packet_id, "@", global_time)
+
+                # back-off because the sanity check is very expensive
+                if __debug__: dprint("packet ", packet_id, "@", global_time, " is OK")
+                yield Idle()
 
         #
         # ensure that the dispersy-identity for community.my_member must be in the database
@@ -3905,20 +3901,21 @@ class Dispersy(Singleton):
             try:
                 member_id, = self._database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.my_member.mid),)).next()
             except StopIteration:
-                if __debug__: dprint("unable to find the public key for my member", level="error")
-                return False
+                raise ValueError("unable to find the public key for my member")
 
             try:
                 self._database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
             except StopIteration:
-                if __debug__: dprint("unable to find the private key for my member", level="error")
-                return False
+                raise ValueError("unable to find the private key for my member")
 
             try:
                 self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?", (member_id, meta_identity.database_id)).next()
             except StopIteration:
-                if __debug__: dprint("unable to find the dispersy-identity message for my member", level="error")
-                return False
+                raise ValueError("unable to find the dispersy-identity message for my member")
+
+            # back-off because the sanity check is very expensive
+            if __debug__: dprint("my identity is OK")
+            yield Idle()
 
         for meta in community.get_meta_messages():
             #
@@ -3934,12 +3931,15 @@ class Dispersy(Singleton):
                     if member_id != counter_member_id:
                         counter_member_id = member_id
                         counter = 1
-                    
+
                     if not counter == message.distribution.sequence_number:
-                        if __debug__: dprint("inconsistent sequence numbers in packet ", packet_id, level="error")
-                        return False
+                        raise ValueError("inconsistent sequence numbers in packet ", packet_id)
 
                     counter += 1
+
+                    # back-off because the sanity check is very expensive
+                    if __debug__: dprint("FullSyncDistribution for '", meta.name, "' is OK")
+                    yield Idle()
 
             #
             # ensure that we have only history-size messages per member
@@ -3959,8 +3959,11 @@ class Dispersy(Singleton):
                             counter = 1
 
                         if counter > meta.distribution.history_size:
-                            if __debug__: dprint("decayed packet ", packet_id, " still in database", level="error")
-                            return False
+                            raise ValueError("decayed packet ", packet_id, " still in database")
+
+                        # back-off because the sanity check is very expensive
+                        if __debug__: dprint("LastSyncDistribution for '", meta.name, "' is OK")
+                        yield Idle()
 
                 else:
                     assert isinstance(meta.authentication, MultiMemberAuthentication)
@@ -3977,17 +3980,19 @@ class Dispersy(Singleton):
 
                         # 1. there are meta.authentication.count entries in reference_member_sync per entry in sync
                         if not len(members) == meta.authentication.count:
-                            if __debug__: dprint("inconsistent references in packet ", packet_id, level="error")
-                            return False
+                            raise ValueError("inconsistent references in packet ", packet_id)
 
                         # 2. there are meta.distribution.history_size or less (member 1, member 2, ..., member N)
                         if counters[members] > meta.distribution.history_size:
-                            if __debug__: dprint("decayed packet ", packet_id, " still in database", level="error")
-                            return False
-                    
+                            raise ValueError("decayed packet ", packet_id, " still in database")
+
+                        # back-off because the sanity check is very expensive
+                        if __debug__: dprint("LastSyncDistribution for '", meta.name, "' is OK")
+                        yield Idle()
+
         if __debug__: dprint(community.cid.encode("HEX"), " success")
-        return True
-            
+        yield Return(True)
+
     def _generic_timeline_check(self, messages):
         meta = messages[0].meta
         if isinstance(meta.authentication, NoAuthentication):
@@ -4054,7 +4059,7 @@ class Dispersy(Singleton):
             @staticmethod
             def dispersy_take_step():
                 pass
-        
+
         while True:
             while not any(community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker):
                 if __debug__: dprint("there are no walker enabled communities")
@@ -4076,7 +4081,7 @@ class Dispersy(Singleton):
                         # that whenever a new community is added the delay until the first step is
                         # taken is at most 5.0 / 10 = 0.5 seconds
                         communities.extend([DummyCommunity] * (10 - len(communities)))
-                        
+
                     iter_communities = cycle(communities)
                     # delay will never be less than 0.05, hence we can accommodate 100 communities
                     # before the interval between each step becomes larger than 5.0 seconds
@@ -4109,7 +4114,7 @@ class Dispersy(Singleton):
         def _stats_conversion(self):
             # pylint: disable-msg=W0404
             from conversion import Conversion
-            
+
             while True:
                 yield 10.0
                 stats = Conversion.debug_stats
@@ -4135,7 +4140,7 @@ class Dispersy(Singleton):
             while True:
                 yield 10.0
                 dprint(self._statistics.summary(), pprint=True)
-                
+
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
         Returns a dictionary with runtime statistical information.
