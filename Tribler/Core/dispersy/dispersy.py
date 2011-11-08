@@ -565,7 +565,7 @@ class Dispersy(Singleton):
         if __debug__:
             def sanity_check_callback(result):
                 assert result == True, result
-            self._callback.register(self.sanity_check_generator, (community,), callback=sanity_check_callback)
+            self._callback.register(self.sanity_check_generator, (community,), priority=-128, callback=sanity_check_callback)
 
     def detach_community(self, community):
         """
