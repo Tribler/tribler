@@ -14,6 +14,7 @@ this previous message will trigger the processing of the delayed message.
 from re import compile as expression_compile
 
 if __debug__:
+    from candidate import Candidate
     from dprint import dprint
 
 class Trigger(object):
@@ -48,8 +49,7 @@ class TriggerCallback(Trigger):
         PATTERN is a python regular expression string.
 
         RESPONSE_FUNC is called when PATTERN matches the incoming message footprint.  The first
-        argument is the sender address, the second argument is the incoming message, following this
-        are optional values from RESPONSE_ARGS.
+        argument is the incoming message, following this are optional values from RESPONSE_ARGS.
 
         RESPONSE_ARGS is an optional tuple containing arguments passed to RESPONSE_ARGS.
 
@@ -79,7 +79,7 @@ class TriggerCallback(Trigger):
             return "<TriggerCallback %d left %s>" % (self._responses_remaining, self._debug_pattern)
         else:
             return "<TriggerCallback %d left>" % self._responses_remaining
-        
+
     def extend(self):
         """
         We can never extend this Trigger because of the responses_remaining property.
@@ -122,7 +122,7 @@ class TriggerPacket(Trigger):
         CALLBACK is called when PATTERN matches the incoming message footprint.  The only argument
         is PACKETS.
 
-        PACKETS is a list containing (address, packet) tuples.  These packets are effectively
+        PACKETS is a list containing (Candidate, packet) tuples.  These packets are effectively
         delayed until a message matching PATTERN was received.
 
         When a timeout is received this Trigger is removed and PACKETS are lost.
@@ -135,10 +135,7 @@ class TriggerPacket(Trigger):
             for packet in packets:
                 assert isinstance(packet, tuple)
                 assert len(packet) == 2
-                assert isinstance(packet[0], tuple)
-                assert len(packet[0]) == 2
-                assert isinstance(packet[0][0], str)
-                assert isinstance(packet[0][1], int)
+                assert isinstance(packet[0], Candidate)
                 assert isinstance(packet[1], str)
         if __debug__:
             dprint("create new trigger for ", len(packets), " packets")
@@ -147,10 +144,10 @@ class TriggerPacket(Trigger):
         self._search = expression_compile(pattern).search
         self._callback = callback
         self._packets = packets
-        
+
     def __str__(self):
         return "<TriggerPacket %dx %s>" % (len(self._packets), self._pattern)
-        
+
     def extend(self, pattern, packets):
         """
         When this trigger has the same pattern we will extend with packets and return True.
@@ -162,10 +159,7 @@ class TriggerPacket(Trigger):
             for packet in packets:
                 assert isinstance(packet, tuple)
                 assert len(packet) == 2
-                assert isinstance(packet[0], tuple)
-                assert len(packet[0]) == 2
-                assert isinstance(packet[0][0], str)
-                assert isinstance(packet[0][1], int)
+                assert isinstance(packet[0], Candidate)
                 assert isinstance(packet[1], str)
         if self._search and pattern == self._pattern:
             self._packets.extend(packets)
@@ -240,7 +234,7 @@ class TriggerMessage(Trigger):
 
     def __str__(self):
         return "<TriggerMessage %dx %s>" % (len(self._messages), self._pattern)
-    
+
     def extend(self, pattern, messages):
         """
         When this trigger has the same pattern we will extend with packets and return True.

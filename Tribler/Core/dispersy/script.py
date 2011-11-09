@@ -370,7 +370,6 @@ class DispersyClassificationScript(ScriptBase):
 
         # cleanup
         community.unload_community()
-        yield 0.0
 
     def reclassify_loaded_community(self):
         """
@@ -402,7 +401,6 @@ class DispersyClassificationScript(ScriptBase):
 
         # cleanup
         community_d.unload_community()
-        yield 0.0
 
     def load_no_communities(self):
         """
@@ -411,7 +409,6 @@ class DispersyClassificationScript(ScriptBase):
         class ClassificationLoadNoCommunities(DebugCommunity):
             pass
         assert_([ClassificationLoadNoCommunities.load_community(master) for master in ClassificationLoadNoCommunities.get_master_members()] == [], "Did you remove the database before running this testcase?")
-        yield 0.0
 
     def load_one_communities(self):
         """
@@ -440,7 +437,6 @@ class DispersyClassificationScript(ScriptBase):
 
         # cleanup
         communities[0].unload_community()
-        yield 0.0
 
     def load_two_communities(self):
         """
@@ -453,22 +449,20 @@ class DispersyClassificationScript(ScriptBase):
         # no communities should exist
         assert_([LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()] == [])
 
-        # create two master members
-        ec = ec_generate_key(u"high")
-        master1 = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
-        ec = ec_generate_key(u"high")
-        master2 = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
+        masters = []
+        # create two communities
+        community = LoadTwoCommunities.create_community(self._my_member)
+        masters.append(community.master_member.public_key)
+        community.unload_community()
 
-        # create two community
-        cid = ("#1" + LoadTwoCommunities.get_classification())[:20]
-        self._dispersy_database.execute(u"INSERT INTO community (master, member, classification) VALUES (?, ?, ?)",
-                                        (master1.database_id, self._my_member.database_id, LoadTwoCommunities.get_classification()))
-        cid = ("#2" + LoadTwoCommunities.get_classification())[:20]
-        self._dispersy_database.execute(u"INSERT INTO community (master, member, classification) VALUES (?, ?, ?)",
-                                        (master2.database_id, self._my_member.database_id, LoadTwoCommunities.get_classification()))
+        community = LoadTwoCommunities.create_community(self._my_member)
+        masters.append(community.master_member.public_key)
+        community.unload_community()
 
-        # load two community
+        # load two communities
+        assert_(sorted(masters) == sorted(master.public_key for master in LoadTwoCommunities.get_master_members()))
         communities = [LoadTwoCommunities.load_community(master) for master in LoadTwoCommunities.get_master_members()]
+        assert_(sorted(masters) == sorted(community.master_member.public_key for community in communities))
         assert_(len(communities) == 2, len(communities))
         assert_(isinstance(communities[0], LoadTwoCommunities))
         assert_(isinstance(communities[1], LoadTwoCommunities))
@@ -476,7 +470,6 @@ class DispersyClassificationScript(ScriptBase):
         # cleanup
         communities[0].unload_community()
         communities[1].unload_community()
-        yield 0.0
 
     def unloading_community(self):
         """
@@ -1144,8 +1137,8 @@ class DispersyBatchScript(ScriptBase):
         self.caller(self.two_batches_member_global_time_duplicate)
 
         # big batch test
-        # self.caller(self.one_big_batch)
-        # self.caller(self.many_small_batches)
+        self.caller(self.one_big_batch)
+        self.caller(self.many_small_batches)
 
     def one_batch_binary_duplicate(self):
         """
@@ -1163,9 +1156,7 @@ class DispersyBatchScript(ScriptBase):
 
         global_time = 10
         message = node.create_full_sync_text_message("duplicates", global_time)
-        for _ in range(10):
-            node.send_packet(message.packet, address)
-        yield 0.555
+        node.give_packets([message.packet for _ in xrange(10)])
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
@@ -1184,7 +1175,6 @@ class DispersyBatchScript(ScriptBase):
         batch is dropped when the when the database is consulted.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1195,22 +1185,18 @@ class DispersyBatchScript(ScriptBase):
         global_time = 10
         # first batch
         message = node.create_full_sync_text_message("duplicates", global_time)
-        for _ in range(10):
-            node.send_packet(message.packet, address)
-        yield 0.555
+        node.give_packets([message.packet for _ in xrange(10)])
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert_(times == [global_time])
+        assert_(times == [global_time], times, [global_time])
 
         # second batch
-        for _ in range(10):
-            node.send_packet(message.packet, address)
-        yield 0.555
+        node.give_packets([message.packet for _ in xrange(10)])
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
-        assert_(times == [global_time])
+        assert_(times == [global_time], times, [global_time])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1225,7 +1211,6 @@ class DispersyBatchScript(ScriptBase):
         uses the message creator and the global_time to uniquely identify messages.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         meta = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -1235,13 +1220,11 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         global_time = 10
-        for index in range(10):
-            node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
-        yield 0.555
+        node.give_messages([node.create_full_sync_text_message("duplicates (%d)" % index, global_time) for index in xrange(10)])
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
-        assert_(times == [global_time])
+        assert_(times == [global_time], times, [global_time])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -1259,7 +1242,6 @@ class DispersyBatchScript(ScriptBase):
         batch is dropped when the when the database is consulted.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         meta = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -1270,18 +1252,14 @@ class DispersyBatchScript(ScriptBase):
 
         global_time = 10
         # first batch
-        for index in range(10):
-            node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
-        yield 0.555
+        node.give_messages([node.create_full_sync_text_message("duplicates (%d)" % index, global_time) for index in xrange(10)])
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
         assert_(times == [global_time])
 
         # second batch
-        for index in range(10):
-            node.send_message(node.create_full_sync_text_message("duplicates (%d)" % index, global_time), address)
-        yield 0.555
+        node.give_messages([node.create_full_sync_text_message("duplicates (%d)" % index, global_time) for index in xrange(10)])
 
         # only one message may be in the database
         times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, meta.database_id))]
@@ -1298,8 +1276,6 @@ class DispersyBatchScript(ScriptBase):
         communities).
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-        meta = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1308,11 +1284,10 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         dprint("START BIG BATCH")
-        for global_time in range(10, 510):
-            node.send_message(node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time), address, verbose=False)
+        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 510)]
 
         begin = clock()
-        yield 0.555
+        node.give_messages(messages)
         end = clock()
         self._big_batch_took = end - begin
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
@@ -1327,35 +1302,30 @@ class DispersyBatchScript(ScriptBase):
         we make one large batch (using one community) and many small batches (using many different
         communities).
         """
-        exp = []
-        for _ in range(500):
-            community = DebugCommunity.create_community(self._my_member)
-            address = self._dispersy.socket.get_address()
-            meta = community.get_meta_message(u"full-sync-text")
+        community = DebugCommunity.create_community(self._my_member)
 
-            # create node and ensure that SELF knows the node address
-            node = DebugNode()
-            node.init_socket()
-            node.set_community(community)
-            node.init_my_member()
-
-            exp.append((community, node))
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
 
         dprint("START SMALL BATCHES")
-        global_time = 10
-        for community, node in exp:
-            node.send_message(node.create_full_sync_text_message("Dprint=False, small batches", global_time), address, verbose=False)
+        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 510)]
+        batches = [messages[offset:offset+10] for offset in xrange(0, len(messages), 10)]
+        assert len(messages) == sum(len(batch) for batch in batches)
+        del messages
 
         begin = clock()
-        yield 0.555
+        for messages in batches:
+            node.give_messages(messages)
         end = clock()
         self._small_batches_took = end - begin
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
 
         # cleanup
-        for community, _ in exp:
-            community.create_dispersy_destroy_community(u"hard-kill")
-            community.unload_community()
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
 
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
@@ -2068,7 +2038,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message from SELF")
-        address, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        candidate, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         second_signature_offset = len(submsg.packet) - community.my_member.signature_length
         first_signature_offset = second_signature_offset - node.my_member.signature_length
@@ -2078,7 +2048,7 @@ class DispersySignatureScript(ScriptBase):
         dprint("NODE sends dispersy-signature-response message to SELF")
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
-        node.give_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, address))
+        node.give_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, candidate))
         yield 1.11
         assert_(container["response"] == 1, container["response"])
 
@@ -2164,7 +2134,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         # receive dispersy-signature-request message
-        address, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        candidate, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         third_signature_offset = len(submsg.packet) - node2.my_member.signature_length
         second_signature_offset = third_signature_offset - node1.my_member.signature_length
@@ -2175,10 +2145,10 @@ class DispersySignatureScript(ScriptBase):
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
-        node1.give_message(node1.create_dispersy_signature_response_message(request_id, signature1, global_time, address))
+        node1.give_message(node1.create_dispersy_signature_response_message(request_id, signature1, global_time, candidate))
 
         # receive dispersy-signature-request message
-        address, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        candidate, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         third_signature_offset = len(submsg.packet) - node2.my_member.signature_length
         second_signature_offset = third_signature_offset - node1.my_member.signature_length
@@ -2189,7 +2159,7 @@ class DispersySignatureScript(ScriptBase):
         # send dispersy-signature-response message
         request_id = hashlib.sha1(request.packet).digest()
         global_time = community.global_time
-        node2.give_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, address))
+        node2.give_message(node2.create_dispersy_signature_response_message(request_id, signature2, global_time, candidate))
         yield 1.11
         assert_(container["response"] == 2, container["response"])
 
@@ -3009,7 +2979,7 @@ class DispersyUndoScript(ScriptBase):
         node.give_messages(messages)
 
         yield community.get_meta_message(u"full-sync-text").delay + community.get_meta_message(u"dispersy-undo").delay
-        yield 1.0
+        yield 2.0
 
         # check that they are in the database and ARE undone
         for message in messages:

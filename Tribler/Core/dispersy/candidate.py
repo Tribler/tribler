@@ -40,6 +40,9 @@ class Candidate(object):
         self._timestamp_incoming = time()
         self._timestamp_last_step = {(member, community.cid):time() - 30.0} if community else {}
 
+    def __str__(self):
+        return "Candidate " + ("%s:%d" % self._address if self._address else "" + "" if self._address == self._lan_address else " LAN %s:%d" % self._lan_address + "" if self._address == self._wan_address else " WAN %s:%d" % self._wan_address).strip()
+        
     @property
     def address(self):
         return self._address
@@ -83,7 +86,7 @@ class Candidate(object):
     
     def in_community(self, community):
         return any(cid == community.cid for _, cid in self._timestamp_last_step.iterkeys())
-
+    
     def timeout(self, community):
         """
         Called on timeout of a dispersy-introduction-response message
@@ -143,6 +146,10 @@ class Candidate(object):
         self._wan_address = wan_address
         self._timestamp_incoming = time()
 
+class LocalhostCandidate(Candidate):
+    def __init__(self, dispersy):
+        super(LocalhostCandidate, self).__init__(dispersy.lan_address, dispersy.lan_address, dispersy.wan_address)
+        
 class BootstrapCandidate(Candidate):
     def __init__(self, wan_address):
         super(BootstrapCandidate, self).__init__(wan_address, wan_address, wan_address, connection_type=u"public")

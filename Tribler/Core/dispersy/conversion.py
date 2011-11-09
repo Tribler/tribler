@@ -6,18 +6,20 @@ from struct import pack, unpack_from
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from crypto import ec_check_public_bin
-from destination import MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination
+from destination import MemberDestination, CommunityDestination, CandidateDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
 from message import DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
+    from candidate import Candidate
     from dprint import dprint
     from time import time
 
 class Placeholder(object):
-    def __init__(self, offset, data):
+    def __init__(self, candidate, offset, data):
+        self.candidate = candidate
         self.offset = offset
         self.data = data
         self.meta = None
@@ -295,7 +297,7 @@ class BinaryConversion(Conversion):
         return self.encode_message(message.payload.message),
 
     def _decode_signature_request(self, placeholder, offset, data):
-        return len(data), placeholder.meta.payload.implement(self._decode_message(("", -1), data[offset:], False))
+        return len(data), placeholder.meta.payload.implement(self._decode_message(placeholder.candidate, data[offset:], False))
 
     def _encode_signature_response(self, message):
         return message.payload.identifier, message.payload.signature
@@ -561,7 +563,7 @@ class BinaryConversion(Conversion):
         length = int(ceil(size / 8))
         if not length == len(data) - offset:
             raise DropPacket("Invalid number of bytes available")
-        
+
         subjective_set = BloomFilter(data[offset:offset + length], functions)
         offset += length
 
@@ -684,16 +686,16 @@ class BinaryConversion(Conversion):
                 inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]),
                 pack("!B", self._encode_advice_map[payload.advice] | self._encode_connection_type_map[payload.connection_type] | self._encode_sync_map[payload.sync]),
                 pack("!H", payload.identifier)]
-        
+
         # add optional sync
         if payload.sync:
             assert payload.bloom_filter.size % 8 == 0
             assert 0 < payload.bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
             assert len(payload.bloom_filter.prefix) == 1, "must have a one character prefix"
             assert len(payload.bloom_filter.bytes) == int(ceil(payload.bloom_filter.size / 8))
-            data.extend((pack("!QQHHBH", payload.time_low, payload.time_high, payload.modulo, payload.offset, payload.bloom_filter.functions, payload.bloom_filter.size), 
+            data.extend((pack("!QQHHBH", payload.time_low, payload.time_high, payload.modulo, payload.offset, payload.bloom_filter.functions, payload.bloom_filter.size),
                          payload.bloom_filter.prefix, payload.bloom_filter.bytes))
-            
+
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
@@ -708,10 +710,10 @@ class BinaryConversion(Conversion):
 
         source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
         offset += 6
-        
+
         flags, identifier = unpack_from("!BH", data, offset)
         offset += 3
-        
+
         if not flags & 0b1 in self._decode_advice_map:
             raise DropPacket("Invalid advice flag")
         advice = self._decode_advice_map[flags & 0b1]
@@ -758,7 +760,7 @@ class BinaryConversion(Conversion):
 
         else:
             sync = None
-        
+
         return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
 
     def _encode_introduction_response(self, message):
@@ -796,7 +798,7 @@ class BinaryConversion(Conversion):
         if not flags & 0b1110 in self._decode_connection_type_map:
             raise DropPacket("Invalid connection type flag")
         connection_type = self._decode_connection_type_map[flags & 0b1110]
-        
+
         return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier)
 
     def _encode_puncture_request(self, message):
@@ -817,7 +819,7 @@ class BinaryConversion(Conversion):
 
         identifier, = unpack_from("!H", data, offset)
         offset += 2
-        
+
         return offset, placeholder.meta.payload.implement(lan_walker_address, wan_walker_address, identifier)
 
     def _encode_puncture(self, message):
@@ -1165,7 +1167,7 @@ class BinaryConversion(Conversion):
         assert subjective_set, "We must always have subjective sets for ourself"
         return meta.destination.implement(placeholder.authentication.member.public_key in subjective_set)
 
-    def _decode_message(self, address, data, verify_all_signatures):
+    def _decode_message(self, candidate, data, verify_all_signatures):
         """
         Decode a binary string into a Message structure, with some
         Dispersy specific parameters.
@@ -1184,7 +1186,7 @@ class BinaryConversion(Conversion):
         if len(data) < 100:
             DropPacket("Packet is to small to decode")
 
-        placeholder = Placeholder(22, data)
+        placeholder = Placeholder(candidate, 22, data)
 
         if __debug__:
             debug_begin_decode = debug_begin = time()
@@ -1208,7 +1210,7 @@ class BinaryConversion(Conversion):
         # dispersy-undo messages, and the last thing that we want is to request messages from a
         # blacklisted member
         if isinstance(placeholder.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and placeholder.authentication.member.must_blacklist:
-            self._community.dispersy.send_malicious_proof(self._community, placeholder.authentication.member, address)
+            self._community.dispersy.send_malicious_proof(self._community, placeholder.authentication.member, candidate)
             raise DropPacket("Creator is blacklisted")
 
         if __debug__:
@@ -1220,11 +1222,11 @@ class BinaryConversion(Conversion):
         placeholder.offset, placeholder.resolution = self._decode_resolution_map[type(placeholder.meta.resolution)](placeholder, placeholder.offset, placeholder.data)
 
         # destination
-        assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, AddressDestination, SubjectiveDestination))
-        if isinstance(placeholder.meta.destination, AddressDestination):
-            placeholder.destination = placeholder.meta.destination.implement(("", 0))
+        assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, CandidateDestination, SubjectiveDestination))
+        if isinstance(placeholder.meta.destination, CandidateDestination):
+            placeholder.destination = placeholder.meta.destination.implement()
         elif isinstance(placeholder.meta.destination, MemberDestination):
-            placeholder.destination = placeholder.meta.destination.implement(self._community.my_member)
+            placeholder.destination = placeholder.meta.destination.implement()
         elif isinstance(placeholder.meta.destination, SubjectiveDestination):
             placeholder.destination = self._decode_subjective_destination(placeholder)
         else:
@@ -1247,7 +1249,7 @@ class BinaryConversion(Conversion):
         if placeholder.offset != placeholder.first_signature_offset:
             if __debug__: dprint("invalid packet size for ", placeholder.meta.name, " data:", placeholder.first_signature_offset, "; offset:", placeholder.offset, level="warning")
             raise DropPacket("Invalid packet size (there are unconverted bytes)")
-        
+
         if __debug__:
             self.debug_stats["decode-payload"] += time() - debug_begin
             self.debug_stats["decode-message"] += time() - debug_begin_decode
@@ -1258,7 +1260,7 @@ class BinaryConversion(Conversion):
             assert isinstance(placeholder.payload, Payload.Implementation), type(placeholder.payload)
             assert isinstance(placeholder.offset, (int, long))
 
-        return placeholder.meta.implement(placeholder.authentication, placeholder.resolution, placeholder.distribution, placeholder.destination, placeholder.payload, conversion=self, address=address, packet=placeholder.data)
+        return placeholder.meta.implement(placeholder.authentication, placeholder.resolution, placeholder.distribution, placeholder.destination, placeholder.payload, conversion=self, candidate=candidate, packet=placeholder.data)
 
     def decode_meta_message(self, data):
         """
@@ -1277,13 +1279,13 @@ class BinaryConversion(Conversion):
 
         return meta_message
 
-    def decode_message(self, address, data):
+    def decode_message(self, candidate, data):
         """
         Decode a binary string into a Message.Implementation structure.
         """
-        assert isinstance(address, tuple)
-        assert isinstance(data, str)
-        return self._decode_message(address, data, True)
+        assert isinstance(candidate, Candidate), candidate
+        assert isinstance(data, str), data
+        return self._decode_message(candidate, data, True)
 
 class DefaultConversion(BinaryConversion):
     """

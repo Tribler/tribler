@@ -26,7 +26,7 @@ if __debug__:
 # into hibernation or sleep mode, woke up, and believes it is behind several hours.  especially the
 # generator callback will cause massive amounts of calls to be performed.
 MAX_DESYNC_TIME = 60.0
-    
+
 class Yielder(object):
     pass
 
@@ -85,7 +85,7 @@ class Return(Yielder):
     def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
         if callback:
             heappush(expired, (priority, deadline, root_id, (callback[0], self._results + callback[1], callback[2]), None))
-        
+
 class Callback(object):
     def __init__(self):
         # _event is used to wakeup the thread when new actions arrive
@@ -194,7 +194,7 @@ class Callback(object):
             except Exception:
                 dprint(exception=True, level="error")
                 assert False, "the exception handler should not cause an exception"
-    
+
     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", callback=None, callback_args=(), callback_kargs=None):
         """
         Register CALL to be called.
@@ -225,7 +225,7 @@ class Callback(object):
         CALLBACK_KARGS is given it is added to the callback as keyword arguments.
 
         Returns ID_ if specified or a uniquely generated numerical identifier
-        
+
         Example:
          > callback.register(my_func, delay=10.0)
          > -> my_func() will be called after 10.0 seconds
@@ -267,7 +267,7 @@ class Callback(object):
         Register CALL to be called only if ID_ has not already been registered.
 
         Aside from the different behavior of ID_, all parameters behave as in register(...).
-        
+
         Example:
          > callback.persistent_register("my-id", my_func, ("first",), delay=60.0)
          > callback.persistent_register("my-id", my_func, ("second",))
@@ -288,7 +288,7 @@ class Callback(object):
         assert callback is None or callable(callback), "CALLBACK must be None or callable"
         assert isinstance(callback_args, tuple), "CALLBACK_ARGS has invalid type: %s" % type(callback_args)
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
-        if __debug__: dprint("reregister ", call, " after ", delay, " seconds")
+        if __debug__: dprint("persistent register ", call, " after ", delay, " seconds")
         with self._lock:
             self._new_actions.append(("persistent-register", (delay + time(),
                                                               -priority,
@@ -299,11 +299,41 @@ class Callback(object):
             self._event.set()
             return id_
 
+    def replace_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0, callback=None, callback_args=(), callback_kargs=None):
+        """
+        Replace (if present) the currently registered call ID_ with CALL.
+
+        This is a faster way to handle an unregister and register call.  All parameters behave as in
+        register(...).
+        """
+        assert isinstance(id_, (str, int)), "ID_ has invalid type: %s" % type(id_)
+        assert id_, "ID_ may not be zero or an empty string"
+        assert hasattr(call, "__call__"), "CALL must be callable"
+        assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
+        assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
+        assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
+        assert isinstance(priority, int), "PRIORITY has invalid type: %s" % type(priority)
+        assert callback is None or callable(callback), "CALLBACK must be None or callable"
+        assert isinstance(callback_args, tuple), "CALLBACK_ARGS has invalid type: %s" % type(callback_args)
+        assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
+        if __debug__: dprint("replace register ", call, " after ", delay, " seconds")
+        with self._lock:
+            self._new_actions.append(("unregister", id_))
+            self._new_actions.append(("register", (delay + time(),
+                                                   -priority,
+                                                   id_,
+                                                   (call, args, {} if kargs is None else kargs),
+                                                   None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
+            # wakeup if sleeping
+            self._event.set()
+            return id_
+
     def unregister(self, id_):
         """
         Unregister a callback using the ID_ obtained from the register(...) method
         """
         assert isinstance(id_, (str, int)), "ROOT_ID has invalid type: %s" % type(id_)
+        assert id_, "ID_ may not be zero or an empty string"
         if __debug__: dprint(id_)
         with self._lock:
             self._new_actions.append(("unregister", id_))
@@ -318,7 +348,7 @@ class Callback(object):
 
         DEFAULT can be anything.  The DEFAULT value is returned when a TIMEOUT occurs.  When DEFAULT
         is an Exception instance it will be raised instead of returned.
-        
+
         For the arguments CALL, ARGS, KARGS, DELAY, PRIORITY, and ID_: see the register(...) method.
         """
         assert isinstance(timeout, float)
@@ -341,7 +371,7 @@ class Callback(object):
             raise container[0]
         else:
             return container[0]
-        
+
     def start(self, name="Generic-Callback", wait=True):
         """
         Start the asynchronous thread.
@@ -467,7 +497,7 @@ class Callback(object):
                         for debug_call_name, debug_iterator in groupby(sorted(expired, key=debug_key), key=debug_key):
                             debug_list = list(debug_iterator)
                             dprint("%3dx expired " % len(debug_list), debug_call_name, level="warning")
-                            
+
                     dprint("MAX_DESYNC_TIME exceeded.  resetting deadline.  scheduled: ", len(requests), ".  expired: ", len(expired) + 1, level="warning")
                     deadline = actual_time
 
@@ -475,7 +505,7 @@ class Callback(object):
                     if __debug__:
                         debug_call_name = call[0].__name__
                         debug_call_start = time()
-                    
+
                     # call can be either:
                     # 1. A (generator, arg)
                     # 2. A (callable, args, kargs) tuple
@@ -554,7 +584,7 @@ class Callback(object):
                     if __debug__:
                         if debug_call_name not in self._debug_statistics:
                             self._debug_statistics[debug_call_name] = [0.0, 0]
-                    
+
                         self._debug_statistics[debug_call_name][0] += time() - debug_call_start
                         self._debug_statistics[debug_call_name][1] += 1
 
@@ -598,7 +628,7 @@ class Callback(object):
             key = lambda (_, (__, call_count)): call_count
             for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
                 dprint("%8.2fs %5dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
-                
+
 if __debug__:
     def main():
         c = Callback()
@@ -672,7 +702,7 @@ if __debug__:
         c.register(sleep, (10.0,))
         sleep(15)
         MAX_DESYNC_TIME = mdt
-                
+
         d.stop()
         c.stop()
 

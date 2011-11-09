@@ -24,25 +24,23 @@ class Destination(MetaObject):
 #     class Implementation(Destination.Implementation):
 #         pass
 
-class AddressDestination(Destination):
+class CandidateDestination(Destination):
     """
-    The message is send to the destination address.
+    The message is send to the destination candidate.
     """
     class Implementation(Destination.Implementation):
-        def __init__(self, meta, *addresses):
-            assert isinstance(addresses, tuple)
-            assert len(addresses) >= 0
-            assert not filter(lambda x: not isinstance(x, tuple), addresses)
-            assert not filter(lambda x: not len(x) == 2, addresses)
-            assert not filter(lambda x: not isinstance(x[0], str), addresses)
-            assert not filter(lambda x: not isinstance(x[1], int), addresses)
-            super(AddressDestination.Implementation, self).__init__(meta)
-            # the target addresses
-            self._addresses = addresses
+        def __init__(self, meta, *candidates):
+            if __debug__:
+                from candidate import Candidate
+            assert isinstance(candidates, tuple)
+            assert len(candidates) >= 0
+            assert all(isinstance(candidate, Candidate) for candidate in candidates)
+            super(CandidateDestination.Implementation, self).__init__(meta)
+            self._candidates = candidates
 
         @property
-        def addresses(self):
-            return self._addresses
+        def candidates(self):
+            return self._candidates
 
         @property
         def footprint(self):

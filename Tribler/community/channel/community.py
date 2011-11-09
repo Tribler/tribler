@@ -12,7 +12,7 @@ from Tribler.Core.dispersy.message import Message, DropMessage, DelayMessageByPr
 from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
-from Tribler.Core.dispersy.destination import CommunityDestination, AddressDestination
+from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDestination
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
@@ -190,7 +190,7 @@ class ChannelCommunity(Community):
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, disp_undo_playlist_torrent, delay=batch_delay),
                 Message(self, u"moderation", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModerationPayload(), self._disp_check_moderation, disp_on_moderation, disp_undo_moderation, delay=batch_delay),
                 Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, disp_undo_mark_torrent, delay=batch_delay),
-                Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), AddressDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
+                Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
                 ]
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
@@ -418,7 +418,7 @@ class ChannelCommunity(Community):
     def _disp_on_torrent(self, messages):
         torrentlist = []
         infohashes = set()
-        addresses = set()
+        candidates = set()
         
         for message in messages:
             if __debug__: dprint(message)
@@ -432,11 +432,11 @@ class ChannelCommunity(Community):
             
             torrentlist.append((self._channel_id, dispersy_id, peer_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
             infohashes.add(message.payload.infohash)
-            addresses.add(message.address)
+            candidates.add(message.candidate)
         
         permids = set()
-        for address in addresses:
-            for member in self.get_members_from_address(address):
+        for candidate in candidates:
+            for member in candidate.members_in_community(self):
                 permids.add(member.public_key)
         
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
@@ -855,7 +855,7 @@ class ChannelCommunity(Community):
         snapshot = None
         
         for message in messages:
-            self._dispersy._send([message.address], [channelmessage.packet])
+            self._dispersy._send([message.candidate], [channelmessage.packet])
             if message.payload.includeSnapshot:
                 if snapshot is None:
                     snapshot = []
@@ -865,7 +865,7 @@ class ChannelCommunity(Community):
                         snapshot.append(tormessage.packet)
                 
                 if len(snapshot) > 0:
-                    self._dispersy._send([message.address], snapshot)
+                    self._dispersy._send([message.candidate], snapshot)
             
     #check or receive moderation messages
     @forceDispersyThread

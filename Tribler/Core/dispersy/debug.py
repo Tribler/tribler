@@ -1,6 +1,7 @@
 import socket
 
 from bloomfilter import BloomFilter
+from candidate import Candidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from dprint import dprint
 from member import Member
@@ -30,14 +31,14 @@ class Node(object):
     @property
     def lan_address(self):
         return self._socket.getsockname()
-    
+
     @property
     def wan_address(self):
         if self._community:
             return self._community.dispersy.wan_address[0], self.lan_address[1]
         else:
             return self.lan_address
-    
+
     def init_socket(self):
         assert self._socket is None
         port = Node._socket_range[0] + Node._socket_counter % (Node._socket_range[1] - Node._socket_range[0])
@@ -111,21 +112,26 @@ class Node(object):
     def give_packet(self, packet, verbose=False, cache=False):
         assert isinstance(packet, str)
         assert isinstance(verbose, bool)
+        assert isinstance(cache, bool)
         if verbose: dprint("giving ", len(packet), " bytes")
-        self._community.dispersy.on_incoming_packets([(self.socket.getsockname(), packet)], cache=cache)
+        address = self.socket.getsockname()
+        self._community.dispersy.on_incoming_packets([(Candidate(address, address, address), packet)], cache=cache)
         return packet
 
     def give_packets(self, packets, verbose=False, cache=False):
         assert isinstance(packets, list)
         assert isinstance(verbose, bool)
+        assert isinstance(cache, bool)
         if verbose: dprint("giving ", sum(len(packet) for packet in packets), " bytes")
         address = self.socket.getsockname()
-        self._community.dispersy.on_incoming_packets([(address, packet) for packet in packets], cache=cache)
+        candidate = Candidate(address, address, address)
+        self._community.dispersy.on_incoming_packets([(candidate, packet) for packet in packets], cache=cache)
         return packets
 
     def give_message(self, message, verbose=False, cache=False):
         assert isinstance(message, Message.Implementation)
         assert isinstance(verbose, bool)
+        assert isinstance(cache, bool)
         self.encode_message(message)
         if verbose: dprint("giving ", message.name, " (", len(message.packet), " bytes)")
         self.give_packet(message.packet, verbose=verbose, cache=cache)
@@ -134,6 +140,7 @@ class Node(object):
     def give_messages(self, messages, verbose=False, cache=False):
         assert isinstance(messages, list)
         assert isinstance(verbose, bool)
+        assert isinstance(cache, bool)
         map(self.encode_message, messages)
         if verbose: dprint("giving ", len(messages), " messages (", sum(len(message.packet) for message in messages), " bytes)")
         self.give_packets([message.packet for message in messages], verbose=verbose, cache=cache)
@@ -167,8 +174,10 @@ class Node(object):
 
     def receive_packet(self, timeout=None, addresses=None, packets=None):
         assert timeout is None, "The parameter TIMEOUT is deprecated and must be None"
-        assert isinstance(addresses, (type(None), list))
-        assert isinstance(packets, (type(None), list))
+        assert addresses is None or isinstance(addresses, list)
+        assert addresses is None or all(isinstance(address, tuple) for address in addresses)
+        assert packets is None or isinstance(packets, list)
+        assert packets is None or all(isinstance(packet, str) for packet in packsts)
 
         while True:
             try:
@@ -182,46 +191,45 @@ class Node(object):
             if not (packets is None or packet in packets):
                 continue
 
-            dprint(len(packet), " bytes from ", address[0], ":", address[1])
-            return address, packet
+            candidate = Candidate(address, address, address)
+            dprint(len(packet), " bytes from ", candidate)
+            return candidate, packet
 
     def receive_message(self, timeout=None, addresses=None, packets=None, message_names=None, payload_types=None, distributions=None, destinations=None):
         assert timeout is None, "The parameter TIMEOUT is deprecated and must be None"
-        assert isinstance(addresses, (type(None), list))
-        assert isinstance(packets, (type(None), list))
         assert isinstance(message_names, (type(None), list))
         assert isinstance(payload_types, (type(None), list))
         assert isinstance(distributions, (type(None), list))
         assert isinstance(destinations, (type(None), list))
 
         while True:
-            address, packet = self.receive_packet(timeout, addresses, packets)
+            candidate, packet = self.receive_packet(timeout, addresses, packets)
 
             try:
-                message = self._community.get_conversion(packet[:22]).decode_message(address, packet)
+                message = self._community.get_conversion(packet[:22]).decode_message(candidate, packet)
             except KeyError:
                 # not for this community
-                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
+                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", candidate)
                 continue
 
             if not (message_names is None or message.name in message_names):
-                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
+                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", candidate)
                 continue
 
             if not (payload_types is None or message.payload.type in payload_types):
-                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
+                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", candidate)
                 continue
 
             if not (distributions is None or isinstance(message.distribution, distributions)):
-                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
+                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", candidate)
                 continue
 
             if not (destinations is None or isinstance(message.destination, destinations)):
-                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
+                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", candidate)
                 continue
 
-            dprint(message.name, " (", len(packet), " bytes) from ", address[0], ":", address[1])
-            return address, message
+            dprint(message.name, " (", len(packet), " bytes) from ", candidate)
+            return candidate, message
 
     def create_dispersy_authorize(self, permission_triplets, sequence_number, global_time):
         meta = self._community.get_meta_message(u"dispersy-authorize")
@@ -240,20 +248,17 @@ class Node(object):
                          distribution=(global_time, sequence_number),
                          payload=(message.authentication.member, message.distribution.global_time, message))
 
-    def create_dispersy_missing_sequence_message(self, missing_member, missing_message_meta, missing_low, missing_high, global_time, destination_address):
+    def create_dispersy_missing_sequence_message(self, missing_member, missing_message_meta, missing_low, missing_high, global_time, destination_candidate):
         assert isinstance(missing_member, Member)
         assert isinstance(missing_message_meta, Message)
         assert isinstance(missing_low, (int, long))
         assert isinstance(missing_high, (int, long))
         assert isinstance(global_time, (int, long))
-        assert isinstance(destination_address, tuple)
-        assert len(destination_address) == 2
-        assert isinstance(destination_address[0], str)
-        assert isinstance(destination_address[1], int)
+        assert isinstance(destination_candidate, Candidate)
         meta = self._community.get_meta_message(u"dispersy-missing-sequence")
         return meta.impl(authentication=(self._my_member,),
                          distribution=(global_time,),
-                         destination=(destination_address,),
+                         destination=(destination_candidate,),
                          payload=(missing_member, missing_message_meta, missing_low, missing_high))
 
     def create_dispersy_signature_request_message(self, message, global_time, destination_member):
@@ -265,18 +270,15 @@ class Node(object):
                          destination=(destination_member,),
                          payload=(message,))
 
-    def create_dispersy_signature_response_message(self, request_id, signature, global_time, destination_address):
+    def create_dispersy_signature_response_message(self, request_id, signature, global_time, destination_candidate):
         assert isinstance(request_id, str)
         assert len(request_id) == 20
         assert isinstance(signature, str)
         assert isinstance(global_time, (int, long))
-        assert isinstance(destination_address, tuple)
-        assert len(destination_address) == 2
-        assert isinstance(destination_address[0], str)
-        assert isinstance(destination_address[1], int)
+        assert isinstance(destination_candidate, Candidate)
         meta = self._community.get_meta_message(u"dispersy-signature-response")
         return meta.impl(distribution=(global_time,),
-                         destination=(destination_address,),
+                         destination=(destination_candidate,),
                          payload=(request_id, signature))
 
     def create_dispersy_subjective_set_message(self, cluster, subjective_set, global_time):
@@ -290,18 +292,15 @@ class Node(object):
                          distribution=(global_time,),
                          payload=(cluster, subjective_set))
 
-    def create_dispersy_missing_message_message(self, missing_member, missing_global_times, global_time, destination_address):
+    def create_dispersy_missing_message_message(self, missing_member, missing_global_times, global_time, destination_candidate):
         assert isinstance(missing_member, Member)
         assert isinstance(missing_global_times, list)
         assert not filter(lambda x: not isinstance(x, (int, long)), missing_global_times)
         assert isinstance(global_time, (int, long))
-        assert isinstance(destination_address, tuple)
-        assert len(destination_address) == 2
-        assert isinstance(destination_address[0], str)
-        assert isinstance(destination_address[1], int)
+        assert isinstance(destination_candidate, Candidate)
         meta = self._community.get_meta_message(u"dispersy-missing-message")
         return meta.impl(distribution=(global_time,),
-                         destination=(destination_address,),
+                         destination=(destination_candidate,),
                          payload=(missing_member, missing_global_times))
 
     def create_dispersy_missing_proof_message(self, member, global_time):
@@ -310,7 +309,7 @@ class Node(object):
         assert global_time > 0
         meta = self._community.get_meta_message(u"dispersy-missing-proof")
         return meta.impl(distribution=(global_time,), payload=(member, global_time))
-    
+
     def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, connection_type, sync, identifier, global_time):
         # TODO assert other arguments
         if sync:
@@ -332,4 +331,4 @@ class Node(object):
                          destination=(destination,),
                          distribution=(global_time,),
                          payload=(destination, source_lan, source_wan, advice, connection_type, sync, identifier))
-    
+

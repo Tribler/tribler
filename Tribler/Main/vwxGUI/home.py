@@ -379,11 +379,11 @@ class DispersyPanel(HomePanel):
         self.summary_tree.blockUpdate = False
         self.summary_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.summary_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
-        
+
         font = self.summary_tree.GetFont()
         font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.summary_tree.SetFont(font)
-        
+
         vSizer.Add(self.summary_tree, 2, wx.EXPAND|wx.LEFT, 10)
 
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
@@ -412,6 +412,8 @@ class DispersyPanel(HomePanel):
                         addColumn('total_up')
                     if 'total_down' in value:
                         addColumn('total_down')
+                    if 'drop' in value:
+                        addColumn('total_dropped')
                     if 'runtime' in value:
                         addColumn('runtime')
                         if 'busy_time' in value:
@@ -424,16 +426,16 @@ class DispersyPanel(HomePanel):
                     addColumn(key)
 
         self.buildColumns = True
-    
+
     def OnMouseEvent(self, event):
         tree = event.GetEventObject()
-        
+
         if event.Moving():
             tree.blockUpdate = True
 
         elif event.Leaving():
             tree.blockUpdate = False
-            
+
         event.Skip()
 
     def _onTimer(self, event):
@@ -492,7 +494,7 @@ class DispersyPanel(HomePanel):
                     # self.summary_tree.Expand(parent)
                 # self.summary_tree.ExpandAll()
 
-        
+
         # full tree
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
@@ -504,11 +506,12 @@ class DispersyPanel(HomePanel):
                     if key == 'statistics':
                         updateColumn('total_down', self.utility.size_format(value['total_down'][1]))
                         updateColumn('total_up', self.utility.size_format(value['total_up'][1]))
+                        updateColumn("total_dropped", self.utility.size_format(int(sum(byte_count for _, byte_count in value["drop"].itervalues()))))
                         updateColumn('runtime', self.utility.eta_value(value['runtime']))
                         updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
                         updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")
                         updateColumn("avg_up", self.utility.size_format(int(value["total_up"][1] / value["runtime"])) + "/s")
-    
+
                     parentNode = self.tree.AppendItem(fakeRoot, key)
                     addValue(parentNode, value)
 
@@ -737,7 +740,7 @@ class BuzzPanel(HomePanel):
         for i in range(len(buzz)):
             random.shuffle(buzz[i])
             self.buzz_cache[i] = buzz[i]
-            
+
         if len(self.tags) <= 1 and len(buzz) > 0:
             self.OnRefreshTimer(force = True)
 
