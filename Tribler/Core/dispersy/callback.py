@@ -622,12 +622,12 @@ class Callback(object):
             dprint("top ten calls, sorted by cumulative time", line=True, force=True)
             key = lambda (_, (cumulative_time, __)): cumulative_time
             for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
-                dprint("%8.2fs %5dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
+                dprint("%8.2fs %6dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
 
             dprint("top ten calls, sorted by execution count", line=True, force=True)
             key = lambda (_, (__, call_count)): call_count
             for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
-                dprint("%8.2fs %5dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
+                dprint("%8.2fs %6dx" % (cumulative_time, call_count), "  - ", call_name, force=True)
 
 if __debug__:
     def main():

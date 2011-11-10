@@ -19,7 +19,7 @@ from cache import CacheDict
 from candidate import LocalhostCandidate
 from conversion import BinaryConversion, DefaultConversion
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from decorator import documentation
+from decorator import documentation, runtime_duration_warning
 from destination import SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
@@ -459,11 +459,47 @@ class Community(object):
         """
         Returns a (time_low, time_high, modulo, offset, bloom_filter) tuple or None.
         """
-        #return self.dispersy_claim_sync_bloom_filter_right()
-        #return self.dispersy_claim_sync_bloom_filter_50_50()
-        return self.dispersy_claim_sync_bloom_filter_largest()
+        # return self.dispersy_claim_sync_bloom_filter_right()
+        # return self.dispersy_claim_sync_bloom_filter_50_50()
+        # return self.dispersy_claim_sync_bloom_filter_largest()
+        return self.dispersy_claim_sync_bloom_filter_simple()
+
+    @runtime_duration_warning(0.5)
+    def dispersy_claim_sync_bloom_filter_simple(self):
+        bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+        capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+        global_time = self.global_time
+
+        desired_mean = global_time / 2.0
+        lambd = 1.0 / desired_mean
+        time_point = global_time - int(self._random.expovariate(lambd))
+        if time_point < 1:
+            time_point = int(self._random.random() * global_time)
+
+        time_low = time_point - capacity / 2
+        time_high = time_low + capacity
+
+        if time_low < 1:
+            time_low = 1
+            time_high = capacity
+            db_high = capacity
+
+        elif time_high > global_time - capacity:
+            time_low = max(1, global_time - capacity)
+            time_high = 0
+            db_high = global_time
+
+        else:
+            db_high = time_high
+
+        for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?",
+                                                       (self._database_id, time_low, db_high)):
+            bloom.add(str(packet))
+
+        return (time_low, time_high, 1, 0, bloom)
 
     #choose a pivot, add all items capacity to the right. If too small, add items left of pivot
+    @runtime_duration_warning(0.5)
     def dispersy_claim_sync_bloom_filter_right(self):
         bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
         capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
@@ -518,6 +554,7 @@ class Community(object):
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, divide capacity to have 50/50 divivion around pivot
+    @runtime_duration_warning(0.5)
     def dispersy_claim_sync_bloom_filter_50_50(self):
         bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
         capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
@@ -528,7 +565,7 @@ class Community(object):
         if from_gbtime < 1:
             from_gbtime = 1
 
-        import sys
+        # import sys
         #print >> sys.stderr, "Pivot", from_gbtime
 
         mostRecent = False
@@ -589,6 +626,7 @@ class Community(object):
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
+    @runtime_duration_warning(0.5)
     def dispersy_claim_sync_bloom_filter_largest(self):
         bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
         capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
@@ -599,7 +637,7 @@ class Community(object):
         if from_gbtime < 1:
             from_gbtime = 1
 
-        import sys
+        # import sys
         #print >> sys.stderr, "Pivot", from_gbtime
 
         mostRecent = False

@@ -30,7 +30,7 @@ class Database(Singleton):
             assert isinstance(file_path, unicode)
             dprint(file_path)
             self._debug_thread_ident = thread.get_ident()
-            self._debug_file_path = file_path
+        self._file_path = file_path
 
         self._connection = sqlite3.Connection(file_path)
         # self._connection.setrollbackhook(self._on_rollback)
@@ -81,6 +81,12 @@ class Database(Singleton):
 
         self.check_database(version)
 
+    def file_path(self):
+        """
+        The database filename including path.
+        """
+        return self._file_path
+
     def __enter__(self):
         """
         Enter a database transaction block.
@@ -112,7 +118,7 @@ class Database(Singleton):
         """
         assert self._debug_thread_ident == thread.get_ident()
 
-        
+
         if exc_type is None:
             if __debug__: dprint("COMMIT")
             self._connection.commit()
@@ -178,7 +184,7 @@ class Database(Singleton):
         except sqlite3.Error:
             if __debug__:
                 dprint(exception=True, level="warning")
-                dprint("Filename: ", self._debug_file_path, level="warning")
+                dprint("Filename: ", self._file_path, level="warning")
                 dprint(statement, level="warning")
                 dprint(bindings, level="warning")
             raise
@@ -194,7 +200,7 @@ class Database(Singleton):
         except sqlite3.Error:
             if __debug__:
                 dprint(exception=True, level="warning")
-                dprint("Filename: ", self._debug_file_path, level="warning")
+                dprint("Filename: ", self._file_path, level="warning")
                 dprint(statements, level="warning")
             raise
 
@@ -242,13 +248,13 @@ class Database(Singleton):
         except sqlite3.Error:
             if __debug__:
                 dprint(exception=True)
-                dprint("Filename: ", self._debug_file_path)
+                dprint("Filename: ", self._file_path)
                 dprint(statement)
             raise
 
     def commit(self):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.commit on the wrong thread"
-        
+
         if __debug__: dprint("COMMIT")
         result = self._connection.commit()
         for callback in self._commit_callbacks:

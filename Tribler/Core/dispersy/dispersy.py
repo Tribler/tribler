@@ -44,6 +44,7 @@ from random import random, choice, shuffle
 from socket import inet_aton, error as socket_error
 from time import time
 
+from decorator import runtime_duration_warning
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
@@ -1967,8 +1968,23 @@ class Dispersy(Singleton):
             sync = None
         else:
             sync = community.dispersy_claim_sync_bloom_filter(identifier)
-        assert sync is None or isinstance(sync, tuple), sync
-        assert sync is None or len(sync) == 5, sync
+            if __debug__:
+                assert isinstance(sync, tuple), sync
+                assert len(sync) == 5, sync
+                time_low, time_high, modulo, offset, bloom_filter = sync
+                assert isinstance(time_low, (int, long))
+                assert isinstance(time_high, (int, long))
+                assert isinstance(modulo, int)
+                assert isinstance(offset, int)
+                assert isinstance(bloom_filter, BloomFilter)
+
+                # verify that the bloom filter is correct
+                binary = bloom_filter.bytes
+                bloom_filter.clear()
+                for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time BETWEEN ? AND ?",
+                                                      (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
+                    bloom_filter.add(str(packet))
+                assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range"
 
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),
@@ -2271,7 +2287,7 @@ class Dispersy(Singleton):
         assert isinstance(update, bool)
         assert isinstance(forward, bool)
 
-        if __debug__: dprint(len(messages), " ", messages[0].name, " messages (", store, " ", update, " ", forward, ")", force=1)
+        if __debug__: dprint(len(messages), " ", messages[0].name, " messages (", store, " ", update, " ", forward, ")")
         
         store = store and isinstance(messages[0].meta.distribution, SyncDistribution)
         if store:
@@ -3220,6 +3236,7 @@ class Dispersy(Singleton):
                 else:
                     if __debug__: dprint("unable to give missing proof.  allowed:", allowed, ".  proofs:", len(proofs), " packets")
 
+    @runtime_duration_warning(0.5)
     def check_sync(self, messages):
         """
         We received a dispersy-sync message.
@@ -3316,7 +3333,7 @@ class Dispersy(Singleton):
                     if __debug__: dprint("did not find anything to sync, ignoring dispersy-sync message")
 
             else:
-                if __debug__: dprint("sync disabled")
+                if __debug__: dprint("sync disabled (from ", message.candidate, ")")
 
             # let the message be processed, although that will not actually result in any processing
             # since we choose to already do everything...
