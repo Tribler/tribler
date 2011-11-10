@@ -1315,22 +1315,24 @@ class Dispersy(Singleton):
         groupby_key = lambda tup: tup[0] # meta, address, packet, conversion
         for meta, iterator in groupby(sorted(self._convert_packets_into_batch(packets), key=sort_key), key=groupby_key):
             batch = [(candidate, packet, conversion) for _, candidate, packet, conversion in iterator]
-            if __debug__: dprint("processing ", len(batch), " ", meta.name, " messages (unchecked)")
 
             # schedule batch processing (taking into account the message priority)
             if meta.delay and cache:
                 if meta in self._batch_cache:
                     self._batch_cache[meta].extend(batch)
                     if __debug__:
+                        dprint("adding ", len(batch), " ", meta.name, " messages to existing cache")
                         self._debug_batch_cache_performance[meta].append(len(batch))
                 else:
                     self._batch_cache[meta] = batch
                     self._callback.register(self._on_batch_cache_timeout, (meta,), delay=meta.delay, priority=meta.priority)
                     if __debug__:
+                        dprint("new cache with ", len(batch), " ", meta.name, " messages (delay: ", meta.delay, ")")
                         self._debug_batch_cache_performance[meta] = [len(batch)]
 
             else:
                 # ignore cache, process batch immediately
+                if __debug__: dprint("processing ", len(batch), " ", meta.name, " messages immediately")
                 self._on_batch_cache(meta, batch)
 
     def _on_batch_cache_timeout(self, meta):
@@ -1480,6 +1482,10 @@ class Dispersy(Singleton):
         assert len(messages) >= 0 # may return zero messages
         assert all(isinstance(message, (Message.Implementation, DropMessage, DelayMessage)) for message in messages)
 
+        if __debug__:
+            if len(messages) == 0:
+                dprint(meta.check_callback, " yielded zero messages, drop, or delays.  This is allowed but likely to be an error.", level="warning")
+        
         # handle/remove DropMessage and DelayMessage instances
         messages = [message for message in messages if _filter_fail(message)]
         if not messages:
@@ -2265,6 +2271,8 @@ class Dispersy(Singleton):
         assert isinstance(update, bool)
         assert isinstance(forward, bool)
 
+        if __debug__: dprint(len(messages), " ", messages[0].name, " messages (", store, " ", update, " ", forward, ")", force=1)
+        
         store = store and isinstance(messages[0].meta.distribution, SyncDistribution)
         if store:
             self._store(messages)

@@ -340,6 +340,7 @@ class AllChannelCommunity(Community):
                     
     def check_votecast(self, messages):
         for message in messages:
+            if __debug__: dprint(message)
             cid = message.payload.cid
             
             try:
@@ -350,10 +351,13 @@ class AllChannelCommunity(Community):
             
             if not community._channel_id:
                 yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
+
+            yield message
                 
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
             for message in messages:
+                if __debug__: dprint(message)
                 cid = message.payload.cid
                 dispersy_id = message.packet_id
                 
