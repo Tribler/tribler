@@ -645,17 +645,22 @@ class Community(object):
         if from_gbtime > 1:
             #use from_gbtime -1/+1 to include from_gbtime
             right = self._select_and_fix(from_gbtime - 1, capacity, True)
-            left = self._select_and_fix(from_gbtime + 1, capacity, False)
 
             if len(right) < capacity:
                 to_select = capacity - len(right)
                 right = self._select_and_fix(from_gbtime, to_select, False) + right
                 mostRecent = True
-
-            if len(left) < capacity:
-                to_select = capacity - len(left)
-                left = left + self._select_and_fix(from_gbtime, to_select, True)
-                leastRecent = True
+            
+            #if right did not get to capacity, then we have less than capactiy item in the database
+            #skip left
+            if len(right) >= capacity:
+                left = self._select_and_fix(from_gbtime + 1, capacity, False)
+                if len(left) < capacity:
+                    to_select = capacity - len(left)
+                    left = left + self._select_and_fix(from_gbtime, to_select, True)
+                    leastRecent = True
+            else:
+                left = []
 
             #both sides now are correct, choose one with largest globaltime range
             if len(left) == 0:
