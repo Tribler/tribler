@@ -1051,7 +1051,14 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
                 videofile = videofiles[0]
             else:
                 videofile = None
-            if tdef.get_bitrate(videofile) is None:
+                
+            try:
+                bitrate = tdef.get_bitrate(videofile)
+            except:
+                bitrate = None
+                print_exc()
+            
+            if bitrate is None:
                 msg += ' This video may not play properly because its bitrate is unknown.'
         except:
             print_exc()

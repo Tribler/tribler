@@ -442,9 +442,9 @@ def get_torrentfilerec_from_metainfo(filename,metainfo):
     else:
         raise ValueError("File not found in single-file torrent")
 
-def get_bitrate_from_metainfo(file,metainfo):
+def get_bitrate_from_metainfo(file, metainfo):
     info = metainfo['info']
-    if file is None:
+    if file is None or 'files' not in info: #if no file is specified or this is a single file torrent
         bitrate = None
         try:
             playtime = None
@@ -469,8 +469,8 @@ def get_bitrate_from_metainfo(file,metainfo):
             print_exc()
 
         return bitrate
-
-    if file is not None and 'files' in info:
+    
+    else:
         for i in range(len(info['files'])):
             x = info['files'][i]
                 
@@ -501,9 +501,6 @@ def get_bitrate_from_metainfo(file,metainfo):
                 return bitrate
             
         raise ValueError("File not found in torrent")
-    else:
-        raise ValueError("File not found in single-file torrent: "+file)
-
 
 def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
     
