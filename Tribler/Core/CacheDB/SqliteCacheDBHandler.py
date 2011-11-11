@@ -3328,7 +3328,6 @@ class ChannelCastDBHandler(object):
                     
                 elif len(files) == 1:
                     metainfo['info']['length'] = files[0][1]
-                    
                 else:
                     continue
                
@@ -3339,10 +3338,15 @@ class ChannelCastDBHandler(object):
     
                 metainfo['creation date'] = timestamp
                 
-                torrentdef = TorrentDef.load_from_dict(metainfo)
-                torrentdef.infohash = infohash
+                try:
+                    torrentdef = TorrentDef.load_from_dict(metainfo)
+                    torrentdef.infohash = infohash
                 
-                self.torrent_db._addTorrentToDB(torrentdef, "DISP", {}, False)
+                    self.torrent_db._addTorrentToDB(torrentdef, "DISP", {}, False)
+                    
+                except:
+                    print >> sys.stderr, "Could not create a TorrentDef instance", channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers
+                    raise
         
         self.torrent_db.commit()
         
