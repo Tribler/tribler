@@ -1879,7 +1879,11 @@ class TorrentDBHandler(BasicDBHandler):
         for result in results:
             torrent = dict(zip(value_name,result[:-1]))
             
-            channel = channel_dict.get(torrent['channel_id'], (torrent['channel_id'], -1, '', '', 0, 0, 0, 0, 0))
+            torrent['channel_permid'] = channel_permid.get(torrent['channel_id'], '') or ''
+            if torrent['channel_permid']:
+                channel = channel_dict.get(torrent['channel_id'], (torrent['channel_id'], -1, '', '', 0, 0, 0, 0, 0))
+            else:
+                channel = (torrent['channel_id'], -1, '', '', 0, 0, 0, 0, 0)
             
             #ignoring spam channels
             if channel[7] < 0:
@@ -1907,7 +1911,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['channel_name'] = channel[2]
             torrent['channel_description'] = channel[3]
             torrent['channel_nr_torrents'] = channel[4]
-            torrent['channel_permid'] = channel_permid.get(torrent['channel_id'], '')
             torrent['subscriptions'] = channel[5] or 0
             torrent['neg_votes'] = channel[6] or 0
             torrent['channel_vote'] = channel[7]
