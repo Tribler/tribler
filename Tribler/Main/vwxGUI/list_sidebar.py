@@ -217,6 +217,7 @@ class SearchSideBar(wx.Panel):
         else:
             self.ffstate.SetLabel(' is Off')
             self.ffbutton.SetLabel('turn on')
+            self.ffblocked.SetLabel('')
         self.Layout()
         self.Thaw()
     
