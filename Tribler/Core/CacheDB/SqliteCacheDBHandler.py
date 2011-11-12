@@ -3371,15 +3371,15 @@ class ChannelCastDBHandler(object):
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
             
         sql_insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, peer_id, name, time_stamp) VALUES (?,?,?,?,?,?)"
-        self._db.executemany(sql_insert_torrent, insert_data, commit = self.shouldCommit)
+        self._db.executemany(sql_insert_torrent, insert_data, commit = False)
         
         if len(insert_files) > 0:
             sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
-            self._db.executemany(sql_insert_files, insert_files, commit = self.shouldCommit)
+            self._db.executemany(sql_insert_files, insert_files, commit = False)
             
         if len(insert_collecting) > 0:
             sql_insert_collecting = "INSERT OR IGNORE INTO TorrentCollecting (torrent_id, source) VALUES (?,?)"
-            self._db.executemany(sql_insert_collecting, insert_collecting, commit = self.shouldCommit)
+            self._db.executemany(sql_insert_collecting, insert_collecting, False)
             
         sql_update_channel = "UPDATE Channels SET modified = strftime('%s','now'), nr_torrents = nr_torrents+? WHERE id = ?"
         update_channels = [(new_torrents, channel_id) for channel_id, new_torrents in updated_channels.iteritems()]
