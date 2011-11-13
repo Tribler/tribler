@@ -352,7 +352,8 @@ class AllChannelCommunity(Community):
             if not community._channel_id:
                 yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
 
-            yield message
+            else:
+                yield message
                 
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
