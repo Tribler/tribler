@@ -1779,13 +1779,13 @@ class TorrentDBHandler(BasicDBHandler):
             return False
         
         # delete torrents from db
-        sql_del_torrent = "delete from Torrent where torrent_id=?"
-        sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
+        sql_del_torrent = "update Torrent set torrent_file_name = null where torrent_id=?"
+        # sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         sql_del_pref = "delete from Preference where torrent_id=?"
         tids = [(torrent_id,) for torrent_file_name, torrent_id, infohash, relevance, weight in res_list]
 
         self._db.executemany(sql_del_torrent, tids, commit=False)
-        self._db.executemany(sql_del_tracker, tids, commit=False)
+        # self._db.executemany(sql_del_tracker, tids, commit=False)
         self._db.executemany(sql_del_pref, tids, commit=False)
         
         self._db.commit()
