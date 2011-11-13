@@ -80,7 +80,7 @@ class MetadataHandler:
         self.next_upload_time = 0
         self.initialized = True
         self.rquerytorrenthandler = None
-        self.delayed_check_overflow(5)
+        self.delayed_check_overflow(60)
 
     def load_recently_collected_torrents(self, num_recent, num_random):
         """

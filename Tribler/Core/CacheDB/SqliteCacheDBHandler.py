@@ -1753,14 +1753,27 @@ class TorrentDBHandler(BasicDBHandler):
     def freeSpace(self, torrents2del):
 #        if torrents2del > 100:  # only delete so many torrents each time
 #            torrents2del = 100
-        sql = """
-            select torrent_file_name, torrent_id, infohash, relevance,
-                min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
-            from CollectedTorrent
-            where  torrent_id not in (select torrent_id from MyPreference)
-            order by weight  
-            limit %d  
-        """ % (int(time()), torrents2del)
+        if self.channelcast_db._channel_id:
+            sql = """
+                select torrent_file_name, torrent_id, infohash, relevance,
+                    min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
+                from CollectedTorrent
+                where torrent_id not in (select torrent_id from MyPreference)
+                and torrent_id not in (select torrent_id from ChannelTorrents where channel_id = %d)
+                order by weight  
+                limit %d  
+            """ % (int(time()), self.channelcast_db._channel_id, torrents2del)
+        else:
+            sql = """
+                select torrent_file_name, torrent_id, infohash, relevance,
+                    min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
+                from CollectedTorrent
+                where  torrent_id not in (select torrent_id from MyPreference)
+                order by weight  
+                limit %d  
+            """ % (int(time()), torrents2del)
+        
+        
         res_list = self._db.fetchall(sql)
         if len(res_list) == 0: 
             return False
