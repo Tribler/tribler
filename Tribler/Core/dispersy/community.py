@@ -492,10 +492,14 @@ class Community(object):
         else:
             db_high = time_high
 
+        nr_packets = 0
         for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?",
                                                        (self._database_id, time_low, db_high)):
             bloom.add(str(packet))
-
+            nr_packets += 1
+            
+        import sys
+        print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, pivot = %d"%(time_low, time_high, nr_packets, capacity, time_low)
         return (time_low, time_high, 1, 0, bloom)
 
     #choose a pivot, add all items capacity to the right. If too small, add items left of pivot
@@ -637,8 +641,7 @@ class Community(object):
         if from_gbtime < 1:
             from_gbtime = 1
 
-        # import sys
-        #print >> sys.stderr, "Pivot", from_gbtime
+        #import sys
 
         mostRecent = False
         leastRecent = False
@@ -651,7 +654,7 @@ class Community(object):
                 right = self._select_and_fix(from_gbtime, to_select, False) + right
                 mostRecent = True
             
-            #if right did not get to capacity, then we have less than capactiy item in the database
+            #if right did not get to capacity, then we have less than capacity items in the database
             #skip left
             if len(right) >= capacity:
                 left = self._select_and_fix(from_gbtime + 1, capacity, False)
