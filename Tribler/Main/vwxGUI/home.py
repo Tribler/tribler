@@ -468,7 +468,7 @@ class DispersyPanel(HomePanel):
                 addValue(keyNode, value)
 
         def addDict(parentNode, nodedict):
-            for key, value in nodedict.iteritems():
+            for key, value in nodedict.items():
                 keyNode = self.tree.AppendItem(parentNode, str(key))
                 addValue(keyNode, value)
 
@@ -499,7 +499,7 @@ class DispersyPanel(HomePanel):
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
             fakeRoot = self.tree.AddRoot('fake')
-            for key, value in info.iteritems():
+            for key, value in info.items():
                 if key in self.textdict:
                     updateColumn(key, value)
                 else:
