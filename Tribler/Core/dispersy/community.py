@@ -670,6 +670,7 @@ class Community(object):
                     if left_count2:
                         max_left_gb = max_left_gb2
                         left_count += left_count2
+                        
                     leastRecent = True
 
             #both sides now are correct, choose one with largest globaltime range
@@ -689,11 +690,10 @@ class Community(object):
                     range = min_right_gb, max_right_gb
                     leastRecent = False
             
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?",
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ? ORDER BY global_time ASC",
                                                        (self._database_id, range[0], range[1]))) 
         else:
             data = self._select_and_fix(0, capacity, True)
-        
         
         if len(data) > 0:
             if len(data) >= capacity:

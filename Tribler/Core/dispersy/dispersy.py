@@ -1984,7 +1984,7 @@ class Dispersy(Singleton):
                 for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time BETWEEN ? AND ?",
                                                       (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
                     bloom_filter.add(str(packet))
-                assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range"
+                assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range %d-%d"%(time_low, time_high)
 
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),

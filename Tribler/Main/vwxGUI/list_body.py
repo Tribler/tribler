@@ -969,6 +969,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
                 
     def OnChildFocus(self, event):
         event.Skip()
+        
+    def SetFocus(self):
+        self.SetFocusIgnoringChildren()
     
 class FixedListBody(wx.Panel, AbstractListBody):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
