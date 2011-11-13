@@ -461,8 +461,8 @@ class Community(object):
         """
         # return self.dispersy_claim_sync_bloom_filter_right()
         # return self.dispersy_claim_sync_bloom_filter_50_50()
-        # return self.dispersy_claim_sync_bloom_filter_largest()
-        return self.dispersy_claim_sync_bloom_filter_simple()
+        return self.dispersy_claim_sync_bloom_filter_largest()
+        # return self.dispersy_claim_sync_bloom_filter_simple()
 
     @runtime_duration_warning(0.5)
     def dispersy_claim_sync_bloom_filter_simple(self):
@@ -641,51 +641,60 @@ class Community(object):
         if from_gbtime < 1:
             from_gbtime = 1
 
-        #import sys
-
         mostRecent = False
         leastRecent = False
         if from_gbtime > 1:
+            
             #use from_gbtime -1/+1 to include from_gbtime
-            right = self._select_and_fix(from_gbtime - 1, capacity, True)
-
-            if len(right) < capacity:
-                to_select = capacity - len(right)
-                right = self._select_and_fix(from_gbtime, to_select, False) + right
+            min_right_gb, max_right_gb, right_count = self._select_and_fix_range(from_gbtime -1, capacity, True)
+            min_left_gb, max_left_gb, left_count = None, None, 0 
+            
+            if right_count < capacity:
+                to_select = capacity - right_count
+                
+                min_right_gb2, _, right_count2 = self._select_and_fix_range(from_gbtime, to_select, False)
+                if right_count2:
+                    min_right_gb = min_right_gb2
+                    right_count += right_count2
                 mostRecent = True
             
             #if right did not get to capacity, then we have less than capacity items in the database
             #skip left
-            if len(right) >= capacity:
-                left = self._select_and_fix(from_gbtime + 1, capacity, False)
-                if len(left) < capacity:
-                    to_select = capacity - len(left)
-                    left = left + self._select_and_fix(from_gbtime, to_select, True)
+            if right_count >= capacity:
+                min_left_gb, max_left_gb, left_count = self._select_and_fix_range(from_gbtime + 1, capacity, False)
+                
+                if left_count < capacity:
+                    to_select = capacity - left_count
+                    
+                    _, max_left_gb2, left_count2 = self._select_and_fix_range(from_gbtime, to_select, True)
+                    if left_count2:
+                        max_left_gb = max_left_gb2
+                        left_count += left_count2
                     leastRecent = True
-            else:
-                left = []
 
             #both sides now are correct, choose one with largest globaltime range
-            if len(left) == 0:
-                data = right
+            if left_count == 0:
+                range = min_right_gb, max_right_gb
             else:
-                left_range = left[-1][0] - left[0][0]
+                left_range = max_left_gb - min_left_gb
 
                 #use self.global_time to include a small benefit for right most range
-                right_range = self.global_time if mostRecent else right[-1][0]
-                right_range -= right[0][0]
+                right_range = self.global_time if mostRecent else max_right_gb
+                right_range -= min_right_gb
 
                 if left_range > right_range:
-                    #print >> sys.stderr, "Choosing left",left_range, right_range
-                    data = left
+                    range = min_left_gb, max_left_gb
                     mostRecent = False
                 else:
-                    #print >> sys.stderr, "Choosing right",left_range, right_range
-                    data = right
+                    range = min_right_gb, max_right_gb
                     leastRecent = False
+            
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?",
+                                                       (self._database_id, range[0], range[1]))) 
         else:
             data = self._select_and_fix(0, capacity, True)
-
+        
+        
         if len(data) > 0:
             if len(data) >= capacity:
                 if leastRecent:
@@ -706,7 +715,8 @@ class Community(object):
             for _, packet in data:
                 bloom.add(str(packet))
 
-            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0], from_gbtime)
+            #import sys
+            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0], from_gbtime), time() - t1
 
             return (time_low, time_high, 1, 0, bloom)
 
@@ -730,6 +740,18 @@ class Community(object):
         if not higher:
             data.reverse()
         return data
+    
+    def _select_and_fix_range(self, global_time, to_select, higher = True):
+        if higher:
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time > ? ORDER BY global_time ASC LIMIT ?",
+                                                    (self._database_id, global_time, to_select)))
+        else:
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time < ? ORDER BY global_time DESC LIMIT ?",
+                                                    (self._database_id, global_time, to_select)))
+        
+        if len(data) > 0:
+            return min(data)[0], max(data)[0], len(data)
+        return None, None, 0
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
     #     """
