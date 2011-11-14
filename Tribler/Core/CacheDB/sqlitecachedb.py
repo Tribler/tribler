@@ -1852,7 +1852,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                         torrentdef = TorrentDef.load(torrent_file_name)
                                         
                                         files = torrentdef.get_files_with_length()
-                                        to_be_inserted.append((infohash, timestamp, unicode(torrentdef.get_name()), tuple(files), torrentdef.get_trackers_as_single_tuple()))
+                                        to_be_inserted.append((infohash, timestamp, torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple()))
                                     else:
                                         to_be_removed.append((bin2str(infohash), ))
                                 
