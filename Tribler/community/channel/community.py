@@ -1129,14 +1129,14 @@ class ChannelCommunity(Community):
         try:
             packet, packet_id = self._dispersy.database.execute(u"SELECT packet, id FROM sync WHERE id = ?", (dispersy_id,)).next()
         except StopIteration:
-            raise RuntimeError("Unknown dispersy_id")
+            raise RuntimeError("Unknown dispersy_id %d" % dispersy_id)
 
         message = self._dispersy.convert_packet_to_message(str(packet))
         if message:
             assert not messagename or message.name == messagename, [dispersy_id, messagename]
             message.packet_id = packet_id
         else:
-            raise RuntimeError("unable to convert packet")
+            raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)
 
         return message
     
