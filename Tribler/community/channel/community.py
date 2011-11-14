@@ -432,7 +432,11 @@ class ChannelCommunity(Community):
             
             torrentlist.append((self._channel_id, dispersy_id, peer_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
             infohashes.add(message.payload.infohash)
-            candidates.add(message.candidate)
+
+            # 14/11/11 Boudewijn: message.candidate is None when the torrent is created by us.  (the
+            # _disp_create_torrent method does not supply a candidate)
+            if message.candidate:
+                candidates.add(message.candidate)
         
         permids = set()
         for candidate in candidates:
