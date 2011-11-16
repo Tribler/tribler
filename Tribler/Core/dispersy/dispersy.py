@@ -1948,7 +1948,7 @@ class Dispersy(Singleton):
                 return True
 
     def create_introduction_request(self, community, destination):
-        assert isinstance(destination, Candidate), destination
+        assert isinstance(destination, Candidate), [type(destination), destination]
 
         # claim unique walk identifier
         while True:
@@ -2182,7 +2182,7 @@ class Dispersy(Singleton):
                 #
                 # small note:  we check if self._candidates contains only one node, this is the
                 # node that was just introduced and added to self._candidates a few lines up
-                if len(self._candidates) == 1 and message.candidate.address in self._bootstrap_candidates:
+                if len(self._candidates) == 1 and message.candidate.address in self._bootstrap_candidates and candidate:
                     if __debug__: dprint("we have no candidates, immediately contact the introduced node")
                     self.create_introduction_request(community, candidate)
 
