@@ -640,101 +640,83 @@ class Community(object):
         from_gbtime = self.global_time - int(self._random.expovariate(lambd))
         if from_gbtime < 1:
             from_gbtime = 1
-
-        mostRecent = False
-        leastRecent = False
+            
+        
+        bloomfilterrange = [1, self._global_time]    
         if from_gbtime > 1:
-            
             #use from_gbtime -1/+1 to include from_gbtime
-            min_right_gb, max_right_gb, right_count = self._select_and_fix_range(from_gbtime -1, capacity, True)
-            min_left_gb, max_left_gb, left_count = None, None, 0 
+            right = self._select_and_fix_range(from_gbtime -1, capacity, True)
             
-            if right_count < capacity:
-                
-                if right_count == 0: #selected too high
-                    min_right_gb, max_right_gb, right_count = self._select_and_fix_range(from_gbtime, capacity, False)
+            if right[2] < capacity:
+                if right[2] == 0: #selected too high
+                    right = self._select_and_fix_range(from_gbtime, capacity, False)
                     
                 else:
-                    to_select = capacity - right_count
+                    to_select = capacity - right[2]
                 
-                    min_right_gb2, _, right_count2 = self._select_and_fix_range(from_gbtime, to_select, False)
-                    if right_count2:
-                        min_right_gb = min_right_gb2
-                        right_count += right_count2
+                    right2 = self._select_and_fix_range(from_gbtime, to_select, False)
+                    if right2[2]:
+                        right[0] = right2[0]
+                        right[2] += right2[2]
                 
-                mostRecent = True
+                right[1] = self.global_time
+            
             
             #if right did not get to capacity, then we have less than capacity items in the database
             #skip left
-            if right_count >= capacity:
-                min_left_gb, max_left_gb, left_count = self._select_and_fix_range(from_gbtime + 1, capacity, False)
+            left = [None, None, 0]
+            if right[2] >= capacity:
+                left = self._select_and_fix_range(from_gbtime + 1, capacity, False)
                 
-                if left_count < capacity:
-                    if left_count == 0: #selected too low
-                        min_left_gb, max_left_gb, left_count = self._select_and_fix_range(from_gbtime, capacity, True)
-                        
+                if left[2] < capacity:
+                    if left[2] == 0: #selected too low
+                        left = self._select_and_fix_range(from_gbtime, capacity, True)
                     else:
-                        to_select = capacity - left_count
+                        to_select = capacity - left[2]
                     
-                        _, max_left_gb2, left_count2 = self._select_and_fix_range(from_gbtime, to_select, True)
-                        if left_count2:
-                            max_left_gb = max_left_gb2
-                            left_count += left_count2
-                        
-                    leastRecent = True
+                        left2 = self._select_and_fix_range(from_gbtime, to_select, True)
+                        if left2[2]:
+                            left[1] = left2[1]
+                            left[2] += left2[2]
+                    
+                    left[0] = 1
 
-            #both sides now are correct, choose one with largest globaltime range
-            if left_count == 0:
-                range = min_right_gb, max_right_gb
-                
+            #both sides now are correct, choose one with largest globaltime bloomfilterrange
+            if left[2] == 0:
+                bloomfilterrange = right
             else:
-                left_range = max_left_gb - min_left_gb
-
-                #use self.global_time to include a small benefit for right most range
-                right_range = self.global_time if mostRecent else max_right_gb
-                right_range -= min_right_gb
-
+                left_range = left[1] - left[0]
+                right_range = right[1] - right[0]
+                
                 if left_range > right_range:
-                    range = min_left_gb, max_left_gb
-                    mostRecent = False
-                    
+                    bloomfilterrange = left
                 else:
-                    range = min_right_gb, max_right_gb
-                    leastRecent = False
-               
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ? ORDER BY global_time ASC",
-                                                       (self._database_id, range[0], range[1])))
+                    bloomfilterrange = right
             
-            import sys
-            print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, pivot = %d"%(range[0], range[1], len(data), capacity, from_gbtime)
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ? ORDER BY global_time ASC",
+                                                       (self._database_id, bloomfilterrange[0], bloomfilterrange[1])))
             
         else:
             data = self._select_and_fix(0, capacity, True)
+            bloomfilterrange[0] = 1
+            bloomfilterrange[1] = data[-1][0]
+        
+        if bloomfilterrange[1] == self.global_time:
+            bloomfilterrange[1] = 0
         
         if len(data) > 0:
-            if len(data) >= capacity:
-                if leastRecent:
-                    time_low = 1
-                else:
-                    time_low = min(from_gbtime, data[0][0])
-
-                if mostRecent:
-                    time_high = 0
-                else:
-                    time_high = max(from_gbtime, data[-1][0])
-
-            #we did not fill complete bloomfilter, assume we selected all items
-            else:
-                time_low = 1
-                time_high = 0
+            if len(data) < capacity:
+                #we did not fill complete bloomfilter, assume we selected all items
+                bloomfilterrange[0] = 1
+                bloomfilterrange[1] = 0
 
             for _, packet in data:
                 bloom.add(str(packet))
 
-            #import sys
-            #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0], from_gbtime), time() - t1
-
-            return (time_low, time_high, 1, 0, bloom)
+            if __debug__:
+                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilterrange[0], bloomfilterrange[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
+                
+            return (bloomfilterrange[0], bloomfilterrange[1], 1, 0, bloom)
 
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
@@ -766,8 +748,8 @@ class Community(object):
                                                     (self._database_id, global_time, to_select)))
         
         if len(data) > 0:
-            return min(data)[0], max(data)[0], len(data)
-        return None, None, 0
+            return [min(data)[0], max(data)[0], len(data)]
+        return [None, None, 0]
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
     #     """
