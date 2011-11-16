@@ -556,8 +556,9 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         self._communities[community.cid] = community
 
-        # restart walker scheduler
-        self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
+        if community.dispersy_enable_candidate_walker:
+            # restart walker scheduler
+            self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
 
         # schedule the sanity check... it also checks that the dispersy-identity is available and
         # when this is a create or join this message is created only after the attach_community
@@ -590,8 +591,9 @@ class Dispersy(Singleton):
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
         del self._communities[community.cid]
 
-        # restart walker scheduler
-        self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
+        if community.dispersy_enable_candidate_walker:
+            # restart walker scheduler
+            self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
 
     def reclassify_community(self, source, destination):
         """
@@ -837,6 +839,9 @@ class Dispersy(Singleton):
                         # replace our current message with the other one
                         self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND member = ? AND global_time = ?",
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
+
+                        # notify that global times have changed
+                        message.community.update_sync_range(message.meta, [message.distribution.global_time])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
@@ -1651,8 +1656,7 @@ class Dispersy(Singleton):
         is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
         is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
 
-        # update_sync_range = []
-        # free_sync_range = []
+        # update_sync_range = set()
         for message in messages:
             # the signature must be set
             assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
@@ -1674,7 +1678,7 @@ class Dispersy(Singleton):
                      message.database_id,
                      buffer(message.packet)))
             assert self._database.changes == 1
-            # update_sync_range.append(message)
+            # update_sync_range.add(message.distribution.global_time)
 
             # ensure that we can reference this packet
             message.packet_id = self._database.last_insert_rowid
@@ -1728,7 +1732,7 @@ class Dispersy(Singleton):
                     self._database.executemany(u"DELETE FROM reference_member_sync WHERE sync = ?", [(id_,) for id_, _, _ in items])
                     assert len(items) * meta.authentication.count == self._database.changes
 
-                # free_sync_range.extend(global_time for _, _, global_time in items)
+                # update_sync_range.update(global_time for _, _, global_time in items)
 
             # 12/10/11 Boudewijn: verify that we do not have to many packets in the database
             if __debug__:
@@ -1738,12 +1742,8 @@ class Dispersy(Singleton):
                         assert history_size <= message.distribution.history_size, [count, message.distribution.history_size, message.authentication.member.database_id]
 
         # if update_sync_range:
-        #     # add items to the sync bloom filters
-        #     meta.community.update_sync_range(update_sync_range)
-
-        # if free_sync_range:
-        #     # update bloom filters
-        #     meta.community.free_sync_range(free_sync_range)
+        #     # notify that global times have changed
+        #     meta.community.update_sync_range(meta, update_sync_range)
 
     def yield_all_candidates(self, community, blacklist=()):
         """
@@ -1765,10 +1765,10 @@ class Dispersy(Singleton):
         assert all(sock_address == candidate.address for sock_address, candidate in self._candidates.iteritems())
 
         # remove old candidates
-        introduced_threshold = time() - 25.0
-        other_threshold = time() - 55.0
+        unverified_threshold = time() - 25.0
+        verified_threshold = time() - 55.0
         for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems()
-                             if candidate.timestamp_incoming <= (other_threshold if candidate.is_walk or candidate.is_stumble else introduced_threshold)]:
+                             if candidate.timestamp_incoming <= (verified_threshold if candidate.is_walk or candidate.is_stumble else unverified_threshold)]:
             if __debug__: dprint("removing old candidate at ", sock_address[0], ":", sock_address[1])
             del self._candidates[sock_address]
 
@@ -1875,7 +1875,6 @@ class Dispersy(Singleton):
             E = sorted(stumbles.intersection(introduction).difference(walks), key=sort_key)
 
             if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E))
-            assert all(candidate.is_walk or candidate.is_stumble or candidate.is_introduction for candidate in candidates), "each candidate must have at least one mark"
             assert any([walks, stumbles, introduction])
             assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
             assert all(candidate.is_walk for candidate in B)
@@ -1981,10 +1980,12 @@ class Dispersy(Singleton):
                 # verify that the bloom filter is correct
                 binary = bloom_filter.bytes
                 bloom_filter.clear()
-                for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time BETWEEN ? AND ?",
+                counter = 0
+                for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ?",
                                                       (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
                     bloom_filter.add(str(packet))
-                assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range %d-%d"%(time_low, time_high)
+                    counter += 1
+                assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
 
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),
@@ -3262,7 +3263,7 @@ class Dispersy(Singleton):
                   FROM sync
                   JOIN member ON member.id = sync.member
                   JOIN meta_message ON meta_message.id = sync.meta_message
-                  WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND sync.global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0
+                  WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone = 0 AND sync.global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0
                   ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction"""
 
         community = messages[0].community
@@ -3289,6 +3290,14 @@ class Dispersy(Singleton):
                 offset = message.payload.offset
                 packets = []
 
+                if __debug__:
+                    begin = time()
+                    for _ in self._database.execute(sql, (community.database_id, time_low, time_high, offset, modulo)):
+                        pass
+                    end = time()
+                    select = end - begin
+                    dprint("select: %.3f" % select, " [", time_low, ":", time_high, "] %", modulo, "+", offset)
+            
                 for packet, meta_message_id, packet_public_key in self._database.execute(sql, (community.database_id, time_low, time_high, offset, modulo)):
                     packet = str(packet)
                     packet_public_key = str(packet_public_key)
@@ -3628,7 +3637,11 @@ class Dispersy(Singleton):
         self._database.executemany(u"UPDATE sync SET undone = 1 WHERE community = ? AND member = ? AND global_time = ?",
                                    ((message.community.database_id, message.payload.member.database_id, message.payload.global_time) for message in messages))
         for meta, iterator in groupby(messages, key=lambda x: x.payload.packet.meta):
-            meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in iterator])
+            sub_messages = list(iterator)
+            meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
+
+            # notify that global times have changed
+            meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
 
     def create_destroy_community(self, community, degree, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
@@ -3771,10 +3784,16 @@ class Dispersy(Singleton):
                     assert self._database.changes == len(undo), (self._database.changes, len(undo))
                     meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
 
+                    # notify that global times have changed
+                    meta.community.update_sync_range(meta, [message.distribution.global_time for message in undo])
+
                 if redo:
                     executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
                     assert self._database.changes == len(redo), (self._database.changes, len(redo))
                     meta.handle_callback(redo)
+                        
+                    # notify that global times have changed
+                    meta.community.update_sync_range(meta, [message.distribution.global_time for message in redo])
 
     def sanity_check_generator(self, community):
         """
@@ -3995,27 +4014,28 @@ class Dispersy(Singleton):
         Periodically select a candidate and take a step in the network.
         """
         communities = [community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker]
-        iter_communities = cycle(communities)
+        if communities:
+            iter_communities = cycle(communities)
 
-        # delay will never be less than 0.05, hence we can accommodate 100 communities
-        # before the interval between each step becomes larger than 5.0 seconds
-        delay = max(0.05, 5.0 / len(communities))
-        if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step")
+            # delay will never be less than 0.05, hence we can accommodate 100 communities
+            # before the interval between each step becomes larger than 5.0 seconds
+            delay = max(0.05, 5.0 / len(communities))
+            if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
-        # ensure that we start at a random community (otherwise continues attach/detach
-        # will cause more walks at the communities that happen to be first in the list)
-        for _ in xrange(int(len(communities) * random())):
-            iter_communities.next()
+            # ensure that we start at a random community (otherwise continues attach/detach
+            # will cause more walks at the communities that happen to be first in the list)
+            for _ in xrange(int(len(communities) * random())):
+                iter_communities.next()
 
-        while True:
-            community = iter_communities.next()
-            if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step")
-            community.dispersy_take_step()
+            while True:
+                community = iter_communities.next()
+                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step")
+                community.dispersy_take_step()
 
-            desync = (yield delay)
-            if desync > 0.1:
-                self._statistics.increment_busy_time(desync)
-                yield desync
+                desync = (yield delay)
+                if desync > 0.1:
+                    self._statistics.increment_busy_time(desync)
+                    yield desync
 
     if __debug__:
         def _stats_candidates(self):
