@@ -319,7 +319,9 @@ class TriblerLaunchMany(Thread):
         self.session.dispersy_member = None
         if config['dispersy']:
             self.dispersy_thread = self.database_thread
-            self.dispersy_thread.register(self.start_dispersy)
+            # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
+            # required to ensure that the BitTornado core can access the dispersy instance.
+            self.dispersy_thread.call(self.start_dispersy)
 
     def start_dispersy(self):
         class DispersySocket(object):
