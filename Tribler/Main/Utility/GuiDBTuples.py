@@ -409,6 +409,9 @@ class Channel(Helper):
         if other and isinstance(other, Channel):
             return self.id == other.id
         return False
+    
+    def __str__(self):
+        return 'Channel name=%s\nid=%d\ndispersy_cid=%s'%(self.name, self.id, self.dispersy_cid.encode("HEX"))
 
 class RemoteChannel(Channel):
     __slots__ = ('permid')

@@ -324,6 +324,9 @@ class TitleHeader(ListHeader):
             self.title.Refresh()
             self.Layout()
             self.Thaw()
+            
+    def SetToolTip(self, tooltip):
+        self.title.SetToolTipString(tooltip)
 
 class SearchHeaderHelper():
     

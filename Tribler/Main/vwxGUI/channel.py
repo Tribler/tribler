@@ -289,6 +289,9 @@ class SelectedChannelList(GenericSearchList):
         self.SetId(channel.id)
         self.SetTitle(channel.name, channel.description)
         
+        if __debug__:
+            self.header.SetToolTip(str(channel))
+        
         nr_torrents = channel.nr_torrents
         if not channel.isFavorite() and not channel.isMyChannel():
             nr_torrents = min(nr_torrents, 50)
