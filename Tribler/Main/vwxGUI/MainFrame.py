@@ -395,37 +395,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    @forceWxThread#        self.frame.sendButton.Disable()
-#        # Disabling the focused button disables keyboard navigation
-#        # unless we set the focus to something else - let's put it
-#        # on close button
-#        self.frame.closeButton.SetFocus() 
-#        self.frame.sendButton.SetLabel(_(u'Sending...'))
-#        
-#        try:
-#            from M2Crypto import httpslib, SSL
-#            # Try to load the CA certificates for secure SSL.
-#            # If we can't load them, the data is hidden from casual observation,
-#            # but a man-in-the-middle attack is possible.
-#            ctx = SSL.Context()
-#            opts = {}
-#            if ctx.load_verify_locations('parcels/osaf/framework/certstore/cacert.pem') == 1:
-#                ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, 9)
-#                opts['ssl_context'] = ctx
-#            c = httpslib.HTTPSConnection('feedback.osafoundation.org', 443, opts)
-#            body = buildXML(self.frame.comments, self.frame.email,
-#                            self.frame.sysInfo, self.frame.text)
-#            c.request('POST', '/desktop/post/submit', body)
-#            response = c.getresponse()
-#            
-#            if response.status != 200:
-#                raise Exception('response.status=' + response.status)
-#            c.close()
-#        except:
-#            self.frame.sendButton.SetLabel(_(u'Failed to send'))
-#        else:
-#            self.frame.sendButton.SetLabel(_(u'Sent'))
-#            self.logReport(body, response.read())
+    @forceWxThread
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
