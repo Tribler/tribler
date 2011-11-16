@@ -1521,7 +1521,7 @@ class ChannelManager:
         
         dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
         dispersy_cid = str(dispersy_cid)
-        if dispersy_cid != '-1':
+        if len(dispersy_cid) == 20:
             for community in self.dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
                     community._disp_create_votecast(dispersy_cid, vote, timestamp)
