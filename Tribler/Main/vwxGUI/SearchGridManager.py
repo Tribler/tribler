@@ -183,7 +183,7 @@ class TorrentManager:
         if not duplicate and torrent.infohash in self.requestedTorrents:
             return False
         
-        if torrent.query_permids == None or len(torrent.query_permids):
+        if torrent.query_permids == None or len(torrent.query_permids) == 0:
             self.session.download_torrentfile(torrent.infohash, callback, prio)
             
         else:
