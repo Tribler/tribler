@@ -642,81 +642,49 @@ class Community(object):
             from_gbtime = 1
             
         
-        bloomfilterrange = [1, self._global_time]    
+        bloomfilter_range = [1, self._global_time]    
         if from_gbtime > 1:
             #use from_gbtime -1/+1 to include from_gbtime
-            right = self._select_and_fix_range(from_gbtime -1, capacity, True)
-            
-            if right[2] < capacity:
-                if right[2] == 0: #selected too high
-                    right = self._select_and_fix_range(from_gbtime, capacity, False)
-                    
-                else:
-                    to_select = capacity - right[2]
-                
-                    right2 = self._select_and_fix_range(from_gbtime, to_select, False)
-                    if right2[2]:
-                        right[0] = right2[0]
-                        right[2] += right2[2]
-                
-                right[1] = self.global_time
-            
+            right = self._select_bloomfilter_range(from_gbtime -1, capacity, True)
             
             #if right did not get to capacity, then we have less than capacity items in the database
             #skip left
-            left = [None, None, 0]
             if right[2] >= capacity:
-                left = self._select_and_fix_range(from_gbtime + 1, capacity, False)
-                
-                if left[2] < capacity:
-                    if left[2] == 0: #selected too low
-                        left = self._select_and_fix_range(from_gbtime, capacity, True)
-                    else:
-                        to_select = capacity - left[2]
-                    
-                        left2 = self._select_and_fix_range(from_gbtime, to_select, True)
-                        if left2[2]:
-                            left[1] = left2[1]
-                            left[2] += left2[2]
-                    
-                    left[0] = 1
-
-            #both sides now are correct, choose one with largest globaltime bloomfilterrange
-            if left[2] == 0:
-                bloomfilterrange = right
-            else:
+                left = self._select_bloomfilter_range(from_gbtime + 1, capacity, False)
                 left_range = left[1] - left[0]
                 right_range = right[1] - right[0]
                 
                 if left_range > right_range:
-                    bloomfilterrange = left
+                    bloomfilter_range = left
                 else:
-                    bloomfilterrange = right
+                    bloomfilter_range = right
+            else:
+                bloomfilter_range = right
             
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ? ORDER BY global_time ASC",
-                                                       (self._database_id, bloomfilterrange[0], bloomfilterrange[1])))
+                                                       (self._database_id, bloomfilter_range[0], bloomfilter_range[1])))
             
         else:
             data = self._select_and_fix(0, capacity, True)
-            bloomfilterrange[0] = 1
-            bloomfilterrange[1] = data[-1][0]
+            bloomfilter_range[0] = 1
+            bloomfilter_range[1] = data[-1][0]
         
-        if bloomfilterrange[1] == self.global_time:
-            bloomfilterrange[1] = 0
+        if bloomfilter_range[1] == self.global_time:
+            bloomfilter_range[1] = 0
         
         if len(data) > 0:
             if len(data) < capacity:
                 #we did not fill complete bloomfilter, assume we selected all items
-                bloomfilterrange[0] = 1
-                bloomfilterrange[1] = 0
+                bloomfilter_range[0] = 1
+                bloomfilter_range[1] = 0
 
             for _, packet in data:
                 bloom.add(str(packet))
 
             if __debug__:
-                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilterrange[0], bloomfilterrange[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
+                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilter_range[0], bloomfilter_range[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
                 
-            return (bloomfilterrange[0], bloomfilterrange[1], 1, 0, bloom)
+            return (bloomfilter_range[0], bloomfilter_range[1], 1, 0, bloom)
 
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
@@ -739,17 +707,37 @@ class Community(object):
             data.reverse()
         return data
     
-    def _select_and_fix_range(self, global_time, to_select, higher = True):
+    def _select_bloomfilter_range(self, global_time, to_select, higher = True, recursion = True):
         if higher:
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time > ? ORDER BY global_time ASC LIMIT ?",
                                                     (self._database_id, global_time, to_select)))
         else:
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time < ? ORDER BY global_time DESC LIMIT ?",
                                                     (self._database_id, global_time, to_select)))
-        
+
         if len(data) > 0:
-            return [min(data)[0], max(data)[0], len(data)]
-        return [None, None, 0]
+            bloomfilter_range = [min(data)[0], max(data)[0], len(data)]
+        else:
+            bloomfilter_range = [1, self._global_time, 0]
+            
+        if bloomfilter_range[2] < to_select:
+            if recursion:
+                to_select = to_select - bloomfilter_range[2]
+                
+                if higher:
+                    left = self._select_bloomfilter_range(global_time + 1, to_select, not higher, recursion = False)
+                    bloomfilter_range = [left[0], self._global_time, bloomfilter_range[2]+left[2]]
+            
+                else:
+                    right = self._select_bloomfilter_range(global_time - 1, to_select, not higher, recursion = False)
+                    bloomfilter_range = [1, right[1], bloomfilter_range[2] + right[2]]
+                                                   
+            elif higher:
+                bloomfilter_range[1] = self._global_time
+            else:
+                bloomfilter_range[0] = 1
+        
+        return bloomfilter_range
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
     #     """
@@ -765,33 +753,33 @@ class Community(object):
     #         lambd = 1.0 / desired_mean
     #         range_ = ranges - int(ceil(expovariate(lambd)))
     #         # RANGE_ < 0 is possible when the exponential function returns a very large number (least likely)
-    #         # RANGE_ = 0 is the oldest time range (less likely)
-    #         # RANGE_ = RANGES - 1 is the highest time range (more likely)
+    #         # RANGE_ = 0 is the oldest time bloomfilter_range (less likely)
+    #         # RANGE_ = RANGES - 1 is the highest time bloomfilter_range (more likely)
 
     #         if range_ < 0:
     #             # pick uniform randomly
     #             range_ = int(random() * ranges)
 
     #         if range_ == ranges - 1:
-    #             # the chosen range is to small to fill an entire bloom filter.  adjust the offset
+    #             # the chosen bloomfilter_range is to small to fill an entire bloom filter.  adjust the offset
     #             # accordingly
     #             offset = max(0, count - capacity + 1)
 
     #         else:
     #             offset = range_ * capacity
 
-    #         # get the time range associated to the offset
+    #         # get the time bloomfilter_range associated to the offset
     #         try:
     #             time_low, time_high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY sync.global_time LIMIT ? OFFSET ?",
     #                                                                   (self._database_id, capacity, offset)).next()
     #         except:
-    #             dprint("count: ", count, " capacity: ", capacity, " range: ", range_, " ranges: ", ranges, " offset: ", offset, force=1)
+    #             dprint("count: ", count, " capacity: ", capacity, " bloomfilter_range: ", range_, " ranges: ", ranges, " offset: ", offset, force=1)
     #             assert False
 
     #         if __debug__ and self.get_classification() == u"ChannelCommunity":
     #             low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
     #                                                         (self._database_id,)).next()
-    #             dprint("range: ", range_, " ranges: ", ranges, " offset: ", offset, " time: [", time_low, ":", time_high, "] in-db: [", low, ":", high, "]", force=1)
+    #             dprint("bloomfilter_range: ", range_, " ranges: ", ranges, " offset: ", offset, " time: [", time_low, ":", time_high, "] in-db: [", low, ":", high, "]", force=1)
 
     #         assert isinstance(time_low, (int, long))
     #         assert isinstance(time_high, (int, long))
@@ -801,7 +789,7 @@ class Community(object):
     #         assert ranges == 1 and range_ == 0 or ranges > 1
     #         assert 0 <= offset
 
-    #         # get all the data associated to the time range
+    #         # get all the data associated to the time bloomfilter_range
     #         counter = 0
     #         for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ?",
     #                                                        (self._database_id, time_low, time_high)):
