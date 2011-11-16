@@ -102,12 +102,12 @@ def main():
 
         # define auto loads
         dispersy.define_auto_load(AllChannelCommunity, (my_member,), {"integrate_with_tribler":False, "auto_join_channel":True})
-        dispersy.define_auto_load(ChannelCommunity)
+        dispersy.define_auto_load(ChannelCommunity, {"integrate_with_tribler":False})
 
         # load communities
         schedule = []
         schedule.append((AllChannelCommunity, (my_member,), {"integrate_with_tribler":False, "auto_join_channel":True}))
-        schedule.append((ChannelCommunity, (), {}))
+        schedule.append((ChannelCommunity, (), {"integrate_with_tribler":False}))
 
         for cls, args, kargs in schedule:
             counter = 0

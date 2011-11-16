@@ -78,14 +78,8 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def __init__(self, master):
-        from Tribler.community.allchannel.community import AllChannelCommunity
-        
-        self.integrate_with_tribler = True
-        dispersy = Dispersy.get_instance()
-        for community in dispersy.get_communities():
-            if isinstance(community, AllChannelCommunity):
-                self.integrate_with_tribler = community.integrate_with_tribler
+    def __init__(self, master, integrate_with_tribler = True):
+        self.integrate_with_tribler = integrate_with_tribler
         
         self._channel_id = None
         # self._last_sync_range = None

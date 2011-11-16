@@ -371,10 +371,10 @@ class AllChannelCommunity(Community):
         except KeyError:
             if self.auto_join_channel:
                 if __debug__: dprint("join channel community ", cid.encode("HEX"))
-                return ChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+                return ChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member, self.integrate_with_tribler)
             else:
                 if __debug__: dprint("join preview community ", cid.encode("HEX"))
-                return PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+                return PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member, self.integrate_with_tribler)
 
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
