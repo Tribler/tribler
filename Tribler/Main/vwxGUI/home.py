@@ -483,7 +483,7 @@ class DispersyPanel(HomePanel):
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
                 for community in sorted(info["communities"], key=lambda community: community["hex_cid"]):
-                    parent = self.summary_tree.AppendItem(root, u"%s %4d %2d %s" % (community["hex_cid"], sum(community["database_sync"].itervalues()), len(community["candidates"]), community["classification"]))
+                    parent = self.summary_tree.AppendItem(root, u"%s %5d %2d %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), len(community["candidates"]), community["classification"], community["global_time"]))
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
                     sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %d" % len(community["candidates"]))
                     for lan_address, wan_address in community["candidates"]:
