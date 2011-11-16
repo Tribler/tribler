@@ -3045,8 +3045,12 @@ class VoteCastDBHandler(BasicDBHandler):
         self.session = session
         
     def on_vote_from_dispersy(self, channel_id, voter_id, dispersy_id, vote, timestamp):
+        if not voter_id:
+            self.removeVote(channel_id, voter_id) #sqlite constraint does not work for NULL values
+            
         insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
+            
         
         posvotes = "SELECT count(*) from ChannelVotes WHERE channel_id = ? AND vote == 2 GROUP BY channel_id"
         negvotes = "SELECT count(*) from ChannelVotes WHERE channel_id = ? AND vote == -1 GROUP BY channel_id"
@@ -3287,8 +3291,8 @@ class ChannelCastDBHandler(object):
         else:
             _dispersy_cid = dispersy_cid
         
-        #for now fix channels to one per peer_id
-        get_channel = "SELECT id FROM Channels Where peer_id = ?"
+        #merge channels if we detect upgrade from old-channelcast to new-dispersy-channelcast
+        get_channel = "SELECT id FROM Channels Where peer_id = ? and dispersy_cid == -1"
         channel_id = self._db.fetchone(get_channel, (peer_id,))
         
         if channel_id: #update this channel
