@@ -849,9 +849,13 @@ class ManageChannelFilesManager():
     
     def SetChannel(self, channel):
         if channel != self.list.channel:
-            self.list.id = channel.id
             self.list.channel = channel
             self.list.dirty = True
+            
+            if channel:
+                self.list.id = channel.id
+            else:
+                self.list.id = None
     
     def RemoveItems(self, infohashes):
         for infohash in infohashes:
@@ -952,9 +956,13 @@ class ManageChannelPlaylistsManager():
     
     def SetChannel(self, channel):
         if channel != self.list.channel:
-            self.list.id = channel.id
             self.list.channel = channel
             self.list.dirty = True
+            
+            if channel:
+                self.list.id = channel.id
+            else:
+                self.list.id = None
     
     def GetTorrentsFromChannel(self):
         delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.list.channel,), wkwargs = {'filterTorrents' : False})
@@ -1265,6 +1273,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.saveButton.SetLabel('Create Channel')
             
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+            
             #disable all other tabs
             for i in range(1, self.notebook.GetPageCount()):
                 page = self.notebook.GetPage(i)
