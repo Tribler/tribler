@@ -474,6 +474,9 @@ class ChannelCastDBStub():
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         if infohash in self._cachedTorrents:
             return self._cachedTorrents[infohash].packet_id
+        
+    def on_dynamic_settings(self, channel_id):
+        pass
 
 class VoteCastDBStub():
     def __init__(self, dispersy):
