@@ -386,7 +386,7 @@ class TriblerLaunchMany(Thread):
                 desync = (yield desync)
 
             schedule = []
-            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
+            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {}))
             schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
@@ -421,7 +421,7 @@ class TriblerLaunchMany(Thread):
         self.session.dispersy_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # define auto loads
-        self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,))
+        self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
         self.dispersy.define_auto_load(ChannelCommunity)
         self.dispersy.define_auto_load(PreviewChannelCommunity)
         

@@ -1,161 +1,53 @@
 #!/usr/bin/python
 
-"""
-Run Dispersy in standalone channel booster.  It will join the AllChannelCommunity.  It will join any
-ChannelCommunity that it hears about.  Tribler will not be started.
-"""
-
-import os
-import errno
-import socket
-import sys
-import traceback
-import threading
+from traceback import print_exc
 import optparse
+import os
+import sys
+import time
 
-from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.channel.community import ChannelCommunity
-
-from Tribler.Core.BitTornado.RawServer import RawServer
-from Tribler.Core.dispersy.callback import Callback, Idle
-from Tribler.Core.dispersy.crypto import ec_from_private_pem, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.dispersy import Dispersy
-from Tribler.Core.dispersy.member import Member
-
-if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
-
-if sys.platform == 'win32':
-    SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
-else:
-    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
-
-class DispersySocket(object):
-    def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
-        while True:
-            try:
-                self.socket = rawserver.create_udpsocket(port, ip)
-                if __debug__: dprint("Dispersy listening at ", port, force=True)
-            except socket.error:
-                port += 1
-                continue
-            break
-
-        self.rawserver = rawserver
-        self.rawserver.start_listening_udp(self.socket, self)
-        self.dispersy = dispersy
-        self.sendqueue = []
-
-    def get_address(self):
-        return self.socket.getsockname()
-
-    def data_came_in(self, packets):
-        # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
-        # sometimes called without any packets...
-        if packets:
-            try:
-                self.dispersy.data_came_in(packets)
-            except:
-                traceback.print_exc()
-                raise
-
-    def send(self, address, data):
-        try:
-            self.socket.sendto(data, address)
-        except socket.error, error:
-            if error[0] == SOCKET_BLOCK_ERRORCODE:
-                self.sendqueue.append((data, address))
-                self.rawserver.add_task(self.process_sendqueue, 0.1)
-
-    def process_sendqueue(self):
-        sendqueue = self.sendqueue
-        self.sendqueue = []
-
-        while sendqueue:
-            data, address = sendqueue.pop(0)
-            try:
-                self.socket.sendto(data, address)
-            except socket.error, error:
-                if error[0] == SOCKET_BLOCK_ERRORCODE:
-                    self.sendqueue.append((data, address))
-                    self.sendqueue.extend(sendqueue)
-                    self.rawserver.add_task(self.process_sendqueue, 0.1)
-                    break
+from Tribler.Core.API import SessionStartupConfig, Session
 
 def main():
-    def on_fatal_error(error):
-        print >> sys.stderr, error
-        session_done_flag.set()
-
-    def on_non_fatal_error(error):
-        print >> sys.stderr, error
-        session_done_flag.set()
-
-    def start():
-        # start Dispersy
-        dispersy = Dispersy.get_instance(callback, unicode(opt.statedir))
-        dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
-
-        # load my member
-        ec = ec_from_private_pem(open(os.path.join(opt.statedir, "ec.pem"), "r").read())
-        my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
-
-        # define auto loads
-        dispersy.define_auto_load(AllChannelCommunity, (my_member,), {"integrate_with_tribler":False, "auto_join_channel":True})
-        dispersy.define_auto_load(ChannelCommunity, (), {"integrate_with_tribler":False})
-
-        # load communities
-        schedule = []
-        schedule.append((AllChannelCommunity, (my_member,), {"integrate_with_tribler":False, "auto_join_channel":True}))
-        schedule.append((ChannelCommunity, (), {"integrate_with_tribler":False}))
-
-        for cls, args, kargs in schedule:
-            counter = 0
-            for counter, master in enumerate(cls.get_master_members(), 1):
-                if dispersy.has_community(master.mid):
-                    continue
-
-                cls.load_community(master, *args, **kargs)
-                yield Idle()
-
-            if __debug__: print >> sys.stderr, "restored", counter, cls.get_classification(), "communities"
-
     command_line_parser = optparse.OptionParser()
-    command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")
-    command_line_parser.add_option("--ip", action="store", type="string", default="0.0.0.0", help="Dispersy uses this ip")
-    command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=6421)
-    command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=60.0)
-    command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
+    command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
+    command_line_parser.add_option("--port", action="store", type="int", help="Listen at this port")
+    command_line_parser.add_option("--nickname", action="store", type="string", help="The moderator name", default="Booster")
 
     # parse command-line arguments
-    opt, _ = command_line_parser.parse_args()
-    print "Press Ctrl-C to stop Dispersy"
-    
-    # start threads
-    session_done_flag = threading.Event()
-    rawserver = RawServer(session_done_flag, opt.timeout_check_interval, opt.timeout, False, failfunc=on_fatal_error, errorfunc=on_non_fatal_error)
-    callback = Callback()
-    callback.start(name="Dispersy")
-    callback.register(start)
+    opt, args = command_line_parser.parse_args()
 
-    def rawserver_adrenaline():
-        """
-        The rawserver tends to wait for a long time between handling tasks.
-        """
-        rawserver.add_task(rawserver_adrenaline, 0.1)
-    rawserver.add_task(rawserver_adrenaline, 0.1)
+    if not opt.statedir:
+        command_line_parser.print_help()
+        print "\nExample: python", sys.argv[0], "--statedir /home/tribler/booster --nickname Booster"
+        sys.exit()
 
-    def watchdog():
+    print "Press Ctrl-C to stop the booster"
+
+    sscfg = SessionStartupConfig()
+    if opt.statedir: sscfg.set_state_dir(os.path.realpath(opt.statedir))
+    if opt.port: sscfg.set_listen_port(opt.port)
+    if opt.nickname: sscfg.set_nickname(opt.nickname)
+
+    sscfg.set_megacache(True)
+    sscfg.set_overlay(True)
+    # turn torrent collecting on. this will cause torrents to be distributed
+    sscfg.set_torrent_collecting(True)
+    sscfg.set_dialback(False)
+    sscfg.set_internal_tracker(False)
+
+    session = Session(sscfg)
+
+    # KeyboardInterrupt
+    try:
         while True:
-            try:
-                yield 333.3
-            except GeneratorExit:
-                rawserver.shutdown()
-                session_done_flag.set()
-                break
-    callback.register(watchdog)
-    rawserver.listen_forever(None)
-    callback.stop()
+            sys.stdin.read()
+    except:
+        print_exc()
+
+    session.shutdown()
+    print "Shutting down..."
+    time.sleep(5)
 
 if __name__ == "__main__":
     main()

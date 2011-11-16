@@ -79,6 +79,7 @@ class Member(Parameterized1Singleton):
                (not public_key_available and len(public_key) == 20), (len(public_key), public_key_available, public_key.encode("HEX"))
         assert (public_key_available and len(private_key) > 0 and not private_key.startswith("-----BEGIN")) or len(private_key) == 0
 
+        assert DispersyDatabase.has_instance(), "DispersyDatabase has not yet been created"
         database = DispersyDatabase.get_instance()
 
         if hasattr(self, "_database_id"):

@@ -1822,7 +1822,7 @@ class Dispersy(Singleton):
         assert all(isinstance(candidate, Candidate) for candidate in blacklist)
         assert isinstance(connection_type_blacklist, (tuple, list))
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
-        assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "non of the bootstrap candidates may be in self._candidates"
+        assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "none of the bootstrap candidates may be in self._candidates"
 
         candidates = [candidate for candidate in self.yield_all_candidates(community, blacklist)
                       if (candidate.is_walk or candidate.is_stumble) and not candidate.connection_type in connection_type_blacklist]
@@ -1948,7 +1948,7 @@ class Dispersy(Singleton):
                 return True
 
     def create_introduction_request(self, community, destination):
-        assert isinstance(destination, Candidate)
+        assert isinstance(destination, Candidate), destination
 
         # claim unique walk identifier
         while True:
@@ -2162,13 +2162,19 @@ class Dispersy(Singleton):
                 else:
                     candidate = self._walk_identifiers.get(message.payload.identifier)
                     if candidate and candidate.address == sock_address:
-                        self._candidates[sock_address] = candidate
+                        if not (sock_address in self._candidates or sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
+                            self._candidates[sock_address] = candidate
+                        else:
+                            if __debug__: dprint("unable to add walker node ", message.candidate)
                         candidate.inc_introduced(message.authentication.member, community)
 
                     elif not (sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
                         candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, community=community, is_introduction=True)
                         self._walk_identifiers[message.payload.identifier] = candidate
-                        self._candidates[sock_address] = candidate
+                        if not (sock_address in self._candidates or sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
+                            self._candidates[sock_address] = candidate
+                        else:
+                            if __debug__: dprint("unable to add walker node ", message.candidate)
 
                 # 13/10/11 Boudewijn: when we had no candidates and we received this response
                 # from a bootstrap node, we will immediately take an additional step towards the
@@ -2231,7 +2237,7 @@ class Dispersy(Singleton):
                     self._candidates.pop(candidate.address, None)
                 lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.address, candidate.lan_address, candidate.wan_address)
                 candidate.inc_puncture(message.authentication.member, message.community, message.candidate.address, lan_address, wan_address)
-                if not (message.candidate.address in self._bootstrap_candidates or message.candidate.address == self._lan_address or message.candidate.address == self._wan_address):
+                if not (candidate.address in self._bootstrap_candidates or candidate.address == self._lan_address or candidate.address == self._wan_address):
                     self._candidates[candidate.address] = candidate
 
             else:
