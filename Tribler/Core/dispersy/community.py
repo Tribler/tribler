@@ -650,12 +650,18 @@ class Community(object):
             min_left_gb, max_left_gb, left_count = None, None, 0 
             
             if right_count < capacity:
-                to_select = capacity - right_count
                 
-                min_right_gb2, _, right_count2 = self._select_and_fix_range(from_gbtime, to_select, False)
-                if right_count2:
-                    min_right_gb = min_right_gb2
-                    right_count += right_count2
+                if right_count == 0: #selected too high
+                    min_right_gb, max_right_gb, right_count = self._select_and_fix_range(from_gbtime, capacity, False)
+                    
+                else:
+                    to_select = capacity - right_count
+                
+                    min_right_gb2, _, right_count2 = self._select_and_fix_range(from_gbtime, to_select, False)
+                    if right_count2:
+                        min_right_gb = min_right_gb2
+                        right_count += right_count2
+                
                 mostRecent = True
             
             #if right did not get to capacity, then we have less than capacity items in the database
@@ -664,12 +670,16 @@ class Community(object):
                 min_left_gb, max_left_gb, left_count = self._select_and_fix_range(from_gbtime + 1, capacity, False)
                 
                 if left_count < capacity:
-                    to_select = capacity - left_count
+                    if left_count == 0: #selected too low
+                        min_left_gb, max_left_gb, left_count = self._select_and_fix_range(from_gbtime, capacity, True)
+                        
+                    else:
+                        to_select = capacity - left_count
                     
-                    _, max_left_gb2, left_count2 = self._select_and_fix_range(from_gbtime, to_select, True)
-                    if left_count2:
-                        max_left_gb = max_left_gb2
-                        left_count += left_count2
+                        _, max_left_gb2, left_count2 = self._select_and_fix_range(from_gbtime, to_select, True)
+                        if left_count2:
+                            max_left_gb = max_left_gb2
+                            left_count += left_count2
                         
                     leastRecent = True
 
@@ -687,10 +697,11 @@ class Community(object):
                 if left_range > right_range:
                     range = min_left_gb, max_left_gb
                     mostRecent = False
+                    
                 else:
                     range = min_right_gb, max_right_gb
                     leastRecent = False
-            
+               
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ? ORDER BY global_time ASC",
                                                        (self._database_id, range[0], range[1])))
             
