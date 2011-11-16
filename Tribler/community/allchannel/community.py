@@ -51,19 +51,21 @@ class AllChannelCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler = True):
+    def load_community(cls, master, my_member, integrate_with_tribler = True, auto_join_channel = False):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
         else:
-            return super(AllChannelCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler)
+            return super(AllChannelCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
 
-    def __init__(self, master, integrate_with_tribler = True):
+    def __init__(self, master, integrate_with_tribler = True, auto_join_channel = False):
         super(AllChannelCommunity, self).__init__(master)
         
         self.integrate_with_tribler = integrate_with_tribler
+        self.auto_join_channel = auto_join_channel
+        
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
         
@@ -175,11 +177,7 @@ class AllChannelCommunity(Community):
             toCollect = {}
             for cid, torrents in message.payload.torrents.iteritems():
                 # ensure that all the PreviewChannelCommunity instances exist
-                try:
-                    community = self._dispersy.get_community(cid, True)
-                except KeyError:
-                    if __debug__: dprint("join_community ", cid.encode("HEX"))
-                    community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+                community = self._get_channel_community(cid)
 
                 # if __debug__:
                 #     dprint(type(message.payload), " ", type(message.payload.meta), force=1)
@@ -217,11 +215,7 @@ class AllChannelCommunity(Community):
             requested_packets = []
             for cid, torrents in message.payload.torrents.iteritems():
                 # ensure that all the PreviewChannelCommunity instances exist
-                try:
-                    community = self._dispersy.get_community(cid, True)
-                except KeyError:
-                    if __debug__: dprint("join_community ", cid.encode("HEX"))
-                    community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+                community = self._get_channel_community(cid)
                 
                 for infohash in torrents:
                     tormessage = community._get_message_from_torrent_infohash(infohash)
@@ -341,13 +335,7 @@ class AllChannelCommunity(Community):
     def check_votecast(self, messages):
         for message in messages:
             if __debug__: dprint(message)
-            cid = message.payload.cid
-            
-            try:
-                community = self._dispersy.get_community(cid, True)
-            except KeyError:
-                if __debug__: dprint("join_community ", cid.encode("HEX"))
-                community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+            community = self._get_channel_community(message.payload.cid)
             
             if not community._channel_id:
                 yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
@@ -359,7 +347,6 @@ class AllChannelCommunity(Community):
         if self.integrate_with_tribler:
             for message in messages:
                 if __debug__: dprint(message)
-                cid = message.payload.cid
                 dispersy_id = message.packet_id
                 
                 authentication_member = message.authentication.member
@@ -367,18 +354,28 @@ class AllChannelCommunity(Community):
                     peer_id = None
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                
-                try:
-                    community = self._dispersy.get_community(cid, True)
-                except KeyError:
-                    if __debug__: dprint("join_community ", cid.encode("HEX"))
-                    community = PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+
+                community = self._get_channel_community(message.payload.cid)
                 
                 self._votecast_db.on_vote_from_dispersy(community._channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
                 
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
-    
+
+    def _get_channel_community(self, cid):
+        assert isinstance(cid, str)
+        assert len(cid) == 20
+        
+        try:
+            return self._dispersy.get_community(cid, True)
+        except KeyError:
+            if self.auto_join_channel:
+                if __debug__: dprint("join channel community ", cid.encode("HEX"))
+                return ChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+            else:
+                if __debug__: dprint("join preview community ", cid.encode("HEX"))
+                return PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:

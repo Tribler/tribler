@@ -101,12 +101,12 @@ def main():
         my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         # define auto loads
-        dispersy.define_auto_load(AllChannelCommunity, (my_member,))
+        dispersy.define_auto_load(AllChannelCommunity, (my_member,), {"integrate_with_tribler":False, "auto_join_channel":True})
         dispersy.define_auto_load(ChannelCommunity)
 
         # load communities
         schedule = []
-        schedule.append((AllChannelCommunity, (my_member,), {}))
+        schedule.append((AllChannelCommunity, (my_member,), {"integrate_with_tribler":False, "auto_join_channel":True}))
         schedule.append((ChannelCommunity, (), {}))
 
         for cls, args, kargs in schedule:
