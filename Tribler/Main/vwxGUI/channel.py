@@ -229,6 +229,7 @@ class SelectedChannelList(GenericSearchList):
         
         list = wx.Panel(self.notebook)
         list.SetForegroundColour(self.notebook.GetForegroundColour())
+        list.SetFocus = list.SetFocusIgnoringChildren
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
