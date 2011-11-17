@@ -374,11 +374,15 @@ class ChannelConversion(BinaryConversion):
             return packet_id, str(packet), message_name
 
     def _encode_missing_channel(self, message):
-        return pack('!?', message.payload.includeSnapshot),
+        return pack('!B', int(message.payload.includeSnapshot)),
 
     def _decode_missing_channel(self, placeholder, offset, data):
         if len(data) < offset + 1:
             raise DropPacket("Unable to decode the payload")
 
-        includeSnapshot, = unpack_from('!?', data, offset)
+        includeSnapshot, = unpack_from('!B', data, offset)
+        if not (includeSnapshot == 0 or includeSnapshot == 1):
+            raise DropPacket("Unable to decode includeSnapshot")
+        includeSnapshot = bool(includeSnapshot)
+
         return offset+1, placeholder.meta.payload.implement(includeSnapshot)
