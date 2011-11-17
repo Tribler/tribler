@@ -311,8 +311,12 @@ class TorrentChecking(Thread):
         return not emptyAnnounceList or not emptyAnnounce
     
     def GetInfoHashesForTracker(self, tracker):
-        max_last_check = int(time()) - 4*60*60
-        return self.torrentdb.getTorrentsFromTracker(tracker, max_last_check, 10)
+        try:
+            max_last_check = int(time()) - 4*60*60
+            return self.torrentdb.getTorrentsFromTracker(tracker, max_last_check, 10)
+        
+        except UnicodeDecodeError:
+            return []
 
 if __name__ == '__main__':
     from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, str2bin
