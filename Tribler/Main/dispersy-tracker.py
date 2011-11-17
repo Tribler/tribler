@@ -4,6 +4,7 @@
 Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
 
+from time impoer time
 import errno
 import socket
 import sys
@@ -58,7 +59,7 @@ class TrackerCommunity(Community):
     def dispersy_claim_sync_bloom_filter(self, identifier):
         # disable the sync mechanism
         return None
-    
+
     def get_conversion(self, prefix=None):
         if not prefix in self._conversions:
 
@@ -116,13 +117,37 @@ class TrackerDispersy(Dispersy):
 
             # the community is inactive
             return False
-        
+
         while True:
             desync = (yield 120.0)
             if desync > 0.1:
                 yield desync
             for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
+
+    def create_introduction_request(self, community, destination):
+        print time(), "CONN_TRY", community.cid.encode("HEX"), destination.address[0], destination.address[1]
+        return super(TrackerDispersy, self).create_introduction_request(community, destination)
+
+    def on_introduction_request(self, messages):
+        for message in messages:
+            print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
+        return super(TrackerDispersy, self).on_introduction_request(messages)
+
+    def on_introduction_response(self, messages):
+        for message in messages:
+            print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
+        return super(TrackerDispersy, self).on_introduction_request(messages)
+
+    def introduction_response_or_timeout(self, message, community, intermediary_candidate):
+        if message is None:
+            print time(), "CONN_DEL", community.cid.encode("HEX"), intermediary_candidate.address[0], intermediary_candidate.address[1]
+        return super(TrackerDispersy, self).introduction_response_or_timeout(message, community, intermediary_candidate)
+
+    def on_puncture(self, messages):
+        for message in messages:
+            print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
+        return super(TrackerDispersy, self).on_puncture(messages)
 
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
