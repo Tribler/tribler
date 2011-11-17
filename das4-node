@@ -13,6 +13,7 @@ fi
 
 EXPERIMENT_CONFIG=$1
 source $EXPERIMENT_CONFIG # we get $BRANCH from the config file
+BRANCH=$2
 
 PEERS_DIRECTORY=$2
 cd $PEERS_DIRECTORY

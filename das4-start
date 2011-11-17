@@ -13,8 +13,6 @@ cfg_path=$(pwd)
 EXPERIMENT_CONFIG=$cfg_path/$cfg_name
 source $EXPERIMENT_CONFIG # brings in $BRANCH
 
-echo $BRANCH
-
 cd $2
 PEERS_DIRECTORY=$(pwd)
 NODE_COUNT=$3
@@ -77,8 +75,8 @@ echo "* Job reservation length is: $EXPERIMENT_LENGTH min (experiment length) + 
 echo "* Sending job to DAS4..."
 
 JOB_STATUS_FILE=/tmp/das4_job_$USER
-#prun SGE_TASK_LAST=${NODE_COUNT} -v -reserve $RESERVATION_ID -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH &
-(prun SGE_TASK_LAST=${NODE_COUNT} -t $reservation_length -v -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH 2>&1 | tee $JOB_STATUS_FILE ) &
+#prun SGE_TASK_LAST=${NODE_COUNT} -v -reserve $RESERVATION_ID -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG ${BRANCH} $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH &
+(prun SGE_TASK_LAST=${NODE_COUNT} -t $reservation_length -v -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG ${BRANCH} $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH 2>&1 | tee $JOB_STATUS_FILE ) &
 PRUN_PID=$! # well, not really prun's PID, but we'll be using this one to send prun and tee signals
 sleep 2
 RESERVATION_ID=$(head -n1 $JOB_STATUS_FILE | sed 's/Reservation number \([0-9]*\):.*/\1/g')
