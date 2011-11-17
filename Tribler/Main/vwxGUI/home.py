@@ -730,7 +730,7 @@ class BuzzPanel(HomePanel):
         self.refresh = 1
 
     @forceDBThread
-    def GetBuzzFromDB(self):
+    def GetBuzzFromDB(self, doRefresh=False):
         # needs fine-tuning:
         # (especially for cold-start/fresh Tribler install?)
         samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
@@ -741,18 +741,20 @@ class BuzzPanel(HomePanel):
             random.shuffle(buzz[i])
             self.buzz_cache[i] = buzz[i]
 
-        if len(self.tags) <= 1 and len(buzz) > 0:
-            self.OnRefreshTimer(force = True)
+        if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
+            self.OnRefreshTimer(force = True, fromDBThread = True)
+        
 
     @forceWxThread
-    def OnRefreshTimer(self, event = None, force = False):
+    def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
         self.refresh -= 1
-        if self.refresh <= 0 or force:
-            if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force:
+        if self.refresh <= 0 or force or fromDBThread:
+            if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force or fromDBThread:
                 # simple caching
-                # (does not check for possible duplicates within display_size-window!)
-                if any(len(row) < 10 for row in self.buzz_cache):
-                    self.GetBuzzFromDB()
+                # (Completely throws away the old cache and refills it)
+                if any(len(row) < 10 for row in self.buzz_cache) and not fromDBThread:
+                    self.GetBuzzFromDB(doRefresh = True)
+                    return
 
                 if self.guiutility.getFamilyFilter():
                     xxx_filter = self.xxx_filter.isXXX
