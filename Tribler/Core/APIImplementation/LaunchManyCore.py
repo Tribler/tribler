@@ -390,8 +390,8 @@ class TriblerLaunchMany(Thread):
             schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
-                counter = 0
-                for counter, master in enumerate(cls.get_master_members(), 1):
+                counter = -1
+                for counter, master in enumerate(cls.get_master_members()):
                     if self.dispersy.has_community(master.mid):
                         continue
 
@@ -402,7 +402,7 @@ class TriblerLaunchMany(Thread):
                         if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [loading community]"
                         desync = (yield desync)
 
-                if __debug__: print >> sys.stderr, "lmc: restored", counter, cls.get_classification(), "communities"
+                if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
 
         # start dispersy
         config = self.session.sessconfig

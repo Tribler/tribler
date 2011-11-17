@@ -1773,8 +1773,8 @@ class Dispersy(Singleton):
             del self._candidates[sock_address]
 
         if __debug__:
-            for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems(), 1):
-                dprint(counter, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", candidate)
+            for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems()):
+                dprint(counter + 1, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", candidate)
 
         # get all viable candidates
         return (candidate
@@ -4074,8 +4074,8 @@ class Dispersy(Singleton):
         def _stats_triggers(self):
             while True:
                 yield 10.0
-                for counter, trigger in enumerate(self._triggers, 1):
-                    dprint("%3d " % counter, trigger)
+                for counter, trigger in enumerate(self._triggers):
+                    dprint("%3d " % (counter + 1), trigger)
 
         def _stats_info(self):
             while True:
