@@ -23,6 +23,7 @@ from decorator import documentation, runtime_duration_warning
 from destination import SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
+from distribution import SyncDistribution
 from member import Member
 from resolution import LinearResolution, DynamicResolution
 from timeline import Timeline
