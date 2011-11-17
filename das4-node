@@ -14,7 +14,7 @@ fi
 EXPERIMENT_CONFIG=$1
 source $EXPERIMENT_CONFIG # we get $BRANCH from the config file
 BRANCH=$2
-echo "${BRANCH}
+echo "${BRANCH}"
 
 PEERS_DIRECTORY=$3
 cd $PEERS_DIRECTORY
