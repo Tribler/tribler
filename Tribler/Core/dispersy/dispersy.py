@@ -3264,7 +3264,6 @@ class Dispersy(Singleton):
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
-        # TODO we might improve performance if we made a VIEW in the database
         sql = u"""SELECT sync.packet, sync.meta_message, member.public_key
                   FROM sync
                   JOIN member ON member.id = sync.member
@@ -3275,7 +3274,7 @@ class Dispersy(Singleton):
         community = messages[0].community
 
         # obtain all available messages for this community
-        meta_messages = dict((meta_message.database_id, meta_message) for meta_message in community.get_meta_messages())
+        meta_messages = dict((meta_message.database_id, meta_message) for meta_message in community.get_meta_messages() if isinstance(meta_message, SyncDistribution) and meta_message.distribution.priority > 32)
 
         for message in messages:
             assert message.name == u"dispersy-introduction-request", "this method is called in batches, i.e. community and meta message grouped together"
@@ -3303,7 +3302,7 @@ class Dispersy(Singleton):
                     end = time()
                     select = end - begin
                     dprint("select: %.3f" % select, " [", time_low, ":", time_high, "] %", modulo, "+", offset)
-            
+
                 for packet, meta_message_id, packet_public_key in self._database.execute(sql, (community.database_id, time_low, time_high, offset, modulo)):
                     packet = str(packet)
                     packet_public_key = str(packet_public_key)
