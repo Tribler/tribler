@@ -13,6 +13,8 @@ cfg_path=$(pwd)
 EXPERIMENT_CONFIG=$cfg_path/$cfg_name
 source $EXPERIMENT_CONFIG # brings in $BRANCH
 
+echo $BRANCH
+
 cd $2
 PEERS_DIRECTORY=$(pwd)
 NODE_COUNT=$3
