@@ -229,6 +229,7 @@ class SelectedChannelList(GenericSearchList):
         
         list = wx.Panel(self.notebook)
         list.SetForegroundColour(self.notebook.GetForegroundColour())
+        list.SetFocus = list.SetFocusIgnoringChildren
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -478,8 +479,17 @@ class SelectedChannelList(GenericSearchList):
         self.channelsearch_manager.addPlaylistTorrent(playlist, torrent)
         wx.CallAfter(gui_call)
     
-    @forceDBThread
+    @warnWxThread
     def OnRemoveVote(self, event):
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
+            wx.CallLater(5000, button.Enable, True)
+            
+        self._DoRemoveVote()
+    
+    @forceDBThread    
+    def _DoRemoveVote(self):
         #Set self.id to None to prevent updating twice
         id = self.id
         self.id = None
@@ -489,8 +499,17 @@ class SelectedChannelList(GenericSearchList):
         manager = self.GetManager()
         wx.CallAfter(manager.reload,id)
     
-    @forceDBThread
+    @warnWxThread
     def OnFavorite(self, event = None):
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
+            wx.CallLater(5000, button.Enable, True)
+
+        self._DoFavorite()
+        
+    @forceDBThread    
+    def _DoFavorite(self):
         #Set self.id to None to prevent updating twice
         id = self.id
         self.id = None
@@ -516,16 +535,22 @@ class SelectedChannelList(GenericSearchList):
             id = self.id
             self.id = None
             
-            def db_call():
-                self.channelsearch_manager.spam(id)
-                self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
-                 
-            def gui_call(delayedResult):
-                delayedResult.get()
-                self.GetManager().reload(id)
-                
-            startWorker(gui_call, db_call)
+            self._DoSpam()
+        
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
+            wx.CallLater(5000, button.Enable, True)
+        
         dialog.Destroy()
+        
+    @forceDBThread
+    def _DoSpam(self):
+        self.channelsearch_manager.spam(id)
+        self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
+            
+        manager = self.GetManager()
+        wx.CallAfter(manager.reload, id)     
     
     @warnWxThread
     def OnManage(self, event):
