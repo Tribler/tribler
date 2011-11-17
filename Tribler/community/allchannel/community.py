@@ -220,8 +220,10 @@ class AllChannelCommunity(Community):
                 for infohash in torrents:
                     tormessage = community._get_message_from_torrent_infohash(infohash)
                     if tormessage:
-                        assert infohash == tormessage.payload.infohash
-                        requested_packets.append(tormessage.packet)
+                        if infohash == tormessage.payload.infohash:
+                            requested_packets.append(tormessage.packet)
+                        elif __debug__:
+                            print >> sys.stderr, "INCONSISTENCY BETWEEN DISPERSYDB and TRIBLER MEGACACHE, IGNORING .torrent"
             
             self._dispersy._send([message.candidate], requested_packets)
             
