@@ -5,8 +5,7 @@
 # for any function you add to database. 
 # Please reuse the functions in sqlitecachedb as much as possible
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, safenamedtuple,\
-    SQLiteNoCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, SQLiteNoCacheDB
 from copy import deepcopy,copy
 from traceback import print_exc, print_stack
 from time import time

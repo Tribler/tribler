@@ -28,7 +28,6 @@ from list_header import *
 from list_sidebar import *
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from collections import namedtuple
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 

@@ -15,7 +15,6 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
-from collections import namedtuple
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 #support_version = (3,5,9)
 #support_version = (3,3,13)
@@ -92,22 +91,6 @@ def bin2str(bin):
     
 def str2bin(str):
     return decodestring(str)
-
-def safenamedtuple(typename, field_names, verbose=False, rename=False):
-    safe_fields = []
-    
-    for field in field_names:
-        as_index = field.lower().find(' as ')
-        if as_index != -1:
-            field = field[as_index + 4:]
-        
-        safe_fields.append(field)
-    
-    class SafeNameTuple(namedtuple(typename, safe_fields, verbose, rename)):
-        __slots__ = ()
-        def get(self, key, default = None):
-            return getattr(self, key, default)
-    return SafeNameTuple
 
 def print_exc_plus():
     """
