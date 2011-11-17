@@ -29,8 +29,11 @@ from list_sidebar import *
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from collections import namedtuple
+from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
+from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 
 DEBUG = False
+DEBUG_RELEVANCE = False
 
 class RemoteSearchManager:
     def __init__(self, list):
@@ -98,7 +101,11 @@ class RemoteSearchManager:
         
     def refresh_partial(self, ids):
         for infohash in ids:
-            startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
+            curTorrent = self.list.GetItem(infohash).original_data
+            if isinstance(curTorrent, ChannelTorrent):
+                startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel,curTorrent.channeltorrent_id))
+            else:
+                startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -220,14 +227,27 @@ class ChannelSearchManager:
     
     def _on_data(self, data, category):
         if category == self.category:
-            data = [channel for channel in data if not channel.isEmpty()]
+            if category != 'searchresults': #if we filter empty channels from search we will never see them
+                data = [channel for channel in data if not channel.isEmpty()]
+                
             self.list.SetData(data)
             if DEBUG:
                 print >> sys.stderr, "ChannelManager complete refresh done"
             
     def refresh_partial(self, ids):
+        def mergeChannel(delayedResult, id):
+            newChannel = delayedResult.get()
+            
+            if self.list.InList(id):
+                item = self.list.GetItem(id)
+                oldChannel = item.original_data
+                if oldChannel.torrents:
+                    newChannel.torrents = oldChannel.torrents
+            
+            self.list.RefreshData(id, newChannel)
+            
         for id in ids:
-            startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,))
+            startWorker(mergeChannel, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,), uId = "ChannelSearchManager_refresh_partial_%s"%id)
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:
@@ -276,6 +296,7 @@ class XRCPanel(wx.Panel):
         
         if parent:
             wx.Panel.__init__(self, parent)
+            self.SetForegroundColour(parent.GetForegroundColour())
             self._PostInit()
             self.isReady = True
         else:
@@ -484,7 +505,12 @@ class List(wx.BoxSizer):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.items
-        
+    
+    def GetItemPos(self, key):
+        assert self.isReady, "List not ready"
+        if self.isReady:
+            return self.list.GetItemPos(key)
+    
     def GetExpandedItem(self):
         assert self.isReady, "List not ready"
         if self.isReady:
@@ -705,7 +731,7 @@ class GenericSearchList(SizeList):
         
         control = SwarmHealth(parent)
         control.SetMinSize((self.columns[-2]['width'],7))
-        control.SetBackgroundColour(wx.WHITE)
+        control.SetBackgroundColour(DEFAULT_BACKGROUND)
         control.SetRatio(seeders, leechers)
         return control
         
@@ -756,7 +782,11 @@ class GenericSearchList(SizeList):
                     if key in self.infohash2key:
                         del self.infohash2key[key]
                 
-                item_data = [head.name, head.length, 0, 0]
+                if DEBUG_RELEVANCE:
+                    item_data = ["%s %s"%(head.name,head.relevance_score), head.length, 0, 0]
+                else:
+                    item_data = [head.name, head.length, 0, 0]
+                    
                 original_data = file
                     
                 list_data.append((key, item_data, original_data, create_method))
@@ -776,15 +806,18 @@ class GenericSearchList(SizeList):
         if data:
             original_data = data
             if 'bundle' in data: # bundle update
-                head = data['bundle'][0]          
+                head = data['bundle'][0] 
             else: # individual hit update
                 head = original_data
                 
                 # check whether the individual hit is in a bundle
                 key = self.infohash2key.get(key, key)
-        
+                
             # Update primary columns with new data
-            data = (head.infohash, [head.name, head.length, 0, 0], original_data)
+            if DEBUG_RELEVANCE:
+                data = (head.infohash, ["%s %s"%(head.name, head.relevance_score), head.length, 0, 0], original_data)
+            else:
+                data = (head.infohash, [head.name, head.length, 0, 0], original_data)
             self.list.RefreshData(key, data)
             
     def SetFilteredResults(self, nr):
@@ -802,6 +835,53 @@ class GenericSearchList(SizeList):
         from Tribler.Main.vwxGUI.channel import SelectedChannelList
         from list_bundle import BundleListView
         
+        # vliegendhart: Logging relevance ranking stats
+        def relevance_ranking_msg():
+            infohash = torrent.infohash
+            
+            main_searchlist = self.guiutility.frame.searchlist
+            sidebar = main_searchlist.sidebar
+            
+            bundlestate = main_searchlist.sidebar.bundlestate
+            selected_bundle_mode = sidebar.selected_bundle_mode
+            bundlestate_str = sidebar.bundlestates_str[bundlestate]
+            selected_bundle_mode_str = sidebar.bundlestates_str.get(selected_bundle_mode, None)
+            
+            pos_visual = None
+            subpos_visual = None
+            subpos_hits = None
+            
+            if isinstance(self, BundleListView):
+                bundlelistitem = main_searchlist.GetItem(infohash)
+                
+                pos_visual = main_searchlist.GetItemPos(infohash)
+                subpos_visual = self.GetItemPos(infohash)
+                try:
+                    subpos_hits = bundlelistitem.bundle[1:].index(torrent)
+                except:
+                    pass
+            else:
+                pos_visual = self.GetItemPos(infohash)
+            
+            hits = self.guiutility.torrentsearch_manager.hits
+            try:
+                hits_pos = hits.index(torrent)
+                hits_old_pos = sorted(hits, key=lambda hit: hit.relevance_score[-1], reverse=True).index(torrent)
+            except:
+                hits_pos = None
+                hits_old_pos = None
+            
+            keywords = self.guiutility.torrentsearch_manager.getSearchKeywords()[0]
+            query = ' '.join(keywords)
+            
+            return \
+            'RelevanceRanking: pos/subpos_v/subpos_h: %s/%s/%s; hits_pos: %s; hits_old_pos: %s; bundle: %s/%s [%s/%s]; family: %s; relevance: %s; q=%s' \
+            % (pos_visual, subpos_visual, subpos_hits,
+               hits_pos, hits_old_pos, 
+               bundlestate, selected_bundle_mode, bundlestate_str, selected_bundle_mode_str,
+               sidebar.family_filter, torrent.relevance_score, query)
+        
+        relevance_msg = relevance_ranking_msg()
         def db_callback():
             if isinstance(self, SelectedChannelList):
                 self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
@@ -809,6 +889,8 @@ class GenericSearchList(SizeList):
                 self.uelog.addEvent(message="Torrent: torrent download from bundle", type = 2)
             else:
                 self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
+            
+            self.uelog.addEvent(message=relevance_msg, type = 4)
         
         self.guiutility.frame.guiserver.add_task(db_callback)
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
@@ -820,6 +902,10 @@ class GenericSearchList(SizeList):
     def GetItem(self, key):
         key = self.infohash2key.get(key, key)
         return List.GetItem(self, key)
+    
+    def GetItemPos(self, key):
+        key = self.infohash2key.get(key, key)
+        return List.GetItemPos(self, key)
         
     def format(self, val):
         val = int(val)
@@ -836,11 +922,12 @@ class SearchList(GenericSearchList):
         self.total_channels = None
         self.keywords = None
         
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'fontWeight': wx.FONTWEIGHT_BOLD}, \
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'icon_right': self.__special_icon, 'fontWeight': wx.FONTWEIGHT_BOLD}, \
                    {'name':'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
+        self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
@@ -855,6 +942,7 @@ class SearchList(GenericSearchList):
         hSizer.Add(self.leftLine, 0, wx.EXPAND)
         
         list = wx.Panel(self.parent)
+        list.SetForegroundColour(self.parent.GetForegroundColour())
         self.subheader = ListHeader(list, self, self.columns, radius = 0, spacers=[7,7])
         
         self.list = self.CreateList(list, listRateLimit=0.5)
@@ -882,6 +970,11 @@ class SearchList(GenericSearchList):
         
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
+    def __special_icon(self, item):
+        torrent = item.original_data
+        if torrent.hasChannel() and torrent.channel.isFavorite():
+            return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
+    
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = RemoteSearchManager(self) 
@@ -901,21 +994,21 @@ class SearchList(GenericSearchList):
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
         
-        #indentify popular associated channels
+        #identify popular associated channels
         channel_hits = {}
         for hit in data:
-            if hit.get('channel'):
+            if hit.get('channel', False):
                 channel = hit.get('channel')
-                if channel.nr_favorites > 0:
-                    if channel.id not in channel_hits:
-                        channel_hits[channel.id] = [0, channel]
+                if channel.id not in channel_hits:
+                        channel_hits[channel.id] = [0, channel.nr_torrents, channel]
+                
+                #positive bump
+                if channel.nr_favorites > 0 or channel.isFavorite():
                     channel_hits[channel.id][0] += 1
         
-        def channel_occur(a, b):
-            return cmp(a[0], b[0])
-        
         channels = channel_hits.values()
-        channels.sort(channel_occur, reverse = True)
+        channels.sort(reverse = True)
+        
         self.sidebar.SetAssociatedChannels(channels)
         
     def SetNrResults(self, nr, nr_channels):
@@ -1012,7 +1105,7 @@ class LibraryList(SizeList):
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
      
-        List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
+        List.__init__(self, columns, LIST_GREY, [10,10], True, parent = parent)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1020,9 +1113,21 @@ class LibraryList(SizeList):
         return self.manager
     
     def CreateHeader(self, parent):
-        header = LibraryHeader(parent, self, self.columns)
+        if parent.top_bg:
+            header = LibraryHeader(parent, self, self.columns, spacers=[3,3])
+            header.SetEvents(self.OnAdd)
+        else:
+            header = LibraryOnlyHeader(parent, self, self.columns, spacers=[3,3])
+            def showSettings(event):
+                self.guiutility.ShowPage('settings')
+                
+            def showChannel(event):
+                self.guiutility.ShowPage('selectedchannel')
+                
+            header.SetEvents(self.OnAdd, showSettings, showChannel)
+            
         header.SetTitle('Downloads')
-        header.SetEvents(self.OnAdd)
+        
         return header
     
     def CreateFooter(self, parent):
@@ -1313,7 +1418,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.max_votes = 5
-        List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True, parent = parent)
+        List.__init__(self, columns, LIST_BLUE, [10,10], showChange = True, parent = parent)
     
     def __favorite_icon(self, item):
         channel = item.original_data
@@ -1332,7 +1437,7 @@ class ChannelList(List):
         return str(val)
     
     def CreateHeader(self, parent):
-        return SubTitleSeachHeader(parent, self, self.columns)
+        return SubTitleSeachHeader(parent, self, self.columns, spacers=[3,3])
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -1347,7 +1452,7 @@ class ChannelList(List):
         
         control = ChannelPopularity(parent, self.normal, self.favorite)
         control.SetMinSize((self.columns[2]['width'],15))
-        control.SetBackgroundColour(wx.WHITE)
+        control.SetBackgroundColour(DEFAULT_BACKGROUND)
         control.SetVotes(ratio)
         control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
         return control
@@ -1452,10 +1557,10 @@ class ChannelCategoriesList(List):
         self.searchSelected = False
         columns = [{'width': wx.LIST_AUTOSIZE}]
     
-        List.__init__(self, columns, LIST_GREY, [7,7], True, parent = parent)
+        List.__init__(self, columns, LIST_GREY, [10,10], True, parent = parent)
     
     def CreateHeader(self, parent):
-        title = TitleHeader(parent, self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
+        title = TitleHeader(parent, self, self.columns, 1, wx.FONTWEIGHT_NORMAL, spacers=[3,3])
         title.SetTitle('Categories')
         return title
     

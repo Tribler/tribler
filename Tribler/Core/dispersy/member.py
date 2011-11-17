@@ -79,6 +79,7 @@ class Member(Parameterized1Singleton):
                (not public_key_available and len(public_key) == 20), (len(public_key), public_key_available, public_key.encode("HEX"))
         assert (public_key_available and len(private_key) > 0 and not private_key.startswith("-----BEGIN")) or len(private_key) == 0
 
+        assert DispersyDatabase.has_instance(), "DispersyDatabase has not yet been created"
         database = DispersyDatabase.get_instance()
 
         if hasattr(self, "_database_id"):
@@ -125,7 +126,7 @@ class Member(Parameterized1Singleton):
                 self._private_key = private_key
                 self._mid = sha1(public_key).digest()
                 self._database_id = -1
-                self._communities = {}
+                self._communities = set()
                 self._tags = []
 
                 if sync_with_database:
@@ -155,7 +156,7 @@ class Member(Parameterized1Singleton):
                 self._private_key = ""
                 self._mid = public_key
                 self._database_id = -1
-                self._communities = {}
+                self._communities = set()
                 self._tags = []
 
                 if sync_with_database:
@@ -177,7 +178,7 @@ class Member(Parameterized1Singleton):
 
     def update(self):
         """
-        Update tag and addresses from the database.
+        Update tags from the database.
         """
         execute = DispersyDatabase.get_instance().execute
 
@@ -193,18 +194,15 @@ class Member(Parameterized1Singleton):
                 for tag in self._tags:
                     assert tag in (u"store", u"ignore", u"blacklist"), tag
 
-        for cid, host, port in execute(u"SELECT member.mid, identity.host, identity.port FROM identity JOIN community ON community.id = identity.community JOIN member ON member.id = community.master WHERE identity.member = ?", (self._database_id,)):
-            assert isinstance(cid, buffer)
-            assert isinstance(host, unicode)
-            assert isinstance(port, int)
-            if __debug__: dprint("member ", self._database_id, " is part of community ", str(cid).encode("HEX"))
-            # note that the SQL query gives back the master-member.mid and NOT the mid of the member
-            # that we are currently loading!
-            self._communities[str(cid)] = (str(host), port)
-
-        if __debug__:
-            if not self._communities:
-                dprint("member ", self._database_id, " is not part of any community")
+        for cid, in execute(u"""
+SELECT DISTINCT master.mid
+FROM sync
+JOIN meta_message ON meta_message.id = sync.meta_message
+JOIN community ON community.id = sync.community
+JOIN member AS master ON master.id = community.master
+WHERE meta_message.name = \"dispersy-identity\"
+"""):
+            self._communities.add(str(cid))
 
     @property
     def mid(self):
@@ -259,18 +257,6 @@ class Member(Parameterized1Singleton):
         """
         return community.cid in self._communities
     
-    def get_address(self, community, default=None):
-        """
-        The most recently advertised address for this member in community.
-
-        Addresses are advertised using a dispersy-identity message, and the most recent -per member-
-        is stored and forwarded.  DEFAULT is given if no dispersy-identity message is available.
-        """
-        if __debug__:
-            from community import Community
-            assert isinstance(community, Community)
-        return self._communities.get(community.cid, default)
-
     def _set_tag(self, tag, value):
         assert isinstance(tag, unicode)
         assert tag in [u"store", u"ignore", u"blacklist"]
@@ -373,20 +359,3 @@ class Member(Parameterized1Singleton):
         Returns a human readable string representing the member.
         """
         return "<%s %d %s>" % (self.__class__.__name__, self._database_id, self._mid.encode("HEX"))
-
-if __debug__:
-    if __name__ == "__main__":
-        from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-
-        ec = ec_generate_key(u"low")
-        public_key = ec_to_public_bin(ec)
-        private_key = ec_to_private_bin(ec)
-        public_member = Member(public_key, sync_with_database=False)
-        private_member = PrivateMember(public_key, private_key, sync_with_database=False)
-
-        data = "Hello World! " * 1000
-        sig = private_member.sign(data)
-        digest = sha1(data).digest()
-        dprint(sig.encode("HEX"))
-        assert public_member.verify(data, sig)
-        assert private_member.verify(data, sig)

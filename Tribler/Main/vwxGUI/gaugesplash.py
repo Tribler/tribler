@@ -1,4 +1,5 @@
 #Modified by Niels Zeilemaker, removed timeout did a small cleanup 
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 #-----------------------------------------------------------------------------
 # Name:        gaugesplash.py
@@ -41,21 +42,21 @@ class GaugeSplash(wx.Frame):
         
         self.count = 0
         self.border = 2
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.bmp = wx.StaticBitmap(self, -1, bmp)
         sizer.Add(self.bmp, 0, wx.EXPAND)
 
         self.label = wx.StaticText(self, -1, "Loading...")
-        self.label.SetBackgroundColour(wx.WHITE)
+        self.label.SetBackgroundColour(DEFAULT_BACKGROUND)
         sizer.Add(self.label, 0, flag=wx.EXPAND|wx.ALL, border=self.border)
 
         self.progressHeight = 12
         self.gauge = wx.Gauge(self, -1,
               range=100, size = (-1, self.progressHeight),
               style=wx.GA_HORIZONTAL|wx.GA_SMOOTH)
-        self.gauge.SetBackgroundColour(wx.WHITE)
+        self.gauge.SetBackgroundColour(DEFAULT_BACKGROUND)
         sizer.Add(self.gauge, 0, flag=wx.EXPAND|wx.TOP, border=self.border)
         self.SetSizer(sizer)
         sizer.Fit(self)

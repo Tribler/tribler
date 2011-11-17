@@ -11,6 +11,8 @@ from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
 class ListFooter(wx.Panel):
     def __init__(self, parent, radius = LIST_RADIUS, spacers = [0,0]):
         wx.Panel.__init__(self, parent)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
         self.originalColor = None
         self.radius = radius
         self.spacers = spacers
@@ -32,6 +34,7 @@ class ListFooter(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.OnResize)
         
         self.background = wx.Brush(self.GetBackgroundColour())
+       
         
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
@@ -247,7 +250,7 @@ class ChannelFooter(ListFooter):
         else:
             if open2edit:
                 header = "You can now enable community-features for this Channel."
-                msg = "Allowing other users to comment, modify and improve meta-data will increase .\nEdit your channel settings to get started."
+                msg = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit your channel settings to get started."
                 
                 self.manage.Show(True)
                 buttonSizer = self.manage
@@ -390,6 +393,7 @@ class CommentFooter(ListFooter, AbstractDetails):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.commentbox = wx.TextCtrl(self, style = wx.TE_MULTILINE)
+        self.commentbox.SetMinSize((-1, 70))
         
         hSizer.Add(self.commentbox, 1, wx.EXPAND)
         

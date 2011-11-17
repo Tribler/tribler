@@ -26,6 +26,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 
 from list_header import PlayerHeader
 from list_footer import ListFooter
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
@@ -45,7 +46,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.utility = utility
         self.parent = parent
         self.border = border
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
         self.volume = 0.48
         self.oldvolume = 0.48

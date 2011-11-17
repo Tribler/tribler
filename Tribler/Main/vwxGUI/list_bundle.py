@@ -28,18 +28,18 @@ class BundleListItem(ListItem):
     
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         # fetch bundle and descriptions
-        bundle = original_data['bundle']
+        self.bundle = original_data['bundle']
         self.general_description = original_data.get('bundle_general_description')
         self.description = original_data.get('bundle_description')
         
         # use the head as original_data (needed for SearchList)
-        original_data = bundle[0]
+        original_data = self.bundle[0]
         
         # call the original constructor
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
         
         # Now add the BundleListView (after AddComponents)
-        self.AddBundlePanel(bundle[1:])
+        self.AddBundlePanel(self.bundle[1:])
         self.bundlepanel.Layout()
         
         self.expanded_panel = None
@@ -56,16 +56,19 @@ class BundleListItem(ListItem):
         infohash, item_data, original_data = data
         
         if isinstance(original_data, dict) and 'bundle' in original_data:
-            #update top row
-            ListItem.RefreshData(self, (infohash, item_data, original_data['bundle'][0]))
-            bundle = original_data['bundle']
+            self.bundle = original_data['bundle']
+            head_original_data, bundled = self.bundle[0], self.bundle[1:]
+            
+            ListItem.RefreshData(self, (infohash, item_data, head_original_data))
+            
+            showHighlight = self.bundlepanel.SetHits(bundled)
+            if showHighlight:
+                self.Highlight(1)
+                
+            self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
             
             if DEBUG:
-                print >>sys.stderr, "*** BundleListItem.RefreshData: bundle changed:", original_data['key'], '#1+%s' % (len(bundle)-1)
-                        
-            self.bundlepanel.SetHits(bundle[1:])
-            self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
-            self.Highlight(1)
+                print >>sys.stderr, "*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled))
         else:
             if infohash == self.original_data.infohash: #update top row
                 ListItem.RefreshData(self, data)
@@ -112,7 +115,7 @@ class BundleListItem(ListItem):
     def ShowExpandedPanel(self, show = True):
         panel = self.expanded_panel
         
-        if panel:
+        if panel and panel.IsShown() != show:
             self.Freeze()
             
             if DEBUG:
@@ -197,9 +200,9 @@ class BundlePanel(wx.BoxSizer):
         self.font_increment = font_increment
         self.vsizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
-        self.indent = parent.expandedState.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
+        self.indent = parent.controls[0].icon.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
         
         self.AddHeader()
         self.AddGrid()
@@ -225,7 +228,7 @@ class BundlePanel(wx.BoxSizer):
         self.SetDescription(description)
     
     def AddGrid(self):
-        self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
+        self.grid = wx.FlexGridSizer(0, self.num_cols, 3, 7)
         self.grid.SetFlexibleDirection(wx.HORIZONTAL)
         self.grid.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_NONE)
         self.grid.SetMinSize((1,-1))
@@ -252,7 +255,7 @@ class BundlePanel(wx.BoxSizer):
             self.vsizer.Detach(self.grid)
             self.grid.Destroy()
             
-            self.grid = wx.FlexGridSizer(BUNDLE_NUM_ROWS, self.num_cols, 3, 7)
+            self.grid = wx.FlexGridSizer(0, self.num_cols, 3, 7)
             for child in children_controls:
                 self.grid.Add(child, 0, wx.EXPAND)
                 
@@ -281,8 +284,8 @@ class BundlePanel(wx.BoxSizer):
                 print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
             
             #total nr items did not change
-            for i in range(min(len(children), items_to_add)):
-                link_static_text = children[i].GetWindow()
+            for i in range(items_to_add):
+                link_static_text = children[i].GetWindow() or children[i].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(hits[i].name)
                     link_static_text.action = hits[i]
@@ -292,7 +295,7 @@ class BundlePanel(wx.BoxSizer):
             
             if self.nrhits > N:
                 more_caption = '(%s more...)' % (self.nrhits - N + 1)
-                link_static_text = children[i+1].GetWindow()
+                link_static_text = children[i+1].GetWindow() or children[i+1].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(more_caption)
                     link_static_text.Unbind(wx.EVT_LEFT_UP)
@@ -301,6 +304,13 @@ class BundlePanel(wx.BoxSizer):
                     didChange = True
 
         if didChange:
+            if DEBUG:
+                print >> sys.stderr, "*** BundlePanel.UpdateGrid: something did change rebuilding grid", len(children),min(N, self.nrhits)
+            
+            curRows = len(children) / BUNDLE_NUM_COLS
+            newRows = min(self.nrhits / BUNDLE_NUM_COLS, BUNDLE_NUM_ROWS)
+            rowsChanged = curRows != newRows            
+            
             self.grid.ShowItems(False)
             self.grid.Clear(deleteWindows = True)
             for i in range(items_to_add):
@@ -323,8 +333,13 @@ class BundlePanel(wx.BoxSizer):
             
             if self.state != self.COLLAPSED:
                 self.ShowGrid(False)
+                
+            if rowsChanged:
+                self.parent_listitem.OnChange()
                     
         self.parent.Thaw()
+        
+        return didChange
         
     def OnEventSize(self, width):
         if width < BUNDLE_GRID_COLLAPSE:
@@ -343,6 +358,8 @@ class BundlePanel(wx.BoxSizer):
         
         if self.bundlelist:
             self.bundlelist.SetData(hits)
+            if self.state == BundlePanel.FULL:
+                self.bundlelist.OnLoadAll()
     
     def ShowList(self, show):
         if self.bundlelist is None and show:
@@ -385,10 +402,11 @@ class BundlePanel(wx.BoxSizer):
     def SetHits(self, hits):
         self.nrhits = len(hits)
         
-        self.UpdateGrid(hits)
+        gridChanged = self.UpdateGrid(hits)
         self.UpdateList(hits)
         
         self.Layout()
+        return gridChanged
     
     def ChangeState(self, new_state, doLayout=True):
         if self.state != new_state:
@@ -523,9 +541,6 @@ class BundleListView(GenericSearchList):
         # id == infohash
         item = self.list.items[id]
         return item.GetPosition()[1]
-    
-    def SetFilteredResults(self, nr):
-        pass
 
 class ExpandableFixedListBody(FixedListBody):
     

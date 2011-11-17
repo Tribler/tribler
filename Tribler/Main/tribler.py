@@ -31,6 +31,8 @@ import urllib
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
+from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.CacheDB.Notifier import Notifier
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -66,7 +68,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *
-from Tribler.Main.Utility.Rss.rssparser import RssParser
+from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
@@ -276,12 +278,18 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE,NTFY_MODIFIED])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE, NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_torrentfinished,NTFY_TORRENTS,[NTFY_FINISHED])
+        
+        if Dispersy.has_instance():
+            self.sesscb_ntfy_dispersy()
+        else:
+            s.add_observer(self.sesscb_ntfy_dispersy, NTFY_DISPERSY, [NTFY_STARTED])
         
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
@@ -425,27 +433,25 @@ class ABCApp():
         self.sconfig.set_torrent_collecting_max_torrents(50000)
         
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
-        #only seen on windows
-        try:
-            # Boudewijn, 2011-10-05: will cause a NameError when __file__ is not defined (as is the
-            # case when running though py2exe)
-            __file__
-        except NameError:
-            # apply trick to obtain the executable location
-            # see http://www.py2exe.org/index.cgi/WhereAmI
-            def we_are_frozen():
-                """Returns whether we are frozen via py2exe.
-                This will affect how we find out where we are located."""
-                return hasattr(sys, "frozen")
+        # only seen on windows
+        
+        # apply trick to obtain the executable location
+        # see http://www.py2exe.org/index.cgi/WhereAmI
+        def we_are_frozen():
+            """Returns whether we are frozen via py2exe.
+            This will affect how we find out where we are located."""
+            return hasattr(sys, "frozen")
 
-            def module_path():
-                """ This will get us the program's directory,
-                even if we are frozen using py2exe"""
-                if we_are_frozen():
-                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
-                return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+        def module_path():
+            """ This will get us the program's directory,
+            even if we are frozen using py2exe"""
+            if we_are_frozen():
+                return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
+            return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
 
-            install_dir = module_path()
+        install_dir = module_path()
+        if install_dir.find('library.zip') >= 0:
+            install_dir = install_dir[:install_dir.find('library.zip') - 1]
             self.sconfig.set_install_dir(install_dir)
             
         progress('Creating session')
@@ -477,9 +483,6 @@ class ABCApp():
         self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
 
         s.set_proxy_default_dlcfg(defaultDLConfig)
-
-        # Loading of checkpointed Downloads delayed to allow GUI to paint,
-        # see loadSessionCheckpoint
 
         # Create global rate limiter
         progress('Setting up ratelimiters')
@@ -673,9 +676,13 @@ class ABCApp():
                 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
+                    
                 elif state == DLSTATUS_SEEDING:
                     if safename in self.prevActiveDownloads:
-                        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+                        infohash = ds.get_download().get_def().get_infohash()
+                        
+                        notifier = Notifier.getInstance()
+                        notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash)
                         
             self.prevActiveDownloads = newActiveDownloads
             
@@ -768,13 +775,6 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
-        def guiCall():
-            wx.CallAfter(self.gui_ntfy_channelupdates, subject,changeType, objectID, *args)
-            
-        #wrap in guiserver to prevent multiple refreshes
-        self.guiserver.add_task(guiCall, id="ChannelUpdatedCallback_"+str(objectID))
-            
-    def gui_ntfy_channelupdates(self, subject,changeType,objectID,*args):
         if self.ready and self.frame.ready:
             if self.frame.channellist:
                 manager = self.frame.channellist.GetManager()
@@ -787,9 +787,8 @@ class ABCApp():
                 if self.frame.channellist:
                     self.frame.channellist.SetMyChannelId(objectID)
                 
-                torrentfeed = RssParser.getInstance()
-                torrentfeed.register(self.utility.session, objectID)
-                torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                self.torrentfeed.register(self.utility.session, objectID)
+                self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
             
             self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
     
@@ -802,6 +801,12 @@ class ABCApp():
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.torrentUpdated(objectID)
+            
+    def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
+        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+        
+        if self.ready and self.frame.ready:
+            self.guiUtility.torrentstate_manager.torrentFinished(objectID)
         
     @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
@@ -836,7 +841,12 @@ class ABCApp():
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
-
+    
+    @forceWxThread
+    def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
+        disp = Dispersy.get_instance()
+        disp._callback.attach_exception_handler(self.frame.exceptionHandler)
+                    
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
         # valid.
@@ -866,15 +876,18 @@ class ABCApp():
         #friends.done(self.utility.session)
         
         self.torrentfeed.shutdown()
-
+        
+        
+        # Niels: lets add a max waiting time for this session shutdown.
+        session_shutdown_start = time()
+        
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
         self.utility.session.shutdown(hacksessconfcheckpoint=False) 
 
-        while not self.utility.session.has_shutdown():
+        while not self.utility.session.has_shutdown() or (time() - session_shutdown_start) > 300:
             print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown"
             sleep(1)
-            
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -1038,7 +1051,14 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
                 videofile = videofiles[0]
             else:
                 videofile = None
-            if tdef.get_bitrate(videofile) is None:
+                
+            try:
+                bitrate = tdef.get_bitrate(videofile)
+            except:
+                bitrate = None
+                print_exc()
+            
+            if bitrate is None:
                 msg += ' This video may not play properly because its bitrate is unknown.'
         except:
             print_exc()
@@ -1100,6 +1120,10 @@ def run(params = None):
             abc.frame.set_wxapp(app)
             
             app.MainLoop()
+
+            # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
+            abc.OnExit()
+
             #Niels: No code should be present here, only executed after gui closes
             
             # Setup the statistic reporter while waiting for proper integration
@@ -1118,7 +1142,7 @@ def run(params = None):
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(1)
-        
+
     except:
         print_exc()
 

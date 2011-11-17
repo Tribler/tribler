@@ -9,6 +9,7 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
     DLSTATUS_SEEDING, DLSTATUS_REPEXING
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Core.Search.SearchManager import split_into_keywords
 
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
@@ -94,12 +95,12 @@ class Helper(object):
             setattr(self, key, value)
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress')
+    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress', 'relevance_score', 'query_permids')
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
         self.name = name
-        self.length = length
+        self.length = length or 0
         self.category_id = category_id
         self.status_id = status_id
         
@@ -111,6 +112,8 @@ class Torrent(Helper):
         self.torrent_db = None
         self.channelcast_db = None
         self.ds = None
+        self.relevance_score = None
+        self.query_permids = None
    
     @cacheProperty
     def categories(self):
@@ -161,13 +164,35 @@ class Torrent(Helper):
             if self.ds.progress == 1.0:
                 stateList.append('completed')
         return stateList
+    
+    def assignRelevance(self, matches):
+        """
+        Assigns a relevance score to this Torrent.
+        @param matches A dict containing sets stored under the keys 'swarmname', 'filenames' and 'fileextensions'.
+        """
+        
+        # Find the lowest term position of the matching keywords 
+        pos_score = None
+        if matches['swarmname']:
+            swarmnameTerms = split_into_keywords(self.name)
+            swarmnameMatches = matches['swarmname']
+            
+            for i, term in enumerate(swarmnameTerms):
+                if term in swarmnameMatches:
+                    pos_score = -i
+                    break
+        
+        self.relevance_score = [len(matches['swarmname']), pos_score, len(matches['filenames']), len(matches['fileextensions']), 0]
             
     def __eq__(self, other):
-        return self.infohash == other.infohash
+        if other and isinstance(other, Torrent):
+            return self.infohash == other.infohash
+        return False
     
     def __str__(self):
         return self.name
     
+    #Required for drag and drop
     def __getstate__(self):
         statedict = {}
         for key in Torrent.__slots__:
@@ -176,32 +201,26 @@ class Torrent(Helper):
         return statedict
     
 class RemoteTorrent(Torrent):
-    __slots__ = ('query_permids')
-    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = [], channel_id = -1, channel_permid = -1, channel_name = '', subscriptions = 0, neg_votes = 0):
-        if channel_name != "":
-            c = RemoteChannel(channel_id, channel_permid, channel_name, subscriptions, neg_votes)
-        else:
-            c = False
-        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, c)
-        
+    __slots__ = ()
+    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_permids = set(), channel = False):
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel)
         self.query_permids = query_permids
 
 class CollectedTorrent(Helper):
     __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check', 'torrent')
     def __init__(self, torrent, torrentdef):
+        assert isinstance(torrent, Torrent)
+        
         self.torrent = torrent
         
         self.comment = torrentdef.get_comment_as_unicode()
         self.trackers = torrentdef.get_trackers_as_single_tuple()
         self.creation_date = torrentdef.get_creation_date()
-        self.files = torrentdef.get_files_with_length()
+        self.files = torrentdef.get_files_as_unicode_with_length()
         self.last_check = -1
 
     def __getattr__(self, name):
-        try:
-            Helper.__getattr__(self, name)
-        except:
-            return getattr(self.torrent, name)
+        return getattr(self.torrent, name)
     
     def __setattr__(self, name, value):
         try:
@@ -214,6 +233,11 @@ class CollectedTorrent(Helper):
             Helper.__delattr__(self, name)
         except:
             delattr(self.torrent,name)
+    
+    def __contains__(self, key):
+        if key in self.__slots__:
+            return True
+        return key in self.torrent
     
     @cacheProperty
     def swarminfo(self):
@@ -263,7 +287,10 @@ class CollectedTorrent(Helper):
         return 'Unknown'
     
 class NotCollectedTorrent(CollectedTorrent):
+    __slots__ = ()
     def __init__(self, torrent, files, trackers):
+        assert isinstance(torrent, Torrent)
+        
         self.torrent = torrent
         self.comment = None
         self.trackers = trackers
@@ -299,14 +326,21 @@ class ChannelTorrent(Torrent):
     def name(self, name):
         pass
     
+    #Required for drag and drop
     def __getstate__(self):
         statedict = Torrent.__getstate__(self)
         for key in self.__slots__:
             statedict[key] = getattr(self, key, None)
         return statedict
     
+class RemoteChannelTorrent(ChannelTorrent):
+    __slots__ = ()
+    def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, channel = False, query_permids = set()):
+        ChannelTorrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
+        self.query_permids = query_permids
+    
 class Channel(Helper):
-    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel')
+    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents')
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
         self.id = id
         self.dispersy_cid = str(dispersy_cid)
@@ -315,11 +349,12 @@ class Channel(Helper):
         self.description = description[:1024]
         
         self.nr_torrents = nr_torrents
-        self.nr_favorites = nr_favorites
-        self.nr_spam = nr_spam
+        self.nr_favorites = nr_favorites or 0
+        self.nr_spam = nr_spam or 0
         self.my_vote = my_vote
         self.modified = modified
         self.my_channel = my_channel
+        self.torrents = None
     
     def isDispersy(self):
         return len(self.dispersy_cid) == 20
@@ -336,13 +371,19 @@ class Channel(Helper):
     def isEmpty(self):
         return self.nr_torrents == 0
     
+    def isOpen(self):
+        state, myChannel = self.getState()
+        return state == ChannelCommunity.CHANNEL_OPEN
+    
     @cache
     def getState(self):
         if self.isDispersy():
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
-            searchManager = ChannelSearchGridManager.getInstance()
-            return searchManager.getChannelStateByCID(self.dispersy_cid)
+            searchManager = ChannelManager.getInstance()
+            result = searchManager.getChannelStateByCID(self.dispersy_cid)
+            if result:
+                return result 
         
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
     
@@ -353,25 +394,30 @@ class Channel(Helper):
             pass
         return self.getState()
 
-class RemoteChannel(Channel):
-    __slots__ = ('permid', 'torrents')
-    def __init__(self, id, permid, name, subscriptions, neg_votes):
-        Channel.__init__(self, id, '-1', name, '', 0, subscriptions, neg_votes, 0, 0, False)
-        self.permid = permid
-        
-    def getState(self):
-        return ChannelCommunity.CHANNEL_CLOSED, False
-    
     def addTorrent(self, torrent):
-        torrents = getattr(self, 'torrent', set())
-        torrents.add(torrent)
-        self.torrents = torrents
+        if not self.torrents:
+            self.torrents = set()
+        self.torrents.add(torrent)
         
     def getTorrent(self, infohash):
-        torrents = getattr(self, 'torrent', set())
-        for torrent in torrents:
-            if torrent.infohash == infohash:
-                return torrent
+        if self.torrents:
+            for torrent in self.torrents:
+                if torrent.infohash == infohash:
+                    return torrent
+                
+    def __eq__(self, other):
+        if other and isinstance(other, Channel):
+            return self.id == other.id
+        return False
+    
+    def __str__(self):
+        return 'Channel name=%s\nid=%d\ndispersy_cid=%s'%(self.name, self.id, self.dispersy_cid.encode("HEX"))
+
+class RemoteChannel(Channel):
+    __slots__ = ('permid')
+    def __init__(self, permid, name):
+        Channel.__init__(self, 0, '-1', name, '', 0, 0, 0, 0, 0, False)
+        self.permid = permid
         
 class Comment(Helper):
     __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'reply_to_id', 'replies', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
@@ -421,9 +467,9 @@ class Comment(Helper):
             return self._torrent
         
         if self.channeltorrent_id:
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
-            searchManager = ChannelSearchGridManager.getInstance()
+            searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
 class Playlist(Helper):
@@ -442,10 +488,10 @@ class Playlist(Helper):
         if self.description:
             return self.description
         
-        from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+        from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
         
         #No description, get swarmnames
-        searchManager = ChannelSearchGridManager.getInstance()
+        searchManager = ChannelManager.getInstance()
         _,_, torrents =  searchManager.getTorrentsFromPlaylist(self, limit = 3)
         names = [torrent.name for torrent in torrents]
         return "Contents: '"+"'    '".join(names)+"'"
@@ -477,9 +523,9 @@ class Modification(Helper):
     @cacheProperty
     def torrent(self):
         if self.channeltorrent_id:
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelSearchGridManager
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
-            searchManager = ChannelSearchGridManager.getInstance()
+            searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
 
 class Moderation(Helper):

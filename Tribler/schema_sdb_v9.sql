@@ -262,9 +262,6 @@ CREATE TABLE ClicklogTerm (
 CREATE INDEX idx_terms_term ON ClicklogTerm(term);  
 
 
-
-
-
 --v4: Path for BuddyCast 5. Adding Popularity table
 
 CREATE TABLE Popularity (
@@ -296,22 +293,6 @@ CREATE INDEX Number_of_leechers_idx
 CREATE UNIQUE INDEX Popularity_idx
   ON Popularity
    (torrent_id, peer_id, msg_receive_time);
-
-----------------------------------------
-
-CREATE TABLE InvertedIndex (
-word               text NOT NULL,
-torrent_id         integer
-);
-
-CREATE INDEX word_idx
-on InvertedIndex
-(word);
-
-CREATE UNIQUE INDEX invertedindex_idx
-on InvertedIndex
-(word,torrent_id);
---------------------------------------
 
 -- v5 Subtitles DB
 CREATE TABLE Metadata (
@@ -604,7 +585,7 @@ CREATE TABLE IF NOT EXISTS TorrentMarkings (
 );
 CREATE INDEX IF NOT EXISTS TorMarkIndex ON TorrentMarkings(channeltorrent_id);
 
-
+CREATE VIRTUAL TABLE FullTextIndex USING fts3(swarmname, filenames, fileextensions);
 
 -------------------------------------
 

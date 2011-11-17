@@ -33,6 +33,7 @@ from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 if sys.platform == 'win32':
@@ -137,7 +138,6 @@ class TriblerLaunchMany(Thread):
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
             self.pref_db        = PreferenceDBHandler.getInstance()
             self.superpeer_db   = SuperPeerDBHandler.getInstance()
-            self.superpeer_db.loadSuperPeers(config)
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
@@ -202,6 +202,9 @@ class TriblerLaunchMany(Thread):
         
     def init(self):
         config = self.session.sessconfig # Should be safe at startup
+        
+        if config['megacache'] and self.superpeer_db:
+            self.superpeer_db.loadSuperPeers(config)
         
         if config['overlay']:
             from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
@@ -316,7 +319,9 @@ class TriblerLaunchMany(Thread):
         self.session.dispersy_member = None
         if config['dispersy']:
             self.dispersy_thread = self.database_thread
-            self.dispersy_thread.register(self.start_dispersy)
+            # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
+            # required to ensure that the BitTornado core can access the dispersy instance.
+            self.dispersy_thread.call(self.start_dispersy)
 
     def start_dispersy(self):
         class DispersySocket(object):
@@ -371,6 +376,7 @@ class TriblerLaunchMany(Thread):
                             self.sendqueue.append((data, address))
                             self.sendqueue.extend(sendqueue)
                             self.rawserver.add_task(self.process_sendqueue, 0.1)
+                            break
 
         def load_communities():
             # initial delay
@@ -380,7 +386,7 @@ class TriblerLaunchMany(Thread):
                 desync = (yield desync)
 
             schedule = []
-            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
+            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {}))
             schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
@@ -414,6 +420,11 @@ class TriblerLaunchMany(Thread):
         from Tribler.Core.dispersy.member import Member
         self.session.dispersy_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
+        # define auto loads
+        self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
+        self.dispersy.define_auto_load(ChannelCommunity)
+        self.dispersy.define_auto_load(PreviewChannelCommunity)
+        
         # load all communities after some time
         self.dispersy_thread.register(load_communities)
 
@@ -722,18 +733,18 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         if checkpoint:
             for d in dllist:
-                # Tell all downloads to stop, and save their persistent state
-                # in a infohash -> pstate dict which is then passed to the user
-                # for storage.
-                #
-                if DEBUG:
-                    print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
-                if stop:
-                    (infohash,pstate) = d.network_stop(False,False)
-                else:
-                    (infohash,pstate) = d.network_checkpoint()
-                    
                 try:
+                    # Tell all downloads to stop, and save their persistent state
+                    # in a infohash -> pstate dict which is then passed to the user
+                    # for storage.
+                    #
+                    if DEBUG:
+                        print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
+                    if stop:
+                        (infohash,pstate) = d.network_stop(False,False)
+                    else:
+                        (infohash,pstate) = d.network_checkpoint()
+                    
                     self.save_download_pstate(infohash,pstate)
                 except Exception,e:
                     self.rawserver_nonfatalerrorfunc(e)

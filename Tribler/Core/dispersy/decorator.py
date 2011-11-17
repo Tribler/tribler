@@ -1,5 +1,5 @@
 if __debug__:
-    from time import clock, sleep
+    from time import time, sleep
     from dprint import dprint
 
 class Constructor(object):
@@ -66,15 +66,16 @@ def documentation(documented_func):
 
 def runtime_duration_warning(threshold):
     assert isinstance(threshold, float), type(threshold)
+    assert 0.0 <= threshold
     def helper(func):
         if __debug__:
             def runtime_duration_warning_helper(*args, **kargs):
-                start = clock()
+                start = time()
                 try:
                     return func(*args, **kargs)
                 finally:
-                    end = clock()
-                    if end - start > threshold:
+                    end = time()
+                    if end - start >= threshold:
                         dprint(func, " took ", "%.2fs" % (end - start), level="warning")
             runtime_duration_warning_helper.__name__ = func.__name__ + "_RDWH"
             return runtime_duration_warning_helper

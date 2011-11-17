@@ -55,7 +55,7 @@ class SRstatusbar(wx.StatusBar):
     def helpClick(self,event=None):
         dlg = wx.Dialog(self.guiUtility.frame, -1, self.utility.lang.get('sharing_reputation_information_title'), style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
         dlg.CenterOnParent()
-        dlg.SetBackgroundColour(wx.WHITE)
+        dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         sizer = wx.FlexGridSizer(2,2)
         

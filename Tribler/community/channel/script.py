@@ -1,11 +1,9 @@
 from community import ChannelCommunity
 
-from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
 from Tribler.Core.dispersy.debug import Node
-from Tribler.Core.dispersy.dprint import dprint
 
 class ChannelNode(Node):
     def create_channel(self, name, description, global_time):

@@ -3,32 +3,26 @@
 from time import mktime
 import re
 from os import listdir
+import os
 from ldecoder import parse
 from sys import argv, exit
-
-#def get_nodes():
-#    for node in glob("peers/*"):
-#        if node.startswith("peers/peer-"):
-#            yield node
-
-#def get_title(node):
-#    if node.startswith("peers/peer-"):
-#        return node[11:]
-#    elif node == "peers/tracker":
-#        return "tracker"
-#    return "???"
 
 # Global variable (yes, not the brightest thing)
 measured_record_count = {} # dictionary with the total record count per node at time measure_interval_stop
 record_count = {} # same as before but at experiment end
-
 traffic_count = {} # dictionary with the total traffic count per node at time measure_interval_stop
+node_count = 0 
 
 def get_nodes(peer_dir):
+    global node_count
     pattern = re.compile('[0-9]{5}')
     for d in listdir(peer_dir):
         if pattern.match(d):
-            yield peer_dir + "/" + d
+            node_nr = int(d)
+            
+            dispersy_exists = os.path.exists(os.path.join(peer_dir, d, 'output','dispersy.log'))
+            if node_nr <= node_count and dispersy_exists:
+                yield peer_dir + "/" + d
 
 def get_title(node):
     if re.match(".*[0-9]{5}", node):
@@ -37,7 +31,6 @@ def get_title(node):
         return "tracker"
     return "???"
 
-
 def get_first_datetime(peers_directory):
     datetimes = []
     for node in get_nodes(peers_directory):
@@ -45,16 +38,21 @@ def get_first_datetime(peers_directory):
         datetimes.append(datetime)
     return min(datetimes)
 
-
 def generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
     first = int(mktime(get_first_datetime(peers_directory).timetuple()))
     lasts = []
 
     node_list = [x for x in get_nodes(peers_directory)]
-    node_count = len(node_list)
+    def node_cmp(a, b):
+        a = int(a[-5:])
+        b = int(b[-5:])
+        return cmp(a, b)
+    node_list.sort(cmp=node_cmp)
+    
     measure_interval_length = measure_interval_stop - measure_interval_start
 
     dispersy_msg_distribution = {}
+    dispersy_dropped_msg_distribution = {}
 
     for node in node_list:
         started_monitoring = False
@@ -93,7 +91,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
         print "  *", node[-5:]
         record_count[node[-5:]] = {}
         for lineno, datetime, message, kargs in parse(node + "/output/dispersy.log"):
-            if message == "created-barter-record":
+            if message == "created-record":
                 c_created_record += 1
                 c_received_record -= 1 # each created record is also counted as received
                 time = int(mktime(datetime.timetuple()))
@@ -105,7 +103,7 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 h_created_record.write("\n")
                 write_total = True
 
-            if message == "handled-barter-record":
+            if message == "handled-record":
                 c_received_record += 1
                 time = int(mktime(datetime.timetuple()))
                 h_received_record.write(str(time))
@@ -116,45 +114,54 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                 h_received_record.write("\n")
                 write_total = True
 
-            if message == "handled-successfully":
-                drop_count = kargs['total_packet_count'] - kargs['handled_message_count']
-                if drop_count != 0:
-                    c_drop += drop_count
-                    time = int(mktime(datetime.timetuple()))
+            if message == "statistics":
+                time = int(mktime(datetime.timetuple()))
+                
+                if "total_send" in kargs and "total_received" in kargs:
+                    kargs["total_send"] = kargs["total_send"][1]
+                    kargs["total_received"] = kargs["total_received"][1]
+                    
+                    h_stat.write(str(time))
+                    h_stat.write(" ")
+                    timeoffset = time - first
+                    h_stat.write(str(timeoffset))
+                    h_stat.write(" ")
+                    h_stat.write(str(kargs["total_send"]))
+                    h_stat.write(" ")
+                    h_stat.write(str(kargs["total_received"]))
+                    h_stat.write("\n")
+                    
+                    # statistics are gathered every second, so we don't need to do much checking for interval limits in here
+                    # if statistics will no longer be gathered every second, additional processing should include
+                    # - saving the initial timeoffset when traffic_start was seen
+                    # - saving the final timeoffset when traffic_stop was seen
+                    # - saving the speed identified for the above mentioned interval (initial timeoffset, final timeoffset)
+                    if not started_monitoring and not done_monitoring and timeoffset >= measure_interval_start:
+                        started_monitoring = True
+                        traffic_start = kargs["total_send"] + kargs["total_received"]
+                        
+                    if not done_monitoring and started_monitoring:
+                        traffic_stop = kargs["total_send"] + kargs["total_received"]
+                        traffic_count[node[-5:]] = [traffic_start, traffic_stop, traffic_stop - traffic_start]
+                        
+                    if not done_monitoring and started_monitoring and timeoffset >= measure_interval_stop:
+                        done_monitoring = True
+                
+                if "total_dropped" in kargs:
                     h_drop.write(str(time))
                     h_drop.write(" ")
                     h_drop.write(str(time - first))
                     h_drop.write(" ")
-                    h_drop.write(str(c_drop))
+                    h_drop.write(str(kargs["total_dropped"]))
                     h_drop.write("\n")
-                for param_name, param_value in kargs.iteritems():
-                    if not param_name[:4] == "msg_": continue
-                    dispersy_msg_distribution[param_name] = dispersy_msg_distribution.get(param_name, 0) + 1
-
-            if message == "statistics" and "total_send" in kargs and "total_received" in kargs:
-                time = int(mktime(datetime.timetuple()))
-                h_stat.write(str(time))
-                h_stat.write(" ")
-                timeoffset = time - first
-                h_stat.write(str(timeoffset))
-                h_stat.write(" ")
-                h_stat.write(str(kargs["total_send"]))
-                h_stat.write(" ")
-                h_stat.write(str(kargs["total_received"]))
-                h_stat.write("\n")
-                # statistics are gathered every second, so we don't need to do much checking for interval limits in here
-                # if statistics will no longer be gathered every second, additional processing should include
-                # - saving the initial timeoffset when traffic_start was seen
-                # - saving the final timeoffset when traffic_stop was seen
-                # - saving the speed identified for the above mentioned interval (initial timeoffset, final timeoffset)
-                if not started_monitoring and not done_monitoring and timeoffset >= measure_interval_start:
-                    started_monitoring = True
-                    traffic_start = kargs["total_send"] + kargs["total_received"]
-                if not done_monitoring and started_monitoring:
-                    traffic_stop = kargs["total_send"] + kargs["total_received"]
-                    traffic_count[node[-5:]] = [traffic_start, traffic_stop, traffic_stop - traffic_start]
-                if not done_monitoring and started_monitoring and timeoffset >= measure_interval_stop:
-                    done_monitoring = True
+                    
+            if message == "statistics-successful-messages":
+                for key, value in kargs.iteritems():
+                    dispersy_msg_distribution[key] = max((value, node), dispersy_msg_distribution.get(key, (0, node)))
+            
+            if message == "statistics-dropped-messages":
+                for key, value in kargs.iteritems():
+                    dispersy_dropped_msg_distribution[key] = max((value, node), dispersy_dropped_msg_distribution.get(key, (0, node)))
 
             if write_total:
                 h_total_record.write(str(time))
@@ -200,11 +207,18 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
     h_first_last.close()
 
     fn_dispersy_msg_distribution = peers_directory + "/output/dispersy-msg-distribution.txt"
-    h_dispersy_msg_distribution = open(fn_received_record, "w+")
+    h_dispersy_msg_distribution = open(fn_dispersy_msg_distribution, "w+")
     h_dispersy_msg_distribution.write("# msg_name count\n")
     for msg, count in dispersy_msg_distribution.iteritems():
-        h_dispersy_msg_distribution.write("%s %d\n" %(msg, count))
+        h_dispersy_msg_distribution.write("%s %d %s\n" %(msg, count[0], count[1]))
     h_dispersy_msg_distribution.close()
+    
+    fn_dispersy_dropped_msg_distribution = peers_directory + "/output/dispersy-dropped-msg-distribution.txt"
+    h_dispersy_dropped_msg_distribution = open(fn_dispersy_dropped_msg_distribution, "w+")
+    h_dispersy_dropped_msg_distribution.write("# msg_name count\n")
+    for msg, count in dispersy_dropped_msg_distribution.iteritems():
+        h_dispersy_dropped_msg_distribution.write("%s %d %s\n" %(msg, count[0], count[1]))
+    h_dispersy_dropped_msg_distribution.close()
 
     fn_traffic_count = peers_directory + "/output/traffic_count_per_peer.txt"
     h_traffic_count = open(fn_traffic_count, "w+")
@@ -277,6 +291,7 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
     """ I create a file under 'peers/' called 'sum_created_records.txt'
     with all the available records in the system per timestamp
     """
+    
     sum_records = {}
     for node in get_nodes(peers_directory):
         fn_created_record = node + "/output/created-record.txt"
@@ -314,6 +329,11 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
 
 
 def main(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
+    global node_count
+    peer_count = open(peers_directory+'/peer.count', 'r')
+    node_count = int(peer_count.readline())
+    peer_count.close()
+    
     first, last = generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio)
     # first = int(mktime(get_first_datetime().timetuple()))
     # last = first + 200

@@ -175,7 +175,7 @@ class ChannelCastCore:
         if len(hits) > 0:
             # a single read from the db is more efficient
             all_spam_channels = self.votecastdb.getChannelsWithNegVote(None)
-            permid_channel_id = self.channelcastdb.getPermChannelIdDict()
+            permid_channel_id = self.channelcastdb.getPermChannelIdDict(binary = True)
 
             for k,v in hits.items():
                 #create new channel if not found
@@ -279,6 +279,8 @@ class ChannelCastCore:
     def updateAChannel(self, channel_id, publisher_id, peers = None, timeframe = None):
         if peers == None:
             peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
+        else:
+            peers = list(peers)
             
         shuffle(peers)
         
@@ -306,11 +308,15 @@ class ChannelCastCore:
             
         def dorequest():
             if peers:
-                permid, selversion = peers[0]
+                if len(peers[0]) == 2:
+                    permid, selversion = peers[0]
+                else:
+                    permid = peers[0]
+                    selversion = OLPROTO_VER_THIRTEENTH
                 
                 q = "CHANNEL p "+publisher_id
                 
-                if timeframe:
+                if timeframe or not channel_id:
                     record = timeframe
                 else:
                     record = startWorker(None, self.channelcastdb.getTimeframeForChannel, wargs = (channel_id, ))

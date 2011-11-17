@@ -8,6 +8,7 @@ import os
 from Tribler.Video.VideoFrame import VideoBaseFrame
 from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
@@ -29,7 +30,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
             title = self.utility.lang.get('tb_video_short')
         
         wx.Frame.__init__(self, None, -1, title)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
         # Set icons for Frame
         self.icons = wx.IconBundle()

@@ -12,9 +12,8 @@ import threading
 import optparse
 
 from Tribler.Core.BitTornado.RawServer import RawServer
-from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.callback import Callback
-from Tribler.Core.dispersy.community import SyncRange, Community
+from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
@@ -30,22 +29,6 @@ else:
 
 class BinaryTrackerConversion(BinaryConversion):
     pass
-
-class TrackerSyncRange(SyncRange):
-    def __init__(self):
-        self.time_low = 1
-        self.space_freed = 0
-        self.bloom_filters = [BloomFilter("\xff", 1, 8, prefix="\x00")]
-        self.space_remaining = self.capacity = 2 ** 64 - 1
-
-    def add(self, packet):
-        pass
-
-    def free(self):
-        pass
-
-    def clear(self):
-        pass
 
 class TrackerCommunity(Community):
     """
@@ -72,12 +55,9 @@ class TrackerCommunity(Community):
     def initiate_conversions(self):
         return [BinaryTrackerConversion(self, "\x00")]
 
-    def _initialize_sync_ranges(self):
-        self._sync_ranges.insert(0, TrackerSyncRange())
-    
     def dispersy_claim_sync_bloom_filter(self, identifier):
-        # the tracker doesn't want any data... so our bloom filter must be full
-        return 1, 1, self._sync_ranges[0].bloom_filters[0]
+        # disable the sync mechanism
+        return None
     
     def get_conversion(self, prefix=None):
         if not prefix in self._conversions:
@@ -112,8 +92,7 @@ class TrackerDispersy(Dispersy):
         ec = ec_generate_key(u"very-low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
-        callback.register(self._unload_communities)
-        callback.register(self._stats)
+        callback.register(self._unload_communities, priority=-128)
 
     def get_community(self, cid, load=False, auto_load=True):
         try:
@@ -123,26 +102,28 @@ class TrackerDispersy(Dispersy):
             return self._communities[cid]
 
     def _unload_communities(self):
-        def has_candidates(community):
+        def is_active(community):
+            # check 1: does the community have any candidates
             try:
-                self.yield_candidates(community, 1).next()
-            except StopIteration:
-                return False
-            else:
+                self.yield_all_candidates(community).next()
                 return True
+            except StopIteration:
+
+                # check 2: does the community have any cached messages waiting to be processed
+                for meta in self._batch_cache.iterkeys():
+                    if meta.community == community:
+                        return True
+
+            # the community is inactive
+            return False
         
         while True:
-            yield 60.0
-            for community in [community for community in self._communities.itervalues() if not has_candidates(community)]:
+            desync = (yield 120.0)
+            if desync > 0.1:
+                yield desync
+            for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
 
-    def _stats(self):
-        while True:
-            yield 10.0
-            for community in self._communities.itervalues():
-                candidates = list(sock_address for sock_address, _ in self.yield_all_candidates(community))
-                print community.cid.encode("HEX"), len(candidates), "candidates[:10]", ", ".join("%s:%d" % sock_address for sock_address in candidates[:10])
-        
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
         while True:
@@ -193,6 +174,7 @@ class DispersySocket(object):
                     self.sendqueue.append((data, address))
                     self.sendqueue.extend(sendqueue)
                     self.rawserver.add_task(self.process_sendqueue, 0.1)
+                    break
 
 def main():
     def on_fatal_error(error):
@@ -207,17 +189,7 @@ def main():
         # start Dispersy
         dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir))
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
-
-        schedule = []
-        # schedule.append((HardKilledCommunity, (), {}))
-        # schedule.append((TrackerCommunity, (), {}))
-
-        # load
-        for cls, args, kargs in schedule:
-            counter = 0
-            for counter, master in enumerate(cls.get_master_members(), 1):
-                cls.load_community(master, *args, **kargs)
-            print "Restored", counter, cls.get_classification(), "communities"
+        dispersy.define_auto_load(TrackerCommunity)
 
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir", default=".")

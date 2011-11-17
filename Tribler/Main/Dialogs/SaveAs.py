@@ -30,7 +30,7 @@ class SaveAs(wx.Dialog):
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         if torrentdef:
-            torrentName = wx.StaticText(self, -1, torrentdef.get_name())
+            torrentName = wx.StaticText(self, -1, torrentdef.get_name_as_unicode())
             torrentName.SetMinSize((1, -1))
             vSizer.Add(torrentName, 0, wx.LEFT|wx.EXPAND, 10)
         

@@ -12,36 +12,27 @@ from twisted.internet import reactor
 
 class ConfigClientProtocol(LineReceiver):
     def connectionMade(self):
-        self.state = 1
         my_ip = argv[2]
         self.sendLine("IP "+my_ip)
 
     def lineReceived(self, data):
-        if self.state == 1:
-            username = getuser()
-            parts = data.strip().split('#')
-            starting_timestamp = int(parts[0])
-            config_line = parts[1]
-            self.my_id = int(config_line.split()[0])
-            my_id_str = "%05d" %(self.my_id) 
-            f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, my_id_str), "w")
-            f.write(data)
-            f.close()
-            print my_id_str, starting_timestamp
-            self.state = 2
-            self.full_config_file = open("/tmp/%s/dispersy/peer-keys_%s.conf" %(username, my_id_str), "w")
-        elif self.state == 2:
-            if data != "END":
-                self.full_config_file.write(data+"\n")
-            else:
-                self.full_config_file.close()
-                self.transport.loseConnection()
-                reactor.stop()
+        username = getuser()
+        parts = data.strip().split('#')
+        starting_timestamp = int(parts[0])
+        config_line = parts[1]
+        self.my_id = int(config_line.split()[0])
+        my_id_str = "%05d" %(self.my_id) 
+        f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, my_id_str), "w")
+        f.write(data)
+        f.close()
+        print my_id_str, starting_timestamp
+        
+        self.transport.loseConnection()
+        reactor.stop()
 
 class ConfigClientFactory(ClientFactory):
     def buildProtocol(self, addr):
         return ConfigClientProtocol()
-
 
 def main():
     sync_server = argv[1]
@@ -59,4 +50,3 @@ if __name__ == '__main__':
         print "Usage: ./config_sync_client.py <sync_server> <my_ip>"
         exit(1)
     main()
-

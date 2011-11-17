@@ -490,7 +490,8 @@ class DownloadImpl:
             if 'files' not in metainfo['info']:
                 # single-file torrent
                 diskfn = self.get_content_dest()
-                f2dtuple = (None, diskfn)
+                _, filename = os.path.split(diskfn)
+                f2dtuple = (filename, diskfn)
                 ext = get_ext(diskfn)
                 if exts is None or ext in exts:
                     f2dlist.append(f2dtuple)

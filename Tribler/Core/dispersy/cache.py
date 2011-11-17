@@ -61,37 +61,38 @@ class CacheDict(object):
         Yields a list of (key, Cache) tuples that are removed from the cache.
         """
         size = len(self._dict)
-        delta = self._pokes / size
-        self._pokes -= delta * size
-        if delta:
-            def peek(cache):
-                cache.__poke_count -= delta
-                return cache.__poke_count
-            map(peek, self._dict.itervalues())
+        if size:
+            delta = self._pokes / size
+            self._pokes -= delta * size
+            if delta:
+                def peek(cache):
+                    cache.__poke_count -= delta
+                    return cache.__poke_count
+                map(peek, self._dict.itervalues())
 
-        if size > self._max_caches:
-            cleanup_counter = size - self._max_caches
-            caches = [(cache.__poke_count, key, cache) for key, cache in self._dict.iteritems()]
+            if size > self._max_caches:
+                cleanup_counter = size - self._max_caches
+                caches = [(cache.__poke_count, key, cache) for key, cache in self._dict.iteritems()]
 
-            # yield all caches that have expired (regardless of ordering)
-            for poke_count, key, cache in caches:
-                if poke_count <= 0:
-                    self._dict.__delitem__(key)
-                    yield key, cache
+                # yield all caches that have expired (regardless of ordering)
+                for poke_count, key, cache in caches:
+                    if poke_count <= 0:
+                        self._dict.__delitem__(key)
+                        yield key, cache
 
-                    cleanup_counter -= 1
-                    if cleanup_counter == 0:
-                        return
+                        cleanup_counter -= 1
+                        if cleanup_counter == 0:
+                            return
 
-            # yield all caches that have not yet expired (based on poke ordering)
-            caches = [(key, cache) for poke_count, key, cache in caches if poke_count > 0]
-            for key, cache in sorted(caches):
-                    self._dict.__delitem__(key)
-                    yield key, cache
+                # yield all caches that have not yet expired (based on poke ordering)
+                caches = [(key, cache) for poke_count, key, cache in caches if poke_count > 0]
+                for key, cache in sorted(caches):
+                        self._dict.__delitem__(key)
+                        yield key, cache
 
-                    cleanup_counter -= 1
-                    if cleanup_counter == 0:
-                        return
+                        cleanup_counter -= 1
+                        if cleanup_counter == 0:
+                            return
 
     def __str__(self):
         return "\n".join("%d -> %s" % (cache.__poke_count, key) for key, cache in self._dict.iteritems())

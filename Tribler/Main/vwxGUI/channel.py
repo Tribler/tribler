@@ -1,7 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import _set_font, MaxBetterText, NotebookPanel
 from Tribler.Core.API import *
 
@@ -15,10 +15,12 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-from Tribler.Main.Utility.Rss.rssparser import RssParser
+from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
+from Tribler.Main.vwxGUI.list_header import ChannelOnlyHeader
+from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 
 DEBUG = False
 
@@ -38,10 +40,8 @@ class ChannelManager():
     def refreshDirty(self):
         if 'COMPLETE_REFRESH_STATE' in self.dirtyset:
             self._refresh_list(stateChanged = True)
-            
         elif 'COMPLETE_REFRESH' in self.dirtyset:
             self._refresh_list()
-            
         else:
             self._refresh_partial(list(self.dirtyset))
         self.dirtyset.clear()
@@ -54,6 +54,14 @@ class ChannelManager():
     @forceWxThread
     def refresh(self, channel = None):
         if channel:
+            #copy torrents if channel stays the same 
+            if channel == self.list.channel:
+                if self.list.channel.torrents:
+                    if channel.torrents:
+                        channel.torrents.update(self.list.channel.torrents)
+                    else:
+                        channel.torrents = self.list.channel.torrents
+            
             self.list.Reset()
             self.list.SetChannel(channel)
 
@@ -90,8 +98,17 @@ class ChannelManager():
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
+        #sometimes a channel has some torrents in the torrents variable, merge them here
+        if self.list.channel.torrents:
+            remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
+            for torrent in torrents:
+                if torrent.infohash in remoteTorrents:
+                    remoteTorrents.discard(torrent.infohash)
+            
+            self.list.channel.torrents = set([torrent for torrent in self.list.channel.torrents if torrent.infohash in remoteTorrents])
+            torrents = torrents + list(self.list.channel.torrents)
+        
         torrents = self.library_manager.addDownloadStates(torrents)
-        total_items += len(playlists)
         
         #only show a small random selection of available content for non-favorite channels
         if not self.list.channel.isFavorite() and not self.list.channel.isMyChannel():
@@ -100,8 +117,6 @@ class ChannelManager():
                 
             if len(torrents) > CHANNEL_MAX_NON_FAVORITE:
                 torrents = sample(torrents, CHANNEL_MAX_NON_FAVORITE)
-            
-            total_items = len(playlists) + len(torrents)
         
         self.list.SetData(playlists, torrents)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
@@ -159,7 +174,7 @@ class ChannelManager():
             else:
                 self.dirtyset.add(playlist_id)
                 self.list.dirty = True
-
+          
 class SelectedChannelList(GenericSearchList):
     def __init__(self, parent):
         self.guiutility = GUIUtility.getInstance()
@@ -169,6 +184,8 @@ class SelectedChannelList(GenericSearchList):
         self.title = None
         self.channel = None
         self.iamModerator = False
+        self.my_channel = False
+        self.state = ChannelCommunity.CHANNEL_CLOSED
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}, \
@@ -180,8 +197,21 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def _PostInit(self):
-        self.header = ChannelHeader(self.parent, self, [])
-        self.header.SetEvents(self.OnBack)
+        if self.parent.top_bg:
+            self.header = ChannelHeader(self.parent, self, [])
+            self.header.SetEvents(self.OnBack)
+            
+        else:
+            self.header = ChannelOnlyHeader(self.parent, self, [])
+            
+            def showSettings(event):
+                self.guiutility.ShowPage('settings')
+                
+            def showLibrary(event):
+                self.guiutility.ShowPage('my_files')
+                
+            self.header.SetEvents(showSettings, showLibrary)
+        
         self.Add(self.header, 0, wx.EXPAND)
         
         #Hack to prevent focus on tabs
@@ -194,9 +224,12 @@ class SelectedChannelList(GenericSearchList):
         else:
             self.notebook.SetWindowStyleFlag(style)
         self.notebook.SetTabAreaColour(self.background)
+        self.notebook.SetForegroundColour(self.parent.GetForegroundColour())
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
         list = wx.Panel(self.notebook)
+        list.SetForegroundColour(self.notebook.GetForegroundColour())
+
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.subheader = self.CreateHeader(list)
@@ -256,6 +289,9 @@ class SelectedChannelList(GenericSearchList):
         self.SetId(channel.id)
         self.SetTitle(channel.name, channel.description)
         
+        if __debug__:
+            self.header.SetToolTip(str(channel))
+        
         nr_torrents = channel.nr_torrents
         if not channel.isFavorite() and not channel.isMyChannel():
             nr_torrents = min(nr_torrents, 50)
@@ -280,6 +316,9 @@ class SelectedChannelList(GenericSearchList):
             
             manager = self.moderationList.GetManager()
             manager.SetIds(channel = self.channel)
+        else:
+            self.my_channel = False
+            self.iamModerator = False
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
@@ -294,6 +333,7 @@ class SelectedChannelList(GenericSearchList):
     @warnWxThread
     def SetChannelState(self, state, iamModerator):
         self.iamModerator = iamModerator
+        self.state = state
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.commentList.Show(True)
@@ -350,8 +390,12 @@ class SelectedChannelList(GenericSearchList):
             self.SetNrResults(len(data))
         else:
             header =  'No torrents or playlists found.'
-            message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
-            self.list.ShowMessage(message, header = header)
+            
+            if self.state == ChannelCommunity.CHANNEL_OPEN:
+                message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
+                self.list.ShowMessage(message, header = header)
+            else:
+                self.list.ShowMessage(header)
             
             self.SetNrResults(0)
     
@@ -383,20 +427,17 @@ class SelectedChannelList(GenericSearchList):
             else:
                 data = (data.id,[data.name, data.extended_description, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
-        
-        item = self.list.GetItem(key)
-        panel = item.GetExpandedPanel()
-        if panel:
-            panel.UpdateStatus()
-        
+         
         manager = self.activityList.GetManager()
         manager.do_or_schedule_refresh()
     
     @warnWxThread
     def Reset(self):
         GenericSearchList.Reset(self)
+        
         self.SetId(0)
         self.notebook.SetSelection(0)
+        self.state = ChannelCommunity.CHANNEL_CLOSED
     
     @warnWxThread
     def OnExpand(self, item):
@@ -460,7 +501,7 @@ class SelectedChannelList(GenericSearchList):
         if not self.channel.isDispersy():
             permid = self.channelsearch_manager.getPermidFromChannel(id)
             channelcast = BuddyCastFactory.getInstance().channelcast_core
-            channelcast.updateAChannel(self.id, permid)
+            channelcast.updateAChannel(id, permid)
 
         self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
@@ -621,9 +662,7 @@ class DragItem(ListItem):
         ListItem.AddEvents(self, control)
         
     def OnDrag(self, event):
-        #event.LeftDown does not work
-        mouse = wx.GetMouseState()
-        if mouse.LeftDown():
+        if event.LeftIsDown:
             self.parent_list.parent_list.OnDrag(self)
         
 class TorrentDO(wx.CustomDataObject):
@@ -740,8 +779,7 @@ class PlaylistItem(ListItem):
         if leftSpacer > 0:
             titleRow.AddSpacer((leftSpacer, -1))
         
-        self.icontype = 'tree'
-        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
+        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon('tree', LIST_DESELECTED, 0))
         titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
         self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
@@ -786,7 +824,8 @@ class ManageChannelFilesManager():
     def __init__(self, list):
         self.list = list
         self.list.id = 0
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        self.guiutility = GUIUtility.getInstance()
+        self.channelsearch_manager = self.guiutility.channelsearch_manager
     
     def refreshDirty(self):
         self._refresh()
@@ -810,9 +849,13 @@ class ManageChannelFilesManager():
     
     def SetChannel(self, channel):
         if channel != self.list.channel:
-            self.list.id = channel.id
             self.list.channel = channel
             self.list.dirty = True
+            
+            if channel:
+                self.list.id = channel.id
+            else:
+                self.list.id = None
     
     def RemoveItems(self, infohashes):
         for infohash in infohashes:
@@ -834,12 +877,35 @@ class ManageChannelFilesManager():
         except:
             return False
     
-    def startDownload(self, filename, *args, **kwargs):
+    def startDownload(self, torrentfilename, *args, **kwargs):
         try:
-            tdef = TorrentDef.load(filename)
+            tdef = TorrentDef.load(torrentfilename)
+            if 'fixtorrent' not in kwargs:
+                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None))
+
             return self.AddTDef(tdef)
         except:
             return False
+        
+    def startDownloads(self, filenames, *args, **kwargs):
+        torrentdefs = []
+        
+        while len(filenames) > 0:
+            for torrentfilename in filenames[:500]:
+                try:
+                    tdef = TorrentDef.load(torrentfilename)
+                    if 'fixtorrent' not in kwargs:
+                        self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None))
+    
+                    torrentdefs.append(tdef)
+                except:
+                    pass
+            
+            if not self.AddTDefs(torrentdefs):
+                return False
+            
+            filenames = filenames[500:]
+        return True 
         
     def startDownloadFromTorrent(self, torrent):
         self.channelsearch_manager.createTorrent(self.list.channel, torrent)
@@ -848,6 +914,16 @@ class ManageChannelFilesManager():
     def AddTDef(self, tdef):
         if tdef:
             self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
+            self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+            
+            return True
+        return False
+
+    def AddTDefs(self, tdefs):
+        if tdefs:
+            self.channelsearch_manager.createTorrentsFromDefs(self.list.id, tdefs)
+            self.guiutility.frame.top_bg.Notify('%d new torrents added to My Channel'%len(tdefs), wx.ART_INFORMATION)
+            
             return True
         return False
         
@@ -880,9 +956,13 @@ class ManageChannelPlaylistsManager():
     
     def SetChannel(self, channel):
         if channel != self.list.channel:
-            self.list.id = channel.id
             self.list.channel = channel
             self.list.dirty = True
+            
+            if channel:
+                self.list.id = channel.id
+            else:
+                self.list.id = None
     
     def GetTorrentsFromChannel(self):
         delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.list.channel,), wkwargs = {'filterTorrents' : False})
@@ -1100,18 +1180,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
         addSizer.Add(addButton, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
         rssSizer.Add(addSizer, 0, wx.EXPAND, 10)
         sizer.Add(rssSizer, 1, wx.EXPAND|wx.LEFT|wx.TOP|wx.BOTTOM, 10)
-        
-        #manual
-        self._add_subheader(parent, sizer, "Manually import a .torrent file:","(downloaded from another source)")
-        browseButton = wx.Button(parent, -1, "Browse for .torrent files")
-        browseButton.Bind(wx.EVT_BUTTON, self.OnManualAdd)
-        browseButton2 = wx.Button(parent, -1, "Browse for a directory")
-        browseButton2.Bind(wx.EVT_BUTTON, self.OnManualDirAdd)
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(browseButton)
-        hSizer.Add(browseButton2, 0, wx.LEFT, 5)
-        sizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
     
     def RebuildRssPanel(self):
         self.gridSizer.ShowItems(False)
@@ -1128,6 +1196,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
         if channel:
             self.channel = channel
             self.channel_id = channel.id
+            
+            if channel.isMyChannel():
+                self.torrentfeed.register(self.guiutility.utility.session, self.channel_id)
             
             def db_call():
                 channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
@@ -1202,6 +1273,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.saveButton.SetLabel('Create Channel')
             
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+            
             #disable all other tabs
             for i in range(1, self.notebook.GetPageCount()):
                 page = self.notebook.GetPage(i)
@@ -1277,32 +1349,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
         wx.CallLater(5000, button.Enable, True)
         
         self.uelog.addEvent(message="MyChannel: rssfeed refreshed", type = 2)
-        
-    def OnManualAdd(self, event):
-        dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)
-        
-        path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
-        dlg.SetPath(path)
-        if dlg.ShowModal() == wx.ID_OK:
-            files = dlg.GetPaths()
-            self._import_torrents(files)
-            
-            self.uelog.addEvent(message="MyChannel: manual import files", type = 2)
-            
-    def OnManualDirAdd(self, event):
-        dlg = wx.DirDialog(self,"Choose a directory containing the .torrent files", style = wx.wx.DD_DIR_MUST_EXIST)
-        
-        path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
-        dlg.SetPath(path)
-        
-        if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
-            full_files = []
-            files = os.listdir(dlg.GetPath())
-            for file in files:
-                full_files.append(os.path.join(dlg.GetPath(), file))
-            self._import_torrents(full_files)
-            
-            self.uelog.addEvent(message="MyChannel: manual import directory", type = 2)
             
     def CreateJoinChannelFile(self):
         f = open('joinchannel', 'wb')
@@ -1959,7 +2005,7 @@ class CommentManager:
             reply_after = items[-1].original_data.dispersy_id
         
         if self.playlist:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash, playlist = self.playlist)
+            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, playlist = self.playlist)
         elif self.channeltorrent:
             self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
         else:
@@ -2190,10 +2236,10 @@ class ModificationList(List):
         
     def OnRevertModification(self, modification):
         dlg = wx.Dialog(None, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
-        dlg.SetBackgroundColour(wx.WHITE)
+        dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected = wx.WHITE), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
+        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected = DEFAULT_BACKGROUND), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout 
         
@@ -2208,7 +2254,7 @@ class ModificationList(List):
             givenReason = reason.GetValue().strip()
             if givenReason == '':
                 reason.SetBackgroundColour(wx.RED)
-                wx.CallLater(500, reason.SetBackgroundColour, wx.WHITE)
+                wx.CallLater(500, reason.SetBackgroundColour, DEFAULT_BACKGROUND)
             else:
                 button = event.GetEventObject()
                 dlg.EndModal(button.GetId())

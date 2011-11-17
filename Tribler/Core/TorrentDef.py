@@ -401,7 +401,7 @@ class TorrentDef(Serializable,Copyable):
             trackers = []
             for level in self.get_tracker_hierarchy():
                 for tracker in level:
-                    if tracker not in trackers:
+                    if tracker and tracker not in trackers:
                         trackers.append(tracker)
             return tuple(trackers)
         tracker = self.get_tracker()

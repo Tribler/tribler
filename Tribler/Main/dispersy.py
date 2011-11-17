@@ -78,6 +78,7 @@ def main():
                         self.sendqueue.append((data, address))
                         self.sendqueue.extend(sendqueue)
                         self.rawserver.add_task(self.process_sendqueue, 0.1)
+                        break
 
     def on_fatal_error(error):
         print >> sys.stderr, "Rawserver fatal error:", error

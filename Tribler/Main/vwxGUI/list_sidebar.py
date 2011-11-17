@@ -17,6 +17,8 @@ class SearchSideBar(wx.Panel):
     
     def __init__(self, parent, parent_list, size):
         wx.Panel.__init__(self, parent, size = size)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
         self.guiutility =  GUIUtility.getInstance()
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.parent = parent
@@ -178,11 +180,11 @@ class SearchSideBar(wx.Panel):
         self.nochannels.Show(len(channels) == 0)
         for i in range(len(self.channels)):
             if i < len(channels):
-                tooltip = "Click to go to %s's Channel."%channels[i][1].name
+                tooltip = "Click to go to %s's Channel."%channels[i][-1].name
                 
-                self.channels[i].SetLabel(channels[i][1].name)
+                self.channels[i].SetLabel(channels[i][-1].name)
                 self.channels[i].SetToolTipString(tooltip)
-                self.channels[i].channel = channels[i][1]
+                self.channels[i].channel = channels[i][-1]
                 
             else:
                 self.channels[i].SetLabel('')
@@ -215,6 +217,7 @@ class SearchSideBar(wx.Panel):
         else:
             self.ffstate.SetLabel(' is Off')
             self.ffbutton.SetLabel('turn on')
+            self.ffblocked.SetLabel('')
         self.Layout()
         self.Thaw()
     
@@ -276,6 +279,7 @@ class SearchSideBar(wx.Panel):
                 newstate = Bundler.ALG_OFF # default
         
         self.bundlestate = newstate
+        self.selected_bundle_mode = None
         self.Freeze()
         
         if newstate != Bundler.ALG_OFF:
@@ -312,6 +316,7 @@ class SearchSideBar(wx.Panel):
         if self.bundlestate == Bundler.ALG_MAGIC:
             self.Freeze()
             
+            self.selected_bundle_mode = selected_bundle_mode
             index = self.bundlestates.index(selected_bundle_mode)
             for i in range(len(self.bundletexts)):
                 linkStaticText = self.bundletexts[i]
@@ -330,12 +335,7 @@ class SearchSideBar(wx.Panel):
         
         if channel_name != '':
             channel = label.channel
-            
-            if isinstance(channel, RemoteChannel):
-                #When torrent was loaded this channel was not know, is it now?
-                self.guiutility.showChannelFromPermid(channel.permid)
-            else:
-                self.guiutility.showChannel(channel)
+            self.guiutility.showChannel(channel)
     
     def SetBackgroundColour(self, colour):
         wx.Panel.SetBackgroundColour(self, colour)

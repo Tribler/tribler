@@ -26,13 +26,6 @@ CREATE TABLE private_key(
  member INTEGER PRIMARY KEY REFERENCES member(id),
  private_key BLOB);
 
-CREATE TABLE identity(
- community INTEGER REFERENCES community(id),
- member INTEGER REFERENCES member(id),
- host TEXT DEFAULT '',
- port INTEGER DEFAULT -1,
- PRIMARY KEY(community, member));
-
 CREATE TABLE community(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  master INTEGER REFERENCES member(id),          -- master member (permission tree root)
@@ -73,7 +66,7 @@ CREATE TABLE malicious_proof(
  packet BLOB);
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '5');
+INSERT INTO option(key, value) VALUES('database_version', '6');
 """
 
 class DispersyDatabase(Database):
@@ -247,7 +240,14 @@ UPDATE option SET value = '5' WHERE key = 'database_version';
 
             # upgrade from version 5 to version 6
             if database_version < 6:
-                # there is no version 6 yet...
-                # self.executescript(u"""UPDATE option SET value = '6' WHERE key = 'database_version';""")
+                self.executescript(u"""
+DROP TABLE identity;
+UPDATE option SET value = '6' WHERE key = 'database_version';
+""")
+
+            # upgrade from version 6 to version 7
+            if database_version < 7:
+                # there is no version 7 yet...
+                # self.executescript(u"""UPDATE option SET value = '7' WHERE key = 'database_version';""")
                 pass
             

@@ -3,6 +3,7 @@
 import wx, os, sys
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.list import XRCPanel
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
@@ -18,7 +19,7 @@ class ImagePanelBasic(XRCPanel):
         self.tile = tile
         self.bitmap = None
         
-        self.backgroundColour = wx.WHITE
+        self.backgroundColour = DEFAULT_BACKGROUND
         self.guiUtility = GUIUtility.getInstance()
         self.xpos = self.ypos = 0
         

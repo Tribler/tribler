@@ -24,13 +24,14 @@ if test $current_hour -lt 20 && test $current_hour -gt 8 && test $day_of_week -l
     # according to: http://www.cs.vu.nl/das4/usage.shtml
     # working hours: Mon-Fri, 8:00 - 20:00
     echo "* Adjusting experiment length from $EXPERIMENT_LENGTH min to 14 min (it's working hours!)"
-    EXPERIMENT_LENGTH=14
+    # EXPERIMENT_LENGTH=14
 fi
 
 rm -rf $PEERS_DIRECTORY/control
 rm -f $PEERS_DIRECTORY/peers
 
-rm -rf $PEERS_DIRECTORY/output
+cd $PEERS_DIRECTORY
+rm -rf `find . -type d -name 'output'`
 mkdir -p $PEERS_DIRECTORY/output
 
 # save SVN version of ${BRANCH}
@@ -53,20 +54,18 @@ import re
 compile_dir('.', rx=re.compile('/[.]svn'), force=False)
 END
 
+cd $PEERS_DIRECTORY
+PEER_COUNT=$(cat peer.count)
 
 cd ${BRANCH}
 echo "* Starting the DAS4 config sync server in the background..."
-./das4-config-sync-server.py $PEERS_DIRECTORY/peer-keys $INITIAL_DELAY & # it automatically stops after all peers received their config
+./das4-config-sync-server.py $PEER_COUNT $INITIAL_DELAY & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
 #disown  # remove job from the job table of the current bash process
 
 cd $PEERS_DIRECTORY
-PEER_COUNT=$(cat peer.count)
 
 echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
-
-find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dispersy\.db' -delete
-find . -regextype posix-egrep  -type f -regex '\./[0-9]{5}/dprint\.conf' -delete
 
 #echo "* Reserving $NODE_COUNT nodes... "
 reservation_length=$[$EXPERIMENT_LENGTH * 60 + 60]

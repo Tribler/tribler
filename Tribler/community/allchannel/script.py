@@ -6,7 +6,6 @@ from community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
-from Tribler.Core.dispersy.bloomfilter import BloomFilter
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.member import Member
 from Tribler.Core.dispersy.script import ScriptBase
@@ -25,12 +24,6 @@ class AllChannelNode(Node):
         meta = self._community.get_meta_message(u"torrent-request")
         return meta.impl(distribution=(global_time,), payload=(infohash,))
 
-    def create_channel_search_request(self, skips, search, method, global_time):
-        meta = self._community.get_meta_message(u"channel-search-request")
-        skip = BloomFilter(max(10, len(skips)), 0.01)
-        map(skip.add, skips)
-        return meta.impl(distribution=(global_time,), payload=(skip, search, method))
-
 class AllChannelScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")                    
@@ -38,8 +31,6 @@ class AllChannelScript(ScriptBase):
 
         self.caller(self.test_incoming_channel_propagate)
         self.caller(self.test_outgoing_channel_propagate)
-        self.caller(self.test_incoming_channel_search_request)
-        self.caller(self.test_outgoing_channel_search_request)
 
     def test_incoming_channel_propagate(self):
         """
@@ -106,61 +97,6 @@ class AllChannelScript(ScriptBase):
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
 
-    def test_incoming_channel_search_request(self):
-        """
-        We will send a 'channel-search-request' message from NODE to SELF.
-
-        TODO: currently there is nothing in the database to find.  We need to add something and
-        verify that we get some response back.  Hence the channel-search-response is not tested yet
-        """
-        community = AllChannelCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-
-        # create node and ensure that SELF knows the node address
-        node = AllChannelNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-        yield 0.1
-
-        # send a 'channel-search-message' message from NODE to SELF
-        global_time = 10
-        node.send_message(node.create_channel_search_request([], [u"foo", u"bar"], u"simple-any-keyword", global_time), address)
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-
-    def test_outgoing_channel_search_request(self):
-        """
-        We will send a 'channel-search-request' message from SELF to NODE.
-
-        TODO: currently there is that we can send back... hence the channel-search-response is not
-        tested yet
-        """
-        def on_response(address, response):
-            assert response is None
-
-        community = AllChannelCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
-
-        # create node and ensure that SELF knows the node address
-        node = AllChannelNode()
-        node.init_socket()
-        node.set_community(community)
-        node.init_my_member()
-        yield 0.1
-
-        # send a 'channel-search-message' message from NODE to SELF
-        community.create_channel_search_request([], [u"foo", u"bar"], on_response, timeout=1.0)
-        yield 0.1
-
-        _, request = node.receive_message(addresses=[address], message_names=[u"channel-search-request"])
-        assert request.payload.search == (u"foo", u"bar"), request.payload.search
-        assert request.payload.method == u"simple-any-keyword", request.payload.method
-
-        # cleanup
-        community.create_dispersy_destroy_community(u"hard-kill")
-
     # def test_incoming_torrent_request(self):
     #     """
     #     We will send a 'torrent-request' from NODE to SELF.
@@ -218,8 +154,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         dprint("-master- ", master.database_id, " ", id(master), " ", master.mid.encode("HEX"), force=1)
         dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
-        # return AllChannelCommunity.join_community(sha1(master_key).digest(), master_key, my_member, integrate_with_tribler = False)
-        return AllChannelCommunity.join_community(master, my_member, integrate_with_tribler = False)
+        return AllChannelCommunity.join_community(master, my_member, my_member, integrate_with_tribler = False)
     
     def execute_scenario_cmds(self, commands):
         torrents = []
@@ -237,10 +172,22 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             elif cur_command[0] == 'publish':
                 if self.my_channel:
                     infohash = str(self.torrentindex)
-                    infohash += ''.join(choice(letters) for i in xrange(20-len(infohash)))
+                    infohash += ''.join(choice(letters) for _ in xrange(20-len(infohash)))
+                    
+                    name = u''.join(choice(letters) for _ in xrange(100))
+                    files = []
+                    for _ in range(10):
+                        files.append((u''.join(choice(letters) for _ in xrange(30)), 123455))
+                    
+                    trackers = []
+                    for _ in range(10):
+                        trackers.append(''.join(choice(letters) for _ in xrange(30))) 
+                    
+                    files = tuple(files)
+                    trackers = tuple(trackers)
                     
                     self.torrentindex += 1
-                    torrents.append((infohash, int(time()), u'', (), ()))
+                    torrents.append((infohash, int(time()), name, files, trackers))
             
             elif cur_command[0] == 'post':
                 if self.joined_community:

@@ -72,6 +72,7 @@ NTFY_CHANNELCAST = 'channelcast'
 # this corresponds to the event of a peer advertising
 # new rich metadata available (for now just subtitles)
 NTFY_RICH_METADATA = 'rich_metadata'
+
 # this corresponds to the event of a subtitle file (the actual .srt)
 # received from a remote peer
 NTFY_SUBTITLE_CONTENTS = 'subtitles_in'
@@ -99,6 +100,7 @@ NTFY_CONNECTION = 'connection' # connection made or broken
 NTFY_STARTED = 'started'
 NTFY_STATE = 'state'
 NTFY_MODIFIED = 'modified'
+NTFY_FINISHED = 'finished'
 
 # object IDs for NTFY_ACTIVITIES subject 
 NTFY_ACT_NONE = 0

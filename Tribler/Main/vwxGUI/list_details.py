@@ -13,8 +13,7 @@ from Tribler.Core.osutils import startfile
 from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread,\
-    warnWxThread, forceDBThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
@@ -28,7 +27,7 @@ from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent
 from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
@@ -70,13 +69,13 @@ class AbstractDetails(wx.Panel):
     @warnWxThread    
     def _add_row(self, parent, sizer, name, value, spacer = 10):
         nametext = name
-        if name:
+        if name != None:
             nametext = wx.StaticText(parent, -1, name)
             _set_font(nametext, fontweight = wx.FONTWEIGHT_BOLD)
 
             sizer.Add(nametext, 0, wx.LEFT, spacer)
         
-        if value:
+        if value != None:
             if isinstance(value, basestring):
                 try:
                     value = MaxBetterText(parent, unicode(value), maxLines = 3, name = name)
@@ -188,11 +187,17 @@ class TorrentDetails(AbstractDetails):
     def showTorrent(self, torrent, showTab = None):
         try:
             if not self.isReady:
+                self.state = -1
+                
                 if DEBUG:
                     print >> sys.stderr, "TorrentDetails: finished loading", self.torrent.name
                 
                 self.torrent = torrent
                 ds = self.torrent.ds
+                
+                #start with files tab if we are saving space and have a ds
+                if ds and showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
+                    showTab = "Files"
                 
                 if self.noChannel and self.torrent.hasChannel():
                     state, iamModerator = self.torrent.channel.getState()
@@ -228,7 +233,7 @@ class TorrentDetails(AbstractDetails):
                 if DEBUG:
                     print >> sys.stderr, "TorrentDetails: timout on loading", self.torrent.name
             
-                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry.")
+                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry or wait to allow other peers to respond.")
             
                 self.Layout()
                 self.parent.parent_list.OnChange()
@@ -248,65 +253,23 @@ class TorrentDetails(AbstractDetails):
                 if self.canComment:
                     best = max(best, self.MINCOMMENTHEIGHT)
                 
+                if self.compact:
+                    best = max(best, 75)
+                else:
+                    best = max(best, 100)
+                
                 notebook = self.notebook.CalcSizeFromPage((1, best))[1]
                 self.notebook.SetMinSize((-1, notebook))
                 self.parent.parent_list.OnChange()
             wx.CallAfter(resize)
-        self.overview.OnChange = OnChange 
-        
+        self.overview.OnChange = OnChange
+       
         self.torrentSizer = wx.BoxSizer(wx.VERTICAL)
         self.overview.SetSizer(self.torrentSizer)
         
-        self._add_header(self.overview, self.torrentSizer, 'Torrent Details')
         self.notebook.AddPage(self.overview, "Details")
         
-        categories = self.torrent.categories
-        if isinstance(categories, list):
-            category = ', '.join(categories)
-
-        if not self.torrent.get('description', ''):
-            description = 'No description yet, be the first to add a description.'
-        else:
-            description = self.torrent.description
-        
-        filesize = "%s in %d file"%(self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files))
-        if len(self.torrent.files) > 1:
-            filesize += "s"
-
-        overviewColumns = {
-            "Name": self.torrent.name,
-            "Description": description,
-            "Type": category.capitalize(),
-            "Uploaded": self.torrent.formatCreationDate(),
-            "Filesize": filesize,
-            "Status": "Unknown"
-        }
-
-        if self.compact:
-            vSizer = wx.FlexGridSizer(0, 6, 3, 3)
-            vSizer.AddGrowableCol(1,4) #we give more space to name and status
-            vSizer.AddGrowableCol(3,2)
-            vSizer.AddGrowableCol(5,2)
-            
-            overviewColumnsOrder = ["Name", "Type", "Uploaded", "Status", "Filesize"]
-            del overviewColumns['Description']
-        else:
-            vSizer = wx.FlexGridSizer(0, 2, 3, 3)
-            vSizer.AddGrowableCol(1)
-            
-            if self.canEdit:
-                overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
-            else:
-                del overviewColumns['Description']
-                overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
-
-        for column in overviewColumnsOrder:
-            _, value = self._add_row(self.overview, vSizer, column, overviewColumns[column])
-            if column == "Status":
-                self.status = value
-    
-        self.torrentSizer.Add(vSizer, 1, wx.EXPAND)
-        self.UpdateStatus()
+        self._addOverview(self.overview, self.torrentSizer)
 
         if self.canEdit:
             self.UpdateMarkings()
@@ -327,6 +290,10 @@ class TorrentDetails(AbstractDetails):
             
             def save(event):
                 self.doSave(self)
+                
+                button = event.GetEventObject()
+                button.Enable(False)
+                wx.CallLater(5000, button.Enable, True)
             
             saveButton = wx.Button(edit, -1, "Save")
             saveButton.Bind(wx.EVT_BUTTON, save)
@@ -367,11 +334,9 @@ class TorrentDetails(AbstractDetails):
         
         #Create filelist
         if len(self.torrent.files) > 0:
-            if self.saveSpace:
+            if self.saveSpace and not isinstance(self, LibraryDetails):
                 parent = wx.Panel(self.notebook)
-                themeColour = self.notebook.GetThemeBackgroundColour()
-                if themeColour.IsOk():
-                    parent.SetBackgroundColour(themeColour)
+                parent.SetBackgroundColour(DEFAULT_BACKGROUND)
             else:
                 parent = self.notebook    
             
@@ -447,20 +412,15 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
             self.listCtrl.SetMinSize((1,-1))
             
-            if self.saveSpace:
+            if self.saveSpace and not isinstance(self, LibraryDetails):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 hSizer.Add(self.listCtrl, 6, wx.EXPAND)
                 
-                self.buttonPanel = wx.Panel(parent)
-                themeColour = self.notebook.GetThemeBackgroundColour()
-                if themeColour.IsOk():
-                    self.buttonPanel.SetBackgroundColour(themeColour)
-                
+                self.buttonPanel = parent
                 self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-                self.buttonPanel.SetSizer(self.buttonSizer)
                 
                 hSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_VERTICAL), 0, wx.EXPAND|wx.ALL, 3)
-                hSizer.Add(self.buttonPanel, 4, wx.EXPAND|wx.RIGHT, 3)
+                hSizer.Add(self.buttonSizer, 4, wx.EXPAND|wx.RIGHT, 3)
                 parent.SetSizer(hSizer)
                 self.notebook.AddPage(parent, "Files")
             else:
@@ -543,7 +503,7 @@ class TorrentDetails(AbstractDetails):
                     if isinstance(tracker, basestring):
                         self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
-        
+                
         self.overview.OnChange()
     
         if showTab:
@@ -560,7 +520,66 @@ class TorrentDetails(AbstractDetails):
             self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
             self.buttonPanel.SetSizer(self.buttonSizer)
             
-            sizer.Add(self.buttonPanel, 35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)     
+            sizer.Add(self.buttonPanel, 35, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+            
+    @warnWxThread
+    def _addOverview(self, panel, sizer):
+        sizer.Clear(deleteWindows = True)
+        self._add_header(panel, sizer, 'Torrent Details')
+        
+        categories = self.torrent.categories
+        if isinstance(categories, list):
+            category = ', '.join(categories)
+        else:
+            print >> sys.stderr, 'categories is',type(categories)
+            category = 'Unknown'
+
+        if not self.torrent.get('description', ''):
+            description = 'No description yet, be the first to add a description.'
+        else:
+            description = self.torrent.description
+        
+        filesize = "%s in %d file"%(self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files))
+        if len(self.torrent.files) > 1:
+            filesize += "s"
+
+        overviewColumns = {
+            "Name": self.torrent.name,
+            "Description": description,
+            "Type": category.capitalize(),
+            "Uploaded": self.torrent.formatCreationDate(),
+            "Filesize": filesize,
+            "Status": "Unknown"
+        }
+
+        if self.compact:
+            vSizer = wx.FlexGridSizer(0, 6, 3, 3)
+            vSizer.AddGrowableCol(1,4) #we give more space to name and status
+            vSizer.AddGrowableCol(3,2)
+            vSizer.AddGrowableCol(5,2)
+            
+            overviewColumnsOrder = ["Name", "Type", "Uploaded", "Status", "Filesize"]
+            del overviewColumns['Description']
+            
+        else:
+            vSizer = wx.FlexGridSizer(0, 2, 3, 3)
+            vSizer.AddGrowableCol(1)
+            
+            if 'description' in self.torrent and self.torrent.channel.isOpen():
+                overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
+            else:
+                del overviewColumns['Description']
+                overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
+
+        for column in overviewColumnsOrder:
+            _, value = self._add_row(panel, vSizer, column, overviewColumns[column])
+            if column == "Status":
+                self.status = value
+    
+        sizer.Add(vSizer, 1, wx.EXPAND)
+        self.UpdateStatus()
+        
+        panel.OnChange()
     
     @warnWxThread
     def DownloadStarted(self):
@@ -601,12 +620,12 @@ class TorrentDetails(AbstractDetails):
                 
                 if newState in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
                     self.torrent.progress = 100
-                    self._ShowDone()
+                    self._ShowDone(self.buttonPanel, self.buttonSizer)
 
                 elif newState in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
-                    self._ShowDownloadProgress()
+                    self._ShowDownloadProgress(self.buttonPanel, self.buttonSizer)
                 else:
-                    self._ShowTorrentDetails()
+                    self._ShowTorrentDetails(self.buttonPanel, self.buttonSizer)
 
                 if getattr(self.parent, 'button', False):
                     self.parent.button.Enable(newState == TorrentDetails.INACTIVE)
@@ -618,26 +637,27 @@ class TorrentDetails(AbstractDetails):
             wx.CallAfter(self.ShowPanel, newState)
 
     @warnWxThread
-    def _ShowTorrentDetails(self):
+    def _ShowTorrentDetails(self, panel, sizer):
         if not self.compact:
-            subtitle = StaticText(self.buttonPanel, -1, "Click download or play to enjoy this torrent.")
+            subtitle = StaticText(panel, -1, "Click download or play to enjoy this torrent.")
             subtitle.SetMinSize((1, -1))
-            self.buttonSizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
+            sizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
         
-        self.buttonSizer.AddStretchSpacer()
+        sizer.AddStretchSpacer()
         
         download_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
         if wx.Platform=="__WXMAC__":
-            self.downloadButton = wx.Button(self.buttonPanel, -1, "Download")
+            self.downloadButton = wx.Button(panel, -1, "Download")
         else:
             #Niels: multiline wx.button bug, if we ever want multiple init with multiline
-            self.downloadButton = wx.Button(self.buttonPanel, -1, "Download\n")
+            self.downloadButton = wx.Button(panel, -1, "Download\n")
             self.downloadButton.SetLabel("Download")
         
         self.downloadButton.SetToolTipString('Start downloading this torrent.')
         self.downloadButton.Bind(wx.EVT_BUTTON, self.OnDownload)
+        self.downloadButton.Bind(wx.EVT_MOTION, self.OnDrag)
         
-        play = wx.Button(self.buttonPanel, -1, "Play")
+        play = wx.Button(panel, -1, "Play")
         play.SetToolTipString('Start playing this torrent.')
         play.Bind(wx.EVT_BUTTON, self.OnPlay)
         
@@ -645,11 +665,11 @@ class TorrentDetails(AbstractDetails):
             play.Disable()
         
         download_play_sizer.Add(self.downloadButton)
-        download_play_sizer.Add(StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+        download_play_sizer.Add(StaticText(panel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
         download_play_sizer.Add(play, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.buttonSizer.Add(download_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        sizer.Add(download_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
-        self.buttonSizer.AddStretchSpacer()
+        sizer.AddStretchSpacer()
         
         if not self.noChannel:
             if self.torrent.hasChannel():
@@ -661,70 +681,70 @@ class TorrentDetails(AbstractDetails):
                     label = "Click to see more from %s's Channel."%self.torrent.channel.name
                     tooltip = "Click to go to %s's Channel."%self.torrent.channel.name
 
-                self.channeltext = LinkStaticText(self.buttonPanel, label)
+                self.channeltext = LinkStaticText(panel, label)
                 self.channeltext.SetToolTipString(tooltip)
                 self.channeltext.SetMinSize((1, -1))
                 self.channeltext.Bind(wx.EVT_LEFT_UP, self.OnClick)
                 self.channeltext.target = 'channel'
-                self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
+                sizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
                 
                 #this is not a 'local' known channel, update it
-                if isinstance(self.torrent.channel, RemoteChannel) and 'query_permids' in self.torrent:
+                if isinstance(self.torrent.channel, RemoteChannel) and self.torrent.query_permids:
                     channelcast = BuddyCastFactory.getInstance().channelcast_core
-                    channelcast.updateAChannel(self.torrent.channel.permid, self.torrent.query_permids)
+                    channelcast.updateAChannel(self.torrent.channel.id, self.torrent.channel.permid, self.torrent.query_permids)
         
         elif self.canEdit:
-            wrong = LinkStaticText(self.buttonPanel, 'Have an opinion? Signal it to other users:')
+            wrong = LinkStaticText(panel, 'Have an opinion? Signal it to other users:')
             wrong.Bind(wx.EVT_LEFT_UP, self.OnMark)
-            self.buttonSizer.Add(wrong, 0, wx.ALL|wx.EXPAND, 3)
+            sizer.Add(wrong, 0, wx.ALL|wx.EXPAND, 3)
     
     @warnWxThread
-    def _ShowDownloadProgress(self):
+    def _ShowDownloadProgress(self, panel, sizer):
         if not self.compact and not isinstance(self, LibraryDetails):
-            library = LinkStaticText(self.buttonPanel, "Open downloads")
+            library = LinkStaticText(panel, "Open downloads")
             library.SetToolTipString("Open downloads")
             library.target = 'my_files'
             library.Bind(wx.EVT_LEFT_UP, self.OnClick)
-            self.buttonSizer.Add(library, 0, wx.LEFT|wx.RIGHT, 3)
+            sizer.Add(library, 0, wx.LEFT|wx.RIGHT, 3)
         
-        self.buttonSizer.AddStretchSpacer()
+        sizer.AddStretchSpacer()
     
         if not isinstance(self, LibraryDetails):
             if not self.compact:
                 #Progress
-                header = StaticText(self.buttonPanel, -1, "Current progress")
+                header = StaticText(panel, -1, "Current progress")
                 _set_font(header, fontweight = wx.FONTWEIGHT_BOLD)
                 
-                self.buttonSizer.Add(header, 0, wx.ALL, 3)
+                sizer.Add(header, 0, wx.ALL, 3)
             
             class tmp_object():
                 def __init__(self, data, original_data):
                     self.data = data
                     self.original_data = original_data
             self.item = tmp_object(['',[0,0],[0,0],0,0],self.torrent)
-            self.progressPanel = ProgressPanel(self.buttonPanel, self.item, ProgressPanel.ETA_EXTENDED)
-            self.buttonSizer.Add(self.progressPanel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
+            self.progress = ProgressPanel(panel, self.item, ProgressPanel.ETA_EXTENDED)
+            sizer.Add(self.progress, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
         
         #Optional stream button
         if self.torrent.isPlayable() and not self.state == TorrentDetails.VOD:
-            self.buttonSizer.AddStretchSpacer()
-            self._AddVodAd(self.buttonPanel, self.buttonSizer)
+            sizer.AddStretchSpacer()
+            self._AddVodAd(panel, sizer)
 
-        if isinstance(self, LibraryDetails):
-            self.vod_log = StaticText(self.buttonPanel)
+        if not self.saveSpace and isinstance(self, LibraryDetails):
+            self.vod_log = StaticText(panel)
             self.vod_log.SetMinSize((1,-1))
             self.vod_log.Hide()
         
-            self.buttonSizer.Add(self.vod_log, 0, wx.EXPAND, 3)
+            sizer.Add(self.vod_log, 0, wx.EXPAND, 3)
         else:
             self.vod_log = None
             
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
     
     @warnWxThread
-    def _ShowDone(self):
-        self.buttonSizer.AddStretchSpacer()
-        self._AddDoneAd(self.buttonPanel, self.buttonSizer)
+    def _ShowDone(self, panel, sizer):
+        sizer.AddStretchSpacer()
+        self._AddDoneAd(panel, sizer)
         
         if getattr(self, 'subtitleChoice', None):
             self.subtitleChoice.Enable(True)
@@ -805,7 +825,7 @@ class TorrentDetails(AbstractDetails):
         play.SetToolTipString('Start streaming this torrent.')
         play.Bind(wx.EVT_LEFT_UP, self.OnPlay)
         vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
-        sizer.Add(vSizer, 0,wx.EXPAND, 3)
+        sizer.Add(vSizer, 0, wx.EXPAND)
 
     def _GetPath(self, file = None):
         ds = self.torrent.ds
@@ -890,6 +910,18 @@ class TorrentDetails(AbstractDetails):
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
+    
+    @warnWxThread 
+    def OnDrag(self, event):
+        if event.LeftIsDown():
+            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
+            
+            tdo = wx.FileDataObject()
+            tdo.AddFile(filename)
+            
+            tds = wx.DropSource(self)
+            tds.SetData(tdo)
+            tds.DoDragDrop(True)
     
     @warnWxThread
     def OnPlay(self, event):
@@ -1047,11 +1079,7 @@ class TorrentDetails(AbstractDetails):
             self.guiutility.ShowPage('my_files', self.torrent.infohash)
             
         else:
-            if isinstance(self.torrent.channel, RemoteChannel):
-                #When torrent was loaded this channel was not know, is it now?
-                self.guiutility.showChannelFromPermid(self.torrent.channel.permid)
-            else:
-                self.guiutility.showChannelFromId(self.torrent.channel.id)
+            self.guiutility.showChannel(self.torrent.channel)
     
     @warnWxThread   
     def OnMark(self, event):
@@ -1108,9 +1136,18 @@ class TorrentDetails(AbstractDetails):
 
     def RefreshData(self, data):
         if self.isReady:
+            if isinstance(data[2], Torrent):
+                #replace current torrent
+                self.torrent.torrent = data[2]
+            else:
+                self.torrent.torrent = data[2]['bundle'][0] 
+            
+            #remove cached swarminfo
             del self.torrent.swarminfo
-            self.UpdateStatus()
-   
+            
+            self._addOverview(self.overview, self.torrentSizer)
+    
+    @forceDBThread
     def UpdateStatus(self):
         #touch swarminfo property        
         swarmInfo = self.torrent.swarminfo
@@ -1192,8 +1229,8 @@ class TorrentDetails(AbstractDetails):
             self._SetTitle(state)
         
         elif state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
-            if not isinstance(self, LibraryDetails):
-                self.progressPanel.Update()
+            if getattr(self, 'progress', False):
+                self.progress.Update()
     
     def _GetState(self):
         active = vod = False
@@ -1304,9 +1341,13 @@ class LibraryDetails(TorrentDetails):
         self.ondelete = ondelete 
 
         self.old_progress = -1
+        self.startstop = None
         TorrentDetails.__init__(self, parent, torrent)
     
     def _addTabs(self, ds, showTab = None):
+        if self.saveSpace and showTab == "Files":
+            showTab = "Overview"
+        
         self.overviewPanel = wx.Panel(self.notebook)
         def OnChange():
             self.overviewPanel.Layout()
@@ -1316,6 +1357,9 @@ class LibraryDetails(TorrentDetails):
                 if self.canComment:
                     best = max(best, self.MINCOMMENTHEIGHT)
                 
+                #making sure it is at least 100px 
+                best = max(best, 100)
+                
                 notebook = self.notebook.CalcSizeFromPage((1, best))[1]
                 self.notebook.SetMinSize((-1, notebook))
                 self.parent.parent_list.OnChange()
@@ -1323,10 +1367,12 @@ class LibraryDetails(TorrentDetails):
         self.overviewPanel.OnChange = OnChange
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.overviewPanel.SetSizer(vSizer)
+        
         self._add_header(self.overviewPanel, vSizer, 'Transfer Overview')
+        
         self.overviewSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(self.overviewSizer, 1, wx.EXPAND)
-        self.overviewPanel.SetSizer(vSizer)
         
         self.notebook.AddPage(self.overviewPanel, "Overview")
         
@@ -1392,24 +1438,25 @@ class LibraryDetails(TorrentDetails):
     def _SetTitle(self, state):
         TorrentDetails._SetTitle(self, state)
 
-        if state in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
-            statestr = "Seeding"
+        if self.startstop:
+            if state in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
+                statestr = "Seeding"
+                
+            elif state == TorrentDetails.VOD:
+                statestr = "Streaming"
+                
+            elif state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
+                statestr = "Downloading"
             
-        elif state == TorrentDetails.VOD:
-            statestr = "Streaming"
-            
-        elif state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
-            statestr = "Downloading"
-        
-        if state in [TorrentDetails.FINISHED_INACTIVE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
-            button = "Start "+statestr
-        else:
-            button = "Stop "+statestr
-                    
-        if self.startstop.GetLabel() != button:
-            self.startstop.SetLabel(button)
-            self.startstop.Enable()
-            self.buttonPanel.Layout()
+            if state in [TorrentDetails.FINISHED_INACTIVE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
+                button = "Start "+statestr
+            else:
+                button = "Stop "+statestr
+                        
+            if self.startstop.GetLabel() != button:
+                self.startstop.SetLabel(button)
+                self.startstop.Enable()
+                self.buttonPanel.Layout()
             
     def OnStartStop(self, event):
         button = event.GetEventObject()
@@ -1437,54 +1484,98 @@ class LibraryDetails(TorrentDetails):
             self.overviewSizer.AddSpacer((-1, 10))
             self.overviewSizer.AddStretchSpacer()
             
-            if self.state == TorrentDetails.FINISHED or self.state == TorrentDetails.FINISHED_INACTIVE:
-                self._AddDoneAd(self.overviewPanel, self.overviewSizer)
-                self.overviewPanel.SetLabel('Transfer Completed')
-            
-            elif self.state == TorrentDetails.INCOMPLETE or self.state == TorrentDetails.INCOMPLETE_INACTIVE:
+            if self.saveSpace:
                 
-                #Optional stream button
-                if self.torrent.isPlayable():
-                    self._AddVodAd(self.overviewPanel, self.overviewSizer)
+                self.buttonPanel = self.overviewPanel
+                self._AddButtons(self.overviewPanel, self.overviewSizer)
                 
-            elif self.state == TorrentDetails.VOD:
-                #TODO: show buffer, bitrate etc
-                pass
+                if self.state == TorrentDetails.FINISHED or self.state == TorrentDetails.FINISHED_INACTIVE:
+                    nrChildren = len(self.overviewSizer.GetChildren())
+                    
+                    self._AddDoneAd(self.overviewPanel, self.overviewSizer)
+                    
+                    #merge two sizers
+                    last = self.overviewSizer.GetItem(nrChildren-1).GetSizer()
+                    first = self.overviewSizer.GetItem(nrChildren).GetSizer()
+                    self.overviewSizer.Detach(last)
+                    
+                    for child in last.GetChildren():
+                        if child.IsWindow():
+                            control = child.GetWindow()
+                            first.Add(control)
+                            
+                    for child in first.GetChildren():
+                        if child.IsWindow():
+                            control = child.GetWindow()
+                            if isinstance(control, StaticText):
+                                first.Remove(control)
+                                control.Destroy()
+
+                elif newState in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
+                    self._ShowDownloadProgress(self.overviewPanel, self.overviewSizer)
+                    
+                elif self.state == TorrentDetails.VOD:
+                    pass
+               
+            else:
+                if self.state == TorrentDetails.FINISHED or self.state == TorrentDetails.FINISHED_INACTIVE:
+                    self._AddDoneAd(self.overviewPanel, self.overviewSizer)
+                    self.overviewPanel.SetLabel('Transfer Completed')
+                
+                elif self.state == TorrentDetails.INCOMPLETE or self.state == TorrentDetails.INCOMPLETE_INACTIVE:
+                    self.progress = StringProgressPanel(self.overviewPanel, self.torrent)
+                    
+                    self.overviewSizer.Add(self.progress, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+                    self.overviewSizer.AddStretchSpacer()
+                                        
+                    #Optional stream button
+                    if self.torrent.isPlayable():
+                        self._AddVodAd(self.overviewPanel, self.overviewSizer)
+                    
+                elif self.state == TorrentDetails.VOD:
+                    #TODO: show buffer, bitrate etc
+                    pass
+                
+                if len(self.buttonSizer.GetChildren()) == 0:
+                    #Header
+                    self.title = StaticText(self.buttonPanel)
+                    _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD, size_increment=1)
+                    
+                    self.buttonSizer.Add(self.title, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)
+    
+                    self.buttonSizer.AddStretchSpacer()
+                    
+                    self._AddButtons(self.buttonPanel, self.buttonSizer)
                 
             self.overviewPanel.OnChange()
             self.overviewPanel.Thaw()
-            
-        if len(self.buttonSizer.GetChildren()) == 0:
-            #Header
-            self.title = wx.StaticText(self.buttonPanel)
-            _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD, size_increment=1)
-            
-            self.buttonSizer.Add(self.title, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)
-            
-            self.buttonSizer.AddStretchSpacer()
-            
-            #create torrent start/stop/delete buttons
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.startstop = wx.Button(self.buttonPanel)
-            self.startstop.Bind(wx.EVT_BUTTON, self.OnStartStop)
-            hSizer.Add(self.startstop)
-            
-            hSizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
-            
-            button = wx.Button(self.buttonPanel, -1, 'Delete...')
-            button.Bind(wx.EVT_BUTTON, self.OnDelete)
-            hSizer.Add(button)
-            self.buttonSizer.Add(hSizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
-            
-            self.buttonSizer.AddStretchSpacer()
+    
+    def _AddButtons(self, panel, sizer):
+        #create torrent start/stop/delete buttons
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.startstop = wx.Button(panel)
+        self.startstop.Bind(wx.EVT_BUTTON, self.OnStartStop)
+        hSizer.Add(self.startstop)
+        
+        hSizer.Add(StaticText(panel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+        
+        button = wx.Button(panel, -1, 'Delete...')
+        button.Bind(wx.EVT_BUTTON, self.OnDelete)
+        hSizer.Add(button)
+        sizer.Add(hSizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        if not self.saveSpace:
+            sizer.AddStretchSpacer()
             
             vSizer = wx.FlexGridSizer(0, 4, 3, 3)
             vSizer.AddGrowableCol(1)
             vSizer.AddGrowableCol(3)
-            _, self.downloaded = self._add_row(self.buttonPanel, vSizer, "Downloaded", self.utility.size_format(0))
-            _, self.uploaded = self._add_row(self.buttonPanel, vSizer, "Uploaded", self.utility.size_format(0))
-            self.buttonSizer.Add(vSizer, 0, wx.EXPAND|wx.ALL, 3)
-            self.buttonPanel.Layout()
+            _, self.downloaded = self._add_row(panel, vSizer, "Downloaded", self.utility.size_format(0), spacer = 3)
+            _, self.uploaded = self._add_row(panel, vSizer, "Uploaded", self.utility.size_format(0), spacer = 3)
+            sizer.Add(vSizer, 0, wx.EXPAND)
+            sizer.Layout()
+        else:
+            self.downloaded = self.uploaded = None
         
     def _Refresh(self, ds):
         TorrentDetails._Refresh(self, ds)
@@ -1494,9 +1585,10 @@ class LibraryDetails(TorrentDetails):
         
         index = 0
         if ds:
-            self.downloaded.SetLabel(self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
-            self.uploaded.SetLabel(self.utility.size_format(ds.get_total_transferred(UPLOAD)))
-            self.buttonPanel.Layout()
+            if getattr(self, 'downloaded', False):
+                self.downloaded.SetLabel(self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
+                self.uploaded.SetLabel(self.utility.size_format(ds.get_total_transferred(UPLOAD)))
+                self.buttonPanel.Layout()
             
             peers = ds.get_peerlist()
             
@@ -1663,6 +1755,8 @@ class ProgressPanel(wx.BoxSizer):
         else:
             if status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
                 eta = 'Checking'
+                if progress > 0:
+                    eta += "(%0.1f%%)"%(progress*100)
             
             elif status == DLSTATUS_DOWNLOADING:
                 sizestr = ''
@@ -1724,7 +1818,43 @@ class ProgressPanel(wx.BoxSizer):
             self.pb.Refresh()
             
         return return_val
-
+    
+class StringProgressPanel(wx.BoxSizer):
+    def __init__(self, parent, torrent):
+        wx.BoxSizer.__init__(self, wx.HORIZONTAL)
+        self.parent = parent
+        self.torrent = torrent
+        
+        guiutility = GUIUtility.getInstance()
+        self.utility = guiutility.utility
+        
+        self.text = StaticText(parent)
+        self.Add(self.text, 1, wx.EXPAND)
+    
+    def Update(self, ds = None):
+        if ds == None:
+            ds = self.torrent.ds
+        
+        if ds != None:
+            progress = ds.get_progress()
+            size = ds.get_length()
+            
+            seeds, peers = ds.get_num_seeds_peers()
+            
+            dls = ds.get_current_speed('down')*1024
+            uls = ds.get_current_speed('up')*1024
+            
+            eta = ds.get_eta()
+            
+            if progress == 1.0:
+                self.text.SetLabel("Currently uploading to %d peers @ %s."%(peers, self.utility.speed_format_new(uls)))
+            else:
+                remaining = size - (size * progress)
+                eta = self.utility.eta_value(eta, truncate=2)
+                if eta == '' or eta.find('unknown') != -1:
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining."%(self.utility.speed_format_new(dls), format_size(remaining)))
+                else:
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining.\nExpected to finish in %s."%(self.utility.speed_format_new(dls), format_size(remaining), eta))
 
 class MyChannelDetails(wx.Panel):
     def __init__(self, parent, torrent, channel_id):

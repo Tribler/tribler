@@ -43,9 +43,7 @@ actual_count=$(find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/barter
 if test $actual_count -ne $PEERS_COUNT; then
     echo
     echo "!!! ERROR !!!"
-    echo "!!! We have counted $actual_count peers (expected $PEERS_COUNT peers). Quota problems?"
-    quota
-    exit 1
+    echo "!!! We have counted $actual_count peers (expected $PEERS_COUNT peers). !!!"
 fi
 
 PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
@@ -54,32 +52,29 @@ PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
 echo "* Counting number of delayed cycles (too much to process within a cycle)..."
 c_ratio=0.0
 t_cycles="(not-counted)"
-d_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*delay:f' | grep 'diff:f-' | wc -l)
+d_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*desync:f' | grep 'diff:f-' | wc -l)
 if test $d_cycles -gt 0; then
     echo "  * Counting number of total cycles..."
-    t_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*delay:f' | wc -l)
+    t_cycles=$(find . -name 'barter.log' -exec cat {} \; | grep -e 'sleep[ ]*desync:f' | wc -l)
     c_ratio=$(echo "scale=2; 100*${d_cycles}/${t_cycles}" | bc -l)
     echo "  * Delayed cycles: ${d_cycles}/${t_cycles} (${c_ratio}%)"
     sleep 2
 fi
 
 echo "* Extracting experiment parameters from community properties..."
-sync_interval_exp=$(grep barter-community-property 00001/output/barter.log | grep :sync_interval | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
-sync_member_count=$(grep barter-community-property 00001/output/barter.log | grep :sync_member_count | sed 's/.*value:i\([0-9]*\)/\1/g')
-sync_response_limit=$(grep barter-community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
-barter_history_size=$(grep barter-community-property 00001/output/barter.log | grep :barter_history_size | sed 's/.*value:i\([0-9]*\)/\1/g')
-barter_forward_record_on_creation=$(grep barter-community-property 00001/output/barter.log | grep :barter_forward_record_on_creation | sed 's/.*value:b\([a-zA-Z]*\)/\1/g')
+sync_response_limit=$(grep community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
+barter_history_size=$(grep community-property 00001/output/barter.log | grep :barter_history_size | sed 's/.*value:i\([0-9]*\)/\1/g')
+barter_forward_record_on_creation=$(grep community-property 00001/output/barter.log | grep :barter_forward_record_on_creation | sed 's/.*value:b\([a-zA-Z]*\)/\1/g')
 
-cycle_length_exp=$(grep barter-community-property 00001/output/barter.log | grep :timestep | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
+cycle_length_exp=$(grep community-property 00001/output/barter.log | grep :timestep | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
 cycle_length_real="600.00"
 
 time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
-sync_interval_real=$(echo "scale=2; $sync_interval_exp*$time_ratio" | bc)
 
 echo "* Summing up incoming and outgoing traffic..."
 o=$(
 find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:i\([0-9]*\).*send:i\([0-9]*\).*/\1 \2/g'
+    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:t2:.i[0-9]*, i\([0-9]*\).*send:t2:.i[0-9]*, i\([0-9]*\).*/\1 \2/g'
 done | awk '{received += $1; sent += $2 } END { print received, sent }'
 )
 in_bytes=$(echo $o | cut -d' ' -f1)
@@ -136,8 +131,6 @@ Nodes: $NODE_COUNT
 Peers per node: $PEERS_PER_NODE
 
  Cycle length: $(printf %6.1f $cycle_length_exp) sec
-Sync interval: $(printf %6.1f $sync_interval_exp) sec
-   Sync peers: $(printf %6d $sync_member_count) peer(s)
 Sync response: $(printf %6d $sync_response_limit) bytes
 
     Total sent traffic: $s_out_bytes bytes
@@ -170,8 +163,6 @@ peers_per_node=$PEERS_PER_NODE
 experiment_time_ratio=$time_ratio
 cycle_length_experiment=$cycle_length_exp
 cycle_length_real=$cycle_length_real
-sync_interval_experiment=$sync_interval_exp
-sync_interval_real=$sync_interval_real
 sync_member_count=$sync_member_count
 sync_response_limit=$sync_response_limit
 bytes_out=$out_bytes
@@ -197,4 +188,3 @@ echo "=== Report ==="
 cat $STATS_FILE
 echo "=== end report ==="
 echo
-

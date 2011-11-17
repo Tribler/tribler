@@ -2,13 +2,19 @@
 # ReWritten by Niels Zeilemaker
 # see LICENSE.txt for license information
 import wx
+import inspect
+from time import time
+import sys
+
 from datetime import datetime
+from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker
 
 #batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
 LIST_ITEM_MAX_SIZE = 250
 LIST_RATE_LIMIT = 1
 
+DEFAULT_BACKGROUND = wx.Colour(255,255,255)
 LIST_BLUE = wx.Colour(216,233,240)
 LIST_GREY = wx.Colour(230,230,230)
 LIST_SELECTED = LIST_BLUE
@@ -36,6 +42,7 @@ CHANNEL_MAX_NON_FAVORITE = 50
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 
+
 def format_time(val):
     try:
         today = datetime.today()
@@ -52,3 +59,46 @@ def format_time(val):
 def format_size(val):
     size = (val/1048576.0)
     return "%.0f MB"%size
+
+TRHEADING_DEBUG = False
+
+def forceWxThread(func):
+    def invoke_func(*args,**kwargs):
+        if wx.Thread_IsMain():
+            func(*args, **kwargs)
+        else:
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            wx.CallAfter(func, *args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def warnWxThread(func):
+    def invoke_func(*args,**kwargs):
+        if not wx.Thread_IsMain():
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+        
+        return func(*args, **kwargs)
+    
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forceDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if onWorkerThread():
+            func(*args, **kwargs)
+        else:
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            startWorker(None, func, wargs=args, wkwargs=kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func

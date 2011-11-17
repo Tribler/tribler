@@ -1083,7 +1083,8 @@ class BuddyCastCore:
             session = Session.get_instance()
             myservices = session.get_active_services()
             buddycast_data['services'] = myservices
-            print "Sending BC for OL version", selversion
+            if debug:
+                print >> sys.stderr, "Sending BC for OL version", selversion
         #
         # _ProxyService
             

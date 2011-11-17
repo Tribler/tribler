@@ -4,7 +4,7 @@
 
 import wx
 from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException,\
-    DelayedResult
+    DelayedResult, SenderNoWx
 
 import threading
 from Queue import Queue
@@ -76,7 +76,11 @@ class GUIDBProducer():
                 sender.sendException(exc, originalTb)
                 
             else:
-                sender.sendResult(result)
+                try:
+                    sender.sendResult(result)
+                except:
+                    print_exc()
+                    print >> sys.stderr, "Could not send result of Task(%s)"%name
             t3 = time()
             
             if DEBUG:
@@ -119,6 +123,11 @@ class MySenderWxEvent(MySender, SenderWxEvent):
 class MySenderCallAfter(MySender, SenderCallAfter):
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
         SenderCallAfter.__init__(self, listener, jobID, args, kwargs)
+        MySender.__init__(self,  delayedResult)
+        
+class MySenderNoWx(MySender, SenderNoWx):
+    def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
+        SenderNoWx.__init__(self, listener, jobID, args, kwargs)
         MySender.__init__(self,  delayedResult)
 
 #ASyncDelayedResult, allows a get call before result is set
@@ -182,7 +191,7 @@ def startWorker(
     """
     if not consumer:
         consumer = exceptionConsumer
-        
+    
     if jobID is None:
         try:
             filename, line, function, text = extract_stack(limit = 2)[0]
@@ -192,8 +201,10 @@ def startWorker(
             pass 
         
     result = ASyncDelayedResult(jobID)
-    
-    if isinstance(consumer, wx.EvtHandler):
+    app = wx.GetApp()
+    if not app:
+        sender = MySenderNoWx(consumer, result, jobID, args=cargs, kwargs=ckwargs)
+    elif isinstance(consumer, wx.EvtHandler):
         eventClass = cargs[0]
         sender = MySenderWxEvent(consumer, eventClass, result, jobID=jobID, **ckwargs)
     else:

@@ -12,7 +12,6 @@ from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as Stat
     _set_font
 
 from __init__ import *
-from Tribler.Main.vwxGUI.GuiUtility import warnWxThread
 from wx._core import PyDeadObjectError
 
 DEBUG = False
@@ -42,7 +41,8 @@ class ListItem(wx.Panel):
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-         
+        
+        self.controls = []
         self.AddComponents(leftSpacer, rightSpacer)
         
         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
@@ -50,23 +50,10 @@ class ListItem(wx.Panel):
     
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
-        self.controls = []
         if leftSpacer > 0:
             self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
-            icon = None
-            if self.columns[i].get('icon', False):
-                if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
-                    self.icontype = self.columns[i]['icon']
-                    self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
-                    self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-                else:
-                    icon = self.columns[i]['icon'](self)
-                    if icon:
-                        icon = wx.StaticBitmap(self, -1, icon)
-                        self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-                
             if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                 option = 1
                 size = wx.DefaultSize
@@ -90,9 +77,21 @@ class ListItem(wx.Panel):
                 control = self.columns[i]['method'](self, self)
                 
             if control:
-                control.icon = icon
+                control.icon = self._get_icon(i, 'icon')
+                control.icon_right = self._get_icon(i, 'icon_right')
                 self.controls.append(control)
-                self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                
+                
+                if i != 0:
+                    self.hSizer.AddSpacer((3, -1))
+                    
+                if control.icon:
+                    self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                
+                self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
+                
+                if control.icon_right:
+                    self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                 
                 if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                     control.SetMinSize((1,-1))
@@ -104,13 +103,33 @@ class ListItem(wx.Panel):
             else:
                 if self.columns[i]['width'] != LIST_AUTOSIZEHEADER:
                     self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT, 3)    
-        
-        #always end with a spacer of size 3
-        rightSpacer += 3
-        self.hSizer.AddSpacer((rightSpacer, -1))
+
+        if rightSpacer > 0:
+            self.hSizer.AddSpacer((rightSpacer, -1))
         self.hSizer.Layout()
         
         self.AddEvents(self)
+        
+    def _get_icon(self, column, name="icon"):
+        icon = None
+        if self.columns[column].get(name, False):
+            if self.columns[column][name] == 'checkbox' or self.columns[column][name] == 'tree':
+                icon = wx.StaticBitmap(self, -1, self.GetIcon(self.columns[column][name], LIST_DESELECTED, 0))
+                icon.type = self.columns[column][name]
+                
+            else:
+                icon = self.columns[column][name](self)
+                if icon:
+                    tooltip = None
+                    if isinstance(icon, tuple):
+                        icon, tooltip = icon
+                    
+                    icon = wx.StaticBitmap(self, -1, icon)
+                    icon.type = None
+                    
+                    if tooltip:
+                        icon.SetToolTipString(tooltip)
+        return icon
     
     @warnWxThread
     def AddEvents(self, control):
@@ -131,8 +150,8 @@ class ListItem(wx.Panel):
                 self.AddEvents(child)
     
     @warnWxThread  
-    def GetIcon(self, background, state):
-        return NativeIcon.getInstance().getBitmap(self, self.icontype, background, state)
+    def GetIcon(self, icontype, background, state):
+        return NativeIcon.getInstance().getBitmap(self, icontype, background, state)
     
     @warnWxThread
     def RefreshData(self, data):
@@ -171,6 +190,9 @@ class ListItem(wx.Panel):
                 if self.data[i] != data[1][i]:
                     control = self.columns[i]['method'](self, self)
                     if control:
+                        control.icon = self.controls[control_index].icon
+                        control.icon_right = self.controls[control_index].icon_right
+                        
                         if isinstance(control, wx.Panel):
                             control.SetBackgroundColour(self.GetBackgroundColour())
                         
@@ -180,7 +202,7 @@ class ListItem(wx.Panel):
                                 break
                             else:
                                 cur_sizeritem_index += 1
-                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
                         
                         self.hSizer.Detach(self.controls[control_index])
                         self.controls[control_index].Hide()
@@ -258,14 +280,12 @@ class ListItem(wx.Panel):
                     if isinstance(child, wx.Panel):
                         child.SetBackgroundColour(color)
             
-            #If this item has a icon and it is not checked
-            if getattr(self, 'expandedState', False):
-                if self.expanded:
-                    state = 1
-                else:
-                    state = 0
-                self.expandedState.SetBitmap(self.GetIcon(self.GetBackgroundColour(), state))
-                self.expandedState.Refresh()
+            
+            for control in self.controls:
+                if getattr(control, 'icon', False) and control.icon.type:
+                    state = 1 if self.expanded else 0
+                    control.icon.SetBitmap(self.GetIcon(control.icon.type, self.GetBackgroundColour(), state))
+                    control.icon.Refresh()
             
             #self.Refresh()
             self.Thaw()
@@ -322,8 +342,9 @@ class ListItem(wx.Panel):
             if self.parent_list.OnExpand(self):
                 self.expanded = True
             
-                if getattr(self, 'expandedState', False):
-                    self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 1))
+                for control in self.controls:
+                    if control.icon and control.icon.type:
+                        control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 1))
         else:
             self.DoCollapse()
     
@@ -347,8 +368,9 @@ class ListItem(wx.Panel):
         self.parent_list.OnCollapse(self)
         self.expanded = False
             
-        if getattr(self, 'expandedState', False):
-            self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 0))
+        for control in self.controls:
+            if control.icon and control.icon.type:
+                control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 0))
 
     @warnWxThread
     def Collapse(self):
@@ -401,7 +423,7 @@ class AbstractListBody():
     
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
-        self.messagePanel.SetBackgroundColour(wx.WHITE)
+        self.messagePanel.SetBackgroundColour(DEFAULT_BACKGROUND)
         self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -450,7 +472,7 @@ class AbstractListBody():
     
     @warnWxThread
     def SetBackgroundColour(self, colour):
-        wx.Panel.SetBackgroundColour(self, wx.WHITE)
+        wx.Panel.SetBackgroundColour(self, DEFAULT_BACKGROUND)
         self.listpanel.SetBackgroundColour(colour)
     
     @warnWxThread
@@ -562,10 +584,12 @@ class AbstractListBody():
         
         #Determine scrollrate
         if self.rate is None:
-            nritems = len(self.vSizer.GetChildren()) / 2
-            if nritems > 4:
+            nritems = len(self.vSizer.GetChildren())
+            if nritems > 0:
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
+                if DEBUG:
+                    print >> sys.stderr, "ListBody: setting scrollrate to", self.rate
                 
                 self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             else:
@@ -686,7 +710,7 @@ class AbstractListBody():
         
         diff = time() - (self.listRateLimit + self.lastData)
         call_in = -diff * 1000
-        if call_in < 0:
+        if call_in <= 0:
             doSetData()
         else:
             if self.dataTimer == None:
@@ -861,6 +885,12 @@ class AbstractListBody():
     def GetItem(self, key):
         return self.items[key]
     
+    def GetItemPos(self, key):
+        # Returns the index of the ListItem belonging to this key
+        for i, data in enumerate(self.data):
+            if key == data[0]:
+                return i
+    
     @warnWxThread   
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
@@ -934,15 +964,21 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
         
+        self.SetForegroundColour(parent.GetForegroundColour())
         self.SetupScrolling()
                 
     def OnChildFocus(self, event):
         event.Skip()
+        
+    def SetFocus(self):
+        self.SetFocusIgnoringChildren()
     
 class FixedListBody(wx.Panel, AbstractListBody):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
         wx.Panel.__init__(self, parent)
         AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max = list_item_max, hasFilter = False)
+        
+        self.SetForegroundColour(parent.GetForegroundColour())
     
     def Scroll(self, x, y):
         pass

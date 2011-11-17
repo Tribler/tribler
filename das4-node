@@ -61,7 +61,7 @@ find . -maxdepth 1 -mindepth 1 -type d | while read PEER_DIR; do
 	# we have the peer directory in PEER_DIR
 	PEER_ID=$(echo $PEER_DIR | cut -c3-7)
 	mkdir -p $PEERS_DIRECTORY/$PEER_ID/output
-	find $PEER_DIR -type f ! -name 'bartercast.log' ! -name 'availability.log' ! -name 'peer-keys' ! -name 'peer*' -exec cp {} $PEERS_DIRECTORY/$PEER_ID/output/ \;
+	find $PEER_DIR -type f ! -name 'bartercast.log' ! -name 'availability.log' ! -name 'peer-keys' ! -name 'peer*' ! -name '*.db' -exec cp {} $PEERS_DIRECTORY/$PEER_ID/output/ \;
 done
 
 # remove temporary directory

@@ -1,3 +1,4 @@
+from candidate import LocalhostCandidate
 from meta import MetaObject
 
 if __debug__:
@@ -75,7 +76,7 @@ class DelayPacketByMissingMessage(DelayPacket):
         footprint = "".join(("Community:", community.cid.encode("HEX"),
                              "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
                              "\s", "Resolution",
-                             "\s", "(Relay|Direct|Sync|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+"))
+                             "\s", "((Relay|Direct|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), ")|FullSyncDistribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+)"))
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = community.get_meta_message(u"dispersy-missing-message")
@@ -139,9 +140,15 @@ class DelayMessageByProof(DelayMessage):
         if __debug__:
             from message import Message
         assert isinstance(delayed, Message.Implementation)
+
+        # 01/11/11 Boudewijn: adding "(?MESSAGE-NAME)" too the pattern will ensure that we create
+        # different trigger object for different meta messages, note that a 'missing-proof' message
+        # is ONLY sent when a new trigger is created...
+
         # the footprint that will trigger the delayed packet
         footprint = "".join(("(dispersy-authorize|dispersy-dynamic-settings)",
-                             " Community:", delayed.community.cid.encode("HEX")))
+                             " Community:", delayed.community.cid.encode("HEX"),
+                             "(?#", delayed.name.encode("UTF-8"), ")"))
 
         # the request message that asks for the message that will trigger the delayed packet
         meta = delayed.community.get_meta_message(u"dispersy-missing-proof")
@@ -310,7 +317,7 @@ class Packet(MetaObject.Implementation):
     packet_id = property(__get_packet_id, __set_packet_id)
 
     def load_message(self):
-        return self._meta.community.get_conversion(self._packet[:22]).decode_message(("", -1), self._packet)
+        return self._meta.community.get_conversion(self._packet[:22]).decode_message(LocalhostCandidate(self._meta._community.dispersy), self._packet)
 
     def __str__(self):
         return "<%s.%s %s %dbytes>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
@@ -320,10 +327,11 @@ class Packet(MetaObject.Implementation):
 #
 class Message(MetaObject):
     class Implementation(Packet):
-        def __init__(self, meta, authentication, resolution, distribution, destination, payload, conversion=None, address=("", -1), packet="", packet_id=0):
+        def __init__(self, meta, authentication, resolution, distribution, destination, payload, conversion=None, candidate=None, packet="", packet_id=0):
             if __debug__:
                 from payload import Payload
                 from conversion import Conversion
+                from candidate import Candidate
             assert isinstance(meta, Message), "META has invalid type '%s'" % type(meta)
             assert isinstance(authentication, meta._authentication.Implementation), "AUTHENTICATION has invalid type '%s'" % type(authentication)
             assert isinstance(resolution, meta._resolution.Implementation), "RESOLUTION has invalid type '%s'" % type(resolution)
@@ -331,10 +339,7 @@ class Message(MetaObject):
             assert isinstance(destination, meta._destination.Implementation), "DESTINATION has invalid type '%s'" % type(destination)
             assert isinstance(payload, meta._payload.Implementation), "PAYLOAD has invalid type '%s'" % type(payload)
             assert conversion is None or isinstance(conversion, Conversion), "CONVERSION has invalid type '%s'" % type(conversion)
-            assert isinstance(address, tuple)
-            assert len(address) == 2
-            assert isinstance(address[0], str)
-            assert isinstance(address[1], int)
+            assert candidate is None or isinstance(candidate, Candidate)
             assert isinstance(packet, str)
             assert isinstance(packet_id, (int, long))
             super(Message.Implementation, self).__init__(meta, packet, packet_id)
@@ -343,7 +348,7 @@ class Message(MetaObject):
             self._distribution = distribution
             self._destination = destination
             self._payload = payload
-            self._address = address
+            self._candidate = candidate
             self._footprint = " ".join((meta._name.encode("UTF-8"),
                                         "Community:%s" % meta._community.cid.encode("HEX"),
                                         authentication.footprint,
@@ -397,8 +402,8 @@ class Message(MetaObject):
             return self._payload
 
         @property
-        def address(self):
-            return self._address
+        def candidate(self):
+            return self._candidate
 
         @property
         def footprint(self):
@@ -595,7 +600,7 @@ class Message(MetaObject):
         from authentication import Authentication, NoAuthentication, MemberAuthentication, MultiMemberAuthentication
         from resolution import Resolution, PublicResolution, LinearResolution, DynamicResolution
         from distribution import Distribution, RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution
-        from destination import Destination, AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination
+        from destination import Destination, CandidateDestination, MemberDestination, CommunityDestination, SubjectiveDestination
 
         assert isinstance(authentication, Authentication)
         assert isinstance(resolution, Resolution)
@@ -609,26 +614,26 @@ class Message(MetaObject):
         if isinstance(authentication, NoAuthentication):
             require(authentication, resolution, PublicResolution)
             require(authentication, distribution, (RelayDistribution, DirectDistribution))
-            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination))
+            require(authentication, destination, (CandidateDestination, MemberDestination, CommunityDestination))
         elif isinstance(authentication, MemberAuthentication):
             require(authentication, resolution, (PublicResolution, LinearResolution, DynamicResolution))
             require(authentication, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
+            require(authentication, destination, (CandidateDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         elif isinstance(authentication, MultiMemberAuthentication):
             require(authentication, resolution, (PublicResolution, LinearResolution, DynamicResolution))
             require(authentication, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(authentication, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
+            require(authentication, destination, (CandidateDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         else:
             raise ValueError("%s is not supported" % authentication.__class_.__name__)
 
         if isinstance(resolution, PublicResolution):
             require(resolution, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
             require(resolution, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
+            require(resolution, destination, (CandidateDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         elif isinstance(resolution, LinearResolution):
             require(resolution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(resolution, distribution, (RelayDistribution, DirectDistribution, FullSyncDistribution, LastSyncDistribution))
-            require(resolution, destination, (AddressDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
+            require(resolution, destination, (CandidateDestination, MemberDestination, CommunityDestination, SubjectiveDestination))
         elif isinstance(resolution, DynamicResolution):
             pass
         else:
@@ -637,11 +642,11 @@ class Message(MetaObject):
         if isinstance(distribution, RelayDistribution):
             require(distribution, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution, DynamicResolution))
-            require(distribution, destination, (AddressDestination, MemberDestination))
+            require(distribution, destination, (CandidateDestination, MemberDestination))
         elif isinstance(distribution, DirectDistribution):
             require(distribution, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution, DynamicResolution))
-            require(distribution, destination, (AddressDestination, MemberDestination, CommunityDestination))
+            require(distribution, destination, (CandidateDestination, MemberDestination, CommunityDestination))
         elif isinstance(distribution, FullSyncDistribution):
             require(distribution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution, DynamicResolution))
@@ -652,12 +657,10 @@ class Message(MetaObject):
             require(distribution, authentication, (MemberAuthentication, MultiMemberAuthentication))
             require(distribution, resolution, (PublicResolution, LinearResolution, DynamicResolution))
             require(distribution, destination, (CommunityDestination, SubjectiveDestination))
-            if isinstance(authentication, MultiMemberAuthentication) and distribution.enable_sequence_number:
-                raise ValueError("%s may not be used with %s when sequence numbers are enabled" % (distribution.__class__.__name__, authentication.__class__.__name__))
         else:
             raise ValueError("%s is not supported" % distribution.__class_.__name__)
 
-        if isinstance(destination, AddressDestination):
+        if isinstance(destination, CandidateDestination):
             require(destination, authentication, (NoAuthentication, MemberAuthentication, MultiMemberAuthentication))
             require(destination, resolution, (PublicResolution, LinearResolution, DynamicResolution))
             require(destination, distribution, (RelayDistribution, DirectDistribution))

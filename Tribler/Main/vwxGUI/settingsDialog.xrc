@@ -390,7 +390,7 @@
                                                         </font>
                                                     </object>
                                                     <minsize>100,-1</minsize>
-                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                    <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
                                                 </object>
                                                 <object class="spacer">
                                                     <option>1</option>
@@ -449,7 +449,7 @@
                                                         </font>
                                                     </object>
                                                     <minsize>100,-1</minsize>
-                                                    <flag>wxALIGN_CENTER_VERTICAL</flag>
+                                                    <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
                                                 </object>
                                                 <object class="spacer">
                                                     <option>1</option>

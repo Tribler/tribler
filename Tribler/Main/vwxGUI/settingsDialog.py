@@ -11,13 +11,14 @@ import tempfile
 import atexit
 
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceDBThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
+from Tribler.Main.vwxGUI import forceDBThread
 
 class SettingsDialog(wx.Dialog):
     def __init__(self):
@@ -199,13 +200,22 @@ class SettingsDialog(wx.Dialog):
         old_item = event.GetOldItem() 
         new_item = event.GetItem()
         try:
-            self.tree.GetItemData(old_item).GetData().Hide()
-            self.tree.GetItemData(new_item).GetData().Show(True)
-            self.tree.GetItemData(new_item).GetData().Layout()
-            self.Layout()
-            self.Refresh()
+            self.ShowPage(self.tree.GetItemData(new_item).GetData(), self.tree.GetItemData(old_item).GetData())
         except:
             pass
+        
+    def ShowPage(self, page, oldpage):
+        if oldpage == None:
+            selection = self.tree.GetSelection()
+            oldpage = self.tree.GetItemData(selection).GetData()
+        
+        oldpage.Hide()
+        
+        page.Show(True)
+        page.Layout()
+        
+        self.Layout()
+        self.Refresh()
     
     def OnDownloadChoice(self, event):
         checked = self.elements['diskLocationChoice'].IsChecked()
@@ -259,22 +269,32 @@ class SettingsDialog(wx.Dialog):
             errors['myNameField'] = 'Max 40 characters'
             
         hours_min = self.elements['t4t2text'].GetValue()
-        hours_min = hours_min.split(':')
         if len(hours_min) == 0:
-            errors['t4t2text'] = 'Need value'
+            if self.elements['t4t2'].GetValue():
+                errors['t4t2text'] = 'Need value'
         else:
+            hours_min = hours_min.split(':')
+            
             for value in hours_min:
                 if not value.isdigit():
-                    errors['t4t2text'] = 'Needs to be integer'
+                    if self.elements['t4t2'].GetValue():
+                        errors['t4t2text'] = 'Needs to be integer'
+                    else:
+                        self.elements['t4t2text'].SetValue('')
+            
         
         hours_min = self.elements['g2g2text'].GetValue()
-        hours_min = hours_min.split(':')
         if len(hours_min) == 0:
-            errors['g2g2text'] = 'Need value'
+            if self.elements['g2g2'].GetValue():
+                errors['g2g2text'] = 'Need value'
         else:
+            hours_min = hours_min.split(':')
             for value in hours_min:
                 if not value.isdigit():
-                    errors['g2g2text'] = 'Needs to be hours:minutes'
+                    if self.elements['g2g2'].GetValue():
+                        errors['g2g2text'] = 'Needs to be hours:minutes'
+                    else:
+                        self.elements['g2g2text'].SetValue('')
         
         if len(errors) == 0: #No errors found, continue saving
             restart = False
@@ -394,6 +414,9 @@ class SettingsDialog(wx.Dialog):
                 if sys.platform != 'darwin':
                     self.elements[error].SetForegroundColour(wx.RED)
                 self.elements[error].SetValue(errors[error])
+            
+            parentPanel = self.elements[error].GetParent()
+            self.ShowPage(parentPanel, None)
                     
     def cancelAll(self, event):
         self.EndModal(1)

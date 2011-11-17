@@ -8,6 +8,7 @@ from __init__ import LIST_RADIUS
 import sys
 import wx
 import os
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
@@ -67,6 +68,7 @@ class ListHeader(wx.Panel):
         self.sortedDirection = False
         
         self.scrollBar = None
+        self.SetForegroundColour(parent.GetForegroundColour())
 
         self.AddComponents(columns, spacers)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -101,7 +103,10 @@ class ListHeader(wx.Panel):
                     label.column = i
                     label.Bind(wx.EVT_LEFT_UP, self.OnClick)
                     
-                    sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                    if i == 0:
+                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
+                    else:
+                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
 
                     if columns[i].get('defaultSorted', False):
                         if columns[i].get('sortAsc', False):
@@ -139,7 +144,7 @@ class ListHeader(wx.Panel):
                     spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                     self.columnHeaders.append(spacer)
 
-        self.scrollBar = sizer.AddSpacer((3,0))
+        self.scrollBar = sizer.AddSpacer((0,0))
         self.scrollBar.sizer = sizer
     
     def ResizeColumn(self, column, width):
@@ -156,7 +161,7 @@ class ListHeader(wx.Panel):
 
     def SetSpacerRight(self, right):
         if self.scrollBar:
-            right = max(3, right + 3)
+            right = max(0, right)
             
             if self.scrollBar.GetSize()[0] != right:
                 self.scrollBar.SetSpacer((right, 0))
@@ -271,7 +276,7 @@ class TitleHeader(ListHeader):
         if titlePanel:
             subSizer = wx.BoxSizer(wx.HORIZONTAL)
             subSizer.Add(self.title)
-            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL)
             titlePanel = subSizer
         else:
             titlePanel = self.title
@@ -285,7 +290,7 @@ class TitleHeader(ListHeader):
             subtitlePanel = titlePanel
         
         subSizer = wx.BoxSizer(wx.HORIZONTAL)
-        subSizer.Add(subtitlePanel, 0, wx.LEFT, 3)
+        subSizer.Add(subtitlePanel)
         if righttitlePanel:
             subSizer.Add(righttitlePanel, 1, wx.LEFT, 3)
         righttitlePanel = subSizer
@@ -319,6 +324,9 @@ class TitleHeader(ListHeader):
             self.title.Refresh()
             self.Layout()
             self.Thaw()
+            
+    def SetToolTip(self, tooltip):
+        self.title.SetToolTipString(tooltip)
 
 class SearchHeaderHelper():
     
@@ -543,7 +551,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         
         dlg = wx.Dialog(GUIUtility.getInstance().frame, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500,300))
         dlg.CenterOnParent()
-        dlg.SetBackgroundColour(wx.WHITE)
+        dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         sizer = wx.FlexGridSizer(2,2)
         
@@ -581,7 +589,7 @@ class ChannelHeader(SearchHeader):
 
     def GetBelowPanel(self, parent):
         self.descriptionPanel = ImageScrollablePanel(parent)
-        self.descriptionPanel.SetBackgroundColour(wx.WHITE)
+        self.descriptionPanel.SetBackgroundColour(DEFAULT_BACKGROUND)
         
         self.description = StaticText(self.descriptionPanel)
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -632,6 +640,22 @@ class ChannelHeader(SearchHeader):
         else:
             self.descriptionPanel.Hide()
             
+class ChannelOnlyHeader(ChannelHeader):
+    
+    def GetRightTitlePanel(self, parent):
+        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+
+        self.settings = wx.Button(parent, -1, "Settings")
+        self.library = wx.Button(parent, -1, "Downloads")
+        
+        hSizer.Add(self.settings, 0, wx.LEFT, 5)
+        hSizer.Add(self.library, 0, wx.LEFT, 5)
+        return hSizer
+    
+    def SetEvents(self, settings, library):
+        self.library.Bind(wx.EVT_BUTTON, library)
+        self.settings.Bind(wx.EVT_BUTTON, settings)
+            
 class LibraryHeader(SearchHelpHeader):
     def GetRightTitlePanel(self, parent):
         sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
@@ -643,6 +667,24 @@ class LibraryHeader(SearchHelpHeader):
         
     def SetEvents(self, add):
         self.add.Bind(wx.EVT_BUTTON, add)
+        
+class LibraryOnlyHeader(LibraryHeader):
+    
+    def GetRightTitlePanel(self, parent):
+        hSizer = LibraryHeader.GetRightTitlePanel(self, parent)
+        
+        self.settings = wx.Button(parent, -1, "Settings")
+        self.channel = wx.Button(parent, -1, "Channel")
+        
+        hSizer.Add(self.settings, 0, wx.LEFT, 5)
+        hSizer.Add(self.channel, 0, wx.LEFT, 5)
+        return hSizer
+    
+    def SetEvents(self, add, settings, channel):
+        LibraryHeader.SetEvents(self, add)
+        
+        self.channel.Bind(wx.EVT_BUTTON, channel)
+        self.settings.Bind(wx.EVT_BUTTON, settings)
             
 class PlayerHeader(TitleHeader):
     def __init__(self, parent, parent_list, background, columns, minimize, maximize):

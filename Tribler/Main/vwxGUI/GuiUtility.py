@@ -13,56 +13,17 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Category.Category import Category
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Search.SearchManager import split_into_keywords,\
+    fts3_preprocess
 from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager, LibraryManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
-import inspect
+from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 
 DEBUG = False
-TRHEADING_DEBUG = False
-
-def forceWxThread(func):
-    def invoke_func(*args,**kwargs):
-        if wx.Thread_IsMain():
-            func(*args, **kwargs)
-        else:
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            wx.CallAfter(func, *args, **kwargs)
-            
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
-def warnWxThread(func):
-    def invoke_func(*args,**kwargs):
-        if not wx.Thread_IsMain():
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-        
-        return func(*args, **kwargs)
-    
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
-def forceDBThread(func):
-    def invoke_func(*args,**kwargs):
-        if onWorkerThread():
-            func(*args, **kwargs)
-        else:
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            startWorker(None, func, wargs=args, wkwargs=kwargs)
-            
-    invoke_func.__name__ = func.__name__
-    return invoke_func
 
 class GUIUtility:
     __single = None
@@ -94,13 +55,6 @@ class GUIUtility:
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
      
-        self.mainColour = wx.Colour(216,233,240) # main color theme used throughout the interface      
-
-        self.selectedColour = self.mainColour
-        self.unselectedColour = wx.WHITE ## 102,102,102      
-        self.unselectedColour2 = wx.WHITE ## 230,230,230       
-        self.selectedColourPending = self.mainColour  ## 208,251,244
-        self.bgColour = wx.Colour(102,102,102)
 
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
         self.max_remote_queries = 20    # max number of remote peers to query
@@ -115,12 +69,14 @@ class GUIUtility:
     
     def register(self):
         self.torrentsearch_manager = TorrentManager.getInstance(self)
-        self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
+        self.channelsearch_manager = ChannelManager.getInstance()
         self.library_manager = LibraryManager.getInstance(self)
+        self.torrentstate_manager = TorrentStateManager.getInstance(self)
         
-        self.torrentsearch_manager.connect()
-        self.channelsearch_manager.connect()
-        self.library_manager.connect()
+        self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
+        self.channelsearch_manager.connect(self.utility.session, self.torrentsearch_manager)
+        self.library_manager.connect(self.utility.session, self.torrentsearch_manager)
+        self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
     
     def ShowPlayer(self, show):
         if self.frame.videoparentpanel:
@@ -247,15 +203,16 @@ class GUIUtility:
             self.frame.selectedchannellist.Focus()
         elif page =='my_files':
             self.frame.librarylist.Focus()
-        
-                
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):
         if topage:
             self.oldpage.pop()
         else:
-            topage = self.oldpage.pop()
+            if len(self.oldpage) > 0:
+                topage = self.oldpage.pop()
+            else:
+                return
         
         if topage == 'channels':
             category = self.frame.channellist.GetManager().category
@@ -304,28 +261,31 @@ class GUIUtility:
                 self.ShowPage('my_files')
                 
         else:
-            wantkeywords = split_into_keywords(input)
-            wantkeywords = [keyword for keyword in wantkeywords if len(keyword) > 1]
-            safekeywords = ' '.join(wantkeywords)
+            fts3feaures, old_keywords = fts3_preprocess(input)
+            remotekeywords = split_into_keywords(old_keywords)
+            remotekeywords = [keyword for keyword in remotekeywords if len(keyword) > 1]
+            
+            safekeywords = ' '.join(remotekeywords + fts3feaures)
             
             if len(safekeywords)  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
+                
             else:
                 self.frame.top_bg.StartSearch()
-                self.current_search_query = wantkeywords
+                self.current_search_query = remotekeywords
                 if DEBUG:
-                    print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords, time()
+                    print >>sys.stderr,"GUIUtil: searchFiles:", remotekeywords, time()
                 
                 self.frame.searchlist.Freeze()         
                
-                self.torrentsearch_manager.setSearchKeywords(wantkeywords)
-                self.channelsearch_manager.setSearchKeywords(wantkeywords)
+                self.torrentsearch_manager.setSearchKeywords(remotekeywords, fts3feaures)
+                self.channelsearch_manager.setSearchKeywords(remotekeywords)
                 
                 self.frame.searchlist.Reset()
                 self.ShowPage('search_results', safekeywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
-                self.frame.searchlist.Thaw()                
+                self.frame.searchlist.Thaw()
                 
                 #Peform local search
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
@@ -333,25 +293,26 @@ class GUIUtility:
                 
                 self.torrentsearch_manager.refreshGrid()
                 
-                #Start remote search
-                #Arno, 2010-02-03: Query starts as Unicode
-                q = u'SIMPLE '
-                for kw in wantkeywords:
-                    q += kw+u' '
-                q = q.strip()
-                
-                nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
-                
-                #Indicate expected nr replies in gui, use local result as first
-                self.frame.searchlist.SetMaxResults(nr_peers_connected+1)
-                self.frame.searchlist.NewResult()
-                
-                if len(input) > 1: #do not perform remote channel search for single character inputs
-                    q = 'CHANNEL k '
-                    for kw in wantkeywords:
-                        q += kw+' '
-                    self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
-                wx.CallLater(10000, self.CheckSearch, wantkeywords)
+                if len(remotekeywords) > 0:
+                    #Start remote search
+                    #Arno, 2010-02-03: Query starts as Unicode
+                    q = u'SIMPLE '
+                    for kw in remotekeywords:
+                        q += kw+u' '
+                    q = q.strip()
+                    
+                    nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
+                    
+                    #Indicate expected nr replies in gui, use local result as first
+                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1)
+                    self.frame.searchlist.NewResult()
+                    
+                    if len(input) > 1: #do not perform remote channel search for single character inputs
+                        q = 'CHANNEL k '
+                        for kw in remotekeywords:
+                            q += kw+' '
+                        self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
+                    wx.CallLater(10000, self.CheckSearch, remotekeywords)
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):
@@ -405,7 +366,11 @@ class GUIUtility:
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.refresh(channel)
+            
             self.ShowPage('selectedchannel')
+            
+            if isinstance(channel, RemoteChannel):
+                self.showChannelFromPermid(channel.permid)
             
     def showChannels(self):
         self.frame.top_bg.selectTab('channels')
@@ -500,7 +465,6 @@ class GUIUtility:
                 kws = split_into_keywords(kwstr)
 
                 self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
-            
             
         # Let channelcast handle inserting items etc.
         channelcast = BuddyCastFactory.getInstance().channelcast_core

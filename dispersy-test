@@ -26,7 +26,6 @@ python "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-subjective-set || ex
 python "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-sync || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-timeline || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-undo || exit 1
-#python "$BRANCH/Tribler/Main/dispersy.py" --script all $@ || exit 1
 
 echo "================================================================================"
 echo "Testcases in optimized mode"
@@ -49,7 +48,6 @@ python -O "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-subjective-set ||
 python -O "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-sync || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-timeline || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-undo || exit 1
-# python -O "$BRANCH/Tribler/Main/dispersy.py" --script all $@ || exit 1
 
 echo "================================================================================"
 echo "Finished testcases successfully"

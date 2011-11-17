@@ -75,7 +75,6 @@ rm -rf ${MYDIR}/output
 
 # move config files
 mv /tmp/$USER/dispersy/peer_${MY_ID}.conf ${MYDIR}/data/peer.conf
-mv /tmp/$USER/dispersy/peer-keys_${MY_ID}.conf ${MYDIR}/data/peers
 
 #read -p "Press the any key to continue..."
 

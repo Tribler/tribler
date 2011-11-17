@@ -103,6 +103,7 @@ class VoteCastPayload(Payload):
             assert isinstance(cid, str)
             assert len(cid) == 20
             assert isinstance(vote, int)
+            assert vote in [-1,0,2]
             assert isinstance(timestamp, (int, long))
             
             super(VoteCastPayload.Implementation, self).__init__(meta)

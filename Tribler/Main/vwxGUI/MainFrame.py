@@ -20,13 +20,17 @@ import os,sys
 import signal
 import commands
 import pickle
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel,\
+    TopSearchPanelStub
 from Tribler.Main.vwxGUI.home import Home, Stats
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
     ChannelCategoriesList, LibraryList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
     ManageChannel
 from wx.html import HtmlWindow
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
+import traceback
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 try:
     import wxversion
@@ -151,16 +155,21 @@ class MainFrame(wx.Frame):
             if font.GetPointSize() > 9:
                 font.SetPointSize(9)
                 self.SetFont(font)
-        
+                
         self.Freeze()
         self.SetDoubleBuffered(True)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(DEFAULT_BACKGROUND)
+        
+        themeColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+        r, g, b = themeColour.Get(False)
+        if r > 190 or g > 190 or b > 190: #Grey == 190,190,190
+            self.SetForegroundColour(wx.BLACK)
             
         #Create all components        
         progress('Creating panels')
-        self.top_bg = TopSearchPanel(self, channelonly)
-        
         if not channelonly:
+            self.top_bg = TopSearchPanel(self)
+            
             self.home = Home(self)
         
             #build channelselector panel
@@ -181,7 +190,9 @@ class MainFrame(wx.Frame):
             self.channellist = ChannelList(self)
             self.channellist.Show(False)
         else:
-            self.guiUtility.guiPage = ''
+            self.top_bg = None
+            
+            self.guiUtility.guiPage = 'selectedchannel'
             self.home = None
             self.channelselector = None
             self.channelcategories = None
@@ -207,17 +218,27 @@ class MainFrame(wx.Frame):
             self.videoparentpanel = None
         
         progress('Positioning')
-        #position all elements            
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(self.top_bg, 0, wx.EXPAND)
         
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         if not channelonly:
+            #position all elements            
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            
+            vSizer.Add(self.top_bg, 0, wx.EXPAND)
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
+            
             hSizer.Add(self.home, 1, wx.EXPAND|wx.ALL, 20)
             hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
             hSizer.Add(self.channelselector, 0, wx.EXPAND|wx.RIGHT, 5)
             hSizer.Add(self.channellist, 1, wx.EXPAND)
             hSizer.Add(self.searchlist, 1, wx.EXPAND)
+            
+        else:
+            vSizer = wx.BoxSizer(wx.VERTICAL) 
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
+            
+            self.top_bg = TopSearchPanelStub()
             
         hSizer.Add(self.selectedchannellist, 1, wx.EXPAND)
         hSizer.Add(self.playlist, 1, wx.EXPAND)
@@ -227,7 +248,6 @@ class MainFrame(wx.Frame):
         if self.videoparentpanel:
             hSizer.Add(self.videoparentpanel, 0, wx.LEFT, 5)
         
-        vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
         self.SetSizer(vSizer)
         
         #set sizes
@@ -253,6 +273,8 @@ class MainFrame(wx.Frame):
         wx.CallLater(1500, preload_data)
         if channelonly:
             self.guiUtility.showChannelFromDispCid(channelonly)
+            if not self.guiUtility.useExternalVideo:
+                self.guiUtility.ShowPlayer(True)
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
@@ -436,7 +458,37 @@ class MainFrame(wx.Frame):
                     self.show_saved()
                 
                 # store result because we want to store clicklog data
-                # right after download was started, then return result
+                # right after d#        self.frame.sendButton.Disable()
+#        # Disabling the focused button disables keyboard navigation
+#        # unless we set the focus to something else - let's put it
+#        # on close button
+#        self.frame.closeButton.SetFocus() 
+#        self.frame.sendButton.SetLabel(_(u'Sending...'))
+#        
+#        try:
+#            from M2Crypto import httpslib, SSL
+#            # Try to load the CA certificates for secure SSL.
+#            # If we can't load them, the data is hidden from casual observation,
+#            # but a man-in-the-middle attack is possible.
+#            ctx = SSL.Context()
+#            opts = {}
+#            if ctx.load_verify_locations('parcels/osaf/framework/certstore/cacert.pem') == 1:
+#                ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, 9)
+#                opts['ssl_context'] = ctx
+#            c = httpslib.HTTPSConnection('feedback.osafoundation.org', 443, opts)
+#            body = buildXML(self.frame.comments, self.frame.email,
+#                            self.frame.sysInfo, self.frame.text)
+#            c.request('POST', '/desktop/post/submit', body)
+#            response = c.getresponse()
+#            
+#            if response.status != 200:
+#                raise Exception('response.status=' + response.status)
+#            c.close()
+#        except:
+#            self.frame.sendButton.SetLabel(_(u'Failed to send'))
+#        else:
+#            self.frame.sendButton.SetLabel(_(u'Sent'))
+#            self.logReport(body, response.read())ownload was started, then return result
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                     mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
@@ -714,9 +766,9 @@ class MainFrame(wx.Frame):
     def OnFind(self, event):
         self.top_bg.SearchFocus()
     def OnNext(self, event):
-        self.guiUtility.frame.top_bg.NextPage()
+        self.top_bg.NextPage()
     def OnPrev(self, event):
-        self.guiUtility.frame.top_bg.PrevPage()
+        self.top_bg.PrevPage()
 
 
     #######################################
@@ -915,6 +967,22 @@ class MainFrame(wx.Frame):
         dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK|wx.ICON_WARNING)
         result = dlg.ShowModal()
         dlg.Destroy()
+        
+    def exceptionHandler(self, exc, fatal = False):
+        type, value, stack = sys.exc_info()
+        backtrace = traceback.format_exception(type, value, stack)
+        
+        def do_gui():
+            win = FeedbackWindow(self.utility.lang.get('tribler_warning'))
+            win.SetParent(self)
+            win.CreateOutputWindow('')
+            for line in backtrace:
+                win.write(line)
+            
+            if fatal:
+                win.Show()
+            
+        wx.CallAfter(do_gui)
 
     def onUPnPError(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
 

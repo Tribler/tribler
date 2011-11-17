@@ -59,7 +59,7 @@ class ChannelConversion(BinaryConversion):
         def create_msg():
             normal_msg = pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name, tuple(files), tuple(trackers)
             normal_msg = encode(normal_msg)
-            return zlib.compress(normal_msg, 9)
+            return zlib.compress(normal_msg)
         
         compressed_msg = create_msg()
         while len(compressed_msg) > max_len:
@@ -95,12 +95,15 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(files, tuple):
             raise DropPacket("Invalid 'files' type")
         
+        if len(files) == 0:
+            raise DropPacket("Should have at least one file")
+        
         for file in files:
             if len(file) != 2:
                 raise DropPacket("Invalid 'file_len' type")
             
             path, length = file
-            if not isinstance(path, str):
+            if not isinstance(path, unicode):
                 raise DropPacket("Invalid 'files_path' type is %s"%type(path))
             if not isinstance(length, (int, long)):
                 raise DropPacket("Invalid 'files_length' type is %s"%type(length))
@@ -224,11 +227,11 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'severity' type or value")
 
         cause_mid = dic.get("cause-mid", None)
-        if isinstance(cause_mid, str) and len(cause_mid) == 20:
+        if not (isinstance(cause_mid, str) and len(cause_mid) == 20):
             raise DropPacket("Invalid 'cause-mid' type or value")
         
         cause_global_time = dic.get("cause-global-time", None)
-        if isinstance(cause_global_time, (int, long)):
+        if not isinstance(cause_global_time, (int, long)):
             raise DropPacket("Invalid 'cause-global-time' type")
         
         try:
@@ -353,7 +356,7 @@ class ChannelConversion(BinaryConversion):
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
         packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        return offset, placeholder.meta.payload.implement(infohash, playlist)
+        return offset + 44, placeholder.meta.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
         if global_time and mid:
@@ -377,5 +380,5 @@ class ChannelConversion(BinaryConversion):
         if len(data) < offset + 1:
             raise DropPacket("Unable to decode the payload")
 
-        includeSnapshot = unpack_from('!?', data, offset)
-        return offset, placeholder.meta.payload.implement(includeSnapshot)
+        includeSnapshot, = unpack_from('!?', data, offset)
+        return offset+1, placeholder.meta.payload.implement(includeSnapshot)

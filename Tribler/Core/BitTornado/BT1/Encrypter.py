@@ -74,11 +74,13 @@ if sys.platform == 'win32':
     winvertuple = sys.getwindowsversion()
     # pylint: enable-msg=E1101
     spstr = winvertuple[4]
+    
     #Niels: Windows 7 is 6.1, should also not impose socket limit
     if winvertuple[0] == 5 or (winvertuple[0] == 6 and winvertuple[1] == 0 and spstr < "Service Pack 2"):
         MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout, 10 is official limit
     else:
-        MAX_INCOMPLETE = 1024 # inf
+        #Niels: Opening 1024 connections will cause problems with all kinds of firewalls etc, reducing to 64
+        MAX_INCOMPLETE = 64
 else:
     MAX_INCOMPLETE = 32
 
