@@ -1,4 +1,4 @@
-if True or __debug__:
+if __debug__:
     from time import time, sleep
     from dprint import dprint
 
@@ -68,7 +68,7 @@ def runtime_duration_warning(threshold):
     assert isinstance(threshold, float), type(threshold)
     assert 0.0 <= threshold
     def helper(func):
-        if True or __debug__:
+        if __debug__:
             def runtime_duration_warning_helper(*args, **kargs):
                 start = time()
                 try:
