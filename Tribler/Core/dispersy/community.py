@@ -31,6 +31,7 @@ from timeline import Timeline
 if __debug__:
     from dprint import dprint
     from math import ceil
+    from time import time
 
 class SubjectiveSetCache(object):
     def __init__(self, packet, subjective_set):
@@ -632,8 +633,14 @@ class Community(object):
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
     @runtime_duration_warning(0.1)
     def dispersy_claim_sync_bloom_filter_largest(self):
+        if __debug__:
+            t1 = time()
+        
         syncable_messages = u", ".join(unicode(meta.database_id) for meta in self._meta_messages.itervalues() if isinstance(meta.distribution, SyncDistribution) and meta.distribution.priority > 32)
         if syncable_messages:
+            if __debug__:
+                t2 = time()
+                    
             bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
             capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
 
@@ -661,14 +668,23 @@ class Community(object):
                         bloomfilter_range = right
                 else:
                     bloomfilter_range = right
-
+                
+                if __debug__:
+                    t3 = time()
+                
                 data = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time BETWEEN ? AND ? ORDER BY global_time ASC" % syncable_messages,
                                                            (bloomfilter_range[0], bloomfilter_range[1])))
             else:
+                if __debug__:
+                    t3 = time()
+                
                 data = self._select_and_fix(syncable_messages, 0, capacity, True)
-                bloomfilter_range[0] = 1
-                bloomfilter_range[1] = data[-1][0]
-
+                if len(data) > 0:
+                    bloomfilter_range[1] = data[-1][0]
+        
+            if __debug__:
+                t4 = time()
+        
             if bloomfilter_range[1] == self.global_time:
                 bloomfilter_range[1] = 0
 
@@ -683,9 +699,9 @@ class Community(object):
 
                 if __debug__:
                     dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilter_range[0], bloomfilter_range[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
+                    dprint(self.cid.encode("HEX"), " took %f (fakejoin %f, rangeselect %f, dataselect %f, bloomfill, %f"%(time()-t1, t2-t1, t3-t2, t4-t3, time()-t4))
 
                 return (bloomfilter_range[0], bloomfilter_range[1], 1, 0, bloom)
-
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
@@ -708,7 +724,7 @@ class Community(object):
             data.reverse()
         return data
 
-    def _select_bloomfilter_range(self, syncable_messages, global_time, to_select, higher = True, recursion = True):
+    def _select_bloomfilter_range(self, syncable_messages, global_time, to_select, higher = True):
         assert isinstance(syncable_messages, unicode)
         if higher:
             data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
@@ -723,21 +739,24 @@ class Community(object):
             bloomfilter_range = [1, self._global_time, 0]
 
         if bloomfilter_range[2] < to_select:
-            if recursion:
-                to_select = to_select - bloomfilter_range[2]
-
-                if higher:
-                    left = self._select_bloomfilter_range(syncable_messages, global_time + 1, to_select, not higher, recursion = False)
-                    bloomfilter_range = [left[0], self._global_time, bloomfilter_range[2]+left[2]]
-
-                else:
-                    right = self._select_bloomfilter_range(syncable_messages, global_time - 1, to_select, not higher, recursion = False)
-                    bloomfilter_range = [1, right[1], bloomfilter_range[2] + right[2]]
-
-            elif higher:
+            to_select = to_select - bloomfilter_range[2]
+            
+            if higher:
                 bloomfilter_range[1] = self._global_time
+                
+                lower = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
+                                                            (global_time + 1, to_select)))
+                if len(lower) > 0:
+                    bloomfilter_range[2]+= len(lower)
+                    bloomfilter_range[0] = min(lower)[0]
             else:
                 bloomfilter_range[0] = 1
+
+                higher = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
+                                                            (global_time - 1, to_select)))
+                if len(higher) > 0:
+                    bloomfilter_range[2]+= len(higher)            
+                    bloomfilter_range[1] = max(higher)[0]
 
         return bloomfilter_range
 
