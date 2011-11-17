@@ -137,7 +137,7 @@ class TrackerDispersy(Dispersy):
     def on_introduction_response(self, messages):
         for message in messages:
             print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
-        return super(TrackerDispersy, self).on_introduction_request(messages)
+        return super(TrackerDispersy, self).on_introduction_response(messages)
 
     def introduction_response_or_timeout(self, message, community, intermediary_candidate):
         if message is None:
