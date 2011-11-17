@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # Updated by George Milescu
 # see LICENSE.txt for license information
 
@@ -51,21 +51,21 @@ PROFILE = False
 #
 
 class TriblerLaunchMany(Thread):
-    
+
     def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
         self.initComplete = False
-        
+
     def register(self,session,sesslock):
         self.session = session
         self.sesslock = sesslock
-        
+
         self.downloads = {}
         config = session.sessconfig # Should be safe at startup
-        
+
         self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
         self.upnp_ext_ip = None
         self.dialback_ext_ip = None
@@ -74,16 +74,16 @@ class TriblerLaunchMany(Thread):
 
         # Orig
         self.sessdoneflag = Event()
-        
+
         # Following two attributes set/get by network thread ONLY
         self.hashcheck_queue = []
         self.sdownloadtohashcheck = None
-        
+
         # Following 2 attributes set/get by UPnPThread
         self.upnp_thread = None
         self.upnp_type = config['upnp_nat_access']
         self.nat_detect = config['nat_detect']
-        
+
         self.rawserver = RawServer(self.sessdoneflag,
                                    config['timeout_check_interval'],
                                    config['timeout'],
@@ -91,43 +91,43 @@ class TriblerLaunchMany(Thread):
                                    failfunc = self.rawserver_fatalerrorfunc,
                                    errorfunc = self.rawserver_nonfatalerrorfunc)
         self.rawserver.add_task(self.rawserver_keepalive,1)
-        
-        self.listen_port = self.rawserver.find_and_bind(0, 
-                    config['minport'], config['maxport'], config['bind'], 
+
+        self.listen_port = self.rawserver.find_and_bind(0,
+                    config['minport'], config['maxport'], config['bind'],
                     reuse = True,
-                    ipv6_socket_style = config['ipv6_binds_v4'], 
+                    ipv6_socket_style = config['ipv6_binds_v4'],
                     randomizer = config['random_port'])
-       
+
         if DEBUG:
             print >>sys.stderr,"tlm: Got listen port", self.listen_port
-        
+
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         self.shutdownstarttime = None
-         
+
         # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler, SimilarityDBHandler, PopularityDBHandler      
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler, SimilarityDBHandler, PopularityDBHandler
             from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import SeedingStatsDBHandler, SeedingStatsSettingsDBHandler
             from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
             from Tribler.Category.Category import Category
-            
+
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
-            
+
             # init cache db
             if config['nickname'] == '__default_name__':
                 config['nickname'] = socket.gethostname()
-                
+
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
 
             # new database stuff will run on only one thread
             self.database_thread = Callback()
             self.database_thread.start("Dispersy")
-                
+
             cachedb.init(config, self.rawserver_fatalerrorfunc)
-            
+
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
@@ -149,24 +149,24 @@ class TriblerLaunchMany(Thread):
             self.term_db        = TermDBHandler.getInstance()
             self.simi_db        = SimilarityDBHandler.getInstance()
             self.pops_db = PopularityDBHandler.getInstance()
-            
+
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             self.richmetadataDbHandler = MetadataDBHandler.getInstance()
 
-            # Crawling 
+            # Crawling
             if config['crawler']:
                 # ARNOCOMMENT, 2009-10-02: Should be moved out of core, used in Main client only.
                 # initialize SeedingStats database
                 cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
-    
+
                 # initialize VideoPlayback statistics database
                 cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
-                
+
                 self.crawler_db     = CrawlerDBHandler.getInstance()
                 self.crawler_db.loadCrawlers(config)
                 self.seedingstats_db = SeedingStatsDBHandler.getInstance()
                 self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
-                
+
                 if config['socnet']:
                     # initialize Friendship statistics database
                     cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
@@ -175,7 +175,7 @@ class TriblerLaunchMany(Thread):
                 else:
                     self.friendship_statistics_db = None
             else:
-                self.crawler_db = None 
+                self.crawler_db = None
                 self.seedingstats_db = None
                 self.friendship_statistics_db = None
 
@@ -199,35 +199,35 @@ class TriblerLaunchMany(Thread):
             self.mm = None
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             self.richmetadataDbHandler = None
-        
+
     def init(self):
         config = self.session.sessconfig # Should be safe at startup
-        
+
         if config['megacache'] and self.superpeer_db:
             self.superpeer_db.loadSuperPeers(config)
-        
+
         if config['overlay']:
             from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
             from Tribler.Core.Overlay.OverlayApps import OverlayApps
             from Tribler.Core.RequestPolicy import FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy
-            
+
             self.secure_overlay = SecureOverlay.getInstance()
             self.secure_overlay.register(self, config['overlay_max_message_length'])
-            
+
             # Set policy for which peer requests (proxy relay request, rquery) to answer and which to ignore
-                        
+
             self.overlay_apps = OverlayApps.getInstance()
             # Default policy, override with Session.set_overlay_request_policy()
             policy = FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy(self.session)
-            
+
             # For the new DB layer we need to run all overlay apps in a
             # separate thread instead of the NetworkThread as before.
-            
+
             self.overlay_bridge = OverlayThreadingBridge.getInstance()
-            
+
             self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
-            
+
             self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
             # It's important we don't start listening to the network until
             # all higher protocol-handling layers are properly configured.
@@ -235,7 +235,7 @@ class TriblerLaunchMany(Thread):
 
             if config['multicast_local_peer_discovery']:
                 self.setup_multicast_discovery()
-        
+
         else:
             self.secure_overlay = None
             self.overlay_apps = None
@@ -255,7 +255,7 @@ class TriblerLaunchMany(Thread):
                 if DEBUG:
                     print_exc()
                 pass
-            
+
 
         if config['megacache'] or config['overlay']:
             # Arno: THINK! whoever added this should at least have made the
@@ -264,8 +264,8 @@ class TriblerLaunchMany(Thread):
             # TODO: see if we can move this out of the core. We could make the
             # category a parameter to TorrentDB.addExternalTorrent(), but that
             # will not work directly for MetadataHandler, which is part of the
-            # core. 
-             
+            # core.
+
             # Some author: First Category instantiation requires install_dir, so do it now
             from Tribler.Category.Category import Category
 
@@ -285,21 +285,21 @@ class TriblerLaunchMany(Thread):
             # Arno,The equivalent of DEBUG=False for kadtracker
             #logging.disable(logging.CRITICAL)
             # New: see DecentralizedTracking/kadtracker/logging_conf.py
-            
+
             # Start up KTH mainline DHT
             #TODO: Can I get the local IP number?
             mainlineDHT.init(('127.0.0.1', self.listen_port), config['state_dir'])
-        
+
         # add task for tracker checking
         if config['torrent_checking']:
-            
+
             if config['mainline_dht']:
                 # Create torrent-liveliness checker based on DHT
                 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-                
+
                 c = mainlineDHTChecker.getInstance()
                 c.register(mainlineDHT.dht)
-            
+
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
@@ -330,7 +330,7 @@ class TriblerLaunchMany(Thread):
                     try:
                         self.socket = rawserver.create_udpsocket(port, ip)
                         if __debug__: print >>sys.stderr, "Dispersy listening at", port
-                    except socket.error as error:
+                    except socket.error, error:
                         port += 1
                         continue
                     break
@@ -424,13 +424,13 @@ class TriblerLaunchMany(Thread):
         self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
         self.dispersy.define_auto_load(ChannelCommunity)
         self.dispersy.define_auto_load(PreviewChannelCommunity)
-        
+
         # load all communities after some time
         self.dispersy_thread.register(load_communities)
 
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
-        
+
         self.initComplete = True
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
@@ -439,22 +439,22 @@ class TriblerLaunchMany(Thread):
         try:
             if not tdef.is_finalized():
                 raise ValueError("TorrentDef not finalized")
-            
+
             infohash = tdef.get_infohash()
-            
+
             # Check if running or saved on disk
             if infohash in self.downloads:
                 raise DuplicateDownloadException()
 
-            d = Download(self.session,tdef)            
-            
+            d = Download(self.session,tdef)
+
             if pstate is None and not tdef.get_live(): # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
                     if DEBUG:
                         print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-            
-            # Store in list of Downloads, always. 
+
+            # Store in list of Downloads, always.
             self.downloads[infohash] = d
             d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback)
 
@@ -466,13 +466,13 @@ class TriblerLaunchMany(Thread):
                 save_path = os.path.join(torrent_dir, save_name)
                 if not os.path.exists(save_path):    # save the torrent to the common torrent dir
                     tdef.save(save_path)
-                
+
                 #Niels: 30-09-2011 additionally save in collectingdir as collected filename
                 normal_name = get_collected_torrent_filename(infohash)
                 save_path = os.path.join(torrent_dir, normal_name)
                 if not os.path.exists(save_path):    # save the torrent to the common torrent dir
                     tdef.save(save_path)
-                    
+
                 # hack, make sure these torrents are always good so they show up
                 # in TorrentDBHandler.getTorrents()
                 extra_info = {'status':'good'}
@@ -483,7 +483,7 @@ class TriblerLaunchMany(Thread):
                 extra_info['filename'] = save_name
 
                 self.torrent_db.addExternalTorrent(tdef, source='',extra_info=extra_info)
-                dest_path = d.get_dest_dir()    
+                dest_path = d.get_dest_dir()
                 # TODO: if user renamed the dest_path for single-file-torrent
                 data = {'destination_path':dest_path}
                 self.mypref_db.addMyPreference(infohash, data)
@@ -516,8 +516,8 @@ class TriblerLaunchMany(Thread):
                 # Leave this in place to catch unexpected errors.
                 print_exc()
                 d.set_error(e)
-                
-        
+
+
     def remove(self,d,removecontent=False,removestate=True):
         """ Called by any thread """
         self.sesslock.acquire()
@@ -535,15 +535,15 @@ class TriblerLaunchMany(Thread):
             return self.downloads.values() #copy, is mutable
         finally:
             self.sesslock.release()
-    
+
     def download_exists(self,infohash):
         self.sesslock.acquire()
         try:
             return infohash in self.downloads
         finally:
             self.sesslock.release()
-    
-    
+
+
     def rawserver_fatalerrorfunc(self,e):
         """ Called by network thread """
         if DEBUG:
@@ -566,18 +566,18 @@ class TriblerLaunchMany(Thread):
                 self.start_multicast()
                 self.multihandler.listen_forever()
             except:
-                print_exc()    
+                print_exc()
         finally:
             if self.internaltracker is not None:
                 self.internaltracker.save_state()
-            
+
             self.stop_upnp()
             self.rawserver.shutdown()
 
     def rawserver_keepalive(self):
         """ Hack to prevent rawserver sleeping in select() for a long time, not
-        processing any tasks on its queue at startup time 
-        
+        processing any tasks on its queue at startup time
+
         Called by network thread """
         self.rawserver.add_task(self.rawserver_keepalive,1)
 
@@ -595,26 +595,26 @@ class TriblerLaunchMany(Thread):
     #
     def queue_for_hashcheck(self,sd):
         """ Schedule a SingleDownload for integrity check of on-disk data
-        
+
         Called by network thread """
         if hash:
             self.hashcheck_queue.append(sd)
             # Check smallest torrents first
             self.hashcheck_queue.sort(singledownload_size_cmp)
-            
+
         if not self.sdownloadtohashcheck:
             self.dequeue_and_start_hashcheck()
 
     def dequeue_and_start_hashcheck(self):
         """ Start integriy check for first SingleDownload in queue
-        
+
         Called by network thread """
         self.sdownloadtohashcheck = self.hashcheck_queue.pop(0)
         self.sdownloadtohashcheck.perform_hashcheck(self.hashcheck_done)
 
     def hashcheck_done(self,success=True):
         """ Integrity check for first SingleDownload in queue done
-        
+
         Called by network thread """
         if DEBUG:
             print >>sys.stderr,"tlm: hashcheck_done, success",success
@@ -632,14 +632,14 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback,getpeerlist)
         self.rawserver.add_task(network_set_download_states_callback_lambda,when)
-        
+
     def network_set_download_states_callback(self,usercallback,getpeerlist):
         """ Called by network thread """
         self.sesslock.acquire()
         try:
             # Even if the list of Downloads changes in the mean time this is
             # no problem. For removals, dllist will still hold a pointer to the
-            # Download, and additions are no problem (just won't be included 
+            # Download, and additions are no problem (just won't be included
             # in list of states returned via callback.
             #
             dllist = self.downloads.values()
@@ -650,12 +650,12 @@ class TriblerLaunchMany(Thread):
         for d in dllist:
             ds = d.network_get_state(None,getpeerlist,sessioncalling=True)
             dslist.append(ds)
-            
+
         # Invoke the usercallback function via a new thread.
         # After the callback is invoked, the return values will be passed to
         # the returncallback for post-callback processing.
         self.session.uch.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
-        
+
     def sesscb_set_download_states_returncallback(self,usercallback,when,newgetpeerlist):
         """ Called by SessionCallbackThread """
         if when > 0.0:
@@ -690,21 +690,21 @@ class TriblerLaunchMany(Thread):
             # TODO: remove saved checkpoint?
             #self.rawserver_nonfatalerrorfunc(e)
             return None
-        
+
     def resume_download(self,filename,initialdlstatus=None):
         try:
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
-            
+
             if DEBUG:
                 print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
                 if pstate['engineresumedata'] is None:
                     print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
                 else:
                     print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
-            
+
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
-            
+
             # Activate
             dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
             self.add(tdef,dscfg,pstate,initialdlstatus)
@@ -712,23 +712,23 @@ class TriblerLaunchMany(Thread):
             # TODO: remove saved checkpoint?
             self.rawserver_nonfatalerrorfunc(e)
 
-    
+
     def checkpoint(self,stop=False,checkpoint=True,gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
         # Even if the list of Downloads changes in the mean time this is
         # no problem. For removals, dllist will still hold a pointer to the
-        # Download, and additions are no problem (just won't be included 
+        # Download, and additions are no problem (just won't be included
         # in list of states returned via callback.
         #
         dllist = self.downloads.values()
         if DEBUG:
             print >>sys.stderr,"tlm: checkpointing",len(dllist)
-        
+
         network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint,gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
         # TODO: checkpoint overlayapps / friendship msg handler
 
-        
+
     def network_checkpoint_callback(self,dllist,stop,checkpoint,gracetime):
         """ Called by network thread """
         if checkpoint:
@@ -744,11 +744,11 @@ class TriblerLaunchMany(Thread):
                         (infohash,pstate) = d.network_stop(False,False)
                     else:
                         (infohash,pstate) = d.network_checkpoint()
-                    
+
                     self.save_download_pstate(infohash,pstate)
                 except Exception,e:
                     self.rawserver_nonfatalerrorfunc(e)
-    
+
         if stop:
             # Some grace time for early shutdown tasks
             if self.shutdownstarttime is not None:
@@ -756,13 +756,13 @@ class TriblerLaunchMany(Thread):
                 diff = now - self.shutdownstarttime
                 if diff < gracetime:
                     print >>sys.stderr,"tlm: shutdown: delaying for early shutdown tasks",gracetime-diff
-                    delay = gracetime-diff 
+                    delay = gracetime-diff
                     network_shutdown_callback_lambda = lambda:self.network_shutdown()
                     self.rawserver.add_task(network_shutdown_callback_lambda,delay)
                     return
-                
+
             self.network_shutdown()
-            
+
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
         shutdown tasks that takes some time and that can run in parallel
@@ -781,19 +781,19 @@ class TriblerLaunchMany(Thread):
             # Detect if megacache is enabled
             if self.peer_db is not None:
                 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-                
+
                 db = SQLiteCacheDB.getInstance()
                 db.commit()
-            
+
             mainlineDHT.deinit()
-            
+
             ts = enumerate_threads()
             print >>sys.stderr,"tlm: Number of threads still running",len(ts)
             for t in ts:
                 print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
         except:
             print_exc()
-        
+
         # Stop network thread
         self.sessdoneflag.set()
         # Arno, 2010-08-09: Stop Session pool threads only after gracetime
@@ -803,7 +803,7 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         basename = binascii.hexlify(infohash)+'.pickle'
         filename = os.path.join(self.session.get_downloads_pstate_dir(),basename)
-        
+
         if DEBUG:
             print >>sys.stderr,"tlm: network checkpointing: to file",filename
         f = open(filename,"wb")
@@ -825,8 +825,8 @@ class TriblerLaunchMany(Thread):
         """ Called at creation time """
         ip = get_my_wan_ip()
         if ip is None:
-            
-            #Niels: user in the forums reported that this 
+
+            #Niels: user in the forums reported that this
             #socket.gethostname + socket.gethostbyname raised an exception
             #returning 127.0.0.1 if it does
             try:
@@ -843,7 +843,7 @@ class TriblerLaunchMany(Thread):
     def run(self):
         if not self.initComplete:
             self.init()
-        
+
         if PROFILE:
             fname = "profile-%s" % self.getName()
             import cProfile
@@ -858,12 +858,12 @@ class TriblerLaunchMany(Thread):
         """ Arno: as the UPnP discovery and calls to the firewall can be slow,
         do it in a separate thread. When it fails, it should report popup
         a dialog to inform and help the user. Or report an error in textmode.
-        
+
         Must save type here, to handle case where user changes the type
         In that case we still need to delete the port mapping using the old mechanism
-        
-        Called by network thread """ 
-        
+
+        Called by network thread """
+
         if DEBUG:
             print >>sys.stderr,"tlm: start_upnp()"
         self.set_activity(NTFY_ACT_UPNP)
@@ -876,7 +876,7 @@ class TriblerLaunchMany(Thread):
             self.upnp_thread.shutdown()
 
     def upnp_failed_callback(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
-        """ Called by UPnP thread TODO: determine how to pass to API user 
+        """ Called by UPnP thread TODO: determine how to pass to API user
             In principle this is a non fatal error. But it is one we wish to
             show to the user """
         print >>sys.stderr,"UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto,exc
@@ -906,16 +906,16 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            if self.dialback_ext_ip is not None: 
+            if self.dialback_ext_ip is not None:
                 # more reliable
                 return self.dialback_ext_ip # string immutable
-            elif self.upnp_ext_ip is not None: 
+            elif self.upnp_ext_ip is not None:
                 # good reliability, if known
                 return self.upnp_ext_ip
-            elif self.yourip_ext_ip is not None: 
-                # majority vote, could be rigged 
-                return self.yourip_ext_ip 
-            else: 
+            elif self.yourip_ext_ip is not None:
+                # majority vote, could be rigged
+                return self.yourip_ext_ip
+            else:
                 # slighly wild guess
                 if unknowniflocal:
                     return None
@@ -923,7 +923,7 @@ class TriblerLaunchMany(Thread):
                     return self.locally_guessed_ext_ip
         finally:
             self.sesslock.release()
-        
+
 
     def get_int_ip(self):
         """ Called by any thread """
@@ -940,22 +940,22 @@ class TriblerLaunchMany(Thread):
     def dialback_reachable_callback(self):
         """ Called by overlay+network thread """
         self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
-        
-        
+
+
     def set_activity(self,type, str = '', arg2=None):
         """ Called by overlay + network thread """
         #print >>sys.stderr,"tlm: set_activity",type,str,arg2
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
-        
+
     def network_vod_event_callback(self,videoinfo,event,params):
         """ Called by network thread """
 
         if DEBUG:
             print >>sys.stderr,"tlm: network_vod_event_callback: event %s, params %s" % (event,params)
-        
+
         # Call Session threadpool to call user's callback
-        try:        
+        try:
             videoinfo['usercallback'](event,params)
         except:
             print_exc()
@@ -968,7 +968,7 @@ class TriblerLaunchMany(Thread):
             if ntorrents > 0:
                 self.torrent_checking_period = min(max(86400/ntorrents, 30), 300)
         #print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
-        #self.torrent_checking_period = 1    ### DEBUG, remove it before release!!    
+        #self.torrent_checking_period = 1    ### DEBUG, remove it before release!!
 
     def run_torrent_check(self):
         """ Called by network thread """
@@ -977,7 +977,7 @@ class TriblerLaunchMany(Thread):
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         try:
             from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-            
+
             t = TorrentChecking.getInstance(self.torrent_checking_period)
             t.setInterval(self.torrent_checking_period)
         except Exception, e:
@@ -1000,10 +1000,10 @@ class TriblerLaunchMany(Thread):
     #
     # _ProxyService
 
-        
+
     def h4xor_reset_init_conn_counter(self):
         self.rawserver.add_task(self.network_h4xor_reset,0)
-        
+
     def network_h4xor_reset(self):
         from Tribler.Core.BitTornado.BT1.Encrypter import incompletecounter
         print >>sys.stderr,"tlm: h4x0r Resetting outgoing TCP connection rate limiter",incompletecounter.c,"==="
@@ -1034,17 +1034,17 @@ class TriblerLaunchMany(Thread):
     def start_multicast(self):
         if not self.session.get_overlay() or not self.session.get_multicast_local_peer_discovery():
             return
-        
+
         self.rawserver.start_listening_udp(self.mc_sock, self.mc_channel)
 
         print >>sys.stderr,"mcast: Sending node announcement"
         params = [self.session.get_listen_port(), self.secure_overlay.olproto_ver_current]
         self.mc_channel.sendAnnounce(params)
-        
-        
+
+
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the
-        content of the BT1Download (if any) contained in them. 
+        content of the BT1Download (if any) contained in them.
     """
     if x is None and y is None:
         return 0
