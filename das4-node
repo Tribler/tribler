@@ -6,8 +6,8 @@ module load prun
 
 #echo $SGE_TASK_ID $SGE_TASK_FIRST $SGE_TASK_LAST $SGE_TASK_STEPSIZE
 
-if test $# -ne 4; then
-	echo "Usage: $0 <experiment-config> <peers-directory> <peer-count> <experiment-length-in-min>"
+if test $# -ne 5; then
+	echo "Usage: $0 <experiment-config> <branch> <peers-directory> <peer-count> <experiment-length-in-min>"
 	exit 1
 fi
 
@@ -15,12 +15,12 @@ EXPERIMENT_CONFIG=$1
 source $EXPERIMENT_CONFIG # we get $BRANCH from the config file
 BRANCH=$2
 
-PEERS_DIRECTORY=$2
+PEERS_DIRECTORY=$3
 cd $PEERS_DIRECTORY
 PEERS_DIRECTORY=$(pwd)
 
-PEER_COUNT=$3
-EXPERIMENT_LENGTH=$4
+PEER_COUNT=$4
+EXPERIMENT_LENGTH=$5
 PEERS_PER_NODE=$[ $PEER_COUNT / $SGE_TASK_LAST ]
 PEERS_PER_NODE=${PEERS_PER_NODE/\.*}
 TOTAL_PEERS=$[PEERS_PER_NODE*SGE_TASK_LAST]
