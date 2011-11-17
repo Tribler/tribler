@@ -268,7 +268,6 @@ class Community(object):
             self._meta_messages[meta_message.name] = meta_message
 
         if __debug__:
-            from distribution import SyncDistribution
             sync_delay = 5.0
             for meta_message in self._meta_messages.itervalues():
                 if isinstance(meta_message.distribution, SyncDistribution):
@@ -631,7 +630,7 @@ class Community(object):
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
-    @runtime_duration_warning(0.0)
+    @runtime_duration_warning(0.1)
     def dispersy_claim_sync_bloom_filter_largest(self):
         syncable_messages = u", ".join(unicode(meta.database_id) for meta in self._meta_messages.itervalues() if isinstance(meta.distribution, SyncDistribution) and meta.distribution.priority > 32)
         if syncable_messages:

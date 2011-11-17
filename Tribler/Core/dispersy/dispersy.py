@@ -3243,7 +3243,7 @@ class Dispersy(Singleton):
                 else:
                     if __debug__: dprint("unable to give missing proof.  allowed:", allowed, ".  proofs:", len(proofs), " packets")
 
-    @runtime_duration_warning(0.5)
+    @runtime_duration_warning(0.1)
     def check_sync(self, messages):
         """
         We received a dispersy-sync message.
