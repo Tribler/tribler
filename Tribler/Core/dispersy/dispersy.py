@@ -3274,7 +3274,7 @@ class Dispersy(Singleton):
         community = messages[0].community
 
         # obtain all available messages for this community
-        meta_messages = dict((meta_message.database_id, meta_message) for meta_message in community.get_meta_messages() if isinstance(meta_message, SyncDistribution) and meta_message.distribution.priority > 32)
+        meta_messages = dict((meta_message.database_id, meta_message) for meta_message in community.get_meta_messages())
 
         for message in messages:
             assert message.name == u"dispersy-introduction-request", "this method is called in batches, i.e. community and meta message grouped together"
