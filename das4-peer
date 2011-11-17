@@ -6,8 +6,8 @@ if test $# -ne 3; then
 fi
 PEERS=$1
 EXPERIMENT_CONFIG=$2
-source $EXPERIMENT_CONFIG # $BRANCH, $DISPERSY_ARGS
 BRANCH=$3
+source $EXPERIMENT_CONFIG # $DISPERSY_ARGS
 
 cd ${PEERS}
 PEERS=$(pwd)
@@ -66,7 +66,6 @@ config="$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)"
 MY_ID=$(echo $config | cut -d' ' -f1)
 STARTING_TIMESTAMP=$(echo $config | cut -d' ' -f2)
 source $EXPERIMENT_CONFIG # reload config with the new STARTING_TIMESTAMP
-BRANCH=$3
 
 # run node
 cd ${MY_ID}

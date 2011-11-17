@@ -10,8 +10,9 @@ cfg_name=$(basename $1)
 cfg_path=$(dirname $1)
 cd $cfg_path
 cfg_path=$(pwd)
+BRANCH=$(pwd)
 EXPERIMENT_CONFIG=$cfg_path/$cfg_name
-source $EXPERIMENT_CONFIG # brings in $BRANCH
+source $EXPERIMENT_CONFIG
 
 cd $2
 PEERS_DIRECTORY=$(pwd)

@@ -12,9 +12,8 @@ if test $# -ne 5; then
 fi
 
 EXPERIMENT_CONFIG=$1
-source $EXPERIMENT_CONFIG # we get $BRANCH from the config file
 BRANCH=$2
-echo "${BRANCH}"
+source $EXPERIMENT_CONFIG
 
 PEERS_DIRECTORY=$3
 cd $PEERS_DIRECTORY
