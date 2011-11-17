@@ -4,7 +4,7 @@
 Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
 
-from time impoer time
+from time import time
 import errno
 import socket
 import sys
