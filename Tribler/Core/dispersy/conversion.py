@@ -154,13 +154,13 @@ class BinaryConversion(Conversion):
         # the dispersy-introduction-request and dispersy-introduction-response have several bitfield
         # flags that must be set correctly
         # reserve 1st bit for enable/disable advice
-        self._encode_advice_map = {True:0b1, False:0b0}
+        self._encode_advice_map = {True:int("1", 2), False:int("0", 2)}
         self._decode_advice_map = dict((value, key) for key, value in self._encode_advice_map.iteritems())
         # reserve 2nd bit for enable/disable sync
-        self._encode_sync_map = {True:0b10, False:0b00}
+        self._encode_sync_map = {True:int("10", 2), False:int("00", 2)}
         self._decode_sync_map = dict((value, key) for key, value in self._encode_sync_map.iteritems())
         # reserve 7th and 8th bits for connection type
-        self._encode_connection_type_map = {u"unknown":0b00000000, u"public":0b10000000, u"symmetric-NAT":0b11000000}
+        self._encode_connection_type_map = {u"unknown":int("00000000", 2), u"public":int("10000000", 2), u"symmetric-NAT":int("11000000", 2)}
         self._decode_connection_type_map = dict((value, key) for key, value in self._encode_connection_type_map.iteritems())
 
         def define(value, name, encode, decode):
@@ -714,17 +714,17 @@ class BinaryConversion(Conversion):
         flags, identifier = unpack_from("!BH", data, offset)
         offset += 3
 
-        if not flags & 0b1 in self._decode_advice_map:
+        if not flags & int("1", 2) in self._decode_advice_map:
             raise DropPacket("Invalid advice flag")
-        advice = self._decode_advice_map[flags & 0b1]
+        advice = self._decode_advice_map[flags & int("1", 2)]
 
-        if not flags & 0b11000000 in self._decode_connection_type_map:
+        if not flags & int("11000000", 2) in self._decode_connection_type_map:
             raise DropPacket("Invalid connection type flag")
-        connection_type = self._decode_connection_type_map[flags & 0b11000000]
+        connection_type = self._decode_connection_type_map[flags & int("11000000", 2)]
 
-        if not flags & 0b10 in self._decode_sync_map:
+        if not flags & int("10", 2) in self._decode_sync_map:
             raise DropPacket("Invalid sync flag")
-        if self._decode_sync_map[flags & 0b10]:
+        if self._decode_sync_map[flags & int("10", 2)]:
             if len(data) < offset + 24:
                 raise DropPacket("Insufficient packet size")
 
@@ -795,9 +795,9 @@ class BinaryConversion(Conversion):
         flags, identifier, = unpack_from("!BH", data, offset)
         offset += 3
 
-        if not flags & 0b1110 in self._decode_connection_type_map:
+        if not flags & int("1110", 2) in self._decode_connection_type_map:
             raise DropPacket("Invalid connection type flag")
-        connection_type = self._decode_connection_type_map[flags & 0b1110]
+        connection_type = self._decode_connection_type_map[flags & int("1110", 2)]
 
         return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier)
 
