@@ -3050,7 +3050,6 @@ class VoteCastDBHandler(BasicDBHandler):
             
         insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
-            
         
         posvotes = "SELECT count(*) from ChannelVotes WHERE channel_id = ? AND vote == 2 GROUP BY channel_id"
         negvotes = "SELECT count(*) from ChannelVotes WHERE channel_id = ? AND vote == -1 GROUP BY channel_id"
@@ -3060,6 +3059,8 @@ class VoteCastDBHandler(BasicDBHandler):
         
         update = "UPDATE Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?"
         self._db.execute_write(update, (posvotes, negvotes, channel_id))
+        
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
     def getPosNegVotes(self, channel_id):
         sql = 'select nr_favorite, nr_spam from Channels where id = ?'
@@ -3113,17 +3114,20 @@ class VoteCastDBHandler(BasicDBHandler):
         nr_spam = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == -1 AND channel_id = ?", (channel_id, ))
         self._db.execute_write("UPDATE Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id))
 
+    #ONLY CALLED FOR NON-DISPERSY CHANNELS
     def subscribe(self, channel_id):
         """insert/change the vote status to 2"""
 
         self.addVote((channel_id, None, 2, now()))
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
-
+    
+    #ONLY CALLED FOR NON-DISPERSY CHANNELS
     def unsubscribe(self, channel_id): ###
         """ change the vote status to 0"""
         self.removeVote(channel_id, None)
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
     
+    #ONLY CALLED FOR NON-DISPERSY CHANNELS
     def spam(self, channel_id):
         """ insert/change the vote status to -1"""
         self.addVote((channel_id, None, -1, now()))
