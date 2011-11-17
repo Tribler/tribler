@@ -702,6 +702,12 @@ class Community(object):
                     dprint(self.cid.encode("HEX"), " took %f (fakejoin %f, rangeselect %f, dataselect %f, bloomfill, %f"%(time()-t1, t2-t1, t3-t2, t4-t3, time()-t4))
 
                 return (bloomfilter_range[0], bloomfilter_range[1], 1, 0, bloom)
+            
+            if __debug__:
+                dprint(self.cid.encode("HEX"), " no messages to sync")
+                
+        elif __debug__:
+            dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
