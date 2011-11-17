@@ -276,7 +276,7 @@ class TitleHeader(ListHeader):
         if titlePanel:
             subSizer = wx.BoxSizer(wx.HORIZONTAL)
             subSizer.Add(self.title)
-            subSizer.Add(titlePanel, 0, wx.ALIGN_CENTER_VERTICAL)
+            subSizer.Add(titlePanel, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 3)
             titlePanel = subSizer
         else:
             titlePanel = self.title

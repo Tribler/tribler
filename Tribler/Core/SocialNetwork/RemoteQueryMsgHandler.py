@@ -140,26 +140,28 @@ class RemoteQueryMsgHandler:
     # Send query
     # 
     def send_query(self,query,usercallback,max_peers_to_query=MAX_PEERS_TO_QUERY):
-        """ Called by GUI Thread """
-        if max_peers_to_query is None or max_peers_to_query > MAX_PEERS_TO_QUERY:
-            max_peers_to_query = MAX_PEERS_TO_QUERY
-        if DEBUG:
-            print >>sys.stderr,"rquery: send_query",`query`,max_peers_to_query
-        if max_peers_to_query > 0:
-            send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_peers_to_query)
-            self.overlay_bridge.add_task(send_query_func,0)
+        if self.registered:
+            """ Called by GUI Thread """
+            if max_peers_to_query is None or max_peers_to_query > MAX_PEERS_TO_QUERY:
+                max_peers_to_query = MAX_PEERS_TO_QUERY
+            if DEBUG:
+                print >>sys.stderr,"rquery: send_query",`query`,max_peers_to_query
+            if max_peers_to_query > 0:
+                send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_peers_to_query)
+                self.overlay_bridge.add_task(send_query_func,0)
             
     def send_query_to_peers(self,query,peers,usercallback):
-        """ Called by GUI Thread """
-        if len(peers) > MAX_PEERS_TO_QUERY:
-            import random
-            peers = random.sample(peers, MAX_PEERS_TO_QUERY)
-        
-        if DEBUG:
-            print >>sys.stderr,"rquery: send_query_to_peers",`query`,peers
-        if len(peers) > 0:
-            send_query_func = lambda:self.network_send_query_callback_to_peers(query,peers,usercallback)
-            self.overlay_bridge.add_task(send_query_func,0)
+        if self.registered:
+            """ Called by GUI Thread """
+            if len(peers) > MAX_PEERS_TO_QUERY:
+                import random
+                peers = random.sample(peers, MAX_PEERS_TO_QUERY)
+            
+            if DEBUG:
+                print >>sys.stderr,"rquery: send_query_to_peers",`query`,peers
+            if len(peers) > 0:
+                send_query_func = lambda:self.network_send_query_callback_to_peers(query,peers,usercallback)
+                self.overlay_bridge.add_task(send_query_func,0)
 
     def network_send_query_callback(self,query,usercallback,max_peers_to_query):
         """ Called by overlay thread """
