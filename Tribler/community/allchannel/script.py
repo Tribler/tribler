@@ -139,7 +139,9 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         self.joined_community = None
         self.want_to_join = False
         self.torrentindex = 1
-    
+
+        self._dispersy.define_auto_load(ChannelCommunity, (), {"integrate_with_tribler":False})
+        
     def join_community(self, my_member):
         self.my_member = my_member
         

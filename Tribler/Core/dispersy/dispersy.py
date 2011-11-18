@@ -2550,7 +2550,7 @@ class Dispersy(Singleton):
         packets = [str(packet) for packet, in self._database.execute(u"SELECT packet FROM malicious_proof WHERE community = ? AND member = ?",
                                                                      (community.database_id, member.database_id))]
         if packets:
-            self._send([candidate], packets)
+            self._send([candidate], packets, u"-malicious-proof-")
 
     def create_missing_message(self, community, candidate, member, global_time, response_func=None, response_args=(), timeout=10.0, forward=True):
         """
@@ -2610,7 +2610,7 @@ class Dispersy(Singleton):
                     responses.append((candidate, packet))
 
         for candidate, responses in groupby(responses, key=lambda tup: tup[0]):
-            self._send([candidate], [str(packet) for _, packet in responses])
+            self._send([candidate], [str(packet) for _, packet in responses], u"-missing-message-")
 
     # def create_missing_last(self, community, address, member, message, response_func=None, response_args=(), timeout=10.0, forward=True):
     #     """
@@ -3220,7 +3220,7 @@ class Dispersy(Singleton):
                     break
 
             if packets:
-                self._send([message.candidate], packets, u"-sequence")
+                self._send([message.candidate], packets, u"-sequence-")
 
     def on_missing_proof(self, messages):
         community = messages[0].community
@@ -3617,7 +3617,7 @@ class Dispersy(Singleton):
                         self.declare_malicious_member(member, [msg, message])
 
                         # the sender apparently does not have the offending dispersy-undo message, lets give
-                        self._send([message.candidate], [msg.packet])
+                        self._send([message.candidate], [msg.packet], msg.name)
 
                         break
 
