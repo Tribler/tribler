@@ -168,7 +168,8 @@ class AllChannelCommunity(Community):
             else:
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
-                log("dispersy.log", "Could not send channelcast message, no candidates")
+                if not self.integrate_with_tribler:
+                    log("dispersy.log", "Could not send channelcast message, no candidates")
         except:
             print_exc()
             raise
