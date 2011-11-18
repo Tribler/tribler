@@ -949,8 +949,9 @@ class ChannelCommunity(Community):
         dispersy_id, _= self._channelcast_db.getPlaylist(playlist_id, ('Playlists.dispersy_id',))
 
         # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy_id, 'playlist')
-        return message
+        if dispersy_id and dispersy_id > 0:
+            message = self._get_message_from_dispersy_id(dispersy_id, 'playlist')
+            return message
     
     def _get_playlist_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long))
@@ -963,8 +964,9 @@ class ChannelCommunity(Community):
         dispersy_id = self._channelcast_db.getTorrentFromChannelTorrentId(torrent_id, ['dispersy_id'])
         
         # 2. get the message
-        message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
-        return message
+        if dispersy_id and dispersy_id > 0:
+            message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
+            return message
     
     def _get_message_from_torrent_infohash(self, torrent_infohash):
         assert isinstance(torrent_infohash, str), 'infohash is a %s'%type(torrent_infohash)
@@ -973,7 +975,7 @@ class ChannelCommunity(Community):
         # 1. get the dispersy identifier from the channel_id
         dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id, torrent_infohash, ['dispersy_id'])
         
-        if dispersy_id:
+        if dispersy_id and dispersy_id > 0:
             # 2. get the message
             message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
             return message
