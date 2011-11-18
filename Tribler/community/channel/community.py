@@ -383,7 +383,7 @@ class ChannelCommunity(Community):
         messages = []
         
         meta = self.get_meta_message(u"torrent")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time + 1)
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
         for infohash, timestamp, name, files, trackers in torrentlist:
             message = meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),
