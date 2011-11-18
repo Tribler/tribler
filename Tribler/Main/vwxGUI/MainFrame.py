@@ -441,7 +441,7 @@ class MainFrame(wx.Frame):
                     # 02/03/09 boudewijn: feedback to the user when there
                     # are no playable files in the torrent
                     if not result:
-                        dlg = wx.MessageDialog(None,
+                        dlg = wx.MessageDialog(self,
                                    self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
                                    self.utility.lang.get("invalid_torrent_no_playable_files_title"),
                                    wx.OK|wx.ICON_ERROR)
@@ -910,7 +910,7 @@ class MainFrame(wx.Frame):
                         confirmmsg = self.utility.lang.get('confirmmsg')
                         confirmtitle = self.utility.lang.get('confirm')
 
-                    dialog = wx.MessageDialog(None, confirmmsg, confirmtitle, wx.OK|wx.CANCEL|wx.ICON_QUESTION)
+                    dialog = wx.MessageDialog(self, confirmmsg, confirmtitle, wx.OK|wx.CANCEL|wx.ICON_QUESTION)
                     result = dialog.ShowModal()
                     dialog.Destroy()
                     if result != wx.ID_OK:
