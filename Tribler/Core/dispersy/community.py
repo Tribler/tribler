@@ -237,6 +237,7 @@ class Community(object):
         if self._global_time is None:
             self._global_time = 0
         assert isinstance(self._global_time, (int, long))
+        if __debug__: dprint("global time: ", self._global_time)
 
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
         self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs

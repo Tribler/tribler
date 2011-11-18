@@ -34,7 +34,7 @@ class Timeline(object):
                 dprint("policy @", global_time)
                 for key, (policy, proofs) in dic.iteritems():
                     dprint("policy ", "%50s" % key, "  ", policy, " based on ", len(proofs), " proofs")
-                    
+
             for member, lst in self._members.iteritems():
                 dprint("member ", member.database_id, " ", member.mid.encode("HEX"))
                 for global_time, dic in lst:
@@ -46,7 +46,7 @@ class Timeline(object):
                         else:
                             assert all(proof.name == u"dispersy-revoke" for proof in proofs)
                             dprint("member ", member.database_id, " ", "%50s" % key, "  ", allowed, " revoked by ", ", ".join(str(proof.authentication.member.database_id) for proof in proofs), " in ", ", ".join(str(proof.packet_id) for proof in proofs))
-        
+
     def check(self, message, permission=u"permit"):
         """
         Check if message is allowed.
@@ -77,7 +77,7 @@ class Timeline(object):
 
                 # question: is message.authentication.member allowed to authorize or revoke one or
                 # more of the contained permission triplets?
-                
+
                 # proofs for the permission triplets in the payload
                 key = lambda (member, sub_message, _): sub_message
                 for sub_message, iterator in groupby(message.payload.permission_triplets, key=key):
@@ -155,14 +155,14 @@ class Timeline(object):
                     resolution, proofs = self.get_resolution_policy(message, global_time)
                     assert isinstance(resolution, (PublicResolution, LinearResolution))
                     all_proofs.extend(proofs)
-                
+
                 elif isinstance(resolution, DynamicResolution.Implementation):
                     local_resolution, proofs = self.get_resolution_policy(message, global_time)
                     assert isinstance(local_resolution, (PublicResolution, LinearResolution))
                     all_proofs.extend(proofs)
-                    
+
                     if not resolution.policy.meta == local_resolution:
-                        if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " (conflicting resolution policy)")
+                        if __debug__: dprint("FAIL time:", global_time, " user:", member.database_id, " (conflicting resolution policy, ", resolution.policy.meta, ", ", local_resolution, ")")
                         return (False, all_proofs)
 
                     resolution = resolution.policy

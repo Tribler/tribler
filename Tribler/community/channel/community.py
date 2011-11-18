@@ -367,11 +367,11 @@ class ChannelCommunity(Community):
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
         
-        gt = self.claim_global_time()
-        current_policy,_ = self._timeline.get_resolution_policy(meta, gt)
+        global_time = self.claim_global_time()
+        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(gt,),
+                            distribution=(global_time,),
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
@@ -383,7 +383,7 @@ class ChannelCommunity(Community):
         messages = []
         
         meta = self.get_meta_message(u"torrent")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
+        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time + 1)
         for infohash, timestamp, name, files, trackers in torrentlist:
             message = meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),
@@ -534,10 +534,11 @@ class ChannelCommunity(Community):
         text = text[:1024]
         
         meta = self.get_meta_message(u"comment")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        global_time = self.claim_global_time()
+        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(self.claim_global_time(),),
+                            distribution=(global_time,),
                             payload=(text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
@@ -648,10 +649,11 @@ class ChannelCommunity(Community):
             latest_modification_global_time = message.distribution.global_time
         
         meta = self.get_meta_message(u"modification")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        global_time = self.claim_global_time()
+        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(self.claim_global_time(),),
+                            distribution=(global_time,),
                             payload=(modification_type, modifcation_value, timestamp, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
@@ -798,7 +800,7 @@ class ChannelCommunity(Community):
     @forceDispersyThread
     def _disp_create_playlist_torrents(self, playlist_packet, infohashes, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist_torrent")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
 
         messages = []
         for infohash in infohashes:
@@ -871,11 +873,12 @@ class ChannelCommunity(Community):
         causemessage = self._get_message_from_dispersy_id(cause, 'modification')
         
         meta = self.get_meta_message(u"moderation")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        global_time = self.claim_global_time()
+        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
         
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(self.claim_global_time(),),
+                            distribution=(global_time,),
                             payload=(text, timestamp, severity, causemessage))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
@@ -943,11 +946,12 @@ class ChannelCommunity(Community):
     @forceDispersyThread
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")
-        current_policy,_ = self._timeline.get_resolution_policy(meta, self.global_time)
+        global_time = self.claim_global_time()
+        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
 
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(self.claim_global_time(),),
+                            distribution=(global_time,),
                             payload=(infohash, type, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
