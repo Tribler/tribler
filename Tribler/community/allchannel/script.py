@@ -164,7 +164,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         
             if cur_command[0] == 'create':
                 log(self._logfile, "creating-community")
-                self.my_channel = ChannelCommunity.create_community(self.my_member)
+                self.my_channel = ChannelCommunity.create_community(self.my_member, integrate_with_tribler = False)
                 
                 log(self._logfile, "creating-channel-message")
                 self.my_channel.create_channel(u'', u'')
