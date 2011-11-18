@@ -593,8 +593,13 @@ class AbstractListBody():
                 
                 self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             else:
+                if DEBUG:
+                    print >> sys.stderr, "ListBody: setting scrollrate to default"
+                
                 self.SetupScrolling(scrollToTop = scrollToTop)
         else:
+            if DEBUG:
+                print >> sys.stderr, "ListBody: using scrollrate", self.rate
             self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             
         self.Thaw()
