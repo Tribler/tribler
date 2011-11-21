@@ -3872,8 +3872,8 @@ class Dispersy(Singleton):
             # the dispersy-identity must be in the database for each member that has one or more
             # messages in the database
             #
-            A = set(self._database.execute(u"SELECT member FROM sync WHERE community = ? GROUP BY member", (community.database_id,)))
-            B = set(self._database.execute(u"SELECT member FROM sync WHERE meta_message = ?", (meta_identity.database_id,)))
+            A = set(id_ for id_, in self._database.execute(u"SELECT member FROM sync WHERE community = ? GROUP BY member", (community.database_id,)))
+            B = set(id_ for id_, in self._database.execute(u"SELECT member FROM sync WHERE meta_message = ?", (meta_identity.database_id,)))
             if not len(A) == len(B):
                 raise ValueError("inconsistent dispersy-identity messages.", A.difference(B))
 

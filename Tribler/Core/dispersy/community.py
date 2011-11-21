@@ -213,6 +213,7 @@ class Community(object):
             self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
+        if __debug__: dprint("database id:", self._database_id)
 
         self._cid = master.mid
         self._master_member = master
