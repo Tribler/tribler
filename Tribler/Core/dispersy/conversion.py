@@ -1091,7 +1091,7 @@ class BinaryConversion(Conversion):
                 if __debug__:
                     self.debug_stats["decode-authentication-get-member"] += time() - debug_begin
 
-                # TODO we should ensure that member.had_identity(self._community), however, the
+                # TODO we should ensure that member.has_identity(self._community), however, the
                 # exception is the dispersy-identity message.  hence we need the placeholder
                 # parameter to check this
                 first_signature_offset = len(data) - member.signature_length

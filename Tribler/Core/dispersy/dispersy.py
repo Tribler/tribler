@@ -564,7 +564,7 @@ class Dispersy(Singleton):
         # when this is a create or join this message is created only after the attach_community
         if __debug__:
             def sanity_check_callback(result):
-                assert result == True, [community.database_id, result]
+                assert result == True, [community.database_id, str(result)]
                 try:
                     community._pending_callbacks.remove(callback_id)
                 except ValueError:
@@ -622,19 +622,29 @@ class Dispersy(Singleton):
         assert isinstance(source, (Community, Member))
         assert issubclass(destination, Community)
 
+        destination_classification = destination.get_classification()
+
         if isinstance(source, Member):
-            if __debug__: dprint("reclassify ??? -> ", destination.get_classification())
+            if __debug__: dprint("reclassify ??? -> ", destination_classification)
             master = source
 
         else:
-            if __debug__: dprint("reclassify ", source.get_classification(), " -> ", destination.get_classification())
+            if __debug__: dprint("reclassify ", source.get_classification(), " -> ", destination_classification)
             master = source.master_member
             source.unload_community()
 
         self._database.execute(u"UPDATE community SET classification = ? WHERE master = ?",
-                               (destination.get_classification(), master.database_id))
+                               (destination_classification, master.database_id))
         assert self._database.changes == 1
-        return destination.load_community(master)
+
+        if destination_classification in self._auto_load_communities:
+            cls, args, kargs = self._auto_load_communities[destination_classification]
+            assert cls == destination, [cls, destination]
+        else:
+            args = ()
+            kargs = {}
+
+        return destination.load_community(master, *args, **kargs)
 
     def has_community(self, cid):
         """
@@ -1662,6 +1672,8 @@ class Dispersy(Singleton):
             assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
             assert message.authentication.is_signed
             assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
+            # we must have the identity message as well
+            assert message.name == u"dispersy-identity" or message.authentication.member.has_identity(message.community), [message, message.community, message.authentication.member.database_id]
 
             # we do not store a message when it uses SubjectiveDestination and it is not in our set
             if is_subjective_destination and not message.destination.is_valid:
@@ -3807,9 +3819,9 @@ class Dispersy(Singleton):
         Note that messages that are disabled, i.e. not included in community.get_meta_messages(),
         will NOT be checked.
 
-        - all packets in the database must be valid
         - the dispersy-identity for my member must be in the database
         - the dispersy-identity must be in the database for each member that has one or more messages in the database
+        - all packets in the database must be valid
         - check sequence numbers for FullSyncDistribution
         - check history size for LastSyncDistribution
         """
@@ -3827,37 +3839,6 @@ class Dispersy(Singleton):
 
         if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
-
-        # #
-        # # ensure all packets in the database are valid and that the binary packets are consistent
-        # # with the information stored in the database
-        # #
-        # for packet_id, member_id, global_time, meta_message_id, packet in select(u"SELECT id, member, global_time, meta_message, packet FROM sync WHERE community = ? ORDER BY id LIMIT ? OFFSET ?", (community.database_id,)):
-        #     if meta_message_id in enabled_messages:
-        #         packet = str(packet)
-        #         message = self.convert_packet_to_message(packet, community)
-
-        #         if not message:
-        #             raise ValueError("unable to convert packet ", packet_id, "@", global_time, " to message")
-
-        #         if not member_id == message.authentication.member.database_id:
-        #             raise ValueError("inconsistent member in packet ", packet_id, "@", global_time)
-
-        #         if not message.authentication.member.public_key:
-        #             raise ValueError("missing public key for member ", member_id, " in packet ", packet_id, "@", global_time)
-
-        #         if not global_time == message.distribution.global_time:
-        #             raise ValueError("inconsistent global time in packet ", packet_id, "@", global_time)
-
-        #         if not meta_message_id == message.database_id:
-        #             raise ValueError("inconsistent meta message in packet ", packet_id, "@", global_time)
-
-        #         if not packet == message.packet:
-        #             raise ValueError("inconsistent binary in packet ", packet_id, "@", global_time)
-
-        #         # back-off because the sanity check is very expensive
-        #         if __debug__: dprint("packet ", packet_id, "@", global_time, " is OK")
-        #         yield Idle()
 
         try:
             meta_identity = community.get_meta_message(u"dispersy-identity")
@@ -3897,6 +3878,37 @@ class Dispersy(Singleton):
                 raise ValueError("inconsistent dispersy-identity messages.", A.difference(B))
 
             yield Idle()
+
+        #
+        # ensure all packets in the database are valid and that the binary packets are consistent
+        # with the information stored in the database
+        #
+        for packet_id, member_id, global_time, meta_message_id, packet in select(u"SELECT id, member, global_time, meta_message, packet FROM sync WHERE community = ? ORDER BY id LIMIT ? OFFSET ?", (community.database_id,)):
+            if meta_message_id in enabled_messages:
+                packet = str(packet)
+                message = self.convert_packet_to_message(packet, community)
+
+                if not message:
+                    raise ValueError("unable to convert packet ", packet_id, "@", global_time, " to message")
+
+                if not member_id == message.authentication.member.database_id:
+                    raise ValueError("inconsistent member in packet ", packet_id, "@", global_time)
+
+                if not message.authentication.member.public_key:
+                    raise ValueError("missing public key for member ", member_id, " in packet ", packet_id, "@", global_time)
+
+                if not global_time == message.distribution.global_time:
+                    raise ValueError("inconsistent global time in packet ", packet_id, "@", global_time)
+
+                if not meta_message_id == message.database_id:
+                    raise ValueError("inconsistent meta message in packet ", packet_id, "@", global_time)
+
+                if not packet == message.packet:
+                    raise ValueError("inconsistent binary in packet ", packet_id, "@", global_time)
+
+                # back-off because the sanity check is very expensive
+                if __debug__: dprint("packet ", packet_id, "@", global_time, " is OK")
+                yield Idle()
 
         for meta in community.get_meta_messages():
             #
