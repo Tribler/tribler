@@ -149,7 +149,7 @@ class AllChannelCommunity(Community):
                     message = meta.impl(authentication=(self._my_member,),
                                         distribution=(self.global_time,), payload=(torrents,))
                             
-                    self._dispersy._send([candidate], [message.packet])
+                    self._dispersy._send([candidate], [message.packet], key = meta.name)
                             
                     #we've send something to this address, add to blocklist
                     self._blocklist[candidate] = now
@@ -212,7 +212,7 @@ class AllChannelCommunity(Community):
         meta = self.get_meta_message(u"channelcast-request")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(toCollect,))
-        self._dispersy._send([candidate], [message.packet])
+        self._dispersy._send([candidate], [message.packet], key = meta.name)
         
         if DEBUG:
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
@@ -237,7 +237,7 @@ class AllChannelCommunity(Community):
                         elif __debug__:
                             print >> sys.stderr, "INCONSISTENCY BETWEEN DISPERSYDB and TRIBLER MEGACACHE, IGNORING .torrent"
             
-            self._dispersy._send([message.candidate], requested_packets)
+            self._dispersy._send([message.candidate], requested_packets, key = 'channelcast-response')
             
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: got request for ",len(requested_packets),"torrents from",message.candidate
@@ -288,7 +288,7 @@ class AllChannelCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(keywords, torrents))
         
-        self._dispersy._send([candidate], [message.packet])
+        self._dispersy._send([candidate], [message.packet], key = meta.name)
         
         if DEBUG:
             nr_requests = sum([len(tors) for tors in torrents.values()])
