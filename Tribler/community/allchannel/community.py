@@ -237,7 +237,7 @@ class AllChannelCommunity(Community):
                         elif __debug__:
                             print >> sys.stderr, "INCONSISTENCY BETWEEN DISPERSYDB and TRIBLER MEGACACHE, IGNORING .torrent"
             
-            self._dispersy._send([message.candidate], requested_packets, key = 'channelcast-response')
+            self._dispersy._send([message.candidate], requested_packets, key = u'channelcast-response')
             
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: got request for ",len(requested_packets),"torrents from",message.candidate
