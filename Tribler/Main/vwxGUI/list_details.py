@@ -631,6 +631,7 @@ class TorrentDetails(AbstractDetails):
                     self.parent.button.Enable(newState == TorrentDetails.INACTIVE)
             
                 self.buttonPanel.Thaw()
+                self.buttonPanel.Layout()
                 self.Layout()
         else:
             #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
@@ -1546,7 +1547,8 @@ class LibraryDetails(TorrentDetails):
                     self.buttonSizer.AddStretchSpacer()
                     
                     self._AddButtons(self.buttonPanel, self.buttonSizer)
-                
+            
+            self.overviewPanel.Layout()
             self.overviewPanel.OnChange()
             self.overviewPanel.Thaw()
     
