@@ -776,7 +776,7 @@ class ChannelCommunity(Community):
         snapshot = None
         
         for message in messages:
-            self._dispersy._send([message.candidate], [channelmessage.packet], key = 'missing-channel-response')
+            self._dispersy._send([message.candidate], [channelmessage.packet], key = u'missing-channel-response')
             if message.payload.includeSnapshot:
                 if snapshot is None:
                     snapshot = []
@@ -786,7 +786,7 @@ class ChannelCommunity(Community):
                         snapshot.append(tormessage.packet)
                 
                 if len(snapshot) > 0:
-                    self._dispersy._send([message.candidate], snapshot, key = 'missing-channel-snapshot')
+                    self._dispersy._send([message.candidate], snapshot, key = u'missing-channel-snapshot')
             
     #check or receive moderation messages
     @forceDispersyThread
