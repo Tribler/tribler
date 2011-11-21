@@ -434,8 +434,8 @@ class AbstractListBody():
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()
         
-        messageVSizer.Add(self.headerText)
-        messageVSizer.Add(self.messageText)
+        messageVSizer.Add(self.headerText, 0, wx.EXPAND)
+        messageVSizer.Add(self.messageText, 0, wx.EXPAND)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
         
         messageSizer = wx.BoxSizer(wx.HORIZONTAL)
