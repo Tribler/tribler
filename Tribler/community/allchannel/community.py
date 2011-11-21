@@ -415,8 +415,7 @@ class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
 
-        self._cachedTorrents = {}
-        self._cacheTorrents()
+        self.cachedTorrents = None
     
     def convert_to_messages(self, results):
         messages = self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
@@ -464,14 +463,6 @@ class ChannelCastDBStub():
                 self._cachedTorrents[message.payload.infohash] = message
         
         return [message.payload.infohash for _, message in messages]
-    
-    def _cacheTorrents(self):
-        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        results = list(self._dispersy.database.execute(sql))
-        messages = self.convert_to_messages(results)
-        
-        for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message  
             
     def newTorrent(self, message):
         self._cachedTorrents[message.payload.infohash] = message
@@ -491,6 +482,22 @@ class ChannelCastDBStub():
         
     def on_dynamic_settings(self, channel_id):
         pass
+    
+    @property
+    def _cachedTorrents(self):
+        if self.cachedTorrents is None:
+            self.cachedTorrents = {}
+            self._cacheTorrents()
+        
+        return self.cachedTorrents
+    
+    def _cacheTorrents(self):
+        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
+        results = list(self._dispersy.database.execute(sql))
+        messages = self.convert_to_messages(results)
+        
+        for _, message in messages:
+            self._cachedTorrents[message.payload.infohash] = message
 
 class VoteCastDBStub():
     def __init__(self, dispersy):
