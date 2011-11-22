@@ -25,7 +25,7 @@ from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution
 from member import Member
-from resolution import LinearResolution, DynamicResolution
+from resolution import PublicResolution, LinearResolution, DynamicResolution
 from timeline import Timeline
 
 if __debug__:
@@ -93,12 +93,24 @@ class Community(object):
         # create my dispersy-identity
         community.create_dispersy_identity()
 
-        # authorize MY_MEMBER for each message
+        # authorize MY_MEMBER
         permission_triplets = []
         for message in community.get_meta_messages():
+            # grant all permissions for messages that use LinearResolution or DynamicResolution
             if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
-                for allowed in (u"authorize", u"revoke", u"permit"):
+                for allowed in (u"authorize", u"revoke", u"permit", u"undo"):
                     permission_triplets.append((my_member, message, allowed))
+
+            # grant authorize, revoke, and undo permission for messages that use PublicResolution
+            # and SyncDistribution.  Why?  The undo permission allows nodes to revoke a specific
+            # message that was gossiped around.  The authorize permission is required to grant other
+            # nodes the undo permission.  The revoke permission is required to remove the undo
+            # permission.  The permit permission is not required as the message uses
+            # PublicResolution and is hence permitted regardless.
+            elif isinstance(message.distribution, SyncDistribution) and isinstance(message.resolution, PublicResolution):
+                for allowed in (u"authorize", u"revoke", u"undo"):
+                    permission_triplets.append((my_member, message, allowed))
+
         if permission_triplets:
             community.create_dispersy_authorize(permission_triplets, sign_with_master=True, forward=False)
 

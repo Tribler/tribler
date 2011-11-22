@@ -19,6 +19,7 @@ import inspect
 import socket
 
 from bloomfilter import BloomFilter
+from candidate import LocalhostCandidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from debug import Node
 from dispersy import Dispersy
@@ -1329,7 +1330,7 @@ class DispersyBatchScript(ScriptBase):
 
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
-        assert_(self._big_batch_took < self._small_batches_took, [self._big_batch_took, self._small_batches_took])
+        assert_(self._big_batch_took < self._small_batches_took * 1.1, [self._big_batch_took, self._small_batches_took])
 
 class DispersySyncScript(ScriptBase):
     def run(self):
@@ -1358,7 +1359,7 @@ class DispersySyncScript(ScriptBase):
         may be sent back.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -1377,7 +1378,7 @@ class DispersySyncScript(ScriptBase):
 
                 sync = (1, 0, modulo, offset, [])
                 node.drop_packets()
-                node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", sync, 42, 110))
+                node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", sync, 42, 110))
 
                 received = []
                 while True:
@@ -1396,7 +1397,7 @@ class DispersySyncScript(ScriptBase):
 
     def in_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"ASC-text")
 
         # create node and ensure that SELF knows the node address
@@ -1415,11 +1416,11 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_in_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages ASC
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in global_times:
-            _, message = node.receive_message(addresses=[address], message_names=[u"ASC-text"])
+            _, message = node.receive_message(message_names=[u"ASC-text"])
             assert_(message.distribution.global_time == global_time)
 
         # cleanup
@@ -1428,7 +1429,7 @@ class DispersySyncScript(ScriptBase):
 
     def out_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"DESC-text")
 
         # create node and ensure that SELF knows the node address
@@ -1447,11 +1448,11 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_out_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages DESC
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in reversed(global_times):
-            _, message = node.receive_message(addresses=[address], message_names=[u"DESC-text"])
+            _, message = node.receive_message(message_names=[u"DESC-text"])
             assert_(message.distribution.global_time == global_time)
 
         # cleanup
@@ -1460,7 +1461,7 @@ class DispersySyncScript(ScriptBase):
 
     def mixed_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         in_order_message = community.get_meta_message(u"ASC-text")
         out_order_message = community.get_meta_message(u"DESC-text")
         # random_order_message = community.get_meta_message(u"random-order-text")
@@ -1496,7 +1497,7 @@ class DispersySyncScript(ScriptBase):
         def get_messages_back():
             received_times = []
             for _ in range(len(global_times) * 2):
-                _, message = node.receive_message(addresses=[address], message_names=[u"ASC-text", u"DESC-text"])
+                _, message = node.receive_message(message_names=[u"ASC-text", u"DESC-text"])
                 #, u"random-order-text"])
                 received_times.append(message.distribution.global_time)
 
@@ -1505,7 +1506,7 @@ class DispersySyncScript(ScriptBase):
         # lists = []
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
-            node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
+            node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
             yield 0.1
 
             received_times = get_messages_back()
@@ -1535,7 +1536,7 @@ class DispersySyncScript(ScriptBase):
 
     def last_1_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-1-test")
 
         # create node and ensure that SELF knows the node address
@@ -1570,7 +1571,7 @@ class DispersySyncScript(ScriptBase):
 
         # as proof for the drop, the newest message should be sent back
         yield 0.1
-        _, message = node.receive_message(addresses=[address], message_names=[u"last-1-test"])
+        _, message = node.receive_message(message_names=[u"last-1-test"])
         assert_(message.distribution.global_time == 11)
 
         # send a message (duplicate: should be dropped)
@@ -1592,7 +1593,7 @@ class DispersySyncScript(ScriptBase):
 
     def last_9_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-9-test")
 
         # create node and ensure that SELF knows the node address
@@ -1684,7 +1685,7 @@ class DispersySyncScript(ScriptBase):
         these options.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-1-multimember-text")
 
         # create node and ensure that SELF knows the node address
@@ -1776,9 +1777,9 @@ class DispersySyncScript(ScriptBase):
         # as proof for the drop, the newest message should be sent back
         yield 0.1
         times = []
-        _, message = nodeA.receive_message(addresses=[address], message_names=[u"last-1-multimember-text"])
+        _, message = nodeA.receive_message(message_names=[u"last-1-multimember-text"])
         times.append(message.distribution.global_time)
-        _, message = nodeA.receive_message(addresses=[address], message_names=[u"last-1-multimember-text"])
+        _, message = nodeA.receive_message(message_names=[u"last-1-multimember-text"])
         times.append(message.distribution.global_time)
         assert_(sorted(times) == [global_time, other_global_time])
 
@@ -1805,7 +1806,7 @@ class DispersySyncScript(ScriptBase):
         message for each global time.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-1-multimember-text")
 
         # create node and ensure that SELF knows the node address
@@ -1858,7 +1859,6 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         - Both binary signatures should end up in the bloom filter (temporarily) (NO LONGER THE CASE)
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1914,7 +1914,6 @@ class DispersyIdenticalPayloadScript(ScriptBase):
         - Both binary signatures should end up in the bloom filter (temporarily) (NO LONGER THE CASE)
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -2213,7 +2212,7 @@ class DispersySubjectiveSetScript(ScriptBase):
          - messages from a member NOT in the set are NOT sent back
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         meta_message = community.get_meta_message(u"subjective-set-text")
 
         node = DebugNode()
@@ -2234,9 +2233,9 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert_(times == [global_time])
 
         # a sync MUST return the message that was just sent
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
+        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
         yield 0.11
-        _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
+        _, message = node.receive_message(message_names=[u"subjective-set-text"])
         assert_(message.distribution.global_time == global_time)
 
         # cleanup
@@ -2256,7 +2255,7 @@ class DispersySubjectiveSetScript(ScriptBase):
            dispersy-subjective-set is received.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
         meta_message = community.get_meta_message(u"subjective-set-text")
 
         node = DebugNode()
@@ -2272,13 +2271,13 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert_(times == [global_time])
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
-        node.give_message(node.create_dispersy_introduction_request_message(address, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
+        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
         yield 0.11
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
+        _, message = node.receive_message(message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         assert_(message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name))
         assert_(message.payload.cluster == meta_message.destination.cluster)
         try:
-            _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
+            _, message = node.receive_message(message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         except:
             pass
         else:
@@ -2292,7 +2291,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
         # the dispersy-sync message should now be processed (again) and result in the missing
         # subjective-set-text message
-        _, message = node.receive_message(addresses=[address], message_names=[u"subjective-set-text"])
+        _, message = node.receive_message(message_names=[u"subjective-set-text"])
         assert_(message.distribution.global_time == global_time)
 
         # cleanup
@@ -2653,7 +2652,7 @@ class DispersyMissingMessageScript(ScriptBase):
         SELF generates a few messages and NODE requests one of them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
 
         node = DebugNode()
         node.init_socket()
@@ -2670,11 +2669,11 @@ class DispersyMissingMessageScript(ScriptBase):
 
         for message in messages:
             # request messages
-            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, address))
+            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, localhost))
             yield 0.11
 
             # receive response
-            _, response = node.receive_message(addresses=[address], message_names=[message.name])
+            _, response = node.receive_message(message_names=[message.name])
             assert_(response.distribution.global_time == message.distribution.global_time)
             assert_(response.payload.text == message.payload.text)
             dprint("ok @", response.distribution.global_time)
@@ -2688,7 +2687,7 @@ class DispersyMissingMessageScript(ScriptBase):
         SELF generates a few messages and NODE requests one of them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
 
         node = DebugNode()
         node.init_socket()
@@ -2706,11 +2705,11 @@ class DispersyMissingMessageScript(ScriptBase):
         shuffle(messages)
         for message in messages:
             # request messages
-            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, address))
+            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, localhost))
             yield 0.11
 
             # receive response
-            _, response = node.receive_message(addresses=[address], message_names=[message.name])
+            _, response = node.receive_message(message_names=[message.name])
             assert_(response.distribution.global_time == message.distribution.global_time)
             assert_(response.payload.text == message.payload.text)
             dprint("ok @", response.distribution.global_time)
@@ -2724,7 +2723,7 @@ class DispersyMissingMessageScript(ScriptBase):
         SELF generates a few messages and NODE requests three of them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        localhost = LocalhostCandidate(self._dispersy)
 
         node = DebugNode()
         node.init_socket()
@@ -2742,16 +2741,16 @@ class DispersyMissingMessageScript(ScriptBase):
 
         # request messages
         global_times = [messages[index].distribution.global_time for index in [2, 4, 6]]
-        node.give_message(node.create_dispersy_missing_message_message(community.my_member, global_times, 25, address))
+        node.give_message(node.create_dispersy_missing_message_message(community.my_member, global_times, 25, localhost))
         yield 0.11
 
         # receive response
         responses = []
-        _, response = node.receive_message(addresses=[address], message_names=[meta.name])
+        _, response = node.receive_message(message_names=[meta.name])
         responses.append(response)
-        _, response = node.receive_message(addresses=[address], message_names=[meta.name])
+        _, response = node.receive_message(message_names=[meta.name])
         responses.append(response)
-        _, response = node.receive_message(addresses=[address], message_names=[meta.name])
+        _, response = node.receive_message(message_names=[meta.name])
         responses.append(response)
 
         assert_(sorted(response.distribution.global_time for response in responses) == global_times)
@@ -2766,18 +2765,23 @@ class DispersyUndoScript(ScriptBase):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
-        self.caller(self.node_undo)
-        self.caller(self.self_undo)
+        self.caller(self.self_undo_own)
+        self.caller(self.self_undo_other)
+        self.caller(self.node_undo_own)
+        self.caller(self.node_undo_other)
         self.caller(self.self_malicious_undo)
         self.caller(self.node_malicious_undo)
+        self.caller(self.node_non_malicious_undo)
         self.caller(self.missing_message)
 
-    def self_undo(self):
+    def self_undo_own(self):
         """
         SELF generates a few messages and then undoes them.
+
+        This is always allowed.  In fact, no check is made since only externally received packets
+        will be checked.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create messages
         messages = [community.create_full_sync_text("Should undo #%d" % i, forward=False) for i in xrange(10)]
@@ -2807,17 +2811,62 @@ class DispersyUndoScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill", forward=False)
         community.unload_community()
 
-    def node_undo(self):
+    def self_undo_other(self):
         """
-        NODE generates a few messages and then undoes them.
+        NODE generates a few messages and then SELF undoes them.
+
+        This is always allowed.  In fact, no check is made since only externally received packets
+        will be checked.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         node = DebugNode()
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
+
+        # NODE creates messages
+        messages = [node.create_full_sync_text_message("Should undo #%d" % global_time, global_time) for global_time in xrange(10, 20)]
+        node.give_messages(messages)
+
+        # check that they are in the database and are NOT undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert_(undone == [(0,)], undone)
+
+        # SELF undoes all messages
+        undoes = [community.create_dispersy_undo(message, forward=False) for message in messages]
+
+        # check that they are in the database and ARE undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                          (community.database_id, node.my_member.database_id, message.distribution.global_time)))
+            assert_(undone == [(1,)], undone)
+
+        # check that all the undo messages are in the database and are NOT undone
+        for message in undoes:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                          (community.database_id, community.my_member.database_id, message.distribution.global_time)))
+            assert_(undone == [(0,)], undone)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill", forward=False)
+        community.unload_community()
+
+    def node_undo_own(self):
+        """
+        SELF gives NODE permission to undo, NODE generates a few messages and then undoes them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # SELF grants undo permission to NODE
+        community.create_dispersy_authorize([(node.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
 
         # create messages
         messages = [node.create_full_sync_text_message("Should undo @%d" % global_time, global_time) for global_time in xrange(10, 20)]
@@ -2831,7 +2880,7 @@ class DispersyUndoScript(ScriptBase):
 
         # undo all messages
         sequence_number = 1
-        undoes = [node.create_dispersy_undo_message(message, message.distribution.global_time + 100, sequence_number + i) for i, message in enumerate(messages)]
+        undoes = [node.create_dispersy_undo_own_message(message, message.distribution.global_time + 100, sequence_number + i) for i, message in enumerate(messages)]
         node.give_messages(undoes)
 
         # check that they are in the database and ARE undone
@@ -2850,6 +2899,57 @@ class DispersyUndoScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
+    def node_undo_other(self):
+        """
+        SELF gives NODE1 permission to undo, NODE2 generates a few messages and then NODE1 undoes
+        them.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+
+        node1 = DebugNode()
+        node1.init_socket()
+        node1.set_community(community)
+        node1.init_my_member()
+
+        node2 = DebugNode()
+        node2.init_socket()
+        node2.set_community(community)
+        node2.init_my_member()
+
+        # SELF grants undo permission to NODE1
+        community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
+        # NODE2 creates messages
+        messages = [node2.create_full_sync_text_message("Should undo @%d" % global_time, global_time) for global_time in xrange(10, 20)]
+        node2.give_messages(messages)
+
+        # check that they are in the database and are NOT undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                          (community.database_id, node2.my_member.database_id, message.distribution.global_time)))
+            assert_(undone == [(0,)], undone)
+
+        # NODE1 undoes all messages
+        sequence_number = 1
+        undoes = [node1.create_dispersy_undo_other_message(message, message.distribution.global_time + 100, sequence_number + i) for i, message in enumerate(messages)]
+        node1.give_messages(undoes)
+
+        # check that they are in the database and ARE undone
+        for message in messages:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                          (community.database_id, node2.my_member.database_id, message.distribution.global_time)))
+            assert_(undone == [(1,)], undone)
+
+        # check that all the undo messages are in the database and are NOT undone
+        for message in undoes:
+            undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                          (community.database_id, node1.my_member.database_id, message.distribution.global_time)))
+            assert_(undone == [(0,)], undone)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
     def self_malicious_undo(self):
         """
         SELF generated a message and then undoes it twice.  The dispersy core should ensure that
@@ -2857,7 +2957,6 @@ class DispersyUndoScript(ScriptBase):
         and the first undo should be returned instead.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create message
         message = community.create_full_sync_text("Should undo")
@@ -2877,9 +2976,9 @@ class DispersyUndoScript(ScriptBase):
 
     def node_malicious_undo(self):
         """
-        NODE generates a message and then undoes it twice.  The second undo will can cause nodes to
-        keep syncing packets that other nodes will keep dropping (because you can only drop a
-        message once, but the two messages are binary unique).
+        SELF gives NODE permission to undo, NODE generates a message and then undoes it twice.  The
+        second undo can cause nodes to keep syncing packets that other nodes will keep dropping
+        (because you can only drop a message once, but the two messages are binary unique).
 
         Sending two undoes for the same message is considered malicious behavior, resulting in:
          1. the offending node must be put on the blacklist
@@ -2893,6 +2992,9 @@ class DispersyUndoScript(ScriptBase):
         node.set_community(community)
         node.init_my_member()
 
+        # SELF grants undo permission to NODE
+        community.create_dispersy_authorize([(node.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
         # create message
         global_time = 10
         message = node.create_full_sync_text_message("Should undo @%d" % global_time, global_time)
@@ -2901,13 +3003,13 @@ class DispersyUndoScript(ScriptBase):
         # undo once
         global_time = 30
         sequence_number = 1
-        undo1 = node.create_dispersy_undo_message(message, global_time, sequence_number)
+        undo1 = node.create_dispersy_undo_own_message(message, global_time, sequence_number)
         node.give_message(undo1)
 
         # undo twice
         global_time = 20
         sequence_number = 2
-        undo2 = node.create_dispersy_undo_message(message, global_time, sequence_number)
+        undo2 = node.create_dispersy_undo_own_message(message, global_time, sequence_number)
         node.give_message(undo2)
 
         # check that the member is declared malicious
@@ -2942,12 +3044,10 @@ class DispersyUndoScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         community.unload_community()
 
-    def missing_message(self):
+    def node_non_malicious_undo(self):
         """
-        NODE generates a few messages without sending them to SELF.  Following, NODE undoes the
-        messages and sends the undo messages to SELF.  SELF must now use a dispersy-missing-message
-        to request the messages that are about to be undone.  The messages need to be processed and
-        subsequently undone.
+        SELF gives NODE permission to undo, NODE generates a message, SELF generates an undo, NODE
+        generates an undo.  The second undo should NOT cause NODE of SELF to be marked as malicious.
         """
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
@@ -2957,12 +3057,59 @@ class DispersyUndoScript(ScriptBase):
         node.set_community(community)
         node.init_my_member()
 
+        # SELF grants undo permission to NODE
+        community.create_dispersy_authorize([(node.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
+        # create message
+        global_time = 10
+        message = node.create_full_sync_text_message("Should undo @%d" % global_time, global_time)
+        node.give_message(message)
+
+        # SELF undoes
+        community.create_dispersy_undo(message)
+
+        # NODE undoes
+        global_time = 30
+        sequence_number = 1
+        undo1 = node.create_dispersy_undo_own_message(message, global_time, sequence_number)
+        node.give_message(undo1)
+
+        # check that they are in the database and ARE undone
+        undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                      (community.database_id, message.authentication.member.database_id, message.distribution.global_time)))
+        assert_(undone == [(1,)], undone)
+
+        # check that the member is not declared malicious
+        assert_(not Member.get_instance(node.my_member.public_key).must_blacklist)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        community.unload_community()
+
+    def missing_message(self):
+        """
+        SELF gives NODE permission to undo, NODE generates a few messages without sending them to
+        SELF.  Following, NODE undoes the messages and sends the undo messages to SELF.  SELF must
+        now use a dispersy-missing-message to request the messages that are about to be undone.  The
+        messages need to be processed and subsequently undone.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+        address = self._dispersy.socket.get_address()
+
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        # SELF grants undo permission to NODE
+        community.create_dispersy_authorize([(node.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
         # create messages
         messages = [node.create_full_sync_text_message("Should undo @%d" % global_time, global_time) for global_time in xrange(10, 20)]
 
         # undo all messages
         sequence_number = 1
-        undoes = [node.create_dispersy_undo_message(message, message.distribution.global_time + 100, i + sequence_number) for i, message in enumerate(messages)]
+        undoes = [node.create_dispersy_undo_own_message(message, message.distribution.global_time + 100, i + sequence_number) for i, message in enumerate(messages)]
         node.give_messages(undoes)
 
         # receive the dispersy-missing-message messages
@@ -2978,7 +3125,7 @@ class DispersyUndoScript(ScriptBase):
         # give all 'delayed' messages
         node.give_messages(messages)
 
-        yield community.get_meta_message(u"full-sync-text").delay + community.get_meta_message(u"dispersy-undo").delay
+        yield community.get_meta_message(u"full-sync-text").delay + community.get_meta_message(u"dispersy-undo-own").delay + community.get_meta_message(u"dispersy-undo-other").delay
         yield 2.0
 
         # check that they are in the database and ARE undone

@@ -472,7 +472,8 @@ class Dispersy(Singleton):
                 Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
                 Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, priority=504, delay=1.0),
                 Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, priority=504, delay=1.0),
-                Message(community, u"dispersy-undo", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
+                Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
+                Message(community, u"dispersy-undo-other", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
                 Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
                 Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
                 Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"DESC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, community.dispersy_on_dynamic_settings, delay=0.0),
@@ -851,7 +852,7 @@ class Dispersy(Singleton):
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
 
                         # notify that global times have changed
-                        message.community.update_sync_range(message.meta, [message.distribution.global_time])
+                        # message.community.update_sync_range(message.meta, [message.distribution.global_time])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
@@ -3420,7 +3421,7 @@ class Dispersy(Singleton):
                 assert isinstance(triplet[0], Member)
                 assert isinstance(triplet[1], Message)
                 assert isinstance(triplet[2], unicode)
-                assert triplet[2] in (u'permit', u'authorize', u'revoke')
+                assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo")
 
         meta = community.get_meta_message(u"dispersy-authorize")
         message = meta.impl(authentication=((community.master_member if sign_with_master else community.my_member),),
@@ -3461,6 +3462,7 @@ class Dispersy(Singleton):
          message immediately.
         """
         for message in messages:
+            if __debug__: dprint(message, force=1)
             message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
@@ -3517,7 +3519,7 @@ class Dispersy(Singleton):
                 assert isinstance(triplet[0], Member)
                 assert isinstance(triplet[1], Message)
                 assert isinstance(triplet[2], unicode)
-                assert triplet[2] in (u'permit', u'authorize', u'revoke')
+                assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo")
 
         meta = community.get_meta_message(u"dispersy-revoke")
         message = meta.impl(authentication=((community.master_member if sign_with_master else community.my_member),),
@@ -3545,24 +3547,35 @@ class Dispersy(Singleton):
             message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_undo(self, community, message, sign_with_master=False, store=True, update=True, forward=True):
+        """
+        Create a dispersy-undo-own or dispersy-undo-other message to undo MESSAGE.
+
+        A dispersy-undo-own message is created when MESSAGE.authentication.member is
+        COMMUNITY.my_member and SIGN_WITH_MASTER is False.  Otherwise a dispersy-undo-other message
+        is created.
+
+        As a safeguard, when MESSAGE is already marked as undone in the database, the associated
+        dispersy-undo-own or dispersy-undo-other message is returned instead of creating a new one.
+        None is returned when MESSAGE is already marked as undone and neither of these messages can
+        be found.
+        """
         if __debug__:
             # pylint: disable-msg=W0404
             from community import Community
             assert isinstance(community, Community)
             assert isinstance(message, Message.Implementation)
             assert isinstance(sign_with_master, bool)
-            assert sign_with_master is False, "Must be False for now.  We can enable this feature once the undo message is able to undo messages created by others"
             assert isinstance(store, bool)
             assert isinstance(update, bool)
             assert isinstance(forward, bool)
-            assert community.my_member == message.authentication.member, "For now we can only undo our own messages"
+            assert not message.name in (u"dispersy-undo-own", u"dispersy-undo-other", u"dispersy-authorize", u"dispersy-revoke"), "Currently we do NOT support undoing any of these, as it has consequences for other messages"
 
         # creating a second dispersy-undo for the same message is malicious behavior (it can cause
         # infinate data traffic).  nodes that notice this behavior must blacklist the offending
         # node.  hence we ensure that we did not send an undo before
         try:
             undone, = self._database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                             (community.database_id, community.my_member.database_id, message.distribution.global_time)).next()
+                                             (community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
 
         except StopIteration:
             assert False, "The message that we want to undo does not exist.  Programming error"
@@ -3573,21 +3586,21 @@ class Dispersy(Singleton):
                 if __debug__: dprint("you are attempting to undo the same message twice.  this should never be attempted as it is considered malicious behavior", level="error")
 
                 # already undone.  refuse to undo again but return the previous undo message
-                undo_meta = community.get_meta_message(u"dispersy-undo")
-                for packet_id, packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
-                                                      (community.database_id, community.my_member.database_id, undo_meta.database_id)):
-                    msg = Packet(undo_meta, str(packet), packet_id).load_message()
+                undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+                undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+                for packet_id, message_id, packet in self._database.execute(u"SELECT id, meta_message, packet FROM sync WHERE community = ? AND member = ? AND meta_message IN (?, ?)",
+                                                                            (community.database_id, message.authentication.member.database_id, undo_own_meta.database_id, undo_other_meta.database_id)):
+                    msg = Packet(undo_own_meta if undo_own_meta.database_id == message_id else undo_other_meta, str(packet), packet_id).load_message()
                     if message.distribution.global_time == msg.payload.global_time:
                         return msg
 
-                # could not find the undo message that caused the sync.undone to be True, this would
-                # indicate a database inconsistency
-                assert False, "Database inconsistency: sync.undone is True while we could not find the dispersy-undo message"
+                # could not find the undo message that caused the sync.undone to be True.  the
+                # undone was probably caused by changing permissions
                 return None
 
             else:
                 # create the undo message
-                meta = community.get_meta_message(u"dispersy-undo")
+                meta = community.get_meta_message(u"dispersy-undo-own" if community.my_member == message.authentication.member and not sign_with_master else u"dispersy-undo-other")
                 msg = meta.impl(authentication=((community.master_member if sign_with_master else community.my_member),),
                                 distribution=(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                 payload=(message.authentication.member, message.distribution.global_time, message))
@@ -3598,45 +3611,12 @@ class Dispersy(Singleton):
                 return msg
 
     def check_undo(self, messages):
+        assert all(message.name in (u"dispersy-undo-own", u"dispersy-undo-other") for message in messages)
+
         for message in messages:
             # ensure that the message in the payload allows undo
             if not message.payload.packet.meta.undo_callback:
                 yield DropMessage(message, "message does not allow undo")
-                continue
-
-            try:
-                undone, = self._database.execute(u"SELECT undone FROM sync WHERE id = ?", (message.payload.packet.packet_id,)).next()
-            except StopIteration:
-                assert False, "Should never occur"
-                undone = 0
-
-            if undone:
-                # it is possible to create a malicious message that will be propagated
-                # indefinately... two undo messages at a different global time applying to the same
-                # message.  If this occurs the member can be assumed to be malicious!  the proof of
-                # malicious behaviour are the two dispersy-undo messages.
-
-                if __debug__: dprint("detected malicious behavior", level="warning")
-
-                # search for the second offending dispersy-undo message
-                community = message.community
-                member = message.authentication.member
-                undo_meta = community.get_meta_message(u"dispersy-undo")
-                for packet_id, packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
-                                                      (community.database_id, member.database_id, undo_meta.database_id)):
-                    msg = Packet(undo_meta, str(packet), packet_id).load_message()
-                    if message.payload.global_time == msg.payload.global_time:
-                        self.declare_malicious_member(member, [msg, message])
-
-                        # the sender apparently does not have the offending dispersy-undo message, lets give
-                        self._send([message.candidate], [msg.packet], msg.name)
-
-                        break
-
-                if member == community.my_member:
-                    if __debug__: dprint("fatal error.  apparently we are malicious", level="error")
-
-                yield DropMessage(message, "trying to undo a message that has already been undone")
                 continue
 
             # check the timeline
@@ -3645,12 +3625,60 @@ class Dispersy(Singleton):
                 yield DelayMessageByProof(message)
                 continue
 
+            try:
+                undone, = self._database.execute(u"SELECT undone FROM sync WHERE id = ?", (message.payload.packet.packet_id,)).next()
+            except StopIteration:
+                assert False, "The conversion ensures that the packet exists in the DB.  Hence this should never occur"
+                undone = 0
+
+            if undone and message.name == u"dispersy-undo-own":
+                # the dispersy-undo-own message is a curious beast.  Anyone is allowed to create one
+                # (regardless of the community settings) and everyone is responsible to propagate
+                # these messages.  A malicious member could create an infinite number of
+                # dispersy-undo-own messages and thereby take down a community.
+                #
+                # to prevent this, we allow only one dispersy-undo-own message per message.  When we
+                # detect a second message, the member is declared to be malicious and blacklisted.
+                # The proof of being malicious is forwarded to other nodes.  The malicious node is
+                # now limited to creating only one dispersy-undo-own message per message that she
+                # creates.  And that can be limited by revoking her right to create messages.
+
+                # search for the second offending dispersy-undo message
+                community = message.community
+                member = message.authentication.member
+                undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+                for packet_id, packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
+                                                                            (community.database_id, member.database_id, undo_own_meta.database_id)):
+                    msg = Packet(undo_own_meta, str(packet), packet_id).load_message()
+                    if message.payload.global_time == msg.payload.global_time:
+                        if __debug__: dprint("detected malicious behavior", level="warning")
+                        self.declare_malicious_member(member, [msg, message])
+
+                        # the sender apparently does not have the offending dispersy-undo message, lets give
+                        self._send([message.candidate], [msg.packet], msg.name)
+
+                        if member == community.my_member:
+                            if __debug__: dprint("fatal error.  apparently we are malicious", level="error")
+
+                        yield DropMessage(message, "the message proves that the member is malicious")
+                        break
+
+                else:
+                    # did not break, hence, the message is not malicious.  more than one members
+                    # undid this message
+                    yield message
+
+                # continue.  either the message was malicious or it has already been yielded
+                continue
+
             yield message
 
     def on_undo(self, messages):
         """
         Undo a single message.
         """
+        assert all(message.name in (u"dispersy-undo-own", u"dispersy-undo-other") for message in messages)
+
         self._database.executemany(u"UPDATE sync SET undone = 1 WHERE community = ? AND member = ? AND global_time = ?",
                                    ((message.community.database_id, message.payload.member.database_id, message.payload.global_time) for message in messages))
         for meta, iterator in groupby(messages, key=lambda x: x.payload.packet.meta):
@@ -3658,7 +3686,7 @@ class Dispersy(Singleton):
             meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
 
             # notify that global times have changed
-            meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
+            # meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
 
     def create_destroy_community(self, community, degree, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
@@ -3802,15 +3830,15 @@ class Dispersy(Singleton):
                     meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
 
                     # notify that global times have changed
-                    meta.community.update_sync_range(meta, [message.distribution.global_time for message in undo])
+                    # meta.community.update_sync_range(meta, [message.distribution.global_time for message in undo])
 
                 if redo:
                     executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
                     assert self._database.changes == len(redo), (self._database.changes, len(redo))
                     meta.handle_callback(redo)
-                        
+
                     # notify that global times have changed
-                    meta.community.update_sync_range(meta, [message.distribution.global_time for message in redo])
+                    # meta.community.update_sync_range(meta, [message.distribution.global_time for message in redo])
 
     def sanity_check_generator(self, community):
         """

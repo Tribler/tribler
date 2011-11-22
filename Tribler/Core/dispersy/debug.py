@@ -1,7 +1,7 @@
 import socket
 
 from bloomfilter import BloomFilter
-from candidate import Candidate
+from candidate import Candidate, LocalhostCandidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from dprint import dprint
 from member import Member
@@ -88,8 +88,8 @@ class Node(object):
             # update candidate information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            destination_address = self._community._dispersy.wan_address
-            message = self.create_dispersy_introduction_request_message(destination_address, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
+            destination = LocalhostCandidate(self._community._dispersy)
+            message = self.create_dispersy_introduction_request_message(destination, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
             self.give_message(message)
 
     @property
@@ -242,8 +242,16 @@ class Node(object):
         meta = self._community.get_meta_message(u"dispersy-identity")
         return meta.impl(authentication=(self._my_member,), distribution=(global_time,))
 
-    def create_dispersy_undo_message(self, message, global_time, sequence_number):
-        meta = self._community.get_meta_message(u"dispersy-undo")
+    def create_dispersy_undo_own_message(self, message, global_time, sequence_number):
+        assert message.authentication.member == self._my_member, "use create_dispersy_undo_other_message"
+        meta = self._community.get_meta_message(u"dispersy-undo-own")
+        return meta.impl(authentication=(self._my_member,),
+                         distribution=(global_time, sequence_number),
+                         payload=(message.authentication.member, message.distribution.global_time, message))
+
+    def create_dispersy_undo_other_message(self, message, global_time, sequence_number):
+        assert message.authentication.member != self._my_member, "use create_dispersy_undo_own_message"
+        meta = self._community.get_meta_message(u"dispersy-undo-other")
         return meta.impl(authentication=(self._my_member,),
                          distribution=(global_time, sequence_number),
                          payload=(message.authentication.member, message.distribution.global_time, message))
@@ -312,6 +320,7 @@ class Node(object):
 
     def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, connection_type, sync, identifier, global_time):
         # TODO assert other arguments
+        assert isinstance(destination, Candidate)
         if sync:
             assert isinstance(sync, tuple)
             assert len(sync) == 5
@@ -330,5 +339,5 @@ class Node(object):
         return meta.impl(authentication=(self._my_member,),
                          destination=(destination,),
                          distribution=(global_time,),
-                         payload=(destination, source_lan, source_wan, advice, connection_type, sync, identifier))
+                         payload=(destination.address, source_lan, source_wan, advice, connection_type, sync, identifier))
 

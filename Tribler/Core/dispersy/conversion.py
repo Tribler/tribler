@@ -175,6 +175,7 @@ class BinaryConversion(Conversion):
         if __debug__:
             debug_non_available = []
 
+        # 255 is reserved
         define(254, u"dispersy-missing-sequence", self._encode_missing_sequence, self._decode_missing_sequence)
         define(253, u"dispersy-missing-proof", self._encode_missing_proof, self._decode_missing_proof)
         define(252, u"dispersy-signature-request", self._encode_signature_request, self._decode_signature_request)
@@ -191,7 +192,8 @@ class BinaryConversion(Conversion):
         define(241, u"dispersy-subjective-set", self._encode_subjective_set, self._decode_subjective_set)
         define(240, u"dispersy-missing-subjective-set", self._encode_missing_subjective_set, self._decode_missing_subjective_set)
         define(239, u"dispersy-missing-message", self._encode_missing_message, self._decode_missing_message)
-        define(238, u"dispersy-undo", self._encode_undo, self._decode_undo)
+        define(238, u"dispersy-undo-own", self._encode_undo_own, self._decode_undo_own)
+        define(237, u"dispersy-undo-other", self._encode_undo_other, self._decode_undo_other)
         define(236, u"dispersy-dynamic-settings", self._encode_dynamic_settings, self._decode_dynamic_settings)
 
         if __debug__:
@@ -353,7 +355,7 @@ class BinaryConversion(Conversion):
            ]
         ]
         """
-        permission_map = {u"permit":1, u"authorize":2, u"revoke":4}
+        permission_map = {u"permit":int("0001", 2), u"authorize":int("0010", 2), u"revoke":int("0100", 2), u"undo":int("1000", 2)}
         members = {}
         for member, message, permission in message.payload.permission_triplets:
             public_key = member.public_key
@@ -373,16 +375,16 @@ class BinaryConversion(Conversion):
 
             members[public_key][message_id] |= permission_bit
 
-        bytes = []
+        bytes_ = []
         for public_key, messages in members.iteritems():
-            bytes.extend((pack("!H", len(public_key)), public_key, pack("!B", len(messages))))
+            bytes_.extend((pack("!H", len(public_key)), public_key, pack("!B", len(messages))))
             for message_id, permission_bits in messages.iteritems():
-                bytes.extend((message_id, pack("!B", permission_bits)))
+                bytes_.extend((message_id, pack("!B", permission_bits)))
 
-        return tuple(bytes)
+        return tuple(bytes_)
 
     def _decode_authorize(self, placeholder, offset, data):
-        permission_map = {u"permit":1, u"authorize":2, u"revoke":4}
+        permission_map = {u"permit":int("0001", 2), u"authorize":int("0010", 2), u"revoke":int("0100", 2), u"undo":int("1000", 2)}
         permission_triplets = []
 
         while offset < len(data):
@@ -416,19 +418,13 @@ class BinaryConversion(Conversion):
                     raise DropPacket("Unknown message id [%d]" % ord(message_id))
                 message = self._decode_message_map[message_id][0]
 
-                if not isinstance(message.resolution, (LinearResolution, DynamicResolution)):
-                    # it makes no sence to authorize a message that does not use the
-                    # LinearResolution or DynamicResolution policy.  currently we have three
-                    # policies, PublicResolution (where all messages are allowed regardless of
-                    # authorization), LinearResolution (where members require permissions), and
-                    # DynamicResolution (where the policy changes between the other available
-                    # policies).
+                if not isinstance(message.resolution, (PublicResolution, LinearResolution, DynamicResolution)):
                     raise DropPacket("Invalid resolution policy")
 
-                if not isinstance(message.authentication, MemberAuthentication):
+                if not isinstance(message.authentication, (MemberAuthentication, MultiMemberAuthentication)):
                     # it makes no sence to authorize a message that does not use the
-                    # MemberAuthentication policy because without this policy it is impossible to
-                    # verify WHO created the message.
+                    # MemberAuthentication or MultiMemberAuthentication policy because without this
+                    # policy it is impossible to verify WHO created the message.
                     raise DropPacket("Invalid authentication policy")
 
                 permission_bits, = unpack_from("!B", data, offset)
@@ -594,10 +590,13 @@ class BinaryConversion(Conversion):
 
         return offset, placeholder.meta.payload.implement(cluster, members)
 
-    def _encode_undo(self, message):
+    def _encode_undo_own(self, message):
         return pack("!Q", message.payload.global_time),
 
-    def _decode_undo(self, placeholder, offset, data):
+    def _decode_undo_own(self, placeholder, offset, data):
+        # use the member in the Authentication policy
+        member = placeholder.authentication.member
+
         if len(data) < offset + 8:
             raise DropPacket("Insufficient packet size")
 
@@ -609,13 +608,55 @@ class BinaryConversion(Conversion):
 
         try:
             packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, meta_message.name, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND sync.member = ? AND sync.global_time = ?",
-                                                                                   (self._community.database_id, placeholder.authentication.member.database_id, global_time)).next()
+                                                                                   (self._community.database_id, member.database_id, global_time)).next()
         except StopIteration:
-            raise DelayPacketByMissingMessage(self._community, placeholder.authentication.member, [global_time])
+            raise DelayPacketByMissingMessage(self._community, member, [global_time])
 
         packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
 
-        return offset, placeholder.meta.payload.implement(placeholder.authentication.member, global_time, packet)
+        return offset, placeholder.meta.payload.implement(member, global_time, packet)
+
+    def _encode_undo_other(self, message):
+        public_key = message.payload.member.public_key
+        assert message.payload.member.public_key
+        return pack("!H", len(public_key)), public_key, pack("!Q", message.payload.global_time)
+
+    def _decode_undo_other(self, placeholder, offset, data):
+        if len(data) < offset + 2:
+            raise DropPacket("Insufficient packet size")
+
+        key_length, = unpack_from("!H", data, offset)
+        offset += 2
+
+        if len(data) < offset + key_length:
+            raise DropPacket("Insufficient packet size")
+
+        public_key = data[offset:offset+key_length]
+        if not ec_check_public_bin(public_key):
+            raise DropPacket("Invalid cryptographic key (_decode_revoke)")
+        member = self._community.get_member(public_key)
+        if not member.has_identity(self._community):
+            raise DelayPacketByMissingMember(self._community, member.mid)
+        offset += key_length
+
+        if len(data) < offset + 8:
+            raise DropPacket("Insufficient packet size")
+
+        global_time, = unpack_from("!Q", data, offset)
+        offset += 8
+
+        if not global_time < placeholder.distribution.global_time:
+            raise DropPacket("Invalid global time (trying to apply undo to the future)")
+
+        try:
+            packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, meta_message.name, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND sync.member = ? AND sync.global_time = ?",
+                                                                                   (self._community.database_id, member.database_id, global_time)).next()
+        except StopIteration:
+            raise DelayPacketByMissingMessage(self._community, member, [global_time])
+
+        packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
+
+        return offset, placeholder.meta.payload.implement(member, global_time, packet)
 
     def _encode_missing_proof(self, message):
         payload = message.payload
