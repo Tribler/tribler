@@ -3324,13 +3324,32 @@ class ChannelCastDBHandler(object):
             self._db.execute_write(update_channel, (modification_value, long(time()), channel_id), commit = commit)
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_MODIFIED, channel_id)
-        
+    
+    #Requires all torrents to be from the same channel
     def on_torrents_from_dispersy(self, torrentlist):
+        assert len(torrentlist) > 0
+        assert all([torrent[0] == torrentlist[0][0] for torrent in torrentlist]), 'All torrent should belong to the same channel'
+        
         infohashes = [torrent[3] for torrent in torrentlist]
         torrent_ids, inserted = self.torrent_db.addOrGetTorrentIDSReturn(infohashes)
         
-        for torrent in torrentlist:
+        parameters = '?,'*len(torrent_ids)
+        check_channeltorrent = "SELECT torrent_id, dispersy_id FROM ChannelTorrents WHERE channel_id = ? AND torrent_id in ("+parameters[:-1]+")"
+        channeltorrents = [torrentlist[0][0]] + torrent_ids
+        
+        dispersy_ids = {}
+        for id, dispersy_id in self._db.fetchall(check_channeltorrent, channeltorrents):
+            dispersy_ids[id] = dispersy_id
+        
+        insert_data = []
+        update_data = []
+        insert_files = []
+        insert_collecting = []
+        updated_channels = {}
+        
+        for i, torrent in enumerate(torrentlist):
             channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers = torrent
+            torrent_id = torrent_ids[i]
             
             #if new or not yet collected
             if infohash in inserted or not self.torrent_db.hasTorrent(infohash):
@@ -3366,32 +3385,31 @@ class ChannelCastDBHandler(object):
                     
                 except:
                     print >> sys.stderr, "Could not create a TorrentDef instance", channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers
-                    raise
-        
-        self.torrent_db.commit()
-        
-        updated_channels = {}
-        
-        insert_data = []
-        insert_files = []
-        insert_collecting = []
-        for i in xrange(len(torrentlist)):
-            channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers = torrentlist[i]
-            torrent_id = torrent_ids[i]
-                          
-            for path, length in files:
-                insert_files.append((torrent_id, unicode(path), length))
+                    print_exc()
+                
+                for path, length in files:
+                    insert_files.append((torrent_id, unicode(path), length))
             
             magnetlink = u"magnet:?xt=urn:btih:"+hexlify(infohash)
             for tracker in trackers:
                 magnetlink += "&tr="+urllib.quote_plus(tracker)
             insert_collecting.append((torrent_id, magnetlink))
             
-            insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
-            updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
+            cur_dispersy_id = dispersy_ids.get(torrent_id, 'a'*20)
+            if not isinstance(cur_dispersy_id, str) or len(cur_dispersy_id) != 20:
+                update_data.append((dispersy_id, peer_id, name, timestamp, channel_id, torrent_id))
+            else:
+                insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
             
-        sql_insert_torrent = "INSERT OR REPLACE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, peer_id, name, time_stamp) VALUES (?,?,?,?,?,?)"
-        self._db.executemany(sql_insert_torrent, insert_data, commit = False)
+            updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
+        
+        if len(insert_data) > 0:
+            sql_insert_torrent = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, peer_id, name, time_stamp) VALUES (?,?,?,?,?,?)"
+            self._db.executemany(sql_insert_torrent, insert_data, commit = False)
+        
+        if len(update_data) > 0:
+            sql_insert_torrent = "UPDATE ChannelTorrents SET dispersy_id = ?, peer_id = ?, name = ?, time_stamp = ? WHERE channel_id = ? AND torrent_id = ?"
+            self._db.executemany(sql_insert_torrent, update_data, commit = False)
         
         if len(insert_files) > 0:
             sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
@@ -3447,7 +3465,6 @@ class ChannelCastDBHandler(object):
             channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
             if channeltorrent_id:
                 return True
-            
         return False
     
     def hasTorrents(self, channel_id, infohashes):
@@ -3471,7 +3488,8 @@ class ChannelCastDBHandler(object):
         
         update_name = "UPDATE Channels SET name = ?, modified = ?, nr_torrents = ? WHERE id = ?"
         update_channel = "UPDATE Channels SET modified = ?, nr_torrents = ? WHERE id = ?"
-        insert_torrent = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
+        select_torrent = "SELECT torrent_id FROM ChannelTorrents WHERE torrent_id = ? AND channel_id = ?"
+        insert_torrent = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
         
         max_update = {}
         latest_update = {}
@@ -3479,19 +3497,21 @@ class ChannelCastDBHandler(object):
         #batch fetch torrent_ids:
         infohashes = [infohash for channel_id, channel_name, infohash, name, timestamp in torrents]
         torrent_ids = self.torrent_db.addOrGetTorrentIDS(infohashes)
-        
+
         for i, torrent in enumerate(torrents):
             channel_id, channel_name, infohash, name, timestamp = torrent
             torrent_id = torrent_ids[i]
             
-            if not channel_id in max_update:
-                max_update[channel_id] = self._db.fetchone(select_max, (channel_id,))
-            
-            if timestamp > max_update[channel_id]:
-                #possible name change
-                latest_update[channel_id] = max((timestamp, channel_name), latest_update.get(channel_id, None))
-            
-            self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, timestamp), commit = False)
+            present = self._db.fetchone(select_torrent, (torrent_id, channel_id))
+            if present == None:
+                if not channel_id in max_update:
+                    max_update[channel_id] = self._db.fetchone(select_max, (channel_id,))
+                
+                if timestamp > max_update[channel_id]:
+                    #possible name change
+                    latest_update[channel_id] = max((timestamp, channel_name), latest_update.get(channel_id, None))
+                
+                self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, timestamp), commit = False)
         
         for channel_id in max_update.keys():
             modified, nrTorrents = self.getLatestUpdateNrTorrentsInChannel(channel_id, collected = True)
