@@ -408,7 +408,7 @@ CREATE TABLE BundlerPreference (
 ----------------------------------------
 -- v9: Open2Edit replacing ChannelCast tables
 
-CREATE TABLE IF NOT EXISTS Channels (
+CREATE TABLE IF NOT EXISTS _Channels (
   id                        integer         PRIMARY KEY ASC,
   dispersy_cid              text,       
   peer_id                   integer,
@@ -416,11 +416,14 @@ CREATE TABLE IF NOT EXISTS Channels (
   description               text,
   modified                  integer         DEFAULT (strftime('%s','now')),
   inserted                  integer         DEFAULT (strftime('%s','now')),
+  deleted_at                integer,
   nr_torrents               integer         DEFAULT 0,
   nr_spam                   integer         DEFAULT 0,
   nr_favorite               integer         DEFAULT 0
 );
-CREATE TABLE IF NOT EXISTS ChannelTorrents (
+CREATE VIEW Channels AS SELECT * FROM _Channels WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS _ChannelTorrents (
   id                        integer         PRIMARY KEY ASC,
   dispersy_id               integer,
   torrent_id                integer         NOT NULL,
@@ -431,10 +434,13 @@ CREATE TABLE IF NOT EXISTS ChannelTorrents (
   time_stamp                integer,
   modified                  integer         DEFAULT (strftime('%s','now')),
   inserted                  integer         DEFAULT (strftime('%s','now')),
+  deleted_at                integer,
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
-CREATE TABLE IF NOT EXISTS Playlists (
+CREATE VIEW ChannelTorrents AS SELECT * FROM _ChannelTorrents WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS TorChannelIndex ON _ChannelTorrents(channel_id);
+
+CREATE TABLE IF NOT EXISTS _Playlists (
   id                        integer         PRIMARY KEY ASC,
   channel_id                integer         NOT NULL,
   dispersy_id               integer         NOT NULL,
@@ -444,22 +450,27 @@ CREATE TABLE IF NOT EXISTS Playlists (
   description               text,
   modified                  integer         DEFAULT (strftime('%s','now')),
   inserted                  integer         DEFAULT (strftime('%s','now')),
+  deleted_at                integer,
   UNIQUE (dispersy_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
-CREATE TABLE IF NOT EXISTS PlaylistTorrents (
+CREATE VIEW Playlists AS SELECT * FROM _Playlists WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS PlayChannelIndex ON _Playlists(channel_id);
+
+CREATE TABLE IF NOT EXISTS _PlaylistTorrents (
   dispersy_id           integer         NOT NULL,
   peer_id               integer,
   playlist_id           integer,
   channeltorrent_id     integer,
+  deleted_at            integer,
   PRIMARY KEY (playlist_id, channeltorrent_id),
   FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
   FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS PlayTorrentIndex ON PlaylistTorrents(playlist_id);
+CREATE VIEW PlaylistTorrents AS SELECT * FROM _PlaylistTorrents WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS PlayTorrentIndex ON _PlaylistTorrents(playlist_id);
 
-CREATE TABLE IF NOT EXISTS Comments (
+CREATE TABLE IF NOT EXISTS _Comments (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   peer_id               integer,
@@ -469,10 +480,12 @@ CREATE TABLE IF NOT EXISTS Comments (
   reply_after_id        integer,
   time_stamp            integer,
   inserted              integer         DEFAULT (strftime('%s','now')),
+  deleted_at            integer,
   UNIQUE (dispersy_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);
+CREATE VIEW Comments AS SELECT * FROM _Comments WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ComChannelIndex ON _Comments(channel_id);
 
 CREATE TABLE IF NOT EXISTS CommentPlaylist (
   comment_id            integer,
@@ -492,7 +505,7 @@ CREATE TABLE IF NOT EXISTS CommentTorrent (
 );
 CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
 
-CREATE TABLE IF NOT EXISTS Moderations (
+CREATE TABLE IF NOT EXISTS _Moderations (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   channel_id            integer         NOT NULL,
@@ -503,12 +516,14 @@ CREATE TABLE IF NOT EXISTS Moderations (
   by_peer_id            integer,
   time_stamp            integer         NOT NULL,
   inserted              integer         DEFAULT (strftime('%s','now')),
+  deleted_at            integer,
   UNIQUE (dispersy_id),
   FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS MoChannelIndex ON Moderations(channel_id);
+CREATE VIEW Moderations AS SELECT * FROM _Moderations WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS MoChannelIndex ON _Moderations(channel_id);
 
-CREATE TABLE IF NOT EXISTS ChannelMetaData (
+CREATE TABLE IF NOT EXISTS _ChannelMetaData (
   id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   channel_id            integer         NOT NULL,
@@ -519,9 +534,11 @@ CREATE TABLE IF NOT EXISTS ChannelMetaData (
   prev_global_time      integer,
   time_stamp            integer         NOT NULL,
   inserted              integer         DEFAULT (strftime('%s','now')),
+  deleted_at            integer,
   UNIQUE (dispersy_id),
   FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE
 );
+CREATE VIEW ChannelMetaData AS SELECT * FROM _ChannelMetaData WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS MetaDataTypes (
   id                    integer         PRIMARY KEY ASC,
   name                  text            NOT NULL,
@@ -546,16 +563,18 @@ CREATE TABLE IF NOT EXISTS MetaDataPlaylist (
 );
 CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MetaDataPlaylist(playlist_id);
 
-CREATE TABLE IF NOT EXISTS ChannelVotes (
+CREATE TABLE IF NOT EXISTS _ChannelVotes (
   channel_id            integer,
   voter_id              integer,
   dispersy_id           integer,
   vote                  integer,
   time_stamp            integer,
+  deleted_at            integer,
   PRIMARY KEY (channel_id, voter_id)
 );
-CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
-CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
+CREATE VIEW ChannelVotes AS SELECT * FROM _ChannelVotes WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ChaVotIndex ON _ChannelVotes(channel_id);
+CREATE INDEX IF NOT EXISTS VotChaIndex ON _ChannelVotes(voter_id);
 
 CREATE TABLE IF NOT EXISTS TorrentFiles (
   torrent_id            integer NOT NULL,
@@ -572,17 +591,19 @@ CREATE TABLE IF NOT EXISTS TorrentCollecting (
 );
 CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
 
-CREATE TABLE IF NOT EXISTS TorrentMarkings (
+CREATE TABLE IF NOT EXISTS _TorrentMarkings (
   dispersy_id           integer NOT NULL,
   channeltorrent_id     integer NOT NULL,
   peer_id               integer,
   global_time           integer,
   type                  text    NOT NULL,
   time_stamp            integer NOT NULL,
+  deleted_at            integer,
   UNIQUE (dispersy_id),
   PRIMARY KEY (channeltorrent_id, peer_id)
 );
-CREATE INDEX IF NOT EXISTS TorMarkIndex ON TorrentMarkings(channeltorrent_id);
+CREATE VIEW TorrentMarkings AS SELECT * FROM _TorrentMarkings WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS TorMarkIndex ON _TorrentMarkings(channeltorrent_id);
 
 CREATE VIRTUAL TABLE FullTextIndex USING fts3(swarmname, filenames, fileextensions);
 

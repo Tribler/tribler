@@ -37,6 +37,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
     RemoteChannelTorrent
 import threading
 from copy import copy
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 DEBUG = False
 
@@ -438,6 +439,9 @@ class TorrentManager:
                 if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate = False, prio = 1):
                     if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", hit.name
                     prefetch_counter += 1
+            else:
+                #schedule health check
+                #TorrentChecking.getInstance().addTorrentToQueue(hit)
 
             hit_counter += 1
             if prefetch_counter >= 10 or hit_counter >= 25:
@@ -1560,12 +1564,14 @@ class ChannelManager:
                 self.searchkeywords = wantkeywords
                 self.remoteHits = []
                 self.remoteRefresh = False
-                self.searchDispersy()
-            except TypeError:
-                #Dispersy not loaded yet
-                pass
+            
             finally:
                 self.remoteLock.release()
+        try:
+            self.searchDispersy()
+        except TypeError:
+            #Dispersy not loaded yet
+            pass
         
     def getChannelHits(self):
         hitsUpdated = self.searchLocalDatabase()
