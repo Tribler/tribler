@@ -3427,7 +3427,6 @@ class ChannelCastDBHandler(object):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
             
     def on_remove_torrent_from_dispersy(self, channel_id, dispersy_id):
-        print >> sys.stderr, "ON_REMOVE_TORRENT_FROM_DISPERSY", channel_id, dispersy_id
         sql = "DELETE FROM ChannelTorrents WHERE channel_id = ? and dispersy_id = ?"
         self._db.execute_write(sql, (channel_id, dispersy_id), commit = self.shouldCommit)
         

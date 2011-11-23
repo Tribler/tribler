@@ -336,7 +336,7 @@ class ChannelCommunity(Community):
         candidates = set()
         
         for message in messages:
-            if __debug__: dprint(message, force=1)
+            if __debug__: dprint(message)
             
             dispersy_id = message.packet_id
             authentication_member = message.authentication.member

@@ -3683,11 +3683,7 @@ class Dispersy(Singleton):
                                    ((message.community.database_id, message.payload.member.database_id, message.payload.global_time) for message in messages))
         for meta, iterator in groupby(messages, key=lambda x: x.payload.packet.meta):
             sub_messages = list(iterator)
-            dprint("CALLING UNDO HANDLER ", [str(m) for m in sub_messages], force=1)
-            try:
-                meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
-            except:
-                dprint(error=True)
+            meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
 
             # notify that global times have changed
             # meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
@@ -3829,7 +3825,6 @@ class Dispersy(Singleton):
                             if __debug__: dprint("no change for message ", message.name, " at time ", message.distribution.global_time)
 
                 if undo:
-                    if __debug__: dprint("UNDO", force=1)
                     executemany(u"UPDATE sync SET undone = 1 WHERE id = ?", ((message.packet_id,) for message in undo))
                     assert self._database.changes == len(undo), (self._database.changes, len(undo))
                     meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
@@ -3838,7 +3833,6 @@ class Dispersy(Singleton):
                     # meta.community.update_sync_range(meta, [message.distribution.global_time for message in undo])
 
                 if redo:
-                    if __debug__: dprint("REDO", force=1)
                     executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
                     assert self._database.changes == len(redo), (self._database.changes, len(redo))
                     meta.handle_callback(redo)
