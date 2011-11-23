@@ -21,6 +21,7 @@ import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 from Tribler.Main.vwxGUI.list_header import ChannelOnlyHeader
 from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
+from shutil import copyfile
 
 DEBUG = False
 
@@ -975,6 +976,24 @@ class ManageChannelFilesManager():
             
             return True
         return False
+    
+    def DoExport(self, target_dir):
+        if os.path.isdir(target_dir):
+            torrent_dir = self.channelsearch_manager.session.get_torrent_collecting_dir()
+            _,_,torrents = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
+            
+            nr_torrents_exported = 0
+            for torrent in torrents:
+                collected_torrent_filename = get_collected_torrent_filename(torrent.infohash)
+                
+                torrent_filename = os.path.join(torrent_dir, collected_torrent_filename)
+                if os.path.isfile(torrent_filename):
+                    new_torrent_filename = os.path.join(target_dir, collected_torrent_filename)
+                    copyfile(torrent_filename, new_torrent_filename)
+                    
+                    nr_torrents_exported += 1
+            
+            self.guiutility.frame.top_bg.Notify('%d torrents exported'%nr_torrents_exported, wx.ART_INFORMATION)
         
 class ManageChannelPlaylistsManager():
     
@@ -1488,7 +1507,7 @@ class ManageChannelFilesList(List):
         return ListHeader(parent, self, self.columns, 0)
     
     def CreateFooter(self, parent):
-        return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected, self.OnAdd)
+        return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected, self.OnAdd, self.OnExport)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1518,14 +1537,14 @@ class ManageChannelFilesList(List):
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(None, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
-            self.manager.RemoveAllItems()
+            self.GetManager().RemoveAllItems()
         dlg.Destroy()
     
     def OnRemoveSelected(self, event):
         dlg = wx.MessageDialog(None, 'Are you sure you want to remove all selected torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
             infohashes = [key for key,_ in self.list.GetExpandedItems()]
-            self.manager.RemoveItems(infohashes)
+            self.GetManager().RemoveItems(infohashes)
         dlg.Destroy()
         
     def OnAdd(self, event):
@@ -1534,6 +1553,12 @@ class ManageChannelFilesList(List):
         dlg = AddTorrent(None, self.GetManager(),libraryTorrents)
         dlg.CenterOnParent()
         dlg.ShowModal()
+        dlg.Destroy()
+        
+    def OnExport(self, event):
+        dlg = wx.DirDialog(None, "Please select a directory to which all .torrents should be exported", style = wx.wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
+            self.GetManager().DoExport(dlg.GetPath())
         dlg.Destroy()
         
 class ManageChannelPlaylistList(ManageChannelFilesList):
