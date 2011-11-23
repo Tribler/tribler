@@ -1677,13 +1677,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             select_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
             
-            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description, inserted, modified) VALUES (?, ?, ?, ?, ?, ?)"
-            insert_channel_contents = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
+            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description, inserted, modified) VALUES (?, ?, ?, ?, ?, ?)"
+            insert_channel_contents = "INSERT OR IGNORE INTO _ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
-            update_channel = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
+            update_channel = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
             
             select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
-            insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+            insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
             
             if self.fetchone(finished_convert) == 'ChannelCast':
             
@@ -1760,7 +1760,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         votes[channel_id][1] = neg_votes
                         
                 channel_tuples = [(values[1], values[0], channel_id) for channel_id, values in votes.iteritems()]
-                update_votes = "UPDATE Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
+                update_votes = "UPDATE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
                 self.executemany(update_votes, channel_tuples)
                 
                 print >> sys.stderr, "Converting took", time() - t1
