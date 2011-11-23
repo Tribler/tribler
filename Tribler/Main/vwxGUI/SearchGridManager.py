@@ -1495,6 +1495,11 @@ class ChannelManager:
             community.create_comment(comment, long(time()), reply_to, reply_after, playlist_id, infohash)
     
     @forceDispersyThread
+    def removeComment(self, comment, channel):
+        community = self._disp_get_community_from_channel_id(channel.id)
+        community.remove_comment(comment.dispersy_id)
+    
+    @forceDispersyThread
     def modifyChannel(self, channel_id, changes):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.modifyChannel(changes)

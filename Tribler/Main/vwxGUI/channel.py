@@ -336,7 +336,7 @@ class SelectedChannelList(GenericSearchList):
             manager.SetIds(channel = self.channel)
         else:
             self.my_channel = False
-            self.iamModerator = False
+            self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, False)
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
@@ -369,7 +369,8 @@ class SelectedChannelList(GenericSearchList):
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 self.notebook.RemovePage(i-1)
 
-        self.SetFooter(self.channel.my_vote, state, iamModerator)
+        if self.channel:
+            self.SetFooter(self.channel.my_vote, state, iamModerator)
     
     @warnWxThread    
     def SetTitle(self, title, description):
@@ -1746,7 +1747,7 @@ class AvantarItem(ListItem):
         self.header = ''
         self.body = ''
         self.avantar = None
-        self.additionalButton = None
+        self.additionalButtons = []
         self.maxlines = 6
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
@@ -1767,20 +1768,22 @@ class AvantarItem(ListItem):
         vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.RIGHT, 5)
         
         self.moreButton = None
-        if self.additionalButton:
+        if len(self.additionalButtons) > 0:
             self.moreButton = wx.Button(self, style = wx.BU_EXACTFIT)
             
         self.desc = MaxBetterText(self, self.body, maxLines = self.maxlines, button = self.moreButton)
         self.desc.SetMinSize((1, -1))
         vSizer.Add(self.desc, 0, wx.EXPAND)
         
-        if self.additionalButton:
+        if len(self.additionalButtons) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             hSizer.Add(self.moreButton, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-            hSizer.Add(self.additionalButton, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-            
+        
+            for button in self.additionalButtons:
+                hSizer.Add(button, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+                button.Show(False)
+                
             self.moreButton.Show(False)
-            self.additionalButton.Show(False)
             vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT)
         
         titleRow.Add(vSizer, 1)
@@ -1793,10 +1796,12 @@ class AvantarItem(ListItem):
     def BackgroundColor(self, color):
         changed = ListItem.BackgroundColor(self, color)
         
-        if self.additionalButton and changed:
+        if len(self.additionalButtons) > 0 and changed:
             if self.desc.hasMore:
                 self.moreButton.Show(color == self.list_selected)
-            self.additionalButton.Show(color == self.list_selected)
+                
+            for button in self.additionalButtons:
+                button.Show(color == self.list_selected)
             
     def OnChange(self):
         self.parent_list.OnChange()
@@ -1810,6 +1815,10 @@ class CommentItem(AvantarItem):
             self.inTorrent = True
         else:
             self.inTorrent = False
+        
+        comment = original_data
+        self.canRemove = comment.isMyComment() or (comment.channel and comment.channel.isMyChannel())
+        
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -1823,16 +1832,27 @@ class CommentItem(AvantarItem):
         if depth == 0:
             if not self.inTorrent and comment.torrent:
                 self.header += " in %s"%comment.torrent.name
-                self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-                self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+                button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+                button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+                self.additionalButtons.append(button)
         else:
             leftSpacer += depth * (self.avantar.GetWidth() + 7)  #avantar + spacer
+            
+        if self.canRemove:
+            button = wx.Button(self, -1, 'Remove Comment', style = wx.BU_EXACTFIT)
+            button.Bind(wx.EVT_BUTTON, self.RemoveComment)
+            self.additionalButtons.append(button)
             
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)       
         
     def ShowTorrent(self, event):
         if self.original_data.torrent:
             self.parent_list.parent_list.OnShowTorrent(self.original_data.torrent)
+    
+    def RemoveComment(self, event):
+        comment = self.original_data
+        self.parent_list.parent_list.OnRemoveComment(comment)
+        
         
 class CommentActivityItem(CommentItem):
         
@@ -1842,8 +1862,9 @@ class CommentActivityItem(CommentItem):
         
         if not self.inTorrent and comment.torrent:
             self.header += " in %s"%comment.torrent.name
-            self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-            self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+            button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+            button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+            self.additionalButtons.append(button)
             
         self.body = comment.comment
         im = IconsManager.getInstance()
@@ -1859,8 +1880,9 @@ class NewTorrentActivityItem(AvantarItem):
         self.header = "New torrent received at %s"%(format_time(torrent.time_stamp).lower())
         self.body = torrent.name
         
-        self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-        self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+        button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        self.additionalButtons.append(button)
         
         im = IconsManager.getInstance()
         self.avantar = im.get_default('TORRENT_NEW', SMALL_ICON_MAX_DIM)
@@ -1878,8 +1900,9 @@ class TorrentActivityItem(AvantarItem):
         self.header = "Discovered a torrent at %s, injected at %s"%(format_time(torrent.inserted).lower(), format_time(torrent.time_stamp).lower())
         self.body = torrent.name
         
-        self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-        self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+        button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        self.additionalButtons.append(button)
         
         im = IconsManager.getInstance()
         self.avantar = im.get_default('TORRENT', SMALL_ICON_MAX_DIM)
@@ -1899,8 +1922,9 @@ class ModificationActivityItem(AvantarItem):
         
         if modification.torrent:
             self.header += " for torrent '%s'"%modification.torrent.name
-            self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-            self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+            button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+            button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+            self.additionalButtons.append(button)
         
         im = IconsManager.getInstance()
         self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
@@ -1935,8 +1959,9 @@ class ModificationItem(AvantarItem):
             self.avantar = im.get_default('MODIFICATION',SMALL_ICON_MAX_DIM)
         
             if not self.noButton:
-                self.additionalButton = wx.Button(self, -1, 'Revert Modification', style = wx.BU_EXACTFIT)
-                self.additionalButton.Bind(wx.EVT_BUTTON, self.RevertModification)
+                button = wx.Button(self, -1, 'Revert Modification', style = wx.BU_EXACTFIT)
+                button.Bind(wx.EVT_BUTTON, self.RevertModification)
+                self.additionalButtons.append(button)
         
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
         
@@ -1971,8 +1996,9 @@ class ModerationItem(AvantarItem):
             
             if modification.torrent:
                 self.header += " for torrent '%s'"%modification.torrent.name
-                self.additionalButton = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
-                self.additionalButton.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+                button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+                button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+                self.additionalButtons.append(button)
             
         else:
             self.body = moderation.message
@@ -2058,6 +2084,9 @@ class CommentManager:
             self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
         else:
             self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
+            
+    def removeComment(self, comment):
+        self.channelsearch_manager.removeComment(comment, self.channel)
 
 class CommentList(List):
     def __init__(self, parent, parent_list, canReply = False, quickPost = False):
@@ -2121,6 +2150,9 @@ class CommentList(List):
         
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)
+        
+    def OnRemoveComment(self, comment):
+        self.GetManager().removeComment(comment)
 
 class ActivityManager:
     def __init__(self, list):

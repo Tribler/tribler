@@ -514,6 +514,10 @@ class ChannelCommunity(Community):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
             self._channelcast_db.on_remove_comment_from_dispersy(self._channel_id, dispersy_id)
+            
+    def remove_comment(self, dispersy_id):
+        message = self._get_message_from_dispersy_id(dispersy_id, "comment")
+        self._dispersy.create_undo(self, message)
         
     #modify channel, playlist or torrent
     @forceDispersyThread

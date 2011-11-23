@@ -446,6 +446,9 @@ class Comment(Helper):
             return 'Peer %d'%self.peer_id
         return self._name
     
+    def isMyComment(self):
+        return self.peer_id == None
+    
     @cacheProperty
     def avantar(self):
         im = IconsManager.getInstance()
