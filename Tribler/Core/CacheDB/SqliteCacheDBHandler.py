@@ -3607,7 +3607,7 @@ class ChannelCastDBHandler(object):
         sql = "INSERT OR IGNORE INTO PlaylistTorrents (dispersy_id, playlist_id, peer_id, channeltorrent_id) VALUES (?,?,?,?)"
         self._db.execute_write(sql, (dispersy_id, playlist_id, peer_id, channeltorrent_id), commit = self.shouldCommit)
         
-        self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
+        self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id, infohash)
         
     def on_remove_playlist_torrent(self, channel_id, playlist_dispersy_id, infohash):
         get_playlist = "SELECT id FROM Playlists WHERE dispersy_id = ? AND channel_id = ?"
@@ -3978,11 +3978,11 @@ class ChannelCastDBHandler(object):
         return results
 
     def getPlaylistsFromChannelId(self, channel_id, keys):
-        sql = "SELECT " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists LEFT JOIN PlaylistTorrents ON Playlists.id = PlaylistTorrents.playlist_id WHERE channel_id = ? GROUP BY Playlists.id ORDER BY name DESC"
+        sql = "SELECT " + ", ".join(keys) +", count(DISTINCT ChannelTorrents.id) FROM Playlists LEFT JOIN PlaylistTorrents ON Playlists.id = PlaylistTorrents.playlist_id LEFT JOIN ChannelTorrents ON PlaylistTorrents.channeltorrent_id = ChannelTorrents.id WHERE Playlists.channel_id = ? GROUP BY Playlists.id ORDER BY Playlists.name DESC"
         return self._db.fetchall(sql, (channel_id,))
     
     def getPlaylist(self, playlist_id, keys):
-        sql = "SELECT " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists LEFT JOIN PlaylistTorrents ON Playlists.id = PlaylistTorrents.playlist_id WHERE id = ? GROUP BY Playlists.id"
+        sql = "SELECT " + ", ".join(keys) +", count(DISTINCT ChannelTorrents.id) FROM Playlists LEFT JOIN PlaylistTorrents ON Playlists.id = PlaylistTorrents.playlist_id LEFT JOIN ChannelTorrents ON PlaylistTorrents.channeltorrent_id = ChannelTorrents.id WHERE Playlists.id = ? GROUP BY Playlists.id"
         return self._db.fetchone(sql, (playlist_id,))
             
     def getCommentsFromChannelId(self, channel_id, keys, limit = None):

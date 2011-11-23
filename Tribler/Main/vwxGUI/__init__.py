@@ -27,7 +27,7 @@ LIST_AUTOSIZEHEADER = -2
 
 TORRENT_COLUMNS = ['infohash', 'name', 'length']
 CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.dispersy_id', 'ChannelTorrents.name', 'Torrent.name', 'description', 'time_stamp', 'inserted']
-PLAYLIST_REQ_COLUMNS = ['id', 'channel_id', 'name', 'description']
+PLAYLIST_REQ_COLUMNS = ['Playlists.id', 'Playlists.channel_id', 'Playlists.name', 'Playlists.description']
 
 COMMENT_REQ_COLUMNS = ['id', 'Comments.dispersy_id', 'CommentTorrent.channeltorrent_id', 'name', 'Peer.peer_id', 'comment', 'reply_to_id', 'inserted', 'time_stamp']
 

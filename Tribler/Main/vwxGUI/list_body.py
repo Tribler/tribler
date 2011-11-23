@@ -836,6 +836,9 @@ class AbstractListBody():
                     if key not in self.items:
                         self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                         nr_items_to_create -= 1
+                        
+                    elif getattr(self.items[key], 'should_update', False):
+                        self.items[key].RefreshData(curdata)
                     
                     item = self.items[key]
                     sizer = self.vSizer.GetItem(item)

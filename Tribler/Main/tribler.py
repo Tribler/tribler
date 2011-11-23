@@ -819,9 +819,13 @@ class ABCApp():
                 
             else:
                 self.frame.managechannel.playlistUpdated(objectID)
-                
+
+                if len(args) > 0:
+                    infohash = args[0]
+                else:
+                    infohash = False
                 manager = self.frame.selectedchannellist.GetManager()
-                manager.playlistUpdated(objectID)
+                manager.playlistUpdated(objectID, infohash)
                 
     @forceWxThread     
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):

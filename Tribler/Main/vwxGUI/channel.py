@@ -175,13 +175,22 @@ class ChannelManager():
                 self.dirtyset.add('COMPLETE_REFRESH')
                 self.list.dirty = True
     
-    def playlistUpdated(self, playlist_id):
+    def playlistUpdated(self, playlist_id, infohash = False):
         if self.list.InList(playlist_id):
-            if self.list.ShouldGuiUpdate():
-                self._refresh_partial((playlist_id,))
-            else:
-                self.dirtyset.add(playlist_id)
-                self.list.dirty = True
+            
+            if self.list.InList(infohash): #if infohash is shown, complete refresh is necessary
+                if self.list.ShouldGuiUpdate():
+                    self._refresh_list()
+                else:
+                    self.dirtyset.add('COMPLETE_REFRESH')
+                    self.list.dirty = True
+                    
+            else: #else, only update this single playlist
+                if self.list.ShouldGuiUpdate():
+                    self._refresh_partial((playlist_id,))
+                else:
+                    self.dirtyset.add(playlist_id)
+                    self.list.dirty = True
           
 class SelectedChannelList(GenericSearchList):
     def __init__(self, parent):
@@ -806,6 +815,7 @@ class PlaylistItem(ListItem):
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
         
         self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
+        self.should_update = True
         
     def AddComponents(self, leftSpacer, rightSpacer):
         titleRow = wx.BoxSizer(wx.HORIZONTAL)
