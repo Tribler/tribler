@@ -777,21 +777,53 @@ class ChannelCommunity(Community):
 
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()
-        snapshot = None
-        
+        packets = None
+
         for message in messages:
-            self._dispersy._send([message.candidate], [channelmessage.packet], key = u'missing-channel-response')
+
             if message.payload.includeSnapshot:
-                if snapshot is None:
-                    snapshot = []
+                if packets is None:
+                    packets = []
+                    identity_meta = self.get_meta_message(u"dispersy-identity")
+                    authorize_meta = self.get_meta_message(u"dispersy-authorize")
+
+                    # 23/11/11: when a node joins a channel for the first time she requires the channel
+                    # message.  decoding the channel message requires a dispersy-identity, furthermore,
+                    # the channel message is only allowed when the dispersy-authorize message is
+                    # available, and this message in turn requires the dispersy-identity of (most
+                    # likely) the master member.  to avoid several sequential requests and responses we
+                    # will send them right now
+
+                    try:
+                        # get the master member dispersy-identity
+                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? AND member = ?", (identity_meta.database_id, self.master_member.database_id)).next()
+                        packets.append(str(packet))
+
+                        # get the dispersy-identity for the member who created the channel message
+                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? AND member = ?", (identity_meta.database_id, channelmessage.authentication.member.database_id)).next()
+                        packets.append(str(packet))
+
+                        # get the first existing dispersy-authorize.  this most likely contains the
+                        # permission for the channel message
+                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (authorize_meta.database_id,)).next()
+                        packets.append(str(packet))
+
+                    except StopIteration:
+                        pass
+
+                    # add the channel message
+                    packets.append(channelmessage.packet)
+
                     torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
                     for infohash in torrents:
                         tormessage = self._get_message_from_torrent_infohash(infohash)
-                        snapshot.append(tormessage.packet)
-                
-                if len(snapshot) > 0:
-                    self._dispersy._send([message.candidate], snapshot, key = u'missing-channel-snapshot')
-            
+                        packets.append(tormessage.packet)
+
+                self._dispersy._send([message.candidate], packets, key = u'missing-channel-response')
+
+            else:
+                self._dispersy._send([message.candidate], [channelmessage.packet], key = u'missing-channel-response')
+
     #check or receive moderation messages
     @forceDispersyThread
     def _disp_create_moderation(self, text, timestamp, severity, cause, store=True, update=True, forward=True):
