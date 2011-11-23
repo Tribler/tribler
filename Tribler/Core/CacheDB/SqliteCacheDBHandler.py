@@ -3587,6 +3587,8 @@ class ChannelCastDBHandler(object):
         sql = "DELETE FROM Playlists WHERE channel_id = ? and dipsersy_id = ?"
         self._db.execute_write(sql, (channel_id, dispersy_id), commit = self.shouldCommit)
         
+        self.notifier.notify(NTFY_PLAYLISTS, NTFY_DELETE, channel_id)
+        
     def on_playlist_modification_from_dispersy(self, playlist_id, modification_type, modification_value, commit = None):
         if commit is None:
             commit = self.shouldCommit

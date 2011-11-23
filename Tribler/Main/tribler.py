@@ -813,6 +813,10 @@ class ABCApp():
         if self.ready and self.frame.ready:
             if changeType == NTFY_INSERT:
                 self.frame.managechannel.playlistCreated(objectID)
+                
+                manager = self.frame.selectedchannellist.GetManager()
+                manager.playlistCreated(objectID)
+                
             else:
                 self.frame.managechannel.playlistUpdated(objectID)
                 

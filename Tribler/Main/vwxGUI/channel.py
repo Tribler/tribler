@@ -167,6 +167,14 @@ class ChannelManager():
                     self.dirtyset.add(key)
                     self.list.dirty = True
     
+    def playlistCreated(self, channel_id):
+        if self.list.id == channel_id:
+            if self.list.ShouldGuiUpdate():
+                self._refresh_list()
+            else:
+                self.dirtyset.add('COMPLETE_REFRESH')
+                self.list.dirty = True
+    
     def playlistUpdated(self, playlist_id):
         if self.list.InList(playlist_id):
             if self.list.ShouldGuiUpdate():
