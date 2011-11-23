@@ -3683,7 +3683,11 @@ class Dispersy(Singleton):
                                    ((message.community.database_id, message.payload.member.database_id, message.payload.global_time) for message in messages))
         for meta, iterator in groupby(messages, key=lambda x: x.payload.packet.meta):
             sub_messages = list(iterator)
-            meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
+            dprint("CALLING UNDO HANDLER ", [str(m) for m in sub_messages], force=1)
+            try:
+                meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
+            except:
+                dprint(error=True)
 
             # notify that global times have changed
             # meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
