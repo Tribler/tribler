@@ -381,7 +381,7 @@ class SelectedChannelList(GenericSearchList):
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents], playlist, PlaylistItem) for playlist in playlists]
             
-            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.getState == ChannelCommunity.CHANNEL_OPEN)
+            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.getState() == ChannelCommunity.CHANNEL_OPEN)
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent, DragItem) for torrent in torrents]
             else:
