@@ -494,7 +494,10 @@ class Playlist(Helper):
         searchManager = ChannelManager.getInstance()
         _,_, torrents =  searchManager.getTorrentsFromPlaylist(self, limit = 3)
         names = [torrent.name for torrent in torrents]
-        return "Contents: '"+"'    '".join(names)+"'"
+        if len(names) > 0:
+            return "Contents: '"+"'    '".join(names)+"'"
+        else:
+            return 'This playlist is currently empty, drag and drop any .torrent to add it to this playlist.'
                 
 class Modification(Helper):
     __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')

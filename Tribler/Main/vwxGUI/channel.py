@@ -389,7 +389,7 @@ class SelectedChannelList(GenericSearchList):
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents], playlist, PlaylistItem) for playlist in playlists]
             
-            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.getState() == ChannelCommunity.CHANNEL_OPEN)
+            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.state == ChannelCommunity.CHANNEL_OPEN)
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent, DragItem) for torrent in torrents]
             else:
@@ -429,7 +429,7 @@ class SelectedChannelList(GenericSearchList):
         
         if data:
             if isinstance(data, Torrent):
-                if self.channel.getState == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
+                if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
                     data = (data.infohash,[data.name, data.time_stamp, data.length, 0, 0], data, DragItem)
                 else:
                     data = (data.infohash,[data.name, data.time_stamp, data.length, 0, 0], data)
@@ -812,8 +812,8 @@ class PlaylistItem(ListItem):
         if leftSpacer > 0:
             titleRow.AddSpacer((leftSpacer, -1))
         
-        self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon('tree', LIST_DESELECTED, 0))
-        titleRow.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+        icon = wx.StaticBitmap(self, -1, self.GetIcon('tree', LIST_DESELECTED, 0))
+        titleRow.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
         
         self.title = wx.StaticText(self, -1, self.data[0], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.title.SetMinSize((1, -1))
@@ -826,6 +826,11 @@ class PlaylistItem(ListItem):
         if rightSpacer > 0:
             titleRow.AddSpacer((rightSpacer, -1))
         self.vSizer.Add(titleRow, 0, wx.EXPAND)
+        
+        #set icon as title.icon and add to controls to allow listitem to change backgrouncolour of icon
+        self.title.icon = icon
+        self.title.icon.type = 'tree'
+        self.controls.append(self.title)
         
         self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.desc.SetMinSize((1, -1))
