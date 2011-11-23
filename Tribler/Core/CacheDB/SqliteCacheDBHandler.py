@@ -3574,7 +3574,8 @@ class ChannelCastDBHandler(object):
     def on_remove_comment_from_dispersy(self, channel_id, dispersy_id):
         sql = "UPDATE _Comments SET deleted_at = ? WHERE dispersy_id = ?"
         self._db.execute_write(sql, (long(time()), dispersy_id), commit = self.shouldCommit)
-        self.notifier.notify(NTFY_COMMENTS, NTFY_UPDATE, channel_id)
+        
+        self.notifier.notify(NTFY_COMMENTS, NTFY_DELETE, channel_id)
         
     #dispersy receiving, modifying playlists
     def on_playlist_from_dispersy(self, channel_id, dispersy_id, peer_id, name, description):
