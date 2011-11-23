@@ -1285,7 +1285,7 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         dprint("START BIG BATCH")
-        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 510)]
+        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
 
         begin = clock()
         node.give_messages(messages)
@@ -1312,7 +1312,7 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         dprint("START SMALL BATCHES")
-        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 510)]
+        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
         batches = [messages[offset:offset+10] for offset in xrange(0, len(messages), 10)]
         assert len(messages) == sum(len(batch) for batch in batches)
         del messages

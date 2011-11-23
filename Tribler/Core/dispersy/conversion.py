@@ -415,7 +415,7 @@ class BinaryConversion(Conversion):
                 message_id = data[offset]
                 offset += 1
                 if not message_id in self._decode_message_map:
-                    raise DropPacket("Unknown message id [%d]" % ord(message_id))
+                    raise DropPacket("Unknown sub-message id [%d]" % ord(message_id))
                 message = self._decode_message_map[message_id][0]
 
                 if not isinstance(message.resolution, (PublicResolution, LinearResolution, DynamicResolution)):

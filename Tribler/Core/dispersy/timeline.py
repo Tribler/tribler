@@ -251,6 +251,7 @@ class Timeline(object):
                 assert isinstance(triplet[2], unicode)
                 assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo")
             assert isinstance(proof, Message.Implementation)
+            assert proof.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other")
 
         # TODO: we must remove duplicates in the below permission_pairs list
         # check that AUTHOR is allowed to perform these authorizations
@@ -332,6 +333,7 @@ class Timeline(object):
                 assert isinstance(triplet[2], unicode)
                 assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo")
             assert isinstance(proof, Message.Implementation)
+            assert proof.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other")
 
         # TODO: we must remove duplicates in the below permission_pairs list
         # check that AUTHOR is allowed to perform these authorizations
