@@ -98,8 +98,13 @@ class Community(object):
         for message in community.get_meta_messages():
             # grant all permissions for messages that use LinearResolution or DynamicResolution
             if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
-                for allowed in (u"authorize", u"revoke", u"permit", u"undo"):
+                for allowed in (u"authorize", u"revoke", u"permit"):
                     permission_triplets.append((my_member, message, allowed))
+
+                # we do not support undo permissions for authorize, revoke, undo-own, and undo-other
+                # (yet)
+                if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
+                    permission_triplets.append((my_member, message, u"undo"))
 
             # grant authorize, revoke, and undo permission for messages that use PublicResolution
             # and SyncDistribution.  Why?  The undo permission allows nodes to revoke a specific
@@ -108,8 +113,11 @@ class Community(object):
             # permission.  The permit permission is not required as the message uses
             # PublicResolution and is hence permitted regardless.
             elif isinstance(message.distribution, SyncDistribution) and isinstance(message.resolution, PublicResolution):
-                for allowed in (u"authorize", u"revoke", u"undo"):
-                    permission_triplets.append((my_member, message, allowed))
+                # we do not support undo permissions for authorize, revoke, undo-own, and undo-other
+                # (yet)
+                if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
+                    for allowed in (u"authorize", u"revoke", u"undo"):
+                        permission_triplets.append((my_member, message, allowed))
 
         if permission_triplets:
             community.create_dispersy_authorize(permission_triplets, sign_with_master=True, forward=False)
