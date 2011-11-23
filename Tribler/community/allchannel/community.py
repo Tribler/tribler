@@ -236,8 +236,9 @@ class AllChannelCommunity(Community):
                             requested_packets.append(tormessage.packet)
                         elif __debug__:
                             print >> sys.stderr, "INCONSISTENCY BETWEEN DISPERSYDB and TRIBLER MEGACACHE, IGNORING .torrent"
-            
-            self._dispersy._send([message.candidate], requested_packets, key = u'channelcast-response')
+
+            if requested_packets:
+                self._dispersy._send([message.candidate], requested_packets, key = u'channelcast-response')
             
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: got request for ",len(requested_packets),"torrents from",message.candidate
@@ -277,6 +278,8 @@ class AllChannelCommunity(Community):
                 for channel_id, dispersy_cid, name, infohash, torname, time_stamp in results:
                     infohashes = responsedict.setdefault(dispersy_cid, set())
                     infohashes.add(infohash)
+                    if DEBUG:
+                        print >> sys.stderr, "AllChannelCommunity: found cid:", dispersy_cid.encode("HEX"), " infohash:", infohash.encode("HEX")
                     
                 self.create_channelsearch_response(keywords, responsedict, message.candidate)
             elif DEBUG:

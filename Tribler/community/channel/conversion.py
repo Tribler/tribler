@@ -350,13 +350,13 @@ class ChannelConversion(BinaryConversion):
         return pack('!20s20sQ', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time),
 
     def _decode_playlist_torrent(self, placeholder, offset, data):
-        if len(data) < offset + 44:
+        if len(data) < offset + 48:
             raise DropPacket("Unable to decode the payload")
 
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
         packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        return offset + 44, placeholder.meta.payload.implement(infohash, playlist)
+        return offset + 48, placeholder.meta.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
         if global_time and mid:
