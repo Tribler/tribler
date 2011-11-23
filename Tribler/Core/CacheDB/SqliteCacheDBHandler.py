@@ -3869,11 +3869,11 @@ class ChannelCastDBHandler(object):
             #use this possibility to update nrtorrent in channel
             
             if 'time_stamp' in keys and len(results) > 0:
-                update = "UPDATE Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
+                update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
                 self._db.execute_write(update, (len(results), results[0][keys.index('time_stamp')], channel_id))
             else:
                 #use this possibility to update nrtorrent in channel
-                update = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
+                update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
                 self._db.execute_write(update, (len(results), channel_id))
         
         return self.__fixTorrents(keys, results)
