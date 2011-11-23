@@ -442,6 +442,7 @@ class TorrentManager:
             else:
                 #schedule health check
                 #TorrentChecking.getInstance().addTorrentToQueue(hit)
+                pass
 
             hit_counter += 1
             if prefetch_counter >= 10 or hit_counter >= 25:
