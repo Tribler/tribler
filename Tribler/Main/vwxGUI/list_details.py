@@ -1352,11 +1352,15 @@ class LibraryDetails(TorrentDetails):
         self.overviewPanel = wx.Panel(self.notebook)
         def OnChange():
             self.overviewPanel.Layout()
+            self.overview.Layout()
 
             def resize():
                 best = self.overviewPanel.GetBestSize()[1]
+                best2 = self.overview.GetBestSize()[1]
                 if self.canComment:
-                    best = max(best, self.MINCOMMENTHEIGHT)
+                    best = max(best, best2, self.MINCOMMENTHEIGHT)
+                else:
+                    best = max(best, best2)
                 
                 #making sure it is at least 100px 
                 best = max(best, 100)
