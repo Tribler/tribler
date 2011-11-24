@@ -3046,20 +3046,26 @@ class VoteCastDBHandler(BasicDBHandler):
     def on_vote_from_dispersy(self, channel_id, voter_id, dispersy_id, vote, timestamp):
         if not voter_id:
             self.removeVote(channel_id, voter_id) #sqlite constraint does not work for NULL values
-            
+        
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
         
-        posvotes = "SELECT count(*) from ChannelVotes WHERE channel_id = ? AND vote == 2 GROUP BY channel_id"
-        negvotes = "SELECT count(*) from ChannelVotes WHERE channel_id = ? AND vote == -1 GROUP BY channel_id"
-        
-        posvotes = self._db.fetchone(posvotes,(channel_id, ))
-        negvotes = self._db.fetchone(negvotes,(channel_id, ))
-        
-        update = "UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?"
-        self._db.execute_write(update, (posvotes, negvotes, channel_id))
-        
+        self._updateVotes(channel_id)
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+        
+    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id):
+        remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
+        self._db.execute_write(remove_vote, (long(time()), channel_id, dispersy_id))
+        
+        self._updateVotes(channel_id)
+    
+    def get_latest_vote_dispersy_id(self, channel_id, voter_id):
+        if voter_id:
+            select_vote = "SELECT dispersy_id FROM ChannelVotes WHERE channel_id = ? AND voter_id = ? AND dispersy_id != -1 ORDER BY time_stamp DESC Limit 1"
+            return self._db.fetchone(select_vote, (channel_id, voter_id))
+        
+        select_vote = "SELECT dispersy_id FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL AND dispersy_id != -1 ORDER BY time_stamp DESC Limit 1"
+        return self._db.fetchone(select_vote, (channel_id, ))
 
     def getPosNegVotes(self, channel_id):
         sql = 'select nr_favorite, nr_spam from Channels where id = ?'
@@ -3104,7 +3110,7 @@ class VoteCastDBHandler(BasicDBHandler):
             self._db.execute_write(sql, (long(time()), channel_id, voter_id))
         else:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id ISNULL"
-            self._db.execute_write(sql, (long(time()),channel_id, ))
+            self._db.execute_write(sql, (long(time()), channel_id))
         
         self._updateVotes(channel_id)
             

@@ -101,7 +101,7 @@ class AllChannelCommunity(Community):
                 Message(self, u"channelcast-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
                 Message(self, u"channelsearch", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchPayload(), self.check_channelsearch, self.on_channelsearch),
                 Message(self, u"channelsearch-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelSearchResponsePayload(), self.check_channelsearch_response, self.on_channelsearch_response),
-                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast)
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast, self.undo_votecast)
                 ]
 
     def initiate_conversions(self):
@@ -320,9 +320,6 @@ class AllChannelCommunity(Community):
                     
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no callback found"
-                
-    def create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
-        self._register_task(self._disp_create_votecast, (vote, timestamp, store, update, forward))
 
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community
@@ -337,7 +334,13 @@ class AllChannelCommunity(Community):
             community = cid
         community = self.dispersy.reclassify_community(community, communityclass)
 
-        #create vote message        
+        #check if we need to cancel a previous vote
+        latest_dispersy_id = self._votecast_db.get_latest_vote_dispersy_id(community._channel_id, None)
+        if latest_dispersy_id:
+            message = self._get_message_from_dispersy_id(latest_dispersy_id, "votecast")
+            self._dispersy.create_undo(self, message)
+
+        #create new vote message
         meta = self.get_meta_message(u"votecast")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
@@ -352,11 +355,10 @@ class AllChannelCommunity(Community):
     def check_votecast(self, messages):
         for message in messages:
             if __debug__: dprint(message)
-            community = self._get_channel_community(message.payload.cid)
             
+            community = self._get_channel_community(message.payload.cid)
             if not community._channel_id:
-                yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
-
+                yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
             else:
                 yield message
                 
@@ -373,11 +375,19 @@ class AllChannelCommunity(Community):
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
                 community = self._get_channel_community(message.payload.cid)
-                
                 self._votecast_db.on_vote_from_dispersy(community._channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
                 
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
+    
+    def undo_votecast(self, descriptors):
+        if self.integrate_with_tribler:
+            for _, _, packet in descriptors:
+                message = packet.load_message()
+                dispersy_id = message.packet_id
+                
+                community = self._get_channel_community(message.payload.cid)
+                self._votecast_db.on_remove_vote_from_dispersy(community._channel_id, dispersy_id)
 
     def _get_channel_community(self, cid):
         assert isinstance(cid, str)
@@ -396,22 +406,17 @@ class AllChannelCommunity(Community):
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            cid, packet, packet_id = self._dispersy.database.execute(u"SELECT community.cid, sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
-        cid = str(cid)
-        packet = str(packet)
 
         # 2. convert packet into a Message instance
-        try:
-            message = self.get_conversion(packet[:22]).decode_message(("", -1), packet)
-        except ValueError, v:
-            #raise RuntimeError("Unable to decode packet")
-            raise
-        message.packet_id = packet_id
-        
-        # 3. check
-        assert message.name == messagename, "Expecting a '%s' message"%messagename
+        message = self._dispersy.convert_packet_to_message(str(packet))        
+        if message:
+            assert message.name == messagename, "Expecting a '%s' message"%messagename
+            message.packet_id = packet_id
+        else:
+            raise RuntimeError("unable to convert packet")
         return message
 
 class ChannelCastDBStub():
