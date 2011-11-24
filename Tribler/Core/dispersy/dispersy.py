@@ -307,6 +307,7 @@ class Dispersy(Singleton):
 
         # loaded communities.  cid:Community pairs.
         self._communities = {}
+        self._walker_commmunities = []
 
         # outgoing communication
         self._socket = DummySocket()
@@ -558,6 +559,7 @@ class Dispersy(Singleton):
         self._communities[community.cid] = community
 
         if community.dispersy_enable_candidate_walker:
+            self._walker_commmunities.insert(0, community)
             # restart walker scheduler
             self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
 
@@ -593,6 +595,7 @@ class Dispersy(Singleton):
         del self._communities[community.cid]
 
         if community.dispersy_enable_candidate_walker:
+            self._walker_commmunities.remove(community)
             # restart walker scheduler
             self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
 
@@ -4071,29 +4074,24 @@ class Dispersy(Singleton):
         """
         Periodically select a candidate and take a step in the network.
         """
-        communities = [community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker]
-        if communities:
-            iter_communities = cycle(communities)
+        walker_communities = self._walker_commmunities
+
+        while walker_communities:
+            community = walker_commmunities.pop(0)
+            walker_commmunities.append(community)
+
+            # walk
+            community.dispersy_take_step()
 
             # delay will never be less than 0.05, hence we can accommodate 100 communities
             # before the interval between each step becomes larger than 5.0 seconds
-            delay = max(0.05, 5.0 / len(communities))
-            if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step")
+            delay = max(0.05, 5.0 / len(walker_communities))
+            if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
-            # ensure that we start at a random community (otherwise continues attach/detach
-            # will cause more walks at the communities that happen to be first in the list)
-            for _ in xrange(int(len(communities) * random())):
-                iter_communities.next()
-
-            while True:
-                community = iter_communities.next()
-                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step")
-                community.dispersy_take_step()
-
-                desync = (yield delay)
-                if desync > 0.1:
-                    self._statistics.increment_busy_time(desync)
-                    yield desync
+            desync = (yield delay)
+            if desync > 0.1:
+                self._statistics.increment_busy_time(desync)
+                yield desync
 
     if __debug__:
         def _stats_candidates(self):
