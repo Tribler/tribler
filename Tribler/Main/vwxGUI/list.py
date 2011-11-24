@@ -113,6 +113,8 @@ class RemoteSearchManager:
             torrent_details = item.GetExpandedPanel()
             if torrent_details:
                 torrent_details.DownloadStarted()
+            else:
+                item.DoExpand()
             
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):

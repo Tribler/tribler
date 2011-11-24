@@ -347,6 +347,11 @@ class ListItem(wx.Panel):
                         control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 1))
         else:
             self.DoCollapse()
+            
+    @warnWxThread
+    def DoExpand(self):
+        if not self.expanded:
+            self.OnClick()
     
     @warnWxThread
     def Expand(self, panel):
