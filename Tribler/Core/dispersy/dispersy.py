@@ -3571,7 +3571,7 @@ class Dispersy(Singleton):
             assert isinstance(store, bool)
             assert isinstance(update, bool)
             assert isinstance(forward, bool)
-            assert message.undo_callback), "message does not allow undo"
+            assert message.undo_callback, "message does not allow undo"
             assert not message.name in (u"dispersy-undo-own", u"dispersy-undo-other", u"dispersy-authorize", u"dispersy-revoke"), "Currently we do NOT support undoing any of these, as it has consequences for other messages"
 
         # creating a second dispersy-undo for the same message is malicious behavior (it can cause
