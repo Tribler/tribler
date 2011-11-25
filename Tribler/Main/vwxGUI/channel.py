@@ -1946,7 +1946,7 @@ class ModificationActivityItem(AvantarItem):
         self.body = "Modified %s in '%s'"%(modification.name, modification.value)
         
         if modification.torrent:
-            self.header += " for torrent '%s'"%modification.torrent.name
+            self.header += " for torrent '%s'"%modification.torrent.colt_name
             button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
             button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
             self.additionalButtons.append(button)
