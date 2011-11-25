@@ -1147,6 +1147,13 @@ class TorrentDetails(AbstractDetails):
             del self.torrent.swarminfo
             
             self._addOverview(self.overview, self.torrentSizer)
+            if self.canEdit:
+                if not self.isEditable['name'].IsChanged():
+                    self.isEditable['name'].SetValue(self.torrent.name)
+                    
+                if not self.isEditable['description'].IsChanged():
+                    self.isEditable['description'].SetValue(self.torrent.description or '')
+            
     
     @forceDBThread
     def UpdateStatus(self):
