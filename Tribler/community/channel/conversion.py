@@ -183,7 +183,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'playlist-global-time' type")
         
         try:
-            packet_id, packet, message_name = self._get_message(playlist_mid, playlist_global_time)
+            packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
             playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
             playlist = None
@@ -235,9 +235,13 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'cause-global-time' type")
         
         try:
-            packet_id, packet, message_name = self._get_message(cause_mid, cause_global_time)
+            packet_id, packet, message_name = self._get_message(cause_global_time, cause_mid)
             cause_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except:
+            if __debug__:
+                # we should not silently fail on -any- exception
+                from Tribler.Core.dispersy.dprint import dprint
+                dprint(exception=1, force=1)
             member = Member.get_instance(cause_mid, public_key_available=False)
             raise DelayPacketByMissingMessage(self._community, member, [cause_global_time])
         
@@ -359,6 +363,9 @@ class ChannelConversion(BinaryConversion):
         return offset + 48, placeholder.meta.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
+        assert isinstance(global_time, (int, long))
+        assert isinstance(mid, str)
+        assert len(mid) == 20
         if global_time and mid:
             try:
                 packet_id, packet, message_name = self._dispersy_database.execute(u"""
