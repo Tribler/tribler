@@ -66,11 +66,11 @@ class Idle(Yielder):
         self._origional_root_id = root_id
         self._origional_generator = call[0]
         self._origional_callback = callback
-        generator = self._take_step(actual_time - deadline)
+        generator = self._test_idle(actual_time - deadline)
         generator.send(None)
         heappush(expired, (0, deadline, root_id, (generator, "desync"), None))
 
-    def _take_step(self, desync):
+    def _test_idle(self, desync):
         while self._max_delay > 0.0:
             desync = (yield desync)
             if desync < 0.1:
