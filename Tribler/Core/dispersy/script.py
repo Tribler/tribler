@@ -534,7 +534,7 @@ class DispersyClassificationScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def enable_autoload(self):
         """
@@ -548,7 +548,7 @@ class DispersyClassificationScript(ScriptBase):
         """
         # create community
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        cid = community.cid
         message = community.get_meta_message(u"full-sync-text")
 
         # create node
@@ -566,23 +566,28 @@ class DispersyClassificationScript(ScriptBase):
         self._dispersy.define_auto_load(DebugCommunity)
         yield 0.555
 
+        dprint("create wake-up message")
+        global_time = 10
+        wakeup = node.encode_message(node.create_full_sync_text_message("Should auto-load", global_time))
+
         dprint("unload community")
         community.unload_community()
+        community = None
+        node.set_community(None)
         try:
-            self._dispersy.get_community(community.cid, auto_load=False)
+            self._dispersy.get_community(cid, auto_load=False)
             assert_(False)
         except KeyError:
             pass
         yield 0.555
 
         dprint("send community message")
-        global_time = 10
-        node.give_message(node.create_full_sync_text_message("Should auto-load", global_time))
+        node.give_packet(wakeup)
         yield 0.555
 
         dprint("verify that the community got auto-loaded")
         try:
-            self._dispersy.get_community(community.cid)
+            community = self._dispersy.get_community(cid)
         except KeyError:
             assert_(False)
         # verify that the message was received
@@ -596,7 +601,7 @@ class DispersyClassificationScript(ScriptBase):
 
         dprint("cleanup")
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def enable_disable_autoload(self):
         """
@@ -613,7 +618,9 @@ class DispersyClassificationScript(ScriptBase):
         """
         # create community
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
+        cid = community.cid
+        community_database_id = community.database_id
+        master_member = community.master_member
         message = community.get_meta_message(u"full-sync-text")
 
         # create node
@@ -628,21 +635,26 @@ class DispersyClassificationScript(ScriptBase):
         dprint("define auto load")
         self._dispersy.define_auto_load(DebugCommunity)
 
+        dprint("create wake-up message")
+        global_time = 10
+        wakeup = node.encode_message(node.create_full_sync_text_message("Should auto-load", global_time))
+
         dprint("unload community")
         community.unload_community()
+        community = None
+        node.set_community(None)
         try:
-            self._dispersy.get_community(community.cid, auto_load=False)
+            self._dispersy.get_community(cid, auto_load=False)
             assert_(False)
         except KeyError:
             pass
 
         dprint("send community message")
-        global_time = 10
-        node.give_message(node.create_full_sync_text_message("Should auto-load", global_time))
+        node.give_packet(wakeup)
 
         dprint("verify that the community got auto-loaded")
         try:
-            self._dispersy.get_community(community.cid)
+            community = self._dispersy.get_community(cid)
         except KeyError:
             assert_(False)
         # verify that the message was received
@@ -653,35 +665,41 @@ class DispersyClassificationScript(ScriptBase):
         community.dispersy_auto_load = False
         assert_(community.dispersy_auto_load == False)
 
+        dprint("create wake-up message")
+        node.set_community(community)
+        global_time = 11
+        wakeup = node.encode_message(node.create_full_sync_text_message("Should auto-load", global_time))
+
         dprint("unload community")
         community.unload_community()
+        community = None
+        node.set_community(None)
         try:
-            self._dispersy.get_community(community.cid, auto_load=False)
+            self._dispersy.get_community(cid, auto_load=False)
             assert_(False)
         except KeyError:
             pass
 
         dprint("send community message")
-        global_time = 11
-        node.give_message(node.create_full_sync_text_message("Should not auto-load", global_time))
+        node.give_packet(wakeup)
 
         dprint("verify that the community did not get auto-loaded")
         try:
-            self._dispersy.get_community(community.cid, auto_load=False)
+            self._dispersy.get_community(cid, auto_load=False)
             assert_(False)
         except KeyError:
             pass
         # verify that the message was NOT received
-        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id))]
+        times = [x for x, in self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community_database_id, node.my_member.database_id, message.database_id))]
         assert_(not global_time in times)
 
         dprint("undefine auto load")
         self._dispersy.undefine_auto_load(DebugCommunity)
 
         dprint("cleanup")
-        DebugCommunity.load_community(community.master_member)
+        community = DebugCommunity.load_community(master_member)
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyTimelineScript(ScriptBase):
     def run(self):
@@ -719,7 +737,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def fail_check(self):
         """
@@ -749,7 +767,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def loading_community(self):
         """
@@ -762,17 +780,21 @@ class DispersyTimelineScript(ScriptBase):
         # create a community.  the master member must have given my_member all permissions for
         # dispersy-destroy-community
         community = LoadingCommunityTestCommunity.create_community(self._my_member)
-        master_key = community.master_member.public_key
+        cid = community.cid
 
         dprint("master_member: ", community.master_member.database_id, ", ", community.master_member.mid.encode("HEX"))
         dprint("    my_member: ", community.my_member.database_id, ", ", community.my_member.mid.encode("HEX"))
 
-        self._dispersy.detach_community(community)
+        dprint("unload community")
+        community.unload_community()
+        community = None
         yield 0.555
 
         # load the same community and see if the same permissions are loaded
         communities = [LoadingCommunityTestCommunity.load_community(master) for master in LoadingCommunityTestCommunity.get_master_members()]
         assert_(len(communities) == 1)
+        assert_(communities[0].cid == cid)
+        community = communities[0]
 
         # check if we are still allowed to send the message
         message = community.create_dispersy_destroy_community(u"hard-kill", store=False, update=False, forward=False)
@@ -780,7 +802,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def delay_by_proof(self):
         """
@@ -855,7 +877,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def missing_proof(self):
         """
@@ -889,7 +911,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def missing_authorize_proof(self):
         """
@@ -953,7 +975,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
@@ -1065,7 +1087,7 @@ class DispersyMemberTagScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def blacklist_test(self):
         """
@@ -1124,7 +1146,7 @@ class DispersyMemberTagScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyBatchScript(ScriptBase):
     def run(self):
@@ -1147,7 +1169,6 @@ class DispersyBatchScript(ScriptBase):
         reduced to one packet.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -1165,7 +1186,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def two_batches_binary_duplicate(self):
         """
@@ -1201,7 +1222,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def one_batch_member_global_time_duplicate(self):
         """
@@ -1229,7 +1250,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def two_batches_member_global_time_duplicate(self):
         """
@@ -1268,7 +1289,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def one_big_batch(self):
         """
@@ -1295,7 +1316,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def many_small_batches(self):
         """
@@ -1326,7 +1347,7 @@ class DispersyBatchScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
@@ -1393,7 +1414,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def in_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1425,7 +1446,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def out_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1457,7 +1478,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def mixed_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1532,7 +1553,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def last_1_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1589,7 +1610,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def last_9_test(self):
         community = DebugCommunity.create_community(self._my_member)
@@ -1664,7 +1685,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def last_1_multimember(self):
         """
@@ -1798,7 +1819,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def last_1_multimember_unique_member_global_time(self):
         """
@@ -1841,7 +1862,7 @@ class DispersySyncScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyIdenticalPayloadScript(ScriptBase):
     def run(self):
@@ -1904,7 +1925,7 @@ class DispersyIdenticalPayloadScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def incoming__drop_second(self):
         """
@@ -1959,7 +1980,7 @@ class DispersyIdenticalPayloadScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersySignatureScript(ScriptBase):
     def run(self):
@@ -2009,7 +2030,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def double_signed_response(self):
         """
@@ -2053,7 +2074,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def triple_signed_timeout(self):
         """
@@ -2100,7 +2121,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def triple_signed_response(self):
         """
@@ -2164,7 +2185,7 @@ class DispersySignatureScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersySubjectiveSetScript(ScriptBase):
     def run(self):
@@ -2203,7 +2224,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def full_sync(self):
         """
@@ -2240,7 +2261,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def subjective_set_request(self):
         """
@@ -2296,7 +2317,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 # class DispersySimilarityScript(ScriptBase):
 #     def run(self):
@@ -2680,7 +2701,7 @@ class DispersyMissingMessageScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def single_request_out_of_order(self):
         """
@@ -2716,7 +2737,7 @@ class DispersyMissingMessageScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def triple_request(self):
         """
@@ -2758,7 +2779,7 @@ class DispersyMissingMessageScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyUndoScript(ScriptBase):
     def run(self):
@@ -2809,7 +2830,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", forward=False)
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def self_undo_other(self):
         """
@@ -2852,7 +2873,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill", forward=False)
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def node_undo_own(self):
         """
@@ -2897,7 +2918,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def node_undo_other(self):
         """
@@ -2948,7 +2969,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def self_malicious_undo(self):
         """
@@ -2972,7 +2993,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def node_malicious_undo(self):
         """
@@ -3042,7 +3063,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def node_non_malicious_undo(self):
         """
@@ -3084,7 +3105,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def missing_message(self):
         """
@@ -3142,7 +3163,7 @@ class DispersyUndoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyCryptoScript(ScriptBase):
     def run(self):
@@ -3183,7 +3204,7 @@ class DispersyCryptoScript(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
 class DispersyDynamicSettings(ScriptBase):
     def run(self):
@@ -3225,7 +3246,7 @@ class DispersyDynamicSettings(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def change_resolution(self):
         """
@@ -3302,7 +3323,7 @@ class DispersyDynamicSettings(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def change_resolution_undo(self):
         """
@@ -3392,7 +3413,7 @@ class DispersyDynamicSettings(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()
 
     def wrong_resolution(self):
         """
@@ -3470,4 +3491,4 @@ class DispersyDynamicSettings(ScriptBase):
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
-        community.unload_community()
+        self._dispersy.get_community(community.cid).unload_community()

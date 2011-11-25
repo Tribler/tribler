@@ -554,8 +554,9 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        assert not community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
+        assert not community.cid in self._communities
+        assert not community in self._walker_commmunities
         self._communities[community.cid] = community
 
         if community.dispersy_enable_candidate_walker:
@@ -590,8 +591,10 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        assert community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
+        assert community.cid in self._communities
+        assert self._communities[community.cid] == community
+        assert not community.dispersy_enable_candidate_walker or community in self._walker_commmunities, [community.dispersy_enable_candidate_walker, community in self._walker_commmunities]
         del self._communities[community.cid]
 
         if community.dispersy_enable_candidate_walker:
@@ -634,6 +637,8 @@ class Dispersy(Singleton):
 
         else:
             if __debug__: dprint("reclassify ", source.get_classification(), " -> ", destination_classification)
+            assert source.cid in self._communities
+            assert self._communities[source.cid] == source
             master = source.master_member
             source.unload_community()
 
@@ -3465,7 +3470,7 @@ class Dispersy(Singleton):
          message immediately.
         """
         for message in messages:
-            if __debug__: dprint(message, force=1)
+            if __debug__: dprint(message)
             message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
@@ -4081,6 +4086,7 @@ class Dispersy(Singleton):
             walker_communities.append(community)
 
             # walk
+            assert community.dispersy_enable_candidate_walker
             community.dispersy_take_step()
 
             # delay will never be less than 0.05, hence we can accommodate 100 communities

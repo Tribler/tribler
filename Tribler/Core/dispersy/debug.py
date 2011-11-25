@@ -23,6 +23,7 @@ class Node(object):
         self._socket = None
         self._my_member = None
         self._community = None
+        self._dispersy = None
 
     @property
     def socket(self):
@@ -35,7 +36,7 @@ class Node(object):
     @property
     def wan_address(self):
         if self._community:
-            return self._community.dispersy.wan_address[0], self.lan_address[1]
+            return self._dispersy.wan_address[0], self.lan_address[1]
         else:
             return self.lan_address
 
@@ -88,7 +89,7 @@ class Node(object):
             # update candidate information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            destination = LocalhostCandidate(self._community._dispersy)
+            destination = LocalhostCandidate(self._dispersy)
             message = self.create_dispersy_introduction_request_message(destination, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
             self.give_message(message)
 
@@ -98,6 +99,8 @@ class Node(object):
 
     def set_community(self, community):
         self._community = community
+        if community:
+            self._dispersy = community.dispersy
 
     def encode_message(self, message):
         assert isinstance(message, Message.Implementation)
@@ -115,7 +118,7 @@ class Node(object):
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", len(packet), " bytes")
         address = self.socket.getsockname()
-        self._community.dispersy.on_incoming_packets([(Candidate(address, address, address), packet)], cache=cache)
+        self._dispersy.on_incoming_packets([(Candidate(address, address, address), packet)], cache=cache)
         return packet
 
     def give_packets(self, packets, verbose=False, cache=False):
@@ -125,7 +128,7 @@ class Node(object):
         if verbose: dprint("giving ", sum(len(packet) for packet in packets), " bytes")
         address = self.socket.getsockname()
         candidate = Candidate(address, address, address)
-        self._community.dispersy.on_incoming_packets([(candidate, packet) for packet in packets], cache=cache)
+        self._dispersy.on_incoming_packets([(candidate, packet) for packet in packets], cache=cache)
         return packets
 
     def give_message(self, message, verbose=False, cache=False):
