@@ -271,8 +271,8 @@ class CollectedTorrent(Helper):
         subtitles = []
         for filename, length in self.files:
             prefix, ext = os.path.splitext(filename)
-            if ext.startswith('.'):
-                ext = ext[1:]
+            if not ext.startswith('.'):
+                ext = '.'+ext
             if ext in VLC_SUPPORTED_SUBTITLES:
                 subtitles.append(filename)
         return subtitles
