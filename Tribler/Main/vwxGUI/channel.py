@@ -999,7 +999,11 @@ class ManageChannelFilesManager():
     def AddTDef(self, tdef):
         if tdef:
             self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
-            self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+            if not self.list.channel.isMyChannel():
+                notification = "New torrent added to %s's channel"%self.list.channel.name
+            else:
+                notification = 'New torrent added to My Channel'
+            self.guiutility.frame.top_bg.Notify(notification, wx.ART_INFORMATION)
             
             return True
         return False
@@ -1007,7 +1011,11 @@ class ManageChannelFilesManager():
     def AddTDefs(self, tdefs):
         if tdefs:
             self.channelsearch_manager.createTorrentsFromDefs(self.list.id, tdefs)
-            self.guiutility.frame.top_bg.Notify('%d new torrents added to My Channel'%len(tdefs), wx.ART_INFORMATION)
+            if not self.list.channel.isMyChannel():
+                notification = "%d new torrents added to %s's channel"%(len(tdefs),self.list.channel.name)
+            else:
+                notification = '%d new torrents added to My Channel'%len(tdefs)
+            self.guiutility.frame.top_bg.Notify(notification, wx.ART_INFORMATION)
             
             return True
         return False
