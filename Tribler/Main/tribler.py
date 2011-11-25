@@ -802,6 +802,9 @@ class ABCApp():
             manager = self.frame.selectedchannellist.GetManager()
             manager.torrentUpdated(objectID)
             
+            manager = self.frame.playlist.GetManager()
+            manager.torrentUpdated(objectID)
+            
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
         
@@ -827,6 +830,9 @@ class ABCApp():
                 manager = self.frame.selectedchannellist.GetManager()
                 manager.playlistUpdated(objectID, infohash)
                 
+                manager = self.frame.playlist.GetManager()
+                manager.playlistUpdated(objectID)
+                
     @forceWxThread     
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
@@ -849,6 +855,7 @@ class ABCApp():
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
+            self.frame.playlist.OnModerationCreated(objectID)
     
     @forceWxThread
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):

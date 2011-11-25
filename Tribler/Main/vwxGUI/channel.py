@@ -178,7 +178,6 @@ class ChannelManager():
     
     def playlistUpdated(self, playlist_id, infohash = False):
         if self.list.InList(playlist_id):
-            
             if self.list.InList(infohash): #if infohash is shown, complete refresh is necessary
                 if self.list.ShouldGuiUpdate():
                     self._refresh_list()
@@ -737,6 +736,7 @@ class PlaylistManager():
     def __init__(self, list):
         self.list = list
         self.list.id = 0
+        self.dirtyset = set()   
         
         self.guiutility = GUIUtility.getInstance()
         self.library_manager = self.guiutility.library_manager
@@ -752,8 +752,15 @@ class PlaylistManager():
         
         self._refresh_list()
     
+    def Reset(self):
+        self.dirtyset.clear()
+    
     def refreshDirty(self):
-        self._refresh_list()
+        if 'COMPLETE_REFRESH' in self.dirtyset:
+            self._refresh_list()
+        else:
+            self._refresh_partial(list(self.dirtyset))
+        self.dirtyset.clear()
     
     def _refresh_list(self):
         def db_call():
@@ -762,12 +769,40 @@ class PlaylistManager():
             
         startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list")
         
+    @forceDBThread
+    def _refresh_partial(self, ids):
+        id_data = {}
+        for id in ids:
+            if isinstance(id, str) and len(id) == 20:
+                id_data[id] = self.channelsearch_manager.getTorrentFromPlaylist(self.list.playlist, id)
+        
+        def do_gui(): 
+            for id, data in id_data.iteritems():
+                self.list.RefreshData(id, data)
+        wx.CallAfter(do_gui)
+        
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrents = delayedResult.get()
         torrents = self.library_manager.addDownloadStates(torrents)
         
         self.list.SetData([], torrents)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
+        
+    def torrentUpdated(self, infohash):
+        if self.list.InList(infohash):
+            if self.list.ShouldGuiUpdate():
+                self._refresh_partial((infohash,))
+            else:
+                self.dirtyset.add(infohash)
+                self.list.dirty = True
+        
+    def playlistUpdated(self, playlist_id):
+        if self.list.id == playlist_id:
+            if self.list.ShouldGuiUpdate():
+                self._refresh_list()
+            else:
+                self.list.dirty = True
+    
 
 class Playlist(SelectedChannelList):
     def __init__(self, *args, **kwargs):

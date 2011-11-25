@@ -1148,6 +1148,10 @@ class ChannelManager:
     def getTorrentsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
+
+    def getTorrentFromPlaylist(self, playlist, infohash):
+        data = self.channelcast_db.getTorrentFromPlaylist(playlist.id, infohash, CHANNEL_REQ_COLUMNS)
+        return self._createTorrent(data, playlist.channel, playlist)
     
     def getRecentTorrentsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)

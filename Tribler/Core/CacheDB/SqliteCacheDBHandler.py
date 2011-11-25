@@ -3909,6 +3909,12 @@ class ChannelCastDBHandler(object):
             sql += " LIMIT %d"%limit
         results = self._db.fetchall(sql, (playlist_id,))
         return self.__fixTorrents(keys, results)
+
+    def getTorrentFromPlaylist(self, playlist_id, infohash, keys):
+        sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents, PlaylistTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? AND infohash = ?"
+        result = self._db.fetchone(sql, (playlist_id, bin2str(infohash)))
+        
+        return self.__fixTorrent(keys, result)
     
     def getRecentTorrentsFromPlaylist(self, playlist_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents, PlaylistTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND playlist_id = ? ORDER BY inserted DESC"
