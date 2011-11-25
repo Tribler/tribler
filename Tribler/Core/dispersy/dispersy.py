@@ -4077,8 +4077,8 @@ class Dispersy(Singleton):
         walker_communities = self._walker_commmunities
 
         while walker_communities:
-            community = walker_commmunities.pop(0)
-            walker_commmunities.append(community)
+            community = walker_communities.pop(0)
+            walker_communities.append(community)
 
             # walk
             community.dispersy_take_step()
