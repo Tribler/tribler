@@ -2353,7 +2353,8 @@ class ModificationList(List):
         vSizer.Add(why, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
         
         reason = wx.TextCtrl(dlg, -1, style = wx.TE_MULTILINE)
-        vSizer.Add(reason, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
+        reason.SetMinSize((-1, 50))
+        vSizer.Add(reason, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 7)
         
         def canClose(event):
             givenReason = reason.GetValue().strip()
