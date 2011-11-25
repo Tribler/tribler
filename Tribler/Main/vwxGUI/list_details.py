@@ -1860,7 +1860,7 @@ class StringProgressPanel(wx.BoxSizer):
                 if eta == '' or eta.find('unknown') != -1:
                     self.text.SetLabel("Currently downloading @ %s, %s still remaining."%(self.utility.speed_format_new(dls), format_size(remaining)))
                 else:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining.\nExpected to finish in %s."%(self.utility.speed_format_new(dls), format_size(remaining), eta))
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s."%(self.utility.speed_format_new(dls), format_size(remaining), eta))
 
 class MyChannelDetails(wx.Panel):
     def __init__(self, parent, torrent, channel_id):
