@@ -24,7 +24,7 @@ from Tribler.community.channel.payload import ModerationPayload
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
-from lencoder import log
+    from lencoder import log
 
 
 _register_task = None
@@ -152,11 +152,13 @@ class ChannelCommunity(Community):
             
             def handled_function(messages):
                 for message in messages:
-                    log("dispersy.log", "handled-record",type = "torrent")
+                    if __debug__:
+                        log("dispersy.log", "handled-record",type = "torrent")
                     self._channelcast_db.newTorrent(message)
                         
             def handled_channel_function(messages):
-                log("dispersy.log", "handled-record", type = "channel")
+                if __debug__:
+                    log("dispersy.log", "handled-record", type = "channel")
                 self._channel_id = self._master_member.mid
             
             disp_on_channel = handled_channel_function
@@ -296,8 +298,9 @@ class ChannelCommunity(Community):
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
         
-        if not self.integrate_with_tribler:
-            log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
+        if __debug__:
+            if not self.integrate_with_tribler:
+                log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
@@ -310,9 +313,10 @@ class ChannelCommunity(Community):
                                 resolution=(current_policy.implement(),),
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, timestamp, name, files, trackers))
-            
-            if not self.integrate_with_tribler:
-                log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
+
+            if __debug__:
+                if not self.integrate_with_tribler:
+                    log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
             messages.append(message)
             
         self._dispersy.store_update_forward(messages, store, update, forward)

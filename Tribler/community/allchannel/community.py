@@ -23,7 +23,7 @@ import sys
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
-from lencoder import log
+    from lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0
@@ -157,10 +157,11 @@ class AllChannelCommunity(Community):
                     if DEBUG:
                         nr_torrents = sum(len(torrent) for torrent in torrents.values())
                         print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.address,"didFavorite",didFavorite
-                    
-                    if not self.integrate_with_tribler:
-                        nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                        log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.address,didFavorite))
+
+                    if __debug__:
+                        if not self.integrate_with_tribler:
+                            nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                            log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.address,didFavorite))
                     
                     #we're done
                     break       
@@ -168,8 +169,9 @@ class AllChannelCommunity(Community):
             else:
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
-                if not self.integrate_with_tribler:
-                    log("dispersy.log", "Could not send channelcast message, no candidates")
+                if __debug__:
+                    if not self.integrate_with_tribler:
+                        log("dispersy.log", "Could not send channelcast message, no candidates")
         except:
             print_exc()
             raise
@@ -203,9 +205,10 @@ class AllChannelCommunity(Community):
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
             if nr_requests > 0:
                 self.create_channelcast_request(toCollect, message.candidate)
-                
-                if not self.integrate_with_tribler:
-                    log("dispersy.log", "requesting-torrents", nr_requests = nr_requests)
+
+                if __debug__:
+                    if not self.integrate_with_tribler:
+                        log("dispersy.log", "requesting-torrents", nr_requests = nr_requests)
     
     def create_channelcast_request(self, toCollect, candidate):
         #create channelcast request message
