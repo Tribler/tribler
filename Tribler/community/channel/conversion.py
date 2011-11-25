@@ -358,7 +358,17 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode the payload")
 
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
-        packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+        try:
+            packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+        except:
+            if __debug__:
+                # we should not silently fail on -any- exception
+                from Tribler.Core.dispersy.dprint import dprint
+                dprint(exception=1, force=1)
+                
+            member = Member.get_instance(playlist_mid, public_key_available=False)
+            raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
+
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         return offset + 48, placeholder.meta.payload.implement(infohash, playlist)
     
