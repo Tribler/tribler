@@ -3555,13 +3555,13 @@ class ChannelCastDBHandler(object):
                 sql = "SELECT id FROM Playlists WHERE dispersy_id = ?"
                 playlist_id = self._db.fetchone(sql, (playlist_dispersy_id, ))
                 
-                sql = "INSERT INTO _CommentPlaylist (comment_id, playlist_id) VALUES (?, ?)"
+                sql = "INSERT INTO CommentPlaylist (comment_id, playlist_id) VALUES (?, ?)"
                 self._db.execute_write(sql, (comment_id, playlist_id), commit = False)
                 
             if infohash:
                 channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
                 
-                sql = "INSERT INTO _CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
+                sql = "INSERT INTO CommentTorrent (comment_id, channeltorrent_id) VALUES (?, ?)"
                 self._db.execute_write(sql, (comment_id, channeltorrent_id), commit = False)
                 
         #try fo fix loose reply_to and reply_after pointers
