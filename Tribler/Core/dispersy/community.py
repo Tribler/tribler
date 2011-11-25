@@ -759,10 +759,10 @@ class Community(object):
     def _select_bloomfilter_range(self, syncable_messages, global_time, to_select, higher = True):
         assert isinstance(syncable_messages, unicode)
         if higher:
-            data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
+            data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
                                                     (global_time, to_select)))
         else:
-            data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
+            data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
                                                     (global_time, to_select)))
 
         if len(data) > 0:
@@ -776,7 +776,7 @@ class Community(object):
             if higher:
                 bloomfilter_range[1] = self._global_time
                 
-                lower = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
+                lower = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
                                                             (global_time + 1, to_select)))
                 if len(lower) > 0:
                     bloomfilter_range[2]+= len(lower)
@@ -784,7 +784,7 @@ class Community(object):
             else:
                 bloomfilter_range[0] = 1
 
-                higher = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
+                higher = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
                                                             (global_time - 1, to_select)))
                 if len(higher) > 0:
                     bloomfilter_range[2]+= len(higher)            
