@@ -373,7 +373,7 @@ class ManageChannelFilesFooter(ListFooter):
         self.removesel.Show(canDelete)
         self.removeall.Show(canDelete)
         self.add.Show(canAdd)
-        self.export.Show(canAdd)
+        self.export.Show(canDelete)
         
 class ManageChannelPlaylistFooter(ListFooter):
     def __init__(self, parent, createnew):
