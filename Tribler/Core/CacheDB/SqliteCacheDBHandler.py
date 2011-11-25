@@ -4167,6 +4167,9 @@ class ChannelCastDBHandler(object):
             my_vote = my_votes.get(id, 0)
             if not includeSpam and my_vote < 0:
                 continue
+            if name.strip() == '':
+                continue
+            
             channels.append((id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified))
                 
         def channel_sort(a, b):
