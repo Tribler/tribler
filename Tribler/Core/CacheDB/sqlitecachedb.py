@@ -1764,7 +1764,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.executemany(update_votes, channel_tuples)
                 
                 print >> sys.stderr, "Converting took", time() - t1
-                self.execute_write('DELETE FROM Channels WHERE peer_id IS NOT NULL', commit = False)
                 self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid, ), commit = False)
                 self.execute_write('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid, ))
                 
