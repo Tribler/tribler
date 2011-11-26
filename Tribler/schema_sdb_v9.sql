@@ -1,5 +1,5 @@
 -- Tribler SQLite Database
--- Version: 8
+-- Version: 9
 --
 -- History:
 --   v1: Published as part of Tribler 4.5
@@ -10,6 +10,7 @@
 --   v7: Published as part of Tribler 5.3
 --   v8: Published as part of Tribler 5.4
 --   v8: Published as part of Tribler 5.5/6.0?
+--   v9: Published as part of Tribler 5.5
 
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
