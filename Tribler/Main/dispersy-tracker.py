@@ -91,7 +91,7 @@ class TrackerDispersy(Dispersy):
 
         # logger
         overlaylogpostfix = "dp" + str(self.socket.get_address()[1]) + ".log"
-        self._logger = OverlayLogger.getInstance(overlaylogpostfix)
+        self._logger = OverlayLogger.getInstance(overlaylogpostfix, statedir)
 
         # generate a new my-member
         ec = ec_generate_key(u"very-low")
