@@ -86,11 +86,13 @@ class TrackerDispersy(Dispersy):
         kargs["singleton_placeholder"] = Dispersy
         return super(TrackerDispersy, cls).get_instance(*args, **kargs)
 
-    def __init__(self, callback, statedir):
+    def __init__(self, callback, statedir, port):
+        assert isinstance(port, int)
+        assert 0 <= port
         super(TrackerDispersy, self).__init__(callback, statedir)
 
         # logger
-        overlaylogpostfix = "dp" + str(self.socket.get_address()[1]) + ".log"
+        overlaylogpostfix = "dp" + str(port) + ".log"
         self._logger = OverlayLogger.getInstance(overlaylogpostfix, statedir)
 
         # generate a new my-member
@@ -219,7 +221,7 @@ def main():
 
     def start():
         # start Dispersy
-        dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir))
+        dispersy = TrackerDispersy.get_instance(callback, unicode(opt.statedir), opt.port)
         dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
         dispersy.define_auto_load(TrackerCommunity)
 

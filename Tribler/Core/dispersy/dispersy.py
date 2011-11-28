@@ -101,6 +101,9 @@ class DummySocket(object):
     To avoid problems we initialize the Dispersy socket to this dummy object that will do nothing
     but throw away all packets it is supposed to sent.
     """
+    def get_address(self):
+        return 0
+
     def send(self, address, data):
         if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data to ", address[0], ":", address[1], level="warning")
 
