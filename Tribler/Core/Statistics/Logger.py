@@ -156,15 +156,16 @@ class OverlayLogger:
 
         Dispersy logs with a slightly modified format
           CONN_TRY COMMUNITY IP PORT
-          CONN_ADD COMMUNITY IP PORT PERMID DISPERSY-VERSION COMMUNITY-VERSION
+          CONN_ADD COMMUNITY IP PORT PERMID VERSION
           CONN_DEL COMMUNITY IP PORT
         Where:
           COMMUNITY is the HEX encoded sha1 of the master member public key
           IP is the host in www.xxx.yyy.zzz
           PORT is the host port
           PERMID is the HEX encoded public key of the member
-          DISPERSY-VERSION is the HEX encoded dispersy version (first byte in packet)
-          COMMUNITY-VERSION is the HEX encoded community version (second byte in packet)
+          VERSION is the HEX encoded packet version (first two bytes in the packet)
+             the first byte (first two HEX encoded characters) are the Dispersy version
+             the second byte (last two HEX encoded characters) are the Community version
           """
         
         log_msg = ''
