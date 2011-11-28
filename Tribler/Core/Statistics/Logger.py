@@ -152,7 +152,20 @@ class OverlayLogger:
               8  Ct    # nTasteConnectionList
               9  Cr   # nRandomConnectionList
               10  Cu   # nUnconnectableConnectionList
-        """
+
+
+        Dispersy logs with a slightly modified format
+          CONN_TRY COMMUNITY IP PORT
+          CONN_ADD COMMUNITY IP PORT PERMID DISPERSY-VERSION COMMUNITY-VERSION
+          CONN_DEL COMMUNITY IP PORT
+        Where:
+          COMMUNITY is the HEX encoded sha1 of the master member public key
+          IP is the host in www.xxx.yyy.zzz
+          PORT is the host port
+          PERMID is the HEX encoded public key of the member
+          DISPERSY-VERSION is the HEX encoded dispersy version (first byte in packet)
+          COMMUNITY-VERSION is the HEX encoded community version (second byte in packet)
+          """
         
         log_msg = ''
         nmsgs = len(msgs)

@@ -13,6 +13,7 @@ import threading
 import optparse
 
 from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
@@ -35,7 +36,6 @@ class TrackerCommunity(Community):
     """
     This community will only use dispersy-candidate-request and dispersy-candidate-response messages.
     """
-
     def _initialize_meta_messages(self):
         super(TrackerCommunity, self)._initialize_meta_messages()
 
@@ -89,6 +89,10 @@ class TrackerDispersy(Dispersy):
     def __init__(self, callback, statedir):
         super(TrackerDispersy, self).__init__(callback, statedir)
 
+        # logger
+        overlaylogpostfix = "dp" + str(self.socket.get_address()[1]) + ".log"
+        self._logger = OverlayLogger.getInstance(overlaylogpostfix)
+
         # generate a new my-member
         ec = ec_generate_key(u"very-low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
@@ -126,30 +130,30 @@ class TrackerDispersy(Dispersy):
                 community.unload_community()
 
     def create_introduction_request(self, community, destination):
-        print time(), "CONN_TRY", community.cid.encode("HEX"), destination.address[0], destination.address[1]
+        self._logger("CONN_TRY", community.cid.encode("HEX"), destination.address[0], destination.address[1])
         return super(TrackerDispersy, self).create_introduction_request(community, destination)
 
     def on_introduction_request(self, messages):
         for message in messages:
             if not (message.candidate.is_walk or message.candidate.is_stumble):
-                print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
+                self._logger("CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX"))
         return super(TrackerDispersy, self).on_introduction_request(messages)
 
     def on_introduction_response(self, messages):
         for message in messages:
             if not (message.candidate.is_walk or message.candidate.is_stumble):
-                print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
+                self._logger("CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX"))
         return super(TrackerDispersy, self).on_introduction_response(messages)
 
     def introduction_response_or_timeout(self, message, community, intermediary_candidate):
         if message is None:
-            print time(), "CONN_DEL", community.cid.encode("HEX"), intermediary_candidate.address[0], intermediary_candidate.address[1]
+            self._logger("CONN_DEL", community.cid.encode("HEX"), intermediary_candidate.address[0], intermediary_candidate.address[1])
         return super(TrackerDispersy, self).introduction_response_or_timeout(message, community, intermediary_candidate)
 
     def on_puncture(self, messages):
         for message in messages:
             if not (message.candidate.is_walk or message.candidate.is_stumble):
-                print time(), "CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX")
+                self._logger("CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX"), message.conversion.community_version.encode("HEX"))
         return super(TrackerDispersy, self).on_puncture(messages)
 
 class DispersySocket(object):
