@@ -1464,7 +1464,7 @@ class Dispersy(Singleton):
         def _filter_fail(message):
             if isinstance(message, DelayMessage):
                 self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
-                if __debug__: dprint("delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ") from ", message.delayed.candidate, level="warning")
+                if __debug__: dprint("delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ") from ", message.delayed.candidate)
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerMessage) and trigger.extend(message.pattern, [message.delayed]):
@@ -1625,7 +1625,7 @@ class Dispersy(Singleton):
                 self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
 
             except DelayPacket, delay:
-                if __debug__: dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate, level="warning")
+                if __debug__: dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate)
                 self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:

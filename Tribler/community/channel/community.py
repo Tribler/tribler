@@ -1,5 +1,6 @@
 from random import expovariate, choice, randint
 from struct import pack
+from time import sleep
 
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
@@ -30,9 +31,31 @@ if __debug__:
 _register_task = None
 def register_task(*args, **kwargs):
     global _register_task
-    
     if not _register_task:
-        _register_task = Dispersy.get_instance().callback.register
+        # 21/11/11 Boudewijn: there are conditions where the Dispersy instance has not yet been
+        # created.  In this case we must wait.  For example:
+        #
+        # > Traceback (most recent call last):
+        # >   File "/home/pouwelse/pouwelse/SVN_root/release-5.5.x/Tribler/Main/Utility/Feeds/rssparser.py",
+        # > line 227, in _refresh
+        # >     callback(key, torrent, extraInfo = {'title':title, 'description':
+        # > description, 'thumbnail': thumbnail})
+        # >   File "/home/pouwelse/pouwelse/SVN_root/release-5.5.x/Tribler/community/channel/community.py",
+        # > line 44, in invoke_func
+        # >     register_task(dispersy_thread)
+        # >   File "/home/pouwelse/pouwelse/SVN_root/release-5.5.x/Tribler/community/channel/community.py",
+        # > line 35, in register_task
+        # >     _register_task = Dispersy.get_instance().callback.register
+        # >   File "/home/pouwelse/pouwelse/SVN_root/release-5.5.x/Tribler/Core/dispersy/singleton.py",
+        # > line 58, in get_instance
+        # >     setattr(singleton_placeholder, "_singleton_instance", cls(*args, **kargs))
+        # > TypeError: __init__() takes exactly 3 arguments (1 given)
+
+        dispersy = Dispersy.has_instance()
+        while not dispersy:
+            sleep(0.1)
+            dispersy = Dispersy.has_instance()
+        _register_task = dispersy.callback.register
     return _register_task(*args, **kwargs)
 
 def forceDispersyThread(func):
