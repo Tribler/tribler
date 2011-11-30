@@ -182,10 +182,14 @@ class ChannelConversion(BinaryConversion):
         if playlist_global_time and not isinstance(playlist_global_time, (int, long)):
             raise DropPacket("Invalid 'playlist-global-time' type")
         
-        try:
-            packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
-            playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
+        if playlist_mid and playlist_global_time:
+            try:
+                packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+                playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+            except DropPacket:
+                member = Member.get_instance(playlist_mid, public_key_available=False)
+                raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
+        else:
             playlist = None
         
         infohash = dic.get("infohash", None)
@@ -237,11 +241,8 @@ class ChannelConversion(BinaryConversion):
         try:
             packet_id, packet, message_name = self._get_message(cause_global_time, cause_mid)
             cause_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
-            if __debug__:
-                # we should not silently fail on -any- exception
-                from Tribler.Core.dispersy.dprint import dprint
-                dprint(exception=1, force=1)
+            
+        except DropPacket:
             member = Member.get_instance(cause_mid, public_key_available=False)
             raise DelayPacketByMissingMessage(self._community, member, [cause_global_time])
         
@@ -360,12 +361,8 @@ class ChannelConversion(BinaryConversion):
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
         try:
             packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
-        except:
-            if __debug__:
-                # we should not silently fail on -any- exception
-                from Tribler.Core.dispersy.dprint import dprint
-                dprint(exception=1, force=1)
-                
+            
+        except DropPacket:
             member = Member.get_instance(playlist_mid, public_key_available=False)
             raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
 
