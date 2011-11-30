@@ -1154,6 +1154,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         self.description = EditText(self.overviewpage, '', multiLine=True)
         self.description.SetMaxLength(2000)
+        self.description.SetMinSize((-1, 50))
         
         self._add_row(self.overviewpage, gridSizer, "Name", self.name)
         self._add_row(self.overviewpage, gridSizer, 'Description', self.description)
