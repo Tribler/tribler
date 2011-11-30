@@ -1481,6 +1481,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             CREATE INDEX IF NOT EXISTS TorMarkIndex ON _TorrentMarkings(channeltorrent_id);
             
             CREATE VIRTUAL TABLE FullTextIndex USING fts3(swarmname, filenames, fileextensions);
+            
+            INSERT INTO MetaDataTypes ('name') VALUES ('name');
+            INSERT INTO MetaDataTypes ('name') VALUES ('description');
             """
             self.execute_write(sql, commit=False)
 
