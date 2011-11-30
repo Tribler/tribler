@@ -2825,7 +2825,7 @@ class Dispersy(Singleton):
             if __debug__: dprint(message)
             # update the in-memory member instance
             message.authentication.member.update()
-            assert self._database.execute(u"SELECT 1 FROM sync WHERE packet = ?", (buffer(message.packet),)).next()
+            assert self._database.execute(u"SELECT COUNT(1) FROM sync WHERE packet = ?", (buffer(message.packet),)).next()[0] == 1
             assert message.authentication.member.has_identity(message.community)
 
     # def create_identity_request(self, community, mid, addresses, forward=True):

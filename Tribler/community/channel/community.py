@@ -184,12 +184,20 @@ class ChannelCommunity(Community):
             disp_undo_playlist_torrent = dummy_function
             disp_undo_moderation = dummy_function
             disp_undo_mark_torrent = dummy_function
-        
+
+        # 30/11/11 Boudewijn: we frequently see dropped packets when joining a channel.  this can be
+        # caused when a sync results in both torrent and modification messages.  when the
+        # modification messages are processed first they will all cause the associated torrent
+        # message to be requested, when these are received they are duplicates.  solution: ensure
+        # that the modification messages are processed after messages that they can request.  normal
+        # priority is 128, therefore, modification_priority is one less
+        modification_priority = 128 - 1
+
         return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
                 Message(self, u"torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent, disp_undo_torrent, delay=batch_delay),
                 Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist, disp_undo_playlist, delay=batch_delay),
                 Message(self, u"comment", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, disp_undo_comment, delay=batch_delay),
-                Message(self, u"modification", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, disp_undo_modification, delay=batch_delay),
+                Message(self, u"modification", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, disp_undo_modification, priority=modification_priority, delay=batch_delay),
                 Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, disp_undo_playlist_torrent, delay=batch_delay),
                 Message(self, u"moderation", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModerationPayload(), self._disp_check_moderation, disp_on_moderation, disp_undo_moderation, delay=batch_delay),
                 Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, disp_undo_mark_torrent, delay=batch_delay),
@@ -565,7 +573,11 @@ class ChannelCommunity(Community):
         for type, value in modifications.iteritems():
             type = unicode(type)
             type_id = self._modification_types[type]
-            latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
+            try:
+                latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
+            except:
+                from Tribler.Core.dispersy.dprint import dprint
+                dprint(exception=1, force=1)
         
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
@@ -1101,7 +1113,7 @@ class ChannelCommunity(Community):
 
         message = self._dispersy.convert_packet_to_message(str(packet))
         if message:
-            assert not messagename or message.name == messagename, [dispersy_id, messagename]
+            assert not messagename or message.name == messagename, [dispersy_id, messagename, message.name]
             message.packet_id = packet_id
         else:
             raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)

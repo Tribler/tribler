@@ -223,7 +223,10 @@ class Community(object):
         @type master: Member
         """
         assert isinstance(master, Member)
-        if __debug__: dprint("initializing ", self.get_classification(), " ", master.mid.encode("HEX"))
+        if __debug__:
+            dprint("initializing:  ", self.get_classification())
+            dprint("identifier:    ", master.mid.encode("HEX"))
+            dprint("master member: ", master.public_key.encode("HEX") if master.public_key else "unavailable")
 
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
@@ -237,7 +240,7 @@ class Community(object):
             self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
-        if __debug__: dprint("database id:", self._database_id)
+        if __debug__: dprint("database id:   ", self._database_id)
 
         self._cid = master.mid
         self._master_member = master
@@ -262,7 +265,12 @@ class Community(object):
         if self._global_time is None:
             self._global_time = 0
         assert isinstance(self._global_time, (int, long))
-        if __debug__: dprint("global time: ", self._global_time)
+        if __debug__: dprint("global time:   ", self._global_time)
+
+        # sync range bloom filters
+        if __debug__:
+            b = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+            dprint("sync bloom:    size: ", int(ceil(b.size // 8)), ";  capacity: ", b.get_capacity(self.dispersy_sync_bloom_filter_error_rate), ";  error-rate: ", self.dispersy_sync_bloom_filter_error_rate)
 
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
         self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs
@@ -271,7 +279,7 @@ class Community(object):
         if __debug__:
             if any(isinstance(meta.destination, SubjectiveDestination) for meta in self._meta_messages.itervalues()):
                 b = BloomFilter(self.dispersy_subjective_set_bits, self.dispersy_subjective_set_error_rate)
-                dprint("subjective set. size: ", int(ceil(b.size // 8)), "; capacity: ", b.get_capacity(self.dispersy_subjective_set_error_rate), "; error-rate: ", self.dispersy_subjective_set_error_rate)
+                dprint("subj- set: size: ", int(ceil(b.size // 8)), ";  capacity: ", b.get_capacity(self.dispersy_subjective_set_error_rate), ";  error-rate: ", self.dispersy_subjective_set_error_rate)
 
         # initial timeline.  the timeline will keep track of member permissions
         self._timeline = Timeline(self)
