@@ -864,12 +864,12 @@ class TorrentDetails(AbstractDetails):
         event.Skip()
     
     def OnCommentCreated(self, infohash):
-        if self.torrent.infohash == infohash:
+        if self.torrent.infohash == infohash and self.isReady and self.canComment:
             manager = self.commentList.GetManager()
             manager.new_comment()
             
     def OnModificationCreated(self, channeltorrent_id):
-        if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
+        if self.isReady and self.canEdit:
             manager = self.modificationList.GetManager()
             manager.new_modification()
                         
