@@ -564,6 +564,10 @@ class SelectedChannelList(GenericSearchList):
         
     @forceDBThread
     def _DoSpam(self):
+        #Set self.id to None to prevent updating twice
+        id = self.id
+        self.id = None
+        
         self.channelsearch_manager.spam(id)
         self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
             
