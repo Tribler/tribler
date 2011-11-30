@@ -3234,10 +3234,10 @@ class ChannelCastDBHandler(object):
         self.shouldCommit = True
         self.my_dispersy_cid = None
         
-        def db_call():
-            self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
-            self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
-            
+        self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
+        self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
+        
+        def db_call():    
             self._channel_id = self.getMyChannelId()
             if DEBUG:
                 print >> sys.stderr, "Channels: my channel is", self._channel_id
