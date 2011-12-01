@@ -143,8 +143,9 @@ def main(filename):
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
 
-    def in_introduction_request(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, advice, identifier):
+    def in_introduction_request(lineno, datetime, message, member, source, destination_address, source_lan_address, source_wan_address, advice, identifier):
         all_addresses.add(source)
+        all_members.add(member)
         incoming["introduction-request"] += 1
         if advice:
             incoming["introduction-request-with-advice"] += 1
@@ -162,8 +163,9 @@ def main(filename):
 
         walk.append(("request", key))
             
-    def in_introduction_response(lineno, datetime, message, source, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
+    def in_introduction_response(lineno, datetime, message, member, source, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         all_addresses.add(source)
+        all_members.add(member)
         incoming["introduction-response"] += 1
 
         key = " -> ".join(("%s:%d"%source, "%s:%d"%wan_introduction_address))
@@ -183,7 +185,7 @@ def main(filename):
     def out_puncture_request(lineno, datetime, message, destination, lan_walker_address, wan_walker_address):
         outgoing["puncture-request"] += 1
 
-    def in_puncture(lineno, datetime, message, source):
+    def in_puncture(lineno, datetime, message, member, source):
         incoming["puncture"] += 1
 
     def out_puncture(lineno, datetime, message, destination):
@@ -203,6 +205,7 @@ def main(filename):
     online = []
     current_online = set()
     all_addresses = set()
+    all_members = set()
 
     # walk
     walk = []
@@ -299,7 +302,7 @@ def main(filename):
 
     print "duration", duration, "->", seconds, "seconds"
     print "inverval", outgoing["introduction-request"], "requests -> ", 1.0 * seconds / outgoing["introduction-request"], "r/s"
-    print len(all_addresses), "distinct addresses"
+    print len(all_addresses), len(all_members), "distinct addresses and members"
     print
 
     # counters
