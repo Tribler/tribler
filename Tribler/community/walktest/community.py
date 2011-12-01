@@ -21,7 +21,11 @@ class WalktestCommunity(Community):
         advice(u"dispersy-introduction-response", self.impl_introduction_response, self.on_introduction_response)
         advice(u"dispersy-puncture-request", self.impl_puncture_request, self.on_puncture_request)
         advice(u"dispersy-puncture", self.impl_puncture, self.on_puncture)
-    
+
+    def dispersy_claim_sync_bloom_filter(self, identifier):
+        # disable sync bloom filter
+        return None
+
     def initiate_meta_messages(self):
         return []
 
