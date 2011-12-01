@@ -34,7 +34,7 @@ class WalktestCommunity(Community):
 
     def impl_introduction_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
-        if __debug__: dprint("create ", message.destination.addresses[0][0], ":", message.destination.addresses[0][1])
+        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log", "out-introduction-request", destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, advice=message.payload.advice, identifier=message.payload.identifier)
         return message
 
@@ -47,7 +47,7 @@ class WalktestCommunity(Community):
     def impl_introduction_response(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.addresses) == 1
-        if __debug__: dprint("create ", message.destination.addresses[0][0], ":", message.destination.addresses[0][1])
+        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log", "out-introduction-response", destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, lan_introduction_address=message.payload.lan_introduction_address, wan_introduction_address=message.payload.wan_introduction_address, identifier=message.payload.identifier)
         return message
 
@@ -60,8 +60,8 @@ class WalktestCommunity(Community):
     def impl_puncture_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.addresses) == 1
-        if __debug__: dprint("create ", message.destination.addresses[0][0], ":", message.destination.addresses[0][1])
-        log("walktest.log", "out-puncture-request", destination=message.destination.addresses[0], lan_walker_address=message.payload.lan_walker_address, wan_walker_address=message.payload.wan_walker_address)
+        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
+        log("walktest.log", "out-puncture-request", destination=message.destination.candidates[0].address, lan_walker_address=message.payload.lan_walker_address, wan_walker_address=message.payload.wan_walker_address)
         return message
     
     def on_puncture_request(self, meta, messages):
@@ -73,8 +73,8 @@ class WalktestCommunity(Community):
     def impl_puncture(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.addresses) == 1
-        if __debug__: dprint("create ", message.destination.addresses[0][0], ":", message.destination.addresses[0][1])
-        log("walktest.log", "out-puncture", destination=message.destination.addresses[0])
+        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
+        log("walktest.log", "out-puncture", destination=message.destination.candidates[0].address)
         return message
 
     def on_puncture(self, meta, messages):
