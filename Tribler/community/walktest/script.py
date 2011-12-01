@@ -212,7 +212,7 @@ def main(filename):
 
     # counters
     # messages = {"introduction-request":52, "introduction-request-with-advice":52, "introduction-response":63, "puncture-request":43, "puncture":31}
-    messages = {"introduction-request":1432, "introduction-request-with-advice":1432, "introduction-response":63, "puncture-request":43, "puncture":31}
+    messages = {"introduction-request":1432, "introduction-request-with-advice":1432, "introduction-response":136, "puncture-request":37, "puncture":117}
     incoming = dict((key, 0) for key in messages)
     outgoing = dict((key, 0) for key in messages)
 
