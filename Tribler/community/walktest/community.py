@@ -34,7 +34,6 @@ class WalktestCommunity(Community):
 
     def impl_introduction_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
-        assert len(message.candidate.addresses) == 1
         if __debug__: dprint("create ", message.destination.addresses[0][0], ":", message.destination.addresses[0][1])
         log("walktest.log", "out-introduction-request", destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, advice=message.payload.advice, identifier=message.payload.identifier)
         return message
