@@ -416,12 +416,7 @@ class Community(object):
         When True is returned, the dispersy_take_step method will be called periodically.  Otherwise
         it will be ignored.
         """
-        try:
-            self.get_meta_message(u"dispersy-introduction-request")
-        except KeyError:
-            return False
-        else:
-            return True
+        return True
 
     @property
     def dispersy_sync_bloom_filter_error_rate(self):

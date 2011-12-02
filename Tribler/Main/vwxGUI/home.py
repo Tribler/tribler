@@ -516,11 +516,13 @@ class DispersyPanel(HomePanel):
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
                 for community in sorted(info["communities"], key=lambda community: community["hex_cid"]):
-                    parent = self.summary_tree.AppendItem(root, u"%s %5d %2d %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), len(community["candidates"]), community["classification"], community["global_time"]))
+                    candidates = "-" if community["candidates"] is None else len(community["candidates"])
+                    parent = self.summary_tree.AppendItem(root, u"%s %5d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
-                    sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %d" % len(community["candidates"]))
-                    for lan_address, wan_address in community["candidates"]:
-                        self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
+                    if not community["candidates"] is None:
+                        sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
+                        for lan_address, wan_address in community["candidates"]:
+                            self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
                     sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
                     for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
                         self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
