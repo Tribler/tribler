@@ -506,7 +506,7 @@ class Dispersy(Singleton):
                     # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last, delay=0.0),
                     ]
 
-        if community.dispersy_enable_candidate_walker:
+        if community.dispersy_enable_candidate_walker_responses:
             messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.1),
                              Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.1),
                              Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.1),
@@ -2323,7 +2323,7 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
 
         if __debug__: dprint(len(messages), " ", messages[0].name, " messages (", store, " ", update, " ", forward, ")")
-        
+
         store = store and isinstance(messages[0].meta.distribution, SyncDistribution)
         if store:
             self._store(messages)
@@ -4094,6 +4094,7 @@ class Dispersy(Singleton):
 
             # walk
             assert community.dispersy_enable_candidate_walker
+            assert community.dispersy_enable_candidate_walker_responses
             community.dispersy_take_step()
 
             # delay will never be less than 0.05, hence we can accommodate 100 communities

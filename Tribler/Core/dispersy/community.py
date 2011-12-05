@@ -414,9 +414,23 @@ class Community(object):
         Enable the candidate walker.
 
         When True is returned, the dispersy_take_step method will be called periodically.  Otherwise
-        it will be ignored.
+        it will be ignored.  The candidate walker is enabled by default.
         """
         return True
+
+    @property
+    def dispersy_enable_candidate_walker_responses(self):
+        """
+        Enable the candidate walker responses.
+
+        When True is returned, the community will be able to respond to incoming
+        dispersy-introduction-request and dispersy-puncture-request messages.  Otherwise these
+        messages are left undefined and will be ignored.
+
+        When dispersy_enable_candidate_walker returns True, this property must also return True.
+        The default value is to mirror self.dispersy_enable_candidate_walker.
+        """
+        return self.dispersy_enable_candidate_walker
 
     @property
     def dispersy_sync_bloom_filter_error_rate(self):
@@ -1408,6 +1422,11 @@ class HardKilledCommunity(Community):
     def dispersy_enable_candidate_walker(self):
         # disable candidate walker
         return False
+
+    @property
+    def dispersy_enable_candidate_walker_responses(self):
+        # enable walker responses
+        return True
 
     def initiate_meta_messages(self):
         # there are no community messages

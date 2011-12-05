@@ -1150,7 +1150,7 @@ class DispersyMemberTagScript(ScriptBase):
 
 class DispersyBatchScript(ScriptBase):
     def run(self):
-        ec = ec_generate_key(u"low")
+        ec = ec_generate_key(u"very-low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
 
         # duplicate messages are removed
@@ -1308,9 +1308,9 @@ class DispersyBatchScript(ScriptBase):
         dprint("START BIG BATCH")
         messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
 
-        begin = clock()
+        begin = time()
         node.give_messages(messages)
-        end = clock()
+        end = time()
         self._big_batch_took = end - begin
         dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
 
@@ -1333,15 +1333,12 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         dprint("START SMALL BATCHES")
-        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
-        batches = [messages[offset:offset+10] for offset in xrange(0, len(messages), 10)]
-        assert len(messages) == sum(len(batch) for batch in batches)
-        del messages
+        messages = [node.create_full_sync_text_message("Dprint=False, small batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
 
-        begin = clock()
-        for messages in batches:
-            node.give_messages(messages)
-        end = clock()
+        begin = time()
+        for message in messages:
+            node.give_message(message)
+        end = time()
         self._small_batches_took = end - begin
         dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
 
