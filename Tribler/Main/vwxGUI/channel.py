@@ -117,7 +117,11 @@ class ChannelManager():
                 playlists = sample(playlists, 3)
                 
             if len(torrents) > CHANNEL_MAX_NON_FAVORITE:
+                def cmp_torrent(a, b):
+                    return cmp(a.time_stamp, b.time_stamp)
+                
                 torrents = sample(torrents, CHANNEL_MAX_NON_FAVORITE)
+                torrents.sort(cmp=cmp_torrent, reverse = True)
         
         self.list.SetData(playlists, torrents)
         self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
