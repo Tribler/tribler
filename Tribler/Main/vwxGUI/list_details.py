@@ -1599,8 +1599,16 @@ class LibraryDetails(TorrentDetails):
         index = 0
         if ds:
             if getattr(self, 'downloaded', False):
-                self.downloaded.SetLabel(self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
-                self.uploaded.SetLabel(self.utility.size_format(ds.get_total_transferred(UPLOAD)))
+                if ds.get_seeding_statistics():
+                    stats = ds.get_seeding_statistics()
+                    dl = stats['total_down']
+                    ul = stats['total_up']
+                else:
+                    dl = ds.get_total_transferred(DOWNLOAD)
+                    ul = ds.get_total_transferred(UPLOAD)
+                
+                self.downloaded.SetLabel(self.utility.size_format(dl))
+                self.uploaded.SetLabel(self.utility.size_format(ul))
                 self.buttonPanel.Layout()
             
             peers = ds.get_peerlist()
