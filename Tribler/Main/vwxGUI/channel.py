@@ -713,7 +713,7 @@ class DragItem(ListItem):
         ListItem.AddEvents(self, control)
         
     def OnDrag(self, event):
-        if event.LeftIsDown:
+        if event.LeftIsDown():
             self.parent_list.parent_list.OnDrag(self)
         
 class TorrentDO(wx.CustomDataObject):

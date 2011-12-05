@@ -1991,7 +1991,52 @@ class TorrentDBHandler(BasicDBHandler):
         
         #print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return torrent_list
+    
 
+    def getSearchSuggestion(self, keywords, limit = 1):
+        match = keywords.lower()
+        def lev(b):
+            a = match
+            b = b.lower()
+            
+            "Calculates the Levenshtein distance between a and b."
+            n, m = len(a), len(b)
+            if n > m:
+                # Make sure n <= m, to use O(min(n,m)) space
+                a,b = b,a
+                n,m = m,n
+            
+            current = range(n+1)
+            for i in range(1,m+1):
+                previous, current = current, [i]+[0]*n
+                for j in range(1, n+1):
+                    add, delete = previous[j]+1, current[j-1]+1
+                    change = previous[j-1]
+                    if a[j-1] != b[i-1]:
+                        change = change + 1
+                    current[j] = min(add, delete, change)
+            
+            return current[n]
+        
+        def levcollate(s1, s2):
+            l1 = lev(s1.split()[0])
+            l2 = lev(s2.split()[0])
+            
+            # return -1 if s1<s2, +1 if s1>s2 else 0
+            if l1 < l2:
+                return -1
+            if l1 > l2:
+                return 1
+            return 0
+        
+        cursor = self._db.getCursor()
+        connection = cursor.getconnection()
+        connection.createcollation("leven", levcollate)
+        
+        sql = "SELECT term, freq FROM TermFrequency ORDER By term collate leven ASC, freq DESC LIMIT ?"
+        result = self._db.fetchall(sql, (limit, ))
+        connection.createcollation("leven", None)
+        return result
 
     def selectTorrentsToCollect(self, permid, candidate_list=None, similarity_list_size=50, list_size=1):
         """ 
@@ -3289,6 +3334,31 @@ class ChannelCastDBHandler(object):
     def getDispersyCIDFromChannelId(self, channel_id):
         return self._db.fetchone(u"SELECT dispersy_cid FROM Channels WHERE id = ?", (channel_id,))
     
+    def drop_all_newer(self, dispersy_id):
+        sql = "DELETE FROM _TorrentMarkings WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _ChannelVotes WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _ChannelMetaData WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _Moderations WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _Comments WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _PlaylistTorrents WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _Playlists WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = False)
+        
+        sql = "DELETE FROM _ChannelTorrents WHERE dipsersy_id > ?"
+        self._db.execute_write(sql, (dispersy_id), commit = self.shouldCommit)
+    
     #dispersy modifying and receiving channels
     def on_channel_from_channelcast(self, publisher_permid, name):
         peer_id = self.peer_db.addOrGetPeerID(publisher_permid)
@@ -3334,21 +3404,12 @@ class ChannelCastDBHandler(object):
     #Requires all torrents to be from the same channel
     def on_torrents_from_dispersy(self, torrentlist):
         assert len(torrentlist) > 0
-        assert all([torrent[0] == torrentlist[0][0] for torrent in torrentlist]), 'All torrent should belong to the same channel'
+        assert all([torrent[0] == torrentlist[0][0] for torrent in torrentlist]), 'All torrents should belong to the same channel'
         
         infohashes = [torrent[3] for torrent in torrentlist]
         torrent_ids, inserted = self.torrent_db.addOrGetTorrentIDSReturn(infohashes)
         
-        parameters = '?,'*len(torrent_ids)
-        check_channeltorrent = "SELECT torrent_id, dispersy_id FROM ChannelTorrents WHERE channel_id = ? AND torrent_id in ("+parameters[:-1]+")"
-        channeltorrents = [torrentlist[0][0]] + torrent_ids
-        
-        dispersy_ids = {}
-        for id, dispersy_id in self._db.fetchall(check_channeltorrent, channeltorrents):
-            dispersy_ids[id] = dispersy_id
-        
         insert_data = []
-        update_data = []
         insert_files = []
         insert_collecting = []
         updated_channels = {}
@@ -3401,21 +3462,13 @@ class ChannelCastDBHandler(object):
                 magnetlink += "&tr="+urllib.quote_plus(tracker)
             insert_collecting.append((torrent_id, magnetlink))
             
-            cur_dispersy_id = dispersy_ids.get(torrent_id, 'a'*20)
-            if not isinstance(cur_dispersy_id, str) or len(cur_dispersy_id) != 20:
-                update_data.append((dispersy_id, peer_id, name, timestamp, channel_id, torrent_id))
-            else:
-                insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
+            insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
             
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
         
         if len(insert_data) > 0:
             sql_insert_torrent = "INSERT INTO _ChannelTorrents (dispersy_id, torrent_id, channel_id, peer_id, name, time_stamp) VALUES (?,?,?,?,?,?)"
             self._db.executemany(sql_insert_torrent, insert_data, commit = False)
-        
-        if len(update_data) > 0:
-            sql_insert_torrent = "UPDATE _ChannelTorrents SET dispersy_id = ?, peer_id = ?, name = ?, time_stamp = ? WHERE channel_id = ? AND torrent_id = ?"
-            self._db.executemany(sql_insert_torrent, update_data, commit = False)
         
         if len(insert_files) > 0:
             sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
@@ -3486,6 +3539,13 @@ class ChannelCastDBHandler(object):
                 channeltorrent_id = self._db.fetchone(sql, (torrent_ids[i], channel_id))
                 returnAr.append(True if channeltorrent_id else False)
         return returnAr
+    
+    def playlistHasTorrent(self, playlist_id, channeltorrent_id):
+        sql = "SELECT id FROM PlaylistTorrents WHERE playlist_id = ? AND channeltorrent_id = ?"
+        playlisttorrent_id = self._db.fetchone(sql, (playlist_id, channeltorrent_id))
+        if playlisttorrent_id:
+            return True
+        return False
     
     #Old code used by channelcast
     def on_torrents_from_channelcast(self, torrents):
@@ -3613,7 +3673,7 @@ class ChannelCastDBHandler(object):
         playlist_id, channel_id = self._db.fetchone(get_playlist, (playlist_dispersy_id, ))
         
         channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
-        sql = "INSERT OR IGNORE INTO _PlaylistTorrents (dispersy_id, playlist_id, peer_id, channeltorrent_id) VALUES (?,?,?,?)"
+        sql = "INSERT INTO _PlaylistTorrents (dispersy_id, playlist_id, peer_id, channeltorrent_id) VALUES (?,?,?,?)"
         self._db.execute_write(sql, (dispersy_id, playlist_id, peer_id, channeltorrent_id), commit = self.shouldCommit)
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id, infohash)

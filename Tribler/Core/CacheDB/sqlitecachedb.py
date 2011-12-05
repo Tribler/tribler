@@ -28,7 +28,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 ##Changed from 6 to 7 for Raynor's TermFrequency table
 ##Changed from 7 to 8 for Raynor's BundlerPreference table
 ##Changed from 8 to 9 for Niels's Open2Edit tables
-CURRENT_MAIN_DB_VERSION = 9
+##Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
+CURRENT_MAIN_DB_VERSION = 10
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -412,8 +413,7 @@ class SQLiteCacheDBBase:
         sql = u"select value from MyInfo where entry='version'"
         res = self.fetchone(sql)
         if res:
-            find = list(res)
-            return find[0]    # throw error if something wrong
+            return res
         else:
             return None
     
@@ -1967,6 +1967,30 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 10)
+            
+        if fromver < 10:
+            rename_table = "ALTER TABLE _PlaylistTorrents RENAME TO _PlaylistTorrents2"
+            self.execute_write(rename_table)
+            
+            improved_table = """
+            CREATE TABLE IF NOT EXISTS _PlaylistTorrents (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer         NOT NULL,
+              peer_id               integer,
+              playlist_id           integer,
+              channeltorrent_id     integer,
+              deleted_at            integer,
+              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
+              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+            );"""
+            self.execute_write(improved_table)
+            
+            copy_data = "INSERT INTO _PlaylistTorrents (dispersy_id, peer_id, playlist_id, channeltorrent_id, deleted_at) SELECT dispersy_id, peer_id, playlist_id, channeltorrent_id, deleted_at FROM _PlaylistTorrents2"
+            self.execute_write(copy_data)
+            
+            drop_table = "DROP TABLE _PlaylistTorrents2"
+            self.execute_write(drop_table)
+            
             
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

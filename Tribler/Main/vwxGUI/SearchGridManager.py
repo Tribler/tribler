@@ -309,6 +309,9 @@ class TorrentManager:
         
         self.library_manager = library_manager
         self.channel_manager = channel_manager
+        
+    def getSearchSuggestion(self, keywords):
+        return self.torrent_db.getSearchSuggestion(keywords)
     
     def getHitsInCategory(self, categorykey = 'all', sort = 'fulltextmetric'):
         if DEBUG: begintime = time()
@@ -993,6 +996,7 @@ class ChannelManager:
         
         self.channelcast_db = None
         self.votecastdb = None
+        self.dispersy = None
         
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -1366,7 +1370,7 @@ class ChannelManager:
             community = self.dispersy.get_community(dispersy_cid)
             return community
         
-        except KeyError:
+        except (KeyError, AttributeError):
             return None
     
     @forceDispersyThread
@@ -1406,8 +1410,9 @@ class ChannelManager:
                
     @forceDispersyThread 
     def addPlaylistTorrent(self, playlist, torrent):
-        community = self._disp_get_community_from_channel_id(playlist.channel.id)
-        community.create_playlist_torrents(playlist.id, [torrent.infohash])
+        if not self.channelcast_db.playlistHasTorrent(playlist.id, torrent.channeltorrent_id):
+            community = self._disp_get_community_from_channel_id(playlist.channel.id)
+            community.create_playlist_torrents(playlist.id, [torrent.infohash])
     
     @forceDispersyThread
     def createTorrent(self, channel, torrent):

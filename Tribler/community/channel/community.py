@@ -390,7 +390,8 @@ class ChannelCommunity(Community):
     def remove_torrents(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
             message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
-            self._dispersy.create_undo(self, message)
+            if message:
+                self._dispersy.create_undo(self, message)
 
     #create, check or receive playlists
     @forceDispersyThread
@@ -539,7 +540,8 @@ class ChannelCommunity(Community):
             
     def remove_comment(self, dispersy_id):
         message = self._get_message_from_dispersy_id(dispersy_id, "comment")
-        self._dispersy.create_undo(self, message)
+        if message:
+            self._dispersy.create_undo(self, message)
         
     #modify channel, playlist or torrent
     @forceDispersyThread
@@ -746,7 +748,8 @@ class ChannelCommunity(Community):
     def remove_playlist_torrents(self, playlist_id, dispersy_ids):
         for dispersy_id in dispersy_ids:
             message = self._get_message_from_dispersy_id(dispersy_id, "playlist_torrent")
-            self._dispersy.create_undo(self, message)
+            if message:
+                self._dispersy.create_undo(self, message)
     
     @forceDispersyThread
     def _disp_create_playlist_torrents(self, playlist_packet, infohashes, store=True, update=True, forward=True):
@@ -854,17 +857,17 @@ class ChannelCommunity(Community):
     @forceDispersyThread
     def _disp_create_moderation(self, text, timestamp, severity, cause, store=True, update=True, forward=True):
         causemessage = self._get_message_from_dispersy_id(cause, 'modification')
-        
-        meta = self.get_meta_message(u"moderation")
-        global_time = self.claim_global_time()
-        current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
-        
-        message = meta.impl(authentication=(self._my_member,),
-                            resolution=(current_policy.implement(),),
-                            distribution=(global_time,),
-                            payload=(text, timestamp, severity, causemessage))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        if causemessage:
+            meta = self.get_meta_message(u"moderation")
+            global_time = self.claim_global_time()
+            current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
+            
+            message = meta.impl(authentication=(self._my_member,),
+                                resolution=(current_policy.implement(),),
+                                distribution=(global_time,),
+                                payload=(text, timestamp, severity, causemessage))
+            self._dispersy.store_update_forward([message], store, update, forward)
+            return message
 
     def _disp_check_moderation(self, messages):
         for message in messages:
@@ -1080,10 +1083,11 @@ class ChannelCommunity(Community):
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
                     message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
-                    message = message.load_message()
-                    conflicting_messages.append(message)
+                    if message:
+                        message = message.load_message()
+                        conflicting_messages.append(message)
                     
-                    max_global_time = prev_global_time
+                        max_global_time = prev_global_time
                 else:
                     break
             
@@ -1120,8 +1124,9 @@ class ChannelCommunity(Community):
             message.packet_id = packet_id
         else:
             raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)
-
-        return message
+        
+        if not messagename or message.name == messagename:
+            return message
     
     @forceAndReturnDispersyThread
     def _get_packet_id(self, global_time, mid):

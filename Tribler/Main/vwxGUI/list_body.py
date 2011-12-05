@@ -679,6 +679,15 @@ class AbstractListBody():
         
         self.OnChange()
         self.Thaw()
+    
+    def GetMessage(self):
+        header = message = None
+        if self.headerText.IsShown():
+            header = self.headerText.GetLabel()
+        if self.messageText.IsShown():
+            message = self.messageText.GetLabel()
+            
+        return header, message
 
     @warnWxThread
     def ShowLoading(self):

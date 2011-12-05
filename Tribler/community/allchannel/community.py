@@ -341,7 +341,8 @@ class AllChannelCommunity(Community):
         latest_dispersy_id = self._votecast_db.get_latest_vote_dispersy_id(community._channel_id, None)
         if latest_dispersy_id:
             message = self._get_message_from_dispersy_id(latest_dispersy_id, "votecast")
-            self._dispersy.create_undo(self, message)
+            if message:
+                self._dispersy.create_undo(self, message)
 
         #create new vote message
         meta = self.get_meta_message(u"votecast")
@@ -420,7 +421,12 @@ class AllChannelCommunity(Community):
             message.packet_id = packet_id
         else:
             raise RuntimeError("unable to convert packet")
-        return message
+        
+        if message.name == messagename:
+            return message
+        
+    def _drop_all_newer(self, dispersy_id):
+        self._channelcast_db.drop_all_newer(dispersy_id)
 
 class ChannelCastDBStub():
     def __init__(self, dispersy):

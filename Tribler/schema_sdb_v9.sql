@@ -459,12 +459,12 @@ CREATE VIEW Playlists AS SELECT * FROM _Playlists WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS PlayChannelIndex ON _Playlists(channel_id);
 
 CREATE TABLE IF NOT EXISTS _PlaylistTorrents (
+  id                    integer         PRIMARY KEY ASC,
   dispersy_id           integer         NOT NULL,
   peer_id               integer,
   playlist_id           integer,
   channeltorrent_id     integer,
   deleted_at            integer,
-  PRIMARY KEY (playlist_id, channeltorrent_id),
   FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
   FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
 );
@@ -632,7 +632,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 9);
+INSERT INTO MyInfo VALUES ('version', 10);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
