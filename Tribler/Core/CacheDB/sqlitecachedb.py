@@ -459,13 +459,19 @@ class SQLiteCacheDBBase:
                 return cur.execute(sql)
             else:
                 return cur.execute(sql, args)
+            
         except Exception, msg:
             if True:
-                print_exc()
-                print_stack()
-                print >> sys.stderr, "cachedb: execute error:", Exception, msg 
-                thread_name = threading.currentThread().getName()
-                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+                if str(msg).startswith("BusyError"):
+                    print >> sys.stderr, "cachedb: busylock error"
+                    
+                else:
+                    print_exc()
+                    print_stack()
+                    print >> sys.stderr, "cachedb: execute error:", Exception, msg 
+                    thread_name = threading.currentThread().getName()
+                    print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+                    
                 #return None
                 # ARNODB: this is incorrect, it should reraise the exception
                 # such that _transaction can rollback or recommit. 
