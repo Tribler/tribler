@@ -37,6 +37,19 @@ def assert_(value, *args):
     if not value:
         raise AssertionError(*args)
 
+def assert_message_stored(community, member, global_time, undone="done"):
+    assert isinstance(undone, str)
+    assert undone in ("done", "undone")
+
+    try:
+        actual_undone, = community.dispersy.database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?", (community.database_id, member.database_id, global_time)).next()
+    except StopIteration:
+        self.assert_(False, "Message must be stored in the database (", community.database_id, ", ", member.database_id, ", ", global_time, ")")
+
+    assert_(isinstance(actual_undone, int), type(actual_undone))
+    assert_(actual_undone in (0, 1), actual_undone)
+    assert_((undone == "done" and actual_undone == 0) or undone == "undone" and actual_undone == 1, [undone, actual_undone])
+
 class Script(Singleton):
     def __init__(self, callback):
         self._scripts = {}
@@ -2791,6 +2804,8 @@ class DispersyUndoScript(ScriptBase):
         self.caller(self.node_malicious_undo)
         self.caller(self.node_non_malicious_undo)
         self.caller(self.missing_message)
+        self.caller(self.revoke_simple)
+        self.caller(self.revoke_causing_undo)
 
     def self_undo_own(self):
         """
@@ -3157,6 +3172,59 @@ class DispersyUndoScript(ScriptBase):
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
             assert_(undone == [(0,)], undone)
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        self._dispersy.get_community(community.cid).unload_community()
+
+    def revoke_simple(self):
+        """
+        SELF gives NODE1 permission to undo, SELF revokes this permission.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+
+        node1 = DebugNode()
+        node1.init_socket()
+        node1.set_community(community)
+        node1.init_my_member()
+
+        # SELF grants undo permission to NODE1
+        community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
+        # SELF revoke undo permission from NODE1
+        community.create_dispersy_revoke([(node1.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        self._dispersy.get_community(community.cid).unload_community()
+
+    def revoke_causing_undo(self):
+        """
+        SELF gives NODE1 permission to undo, SELF created a message, NODE1 undoes the message, SELF
+        revokes the undo permission AFTER the message was undone -> the message is not re-done.
+        """
+        community = DebugCommunity.create_community(self._my_member)
+
+        node1 = DebugNode()
+        node1.init_socket()
+        node1.set_community(community)
+        node1.init_my_member()
+
+        # SELF grants undo permission to NODE1
+        community.create_dispersy_authorize([(node1.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+
+        # SELF creates a message
+        message = community.create_full_sync_text("will be undone")
+        assert_message_stored(community, community.my_member, message.distribution.global_time)
+
+        # NODE1 undoes the message
+        sequence_number = 1
+        node1.give_message(node1.create_dispersy_undo_other_message(message, message.distribution.global_time + 1, sequence_number))
+        assert_message_stored(community, community.my_member, message.distribution.global_time, undone="undone")
+
+        # SELF revoke undo permission from NODE1
+        community.create_dispersy_revoke([(node1.my_member, community.get_meta_message(u"full-sync-text"), u"undo")])
+        assert_message_stored(community, community.my_member, message.distribution.global_time, undone="undone")
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

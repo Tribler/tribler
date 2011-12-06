@@ -451,7 +451,7 @@ class BinaryConversion(Conversion):
            ]
         ]
         """
-        permission_map = {u"permit":1, u"authorize":2, u"revoke":4}
+        permission_map = {u"permit":int("0001", 2), u"authorize":int("0010", 2), u"revoke":int("0100", 2), u"undo":int("1000", 2)}
         members = {}
         for member, message, permission in message.payload.permission_triplets:
             public_key = member.public_key
@@ -480,7 +480,7 @@ class BinaryConversion(Conversion):
         return tuple(bytes)
 
     def _decode_revoke(self, placeholder, offset, data):
-        permission_map = {u"permit":1, u"authorize":2, u"revoke":4}
+        permission_map = {u"permit":int("0001", 2), u"authorize":int("0010", 2), u"revoke":int("0100", 2), u"undo":int("1000", 2)}
         permission_triplets = []
 
         while offset < len(data):
