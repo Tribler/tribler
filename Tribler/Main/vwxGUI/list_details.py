@@ -1129,6 +1129,7 @@ class TorrentDetails(AbstractDetails):
         
         self.markWindow.SetPosition(pos)
         self.markWindow.Show()
+        self.markWindow.Raise()
     
     @forceDBThread
     def OnMyChannel(self, event):
