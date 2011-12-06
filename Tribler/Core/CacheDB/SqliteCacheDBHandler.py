@@ -3863,9 +3863,14 @@ class ChannelCastDBHandler(object):
         
         nr_records = sum(len(torrents) for torrents in torrent_dict.values())
         additionalSpace = (NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS) - nr_records
+        
         if additionalSpace > 0:
             NUM_OTHERS_RECENT_TORRENTS +=  additionalSpace/2
             NUM_OTHERS_RANDOM_TORRENTS +=  additionalSpace - (additionalSpace/2)
+            
+            #Niels 6-12-2011: we should substract additionalspace from recent and random, otherwise the totals will not be correct.
+            NUM_OWN_RECENT_TORRENTS -= additionalSpace/2
+            NUM_OWN_RANDOM_TORRENTS -= additionalSpace - (additionalSpace/2)
         
         least_recent = -1
         sql = "select dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and dispersy_id <> -1 order by time_stamp desc limit ?"
