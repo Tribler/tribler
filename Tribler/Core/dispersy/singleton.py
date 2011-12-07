@@ -54,7 +54,7 @@ class Singleton(object):
             singleton_placeholder = cls
 
         with singleton_placeholder._singleton_lock:
-            if not hasattr(singleton_placeholder, "_singleton_instance"):
+            if not hasattr(singleton_placeholder, "_singleton_instance") or getattr(singleton_placeholder, "_singleton_instance") is None:
                 setattr(singleton_placeholder, "_singleton_instance", cls(*args, **kargs))
             return getattr(singleton_placeholder, "_singleton_instance")
 
@@ -70,7 +70,7 @@ class Singleton(object):
 
         with singleton_placeholder._singleton_lock:
             if hasattr(singleton_placeholder, "_singleton_instance"):
-                delattr(singleton_placeholder, "_singleton_instance")
+                setattr(singleton_placeholder, "_singleton_instance", None)
 
     @classmethod
     def referenced_instance(cls, singleton_placeholder=None):
@@ -126,7 +126,7 @@ class Parameterized1Singleton(object):
         assert hasattr(args[0], "__hash__")
 
         with cls._singleton_lock:
-            if not hasattr(cls, "_singleton_instances"):
+            if not hasattr(cls, "_singleton_instances") or getattr(cls, "_singleton_instances") is None:
                 setattr(cls, "_singleton_instances", {})
             if not args[0] in getattr(cls, "_singleton_instances"):
                 getattr(cls, "_singleton_instances")[args[0]] = cls(*args, **kargs)
@@ -144,7 +144,7 @@ class Parameterized1Singleton(object):
             if hasattr(cls, "_singleton_instances") and arg in getattr(cls, "_singleton_instances"):
                 del getattr(cls, "_singleton_instances")[arg]
                 if not getattr(cls, "_singleton_instances"):
-                    delattr(cls, "_singleton_instances")
+                    setattr(cls, "_singleton_instances", None)
 
     @classmethod
     def get_instances(cls):

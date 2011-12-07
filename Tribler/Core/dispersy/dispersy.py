@@ -119,6 +119,14 @@ class Statistics(object):
         self._total_down = 0, 0
         self._busy_time = 0.0
 
+    @property
+    def total_up(self):
+        return self._total_up
+
+    @property
+    def total_down(self):
+        return self._total_down
+
     def info(self):
         """
         Returns all statistics.
