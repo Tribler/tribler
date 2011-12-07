@@ -1014,7 +1014,7 @@ class BinaryConversion(Conversion):
             dprint(message.name, " head+body+sig ", len(packet), " bytes")
 
             if len(packet) > 1500 - 60 - 8:
-                dprint("Packet size for ", message.name, " exceeds MTU - TCP header - UDP header (", len(packet), " bytes)", level="warning")
+                dprint("Packet size for ", message.name, " exceeds MTU - IP header - UDP header (", len(packet), " bytes)", level="warning")
 
         # dprint(message.packet.encode("HEX"))
         return packet
