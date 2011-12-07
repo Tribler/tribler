@@ -1376,7 +1376,7 @@ class LibraryList(SizeList):
                     end = len(new_filter)
                 
                 state = new_filter[start:end]
-                if state in ['completed','active','stopped']: 
+                if state in ['completed','active','stopped','checking']: 
                     self.statefilter = state
                 
                 new_filter = new_filter[:start - 6] + new_filter[end:]

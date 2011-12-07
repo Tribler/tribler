@@ -96,8 +96,9 @@ class DownloadState(Serializable):
             
             # for pieces complete
             statsobj = self.stats['stats']
-            if self.filepieceranges is None:
+            if self.filepieceranges is None or len(self.filepieceranges) == 0:
                 self.haveslice = statsobj.have # is copy of network engine list
+                
             else:
                 # Show only pieces complete for the selected ranges of files
                 totalpieces =0
@@ -108,19 +109,26 @@ class DownloadState(Serializable):
                 #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
                 
                 haveslice = [False] * totalpieces
-                haveall = True
+                have = 0
                 index = 0
+                
                 for t,tl,f in self.filepieceranges:
                     for piece in range(t,tl):
                         haveslice[index] = statsobj.have[piece]
-                        if haveall and haveslice[index] == False:
-                            haveall = False
-                        index += 1 
+                        if haveslice[index]:
+                            have += 1
+                                
+                        index += 1
+                        
                 self.haveslice = haveslice
-                if haveall and len(self.filepieceranges) > 0:
+                
+                if have == len(haveslice):
                     # we have all pieces of the selected files
                     self.status = DLSTATUS_SEEDING
                     self.progress = 1.0
+                    
+                else:
+                    self.progress = have/float(len(haveslice))
             
             # RePEX: REPEXING status overrides SEEDING/DOWNLOADING status.
             if status is not None and status == DLSTATUS_REPEXING:

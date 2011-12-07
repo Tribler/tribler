@@ -6,7 +6,8 @@ from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
-    DLSTATUS_SEEDING, DLSTATUS_REPEXING
+    DLSTATUS_SEEDING, DLSTATUS_REPEXING, DLSTATUS_HASHCHECKING,\
+    DLSTATUS_WAITING4HASHCHECK
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.Search.SearchManager import split_into_keywords
@@ -155,11 +156,14 @@ class Torrent(Helper):
     def state(self):
         stateList = []
         if self.ds:
-            if self.ds.get_status() in [DLSTATUS_STOPPED|DLSTATUS_REPEXING]:
+            if self.ds.get_status() in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
                 stateList.append('stopped')
                 
             elif self.ds.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
                 stateList.append('active')
+            
+            elif self.ds.get_status() == [DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
+                stateList.append('checking')
             
             if self.ds.progress == 1.0:
                 stateList.append('completed')
