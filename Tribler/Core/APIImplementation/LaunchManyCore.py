@@ -104,6 +104,10 @@ class TriblerLaunchMany(Thread):
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         self.shutdownstarttime = None
 
+        # new database stuff will run on only one thread
+        self.database_thread = Callback()
+        self.database_thread.start("Dispersy")
+
         # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
@@ -121,10 +125,6 @@ class TriblerLaunchMany(Thread):
 
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
-
-            # new database stuff will run on only one thread
-            self.database_thread = Callback()
-            self.database_thread.start("Dispersy")
 
             cachedb.init(config, self.rawserver_fatalerrorfunc)
 
