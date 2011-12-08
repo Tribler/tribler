@@ -13,36 +13,38 @@ class PreviewChannelCommunity(ChannelCommunity):
     #     community.dispersy_auto_load = True
     #     return community
 
-    def _initialize_meta_messages(self):
-        super(PreviewChannelCommunity, self)._initialize_meta_messages()
+    # def _initialize_meta_messages(self):
+    #     super(PreviewChannelCommunity, self)._initialize_meta_messages()
 
-        # remove unnecessary messages
-        meta_messages = self._meta_messages
-        self._meta_messages = {}
-        for name in [u"dispersy-identity",
-                     u"dispersy-missing-identity",
-                     u"dispersy-destroy-community",
-                     u"dispersy-authorize",
-                     u"dispersy-missing-proof",
-                     u"dispersy-revoke",
-                     u"dispersy-dynamic-settings",
+    #     # remove unnecessary messages
+    #     meta_messages = self._meta_messages
+    #     self._meta_messages = {}
+    #     for name in [u"dispersy-identity",
+    #                  u"dispersy-missing-identity",
+    #                  u"dispersy-destroy-community",
+    #                  u"dispersy-authorize",
+    #                  u"dispersy-missing-proof",
+    #                  u"dispersy-revoke",
+    #                  u"dispersy-dynamic-settings",
+    #                  # u"dispersy-undo-other",
+    #                  # u"dispersy-undo-own",
 
-                     u"channel",
-                     u"torrent",
-                     u"playlist",
-                     u"comment",
-                     u"modification",
-                     u"playlist_torrent",
-                     u"moderation",
-                     u"mark_torrent",
-                     u"missing-channel",
-                     ]:
-            self._meta_messages[name] = meta_messages[name]
+    #                  u"channel",
+    #                  u"torrent",
+    #                  u"playlist",
+    #                  u"comment",
+    #                  u"modification",
+    #                  u"playlist_torrent",
+    #                  u"moderation",
+    #                  u"mark_torrent",
+    #                  u"missing-channel",
+    #                  ]:
+    #         self._meta_messages[name] = meta_messages[name]
 
-    def dispersy_start_walk(self):
-        # disable walk
-        pass
-    
+    @property
+    def dispersy_enable_candidate_walker(self):
+        return False
+
     def get_channel_mode(self):
         return ChannelCommunity.CHANNEL_CLOSED, False
     

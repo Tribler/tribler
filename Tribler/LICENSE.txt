@@ -2,9 +2,12 @@
 
     Tribler content-delivery library.
 
-    Development of the Tribler library was supported by various research 
+    Development of the Tribler library was supported by numerous research 
     grants:
-
+     - European Community's Seventh Framework Programme in the QLECTIVES project
+       under contract no 231200.
+     - European Community's Seventh Framework Programme in the P2P-NEXT project
+       under contract no 216217 (see ns-LICENSE.txt for details).
      - BSIK Freeband Communication I-Share project (Dutch Ministry of Economic 
        Affairs)
      - Netherlands Organisation for Scientific Research (NWO) grant 612.060.215
@@ -12,7 +15,7 @@
      - European Community's Sixth Framework Programme in the P2P-FUSION project
        under contract no 035249.
  
-    The following library modules are Copyright (c) 2005-2010,
+    The following library modules are Copyright (c) 2005-2011,
     Delft University of Technology and Vrije Universiteit Amsterdam; 
     All rights reserved.
 

@@ -7,11 +7,37 @@ import sys
 import time
 
 from Tribler.Core.API import SessionStartupConfig, Session
+from Tribler.Core.Statistics.Logger import OverlayLogger
+from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.message import Message
+
+class BoosterDispersy(Dispersy):
+    def __init__(self, callback, statedir):
+        super(BoosterDispersy, self).__init__(callback, statedir)
+
+        # logger
+        session = Session.get_instance()
+        port = session.get_listen_port()
+        overlaylogpostfix = "bp" + str(port) + ".log"
+        self._logger = OverlayLogger.getInstance(overlaylogpostfix, statedir)
+
+    def check_sync(self, messages):
+        for message in messages:
+            _, before = self._statistics.total_up
+            result = super(BoosterDispersy, self).check_sync([message]).next()
+            _, after = self._statistics.total_up
+
+            if isinstance(result, Message.Implementation) and message.payload.sync:
+                payload = message.payload
+                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before, payload.bloom_filter.bytes.encode("HEX"))
+
+            yield result
 
 def main():
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
     command_line_parser.add_option("--port", action="store", type="int", help="Listen at this port")
+    command_line_parser.add_option("--dispersy-port", action="store", type="int", help="Dispersy uses this UDL port", default=6421)
     command_line_parser.add_option("--nickname", action="store", type="string", help="The moderator name", default="Booster")
 
     # parse command-line arguments
@@ -27,6 +53,7 @@ def main():
     sscfg = SessionStartupConfig()
     if opt.statedir: sscfg.set_state_dir(os.path.realpath(opt.statedir))
     if opt.port: sscfg.set_listen_port(opt.port)
+    if opt.dispersy_port: sscfg.set_dispersy_port(opt.dispersy_port)
     if opt.nickname: sscfg.set_nickname(opt.nickname)
 
     sscfg.set_megacache(True)

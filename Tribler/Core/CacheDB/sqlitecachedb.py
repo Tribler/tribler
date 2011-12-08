@@ -28,7 +28,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 ##Changed from 6 to 7 for Raynor's TermFrequency table
 ##Changed from 7 to 8 for Raynor's BundlerPreference table
 ##Changed from 8 to 9 for Niels's Open2Edit tables
-CURRENT_MAIN_DB_VERSION = 9
+##Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
+CURRENT_MAIN_DB_VERSION = 10
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -412,8 +413,7 @@ class SQLiteCacheDBBase:
         sql = u"select value from MyInfo where entry='version'"
         res = self.fetchone(sql)
         if res:
-            find = list(res)
-            return find[0]    # throw error if something wrong
+            return res
         else:
             return None
     
@@ -459,13 +459,19 @@ class SQLiteCacheDBBase:
                 return cur.execute(sql)
             else:
                 return cur.execute(sql, args)
+            
         except Exception, msg:
             if True:
-                print_exc()
-                print_stack()
-                print >> sys.stderr, "cachedb: execute error:", Exception, msg 
-                thread_name = threading.currentThread().getName()
-                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+                if str(msg).startswith("BusyError"):
+                    print >> sys.stderr, "cachedb: busylock error"
+                    
+                else:
+                    print_exc()
+                    print_stack()
+                    print >> sys.stderr, "cachedb: execute error:", Exception, msg 
+                    thread_name = threading.currentThread().getName()
+                    print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+                    
                 #return None
                 # ARNODB: this is incorrect, it should reraise the exception
                 # such that _transaction can rollback or recommit. 
@@ -1283,62 +1289,69 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if fromver < 9:
             sql=\
             """
-            CREATE TABLE IF NOT EXISTS Channels (
-              id                    integer         PRIMARY KEY ASC,
-              dispersy_cid          text,
-              peer_id               integer,
-              name                  text            NOT NULL,
-              description           text,
-              modified              integer         DEFAULT (strftime('%s','now')),
-              inserted              integer         DEFAULT (strftime('%s','now')),
-              nr_torrents           integer         DEFAULT 0,
-              nr_spam               integer         DEFAULT 0,
-              nr_favorite           integer         DEFAULT 0
+            CREATE TABLE IF NOT EXISTS _Channels (
+              id                        integer         PRIMARY KEY ASC,
+              dispersy_cid              text,       
+              peer_id                   integer,
+              name                      text            NOT NULL,
+              description               text,
+              modified                  integer         DEFAULT (strftime('%s','now')),
+              inserted                  integer         DEFAULT (strftime('%s','now')),
+              deleted_at                integer,
+              nr_torrents               integer         DEFAULT 0,
+              nr_spam                   integer         DEFAULT 0,
+              nr_favorite               integer         DEFAULT 0
             );
-            CREATE TABLE IF NOT EXISTS ChannelTorrents (
-              id                    integer         PRIMARY KEY ASC,
-              dispersy_id           integer,
-              torrent_id            integer         NOT NULL,
-              channel_id            integer         NOT NULL,
-              peer_id               integer,
-              name                  text,
-              description           text,
-              time_stamp            integer,
-              modified              integer         DEFAULT (strftime('%s','now')),
-              inserted              integer         DEFAULT (strftime('%s','now')),
-              UNIQUE (torrent_id, channel_id),
+            CREATE VIEW Channels AS SELECT * FROM _Channels WHERE deleted_at IS NULL;
+            
+            CREATE TABLE IF NOT EXISTS _ChannelTorrents (
+              id                        integer         PRIMARY KEY ASC,
+              dispersy_id               integer,
+              torrent_id                integer         NOT NULL,
+              channel_id                integer         NOT NULL,
+              peer_id                   integer,
+              name                      text,
+              description               text,
+              time_stamp                integer,
+              modified                  integer         DEFAULT (strftime('%s','now')),
+              inserted                  integer         DEFAULT (strftime('%s','now')),
+              deleted_at                integer,
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
+            CREATE VIEW ChannelTorrents AS SELECT * FROM _ChannelTorrents WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS TorChannelIndex ON _ChannelTorrents(channel_id);
             
-            CREATE TABLE IF NOT EXISTS Playlists (
-              id                    integer         PRIMARY KEY ASC,
-              channel_id            integer         NOT NULL,
-              dispersy_id           integer         NOT NULL,
-              peer_id               integer,              
-              playlist_id           integer,
-              name                  text            NOT NULL,
-              description           text,
-              modified              integer         DEFAULT (strftime('%s','now')),
-              inserted              integer         DEFAULT (strftime('%s','now')),
+            CREATE TABLE IF NOT EXISTS _Playlists (
+              id                        integer         PRIMARY KEY ASC,
+              channel_id                integer         NOT NULL,
+              dispersy_id               integer         NOT NULL,
+              peer_id                   integer,
+              playlist_id               integer,
+              name                      text            NOT NULL,
+              description               text,
+              modified                  integer         DEFAULT (strftime('%s','now')),
+              inserted                  integer         DEFAULT (strftime('%s','now')),
+              deleted_at                integer,
               UNIQUE (dispersy_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
+            CREATE VIEW Playlists AS SELECT * FROM _Playlists WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS PlayChannelIndex ON _Playlists(channel_id);
             
-            CREATE TABLE IF NOT EXISTS PlaylistTorrents (
+            CREATE TABLE IF NOT EXISTS _PlaylistTorrents (
               dispersy_id           integer         NOT NULL,
-              peer_id               integer,              
+              peer_id               integer,
               playlist_id           integer,
               channeltorrent_id     integer,
-              UNIQUE (dispersy_id),
+              deleted_at            integer,
               PRIMARY KEY (playlist_id, channeltorrent_id),
               FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
               FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS PlayTorrentIndex ON PlaylistTorrents(playlist_id);
-
-            CREATE TABLE IF NOT EXISTS Comments (
+            CREATE VIEW PlaylistTorrents AS SELECT * FROM _PlaylistTorrents WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS PlayTorrentIndex ON _PlaylistTorrents(playlist_id);
+            
+            CREATE TABLE IF NOT EXISTS _Comments (
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
               peer_id               integer,
@@ -1348,11 +1361,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               reply_after_id        integer,
               time_stamp            integer,
               inserted              integer         DEFAULT (strftime('%s','now')),
+              deleted_at            integer,
               UNIQUE (dispersy_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);
-
+            CREATE VIEW Comments AS SELECT * FROM _Comments WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS ComChannelIndex ON _Comments(channel_id);
+            
             CREATE TABLE IF NOT EXISTS CommentPlaylist (
               comment_id            integer,
               playlist_id           integer,
@@ -1371,36 +1386,40 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
             
-            CREATE TABLE IF NOT EXISTS Moderations (
+            CREATE TABLE IF NOT EXISTS _Moderations (
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
               channel_id            integer         NOT NULL,
               peer_id               integer,
-              by_peer_id            integer,
               severity              integer         NOT NULL DEFAULT (0),
               message               text            NOT NULL,
               cause                 integer         NOT NULL,
+              by_peer_id            integer,
               time_stamp            integer         NOT NULL,
               inserted              integer         DEFAULT (strftime('%s','now')),
+              deleted_at            integer,
               UNIQUE (dispersy_id),
               FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS MoChannelIndex ON Moderations(channel_id);
+            CREATE VIEW Moderations AS SELECT * FROM _Moderations WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS MoChannelIndex ON _Moderations(channel_id);
             
-            CREATE TABLE IF NOT EXISTS ChannelMetaData (
+            CREATE TABLE IF NOT EXISTS _ChannelMetaData (
               id                    integer         PRIMARY KEY ASC,
               dispersy_id           integer         NOT NULL,
               channel_id            integer         NOT NULL,
-              peer_id               integer,              
+              peer_id               integer,
               type_id               integer         NOT NULL,
               value                 text            NOT NULL,
               prev_modification     integer,
               prev_global_time      integer,
               time_stamp            integer         NOT NULL,
               inserted              integer         DEFAULT (strftime('%s','now')),
+              deleted_at            integer,
               UNIQUE (dispersy_id),
               FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE
             );
+            CREATE VIEW ChannelMetaData AS SELECT * FROM _ChannelMetaData WHERE deleted_at IS NULL;
             CREATE TABLE IF NOT EXISTS MetaDataTypes (
               id                    integer         PRIMARY KEY ASC,
               name                  text            NOT NULL,
@@ -1425,19 +1444,18 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MetaDataPlaylist(playlist_id);
             
-            CREATE TABLE IF NOT EXISTS ChannelVotes (
+            CREATE TABLE IF NOT EXISTS _ChannelVotes (
               channel_id            integer,
               voter_id              integer,
               dispersy_id           integer,
               vote                  integer,
               time_stamp            integer,
+              deleted_at            integer,
               PRIMARY KEY (channel_id, voter_id)
             );
-            CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
-            CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
-            
-            INSERT INTO MetaDataTypes ('name') VALUES ('name');
-            INSERT INTO MetaDataTypes ('name') VALUES ('description');
+            CREATE VIEW ChannelVotes AS SELECT * FROM _ChannelVotes WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS ChaVotIndex ON _ChannelVotes(channel_id);
+            CREATE INDEX IF NOT EXISTS VotChaIndex ON _ChannelVotes(voter_id);
             
             CREATE TABLE IF NOT EXISTS TorrentFiles (
               torrent_id            integer NOT NULL,
@@ -1454,19 +1472,24 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
             
-            CREATE TABLE IF NOT EXISTS TorrentMarkings (
+            CREATE TABLE IF NOT EXISTS _TorrentMarkings (
               dispersy_id           integer NOT NULL,
               channeltorrent_id     integer NOT NULL,
               peer_id               integer,
               global_time           integer,
               type                  text    NOT NULL,
               time_stamp            integer NOT NULL,
+              deleted_at            integer,
+              UNIQUE (dispersy_id),
               PRIMARY KEY (channeltorrent_id, peer_id)
             );
-            CREATE INDEX IF NOT EXISTS TorMarkIndex ON TorrentMarkings(channeltorrent_id);
+            CREATE VIEW TorrentMarkings AS SELECT * FROM _TorrentMarkings WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS TorMarkIndex ON _TorrentMarkings(channeltorrent_id);
             
             CREATE VIRTUAL TABLE FullTextIndex USING fts3(swarmname, filenames, fileextensions);
-
+            
+            INSERT INTO MetaDataTypes ('name') VALUES ('name');
+            INSERT INTO MetaDataTypes ('name') VALUES ('description');
             """
             self.execute_write(sql, commit=False)
 
@@ -1663,13 +1686,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             select_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
             
-            insert_channel = "INSERT INTO Channels (dispersy_cid, peer_id, name, description, inserted, modified) VALUES (?, ?, ?, ?, ?, ?)"
-            insert_channel_contents = "INSERT OR IGNORE INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
+            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description, inserted, modified) VALUES (?, ?, ?, ?, ?, ?)"
+            insert_channel_contents = "INSERT OR IGNORE INTO _ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp, inserted) VALUES (?,?,?,?,?)"
             
-            update_channel = "UPDATE Channels SET nr_torrents = ? WHERE id = ?"
+            update_channel = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
             
             select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast Order By time_stamp ASC"
-            insert_vote = "INSERT OR REPLACE INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+            insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
             
             if self.fetchone(finished_convert) == 'ChannelCast':
             
@@ -1746,11 +1769,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         votes[channel_id][1] = neg_votes
                         
                 channel_tuples = [(values[1], values[0], channel_id) for channel_id, values in votes.iteritems()]
-                update_votes = "UPDATE Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
+                update_votes = "UPDATE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
                 self.executemany(update_votes, channel_tuples)
                 
                 print >> sys.stderr, "Converting took", time() - t1
-                self.execute_write('DELETE FROM Channels WHERE peer_id IS NOT NULL', commit = False)
                 self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid, ), commit = False)
                 self.execute_write('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid, ))
                 
@@ -1951,6 +1973,30 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 10)
+            
+        if fromver < 10:
+            rename_table = "ALTER TABLE _PlaylistTorrents RENAME TO _PlaylistTorrents2"
+            self.execute_write(rename_table)
+            
+            improved_table = """
+            CREATE TABLE IF NOT EXISTS _PlaylistTorrents (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer         NOT NULL,
+              peer_id               integer,
+              playlist_id           integer,
+              channeltorrent_id     integer,
+              deleted_at            integer,
+              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
+              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+            );"""
+            self.execute_write(improved_table)
+            
+            copy_data = "INSERT INTO _PlaylistTorrents (dispersy_id, peer_id, playlist_id, channeltorrent_id, deleted_at) SELECT dispersy_id, peer_id, playlist_id, channeltorrent_id, deleted_at FROM _PlaylistTorrents2"
+            self.execute_write(copy_data)
+            
+            drop_table = "DROP TABLE _PlaylistTorrents2"
+            self.execute_write(drop_table)
+            
             
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

@@ -440,6 +440,9 @@ class MaxBetterText(wx.BoxSizer):
         self.Add(self.label, 0, wx.EXPAND)
         
         self.SetLabel(label)
+        
+        if sys.platform == 'win32': #lets do manual word wrapping
+            self.label.Bind(wx.EVT_SIZE, self.OnSize)
     
     def SetLabel(self, label):
         if self.fullLabel != label:
@@ -460,16 +463,34 @@ class MaxBetterText(wx.BoxSizer):
                     self.expand.SetLabel("Click to view full "+self.name)
             else:
                 self.hasMore = False
-                    
+
     def OnFull(self, event):
-        if self.expand.GetLabel().startswith('Click to view full'):
-            self.label.SetLabel(self.fullLabel)
+        if not self.IsExpanded():
             self.expand.SetLabel('Click to collapse '+self.name)
+            self.label.SetLabel(self.fullLabel)
         else:
-            self.label.SetLabel(self.shortLabel)
             self.expand.SetLabel('Click to view full '+self.name)
+            self.label.SetLabel(self.shortLabel)
         
         self.parent.OnChange()
+    
+    def IsExpanded(self):
+        return self.expand == None or self.expand.GetLabel().startswith('Click to collapse')
+        
+    def OnSize(self, event):
+        width = self.label.GetSize()[0]
+        bestwidth = self.label.GetBestSize()[0]
+        
+        if width > 0 and bestwidth > width:
+            self.label.Wrap(width)
+            self.label.IsWrapped = True
+            
+            if not self.IsExpanded():
+                self.shortLabel = self._limitLabel(self.label.GetLabel())
+                self.label.SetLabel(self.shortLabel)
+            
+        elif getattr(self.label, 'IsWrapped', False):
+            self.label.Wrap(-1)
                 
     def SetMinSize(self, minsize):
         self.label.SetMinSize(minsize)

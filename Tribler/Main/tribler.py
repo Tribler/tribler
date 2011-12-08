@@ -280,7 +280,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE, NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT, NTFY_DELETE])
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
@@ -802,6 +802,9 @@ class ABCApp():
             manager = self.frame.selectedchannellist.GetManager()
             manager.torrentUpdated(objectID)
             
+            manager = self.frame.playlist.GetManager()
+            manager.torrentUpdated(objectID)
+            
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
         
@@ -813,10 +816,21 @@ class ABCApp():
         if self.ready and self.frame.ready:
             if changeType == NTFY_INSERT:
                 self.frame.managechannel.playlistCreated(objectID)
-            else:
-                self.frame.managechannel.playlistUpdated(objectID)
                 
                 manager = self.frame.selectedchannellist.GetManager()
+                manager.playlistCreated(objectID)
+                
+            else:
+                self.frame.managechannel.playlistUpdated(objectID)
+
+                if len(args) > 0:
+                    infohash = args[0]
+                else:
+                    infohash = False
+                manager = self.frame.selectedchannellist.GetManager()
+                manager.playlistUpdated(objectID, infohash)
+                
+                manager = self.frame.playlist.GetManager()
                 manager.playlistUpdated(objectID)
                 
     @forceWxThread     
@@ -841,6 +855,7 @@ class ABCApp():
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
+            self.frame.playlist.OnModerationCreated(objectID)
     
     @forceWxThread
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):

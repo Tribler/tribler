@@ -322,6 +322,20 @@ class ChannelFooter(ListFooter):
         self.hSizer.Layout()
         self.Layout()
         self.Thaw()
+        
+    def Reset(self):
+        ListFooter.Reset(self)
+        
+        self.Freeze()
+        self.hSizer.Clear()
+        
+        self.subtitle.Show(False)
+        self.favorite.Show(False)
+        self.spam.Show(False)
+        self.manage.Show(False)
+        self.message.SetLabel('')
+        
+        self.Thaw()
     
     def GetStates(self):
         return (self.spam.GetLabel() == 'This is not Spam', self.favorite.GetLabel() == 'Remove Favorite')
@@ -335,11 +349,12 @@ class PlaylistFooter(ListFooter):
         return True, True
 
 class ManageChannelFilesFooter(ListFooter):
-    def __init__(self, parent, removeall, removesel, add):
+    def __init__(self, parent, removeall, removesel, add, export):
         ListFooter.__init__(self, parent, 0)
         self.removeall.Bind(wx.EVT_BUTTON, removeall)
         self.removesel.Bind(wx.EVT_BUTTON, removesel)
         self.add.Bind(wx.EVT_BUTTON, add)
+        self.export.Bind(wx.EVT_BUTTON, export)
         
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
@@ -347,15 +362,18 @@ class ManageChannelFilesFooter(ListFooter):
         self.removesel = wx.Button(self, -1, "Remove Selected")
         self.removeall = wx.Button(self, -1, "Remove All")
         self.add = wx.Button(self, -1, "+ Add...")
+        self.export = wx.Button(self, -1, "Export All .torrents")
         
         hSizer.Add(self.removesel, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.add, 0, wx.TOP|wx.BOTTOM, 3)
+        hSizer.Add(self.export, 0, wx.TOP|wx.BOTTOM, 3)
     
     def SetState(self, canDelete, canAdd):
         self.removesel.Show(canDelete)
         self.removeall.Show(canDelete)
         self.add.Show(canAdd)
+        self.export.Show(canDelete)
         
 class ManageChannelPlaylistFooter(ListFooter):
     def __init__(self, parent, createnew):

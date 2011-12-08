@@ -7,7 +7,13 @@ from Tribler.Core.TorrentDef import TorrentDef
 DIR_CHECK_FREQUENCY = 10 # Check directories every 10 seconds
 
 class DirectoryFeedThread(Thread):
+    __single = None
+    
     def __init__(self):
+        if DirectoryFeedThread.__single:
+            raise RuntimeError, "DirectoryFeedThread is singleton"
+        DirectoryFeedThread.__single = self
+        
         Thread.__init__(self)
         self.setName("DirectoryFeed"+self.getName())
         self.setDaemon(True)
@@ -16,6 +22,12 @@ class DirectoryFeedThread(Thread):
         self.feeds = []
         
         self.done = Event()
+        
+    def getInstance(*args, **kw):
+        if DirectoryFeedThread.__single is None:
+            DirectoryFeedThread(*args, **kw)
+        return DirectoryFeedThread.__single
+    getInstance = staticmethod(getInstance)
     
     def _on_torrent_found(self, dirpath, torrentpath, infohash, torrent_data):
         print >>sys.stderr, 'DirectoryFeedThread: Adding', torrentpath

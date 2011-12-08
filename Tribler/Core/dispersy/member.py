@@ -194,15 +194,13 @@ class Member(Parameterized1Singleton):
                 for tag in self._tags:
                     assert tag in (u"store", u"ignore", u"blacklist"), tag
 
-        for cid, in execute(u"""
-SELECT DISTINCT master.mid
+        for community_database_id, in execute(u"""
+SELECT DISTINCT sync.community
 FROM sync
 JOIN meta_message ON meta_message.id = sync.meta_message
-JOIN community ON community.id = sync.community
-JOIN member AS master ON master.id = community.master
-WHERE meta_message.name = \"dispersy-identity\"
-"""):
-            self._communities.add(str(cid))
+WHERE meta_message.name = \"dispersy-identity\" AND sync.member = ?
+""", (self._database_id, )):
+            self._communities.add(community_database_id)
 
     @property
     def mid(self):
@@ -255,8 +253,11 @@ WHERE meta_message.name = \"dispersy-identity\"
         """
         Returns True when we have a dispersy-identity message for this member in COMMUNITY.
         """
-        return community.cid in self._communities
-    
+        if __debug__:
+            from community import Community
+            assert isinstance(community, Community)
+        return community.database_id in self._communities
+
     def _set_tag(self, tag, value):
         assert isinstance(tag, unicode)
         assert tag in [u"store", u"ignore", u"blacklist"]

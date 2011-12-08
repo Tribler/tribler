@@ -57,7 +57,7 @@ CREATE TABLE sync(
  undone BOOL DEFAULT 0,
  packet BLOB,
  UNIQUE(community, member, global_time));
-CREATE INDEX sync_meta_message_index ON sync(meta_message);
+CREATE INDEX sync_meta_message_global_time_index ON sync(meta_message, global_time);
 
 CREATE TABLE malicious_proof(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +66,7 @@ CREATE TABLE malicious_proof(
  packet BLOB);
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '6');
+INSERT INTO option(key, value) VALUES('database_version', '7');
 """
 
 class DispersyDatabase(Database):
@@ -87,7 +87,7 @@ class DispersyDatabase(Database):
         assert isinstance(database_version, unicode)
         assert database_version.isdigit()
         assert int(database_version) >= 0
-        previous_version = database_version = int(database_version)
+        database_version = int(database_version)
 
         if database_version == 0:
             # setup new database with current database_version
@@ -247,7 +247,14 @@ UPDATE option SET value = '6' WHERE key = 'database_version';
 
             # upgrade from version 6 to version 7
             if database_version < 7:
-                # there is no version 7 yet...
-                # self.executescript(u"""UPDATE option SET value = '7' WHERE key = 'database_version';""")
+                self.executescript(u"""
+DROP INDEX sync_meta_message_index;
+CREATE INDEX sync_meta_message_global_time_index ON sync(meta_message, global_time);
+UPDATE option SET value = '7' WHERE key = 'database_version';
+""")
+
+            # upgrade from version 7 to version 8
+            if database_version < 8:
+                # there is no version 8 yet...
+                # self.executescript(u"""UPDATE option SET value = '8' WHERE key = 'database_version';""")
                 pass
-            

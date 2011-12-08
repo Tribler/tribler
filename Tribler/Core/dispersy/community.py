@@ -23,13 +23,15 @@ from decorator import documentation, runtime_duration_warning
 from destination import SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
+from distribution import SyncDistribution
 from member import Member
-from resolution import LinearResolution, DynamicResolution
+from resolution import PublicResolution, LinearResolution, DynamicResolution
 from timeline import Timeline
 
 if __debug__:
     from dprint import dprint
     from math import ceil
+    from time import time
 
 class SubjectiveSetCache(object):
     def __init__(self, packet, subjective_set):
@@ -91,12 +93,36 @@ class Community(object):
         # create my dispersy-identity
         community.create_dispersy_identity()
 
-        # authorize MY_MEMBER for each message
+        # authorize MY_MEMBER
         permission_triplets = []
         for message in community.get_meta_messages():
+            # grant all permissions for messages that use LinearResolution or DynamicResolution
             if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
                 for allowed in (u"authorize", u"revoke", u"permit"):
                     permission_triplets.append((my_member, message, allowed))
+
+                # ensure that undo_callback is available
+                if message.undo_callback:
+                    # we do not support undo permissions for authorize, revoke, undo-own, and
+                    # undo-other (yet)
+                    if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
+                        permission_triplets.append((my_member, message, u"undo"))
+
+            # grant authorize, revoke, and undo permission for messages that use PublicResolution
+            # and SyncDistribution.  Why?  The undo permission allows nodes to revoke a specific
+            # message that was gossiped around.  The authorize permission is required to grant other
+            # nodes the undo permission.  The revoke permission is required to remove the undo
+            # permission.  The permit permission is not required as the message uses
+            # PublicResolution and is hence permitted regardless.
+            elif isinstance(message.distribution, SyncDistribution) and isinstance(message.resolution, PublicResolution):
+                # ensure that undo_callback is available
+                if message.undo_callback:
+                    # we do not support undo permissions for authorize, revoke, undo-own, and
+                    # undo-other (yet)
+                    if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
+                        for allowed in (u"authorize", u"revoke", u"undo"):
+                            permission_triplets.append((my_member, message, allowed))
+
         if permission_triplets:
             community.create_dispersy_authorize(permission_triplets, sign_with_master=True, forward=False)
 
@@ -197,7 +223,10 @@ class Community(object):
         @type master: Member
         """
         assert isinstance(master, Member)
-        if __debug__: dprint("initializing ", self.get_classification(), " ", master.mid.encode("HEX"))
+        if __debug__:
+            dprint("initializing:  ", self.get_classification())
+            dprint("identifier:    ", master.mid.encode("HEX"))
+            dprint("master member: ", master.public_key.encode("HEX") if master.public_key else "unavailable")
 
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
@@ -211,6 +240,7 @@ class Community(object):
             self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
+        if __debug__: dprint("database id:   ", self._database_id)
 
         self._cid = master.mid
         self._master_member = master
@@ -235,6 +265,12 @@ class Community(object):
         if self._global_time is None:
             self._global_time = 0
         assert isinstance(self._global_time, (int, long))
+        if __debug__: dprint("global time:   ", self._global_time)
+
+        # sync range bloom filters
+        if __debug__:
+            b = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate)
+            dprint("sync bloom:    size: ", int(ceil(b.size // 8)), ";  capacity: ", b.get_capacity(self.dispersy_sync_bloom_filter_error_rate), ";  error-rate: ", self.dispersy_sync_bloom_filter_error_rate)
 
         # the subjective sets.  the dictionary containing subjective sets that were recently used.
         self._subjective_sets = CacheDict()  # (member, cluster) / SubjectiveSetCache pairs
@@ -243,7 +279,7 @@ class Community(object):
         if __debug__:
             if any(isinstance(meta.destination, SubjectiveDestination) for meta in self._meta_messages.itervalues()):
                 b = BloomFilter(self.dispersy_subjective_set_bits, self.dispersy_subjective_set_error_rate)
-                dprint("subjective set. size: ", int(ceil(b.size // 8)), "; capacity: ", b.get_capacity(self.dispersy_subjective_set_error_rate), "; error-rate: ", self.dispersy_subjective_set_error_rate)
+                dprint("subj- set: size: ", int(ceil(b.size // 8)), ";  capacity: ", b.get_capacity(self.dispersy_subjective_set_error_rate), ";  error-rate: ", self.dispersy_subjective_set_error_rate)
 
         # initial timeline.  the timeline will keep track of member permissions
         self._timeline = Timeline(self)
@@ -267,7 +303,6 @@ class Community(object):
             self._meta_messages[meta_message.name] = meta_message
 
         if __debug__:
-            from distribution import SyncDistribution
             sync_delay = 5.0
             for meta_message in self._meta_messages.itervalues():
                 if isinstance(meta_message.distribution, SyncDistribution):
@@ -379,14 +414,23 @@ class Community(object):
         Enable the candidate walker.
 
         When True is returned, the dispersy_take_step method will be called periodically.  Otherwise
-        it will be ignored.
+        it will be ignored.  The candidate walker is enabled by default.
         """
-        try:
-            self.get_meta_message(u"dispersy-introduction-request")
-        except KeyError:
-            return False
-        else:
-            return True
+        return True
+
+    @property
+    def dispersy_enable_candidate_walker_responses(self):
+        """
+        Enable the candidate walker responses.
+
+        When True is returned, the community will be able to respond to incoming
+        dispersy-introduction-request and dispersy-puncture-request messages.  Otherwise these
+        messages are left undefined and will be ignored.
+
+        When dispersy_enable_candidate_walker returns True, this property must also return True.
+        The default value is to mirror self.dispersy_enable_candidate_walker.
+        """
+        return self.dispersy_enable_candidate_walker
 
     @property
     def dispersy_sync_bloom_filter_error_rate(self):
@@ -630,75 +674,97 @@ class Community(object):
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
-    @runtime_duration_warning(0.5)
+    @runtime_duration_warning(0.1)
     def dispersy_claim_sync_bloom_filter_largest(self):
-        bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
-        capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
-
-        desired_mean = self.global_time / 2.0
-        lambd = 1.0 / desired_mean
-        from_gbtime = self.global_time - int(self._random.expovariate(lambd))
-        if from_gbtime < 1:
-            from_gbtime = 1
-            
+        if __debug__:
+            t1 = time()
         
-        bloomfilter_range = [1, self._global_time]    
-        if from_gbtime > 1:
-            #use from_gbtime -1/+1 to include from_gbtime
-            right = self._select_bloomfilter_range(from_gbtime -1, capacity, True)
-            
-            #if right did not get to capacity, then we have less than capacity items in the database
-            #skip left
-            if right[2] >= capacity:
-                left = self._select_bloomfilter_range(from_gbtime + 1, capacity, False)
-                left_range = left[1] - left[0]
-                right_range = right[1] - right[0]
-                
-                if left_range > right_range:
-                    bloomfilter_range = left
+        syncable_messages = u", ".join(unicode(meta.database_id) for meta in self._meta_messages.itervalues() if isinstance(meta.distribution, SyncDistribution) and meta.distribution.priority > 32)
+        if syncable_messages:
+            if __debug__:
+                t2 = time()
+                    
+            bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+            capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+
+            desired_mean = self.global_time / 2.0
+            lambd = 1.0 / desired_mean
+            from_gbtime = self.global_time - int(self._random.expovariate(lambd))
+            if from_gbtime < 1:
+                from_gbtime = 1
+
+            bloomfilter_range = [1, self._global_time]
+            if from_gbtime > 1:
+                #use from_gbtime -1/+1 to include from_gbtime
+                right = self._select_bloomfilter_range(syncable_messages, from_gbtime -1, capacity, True)
+
+                #if right did not get to capacity, then we have less than capacity items in the database
+                #skip left
+                if right[2] >= capacity:
+                    left = self._select_bloomfilter_range(syncable_messages, from_gbtime + 1, capacity, False)
+                    left_range = left[1] - left[0]
+                    right_range = right[1] - right[0]
+
+                    if left_range > right_range:
+                        bloomfilter_range = left
+                    else:
+                        bloomfilter_range = right
                 else:
                     bloomfilter_range = right
+                
+                if __debug__:
+                    t3 = time()
+                
+                data = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time BETWEEN ? AND ? ORDER BY global_time ASC" % syncable_messages,
+                                                           (bloomfilter_range[0], bloomfilter_range[1])))
             else:
-                bloomfilter_range = right
-            
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ? ORDER BY global_time ASC",
-                                                       (self._database_id, bloomfilter_range[0], bloomfilter_range[1])))
-            
-        else:
-            data = self._select_and_fix(0, capacity, True)
-            bloomfilter_range[0] = 1
-            bloomfilter_range[1] = data[-1][0]
+                if __debug__:
+                    t3 = time()
+                
+                data = self._select_and_fix(syncable_messages, 0, capacity, True)
+                if len(data) > 0:
+                    bloomfilter_range[1] = data[-1][0]
         
-        if bloomfilter_range[1] == self.global_time:
-            bloomfilter_range[1] = 0
+            if __debug__:
+                t4 = time()
         
-        if len(data) > 0:
-            if len(data) < capacity:
-                #we did not fill complete bloomfilter, assume we selected all items
-                bloomfilter_range[0] = 1
+            if bloomfilter_range[1] == self.global_time:
                 bloomfilter_range[1] = 0
 
-            for _, packet in data:
-                bloom.add(str(packet))
+            if len(data) > 0:
+                if len(data) < capacity:
+                    #we did not fill complete bloomfilter, assume we selected all items
+                    bloomfilter_range[0] = 1
+                    bloomfilter_range[1] = 0
 
+                for _, packet in data:
+                    bloom.add(str(packet))
+
+                if __debug__:
+                    dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilter_range[0], bloomfilter_range[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
+                    dprint(self.cid.encode("HEX"), " took %f (fakejoin %f, rangeselect %f, dataselect %f, bloomfill, %f"%(time()-t1, t2-t1, t3-t2, t4-t3, time()-t4))
+
+                return (bloomfilter_range[0], bloomfilter_range[1], 1, 0, bloom)
+            
             if __debug__:
-                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilter_range[0], bloomfilter_range[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
+                dprint(self.cid.encode("HEX"), " no messages to sync")
                 
-            return (bloomfilter_range[0], bloomfilter_range[1], 1, 0, bloom)
-
+        elif __debug__:
+            dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
         return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
-    def _select_and_fix(self, global_time, to_select, higher = True):
+    def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
+        assert isinstance(syncable_messages, unicode)
         if higher:
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time > ? ORDER BY global_time ASC LIMIT ?",
-                                                    (self._database_id, global_time, to_select + 1)))
+            data = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
+                                                    (global_time, to_select + 1)))
         else:
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time < ? ORDER BY global_time DESC LIMIT ?",
-                                                    (self._database_id, global_time, to_select + 1)))
+            data = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
+                                                    (global_time, to_select + 1)))
         if len(data) > to_select:
             if data[-1][0] == data[-2][0]:
                 #if last 2 packets are equal, then we need to fetch possible other packets
-                data = data + list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE community = ? AND global_time = ?",
+                data = data + list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE community = ? AND global_time = ?",
                                       (self._database_id, data[-1][0])))
             else:
                 data = data[:-1]
@@ -706,37 +772,41 @@ class Community(object):
         if not higher:
             data.reverse()
         return data
-    
-    def _select_bloomfilter_range(self, global_time, to_select, higher = True, recursion = True):
+
+    def _select_bloomfilter_range(self, syncable_messages, global_time, to_select, higher = True):
+        assert isinstance(syncable_messages, unicode)
         if higher:
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time > ? ORDER BY global_time ASC LIMIT ?",
-                                                    (self._database_id, global_time, to_select)))
+            data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
+                                                    (global_time, to_select)))
         else:
-            data = list(self._dispersy_database.execute(u"SELECT sync.global_time FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND global_time < ? ORDER BY global_time DESC LIMIT ?",
-                                                    (self._database_id, global_time, to_select)))
+            data = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
+                                                    (global_time, to_select)))
 
         if len(data) > 0:
             bloomfilter_range = [min(data)[0], max(data)[0], len(data)]
         else:
             bloomfilter_range = [1, self._global_time, 0]
-            
+
         if bloomfilter_range[2] < to_select:
-            if recursion:
-                to_select = to_select - bloomfilter_range[2]
-                
-                if higher:
-                    left = self._select_bloomfilter_range(global_time + 1, to_select, not higher, recursion = False)
-                    bloomfilter_range = [left[0], self._global_time, bloomfilter_range[2]+left[2]]
+            to_select = to_select - bloomfilter_range[2]
             
-                else:
-                    right = self._select_bloomfilter_range(global_time - 1, to_select, not higher, recursion = False)
-                    bloomfilter_range = [1, right[1], bloomfilter_range[2] + right[2]]
-                                                   
-            elif higher:
+            if higher:
                 bloomfilter_range[1] = self._global_time
+                
+                lower = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % syncable_messages,
+                                                            (global_time + 1, to_select)))
+                if len(lower) > 0:
+                    bloomfilter_range[2]+= len(lower)
+                    bloomfilter_range[0] = min(lower)[0]
             else:
                 bloomfilter_range[0] = 1
-        
+
+                higher = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % syncable_messages,
+                                                            (global_time - 1, to_select)))
+                if len(higher) > 0:
+                    bloomfilter_range[2]+= len(higher)            
+                    bloomfilter_range[1] = max(higher)[0]
+
         return bloomfilter_range
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
@@ -1352,6 +1422,11 @@ class HardKilledCommunity(Community):
     def dispersy_enable_candidate_walker(self):
         # disable candidate walker
         return False
+
+    @property
+    def dispersy_enable_candidate_walker_responses(self):
+        # enable walker responses
+        return True
 
     def initiate_meta_messages(self):
         # there are no community messages

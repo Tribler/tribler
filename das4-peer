@@ -1,12 +1,13 @@
 #!/bin/bash
 
-if test $# -ne 2; then
-	echo "Usage: $0 <peer-directory> <experiment-config>"
+if test $# -ne 3; then
+	echo "Usage: $0 <peer-directory> <experiment-config> <branch>"
 	exit 1
 fi
 PEERS=$1
 EXPERIMENT_CONFIG=$2
-source $EXPERIMENT_CONFIG # $BRANCH, $DISPERSY_ARGS
+BRANCH=$3
+source $EXPERIMENT_CONFIG # $DISPERSY_ARGS
 
 cd ${PEERS}
 PEERS=$(pwd)

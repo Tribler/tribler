@@ -101,6 +101,9 @@ class DummySocket(object):
     To avoid problems we initialize the Dispersy socket to this dummy object that will do nothing
     but throw away all packets it is supposed to sent.
     """
+    def get_address(self):
+        return 0
+
     def send(self, address, data):
         if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data to ", address[0], ":", address[1], level="warning")
 
@@ -115,6 +118,14 @@ class Statistics(object):
         self._total_up = 0, 0
         self._total_down = 0, 0
         self._busy_time = 0.0
+
+    @property
+    def total_up(self):
+        return self._total_up
+
+    @property
+    def total_down(self):
+        return self._total_down
 
     def info(self):
         """
@@ -307,6 +318,7 @@ class Dispersy(Singleton):
 
         # loaded communities.  cid:Community pairs.
         self._communities = {}
+        self._walker_commmunities = []
 
         # outgoing communication
         self._socket = DummySocket()
@@ -463,47 +475,52 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        return [Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.1),
-                Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.1),
-                Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.1),
-                Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.1),
-                Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
-                Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
-                Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
-                Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, priority=504, delay=1.0),
-                Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, priority=504, delay=1.0),
-                Message(community, u"dispersy-undo", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
-                Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
-                Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
-                Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"DESC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, community.dispersy_on_dynamic_settings, delay=0.0),
+        messages = [Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
+                    Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
+                    Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
+                    Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, priority=504, delay=1.0),
+                    Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, priority=504, delay=1.0),
+                    Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
+                    Message(community, u"dispersy-undo-other", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
+                    Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
+                    Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
+                    Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"DESC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, community.dispersy_on_dynamic_settings, delay=0.0),
 
-                #
-                # when something is missing, a dispersy-missing-... message can be used to request
-                # it from another peer
-                #
+                    #
+                    # when something is missing, a dispersy-missing-... message can be used to request
+                    # it from another peer
+                    #
 
-                # when we have a member id (20 byte sha1 of the public key) but not the public key
-                Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingIdentityPayload(), self._generic_timeline_check, self.on_missing_identity, delay=0.0),
+                    # when we have a member id (20 byte sha1 of the public key) but not the public key
+                    Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingIdentityPayload(), self._generic_timeline_check, self.on_missing_identity, delay=0.0),
 
-                # when we are missing one or more SyncDistribution messages in a certain sequence
-                Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence, delay=0.0),
+                    # when we are missing one or more SyncDistribution messages in a certain sequence
+                    Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence, delay=0.0),
 
-                # when we have a reference to a message that we do not have.  a reference consists
-                # of the community identifier, the member identifier, and the global time
-                Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingMessagePayload(), self._generic_timeline_check, self.on_missing_message, delay=0.0),
+                    # when we have a reference to a message that we do not have.  a reference consists
+                    # of the community identifier, the member identifier, and the global time
+                    Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingMessagePayload(), self._generic_timeline_check, self.on_missing_message, delay=0.0),
 
-                # when we are missing the subjective set, with a specific cluster, from a member
-                Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSubjectiveSetPayload(), self._generic_timeline_check, self.on_missing_subjective_set, delay=0.0),
+                    # when we are missing the subjective set, with a specific cluster, from a member
+                    Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSubjectiveSetPayload(), self._generic_timeline_check, self.on_missing_subjective_set, delay=0.0),
 
-                # when we might be missing a dispersy-authorize message
-                Message(community, u"dispersy-missing-proof", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingProofPayload(), self._generic_timeline_check, self.on_missing_proof, delay=0.0),
+                    # when we might be missing a dispersy-authorize message
+                    Message(community, u"dispersy-missing-proof", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingProofPayload(), self._generic_timeline_check, self.on_missing_proof, delay=0.0),
 
-                # when we are missing one or more LastSyncDistribution messages from a single member
-                # ... so far we do not need a generic missing-last message.  unfortunately all
-                # ... messages that it could replace contain payload specific things that make it
-                # ... difficult, if not impossible, to replace
-                # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last, delay=0.0),
-                ]
+                    # when we are missing one or more LastSyncDistribution messages from a single member
+                    # ... so far we do not need a generic missing-last message.  unfortunately all
+                    # ... messages that it could replace contain payload specific things that make it
+                    # ... difficult, if not impossible, to replace
+                    # Message(community, u"dispersy-missing-last", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingLastPayload(), self.check_missing_last, self.on_missing_last, delay=0.0),
+                    ]
+
+        if community.dispersy_enable_candidate_walker_responses:
+            messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.1),
+                             Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.1),
+                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.1),
+                             Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.1)])
+
+        return messages
 
     def define_auto_load(self, community, args=(), kargs=None):
         """
@@ -552,11 +569,13 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        assert not community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
+        assert not community.cid in self._communities
+        assert not community in self._walker_commmunities
         self._communities[community.cid] = community
 
         if community.dispersy_enable_candidate_walker:
+            self._walker_commmunities.insert(0, community)
             # restart walker scheduler
             self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
 
@@ -564,7 +583,7 @@ class Dispersy(Singleton):
         # when this is a create or join this message is created only after the attach_community
         if __debug__:
             def sanity_check_callback(result):
-                assert result == True, result
+                assert result == True, [community.database_id, str(result)]
                 try:
                     community._pending_callbacks.remove(callback_id)
                 except ValueError:
@@ -587,11 +606,14 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        assert community.cid in self._communities
         if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification())
+        assert community.cid in self._communities
+        assert self._communities[community.cid] == community
+        assert not community.dispersy_enable_candidate_walker or community in self._walker_commmunities, [community.dispersy_enable_candidate_walker, community in self._walker_commmunities]
         del self._communities[community.cid]
 
         if community.dispersy_enable_candidate_walker:
+            self._walker_commmunities.remove(community)
             # restart walker scheduler
             self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker, priority=CANDIDATE_WALKER_PRIORITY)
 
@@ -622,19 +644,31 @@ class Dispersy(Singleton):
         assert isinstance(source, (Community, Member))
         assert issubclass(destination, Community)
 
+        destination_classification = destination.get_classification()
+
         if isinstance(source, Member):
-            if __debug__: dprint("reclassify ??? -> ", destination.get_classification())
+            if __debug__: dprint("reclassify ??? -> ", destination_classification)
             master = source
 
         else:
-            if __debug__: dprint("reclassify ", source.get_classification(), " -> ", destination.get_classification())
+            if __debug__: dprint("reclassify ", source.get_classification(), " -> ", destination_classification)
+            assert source.cid in self._communities
+            assert self._communities[source.cid] == source
             master = source.master_member
             source.unload_community()
 
         self._database.execute(u"UPDATE community SET classification = ? WHERE master = ?",
-                               (destination.get_classification(), master.database_id))
+                               (destination_classification, master.database_id))
         assert self._database.changes == 1
-        return destination.load_community(master)
+
+        if destination_classification in self._auto_load_communities:
+            cls, args, kargs = self._auto_load_communities[destination_classification]
+            assert cls == destination, [cls, destination]
+        else:
+            args = ()
+            kargs = {}
+
+        return destination.load_community(master, *args, **kargs)
 
     def has_community(self, cid):
         """
@@ -841,7 +875,7 @@ class Dispersy(Singleton):
                                                (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
 
                         # notify that global times have changed
-                        message.community.update_sync_range(message.meta, [message.distribution.global_time])
+                        # message.community.update_sync_range(message.meta, [message.distribution.global_time])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
@@ -1442,7 +1476,7 @@ class Dispersy(Singleton):
         def _filter_fail(message):
             if isinstance(message, DelayMessage):
                 self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
-                if __debug__: dprint("delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ") from ", message.delayed.candidate, level="warning")
+                if __debug__: dprint("delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ") from ", message.delayed.candidate)
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerMessage) and trigger.extend(message.pattern, [message.delayed]):
@@ -1603,7 +1637,7 @@ class Dispersy(Singleton):
                 self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
 
             except DelayPacket, delay:
-                if __debug__: dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate, level="warning")
+                if __debug__: dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate)
                 self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
@@ -1662,6 +1696,8 @@ class Dispersy(Singleton):
             assert isinstance(message.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)), message.authentication
             assert message.authentication.is_signed
             assert not message.packet[-10:] == "\x00" * 10, message.packet[-10:].encode("HEX")
+            # we must have the identity message as well
+            assert message.name == u"dispersy-identity" or message.authentication.member.has_identity(message.community), [message, message.community, message.authentication.member.database_id]
 
             # we do not store a message when it uses SubjectiveDestination and it is not in our set
             if is_subjective_destination and not message.destination.is_valid:
@@ -1773,8 +1809,8 @@ class Dispersy(Singleton):
             del self._candidates[sock_address]
 
         if __debug__:
-            for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems(), 1):
-                dprint(counter, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", candidate)
+            for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems()):
+                dprint(counter + 1, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", candidate)
 
         # get all viable candidates
         return (candidate
@@ -2296,7 +2332,7 @@ class Dispersy(Singleton):
         assert isinstance(forward, bool)
 
         if __debug__: dprint(len(messages), " ", messages[0].name, " messages (", store, " ", update, " ", forward, ")")
-        
+
         store = store and isinstance(messages[0].meta.distribution, SyncDistribution)
         if store:
             self._store(messages)
@@ -2551,7 +2587,7 @@ class Dispersy(Singleton):
         packets = [str(packet) for packet, in self._database.execute(u"SELECT packet FROM malicious_proof WHERE community = ? AND member = ?",
                                                                      (community.database_id, member.database_id))]
         if packets:
-            self._send([candidate], packets)
+            self._send([candidate], packets, u"-malicious-proof-")
 
     def create_missing_message(self, community, candidate, member, global_time, response_func=None, response_args=(), timeout=10.0, forward=True):
         """
@@ -2611,7 +2647,7 @@ class Dispersy(Singleton):
                     responses.append((candidate, packet))
 
         for candidate, responses in groupby(responses, key=lambda tup: tup[0]):
-            self._send([candidate], [str(packet) for _, packet in responses])
+            self._send([candidate], [str(packet) for _, packet in responses], u"-missing-message-")
 
     # def create_missing_last(self, community, address, member, message, response_func=None, response_args=(), timeout=10.0, forward=True):
     #     """
@@ -2802,7 +2838,7 @@ class Dispersy(Singleton):
             if __debug__: dprint(message)
             # update the in-memory member instance
             message.authentication.member.update()
-            assert self._database.execute(u"SELECT 1 FROM sync WHERE packet = ?", (buffer(message.packet),)).next()
+            assert self._database.execute(u"SELECT COUNT(1) FROM sync WHERE packet = ?", (buffer(message.packet),)).next()[0] == 1
             assert message.authentication.member.has_identity(message.community)
 
     # def create_identity_request(self, community, mid, addresses, forward=True):
@@ -3221,7 +3257,7 @@ class Dispersy(Singleton):
                     break
 
             if packets:
-                self._send([message.candidate], packets, u"-sequence")
+                self._send([message.candidate], packets, u"-sequence-")
 
     def on_missing_proof(self, messages):
         community = messages[0].community
@@ -3244,7 +3280,7 @@ class Dispersy(Singleton):
                 else:
                     if __debug__: dprint("unable to give missing proof.  allowed:", allowed, ".  proofs:", len(proofs), " packets")
 
-    @runtime_duration_warning(0.5)
+    @runtime_duration_warning(0.1)
     def check_sync(self, messages):
         """
         We received a dispersy-sync message.
@@ -3265,7 +3301,6 @@ class Dispersy(Singleton):
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
-        # TODO we might improve performance if we made a VIEW in the database
         sql = u"""SELECT sync.packet, sync.meta_message, member.public_key
                   FROM sync
                   JOIN member ON member.id = sync.member
@@ -3304,7 +3339,7 @@ class Dispersy(Singleton):
                     end = time()
                     select = end - begin
                     dprint("select: %.3f" % select, " [", time_low, ":", time_high, "] %", modulo, "+", offset)
-            
+
                 for packet, meta_message_id, packet_public_key in self._database.execute(sql, (community.database_id, time_low, time_high, offset, modulo)):
                     packet = str(packet)
                     packet_public_key = str(packet_public_key)
@@ -3410,7 +3445,7 @@ class Dispersy(Singleton):
                 assert isinstance(triplet[0], Member)
                 assert isinstance(triplet[1], Message)
                 assert isinstance(triplet[2], unicode)
-                assert triplet[2] in (u'permit', u'authorize', u'revoke')
+                assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo")
 
         meta = community.get_meta_message(u"dispersy-authorize")
         message = meta.impl(authentication=((community.master_member if sign_with_master else community.my_member),),
@@ -3451,6 +3486,7 @@ class Dispersy(Singleton):
          message immediately.
         """
         for message in messages:
+            if __debug__: dprint(message)
             message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
@@ -3507,7 +3543,7 @@ class Dispersy(Singleton):
                 assert isinstance(triplet[0], Member)
                 assert isinstance(triplet[1], Message)
                 assert isinstance(triplet[2], unicode)
-                assert triplet[2] in (u'permit', u'authorize', u'revoke')
+                assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo")
 
         meta = community.get_meta_message(u"dispersy-revoke")
         message = meta.impl(authentication=((community.master_member if sign_with_master else community.my_member),),
@@ -3535,24 +3571,36 @@ class Dispersy(Singleton):
             message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_undo(self, community, message, sign_with_master=False, store=True, update=True, forward=True):
+        """
+        Create a dispersy-undo-own or dispersy-undo-other message to undo MESSAGE.
+
+        A dispersy-undo-own message is created when MESSAGE.authentication.member is
+        COMMUNITY.my_member and SIGN_WITH_MASTER is False.  Otherwise a dispersy-undo-other message
+        is created.
+
+        As a safeguard, when MESSAGE is already marked as undone in the database, the associated
+        dispersy-undo-own or dispersy-undo-other message is returned instead of creating a new one.
+        None is returned when MESSAGE is already marked as undone and neither of these messages can
+        be found.
+        """
         if __debug__:
             # pylint: disable-msg=W0404
             from community import Community
             assert isinstance(community, Community)
             assert isinstance(message, Message.Implementation)
             assert isinstance(sign_with_master, bool)
-            assert sign_with_master is False, "Must be False for now.  We can enable this feature once the undo message is able to undo messages created by others"
             assert isinstance(store, bool)
             assert isinstance(update, bool)
             assert isinstance(forward, bool)
-            assert community.my_member == message.authentication.member, "For now we can only undo our own messages"
+            assert message.undo_callback, "message does not allow undo"
+            assert not message.name in (u"dispersy-undo-own", u"dispersy-undo-other", u"dispersy-authorize", u"dispersy-revoke"), "Currently we do NOT support undoing any of these, as it has consequences for other messages"
 
         # creating a second dispersy-undo for the same message is malicious behavior (it can cause
         # infinate data traffic).  nodes that notice this behavior must blacklist the offending
         # node.  hence we ensure that we did not send an undo before
         try:
             undone, = self._database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                             (community.database_id, community.my_member.database_id, message.distribution.global_time)).next()
+                                             (community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
 
         except StopIteration:
             assert False, "The message that we want to undo does not exist.  Programming error"
@@ -3563,21 +3611,21 @@ class Dispersy(Singleton):
                 if __debug__: dprint("you are attempting to undo the same message twice.  this should never be attempted as it is considered malicious behavior", level="error")
 
                 # already undone.  refuse to undo again but return the previous undo message
-                undo_meta = community.get_meta_message(u"dispersy-undo")
-                for packet_id, packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
-                                                      (community.database_id, community.my_member.database_id, undo_meta.database_id)):
-                    msg = Packet(undo_meta, str(packet), packet_id).load_message()
+                undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+                undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+                for packet_id, message_id, packet in self._database.execute(u"SELECT id, meta_message, packet FROM sync WHERE community = ? AND member = ? AND meta_message IN (?, ?)",
+                                                                            (community.database_id, message.authentication.member.database_id, undo_own_meta.database_id, undo_other_meta.database_id)):
+                    msg = Packet(undo_own_meta if undo_own_meta.database_id == message_id else undo_other_meta, str(packet), packet_id).load_message()
                     if message.distribution.global_time == msg.payload.global_time:
                         return msg
 
-                # could not find the undo message that caused the sync.undone to be True, this would
-                # indicate a database inconsistency
-                assert False, "Database inconsistency: sync.undone is True while we could not find the dispersy-undo message"
+                # could not find the undo message that caused the sync.undone to be True.  the
+                # undone was probably caused by changing permissions
                 return None
 
             else:
                 # create the undo message
-                meta = community.get_meta_message(u"dispersy-undo")
+                meta = community.get_meta_message(u"dispersy-undo-own" if community.my_member == message.authentication.member and not sign_with_master else u"dispersy-undo-other")
                 msg = meta.impl(authentication=((community.master_member if sign_with_master else community.my_member),),
                                 distribution=(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                 payload=(message.authentication.member, message.distribution.global_time, message))
@@ -3588,45 +3636,12 @@ class Dispersy(Singleton):
                 return msg
 
     def check_undo(self, messages):
+        assert all(message.name in (u"dispersy-undo-own", u"dispersy-undo-other") for message in messages)
+
         for message in messages:
             # ensure that the message in the payload allows undo
             if not message.payload.packet.meta.undo_callback:
                 yield DropMessage(message, "message does not allow undo")
-                continue
-
-            try:
-                undone, = self._database.execute(u"SELECT undone FROM sync WHERE id = ?", (message.payload.packet.packet_id,)).next()
-            except StopIteration:
-                assert False, "Should never occur"
-                undone = 0
-
-            if undone:
-                # it is possible to create a malicious message that will be propagated
-                # indefinately... two undo messages at a different global time applying to the same
-                # message.  If this occurs the member can be assumed to be malicious!  the proof of
-                # malicious behaviour are the two dispersy-undo messages.
-
-                if __debug__: dprint("detected malicious behavior", level="warning")
-
-                # search for the second offending dispersy-undo message
-                community = message.community
-                member = message.authentication.member
-                undo_meta = community.get_meta_message(u"dispersy-undo")
-                for packet_id, packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
-                                                      (community.database_id, member.database_id, undo_meta.database_id)):
-                    msg = Packet(undo_meta, str(packet), packet_id).load_message()
-                    if message.payload.global_time == msg.payload.global_time:
-                        self.declare_malicious_member(member, [msg, message])
-
-                        # the sender apparently does not have the offending dispersy-undo message, lets give
-                        self._send([message.candidate], [msg.packet])
-
-                        break
-
-                if member == community.my_member:
-                    if __debug__: dprint("fatal error.  apparently we are malicious", level="error")
-
-                yield DropMessage(message, "trying to undo a message that has already been undone")
                 continue
 
             # check the timeline
@@ -3635,12 +3650,60 @@ class Dispersy(Singleton):
                 yield DelayMessageByProof(message)
                 continue
 
+            try:
+                undone, = self._database.execute(u"SELECT undone FROM sync WHERE id = ?", (message.payload.packet.packet_id,)).next()
+            except StopIteration:
+                assert False, "The conversion ensures that the packet exists in the DB.  Hence this should never occur"
+                undone = 0
+
+            if undone and message.name == u"dispersy-undo-own":
+                # the dispersy-undo-own message is a curious beast.  Anyone is allowed to create one
+                # (regardless of the community settings) and everyone is responsible to propagate
+                # these messages.  A malicious member could create an infinite number of
+                # dispersy-undo-own messages and thereby take down a community.
+                #
+                # to prevent this, we allow only one dispersy-undo-own message per message.  When we
+                # detect a second message, the member is declared to be malicious and blacklisted.
+                # The proof of being malicious is forwarded to other nodes.  The malicious node is
+                # now limited to creating only one dispersy-undo-own message per message that she
+                # creates.  And that can be limited by revoking her right to create messages.
+
+                # search for the second offending dispersy-undo message
+                community = message.community
+                member = message.authentication.member
+                undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+                for packet_id, packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
+                                                                            (community.database_id, member.database_id, undo_own_meta.database_id)):
+                    msg = Packet(undo_own_meta, str(packet), packet_id).load_message()
+                    if message.payload.global_time == msg.payload.global_time:
+                        if __debug__: dprint("detected malicious behavior", level="warning")
+                        self.declare_malicious_member(member, [msg, message])
+
+                        # the sender apparently does not have the offending dispersy-undo message, lets give
+                        self._send([message.candidate], [msg.packet], msg.name)
+
+                        if member == community.my_member:
+                            if __debug__: dprint("fatal error.  apparently we are malicious", level="error")
+
+                        yield DropMessage(message, "the message proves that the member is malicious")
+                        break
+
+                else:
+                    # did not break, hence, the message is not malicious.  more than one members
+                    # undid this message
+                    yield message
+
+                # continue.  either the message was malicious or it has already been yielded
+                continue
+
             yield message
 
     def on_undo(self, messages):
         """
         Undo a single message.
         """
+        assert all(message.name in (u"dispersy-undo-own", u"dispersy-undo-other") for message in messages)
+
         self._database.executemany(u"UPDATE sync SET undone = 1 WHERE community = ? AND member = ? AND global_time = ?",
                                    ((message.community.database_id, message.payload.member.database_id, message.payload.global_time) for message in messages))
         for meta, iterator in groupby(messages, key=lambda x: x.payload.packet.meta):
@@ -3648,7 +3711,7 @@ class Dispersy(Singleton):
             meta.undo_callback([(message.payload.member, message.payload.global_time, message.payload.packet) for message in sub_messages])
 
             # notify that global times have changed
-            meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
+            # meta.community.update_sync_range(meta, [message.payload.global_time for message in sub_messages])
 
     def create_destroy_community(self, community, degree, sign_with_master=False, store=True, update=True, forward=True):
         if __debug__:
@@ -3792,15 +3855,15 @@ class Dispersy(Singleton):
                     meta.undo_callback([(message.authentication.member, message.distribution.global_time, message) for message in undo])
 
                     # notify that global times have changed
-                    meta.community.update_sync_range(meta, [message.distribution.global_time for message in undo])
+                    # meta.community.update_sync_range(meta, [message.distribution.global_time for message in undo])
 
                 if redo:
                     executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", ((message.packet_id,) for message in redo))
                     assert self._database.changes == len(redo), (self._database.changes, len(redo))
                     meta.handle_callback(redo)
-                        
+
                     # notify that global times have changed
-                    meta.community.update_sync_range(meta, [message.distribution.global_time for message in redo])
+                    # meta.community.update_sync_range(meta, [message.distribution.global_time for message in redo])
 
     def sanity_check_generator(self, community):
         """
@@ -3809,8 +3872,9 @@ class Dispersy(Singleton):
         Note that messages that are disabled, i.e. not included in community.get_meta_messages(),
         will NOT be checked.
 
+        - the dispersy-identity for my member must be in the database
+        - the dispersy-identity must be in the database for each member that has one or more messages in the database
         - all packets in the database must be valid
-        - the dispersy-identity for community.my_member must be in the database
         - check sequence numbers for FullSyncDistribution
         - check history size for LastSyncDistribution
         """
@@ -3828,6 +3892,45 @@ class Dispersy(Singleton):
 
         if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
+
+        try:
+            meta_identity = community.get_meta_message(u"dispersy-identity")
+        except KeyError:
+            # identity is not enabled
+            pass
+        else:
+            #
+            # ensure that the dispersy-identity for my member must be in the database
+            #
+            try:
+                member_id, = self._database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.my_member.mid),)).next()
+            except StopIteration:
+                raise ValueError("unable to find the public key for my member")
+
+            try:
+                self._database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
+            except StopIteration:
+                raise ValueError("unable to find the private key for my member")
+
+            try:
+                self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?", (member_id, meta_identity.database_id)).next()
+            except StopIteration:
+                raise ValueError("unable to find the dispersy-identity message for my member")
+
+            # back-off because the sanity check is very expensive
+            if __debug__: dprint("my identity is OK")
+            yield Idle()
+
+            #
+            # the dispersy-identity must be in the database for each member that has one or more
+            # messages in the database
+            #
+            A = set(id_ for id_, in self._database.execute(u"SELECT member FROM sync WHERE community = ? GROUP BY member", (community.database_id,)))
+            B = set(id_ for id_, in self._database.execute(u"SELECT member FROM sync WHERE meta_message = ?", (meta_identity.database_id,)))
+            if not len(A) == len(B):
+                raise ValueError("inconsistent dispersy-identity messages.", A.difference(B))
+
+            yield Idle()
 
         #
         # ensure all packets in the database are valid and that the binary packets are consistent
@@ -3859,34 +3962,6 @@ class Dispersy(Singleton):
                 # back-off because the sanity check is very expensive
                 if __debug__: dprint("packet ", packet_id, "@", global_time, " is OK")
                 yield Idle()
-
-        #
-        # ensure that the dispersy-identity for community.my_member must be in the database
-        #
-        try:
-            meta_identity = community.get_meta_message(u"dispersy-identity")
-        except KeyError:
-            # identity is not enabled
-            pass
-        else:
-            try:
-                member_id, = self._database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.my_member.mid),)).next()
-            except StopIteration:
-                raise ValueError("unable to find the public key for my member")
-
-            try:
-                self._database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
-            except StopIteration:
-                raise ValueError("unable to find the private key for my member")
-
-            try:
-                self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?", (member_id, meta_identity.database_id)).next()
-            except StopIteration:
-                raise ValueError("unable to find the dispersy-identity message for my member")
-
-            # back-off because the sanity check is very expensive
-            if __debug__: dprint("my identity is OK")
-            yield Idle()
 
         for meta in community.get_meta_messages():
             #
@@ -4020,29 +4095,26 @@ class Dispersy(Singleton):
         """
         Periodically select a candidate and take a step in the network.
         """
-        communities = [community for community in self._communities.itervalues() if community.dispersy_enable_candidate_walker]
-        if communities:
-            iter_communities = cycle(communities)
+        walker_communities = self._walker_commmunities
+
+        while walker_communities:
+            community = walker_communities.pop(0)
+            walker_communities.append(community)
+
+            # walk
+            assert community.dispersy_enable_candidate_walker
+            assert community.dispersy_enable_candidate_walker_responses
+            community.dispersy_take_step()
 
             # delay will never be less than 0.05, hence we can accommodate 100 communities
             # before the interval between each step becomes larger than 5.0 seconds
-            delay = max(0.05, 5.0 / len(communities))
-            if __debug__: dprint("there are ", len(communities), " walker enabled communities.  pausing ", delay, "s between each step")
+            delay = max(0.05, 5.0 / len(walker_communities))
+            if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
-            # ensure that we start at a random community (otherwise continues attach/detach
-            # will cause more walks at the communities that happen to be first in the list)
-            for _ in xrange(int(len(communities) * random())):
-                iter_communities.next()
-
-            while True:
-                community = iter_communities.next()
-                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step")
-                community.dispersy_take_step()
-
-                desync = (yield delay)
-                if desync > 0.1:
-                    self._statistics.increment_busy_time(desync)
-                    yield desync
+            desync = (yield delay)
+            if desync > 0.1:
+                self._statistics.increment_busy_time(desync)
+                yield desync
 
     if __debug__:
         def _stats_candidates(self):
@@ -4075,8 +4147,8 @@ class Dispersy(Singleton):
         def _stats_triggers(self):
             while True:
                 yield 10.0
-                for counter, trigger in enumerate(self._triggers, 1):
-                    dprint("%3d " % counter, trigger)
+                for counter, trigger in enumerate(self._triggers):
+                    dprint("%3d " % (counter + 1), trigger)
 
         def _stats_info(self):
             while True:
@@ -4110,8 +4182,10 @@ class Dispersy(Singleton):
         # 1.8: added busy_time to the statistics (delay caused by overloaded cpu/disk)
         # 1.9: removed sync_ranges
         # 2.0: changed the statistics.  total_up and total_down are now both (amount, byte_count) tuples
+        # 2.1: community["candidates"] is now be None when the candidate walker is disabled, new
+        #      "dispersy_enable_candidate_walker" attribute
 
-        info = {"version":2.0, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        info = {"version":2.1, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
         if statistics:
             info["statistics"] = self._statistics.info()
@@ -4127,7 +4201,8 @@ class Dispersy(Singleton):
                                                     in ("dispersy_sync_bloom_filter_error_rate",
                                                         "dispersy_sync_bloom_filter_bits",
                                                         "dispersy_sync_response_limit",
-                                                        "dispersy_missing_sequence_response_limit"))
+                                                        "dispersy_missing_sequence_response_limit",
+                                                        "dispersy_enable_candidate_walker"))
 
             # if sync_ranges:
             #     community_info["sync_ranges"] = [{"time_low":range_.time_low, "space_freed":range_.space_freed, "space_remaining":range_.space_remaining, "capacity":range_.capacity}
@@ -4138,8 +4213,12 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
-                if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
+                if community.dispersy_enable_candidate_walker:
+                    community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
+                    if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
+                else:
+                    community_info["candidates"] = None
+                    if __debug__: dprint(community_info["classification"], " has zero candidates (disabled)")
 
         if __debug__: dprint(info, pprint=True)
         return info

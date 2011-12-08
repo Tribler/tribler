@@ -139,7 +139,9 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         self.joined_community = None
         self.want_to_join = False
         self.torrentindex = 1
-    
+
+        self._dispersy.define_auto_load(ChannelCommunity, (), {"integrate_with_tribler":False})
+        
     def join_community(self, my_member):
         self.my_member = my_member
         
@@ -164,7 +166,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         
             if cur_command[0] == 'create':
                 log(self._logfile, "creating-community")
-                self.my_channel = ChannelCommunity.create_community(self.my_member)
+                self.my_channel = ChannelCommunity.create_community(self.my_member, integrate_with_tribler = False)
                 
                 log(self._logfile, "creating-channel-message")
                 self.my_channel.create_channel(u'', u'')

@@ -145,6 +145,7 @@ class TorrentDetails(AbstractDetails):
         self.doSave = self.guiutility.frame.selectedchannellist.OnSaveTorrent
         self.canEdit = False
         self.canComment = False
+        self.markWindow = None
         
         self.isEditable = {}
         
@@ -195,8 +196,8 @@ class TorrentDetails(AbstractDetails):
                 self.torrent = torrent
                 ds = self.torrent.ds
                 
-                #start with files tab if we are saving space and have a ds
-                if ds and showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
+                #start with files tab if we are saving space
+                if showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
                     showTab = "Files"
                 
                 if self.noChannel and self.torrent.hasChannel():
@@ -631,6 +632,7 @@ class TorrentDetails(AbstractDetails):
                     self.parent.button.Enable(newState == TorrentDetails.INACTIVE)
             
                 self.buttonPanel.Thaw()
+                self.buttonPanel.Layout()
                 self.Layout()
         else:
             #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
@@ -863,12 +865,12 @@ class TorrentDetails(AbstractDetails):
         event.Skip()
     
     def OnCommentCreated(self, infohash):
-        if self.torrent.infohash == infohash:
+        if self.torrent.infohash == infohash and self.isReady and self.canComment:
             manager = self.commentList.GetManager()
             manager.new_comment()
             
     def OnModificationCreated(self, channeltorrent_id):
-        if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:
+        if self.isReady and self.canEdit:
             manager = self.modificationList.GetManager()
             manager.new_modification()
                         
@@ -1083,20 +1085,22 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread   
     def OnMark(self, event):
-        markWindow = wx.PopupTransientWindow(self)
+        parentPanel = self.parent.GetParent()
+        
+        self.markWindow = wx.Panel(parentPanel)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        text = wx.StaticText(markWindow, -1, "Mark this torrent as being: ")
+        text = wx.StaticText(self.markWindow, -1, "Mark this torrent as being: ")
         _set_font(text, size_increment = 1, fontweight = wx.FONTWEIGHT_BOLD)
         
-        markChoices = wx.Choice(markWindow, choices = ['Good', 'Corrupt', 'Fake', 'Spam'])
+        markChoices = wx.Choice(self.markWindow, choices = ['Good', 'Corrupt', 'Fake', 'Spam'])
         hSizer.Add(text, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 3)
         hSizer.Add(markChoices)
         
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.ALL, 3)
         
-        addiText = wx.StaticText(markWindow, -1, "Corrupt, Fake and Spam torrents are reported to the Moderators \nfor deletion.")
+        addiText = wx.StaticText(self.markWindow, -1, "Corrupt, Fake and Spam torrents are reported to the Moderators \nfor deletion.")
         vSizer.Add(addiText, 0, wx.EXPAND|wx.ALL, 3)
         
         def DoMark(event):
@@ -1105,20 +1109,27 @@ class TorrentDetails(AbstractDetails):
                 type = markChoices.GetString(selected)
                 
                 self.doMark(self.torrent.infohash, type)
-                markWindow.Dismiss()
+                self.markWindow.Show(False)
+                self.markWindow.Destroy()
+                self.markWindow = None
                 
-        button = wx.Button(markWindow, -1, "Mark Now")
+        button = wx.Button(self.markWindow, -1, "Mark Now")
         button.Bind(wx.EVT_BUTTON, DoMark)
         vSizer.Add(button, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
         
-        markWindow.SetSizerAndFit(vSizer)
-        markWindow.Layout()
+        self.markWindow.SetSizerAndFit(vSizer)
+        self.markWindow.Layout()
         
         btn = event.GetEventObject()
-        pos = btn.ClientToScreen((0,0))
+        
         sz =  btn.GetSize()
-        markWindow.Position(pos, (0, sz[1]))
-        markWindow.Popup()
+        pos = btn.ClientToScreen((0,0))
+        parentpos = parentPanel.ClientToScreen((0,0))
+        pos = pos - parentpos + (0, sz[1])
+        
+        self.markWindow.SetPosition(pos)
+        self.markWindow.Show()
+        self.markWindow.Raise()
     
     @forceDBThread
     def OnMyChannel(self, event):
@@ -1146,6 +1157,13 @@ class TorrentDetails(AbstractDetails):
             del self.torrent.swarminfo
             
             self._addOverview(self.overview, self.torrentSizer)
+            if self.canEdit:
+                if not self.isEditable['name'].IsChanged():
+                    self.isEditable['name'].SetValue(self.torrent.name)
+                    
+                if not self.isEditable['description'].IsChanged():
+                    self.isEditable['description'].SetValue(self.torrent.description or '')
+            
     
     @forceDBThread
     def UpdateStatus(self):
@@ -1332,6 +1350,11 @@ class TorrentDetails(AbstractDetails):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']
         self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
+        
+        if self.markWindow:
+            self.markWindow.Show(False)
+            self.markWindow.Destroy()
+        
 
 class LibraryDetails(TorrentDetails):
 
@@ -1351,11 +1374,15 @@ class LibraryDetails(TorrentDetails):
         self.overviewPanel = wx.Panel(self.notebook)
         def OnChange():
             self.overviewPanel.Layout()
+            self.overview.Layout()
 
             def resize():
                 best = self.overviewPanel.GetBestSize()[1]
+                best2 = self.overview.GetBestSize()[1]
                 if self.canComment:
-                    best = max(best, self.MINCOMMENTHEIGHT)
+                    best = max(best, best2, self.MINCOMMENTHEIGHT)
+                else:
+                    best = max(best, best2)
                 
                 #making sure it is at least 100px 
                 best = max(best, 100)
@@ -1546,7 +1573,8 @@ class LibraryDetails(TorrentDetails):
                     self.buttonSizer.AddStretchSpacer()
                     
                     self._AddButtons(self.buttonPanel, self.buttonSizer)
-                
+            
+            self.overviewPanel.Layout()
             self.overviewPanel.OnChange()
             self.overviewPanel.Thaw()
     
@@ -1586,8 +1614,16 @@ class LibraryDetails(TorrentDetails):
         index = 0
         if ds:
             if getattr(self, 'downloaded', False):
-                self.downloaded.SetLabel(self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
-                self.uploaded.SetLabel(self.utility.size_format(ds.get_total_transferred(UPLOAD)))
+                if ds.get_seeding_statistics():
+                    stats = ds.get_seeding_statistics()
+                    dl = stats['total_down']
+                    ul = stats['total_up']
+                else:
+                    dl = ds.get_total_transferred(DOWNLOAD)
+                    ul = ds.get_total_transferred(UPLOAD)
+                
+                self.downloaded.SetLabel(self.utility.size_format(dl))
+                self.uploaded.SetLabel(self.utility.size_format(ul))
                 self.buttonPanel.Layout()
             
             peers = ds.get_peerlist()
@@ -1854,7 +1890,7 @@ class StringProgressPanel(wx.BoxSizer):
                 if eta == '' or eta.find('unknown') != -1:
                     self.text.SetLabel("Currently downloading @ %s, %s still remaining."%(self.utility.speed_format_new(dls), format_size(remaining)))
                 else:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining.\nExpected to finish in %s."%(self.utility.speed_format_new(dls), format_size(remaining), eta))
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s."%(self.utility.speed_format_new(dls), format_size(remaining), eta))
 
 class MyChannelDetails(wx.Panel):
     def __init__(self, parent, torrent, channel_id):

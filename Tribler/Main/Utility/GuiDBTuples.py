@@ -6,7 +6,8 @@ from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
-    DLSTATUS_SEEDING, DLSTATUS_REPEXING
+    DLSTATUS_SEEDING, DLSTATUS_REPEXING, DLSTATUS_HASHCHECKING,\
+    DLSTATUS_WAITING4HASHCHECK
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.Search.SearchManager import split_into_keywords
@@ -155,11 +156,14 @@ class Torrent(Helper):
     def state(self):
         stateList = []
         if self.ds:
-            if self.ds.get_status() in [DLSTATUS_STOPPED|DLSTATUS_REPEXING]:
+            if self.ds.get_status() in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
                 stateList.append('stopped')
                 
             elif self.ds.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
                 stateList.append('active')
+            
+            elif self.ds.get_status() == [DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
+                stateList.append('checking')
             
             if self.ds.progress == 1.0:
                 stateList.append('completed')
@@ -271,8 +275,8 @@ class CollectedTorrent(Helper):
         subtitles = []
         for filename, length in self.files:
             prefix, ext = os.path.splitext(filename)
-            if ext.startswith('.'):
-                ext = ext[1:]
+            if not ext.startswith('.'):
+                ext = '.'+ext
             if ext in VLC_SUPPORTED_SUBTITLES:
                 subtitles.append(filename)
         return subtitles
@@ -446,6 +450,9 @@ class Comment(Helper):
             return 'Peer %d'%self.peer_id
         return self._name
     
+    def isMyComment(self):
+        return self.peer_id == None
+    
     @cacheProperty
     def avantar(self):
         im = IconsManager.getInstance()
@@ -494,7 +501,10 @@ class Playlist(Helper):
         searchManager = ChannelManager.getInstance()
         _,_, torrents =  searchManager.getTorrentsFromPlaylist(self, limit = 3)
         names = [torrent.name for torrent in torrents]
-        return "Contents: '"+"'    '".join(names)+"'"
+        if len(names) > 0:
+            return "Contents: '"+"'    '".join(names)+"'"
+        else:
+            return 'This playlist is currently empty, drag and drop any .torrent to add it to this playlist.'
                 
 class Modification(Helper):
     __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')

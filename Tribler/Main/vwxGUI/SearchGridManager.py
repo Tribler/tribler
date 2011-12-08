@@ -37,6 +37,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
     RemoteChannelTorrent
 import threading
 from copy import copy
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 DEBUG = False
 
@@ -308,6 +309,9 @@ class TorrentManager:
         
         self.library_manager = library_manager
         self.channel_manager = channel_manager
+        
+    def getSearchSuggestion(self, keywords):
+        return self.torrent_db.getSearchSuggestion(keywords)
     
     def getHitsInCategory(self, categorykey = 'all', sort = 'fulltextmetric'):
         if DEBUG: begintime = time()
@@ -438,6 +442,10 @@ class TorrentManager:
                 if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate = False, prio = 1):
                     if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", hit.name
                     prefetch_counter += 1
+            else:
+                #schedule health check
+                #TorrentChecking.getInstance().addTorrentToQueue(hit)
+                pass
 
             hit_counter += 1
             if prefetch_counter >= 10 or hit_counter >= 25:
@@ -988,6 +996,7 @@ class ChannelManager:
         
         self.channelcast_db = None
         self.votecastdb = None
+        self.dispersy = None
         
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -1143,6 +1152,10 @@ class ChannelManager:
     def getTorrentsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
+
+    def getTorrentFromPlaylist(self, playlist, infohash):
+        data = self.channelcast_db.getTorrentFromPlaylist(playlist.id, infohash, CHANNEL_REQ_COLUMNS)
+        return self._createTorrent(data, playlist.channel, playlist)
     
     def getRecentTorrentsFromPlaylist(self, playlist, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
@@ -1357,7 +1370,7 @@ class ChannelManager:
             community = self.dispersy.get_community(dispersy_cid)
             return community
         
-        except KeyError:
+        except (KeyError, AttributeError):
             return None
     
     @forceDispersyThread
@@ -1397,8 +1410,9 @@ class ChannelManager:
                
     @forceDispersyThread 
     def addPlaylistTorrent(self, playlist, torrent):
-        community = self._disp_get_community_from_channel_id(playlist.channel.id)
-        community.create_playlist_torrents(playlist.id, [torrent.infohash])
+        if not self.channelcast_db.playlistHasTorrent(playlist.id, torrent.channeltorrent_id):
+            community = self._disp_get_community_from_channel_id(playlist.channel.id)
+            community.create_playlist_torrents(playlist.id, [torrent.infohash])
     
     @forceDispersyThread
     def createTorrent(self, channel, torrent):
@@ -1490,6 +1504,11 @@ class ChannelManager:
             community.create_comment(comment, long(time()), reply_to, reply_after, playlist_id, infohash)
     
     @forceDispersyThread
+    def removeComment(self, comment, channel):
+        community = self._disp_get_community_from_channel_id(channel.id)
+        community.remove_comment(comment.dispersy_id)
+    
+    @forceDispersyThread
     def modifyChannel(self, channel_id, changes):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.modifyChannel(changes)
@@ -1560,12 +1579,14 @@ class ChannelManager:
                 self.searchkeywords = wantkeywords
                 self.remoteHits = []
                 self.remoteRefresh = False
-                self.searchDispersy()
-            except TypeError:
-                #Dispersy not loaded yet
-                pass
+            
             finally:
                 self.remoteLock.release()
+        try:
+            self.searchDispersy()
+        except TypeError:
+            #Dispersy not loaded yet
+            pass
         
     def getChannelHits(self):
         hitsUpdated = self.searchLocalDatabase()

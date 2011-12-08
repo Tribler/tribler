@@ -347,6 +347,11 @@ class ListItem(wx.Panel):
                         control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 1))
         else:
             self.DoCollapse()
+            
+    @warnWxThread
+    def DoExpand(self):
+        if not self.expanded:
+            self.OnClick()
     
     @warnWxThread
     def Expand(self, panel):
@@ -434,8 +439,8 @@ class AbstractListBody():
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()
         
-        messageVSizer.Add(self.headerText)
-        messageVSizer.Add(self.messageText)
+        messageVSizer.Add(self.headerText, 0, wx.EXPAND)
+        messageVSizer.Add(self.messageText, 0, wx.EXPAND)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
         
         messageSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -593,8 +598,13 @@ class AbstractListBody():
                 
                 self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             else:
+                if DEBUG:
+                    print >> sys.stderr, "ListBody: setting scrollrate to default"
+                
                 self.SetupScrolling(scrollToTop = scrollToTop)
         else:
+            if DEBUG:
+                print >> sys.stderr, "ListBody: using scrollrate", self.rate
             self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
             
         self.Thaw()
@@ -669,6 +679,15 @@ class AbstractListBody():
         
         self.OnChange()
         self.Thaw()
+    
+    def GetMessage(self):
+        header = message = None
+        if self.headerText.IsShown():
+            header = self.headerText.GetLabel()
+        if self.messageText.IsShown():
+            message = self.messageText.GetLabel()
+            
+        return header, message
 
     @warnWxThread
     def ShowLoading(self):
@@ -831,6 +850,9 @@ class AbstractListBody():
                     if key not in self.items:
                         self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                         nr_items_to_create -= 1
+                        
+                    elif getattr(self.items[key], 'should_update', False):
+                        self.items[key].RefreshData(curdata)
                     
                     item = self.items[key]
                     sizer = self.vSizer.GetItem(item)

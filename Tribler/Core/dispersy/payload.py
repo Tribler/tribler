@@ -48,7 +48,7 @@ class IntroductionRequestPayload(Payload):
 
             SOURCE_WAN_ADDRESS is the wan address of the sender.  Nodes not in the same
             LAN should use this address to communicate.
-            
+
             ADVICE is a boolean value.  When True the receiver will introduce the sender to a new
             node.  This introduction will be facilitated by the receiver sending a puncture-request
             to the new node.
@@ -70,7 +70,7 @@ class IntroductionRequestPayload(Payload):
 
                BLOOM_FILTER is a BloomFilter object containing all packets that the sender has in
                the given sync range.
-            
+
             IDENTIFIER is a number that must be given in the associated introduction-response.  This
             number allows to distinguish between multiple introduction-response messages.
             """
@@ -115,7 +115,7 @@ class IntroductionRequestPayload(Payload):
         @property
         def source_wan_address(self):
             return self._source_wan_address
-        
+
         @property
         def advice(self):
             return self._advice
@@ -127,7 +127,7 @@ class IntroductionRequestPayload(Payload):
         @property
         def sync(self):
             return True if self._bloom_filter else False
-        
+
         @property
         def time_low(self):
             return self._time_low
@@ -147,7 +147,7 @@ class IntroductionRequestPayload(Payload):
         @property
         def offset(self):
             return self._offset
-        
+
         @property
         def bloom_filter(self):
             return self._bloom_filter
@@ -174,11 +174,11 @@ class IntroductionResponsePayload(Payload):
             LAN_INTRODUCTION_ADDRESS is the lan address of the node that the sender
             advises the receiver to contact.  This address is zero when the associated request did
             not want advice.
-            
+
             WAN_INTRODUCTION_ADDRESS is the wan address of the node that the sender
             advises the receiver to contact.  This address is zero when the associated request did
             not want advice.
-            
+
             CONNECTION_TYPE is a unicode string indicating the connection type that the message
             creator has.  Currently the following values are supported: u"unknown", u"public", and
             u"symmetric-NAT".
@@ -288,7 +288,7 @@ class PuncturePayload(Payload):
         def __init__(self, meta, source_lan_address, source_wan_address, identifier):
             """
             Create the payload for a puncture message
-            
+
             SOURCE_LAN_ADDRESS is the lan address of the sender.  Nodes in the same LAN
             should use this address to communicate.
 
@@ -306,7 +306,7 @@ class PuncturePayload(Payload):
             self._source_lan_address = source_lan_address
             self._source_wan_address = source_wan_address
             self._identifier = identifier
-            
+
         @property
         def source_lan_address(self):
             return self._source_lan_address
@@ -326,23 +326,23 @@ class AuthorizePayload(Payload):
             Authorize the given permission_triplets.
 
             The permissions are given in the permission_triplets list.  Each element is a (Member,
-            Message, permission) pair, where permission can either be u'permit', u'authorize', or
-            u'revoke'.
+            Message, permission) pair, where permission can either be u"permit", u"authorize", or
+            u"revoke".
             """
             if __debug__:
-                from authentication import MemberAuthentication
-                from resolution import LinearResolution, DynamicResolution
+                from authentication import MemberAuthentication, MultiMemberAuthentication
+                from resolution import PublicResolution, LinearResolution, DynamicResolution
                 from member import Member
                 from message import Message
                 for triplet in permission_triplets:
-                    assert isinstance(triplet, tuple)
-                    assert len(triplet) == 3
-                    assert isinstance(triplet[0], Member)
-                    assert isinstance(triplet[1], Message)
-                    assert isinstance(triplet[1].resolution, (LinearResolution, DynamicResolution))
-                    assert isinstance(triplet[1].authentication, MemberAuthentication)
-                    assert isinstance(triplet[2], unicode)
-                    assert triplet[2] in (u'permit', u'authorize', u'revoke')
+                    assert isinstance(triplet, tuple), triplet
+                    assert len(triplet) == 3, triplet
+                    assert isinstance(triplet[0], Member), triplet[0]
+                    assert isinstance(triplet[1], Message), triplet[1]
+                    assert isinstance(triplet[1].resolution, (PublicResolution, LinearResolution, DynamicResolution)), triplet[1]
+                    assert isinstance(triplet[1].authentication, (MemberAuthentication, MultiMemberAuthentication)), triplet[1]
+                    assert isinstance(triplet[2], unicode), triplet[2]
+                    assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo"), triplet[2]
             super(AuthorizePayload.Implementation, self).__init__(meta)
             self._permission_triplets = permission_triplets
 
@@ -357,23 +357,23 @@ class RevokePayload(Payload):
             Revoke the given permission_triplets.
 
             The permissions are given in the permission_triplets list.  Each element is a (Member,
-            Message, permission) pair, where permission can either be u'permit', u'authorize', or
-            u'revoke'.
+            Message, permission) pair, where permission can either be u"permit", u"authorize", or
+            u"revoke".
             """
             if __debug__:
-                from authentication import MemberAuthentication
-                from resolution import LinearResolution
+                from authentication import MemberAuthentication, MultiMemberAuthentication
+                from resolution import PublicResolution, LinearResolution, DynamicResolution
                 from member import Member
                 from message import Message
                 for triplet in permission_triplets:
                     assert isinstance(triplet, tuple)
                     assert len(triplet) == 3
-                    assert isinstance(triplet[0], Member)
-                    assert isinstance(triplet[1], Message)
-                    assert isinstance(triplet[1].resolution, LinearResolution)
-                    assert isinstance(triplet[1].authentication, MemberAuthentication)
-                    assert isinstance(triplet[2], unicode)
-                    assert triplet[2] in (u'permit', u'authorize', u'revoke')
+                    assert isinstance(triplet[0], Member), triplet
+                    assert isinstance(triplet[1], Message), triplet
+                    assert isinstance(triplet[1].resolution, (PublicResolution, LinearResolution, DynamicResolution)), triplet
+                    assert isinstance(triplet[1].authentication, (MemberAuthentication, MultiMemberAuthentication)), triplet
+                    assert isinstance(triplet[2], unicode), triplet
+                    assert triplet[2] in (u"permit", u"authorize", u"revoke", u"undo"), triplet
             super(RevokePayload.Implementation, self).__init__(meta)
             self._permission_triplets = permission_triplets
 

@@ -75,12 +75,20 @@ def main():
     # KeyboardInterrupt
     try:
         while True:
-            x = sys.stdin.read()
+            x = sys.stdin.readline()
+            print >> sys.stderr, x
+            if x.strip() == 'Q':
+                break
     except:
         print_exc()
     
-    torrent_feed_thread.shutdown()
-    dir_feed_thread.shutdown()
+    
+    torrentfeed = RssParser.getInstance()
+    torrentfeed.shutdown()
+    
+    dirfeed = DirectoryFeedThread.getInstance()
+    dirfeed.shutdown()
+    
     session.shutdown()
     print "Shutting down..."
     time.sleep(5)
@@ -143,7 +151,7 @@ def dispersy_started(session, opt):
             if not os.path.isfile(filename): 
                 torrentdef.save(filename)
         
-        dirfeed = DirectoryFeedThread()
+        dirfeed = DirectoryFeedThread.getInstance()
         for dirpath in opt.dir.split(";"):
             dirfeed.addDir(dirpath, callback = on_torrent_callback)
             

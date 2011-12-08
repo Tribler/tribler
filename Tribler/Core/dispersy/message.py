@@ -425,7 +425,7 @@ class Message(MetaObject):
         if __debug__:
             from community import Community
             from authentication import Authentication
-            from resolution import Resolution
+            from resolution import Resolution, DynamicResolution
             from destination import Destination
             from distribution import Distribution
             from payload import Payload
@@ -439,6 +439,9 @@ class Message(MetaObject):
         assert callable(check_callback)
         assert callable(handle_callback)
         assert undo_callback is None or callable(undo_callback)
+        if __debug__:
+            if isinstance(resolution, DynamicResolution):
+                assert callable(undo_callback), "UNDO_CALLBACK must be specified when using the DynamicResolution policy"
         assert isinstance(priority, int)
         assert isinstance(delay, float)
         assert delay >= 0.0

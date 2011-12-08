@@ -15,7 +15,7 @@ from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords,\
     fts3_preprocess
-from Tribler.Main.Utility.GuiDBHandler import startWorker, onWorkerThread
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time

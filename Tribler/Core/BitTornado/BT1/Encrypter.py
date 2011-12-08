@@ -280,9 +280,16 @@ class Connection:
             return None
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
+            
+            hittingLimit = incompletecounter.toomany()
             incompletecounter.decrement()
+            
             # Arno: open new conn from queue if at limit. Faster than RawServer task
-            self.Encoder._start_connection_from_queue(sched=False)
+            # Niels: in order to maintain fairness between 'threads' use rawserver if incompletecounter was hitting the limit
+            if hittingLimit:
+                self.Encoder.raw_server.add_task(lambda: self.Encoder._start_connection_from_queue(sched=False), 1.0)
+            else:
+                self.Encoder._start_connection_from_queue(sched=False)
             
         c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
@@ -346,11 +353,18 @@ class Connection:
         if self.complete:
             self.connecter.connection_lost(self)
         elif self.locally_initiated:
+            
+            hittingLimit = incompletecounter.toomany()
             incompletecounter.decrement()
+            
             # Arno: open new conn from queue if at limit. Faster than RawServer task
+            # Niels: in order to maintain fairness between 'threads' use rawserver if incompletecounter was hitting the limit
             if not closeall:
-                self.Encoder._start_connection_from_queue(sched=False)
-
+                if hittingLimit:
+                    self.Encoder.raw_server.add_task(lambda: self.Encoder._start_connection_from_queue(sched=False), 1.0)
+                else:
+                    self.Encoder._start_connection_from_queue(sched=False)
+            
     def send_message_raw(self, message):
         if not self.closed:
             self.connection.write(message)    # SingleSocket
@@ -566,12 +580,15 @@ class Encoder:
             
             if cons >= self.max_connections or cons >= max_initiate:
                 delay = 60.0
+                
             elif self.paused or incompletecounter.toomany():
                 delay = 1.0
+                
             else:
                 delay = 0.0
                 dns, id = self.to_connect.pop()
                 self.start_connection(dns, id)
+                
             if self.to_connect and sched:
                 if DEBUG:
                     print >>sys.stderr,"encoder: start_from_queue delay",delay

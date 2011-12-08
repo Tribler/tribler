@@ -182,10 +182,14 @@ class ChannelConversion(BinaryConversion):
         if playlist_global_time and not isinstance(playlist_global_time, (int, long)):
             raise DropPacket("Invalid 'playlist-global-time' type")
         
-        try:
-            packet_id, packet, message_name = self._get_message(playlist_mid, playlist_global_time)
-            playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
+        if playlist_mid and playlist_global_time:
+            try:
+                packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+                playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+            except DropPacket:
+                member = Member.get_instance(playlist_mid, public_key_available=False)
+                raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
+        else:
             playlist = None
         
         infohash = dic.get("infohash", None)
@@ -235,9 +239,10 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'cause-global-time' type")
         
         try:
-            packet_id, packet, message_name = self._get_message(cause_mid, cause_global_time)
+            packet_id, packet, message_name = self._get_message(cause_global_time, cause_mid)
             cause_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
+            
+        except DropPacket:
             member = Member.get_instance(cause_mid, public_key_available=False)
             raise DelayPacketByMissingMessage(self._community, member, [cause_global_time])
         
@@ -350,15 +355,24 @@ class ChannelConversion(BinaryConversion):
         return pack('!20s20sQ', message.payload.infohash, playlist.authentication.member.mid, playlist.distribution.global_time),
 
     def _decode_playlist_torrent(self, placeholder, offset, data):
-        if len(data) < offset + 44:
+        if len(data) < offset + 48:
             raise DropPacket("Unable to decode the payload")
 
         infohash, playlist_mid, playlist_global_time = unpack_from('!20s20sQ', data, offset)
-        packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+        try:
+            packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
+            
+        except DropPacket:
+            member = Member.get_instance(playlist_mid, public_key_available=False)
+            raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
+
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        return offset + 44, placeholder.meta.payload.implement(infohash, playlist)
+        return offset + 48, placeholder.meta.payload.implement(infohash, playlist)
     
     def _get_message(self, global_time, mid):
+        assert isinstance(global_time, (int, long))
+        assert isinstance(mid, str)
+        assert len(mid) == 20
         if global_time and mid:
             try:
                 packet_id, packet, message_name = self._dispersy_database.execute(u"""
@@ -374,11 +388,15 @@ class ChannelConversion(BinaryConversion):
             return packet_id, str(packet), message_name
 
     def _encode_missing_channel(self, message):
-        return pack('!?', message.payload.includeSnapshot),
+        return pack('!B', int(message.payload.includeSnapshot)),
 
     def _decode_missing_channel(self, placeholder, offset, data):
         if len(data) < offset + 1:
             raise DropPacket("Unable to decode the payload")
 
-        includeSnapshot, = unpack_from('!?', data, offset)
+        includeSnapshot, = unpack_from('!B', data, offset)
+        if not (includeSnapshot == 0 or includeSnapshot == 1):
+            raise DropPacket("Unable to decode includeSnapshot")
+        includeSnapshot = bool(includeSnapshot)
+
         return offset+1, placeholder.meta.payload.implement(includeSnapshot)

@@ -113,6 +113,8 @@ class RemoteSearchManager:
             torrent_details = item.GetExpandedPanel()
             if torrent_details:
                 torrent_details.DownloadStarted()
+            else:
+                item.DoExpand()
             
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
@@ -1374,7 +1376,7 @@ class LibraryList(SizeList):
                     end = len(new_filter)
                 
                 state = new_filter[start:end]
-                if state in ['completed','active','stopped']: 
+                if state in ['completed','active','stopped','checking']: 
                     self.statefilter = state
                 
                 new_filter = new_filter[:start - 6] + new_filter[end:]
