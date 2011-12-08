@@ -1219,7 +1219,7 @@ class TorrentDetails(AbstractDetails):
                 self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
                 self._add_row(self.overview, self.torrentSizer, None, msg, 10)
             else:
-                statictext = children[-1].GetWindow()
+                statictext = children[-1].GetSizer()
                 statictext.SetLabel(msg)
                 
             self.torrentSizer.Layout()
