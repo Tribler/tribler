@@ -365,7 +365,7 @@ class Callback(object):
         id_ = self.register(call, args, kargs, delay, priority, id_, callback)
 
         # wait for call to finish
-        event.wait(None if timeout is 0.0 else timeout)
+        event.wait(None if timeout == 0.0 else timeout)
 
         if isinstance(container[0], Exception):
             raise container[0]
