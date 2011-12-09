@@ -4183,8 +4183,10 @@ class Dispersy(Singleton):
         # 2.0: changed the statistics.  total_up and total_down are now both (amount, byte_count) tuples
         # 2.1: community["candidates"] is now be None when the candidate walker is disabled, new
         #      "dispersy_enable_candidate_walker" attribute
+        # 2.2: community["candidates"] is again always a list, new
+        #      "dispersy_enable_candidate_walker_responses" attribute
 
-        info = {"version":2.1, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        info = {"version":2.2, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
         if statistics:
             info["statistics"] = self._statistics.info()
@@ -4201,7 +4203,8 @@ class Dispersy(Singleton):
                                                         "dispersy_sync_bloom_filter_bits",
                                                         "dispersy_sync_response_limit",
                                                         "dispersy_missing_sequence_response_limit",
-                                                        "dispersy_enable_candidate_walker"))
+                                                        "dispersy_enable_candidate_walker",
+                                                        "dispersy_enable_candidate_walker_responses"))
 
             # if sync_ranges:
             #     community_info["sync_ranges"] = [{"time_low":range_.time_low, "space_freed":range_.space_freed, "space_remaining":range_.space_remaining, "capacity":range_.capacity}
@@ -4212,12 +4215,8 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                if community.dispersy_enable_candidate_walker:
-                    community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
-                    if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
-                else:
-                    community_info["candidates"] = None
-                    if __debug__: dprint(community_info["classification"], " has zero candidates (disabled)")
+                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
+                if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
 
         if __debug__: dprint(info, pprint=True)
         return info
