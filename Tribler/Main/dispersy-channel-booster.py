@@ -29,7 +29,9 @@ class BoosterDispersy(Dispersy):
 
             if isinstance(result, Message.Implementation) and message.payload.sync:
                 payload = message.payload
-                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before, payload.bloom_filter.bytes.encode("HEX"))
+                # 09/12/11 Boudewijn: removed the bloom filter bytes.  It was making the logs very
+                # large (100+MB bziped)
+                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before)
 
             yield result
 
