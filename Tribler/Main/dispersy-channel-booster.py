@@ -1,5 +1,24 @@
 #!/usr/bin/python
 
+"""
+Logger format:
+- Timestamp
+- DISP_SYNC_IN
+- Community ID
+- Member ID
+- LAN host
+- LAN port
+- WAN host
+- WAN port
+- Connection type
+- Advice
+- Sync time low (0 when sync disabled)
+- Sync time high (0 when sync disabled)
+- Sync modulo (1 when sync disabled)
+- Sync offset (0 when sync disabled)
+- Bytes transfered in response
+"""
+
 from traceback import print_exc
 import optparse
 import os
@@ -29,10 +48,6 @@ class BoosterDispersy(Dispersy):
 
             if isinstance(result, Message.Implementation) and message.payload.sync:
                 payload = message.payload
-                # 09/12/11 Boudewijn: removed the bloom filter bytes.  It was making the logs very
-                # large (100+MB bziped)
-                # 09/12/11 Boudewijn: now logging LAN and WAN addresses.
-                # 09/12/11 Boudewijn: now logging connection-type and advice.
                 self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.authentication.member.mid.encode("HEX"), message.candidate.lan_address[0], message.candidate.lan_address[1], message.candidate.wan_address[0], message.candidate.wan_address[1], payload.connection_type, payload.advice, payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before)
 
             yield result
