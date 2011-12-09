@@ -31,7 +31,8 @@ class BoosterDispersy(Dispersy):
                 payload = message.payload
                 # 09/12/11 Boudewijn: removed the bloom filter bytes.  It was making the logs very
                 # large (100+MB bziped)
-                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before)
+                # 09/12/11 Boudewijn: now logging LAN and WAN addresses.
+                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.candidate.lan_address[0], message.candidate.lan_address[1], message.candidate.wan_address[0], message.candidate.wan_address[1], payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before)
 
             yield result
 
