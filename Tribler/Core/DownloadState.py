@@ -126,7 +126,6 @@ class DownloadState(Serializable):
                     # we have all pieces of the selected files
                     self.status = DLSTATUS_SEEDING
                     self.progress = 1.0
-                    
                 else:
                     self.progress = have/float(len(haveslice))
             
@@ -291,6 +290,15 @@ class DownloadState(Serializable):
             return []
         else:
             return self.haveslice
+    
+    def get_pieces_total_complete(self):
+        """ Returns the number of total and completed pieces
+        @return A tuple containing two integers, total and completed nr of pieces
+        """
+        if self.stats is None:
+            return (0,0)
+        else:
+            return (len(self.haveslice), sum(self.haveslice))
         
     def get_files_completion(self):
         """ Returns a list of filename, progress tuples indicating the progress 
