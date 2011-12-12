@@ -29,7 +29,7 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import traceback
-from Tribler.Core.dispersy.callback import Callback
+from Tribler.Core.dispersy.callback import Callback, Idle
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
@@ -380,10 +380,7 @@ class TriblerLaunchMany(Thread):
 
         def load_communities():
             # initial delay
-            desync = (yield 10.0)
-            while desync > 0.1:
-                if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [initial delay]"
-                desync = (yield desync)
+            yield Idle(5.0)
 
             schedule = []
             schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {}))
@@ -397,10 +394,7 @@ class TriblerLaunchMany(Thread):
 
                     cls.load_community(master, *args, **kargs)
 
-                    desync = (yield 1.0)
-                    while desync > 0.1:
-                        if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [loading community]"
-                        desync = (yield desync)
+                    yield Idle(1.0)
 
                 if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
 

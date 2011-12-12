@@ -21,23 +21,23 @@ if __debug__:
     # dprint warning when registered call, or generator call, should have run N seconds ago
     QUEUE_DELAY_FOR_WARNING = 1.0
 
-# when a call is behind for more that MAX_DESYNC_TIME seconds, the call is rescheduled to run
-# immediately.  this will prevent the problem where a Callback was running and the computer went
-# into hibernation or sleep mode, woke up, and believes it is behind several hours.  especially the
-# generator callback will cause massive amounts of calls to be performed.
-MAX_DESYNC_TIME = 60.0
-
 class Yielder(object):
     pass
 
 class Delay(Yielder):
-    def __init__(self, delay):
+    def __init__(self, delay, strict=False):
         assert isinstance(delay, float)
         assert delay > 0.0
+        assert isinstance(strict, bool)
         self._delay = delay
+        self._strict = strict
 
     def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
-        heappush(requests, (deadline + self._delay), priority, root_id, (call[0], "desync"), callback)
+        if self._strict:
+            new_deadline = deadline + self._delay
+        else:
+            new_deadline = time() + self._delay
+        heappush(requests, new_deadline, priority, root_id, (call[0], "desync"), callback)
 
 class Switch(Yielder):
     def __init__(self, cother):
@@ -55,28 +55,38 @@ class Switch(Yielder):
             self._cother._event.set()
 
 class Idle(Yielder):
-    def __init__(self, max_delay=300.0):
+    def __init__(self, min_delay=0.0, max_delay=300.0, idle_threshold=0.1):
+        assert isinstance(min_delay, float)
         assert isinstance(max_delay, float)
-        assert max_delay > 0.0
+        assert 0.0 <= min_delay < max_delay, [min_delay, max_delay]
+        assert isinstance(idle_threshold, float)
+        assert idle_threshold > 0.0
+        self._min_delay = min_delay
         self._max_delay = max_delay
+        self._idle_threshold = idle_threshold
 
     def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
         self._expired = expired
+        self._origional_deadline = deadline
         self._origional_priority = priority
         self._origional_root_id = root_id
         self._origional_generator = call[0]
         self._origional_callback = callback
         generator = self._test_idle(actual_time - deadline)
         generator.send(None)
-        heappush(expired, (0, deadline, root_id, (generator, "desync"), None))
+        if deadline + self._min_delay <= actual_time:
+            heappush(expired, (priority + 1024, deadline + self._min_delay, root_id, (generator, "desync"), None))
+        else:
+            heappush(requests, (deadline + self._min_delay, priority + 1024, root_id, (generator, "desync"), None))
 
     def _test_idle(self, desync):
-        while self._max_delay > 0.0:
-            desync = (yield desync)
-            if desync < 0.1:
+        remaining_delay = self._max_delay - self._min_delay
+        while remaining_delay > 0.0:
+            desync = (yield 0.0)
+            if desync < self._idle_threshold:
                 break
-            self._max_delay -= desync
-        heappush(self._expired, (self._origional_priority, time(), self._origional_root_id, (self._origional_generator, None), self._origional_callback))
+            remaining_delay -= desync
+        heappush(self._expired, (self._origional_priority, self._origional_deadline, self._origional_root_id, (self._origional_generator, "desync"), self._origional_callback))
 
 class Return(Yielder):
     def __init__(self, *results):
@@ -365,7 +375,7 @@ class Callback(object):
         id_ = self.register(call, args, kargs, delay, priority, id_, callback)
 
         # wait for call to finish
-        event.wait(None if timeout is 0.0 else timeout)
+        event.wait(None if timeout == 0.0 else timeout)
 
         if isinstance(container[0], Exception):
             raise container[0]
@@ -488,18 +498,7 @@ class Callback(object):
 
                 # we need to handle the next call in line
                 priority, deadline, root_id, call, callback = heappop(expired)
-
                 assert deadline <= actual_time
-                if actual_time - deadline >= MAX_DESYNC_TIME:
-                    if __debug__:
-                        # sort and group by call[0].__name__
-                        debug_key = lambda debug_tup: debug_tup[3][0].__name__
-                        for debug_call_name, debug_iterator in groupby(sorted(expired, key=debug_key), key=debug_key):
-                            debug_list = list(debug_iterator)
-                            dprint("%3dx expired " % len(debug_list), debug_call_name, level="warning")
-
-                    dprint("MAX_DESYNC_TIME exceeded.  resetting deadline.  scheduled: ", len(requests), ".  expired: ", len(expired) + 1, level="warning")
-                    deadline = actual_time
 
                 while True:
                     if __debug__:
@@ -535,7 +534,7 @@ class Callback(object):
                                 # schedule CALL again in RESULT seconds
                                 # equivalent to: yield Delay(SECONDS)
                                 assert result >= 0.0
-                                heappush(requests, (deadline + result, priority, root_id, (call[0], "desync"), callback))
+                                heappush(requests, (get_timestamp() + result, priority, root_id, (call[0], "desync"), callback))
                             elif isinstance(result, Yielder):
                                 # let the Yielder object handle everything
                                 result.handle(self, requests, expired, actual_time, deadline, priority, root_id, call, callback)
@@ -684,24 +683,29 @@ if __debug__:
                     dprint("backing off... ", desync)
                     desync = (yield desync)
                     dprint("next try... ", desync)
-
-        c.register(call4)
-        sleep(21.0)
         dprint(line=1)
 
-        # test MAX_DESYNC_TIME
-        def call5():
-            for i in xrange(1, 10):
-                dprint(i, force=True)
-                yield 1.0
+        def call5_bussy():
+            for _ in xrange(10):
+                desync = yield 0.0
+                dprint("on bussy (", desync, ")", force=1)
+                sleep(0.4)
+        def call5_idle():
+            for _ in xrange(10):
+                desync = yield Idle()
+                dprint("on idle (", desync, ")", force=1)
+        c.register(call5_bussy)
+        c.register(call5_idle)
+        dprint(line=1)
 
-        global MAX_DESYNC_TIME
-        mdt = MAX_DESYNC_TIME
-        MAX_DESYNC_TIME = 5.0
-        c.register(call5)
-        c.register(sleep, (10.0,))
-        sleep(15)
-        MAX_DESYNC_TIME = mdt
+        def call6():
+            dprint("before", force=1)
+            yield Idle(5.0)
+            dprint("after", force=1)
+        c.register(call6)
+
+        sleep(21.0)
+        dprint(line=1)
 
         d.stop()
         c.stop()

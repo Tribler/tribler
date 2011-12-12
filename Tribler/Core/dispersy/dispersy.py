@@ -4080,9 +4080,7 @@ class Dispersy(Singleton):
         while True:
             try:
                 desync = (yield 60.0)
-                if desync > 0.1:
-                    self._statistics.increment_busy_time(desync)
-                    yield desync
+                self._statistics.increment_busy_time(desync)
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()
@@ -4112,9 +4110,7 @@ class Dispersy(Singleton):
             if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
             desync = (yield delay)
-            if desync > 0.1:
-                self._statistics.increment_busy_time(desync)
-                yield desync
+            self._statistics.increment_busy_time(desync)
 
     if __debug__:
         def _stats_candidates(self):

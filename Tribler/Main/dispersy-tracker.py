@@ -14,7 +14,7 @@ import optparse
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.Statistics.Logger import OverlayLogger
-from Tribler.Core.dispersy.callback import Callback
+from Tribler.Core.dispersy.callback import Callback, Idle
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -125,9 +125,7 @@ class TrackerDispersy(Dispersy):
             return False
 
         while True:
-            desync = (yield 120.0)
-            if desync > 0.1:
-                yield desync
+            yield Idle(120.0)
             for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
 
