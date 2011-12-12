@@ -1457,7 +1457,7 @@ class LibraryDetails(TorrentDetails):
                     for index in newselections:
                         selectedFiles.append(files[index])
                         
-                    self.guiutility.frame.modifySelection(self.torrent['ds'].download, selectedFiles)
+                    self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
                 dlg.Destroy()
             else:
                 TorrentDetails.OnDoubleClick(self, event)
