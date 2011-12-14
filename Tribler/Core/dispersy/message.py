@@ -255,6 +255,65 @@ class DropMessage(Exception):
         return self._dropped
 
 #
+# batch
+#
+
+class BatchConfiguration(object):
+    def __init__(self, max_window=0.0, priority=128, max_size=1024, max_age=300.0):
+        """
+        Per meta message configuration on batch handling.
+
+        MAX_WINDOW sets the maximum size, in seconds, of the window.  A larger window results in
+        larger batches and a longer average delay for incoming messages.  Setting MAX_WINDOW to zero
+        disables batching, in this case all other parameters are ignored.
+
+        PRIORITY sets the Callback priority of the task that processes the batch.  A higher priority
+        will result in earlier handling when there is CPU contention.
+
+        MAX_SIZE sets the maximum size of the batch.  A new batch will be created when this size is
+        reached, even when new messages would fall within MAX_WINDOW size.  A larger MAX_SIZE
+        results in more processing time per batch and will reduce responsiveness as the processing
+        thread is occupied.  Also, when a batch reaches MAX_SIZE it is processed immediately.
+
+        MAX_AGE sets the maximum age of the batch.  This is useful for messages that require a
+        response.  When the requests are delayed for to long they will time out, in this case a
+        response no longer needs to be sent.  MAX_AGE for the request messages should hence be lower
+        than the used timeout + max_window on the response messages.
+        """
+        assert isinstance(max_window, float)
+        assert 0.0 <= max_window, max_window
+        assert isinstance(priority, int)
+        assert isinstance(max_size, int)
+        assert 0 < max_size, max_size
+        assert isinstance(max_age, float)
+        assert 0.0 <= max_window < max_age, [max_window, max_age]
+        self._max_window = max_window
+        self._priority = priority
+        self._max_size = max_size
+        self._max_age = max_age
+
+    @property
+    def enabled(self):
+        # enabled when max_window is positive
+        return 0.0 < self._max_window
+
+    @property
+    def max_window(self):
+        return self._max_window
+
+    @property
+    def priority(self):
+        return self._priority
+
+    @property
+    def max_size(self):
+        return self._max_size
+
+    @property
+    def max_age(self):
+        return self._max_age
+
+#
 # packet
 #
 
@@ -421,7 +480,7 @@ class Message(MetaObject):
         def __str__(self):
             return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
-    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, undo_callback=None, priority=128, delay=0.0):
+    def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, undo_callback=None, batch=None):
         if __debug__:
             from community import Community
             from authentication import Authentication
@@ -438,13 +497,11 @@ class Message(MetaObject):
         assert isinstance(payload, Payload), "PAYLOAD has invalid type '%s'" % type(payload)
         assert callable(check_callback)
         assert callable(handle_callback)
-        assert undo_callback is None or callable(undo_callback)
+        assert undo_callback is None or callable(undo_callback), undo_callback
         if __debug__:
             if isinstance(resolution, DynamicResolution):
                 assert callable(undo_callback), "UNDO_CALLBACK must be specified when using the DynamicResolution policy"
-        assert isinstance(priority, int)
-        assert isinstance(delay, float)
-        assert delay >= 0.0
+        assert batch is None or isinstance(batch, BatchConfiguration)
         assert self.check_policy_combination(authentication, resolution, distribution, destination)
         self._community = community
         self._name = name
@@ -456,8 +513,7 @@ class Message(MetaObject):
         self._check_callback = check_callback
         self._handle_callback = handle_callback
         self._undo_callback = undo_callback
-        self._priority = priority # high value has high priority, i.e. is handled earlier
-        self._delay = delay
+        self._batch = BatchConfiguration() if batch is None else batch
 
         # setup
         database = community.dispersy.database
@@ -523,12 +579,8 @@ class Message(MetaObject):
         return self._undo_callback
 
     @property
-    def priority(self):
-        return self._priority
-
-    @property
-    def delay(self):
-        return self._delay
+    def batch(self):
+        return self._batch
 
     def generate_footprint(self, authentication=(), resolution=(), distribution=(), destination=(), payload=()):
         if __debug__:

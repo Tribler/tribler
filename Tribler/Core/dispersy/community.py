@@ -303,10 +303,10 @@ class Community(object):
             self._meta_messages[meta_message.name] = meta_message
 
         if __debug__:
-            sync_delay = 5.0
+            sync_interval = 5.0
             for meta_message in self._meta_messages.itervalues():
                 if isinstance(meta_message.distribution, SyncDistribution):
-                    assert meta_message.delay < sync_delay, (meta_message.name, "when sync is enabled the interval should be greater than the walking frequency.  otherwise you are likely to receive duplicate packets")
+                    assert meta_message.batch.max_window < sync_interval, (meta_message.name, "when sync is enabled the interval should be greater than the walking frequency.  otherwise you are likely to receive duplicate packets")
 
     def _initialize_subjective_sets(self):
         assert isinstance(self._subjective_sets, CacheDict)

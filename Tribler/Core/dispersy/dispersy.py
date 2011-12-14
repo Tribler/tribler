@@ -38,7 +38,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 """
 
 from hashlib import sha1
-from itertools import groupby, islice, count, cycle
+from itertools import groupby, islice, count
 from os.path import abspath
 from random import random, choice, shuffle
 from socket import inet_aton, error as socket_error
@@ -56,7 +56,7 @@ from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistrib
 from member import Member
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
 from message import DropPacket, DelayPacket
-from message import Packet, Message
+from message import BatchConfiguration, Packet, Message
 from payload import AuthorizePayload, RevokePayload, UndoPayload
 from payload import DestroyCommunityPayload
 from payload import DynamicSettingsPayload
@@ -74,8 +74,6 @@ from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 
 if __debug__:
     from dprint import dprint
-    from time import clock
-    from types import GeneratorType
 
 # callback priorities.  note that a lower value is less priority
 WATCHDOG_PRIORITY = -1
@@ -262,8 +260,6 @@ class Dispersy(Singleton):
 
         # batch caching incoming packets
         self._batch_cache = {}
-        if __debug__:
-            self._debug_batch_cache_performance = {}
 
         # where we store all data
         self._working_directory = abspath(working_directory)
@@ -475,16 +471,16 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        messages = [Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, priority=512, delay=1.0),
-                    Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request, delay=0.0),
-                    Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response, delay=0.0),
-                    Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, priority=504, delay=1.0),
-                    Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, priority=504, delay=1.0),
-                    Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
-                    Message(community, u"dispersy-undo-other", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, priority=500, delay=1.0),
-                    Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community, delay=0.0),
-                    Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, delay=1.0),
-                    Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"DESC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, community.dispersy_on_dynamic_settings, delay=0.0),
+        messages = [Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, batch=BatchConfiguration(max_window=1.0, priority=512)),
+                    Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
+                    Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response),
+                    Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, batch=BatchConfiguration(max_window=1.0, priority=504)),
+                    Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, batch=BatchConfiguration(max_window=1.0, priority=504)),
+                    Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, batch=BatchConfiguration(max_window=1.0, priority=500)),
+                    Message(community, u"dispersy-undo-other", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, batch=BatchConfiguration(max_window=1.0, priority=500)),
+                    Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community),
+                    Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, batch=BatchConfiguration(max_window=1.0)),
+                    Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"DESC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, community.dispersy_on_dynamic_settings),
 
                     #
                     # when something is missing, a dispersy-missing-... message can be used to request
@@ -492,20 +488,20 @@ class Dispersy(Singleton):
                     #
 
                     # when we have a member id (20 byte sha1 of the public key) but not the public key
-                    Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingIdentityPayload(), self._generic_timeline_check, self.on_missing_identity, delay=0.0),
+                    Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingIdentityPayload(), self._generic_timeline_check, self.on_missing_identity),
 
                     # when we are missing one or more SyncDistribution messages in a certain sequence
-                    Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence, delay=0.0),
+                    Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence),
 
                     # when we have a reference to a message that we do not have.  a reference consists
                     # of the community identifier, the member identifier, and the global time
-                    Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingMessagePayload(), self._generic_timeline_check, self.on_missing_message, delay=0.0),
+                    Message(community, u"dispersy-missing-message", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingMessagePayload(), self._generic_timeline_check, self.on_missing_message),
 
                     # when we are missing the subjective set, with a specific cluster, from a member
-                    Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSubjectiveSetPayload(), self._generic_timeline_check, self.on_missing_subjective_set, delay=0.0),
+                    Message(community, u"dispersy-missing-subjective-set", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSubjectiveSetPayload(), self._generic_timeline_check, self.on_missing_subjective_set),
 
                     # when we might be missing a dispersy-authorize message
-                    Message(community, u"dispersy-missing-proof", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingProofPayload(), self._generic_timeline_check, self.on_missing_proof, delay=0.0),
+                    Message(community, u"dispersy-missing-proof", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingProofPayload(), self._generic_timeline_check, self.on_missing_proof),
 
                     # when we are missing one or more LastSyncDistribution messages from a single member
                     # ... so far we do not need a generic missing-last message.  unfortunately all
@@ -515,10 +511,10 @@ class Dispersy(Singleton):
                     ]
 
         if community.dispersy_enable_candidate_walker_responses:
-            messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, delay=0.1),
-                             Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, delay=0.1),
-                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, delay=0.1),
-                             Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, delay=0.1)])
+            messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, batch=BatchConfiguration(max_window=0.1, max_age=5.0)),
+                             Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, batch=BatchConfiguration(max_window=0.1, max_age=5.0)),
+                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, batch=BatchConfiguration(max_window=0.1, max_age=4.0)),
+                             Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, batch=BatchConfiguration(max_window=0.1, max_age=5.0))])
 
         return messages
 
@@ -1240,7 +1236,7 @@ class Dispersy(Singleton):
         for address, _ in packets:
             if not address in candidates:
                 candidates[address] = self._candidates[address] if address in self._candidates else Candidate(address, address, address)
-        self._callback.register(self.on_incoming_packets, ([(candidates[address], packet) for address, packet in packets],))
+        self._callback.register(self.on_incoming_packets, ([(candidates[address], packet) for address, packet in packets],), {"timestamp":time()})
 
     def load_message(self, community, member, global_time):
         """
@@ -1315,7 +1311,7 @@ class Dispersy(Singleton):
         """
         return [self.convert_packet_to_message(packet, community, load, auto_load) for packet in packets]
 
-    def on_incoming_packets(self, packets, cache=True):
+    def on_incoming_packets(self, packets, cache=True, timestamp=0.0):
         """
         Process incoming UDP packets.
 
@@ -1335,8 +1331,8 @@ class Dispersy(Singleton):
             probably indicates that we are running outdated software.
 
         All packets are grouped by their meta message.  All batches are scheduled based on the
-        meta.delay and meta.priority.  Finally, the candidate table is updated in regards to the
-        incoming source addresses.
+        meta.batch.max_window and meta.batch.priority.  Finally, the candidate table is updated in
+        regards to the incoming source addresses.
 
         @param packets: The sequence of packets.
         @type packets: [(address, packet)]
@@ -1348,50 +1344,71 @@ class Dispersy(Singleton):
         assert all(isinstance(packet[0], Candidate) for packet in packets), packets
         assert all(isinstance(packet[1], str) for packet in packets), packets
         assert isinstance(cache, bool), cache
+        assert isinstance(timestamp, float), timestamp
 
         self._statistics.increment_total_down(sum(len(packet) for _, packet in packets), len(packets))
 
-        sort_key = lambda tup: (tup[0].priority, tup[0]) # meta, address, packet, conversion
+        sort_key = lambda tup: (tup[0].batch.priority, tup[0]) # meta, address, packet, conversion
         groupby_key = lambda tup: tup[0] # meta, address, packet, conversion
         for meta, iterator in groupby(sorted(self._convert_packets_into_batch(packets), key=sort_key), key=groupby_key):
             batch = [(candidate, packet, conversion) for _, candidate, packet, conversion in iterator]
 
             # schedule batch processing (taking into account the message priority)
-            if meta.delay and cache:
+            if meta.batch.enabled and cache:
                 if meta in self._batch_cache:
-                    self._batch_cache[meta].extend(batch)
-                    if __debug__:
-                        dprint("adding ", len(batch), " ", meta.name, " messages to existing cache")
-                        self._debug_batch_cache_performance[meta].append(len(batch))
+                    task_identifier, current_timestamp, current_batch = self._batch_cache[meta]
+                    current_batch.extend(batch)
+                    if __debug__: dprint("adding ", len(batch), " ", meta.name, " messages to existing cache")
+
                 else:
-                    self._batch_cache[meta] = batch
-                    self._callback.register(self._on_batch_cache_timeout, (meta,), delay=meta.delay, priority=meta.priority)
-                    if __debug__:
-                        dprint("new cache with ", len(batch), " ", meta.name, " messages (delay: ", meta.delay, ")")
-                        self._debug_batch_cache_performance[meta] = [len(batch)]
+                    current_timestamp = timestamp
+                    current_batch = batch
+                    task_identifier = self._callback.register(self._on_batch_cache_timeout, (meta, current_timestamp, current_batch), delay=meta.batch.max_window, priority=meta.batch.priority)
+                    self._batch_cache[meta] = (task_identifier, current_timestamp, current_batch)
+                    if __debug__: dprint("new cache with ", len(batch), " ", meta.name, " messages (batch window: ", meta.batch.max_window, ")")
+
+                while len(current_batch) >= meta.batch.max_size:
+                    # batch exceeds maximum size, process first max_size immediately
+                    batch, current_batch = current_batch[:meta.batch.max_size], current_batch[meta.batch.max_size:]
+                    if __debug__: dprint("schedule processing ", len(batch), " ", meta.name, " messages immediately (exceeded batch size)")
+                    self._callback.register(self._on_batch_cache_timeout, (meta, current_batch, batch), priority=meta.batch.priority)
+
+                    task_identifier = self._callback.replace_register(task_identifier, self._on_batch_cache_timeout, (meta, timestamp, current_batch), delay=meta.batch.max_window, priority=meta.batch.priority)
+                    self._batch_cache[meta] = (task_identifier, timestamp, current_batch)
 
             else:
                 # ignore cache, process batch immediately
                 if __debug__: dprint("processing ", len(batch), " ", meta.name, " messages immediately")
                 self._on_batch_cache(meta, batch)
 
-    def _on_batch_cache_timeout(self, meta):
+    def _on_batch_cache_timeout(self, meta, timestamp, batch):
         """
         Start processing a batch of messages once the cache timeout occurs.
 
-        This method is called meta.delay seconds after the first message in this batch arrived.  All
-        messages in this batch have been 'cached' together in self._batch_cache[meta].  Hopefully
-        the delay caused the batch to collect as many messages as possible.
+        This method is called meta.batch.max_window seconds after the first message in this batch
+        arrived.  All messages in this batch have been 'cached' together in self._batch_cache[meta].
+        Hopefully the delay caused the batch to collect as many messages as possible.
         """
+        assert isinstance(meta, Message)
         assert meta in self._batch_cache
-        assert meta in self._debug_batch_cache_performance
+        assert isinstance(timestamp, float)
+        assert isinstance(batch, list)
         if __debug__:
-            performances = self._debug_batch_cache_performance.pop(meta)
-            if meta.delay:
-                dprint("batch size: ", sum(performances), " [", ":".join(str(performance) for performance in performances), "] for ", meta.name, " after ", meta.delay, "s")
+            dprint("processing  ", len(batch), "x ", meta.name, " batched messages")
 
-        if self._communities.get(meta.community.cid, None) == meta.community:
-            return self._on_batch_cache(meta, self._batch_cache.pop(meta))
+        # we don't need the cached batch anymore
+        self._batch_cache.pop(meta)
+
+        if not self._communities.get(meta.community.cid, None) == meta.community:
+            if __debug__: dprint("dropped ", len(batch), "x ", meta.name, " packets (community no longer loaded)", level="warning")
+            return 0
+
+        if meta.batch.enabled and timestamp > 0.0 and meta.batch.max_age + timestamp <= time():
+            dprint(meta.batch.max_age, "  ", meta.batch.max_age + timestamp, "  ", time(), force=1)
+            if __debug__: dprint("dropped ", len(batch), "x ", meta.name, " packets (can not process these messages on time)", level="warning")
+            return 0
+
+        return self._on_batch_cache(meta, batch)
 
     def _on_batch_cache(self, meta, batch):
         """
@@ -1503,7 +1520,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             debug_count = len(messages)
-            debug_begin = clock()
+            debug_begin = time()
 
         # drop all duplicate or old messages
         assert type(meta.distribution) in self._check_distribution_batch_map
@@ -1525,7 +1542,7 @@ class Dispersy(Singleton):
         if __debug__:
             if len(messages) == 0:
                 dprint(meta.check_callback, " yielded zero messages, drop, or delays.  This is allowed but likely to be an error.", level="warning")
-        
+
         # handle/remove DropMessage and DelayMessage instances
         messages = [message for message in messages if _filter_fail(message)]
         if not messages:
@@ -1544,9 +1561,9 @@ class Dispersy(Singleton):
 
         # tell what happened
         if __debug__:
-            debug_end = clock()
+            debug_end = time()
             level = "warning" if (debug_end - debug_begin) > 1.0 else "normal"
-            dprint("handled ", len(messages), "/", debug_count, " %.2fs" % (debug_end - debug_begin), " ", meta.name, " messages (after ", meta.delay, "s cache delay)", level=level)
+            dprint("handled ", len(messages), "/", debug_count, " %.2fs" % (debug_end - debug_begin), " ", meta.name, " messages (with ", meta.batch.max_window, "s cache window)", level=level)
 
         # return the number of messages that were correctly handled (non delay, duplictes, etc)
         return len(messages)
@@ -1620,7 +1637,7 @@ class Dispersy(Singleton):
         assert all(len(x) == 3 for x in batch)
 
         if __debug__:
-            debug_begin = clock()
+            debug_begin = time()
             begin_stats = Conversion.debug_stats.copy()
 
         for candidate, packet, conversion in batch:
@@ -1653,7 +1670,7 @@ class Dispersy(Singleton):
                     self._send([candidate], [delay.request_packet], u"-delay-packet-")
 
         if __debug__:
-            debug_end = clock()
+            debug_end = time()
             level = "warning" if (debug_end - debug_begin) > 1.0 else "normal"
             for key, value in sorted(Conversion.debug_stats.iteritems()):
                 if value - begin_stats[key] > 0.0:
@@ -2034,7 +2051,7 @@ class Dispersy(Singleton):
         footprint = meta_response.generate_footprint(payload=(identifier,))
         # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
         timeout = 4.5
-        assert meta_request.delay + meta_response.delay < timeout
+        assert meta_request.batch.max_window + meta_response.batch.max_window < timeout
         self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination,), timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
@@ -2340,10 +2357,10 @@ class Dispersy(Singleton):
             # TODO in theory we do not need to update_global_time when we store...
             messages[0].community.update_global_time(max(message.distribution.global_time for message in messages))
             if __debug__:
-                begin = clock()
+                begin = time()
             messages[0].handle_callback(messages)
             if __debug__:
-                end = clock()
+                end = time()
                 level = "warning" if (end - begin) > 1.0 else "normal"
                 dprint("handler for ", messages[0].name, " took ", end - begin, " seconds", level=level)
 

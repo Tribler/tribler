@@ -3158,7 +3158,7 @@ class DispersyUndoScript(ScriptBase):
         # give all 'delayed' messages
         node.give_messages(messages)
 
-        yield community.get_meta_message(u"full-sync-text").delay + community.get_meta_message(u"dispersy-undo-own").delay + community.get_meta_message(u"dispersy-undo-other").delay
+        yield sum(community.get_meta_message(name).batch.max_window for name in [u"full-sync-text", u"dispersy-undo-own", u"dispersy-undo-other"])
         yield 2.0
 
         # check that they are in the database and ARE undone
