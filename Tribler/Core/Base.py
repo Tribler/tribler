@@ -28,3 +28,20 @@ class Copyable:
         @return Returns a copy of "self"
         """
         raise NotYetImplementedException()
+
+
+class ContentDefinition:
+    """ Interface for content definition such as torrents and swift swarms """
+    
+    def get_def_type(self):
+        """ Returns the type of this Definition
+        @return string
+        """
+        raise NotYetImplementedException()
+
+    def get_name(self):
+        """ Returns the user-friendly name of this Definition
+        @return string
+        """
+        raise NotYetImplementedException()
+    

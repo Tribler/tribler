@@ -110,7 +110,7 @@ class RawServer:
 # _2fastbt
         return result
 
-    def start_connection_raw(self, dns, socktype, handler = None):
+    def start_connection_raw(self, dns, socktype = socket.AF_INET, handler = None):
         return self.sockethandler.start_connection_raw(dns, socktype, handler)
 
     def start_connection(self, dns, handler = None, randomize = False):

@@ -112,14 +112,18 @@ def main():
     dscfg.set_dest_dir(output_dir);
     #dscfg.set_max_speed( UPLOAD, 10 )
 
+    # SWIFTPROC
     if torrentfile_or_url.startswith("http") or torrentfile_or_url.startswith(P2PURL_SCHEME):
-        tdef = TorrentDef.load_from_url(torrentfile_or_url)
+        cdef = TorrentDef.load_from_url(torrentfile_or_url)
+    elif torrentfile_or_url.startswith(SWIFT_URL_SCHEME):
+        cdef = SwiftDef.load_from_url(torrentfile_or_url)
     else: 
-        tdef = TorrentDef.load(torrentfile_or_url)
-    if tdef.get_live():
-        raise ValueError("cmdlinedl does not support live torrents")
+        cdef = TorrentDef.load(torrentfile_or_url)
         
-    d = s.start_download(tdef, dscfg)
+    if cdef.get_def_type() == "torrent" and cdef.get_live():
+            raise ValueError("cmdlinedl does not support live torrents")
+        
+    d = s.start_download(cdef, dscfg)
     d.set_state_callback(state_callback, getpeerlist=False)
    
     #

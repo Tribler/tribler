@@ -6,6 +6,7 @@ from traceback import print_exc
 from base64 import encodestring
 
 from Tribler.Core.API import *
+from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 DEBUG = True
 
@@ -14,6 +15,12 @@ RATE=32768
 def vod_event_callback(d,event,params):
     if event == VODEVENT_START:
         stream = params["stream"]
+        
+        # SWIFTPROC
+        if stream is None:
+            # Access swift HTTP interface directly
+            stream = urlOpenTimeout(params["url"],timeout=30)
+            # ARNOSMPTODO: available()
 
         grandtotal = 0L
         st = time.time()
@@ -28,7 +35,7 @@ def vod_event_callback(d,event,params):
             et = time.time()
             diff = max(et - st,0.00001)
             grandrate = float(grandtotal) / diff
-            print >>sys.stderr,"bitbucket: grandrate",grandrate,"~",RATE,"avail",stream.available()
+            print >>sys.stderr,"bitbucket: grandrate",grandrate,"~",RATE #,"avail",stream.available()
             time.sleep(1.0)
 
 def state_callback(ds):
@@ -57,24 +64,31 @@ scfg.set_overlay( False )
 
 
 s = Session( scfg )
-tdef = TorrentDef.load(sys.argv[1])
-RATE = tdef.get_bitrate()
+
+url = sys.argv[1]
+
+# SWIFTPROC
+if url.startswith("http") or url.startswith(P2PURL_SCHEME):
+    cdef = TorrentDef.load_from_url(url)
+    RATE = cdef.get_bitrate()
+else:
+    cdef = SwiftDef.load_from_url(url)
 
 dscfg = DownloadStartupConfig()
 dscfg.set_video_event_callback( vod_event_callback )
 
 # A Closed swarm - load the POA. Will throw an exception if no POA is available
-if tdef.get_cs_keys():
+if cdef.get_def_type() == "torrent" and cdef.get_cs_keys():
     print >>sys.stderr, "Is a closed swarm, reading POA"
     try:
         poa = ClosedSwarm.trivial_get_poa(s.get_default_state_dir(),
                                           s.get_permid(),
-                                          tdef.infohash)
+                                          cdef.get_infohash())
     except Exception,e:
-        print >>sys.stderr, "Failed to load POA for swarm",encodestring(tdef.infohash).replace("\n",""),"from",s.get_default_state_dir(),"(my permid is %s)"%encodestring(s.get_permid()).replace("\n",""),"Error was:",e
+        print >>sys.stderr, "Failed to load POA for swarm",encodestring(cdef.get_infohash()).replace("\n",""),"from",s.get_default_state_dir(),"(my permid is %s)"%encodestring(s.get_permid()).replace("\n",""),"Error was:",e
         raise SystemExit("Failed to load POA, aborting")
 
-d = s.start_download( tdef, dscfg )
+d = s.start_download( cdef, dscfg )
 
 d.set_state_callback(state_callback,getpeerlist=False)
 

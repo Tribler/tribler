@@ -54,6 +54,9 @@ class DownloadState(Serializable):
         else:
             self.swarmcache = None
         self.time = time.time()
+
+        # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
+        # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
         
         if stats is None:
             # No info available yet from download engine
@@ -69,7 +72,7 @@ class DownloadState(Serializable):
             self.progress = 0.0 # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
             self.stats = None
-        elif status is not None and status != DLSTATUS_REPEXING:
+        elif status is not None and not status in [DLSTATUS_REPEXING,DLSTATUS_DOWNLOADING,DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
             self.error = error
             self.status = status
@@ -93,42 +96,39 @@ class DownloadState(Serializable):
             # pointers.
             #
             self.stats = stats
-            
+
             # for pieces complete
             statsobj = self.stats['stats']
-            if self.filepieceranges is None or len(self.filepieceranges) == 0:
-                self.haveslice = statsobj.have # is copy of network engine list
-                
-            else:
-                # Show only pieces complete for the selected ranges of files
-                totalpieces =0
-                for t,tl,f in self.filepieceranges:
-                    diff = tl-t
-                    totalpieces += diff
-                    
-                #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
-                
-                haveslice = [False] * totalpieces
-                have = 0
-                index = 0
-                
-                for t,tl,f in self.filepieceranges:
-                    for piece in range(t,tl):
-                        haveslice[index] = statsobj.have[piece]
-                        if haveslice[index]:
-                            have += 1
-                                
-                        index += 1
-                        
-                self.haveslice = haveslice
-                
-                if have == len(haveslice):
-                    # we have all pieces of the selected files
-                    self.status = DLSTATUS_SEEDING
-                    self.progress = 1.0
-                    
+            if statsobj is not None:
+                if self.filepieceranges is None or len(self.filepieceranges) == 0:
+                    self.haveslice = statsobj.have # is copy of network engine list
                 else:
-                    self.progress = have/float(len(haveslice))
+                    # Show only pieces complete for the selected ranges of files
+                    totalpieces =0
+                    for t,tl,f in self.filepieceranges:
+                        diff = tl-t
+                        totalpieces += diff
+                        
+                    #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
+                    
+                    haveslice = [False] * totalpieces
+                    have = 0
+                    index = 0
+                    for t,tl,f in self.filepieceranges:
+                        for piece in range(t,tl):
+                            haveslice[index] = statsobj.have[piece]
+                            if haveslice[index]:
+                                have += 1
+
+                            index += 1
+                    self.haveslice = haveslice
+                    if have == len(haveslice):
+                        # we have all pieces of the selected files
+                        self.status = DLSTATUS_SEEDING
+                        self.progress = 1.0
+
+                    else:
+                        self.progress = have/float(len(haveslice))
             
             # RePEX: REPEXING status overrides SEEDING/DOWNLOADING status.
             if status is not None and status == DLSTATUS_REPEXING:
@@ -182,8 +182,6 @@ class DownloadState(Serializable):
         """
         if self.stats is None:
             return 0L
-        # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
-        # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
         if direct == UPLOAD:
             return self.stats['stats'].upTotal
         else:
@@ -252,7 +250,7 @@ class DownloadState(Serializable):
         # Determine if we need statsobj to be requested, same as for spew
         statsobj = self.stats['stats']
         return statsobj.numSeeds+statsobj.numPeers
-        
+
     def get_num_nonseeds(self):
         """ 
         Returns the download's number of non-seeders. 

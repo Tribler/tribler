@@ -79,6 +79,8 @@ class Instance2InstanceServer(Thread):
 
     def external_connection_made(self,s):
         try:
+            if DEBUG:
+                print >>sys.stderr,"i2is: external_connection_made" 
             self.connhandler.external_connection_made(s)
         except:
             print_exc()
@@ -101,6 +103,9 @@ class Instance2InstanceServer(Thread):
 
     def add_task(self,func,t):
         self.rawserver.add_task(func,t)
+
+    def start_connection(self,dns):
+        return self.rawserver.start_connection_raw(dns,handler=self.connhandler)
 
 
 
@@ -154,6 +159,13 @@ class InstanceConnectionHandler:
         for ic in self.singsock2ic.values():
             ic.shutdown()
 
+    def set_server(self,i2is):
+        self.i2is = i2is
+
+    def start_connection(self,dns,ic):
+        s = self.i2is.start_connection(dns)
+        self.singsock2ic[s] = ic
+        return s
 
 
 class InstanceConnection:
@@ -162,51 +174,36 @@ class InstanceConnection:
         self.connhandler = connhandler
         self.readlinecallback = readlinecallback
         self.rflag = False
-        self.remain = ''
-        self.proto = 0
+        self.buffer = ''
 
     
     def data_came_in(self,data):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
+        # data may come in in parts, not lines! Or multiple lines at same time
         
-        #if DEBUG:
-        print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data),"proto",self.proto
+        if DEBUG:
+            print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data)
+
+        self.buffer = self.buffer + data
+        self.read_lines()
         
-        if self.proto == 0:
-            if data[0] == '\x00':
-                # Backwards compatibility: first 4 bytes are length, no \r\n
-                self.proto = 1
-            else:
-                self.proto = 2
-            
-        if self.proto == 1:
-            # hack
-            self.remain += data
-            idx = self.remain.find('START') 
-            if  idx == -1:
-                return
-            else:
-                data = self.remain[idx:]+'\r\n'
-                self.remain = ''
-        
-        for i in range(0,len(data)):
+    def read_lines(self):
+        self.rflag = False
+        cmd = None
+        for i in range(0,len(self.buffer)):
             if not self.rflag:
-                if data[i]=='\r':
+                if self.buffer[i]=='\r':
                     self.rflag = True
             else:
-                if data[i] == '\n':
-                    cmd = self.remain+data[0:i+1] 
-                    self.remain = data[i+1:]
+                if self.buffer[i] == '\n':
+                    cmd = self.buffer[0:i+1] 
+                    self.buffer = self.buffer[i+1:]
                     self.readlinecallback(self,cmd[:-2])# strip off \r\n
-                    if self.remain.endswith('\r\n'):
-                        cmd = self.remain
-                        self.remain = ''
-                        self.readlinecallback(self,cmd[:-2])# strip off \r\n
-                    return
+                    break
                     
-                rflag = False
-                
-        self.remain = self.remain + data
+                self.rflag = False
+        if cmd is not None and len(self.buffer) > 0:
+            self.read_lines()
     
     def write(self,data):
         if self.singsock is not None:

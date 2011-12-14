@@ -107,17 +107,22 @@ class DownloadConfigInterface:
         VODEVENT_START:
             The params dictionary will contain the fields
         
-                mimetype,stream,filename,length,bitrate
+                mimetype,stream,filename,length,bitrate,blocksize,url
         
             If the filename is set, the video can be read from there. If not,
             the video can be read from the stream, which is a file-like object 
-            supporting the read(),seek(), and close() operations. The MIME type
-            of the video is given by "mimetype", the length of the stream in
-            bytes by "length" which may be None if the length is unknown (e.g.
-            when live streaming). bitrate is either the bitrate as specified
-            in the TorrentDef, or if that was lacking an dynamic estimate 
-            calculated using the videoanalyser (e.g. ffmpeg), see
-            SessionConfig.set_video_analyser_path()
+            supporting the read(),seek(), and close() operations. It also 
+            supports an available() method that returns the number of bytes
+            that can be read from the stream without blocking.  If the stream
+            is not set, the url key contains a URL for the video.
+            
+            The MIME type of the video is given by "mimetype", the length of 
+            the stream in bytes by "length" which may be None if the length is 
+            unknown (e.g. when live streaming). bitrate is either the bitrate 
+            as specified in the TorrentDef, or if that was lacking an dynamic 
+            estimate calculated using the videoanalyser (e.g. ffmpeg), see
+            SessionConfig.set_video_analyser_path(). "blocksize" indicates
+            the preferred amount of data to read from the stream at a time.
         
             To fetch a specific file from a multi-file torrent, use the 
             set_selected_files() method. This method sets the mode to DLMODE_VOD 

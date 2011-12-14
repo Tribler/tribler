@@ -211,7 +211,14 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['pingback_servers'] = sessdefaults['pingback_servers']
         if not 'mainline_dht' in self.sessconfig:
             self.sessconfig['mainline_dht'] = sessdefaults['mainline_dht']
-            
+
+        # SWIFTPROC
+        if self.sessconfig['swiftpath'] is None:
+            if sys.platform == "win32":
+                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'],"swift.exe")
+            else:
+                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'],"swift")
+
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 
@@ -267,16 +274,16 @@ class Session(SessionRuntimeConfig):
     #
     # Public methods
     #
-    def start_download(self,tdef,dcfg=None,initialdlstatus=None):
+    def start_download(self,cdef,dcfg=None,initialdlstatus=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
-        TorrentDef and DownloadStartupConfig are copied into the new Download 
+        ContentDef and DownloadStartupConfig are copied into the new Download 
         object. The Download is then started and checkpointed.
 
         If a checkpointed version of the Download is found, that is restarted
         overriding the saved DownloadStartupConfig if "dcfg" is not None.
         
-        @param tdef  A finalized TorrentDef
+        @param cdef  A finalized TorrentDef or a SwiftDef
         @param dcfg DownloadStartupConfig or None, in which case 
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
@@ -286,7 +293,12 @@ class Session(SessionRuntimeConfig):
         @return Download
         """
         # locking by lm
-        return self.lm.add(tdef,dcfg,initialdlstatus=initialdlstatus)
+        if cdef.get_def_type() == "torrent":
+            return self.lm.add(cdef,dcfg,initialdlstatus=initialdlstatus)
+        else:
+            # SWIFTPROC
+            return self.lm.swift_add(cdef,dcfg,initialdlstatus=initialdlstatus)
+
 
     def resume_download_from_file(self,filename):
         """
@@ -316,8 +328,11 @@ class Session(SessionRuntimeConfig):
         from disk.
         """
         # locking by lm
-        self.lm.remove(d,removecontent=removecontent,removestate=removestate)
-
+        if d.get_def().get_def_type() == "torrent":
+            self.lm.remove(d,removecontent=removecontent,removestate=removestate)
+        else:
+            # SWIFTPROC
+            self.lm.swift_remove(d,removecontent=removecontent,removestate=removestate)
 
     def set_download_states_callback(self,usercallback,getpeerlist=False):
         """
@@ -1025,3 +1040,5 @@ class Session(SessionRuntimeConfig):
 
     #
     # _ProxyService
+    
+    

@@ -1267,7 +1267,6 @@ class SessionConfigInterface:
         @return A rate in KB/s. """
         return self.sessconfig['subtitles_upload_rate']
 
-
     #
     # Dispersy
     #
@@ -1297,6 +1296,59 @@ class SessionConfigInterface:
         @return int
         """
         return self.sessconfig['dispersy_port']
+    #
+    # SWIFTPROC
+    #
+    def set_swift_proc(self,value):
+        """ Enable/disable support for swift Downloads via an external
+        swift C++ process.
+        @param value  Boolean
+        """
+        self.sessconfig['swiftproc'] = value
+    
+    def get_swift_proc(self):
+        """ Return whether support for swift Downloads via an external
+        swift C++ process is enabled.
+        @return  Boolean
+        """
+        return self.sessconfig['swiftproc']
+
+    def set_swift_path(self,value):
+        """ Path to swift binary (default = None = <installdir>/swift[.exe])
+        @param value An absolute path name.
+        """
+        self.sessconfig['swiftpath'] = value
+    
+    def get_swift_path(self):
+        """ Returns the path of the swift binary.
+        @return An absolute path name. """
+        return self.sessconfig['swiftpath'] # strings immutable
+
+    def set_swift_cmd_listen_port(self,port):
+        """ Set the local TCP listen port for cmd socket communication to
+        the swift processes (unused). CMD listen port of swift process itself
+        is set randomly.
+        @param port A port number.
+        """
+        self.sessconfig['swiftcmdlistenport'] = port
+
+    def get_swift_cmd_listen_port(self):
+        """ Returns the local listen port for swift cmd socket communication.
+        @return Port number. """
+        return self.sessconfig['swiftcmdlistenport']
+
+
+    def set_swift_downloads_per_process(self,value):
+        """ Number of downloads per swift process. When exceeded, a new swift
+        process is created.
+        @param value A number of downloads.
+        """
+        self.sessconfig['swiftdlsperproc'] = value
+
+    def get_swift_downloads_per_process(self):
+        """ Returns the number of downloads per swift process. 
+        @return A number of downloads. """
+        return self.sessconfig['swiftdlsperproc']
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
     """ Class to configure a Session """

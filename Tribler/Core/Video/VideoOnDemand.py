@@ -1487,23 +1487,20 @@ class MovieOnDemandTransporter(MovieTransport):
                     return num_future_pieces * vs.piecelen >= goal
             else: # vod
                 def sustainable():
-                    # num_immediate_packets = 0
-                    # for piece in vs.generate_range( vs.download_range() ):
-                    #     if self.has[piece]:
-                    #         num_immediate_packets += 1
-                    #     else:
-                    #         break
-                    # else:
-                    #     # progress                                                                              
-                    #     self.prebufprogress = 1.0
-                    #     # completed loop without breaking, so we have everything we need                        
-                    #     return True
+                    # SPEED
                     #
-                    # # progress                                                                                  
-                    # self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
+                    # Sustainable VOD is when we have the high range already 
+                    # downloaded. Testing for sustainability is done via 
+                    # two tests. The test that is run once every 10 calls 
+                    # iterates over the entire high range.  This allows us 
+                    # to compute the self.prebufprogress value.
+                    # 
+                    # The other test, that is called more often, does not 
+                    # iterate over the entire high range.  It stops when it 
+                    # finds a single missing piece. This means that it can 
+                    # not compute the self.prebufprogress value. But it is
+                    # slightly faster.
                     #
-                    # return num_immediate_packets >= self.max_prebuf_packets
-
                     self.sustainable_counter += 1
                     if self.sustainable_counter > 10:
                         self.sustainable_counter = 0

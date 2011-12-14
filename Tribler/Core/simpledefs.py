@@ -28,13 +28,13 @@ DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 DLMODE_SVC = 2 # Ric: added download mode for Scalable Video Coding (SVC) 
 
-PERSISTENTSTATE_CURRENTVERSION = 3
+PERSISTENTSTATE_CURRENTVERSION = 4
 """
 V1 = SwarmPlayer 1.0.0
 V2 = Tribler 4.5.0: SessionConfig: Added NAT fields
 V3 = SessionConfig: Added multicast_local_peer_discovery, 
      Removed rss_reload_frequency + rss_check_frequency.
-
+V4 = ... + added pickled SwiftDef
 For details see API.py
 """
 
@@ -187,6 +187,7 @@ FS_I_DENIED = 4
 FS_HE_DENIED = 5
 
 P2PURL_SCHEME = "tribe" # No colon
+SWIFT_URL_SCHEME = "tswift" # No colon
 
 URL_MIME_TYPE = 'text/x-url'
 TSTREAM_MIME_TYPE = "application/x-ns-stream"

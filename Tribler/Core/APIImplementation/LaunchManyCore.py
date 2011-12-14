@@ -11,6 +11,7 @@ import binascii
 import time as timemod
 from threading import Event,Thread,enumerate as enumerate_threads
 from traceback import print_exc, print_stack
+import traceback
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
@@ -28,7 +29,10 @@ from Tribler.Core.NATFirewall.UDPPuncture import UDPHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
-import traceback
+# SWIFTPROC
+from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
+from Tribler.Core.Swift.SwiftDownloadImpl import SwiftDownloadImpl
+from Tribler.Core.Swift.SwiftDef import SwiftDef 
 from Tribler.Core.dispersy.callback import Callback, Idle
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -322,6 +326,12 @@ class TriblerLaunchMany(Thread):
             # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
             # required to ensure that the BitTornado core can access the dispersy instance.
             self.dispersy_thread.call(self.start_dispersy)
+
+        # SWIFTPROC
+        if config['swiftproc']:
+            self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.sesslock)
+        else:
+            self.spm = None
 
     def start_dispersy(self):
         class DispersySocket(object):
@@ -703,11 +713,16 @@ class TriblerLaunchMany(Thread):
                 else:
                     print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
 
-            tdef = TorrentDef.load_from_dict(pstate['metainfo'])
-
-            # Activate
             dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
-            self.add(tdef,dscfg,pstate,initialdlstatus)
+            # SWIFTPROC
+            if SwiftDef.is_swift_url(pstate['metainfo']):
+                sdef = SwiftDef.load_from_url(pstate['metainfo'])
+                self.swift_add(sdef,dscfg,pstate,initialdlstatus)
+
+            else:
+                tdef = TorrentDef.load_from_dict(pstate['metainfo'])
+                self.add(tdef,dscfg,pstate,initialdlstatus)
+                
         except Exception,e:
             # TODO: remove saved checkpoint?
             self.rawserver_nonfatalerrorfunc(e)
@@ -768,6 +783,7 @@ class TriblerLaunchMany(Thread):
         shutdown tasks that takes some time and that can run in parallel
         to checkpointing, etc.
         """
+        # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
         if self.overlay_apps is not None:
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
@@ -775,6 +791,9 @@ class TriblerLaunchMany(Thread):
             self.udppuncture_handler.shutdown()
         if self.dispersy_thread:
             self.dispersy_thread.stop(timeout=2.0)
+        # SWIFTPROC
+        if self.spm is not None:
+            self.spm.early_shutdown()
 
     def network_shutdown(self):
         try:
@@ -786,6 +805,10 @@ class TriblerLaunchMany(Thread):
                 db.commit()
 
             mainlineDHT.deinit()
+
+            # SWIFTPROC
+            if self.spm is not None:
+                self.spm.network_shutdown()
 
             ts = enumerate_threads()
             print >>sys.stderr,"tlm: Number of threads still running",len(ts)
@@ -1041,7 +1064,46 @@ class TriblerLaunchMany(Thread):
         params = [self.session.get_listen_port(), self.secure_overlay.olproto_ver_current]
         self.mc_channel.sendAnnounce(params)
 
+    # SWIFTPROC
+    def swift_add(self,sdef,dscfg,pstate=None,initialdlstatus=None):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            if self.spm is None:
+                raise OperationNotEnabledByConfigurationException()
+            
+            roothash = sdef.get_roothash()
+            
+            # Check if running or saved on disk
+            if roothash in self.downloads:
+                raise DuplicateDownloadException()
 
+            d = SwiftDownloadImpl(self.session,sdef)            
+            
+            # Store in list of Downloads, always. 
+            self.downloads[roothash] = d
+            d.setup(dscfg,pstate,initialdlstatus,None,self.network_vod_event_callback)
+
+            return d
+        finally:
+            self.sesslock.release()
+
+    def swift_remove(self,d,removecontent=False,removestate=True):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            # SWIFTPROC: remove before stop_remove, to ensure that content
+            # removal works (for torrents, stopping is delegate to network
+            # so all this code happens fast before actual removal. For swift not.
+            roothash = d.get_def().get_roothash()
+            del self.downloads[roothash]
+
+            d.stop_remove(removestate=removestate,removecontent=removecontent)
+        finally:
+            self.sesslock.release()
+
+    
+        
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the
         content of the BT1Download (if any) contained in them.

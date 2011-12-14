@@ -5,7 +5,7 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.9, Jun 2011. Import this to use the API """
+""" Tribler Core API v1.2.0rc1, Jul 2011. Import this to use the API """
 
 # History:
 # 1.0.9      Added: query_peers to Session, allows you to query a subset of peers
@@ -20,6 +20,43 @@
 #            Removed set_download_help/get_download_help from the SessionConfig
 #            and SessionRuntimeConfig. Renamed set_coopdlconfig/get_coopdlconfig to
 #            set_proxy_default_dlcfg/get_proxy_default_dlcfg in SessionConfig.
+#
+# 1.2.0rc1   Support for swift Downloads in Core API:
+#            Refactored TorrentDef into generic ContentDefinition and 
+#            TorrentDef+SwiftDef as implementations.
+#            Added: [s/g]et_swift_*
+#
+# 1.1.0      Released with Next-Share M40
+# 
+# 1.1.0rc4   Added offset parameter to DownloadConfig.set_vod_event_callback()
+#            for fast seeking in transport streams or out-of-core HTTP seeding 
+#            on slow hardware (set-top box).
+#
+# 1.1.0rc3   Added [s/g]et_give_to_get to DownloadConfig so we can enable it
+#            on video-on-demand seeders.
+#
+# 1.1.0rc2   Added: remote queries for channels via Session.query_*_peers() 
+#            extended to control how many torrent hits are returned.
+#
+# 1.1.0rc1   Added: prio field in Session.download_torrent(). 
+#            Added: Session.query_peers(), allows you to query a subset of peers
+#            which if not connected will connected to. Otherwise equal to 
+#            query_connected_peers().
+#            Added: The results of CHANNEL queries can now be bounded by
+#            a timeframe and/or number of torrents for more optimal retrieval.
+#
+# 1.0.9      Released with Next-Share M36.2
+#
+# 1.0.9rc2   Added: remote query feature was extended with the facility
+#            for users to define query prefixes and handle reply generation
+#            at the receiving peer. See Session.set_user_query_handlers().
+#
+# 1.0.9rc1   RICHMETA+METADATA query type added by UNIKLU.
+#
+# 1.0.8      Released with Next-Share M36.1
+#
+# 1.0.8rc1   Added: Download.recontact_tracker to allow some form of restart
+#            on page reloads.
 #
 # 1.0.7      Released with Next-Share M32
 #
@@ -170,4 +207,4 @@ try:
     from Tribler.Core.LiveSourceAuthConfig import *
 except ImportError:
     pass
-
+from Tribler.Core.Swift.SwiftDef import *

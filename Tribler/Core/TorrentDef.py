@@ -27,7 +27,7 @@ from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.ClosedSwarm import ClosedSwarm
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 
-class TorrentDef(Serializable,Copyable):
+class TorrentDef(ContentDefinition,Serializable,Copyable):
     """
     Definition of a torrent, that is, all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
@@ -196,6 +196,15 @@ class TorrentDef(Serializable,Copyable):
         # Class method, no locking required
         return TorrentDef._create(metainfo)
     load_from_dict = staticmethod(load_from_dict)
+
+    #
+    # ContentDefinition interface
+    #
+    def get_def_type(self):
+        """ Returns the type of this Definition
+        @return string
+        """
+        return "torrent"
 
     
     #

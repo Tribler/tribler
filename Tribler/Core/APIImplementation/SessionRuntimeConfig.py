@@ -943,3 +943,48 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    #
+    # SWIFTPROC
+    #
+    def set_swift_proc(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+        
+    def get_swift_proc(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_swift_proc(self)
+        finally:
+            self.sesslock.release()
+
+
+    def set_swift_path(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+        
+    def get_swift_path(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_swift_path(self)
+        finally:
+            self.sesslock.release()
+
+
+    def set_swift_cmd_listen_port(self,port):
+        raise OperationNotPossibleAtRuntimeException()
+    
+    def get_swift_cmd_listen_port(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_swift_cmd_listen_port(self)
+        finally:
+            self.sesslock.release()
+
+
+    def set_swift_downloads_per_process(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+    
+    def get_swift_downloads_per_process(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_swift_downloads_per_process(self)
+        finally:
+            self.sesslock.release()

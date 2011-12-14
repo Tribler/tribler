@@ -1,0 +1,539 @@
+# Written by Arno Bakker
+# see LICENSE.txt for license information
+#
+# TODO: 
+# - set rate limits
+#     * Check if current policy of limiting hint_out_size is sane.
+#         - test case: start unlimited, wait 10 s, then set to 512 K. In one 
+#           test speed dropped to few bytes/s then rose again to 512 K.
+#     * upload rate limit
+#     * test if you get 512K for each swarm when you download two in parallel 
+#       in one swift proc.
+#
+# - HASHCHECKING 
+#     * get progress from swift
+
+#     * Current cmdgw impl will open and thus hashcheck on main thread, halting 
+#       all network traffic, etc. in all other swarms. BitTornado interleaves 
+#       on netw thread.
+#           - Run cmdgw on separate thread(s)?
+#
+# - STATS
+#     * 
+# - BUGS
+#     * Try to recv ICMP port unreach on Mac such that we can clean up Channel 
+#       (Linux done)
+# 
+
+import sys
+import copy
+from traceback import print_exc,print_stack
+from threading import RLock,currentThread
+
+from Tribler.Core.simpledefs import *
+from Tribler.Core.DownloadState import *
+from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeConfig
+
+# ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
+# Send PLAY after receiving 2^layer * 1024 bytes
+CMDGW_PREBUFFER_BYTES  = (2 ** 8) * 1024 
+
+
+DEBUG = False
+
+class SwiftDownloadImpl(SwiftDownloadRuntimeConfig): 
+    """ Download subclass that represents a swift download.
+    The actual swift download takes places in a SwiftProcess.
+    """
+    
+    def __init__(self,session,sdef):
+        self.dllock = RLock()
+        self.session = session
+        self.sdef = sdef
+
+        # just enough so error saving and get_state() works
+        self.error = None
+        # To be able to return the progress of a stopped torrent, how far it got.
+        self.progressbeforestop = 0.0
+
+        # SwiftProcess performing the actual download.
+        self.sp = None
+
+        # spstatus
+        self.dlstatus = DLSTATUS_WAITING4HASHCHECK
+        self.dynasize = 0L
+        self.progress = 0.0
+        self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
+        self.numleech = 0
+        self.numseeds = 0
+        self.done = False
+        
+        self.lm_network_vod_event_callback = None
+
+    #
+    # Download Interface
+    #
+    def get_def(self):
+        return self.sdef
+    
+    
+
+    #
+    # DownloadImpl
+    #
+
+    #
+    # Creating a Download
+    #
+    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lm_network_engine_wrapper_created_callback=None,lm_network_vod_event_callback=None):
+        """
+        Create a Download object. Used internally by Session.
+        @param dcfg DownloadStartupConfig or None (in which case 
+        a new DownloadConfig() is created and the result 
+        becomes the runtime config of this Download.
+        """
+        # Called by any thread, assume sessionlock is held
+        try:
+            self.dllock.acquire() # not really needed, no other threads know of this object
+
+            # Copy dlconfig, from default if not specified
+            if dcfg is None:
+                cdcfg = DownloadStartupConfig()
+            else:
+                cdcfg = dcfg
+            self.dlconfig = copy.copy(cdcfg.dlconfig)
+            
+
+            # Things that only exist at runtime
+            self.dlruntimeconfig= {}
+            self.dlruntimeconfig['max_desired_upload_rate'] = 0
+            self.dlruntimeconfig['max_desired_download_rate'] = 0
+    
+    
+    
+            if DEBUG:
+                print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.sdef.get_roothash_as_hex()`,initialdlstatus
+
+            # Note: initialdlstatus now only works for STOPPED
+            if initialdlstatus != DLSTATUS_STOPPED:
+                self.create_engine_wrapper(lm_network_engine_wrapper_created_callback,pstate,lm_network_vod_event_callback)
+                
+            self.dllock.release()
+        except Exception,e:
+            print_exc()
+            self.set_error(e)
+            self.dllock.release()
+
+
+    def create_engine_wrapper(self,lm_network_engine_wrapper_created_callback,pstate,lm_network_vod_event_callback,initialdlstatus=None):
+        """ Called by any thread, assume dllock already acquired """
+        if DEBUG:
+            print >>sys.stderr,"SwiftDownloadImpl: create_engine_wrapper()"
+
+        if self.get_mode() == DLMODE_VOD:        
+            self.lm_network_vod_event_callback = lm_network_vod_event_callback 
+            
+        if DEBUG:
+            print >>sys.stderr,"Download: create_engine_wrapper: vodfileindex",`self.vodfileindex` 
+
+
+        # Synchronous: starts process if needed
+        self.sp = self.session.lm.spm.get_or_create_sp(self.get_dest_dir())
+        self.sp.start_download(self)
+
+        # Arno: if used, make sure to switch to network thread first!
+        #if lm_network_engine_wrapper_created_callback is not None:
+        #    sp = self.sp
+        #    exc = self.error
+        #    lm_network_engine_wrapper_created_callback(self,sp,exc,pstate)
+
+    #
+    # SwiftProcess callbacks
+    #
+    def i2ithread_info_callback(self,dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds):
+        self.dllock.acquire()
+        try:
+            self.dlstatus = dlstatus
+            self.dynasize = dynasize
+            self.progress = progress
+            self.curspeeds[DOWNLOAD] = dlspeed
+            self.curspeeds[UPLOAD] = ulspeed
+            self.numleech = numleech
+            self.numseeds = numseeds
+        finally:
+            self.dllock.release()
+    
+    def i2ithread_vod_event_callback(self,event,httpurl):
+        self.dllock.acquire()
+        try:
+            if event == VODEVENT_START:
+                
+                if self.get_mode() != DLMODE_VOD:
+                    return
+                
+                # Fix firefox idiosyncrasies
+                duration = self.sdef.get_duration() 
+                if duration is not None:
+                    httpurl += '@'+duration 
+    
+                vod_usercallback_wrapper = lambda event,params:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],event,params)
+                videoinfo = {}
+                videoinfo['usercallback'] = vod_usercallback_wrapper
+                
+                # ARNOSMPTODO: if complete, return file directly
+                
+                # Allow direct connection of video renderer with swift HTTP server
+                # via new "url" param.
+                # 
+                
+                # Arno: No threading violation, lm_network_* is safe at the moment
+                self.lm_network_vod_event_callback( videoinfo, VODEVENT_START, {
+                    "complete":  False,
+                    "filename":  None,
+                    "mimetype":  'application/octet-stream', # ARNOSMPTODO
+                    "stream":    None,
+                    "length":    self.get_dynasize(),
+                    "bitrate":   None, # ARNOSMPTODO
+                    "url":       httpurl,
+                } )
+        finally:
+            self.dllock.release()
+
+    #
+    # Retrieving DownloadState
+    #
+    def get_status(self):
+        """ Returns the status of the download.
+        @return DLSTATUS_* """
+        self.dllock.acquire()
+        try:
+            return self.dlstatus
+        finally:
+            self.dllock.release()
+
+    
+    def get_dynasize(self):
+        """ Returns the size of the swift content. Note this may vary 
+        (generally ~1KiB because of dynamic size determination by the 
+        swift protocol
+        @return long
+        """ 
+        self.dllock.acquire()
+        try:
+            return self.dynasize
+        finally:
+            self.dllock.release()
+
+
+    def get_progress(self):
+        """ Return fraction of content downloaded.
+        @return float 0..1
+        """
+        self.dllock.acquire()
+        try:
+            return self.progress
+        finally:
+            self.dllock.release()
+
+    def get_current_speed(self,dir):
+        """ Return last resported speed in KB/s 
+        @return float
+        """
+        self.dllock.acquire()
+        try:
+            return self.curspeeds[dir]/1024.0
+        finally:
+            self.dllock.release()
+
+
+
+    def network_get_stats(self,getpeerlist):
+        """
+        @return (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
+        """
+        # dllock held
+        # ARNOSMPTODO: Have a status for when swift is hashchecking the file on disk
+        
+        if self.sp is None:
+            status = DLSTATUS_STOPPED
+        else:
+            status = self.dlstatus
+
+        stats = {}
+        stats['down'] = self.curspeeds[DOWNLOAD]
+        stats['up'] = self.curspeeds[UPLOAD]
+        stats['frac'] = self.progress
+        stats['stats'] = self.network_create_statistics_reponse()
+        stats['time'] = self.network_calc_eta()
+        stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
+        stats['vod'] = True
+        # ARNOSMPTODO: no hard check for suff bandwidth, unlike BT1Download
+        stats['vod_playable'] = self.progress == 1.0 or (self.network_calc_prebuf_frac() == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
+        stats['vod_playable_after'] = self.network_calc_prebuf_eta()
+        stats['vod_stats'] = self.network_get_vod_stats()
+        
+        logmsgs = []
+        coopdl_helpers = None
+        coopdl_coordinator = None
+        return (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
+
+
+    def network_create_statistics_reponse(self):
+        return SwiftStatisticsResponse(self.numleech,self.numseeds)
+    
+    def network_calc_eta(self):
+        bytestogof = (1.0-self.progress) * float(self.dynasize)
+        dlspeed = max(0.000001,self.curspeeds[DOWNLOAD])
+        return bytestogof/dlspeed
+
+    def network_calc_prebuf_frac(self):
+        gotbytesf = self.progress * float(self.dynasize)
+        prebuff = float(CMDGW_PREBUFFER_BYTES)
+        return min(1.0,gotbytesf/prebuff)
+
+    def network_calc_prebuf_eta(self):
+        bytestogof = (1.0-self.network_calc_prebuf_frac()) * float(CMDGW_PREBUFFER_BYTES)
+        dlspeed = max(0.000001,self.curspeeds[DOWNLOAD])
+        return bytestogof/dlspeed
+
+    def network_get_vod_stats(self):
+        # More would have to be sent from swift process to set these correctly
+        d = {}
+        d['played'] = None
+        d['late'] = None 
+        d['dropped'] = None 
+        d['stall'] = None 
+        d['pos'] = None
+        d['prebuf'] = None
+        d['firstpiece'] = 0 
+        d['npieces'] = ((self.dynasize +1023) / 1024)
+        return d
+
+        
+    #
+    # Retrieving DownloadState
+    #
+    def set_state_callback(self,usercallback,getpeerlist=False):
+        """ Called by any thread """
+        self.dllock.acquire()
+        try:
+            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
+            # First time on general rawserver
+            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
+        finally:
+            self.dllock.release()
+
+
+    def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            if self.sp is None:
+                if DEBUG:
+                    print >>sys.stderr,"SwiftDownloadImpl: network_get_state: Download not running"
+                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
+            else:
+                (status,stats,logmsgs,proxyservice_proxy_list,proxyservice_doe_list) = self.network_get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,self.get_progress(),stats=stats,logmsgs=logmsgs,proxyservice_proxy_list=proxyservice_proxy_list,proxyservice_doe_list=proxyservice_doe_list)
+                self.progressbeforestop = ds.get_progress()
+            
+            if sessioncalling:
+                return ds
+
+            # Invoke the usercallback function via a new thread.
+            # After the callback is invoked, the return values will be passed to
+            # the returncallback for post-callback processing.
+            if not self.done:
+                self.session.uch.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
+        finally:
+            self.dllock.release()
+
+
+    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
+        """ Called by SessionCallbackThread """
+        self.dllock.acquire()
+        try:
+            if when > 0.0:
+                # Schedule next invocation, either on general or DL specific
+                # TODO: ensure this continues when dl is stopped. Should be OK.
+                network_get_state_lambda = lambda:self.network_get_state(usercallback,newgetpeerlist)
+                self.session.lm.rawserver.add_task(network_get_state_lambda,when)
+        finally:
+            self.dllock.release()
+
+
+    #
+    # Download stop/resume
+    #
+    def stop(self):
+        """ Called by any thread """
+        self.stop_remove(removestate=False,removecontent=False)
+
+    def stop_remove(self,removestate=False,removecontent=False):
+        """ Called by any thread. Called on Session.remove_download() """
+        self.done = removestate
+        self.network_stop(removestate=removestate,removecontent=removecontent)
+
+    def network_stop(self,removestate,removecontent):
+        """ Called by network thread, but safe for any """
+        self.dllock.acquire()
+        try:
+            if DEBUG:
+                print >>sys.stderr,"SwiftDownloadImpl: network_stop",`self.sdef.get_name()`
+
+            pstate = self.network_get_persistent_state()
+            if self.sp is not None:
+                self.sp.remove_download(self,removestate,removecontent)
+                self.session.lm.spm.release_sp(self.sp)
+                self.sp = None
+
+            # Offload the removal of the dlcheckpoint to another thread
+            if removestate:
+                # To remove:
+                # 1. Core checkpoint (if any)
+                # 2. .mhash file
+                # 3. content (if so desired)
+
+                # content and .mhash file is removed by swift engine if requested
+                roothash = self.sdef.get_roothash() 
+                self.session.uch.perform_removestate_callback(roothash,None,False)
+
+            return (self.sdef.get_roothash(),pstate)
+        finally:
+            self.dllock.release()
+
+    def get_content_dest(self):
+        """ Returns the file to which the downloaded content is saved. """
+        return os.path.join(self.get_dest_dir(),self.sdef.get_roothash_as_hex())
+
+
+    def restart(self, initialdlstatus=None):
+        """ Restart the Download """
+        # Called by any thread 
+        if DEBUG:
+            print >>sys.stderr,"SwiftDownloadImpl: restart:",`self.sdef.get_name()`
+        self.dllock.acquire()
+        try:
+            if self.sp is None:
+                self.error = None # assume fatal error is reproducible
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,None,self.session.lm.network_vod_event_callback,initialdlstatus=initialdlstatus)    
+
+            # No exception if already started, for convenience
+        finally:
+            self.dllock.release()
+
+
+    #
+    # Config parameters that only exists at runtime 
+    #
+    def set_max_desired_speed(self,direct,speed):
+        if DEBUG:
+            print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
+        #if speed < 10:
+        #    print_stack()
+        
+        self.dllock.acquire()
+        if direct == UPLOAD:
+            self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        else:
+            self.dlruntimeconfig['max_desired_download_rate'] = speed
+        self.dllock.release()
+
+    def get_max_desired_speed(self,direct):
+        self.dllock.acquire()
+        try:
+            if direct == UPLOAD:
+                return self.dlruntimeconfig['max_desired_upload_rate']
+            else:
+                return self.dlruntimeconfig['max_desired_download_rate']
+        finally:
+            self.dllock.release()
+
+    def get_dest_files(self, exts=None):
+        """
+        Returns (None,destfilename)
+        """
+        if exts is not None:
+            raise OperationNotEnabledByConfigurationException()
+
+        f2dlist = []
+        diskfn = self.get_content_dest()
+        f2dtuple = (None, diskfn)
+        f2dlist.append(f2dtuple)
+        return f2dlist
+
+
+    #
+    # Persistence
+    #
+    def network_checkpoint(self):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            pstate = self.network_get_persistent_state() 
+            if self.sp is not None:
+                self.sp.checkpoint_download(self)
+            return (self.sdef.get_roothash(),pstate)
+        finally:
+            self.dllock.release()
+        
+
+    def network_get_persistent_state(self):
+        """ Assume dllock already held """
+        pstate = {}
+        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
+        pstate['metainfo'] = self.sdef.get_url_with_meta() # assumed immutable
+        dlconfig = copy.copy(self.dlconfig)
+        # Reset unpicklable params
+        dlconfig['vod_usercallback'] = None
+        dlconfig['mode'] = DLMODE_NORMAL # no callback, no VOD
+        pstate['dlconfig'] = dlconfig
+
+        pstate['dlstate'] = {}
+        ds = self.network_get_state(None,False,sessioncalling=True)
+        pstate['dlstate']['status'] = ds.get_status()
+        pstate['dlstate']['progress'] = ds.get_progress()
+        pstate['dlstate']['swarmcache'] = None
+        
+        if DEBUG:
+            print >>sys.stderr,"SwiftDownloadImpl: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
+
+        # Swift stores own state in .mhash and .mbinmap file
+        pstate['engineresumedata'] = None
+        return pstate
+
+
+    #
+    # Coop download
+    #
+    def get_coopdl_role_object(self,role):
+        """ Called by network thread """
+        return None
+
+    def recontact_tracker(self):
+        """ Called by any thread """
+        pass
+
+
+    #
+    # Internal methods
+    #
+    def set_error(self,e):
+        self.dllock.acquire()
+        self.error = e
+        self.dllock.release()
+
+        
+class SwiftStatisticsResponse:
+    
+    def __init__(self,numleech,numseeds):
+        # More would have to be sent from swift process to set these correctly
+        self.upTotal = None
+        self.downTotal = None
+        self.numConCandidates = None
+        self.numConInitiated = None
+        self.have = None
+        self.numSeeds = numseeds
+        self.numPeers = numleech
+        
+    

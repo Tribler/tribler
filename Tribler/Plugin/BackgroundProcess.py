@@ -206,7 +206,7 @@ class BackgroundApp(BaseApp):
     # InstanceConnectionHandler interface. Called by Instance2InstanceThread
     #
     def external_connection_made(self,s):
-        ic = BGInstanceConnection(s,self,self.readlinecallback,self.videoHTTPServer)
+        ic = BGInstanceConnection(s,self,self.i2ithread_readlinecallback,self.videoHTTPServer)
         self.singsock2ic[s] = ic
         if DEBUG:
             print >>sys.stderr,"bg: Plugin connection_made",len(self.singsock2ic),"++++++++++++++++++++++++++++++++++++++++++++++++"
