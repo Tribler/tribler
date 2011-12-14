@@ -1371,7 +1371,7 @@ class Dispersy(Singleton):
                     # batch exceeds maximum size, process first max_size immediately
                     batch, current_batch = current_batch[:meta.batch.max_size], current_batch[meta.batch.max_size:]
                     if __debug__: dprint("schedule processing ", len(batch), " ", meta.name, " messages immediately (exceeded batch size)")
-                    self._callback.register(self._on_batch_cache_timeout, (meta, current_batch, batch), priority=meta.batch.priority)
+                    self._callback.register(self._on_batch_cache_timeout, (meta, current_timestamp, batch), priority=meta.batch.priority)
 
                     task_identifier = self._callback.replace_register(task_identifier, self._on_batch_cache_timeout, (meta, timestamp, current_batch), delay=meta.batch.max_window, priority=meta.batch.priority)
                     self._batch_cache[meta] = (task_identifier, timestamp, current_batch)
