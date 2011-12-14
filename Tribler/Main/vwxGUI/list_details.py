@@ -640,7 +640,7 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def _ShowTorrentDetails(self, panel, sizer):
-        if not self.compact:
+        if not self.saveSpace:
             subtitle = StaticText(panel, -1, "Click download or play to enjoy this torrent.")
             subtitle.SetMinSize((1, -1))
             sizer.Add(subtitle, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
@@ -650,25 +650,30 @@ class TorrentDetails(AbstractDetails):
         download_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
         if wx.Platform=="__WXMAC__":
             self.downloadButton = wx.Button(panel, -1, "Download")
+            self.playButton = wx.Button(panel, -1, "Play")
         else:
             #Niels: multiline wx.button bug, if we ever want multiple init with multiline
             self.downloadButton = wx.Button(panel, -1, "Download\n")
             self.downloadButton.SetLabel("Download")
+            
+            self.playButton = wx.Button(panel, -1, "Play\n")
+            self.playButton.SetLabel("Play")
         
         self.downloadButton.SetToolTipString('Start downloading this torrent.')
         self.downloadButton.Bind(wx.EVT_BUTTON, self.OnDownload)
         self.downloadButton.Bind(wx.EVT_MOTION, self.OnDrag)
         
-        play = wx.Button(panel, -1, "Play")
-        play.SetToolTipString('Start playing this torrent.')
-        play.Bind(wx.EVT_BUTTON, self.OnPlay)
+        self.playButton.Bind(wx.EVT_BUTTON, self.OnPlay)
         
         if not self.torrent.isPlayable():
-            play.Disable()
+            self.playButton.Disable()
+            self.playButton.SetToolTipString('Cannot stream this torrent.')
+        else:
+            self.playButton.SetToolTipString('Start playing this torrent.')
         
         download_play_sizer.Add(self.downloadButton)
         download_play_sizer.Add(StaticText(panel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
-        download_play_sizer.Add(play, 0, wx.ALIGN_CENTER_VERTICAL)
+        download_play_sizer.Add(self.playButton, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(download_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
         sizer.AddStretchSpacer()
@@ -702,7 +707,7 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread
     def _ShowDownloadProgress(self, panel, sizer):
-        if not self.compact and not isinstance(self, LibraryDetails):
+        if not self.saveSpace and not isinstance(self, LibraryDetails):
             library = LinkStaticText(panel, "Open downloads")
             library.SetToolTipString("Open downloads")
             library.target = 'my_files'
@@ -712,7 +717,7 @@ class TorrentDetails(AbstractDetails):
         sizer.AddStretchSpacer()
     
         if not isinstance(self, LibraryDetails):
-            if not self.compact:
+            if not self.saveSpace:
                 #Progress
                 header = StaticText(panel, -1, "Current progress")
                 _set_font(header, fontweight = wx.FONTWEIGHT_BOLD)
@@ -772,7 +777,7 @@ class TorrentDetails(AbstractDetails):
             sizer.AddSpacer((-1, 10))
         sizer.AddStretchSpacer()
         
-        if not self.compact and not self.noChannel:
+        if not self.saveSpace and not self.noChannel:
             #if not attached channel, or not from my channel
             if not self.torrent.hasChannel() or not self.torrent.channel.isMyChannel():
                 header = wx.StaticText(parent, -1, "Did you enjoy this torrent?")
@@ -932,27 +937,33 @@ class TorrentDetails(AbstractDetails):
         
         if len(playable_files) > 1: #Create a popup
             playable_files.sort()
-            dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play?', 'Which file do you want to play?',playable_files)
             
-            (_, selected_file) = max([(size, filename) for filename, size in self.torrent.files if filename in self.torrent.videofiles])
-            if self.notebook.GetSelection() == 1: #If currentpage is files
-                selected = self.listCtrl.GetFirstSelected()
-                if selected != -1 and self.listCtrl.GetItemText(selected) in playable_files:
-                    selected_file = self.listCtrl.GetItemText(selected)
+            nrSelected = self.listCtrl.GetSelectedItemCount()
+            selected = self.listCtrl.GetFirstSelected()
+            if selected != -1 and self.listCtrl.GetItemText(selected) in playable_files and nrSelected == 1:
+                selected_file = self.listCtrl.GetItemText(selected)
+                
+            else:
+                dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play?', 'Which file do you want to play?',playable_files)
+            
+                (_, selected_file) = max([(size, filename) for filename, size in self.torrent.files if filename in self.torrent.videofiles])
              
-            if selected_file in playable_files:
-                dialog.SetSelection(playable_files.index(selected_file))
+                if selected_file in playable_files:
+                    dialog.SetSelection(playable_files.index(selected_file))
                 
-            if dialog.ShowModal() == wx.ID_OK:
-                response = dialog.GetStringSelection()
-                
-                self.guiutility.library_manager.playTorrent(self.torrent, response)
-                
+                if dialog.ShowModal() == wx.ID_OK:
+                    selected_file = dialog.GetStringSelection()
+                else:
+                    selected_file = None
+                dialog.Destroy()
+            
+            if selected_file:
+                self.guiutility.library_manager.playTorrent(self.torrent, selected_file)
                 if self.noChannel:
                     self.uelog.addEvent(message="Torrent: torrent play from channel", type = 2)
                 else:
                     self.uelog.addEvent(message="Torrent: torrent play from other", type = 2)       
-            dialog.Destroy()
+            
         elif len(playable_files) == 1:
             self.guiutility.library_manager.playTorrent(self.torrent)
             
@@ -983,6 +994,8 @@ class TorrentDetails(AbstractDetails):
     @warnWxThread   
     def OnFilesSelected(self, event):
         if wx.Platform !="__WXMAC__":
+            self.buttonPanel.Freeze()
+            
             if getattr(self, 'downloadButton', False):
                 nrSelected = self.listCtrl.GetSelectedItemCount()
                 if nrSelected > 0 and nrSelected < self.listCtrl.GetItemCount():
@@ -994,7 +1007,23 @@ class TorrentDetails(AbstractDetails):
                 if label != self.downloadButton.GetLabel():
                     self.downloadButton.SetLabel(label)
                     self.buttonPanel.Layout()
-    
+                    
+            if getattr(self, 'playButton', False):
+                playable_files = self.torrent.videofiles
+                
+                nrSelected = self.listCtrl.GetSelectedItemCount()
+                selected = self.listCtrl.GetFirstSelected()
+                if selected != -1 and self.listCtrl.GetItemText(selected) in playable_files and nrSelected == 1:
+                    label = 'Play\nselected'
+                else:
+                    label = 'Play'
+                    
+                if label != self.playButton.GetLabel():
+                    self.playButton.SetLabel(label)
+                    self.buttonPanel.Layout()
+                    
+            self.buttonPanel.Thaw()
+                    
     @warnWxThread
     def _ToggleSubtitleChoice(self, showChoice = None):
         if not showChoice:
@@ -1219,7 +1248,7 @@ class TorrentDetails(AbstractDetails):
                 self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
                 self._add_row(self.overview, self.torrentSizer, None, msg, 10)
             else:
-                statictext = children[-1].GetWindow()
+                statictext = children[-1].GetSizer()
                 statictext.SetLabel(msg)
                 
             self.torrentSizer.Layout()
@@ -1423,10 +1452,15 @@ class LibraryDetails(TorrentDetails):
         if not finished:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.availability = StaticText(peersPanel)
+            self.pieces = StaticText(peersPanel)
+            
             self._add_row(peersPanel, hSizer, 'Availability', self.availability, spacer = 3)
+            hSizer.AddSpacer((4,-1))
+            self._add_row(peersPanel, hSizer, 'Pieces', self.pieces, spacer = 3)
             vSizer.Add(hSizer, 0, wx.EXPAND)
         else:
             self.availability = None
+            self.pieces = None
 
         peersPanel.SetSizer(vSizer)
         self.notebook.InsertPage(2, peersPanel, "Peers")
@@ -1457,7 +1491,7 @@ class LibraryDetails(TorrentDetails):
                     for index in newselections:
                         selectedFiles.append(files[index])
                         
-                    self.guiutility.frame.modifySelection(self.torrent['ds'].download, selectedFiles)
+                    self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
                 dlg.Destroy()
             else:
                 TorrentDetails.OnDoubleClick(self, event)
@@ -1676,6 +1710,8 @@ class LibraryDetails(TorrentDetails):
 
             if self.availability:
                 self.availability.SetLabel("%.2f"%ds.get_availability())
+            if self.pieces:
+                self.pieces.SetLabel("total %d, have %d"%ds.get_pieces_total_complete())
 
             if ds:
                 progress = ds.get_progress()

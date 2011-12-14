@@ -110,7 +110,6 @@ class DownloadState(Serializable):
                         totalpieces += diff
                         
                     #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
-                    
                     haveslice = [False] * totalpieces
                     have = 0
                     index = 0
@@ -289,6 +288,15 @@ class DownloadState(Serializable):
             return []
         else:
             return self.haveslice
+    
+    def get_pieces_total_complete(self):
+        """ Returns the number of total and completed pieces
+        @return A tuple containing two integers, total and completed nr of pieces
+        """
+        if self.stats is None:
+            return (0,0)
+        else:
+            return (len(self.haveslice), sum(self.haveslice))
         
     def get_files_completion(self):
         """ Returns a list of filename, progress tuples indicating the progress 

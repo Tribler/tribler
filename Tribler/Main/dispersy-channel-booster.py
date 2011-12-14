@@ -1,5 +1,24 @@
 #!/usr/bin/python
 
+"""
+Logger format:
+- Timestamp
+- DISP_SYNC_IN
+- Community ID
+- Member ID
+- LAN host
+- LAN port
+- WAN host
+- WAN port
+- Connection type
+- Advice
+- Sync time low (0 when sync disabled)
+- Sync time high (0 when sync disabled)
+- Sync modulo (1 when sync disabled)
+- Sync offset (0 when sync disabled)
+- Bytes transfered in response
+"""
+
 from traceback import print_exc
 import optparse
 import os
@@ -29,7 +48,7 @@ class BoosterDispersy(Dispersy):
 
             if isinstance(result, Message.Implementation) and message.payload.sync:
                 payload = message.payload
-                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before, payload.bloom_filter.bytes.encode("HEX"))
+                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.authentication.member.mid.encode("HEX"), message.candidate.lan_address[0], message.candidate.lan_address[1], message.candidate.wan_address[0], message.candidate.wan_address[1], payload.connection_type, payload.advice, payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before)
 
             yield result
 

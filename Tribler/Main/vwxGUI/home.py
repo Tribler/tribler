@@ -516,10 +516,13 @@ class DispersyPanel(HomePanel):
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
                 for community in sorted(info["communities"], key=lambda community: community["hex_cid"]):
-                    candidates = "-" if community["candidates"] is None else len(community["candidates"])
+                    if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
+                        candidates = str(len(community["candidates"]))
+                    else:
+                        candidates = "-"
                     parent = self.summary_tree.AppendItem(root, u"%s %5d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
-                    if not community["candidates"] is None:
+                    if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
                         for lan_address, wan_address in community["candidates"]:
                             self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
