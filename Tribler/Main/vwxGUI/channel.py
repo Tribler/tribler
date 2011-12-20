@@ -1399,6 +1399,14 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 page = self.notebook.GetPage(i)
                 page.Show(False)
                 self.notebook.RemovePage(i)
+            
+            self.fileslist.Reset()
+            self.playlistlist.Reset()
+            
+                
+    @warnWxThread
+    def Reset(self):
+        self.SetChannel(None)
     
     @forceDBThread        
     def SetChannelId(self, channel_id):
