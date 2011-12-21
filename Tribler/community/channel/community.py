@@ -846,7 +846,8 @@ class ChannelCommunity(Community):
                     torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
                     for infohash in torrents:
                         tormessage = self._get_message_from_torrent_infohash(infohash)
-                        packets.append(tormessage.packet)
+                        if tormessage:
+                            packets.append(tormessage.packet)
 
                 self._dispersy._send([message.candidate], packets, key = u'missing-channel-response')
 
