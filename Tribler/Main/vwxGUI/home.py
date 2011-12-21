@@ -735,7 +735,7 @@ class BuzzPanel(HomePanel):
         self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
 
         self.refresh = 5
-        self.GetBuzzFromDB()
+        self.GetBuzzFromDB(doRefresh=True)
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
@@ -764,8 +764,7 @@ class BuzzPanel(HomePanel):
         self.ForceUpdate()
 
     def ForceUpdate(self):
-        self.GetBuzzFromDB()
-        self.refresh = 1
+        self.GetBuzzFromDB(doRefresh=True)
 
     @forceDBThread
     def GetBuzzFromDB(self, doRefresh=False):
@@ -781,7 +780,6 @@ class BuzzPanel(HomePanel):
 
         if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
             self.OnRefreshTimer(force = True, fromDBThread = True)
-        
 
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
