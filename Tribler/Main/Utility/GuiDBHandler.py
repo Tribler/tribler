@@ -98,7 +98,8 @@ class GUIDBProducer():
         if not self.onSameThread() or delay:
             self.database_thread.register(wrapper, delay=delay, id_=name)
         else:
-            print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
+            if __debug__:
+                print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
             wrapper()
         
 #Wrapping Senders for new delayedResult impl  
