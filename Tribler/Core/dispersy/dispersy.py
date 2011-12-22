@@ -1404,7 +1404,6 @@ class Dispersy(Singleton):
             return 0
 
         if meta.batch.enabled and timestamp > 0.0 and meta.batch.max_age + timestamp <= time():
-            dprint(meta.batch.max_age, "  ", meta.batch.max_age + timestamp, "  ", time(), force=1)
             if __debug__: dprint("dropped ", len(batch), "x ", meta.name, " packets (can not process these messages on time)", level="warning")
             return 0
 
