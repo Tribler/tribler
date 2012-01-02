@@ -27,7 +27,7 @@ from dispersydatabase import DispersyDatabase
 from dprint import dprint
 # from lencoder import log
 from member import Member
-from message import Message, DelayMessageByProof
+from message import BatchConfiguration, Message, DelayMessageByProof
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 
@@ -79,10 +79,10 @@ class Script(Singleton):
                 dprint("available: ", available, force=True)
             raise ValueError("Unknown script '%s'" % name)
 
-    def add_testcase(self, call):
+    def add_testcase(self, call, args):
         if len(self._testcases) == 0:
             self._callback.register(self._next_testcase, priority=-1024)
-        self._testcases.append(call)
+        self._testcases.append((call, args))
 
     def _next_testcase(self, result=None):
         if isinstance(result, Exception):
@@ -90,11 +90,11 @@ class Script(Singleton):
             self._callback.stop(wait=False, exception=result)
 
         elif self._testcases:
-            call = self._testcases.pop(0)
+            call, args = self._testcases.pop(0)
             dprint("start ", call, line=True, force=True)
             if call.__doc__:
                 dprint(call.__doc__, box=True)
-            self._callback.register(call, callback=self._next_testcase)
+            self._callback.register(call, args, callback=self._next_testcase)
 
         else:
             dprint("shutdown", box=True)
@@ -109,8 +109,10 @@ class ScriptBase(object):
         self._dispersy_database = DispersyDatabase.get_instance()
         self._dispersy.callback.register(self.run)
 
-    def caller(self, run):
-        self._script.add_testcase(run)
+    def caller(self, run, args=()):
+        assert callable(run)
+        assert isinstance(args, tuple)
+        self._script.add_testcase(run, args)
 
     def run(self):
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
@@ -1172,9 +1174,15 @@ class DispersyBatchScript(ScriptBase):
         self.caller(self.one_batch_member_global_time_duplicate)
         self.caller(self.two_batches_member_global_time_duplicate)
 
-        # big batch test
-        self.caller(self.one_big_batch)
-        self.caller(self.many_small_batches)
+        # batches
+        length = 1000
+        max_size = 25
+        self._results = []
+        self.caller(self.max_batch_size, (length - 1, max_size))
+        self.caller(self.max_batch_size, (length, max_size))
+        self.caller(self.max_batch_size, (length + 1, max_size))
+        self.caller(self.one_big_batch, (length,))
+        self.caller(self.many_small_batches, (length,))
 
     def one_batch_binary_duplicate(self):
         """
@@ -1304,7 +1312,51 @@ class DispersyBatchScript(ScriptBase):
         community.create_dispersy_destroy_community(u"hard-kill")
         self._dispersy.get_community(community.cid).unload_community()
 
-    def one_big_batch(self):
+    def max_batch_size(self, length, max_size):
+        """
+        Gives many messages at once, the system should process them in max-batch-size batches.
+        """
+        class MaxBatchSizeCommunity(DebugCommunity):
+            def _initialize_meta_messages(self):
+                super(MaxBatchSizeCommunity, self)._initialize_meta_messages()
+
+                batch = BatchConfiguration(max_window=0.01, max_size=max_size)
+
+                meta = self._meta_messages[u"full-sync-text"]
+                meta = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, meta.handle_callback, meta.undo_callback, batch=batch)
+                self._meta_messages[meta.name] = meta
+
+        community = MaxBatchSizeCommunity.create_community(self._my_member)
+
+        # create node and ensure that SELF knows the node address
+        node = DebugNode()
+        node.init_socket()
+        node.set_community(community)
+        node.init_my_member()
+
+        dprint("START BIG BATCH (with max batch size)")
+        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 10 + length)]
+
+        begin = time()
+        node.give_messages(messages, cache=True)
+
+        # wait till the batch is processed
+        meta = community.get_meta_message(u"full-sync-text")
+        while meta in self._dispersy._batch_cache:
+            yield 0.1
+
+        end = time()
+        self._results.append("%2.2f seconds for max_batch_size(%d, %d)" % (end - begin, length, max_size))
+        dprint(self._results, lines=1)
+
+        count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ?", (meta.database_id,)).next()
+        assert_(count == len(messages))
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        self._dispersy.get_community(community.cid).unload_community()
+
+    def one_big_batch(self, length):
         """
         Each community is handled in its own batch, hence we can measure performace differences when
         we make one large batch (using one community) and many small batches (using many different
@@ -1319,19 +1371,23 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         dprint("START BIG BATCH")
-        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
+        messages = [node.create_full_sync_text_message("Dprint=False, big batch #%d" % global_time, global_time) for global_time in xrange(10, 10 + length)]
 
         begin = time()
         node.give_messages(messages)
         end = time()
-        self._big_batch_took = end - begin
-        dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
+        self._results.append("%2.2f seconds for one_big_batch(%d)" % (end - begin, length))
+        dprint(self._results, lines=1)
+
+        meta = community.get_meta_message(u"full-sync-text")
+        count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ?", (meta.database_id,)).next()
+        assert_(count == len(messages))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
         self._dispersy.get_community(community.cid).unload_community()
 
-    def many_small_batches(self):
+    def many_small_batches(self, length):
         """
         Each community is handled in its own batch, hence we can measure performace differences when
         we make one large batch (using one community) and many small batches (using many different
@@ -1346,22 +1402,23 @@ class DispersyBatchScript(ScriptBase):
         node.init_my_member()
 
         dprint("START SMALL BATCHES")
-        messages = [node.create_full_sync_text_message("Dprint=False, small batch #%d" % global_time, global_time) for global_time in xrange(10, 1510)]
+        messages = [node.create_full_sync_text_message("Dprint=False, small batch #%d" % global_time, global_time) for global_time in xrange(10, 10 + length)]
 
         begin = time()
         for message in messages:
             node.give_message(message)
         end = time()
-        self._small_batches_took = end - begin
-        dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
+        self._results.append("%2.2f seconds for many_small_batches(%d)" % (end - begin, length))
+        dprint(self._results, lines=1)
+        # assert_(self._big_batch_took < self._small_batches_took * 1.1, [self._big_batch_took, self._small_batches_took])
+
+        meta = community.get_meta_message(u"full-sync-text")
+        count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ?", (meta.database_id,)).next()
+        assert_(count == len(messages))
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
         self._dispersy.get_community(community.cid).unload_community()
-
-        dprint("BIG BATCH TOOK ", self._big_batch_took, " SECONDS")
-        dprint("SMALL BATCHES TOOK ", self._small_batches_took, " SECONDS")
-        assert_(self._big_batch_took < self._small_batches_took * 1.1, [self._big_batch_took, self._small_batches_took])
 
 class DispersySyncScript(ScriptBase):
     def run(self):
