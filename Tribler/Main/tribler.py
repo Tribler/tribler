@@ -581,10 +581,7 @@ class ABCApp():
         wx.CallLater(10000, self.set_reputation)
     
     def sesscb_states_callback(self, dslist):
-        def guiCall():
-            wx.CallAfter(self._gui_sesscb_states_callback, dslist)
-        
-        self.guiserver.add_task(guiCall, id="DownloadStateCallback")
+        wx.CallAfter(self._gui_sesscb_states_callback, dslist)
         return(1.0, True)
     
     def _gui_sesscb_states_callback(self, dslist):
