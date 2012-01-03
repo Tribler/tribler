@@ -224,6 +224,9 @@ class StatusHolder:
             self.lock.release()
         
     def create_and_add_event(self, name, values=[]):
+        if __debug__ and len(self.reporters) == 0:
+            print >> sys.stderr, "NO REPORTERS FOR THIS STATUSHOLDER, WILL CAUSE MEMORY LEAK"
+        
         self.add_event(self.create_event(name, values))
 
     def create_range(self, name, values=[]):

@@ -440,6 +440,7 @@ CREATE TABLE IF NOT EXISTS _ChannelTorrents (
 );
 CREATE VIEW ChannelTorrents AS SELECT * FROM _ChannelTorrents WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS TorChannelIndex ON _ChannelTorrents(channel_id);
+CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id);
 
 CREATE TABLE IF NOT EXISTS _Playlists (
   id                        integer         PRIMARY KEY ASC,
@@ -632,7 +633,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 10);
+INSERT INTO MyInfo VALUES ('version', 11);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');

@@ -1367,7 +1367,7 @@ class Dispersy(Singleton):
                     self._batch_cache[meta] = (task_identifier, current_timestamp, current_batch)
                     if __debug__: dprint("new cache with ", len(batch), " ", meta.name, " messages (batch window: ", meta.batch.max_window, ")")
 
-                while len(current_batch) >= meta.batch.max_size:
+                while len(current_batch) > meta.batch.max_size:
                     # batch exceeds maximum size, process first max_size immediately
                     batch, current_batch = current_batch[:meta.batch.max_size], current_batch[meta.batch.max_size:]
                     if __debug__: dprint("schedule processing ", len(batch), " ", meta.name, " messages immediately (exceeded batch size)")
@@ -1393,18 +1393,18 @@ class Dispersy(Singleton):
         assert meta in self._batch_cache
         assert isinstance(timestamp, float)
         assert isinstance(batch, list)
+        assert len(batch) > 0
         if __debug__:
             dprint("processing  ", len(batch), "x ", meta.name, " batched messages")
 
-        # we don't need the cached batch anymore
-        self._batch_cache.pop(meta)
+        if id(self._batch_cache[meta][2]) == id(batch):
+            self._batch_cache.pop(meta)
 
         if not self._communities.get(meta.community.cid, None) == meta.community:
             if __debug__: dprint("dropped ", len(batch), "x ", meta.name, " packets (community no longer loaded)", level="warning")
             return 0
 
         if meta.batch.enabled and timestamp > 0.0 and meta.batch.max_age + timestamp <= time():
-            dprint(meta.batch.max_age, "  ", meta.batch.max_age + timestamp, "  ", time(), force=1)
             if __debug__: dprint("dropped ", len(batch), "x ", meta.name, " packets (can not process these messages on time)", level="warning")
             return 0
 

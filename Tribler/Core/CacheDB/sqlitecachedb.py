@@ -29,7 +29,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 ##Changed from 7 to 8 for Raynor's BundlerPreference table
 ##Changed from 8 to 9 for Niels's Open2Edit tables
 ##Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
-CURRENT_MAIN_DB_VERSION = 10
+##Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
+CURRENT_MAIN_DB_VERSION = 11
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -1997,6 +1998,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             drop_table = "DROP TABLE _PlaylistTorrents2"
             self.execute_write(drop_table)
             
+        if fromver < 11:
+            index = "CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id)"
+            self.execute_write(index)           
             
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

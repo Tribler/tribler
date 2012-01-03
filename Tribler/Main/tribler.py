@@ -33,6 +33,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
+
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -243,13 +244,16 @@ class ABCApp():
             # doesn't allow me to press close.  The statement below
             # gracefully closes Tribler after 120 seconds.
             # wx.CallLater(120*1000, wx.GetApp().Exit)
-
+            
+            status = get_status_holder("LivingLab")
+            status.add_reporter(NullReporter("Periodically remove all events", 0))
+#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+            
             # report client version
-            # from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-            reporter = get_status_holder("LivingLab")
-            reporter.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
-            reporter.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
-            reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
+            status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
+            status.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
+            status.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
             
             self.ready = True
             
@@ -1141,13 +1145,6 @@ def run(params = None):
 
             #Niels: No code should be present here, only executed after gui closes
             
-            # Setup the statistic reporter while waiting for proper integration
-            # status = get_status_holder("LivingLab")
-            # status.add_reporter(NullReporter("Periodically remove all events", 0))
-            #id = "Tribler client"
-            #reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
-            # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
-            #status.add_reporter(reporter)
             
             # ProxyService 90s Test
 #            from Tribler.Core.Statistics.Status.ProxyTestReporter import ProxyTestPeriodicReporter

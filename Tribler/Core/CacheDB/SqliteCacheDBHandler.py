@@ -1852,9 +1852,9 @@ class TorrentDBHandler(BasicDBHandler):
         
         mainsql +=  """
                     C.channel_id, Matchinfo(FullTextIndex) FROM Torrent T, FullTextIndex
-                    LEFT OUTER JOIN ChannelTorrents C ON T.torrent_id = C.torrent_id
-                    WHERE t.torrent_id = FullTextIndex.rowid AND FullTextIndex MATCH ?
-                    ORDER BY T.num_seeders desc """
+                    LEFT OUTER JOIN _ChannelTorrents C ON T.torrent_id = C.torrent_id
+                    WHERE t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
+                    """
                     
         if not local:
             mainsql += " limit 20"
@@ -1989,7 +1989,7 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_list.sort(compare, reverse = True)
         torrent_list.extend(dont_sort_torrent_list)
         
-        #print >> sys.stderr, "# hits:%d (%d from db, %d sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
+        #print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return torrent_list
     
 
@@ -3968,6 +3968,16 @@ class ChannelCastDBHandler(object):
     
     def getRecentModerationsFromChannel(self, channel_id, keys, limit = None):
         sql = "SELECT " + ", ".join(keys) +" FROM Moderations, MetaDataTorrent, ChannelMetaData WHERE Moderations.cause = ChannelMetaData.dispersy_id AND ChannelMetaData.id = MetaDataTorrent.metadata_id AND Moderations.channel_id = ? ORDER BY Moderations.inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        return self._db.fetchall(sql, (channel_id,))
+    
+    def getMostPopularTorrentsFromChannel(self, channel_id, isDispersy, keys, limit = None):
+        if isDispersy:
+            sql = "SELECT " + ", ".join(keys) +", count(Preference.torrent_id) FROM Torrent, ChannelTorrents, Preference WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND Preference.torrent_id = Torrent.torrent_id AND channel_id = ? GROUP BY Preference.torrent_id ORDER BY count(Preference.torrent_id) DESC"
+        else:
+            sql = "SELECT " + ", ".join(keys) +", count(Preference.torrent_id) FROM CollectedTorrent as Torrent, ChannelTorrents, Preference WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND Preference.torrent_id = Torrent.torrent_id AND channel_id = ? GROUP BY Preference.torrent_id  ORDER BY count(Preference.torrent_id) DESC"
+
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (channel_id,))

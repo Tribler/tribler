@@ -135,13 +135,17 @@ class GUIUtility:
                 #Show list
                 self.frame.managechannel.SetChannelId(self.channelsearch_manager.channelcast_db._channel_id)
                 self.frame.managechannel.Show()
+                
             elif self.guiPage == 'mychannel':
                 self.frame.managechannel.Show(False)
+                self.frame.managechannel.Reset()
                 
             if page == 'managechannel':
                 self.frame.managechannel.Show()
+                
             elif self.guiPage == 'managechannel':
                 self.frame.managechannel.Show(False)
+                self.frame.managechannel.Reset()
             
             if page == 'selectedchannel':
                 self.frame.selectedchannellist.Show()
