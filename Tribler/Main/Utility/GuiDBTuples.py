@@ -156,17 +156,25 @@ class Torrent(Helper):
     def state(self):
         stateList = []
         if self.ds:
-            if self.ds.get_status() in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
+            status = self.ds.get_status()
+            if status in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
                 stateList.append('stopped')
                 
-            elif self.ds.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
+            if status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
                 stateList.append('active')
             
-            elif self.ds.get_status() == [DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
+            if status in [DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
                 stateList.append('checking')
+                
+            if status == DLSTATUS_SEEDING:
+                stateList.append('seeding')
+            
+            if status == DLSTATUS_DOWNLOADING:
+                stateList.append('downloading')
             
             if self.ds.progress == 1.0:
                 stateList.append('completed')
+            
         return stateList
     
     def assignRelevance(self, matches):

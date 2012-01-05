@@ -394,7 +394,7 @@ class TorrentManager:
                 
         finally:
             self.hitsLock.release()
-
+        
         # Niels: important, we should not change self.hits otherwise prefetching will not work 
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
@@ -444,8 +444,7 @@ class TorrentManager:
                     prefetch_counter += 1
             else:
                 #schedule health check
-                #TorrentChecking.getInstance().addTorrentToQueue(hit)
-                pass
+                TorrentChecking.getInstance().addTorrentToQueue(hit)
 
             hit_counter += 1
             if prefetch_counter >= 10 or hit_counter >= 25:
@@ -1022,7 +1021,7 @@ class ChannelManager:
         if Dispersy.has_instance():
             self.dispersy = Dispersy.get_instance()
             self.dispersy.database.attach_commit_callback(self.channelcast_db.commit)
-            
+
         else:
             def dispersy_started(subject,changeType,objectID):
                 self.dispersy = Dispersy.get_instance()
@@ -1133,6 +1132,10 @@ class ChannelManager:
         return self._createTorrent(data, channel)
     
     def getTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
+        hits = self.channelcast_db.getMostPopularTorrentsFromChannel(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, 10)
+        for hit in hits:
+            print >> sys.stderr, 'downloaded', hit
+        
         hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
     
@@ -1141,6 +1144,10 @@ class ChannelManager:
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
 
     def getTorrentsNotInPlaylist(self, channel, filterTorrents = True):
+        hits = self.channelcast_db.getMostPopularTorrentsFromChannel(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, 10)
+        for hit in hits:
+            print >> sys.stderr, 'downloaded', hit
+        
         hits = self.channelcast_db.getTorrentsNotInPlaylist(channel.id, CHANNEL_REQ_COLUMNS)
         results = self._createTorrents(hits, filterTorrents, {channel.id : channel})
         

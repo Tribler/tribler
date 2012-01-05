@@ -544,8 +544,11 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         Finally if you are in the Library you can filter items by state, i.e.
         <ul>
             <li>'state=completed' will show only items which are completed</li>
-            <li>'state=active' will show items which currently are being downloaded</li>
-            <li>'state=stopped' will show items which are stopped/paused and not completed</li> 
+            <li>'state=active' will show items which currently are being downloaded or seeded</li>
+            <li>'state=seeding' will show items which are seeding</li>
+            <li>'state=downloading' will show items which are downloading</li>
+            <li>'state=stopped' will show items which are stopped/paused and not completed</li>
+            <li>'state=checking' will show items which are currently checking or scheduled to be checked</li> 
         </ul>
         </p>"""
         
