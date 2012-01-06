@@ -2021,24 +2021,26 @@ class Dispersy(Singleton):
         else:
             sync = community.dispersy_claim_sync_bloom_filter(identifier)
             if __debug__:
-                assert isinstance(sync, tuple), sync
-                assert len(sync) == 5, sync
-                time_low, time_high, modulo, offset, bloom_filter = sync
-                assert isinstance(time_low, (int, long))
-                assert isinstance(time_high, (int, long))
-                assert isinstance(modulo, int)
-                assert isinstance(offset, int)
-                assert isinstance(bloom_filter, BloomFilter)
+                # 06/01/12 Boudewijn: dispersy_claim_sync_bloom_filter is allowed to return None
+                if not sync is None:
+                    assert isinstance(sync, tuple), sync
+                    assert len(sync) == 5, sync
+                    time_low, time_high, modulo, offset, bloom_filter = sync
+                    assert isinstance(time_low, (int, long))
+                    assert isinstance(time_high, (int, long))
+                    assert isinstance(modulo, int)
+                    assert isinstance(offset, int)
+                    assert isinstance(bloom_filter, BloomFilter)
 
-                # verify that the bloom filter is correct
-                binary = bloom_filter.bytes
-                bloom_filter.clear()
-                counter = 0
-                for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ?",
-                                                      (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
-                    bloom_filter.add(str(packet))
-                    counter += 1
-                assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
+                    # verify that the bloom filter is correct
+                    binary = bloom_filter.bytes
+                    bloom_filter.clear()
+                    counter = 0
+                    for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ?",
+                                                          (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
+                        bloom_filter.add(str(packet))
+                        counter += 1
+                    assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
 
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),
