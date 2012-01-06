@@ -91,6 +91,12 @@ class TrackerDispersy(Dispersy):
         assert 0 <= port
         super(TrackerDispersy, self).__init__(callback, statedir)
 
+        # non-autoload nodes
+        self._non_autoload = set()
+        self._non_autoload.update(self._bootstrap_candidates.iterkeys())
+        # leaseweb machines, some are running boosters, they never unload a community
+        self._non_autoload.update(["95.211.105.65", "95.211.105.69", "95.211.105.69", "95.211.105.71", "95.211.105.73", "95.211.105.75", "95.211.105.77", "95.211.105.79", "95.211.105.81", "85.17.81.36"])
+
         # logger
         overlaylogpostfix = "dp" + str(port) + ".log"
         self._logger = OverlayLogger.getInstance(overlaylogpostfix, statedir)
@@ -107,6 +113,24 @@ class TrackerDispersy(Dispersy):
         except KeyError:
             self._communities[cid] = TrackerCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
             return self._communities[cid]
+
+    def _convert_packets_into_batch(self, packets):
+        """
+        Ensure that communities are loaded when the packet is received from a non-bootstrap node,
+        otherwise, load and auto-load are disabled.
+        """
+        def filter_non_bootstrap_nodes():
+            for candidate, packet in packets:
+                cid = packet[2:22]
+
+                if not cid in self._communities and candidate.address in self._non_autoload:
+                    if __debug__: dprint("drop a ", len(packet), " byte packet (received from bootstrap node for unloaded community) from ", candidate, level="warning")
+                    self._statistics.drop("_convert_packets_into_batch:from bootstrap node for unloaded community", len(packet))
+                    continue
+
+                yield candidate, packet
+
+        return super(TrackerDispersy, self)._convert_packets_into_batch(list(filter_non_bootstrap_nodes()))
 
     def _unload_communities(self):
         def is_active(community):
