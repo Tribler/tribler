@@ -130,7 +130,12 @@ class TrackerDispersy(Dispersy):
 
                 yield candidate, packet
 
-        return super(TrackerDispersy, self)._convert_packets_into_batch(list(filter_non_bootstrap_nodes()))
+        packets = list(filter_non_bootstrap_nodes())
+        if packets:
+            return super(TrackerDispersy, self)._convert_packets_into_batch(packets)
+
+        else:
+            return []
 
     def _unload_communities(self):
         def is_active(community):
