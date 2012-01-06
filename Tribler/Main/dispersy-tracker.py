@@ -93,7 +93,7 @@ class TrackerDispersy(Dispersy):
 
         # non-autoload nodes
         self._non_autoload = set()
-        self._non_autoload.update(self._bootstrap_candidates.iterkeys())
+        self._non_autoload.update(host for host, _ in self._bootstrap_candidates.iterkeys())
         # leaseweb machines, some are running boosters, they never unload a community
         self._non_autoload.update(["95.211.105.65", "95.211.105.67", "95.211.105.69", "95.211.105.71", "95.211.105.73", "95.211.105.75", "95.211.105.77", "95.211.105.79", "95.211.105.81", "85.17.81.36"])
 
@@ -123,8 +123,8 @@ class TrackerDispersy(Dispersy):
             for candidate, packet in packets:
                 cid = packet[2:22]
 
-                if not cid in self._communities and candidate.address in self._non_autoload:
-                    if __debug__: dprint("drop a ", len(packet), " byte packet (received from bootstrap node for unloaded community) from ", candidate, level="warning")
+                if not cid in self._communities and candidate.address[0] in self._non_autoload:
+                    if __debug__: dprint("drop a ", len(packet), " byte packet (received from non-autoload node) from ", candidate, level="warning", force=1)
                     self._statistics.drop("_convert_packets_into_batch:from bootstrap node for unloaded community", len(packet))
                     continue
 
