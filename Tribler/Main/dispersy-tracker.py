@@ -95,7 +95,7 @@ class TrackerDispersy(Dispersy):
         self._non_autoload = set()
         self._non_autoload.update(self._bootstrap_candidates.iterkeys())
         # leaseweb machines, some are running boosters, they never unload a community
-        self._non_autoload.update(["95.211.105.65", "95.211.105.69", "95.211.105.69", "95.211.105.71", "95.211.105.73", "95.211.105.75", "95.211.105.77", "95.211.105.79", "95.211.105.81", "85.17.81.36"])
+        self._non_autoload.update(["95.211.105.65", "95.211.105.67", "95.211.105.69", "95.211.105.71", "95.211.105.73", "95.211.105.75", "95.211.105.77", "95.211.105.79", "95.211.105.81", "85.17.81.36"])
 
         # logger
         overlaylogpostfix = "dp" + str(port) + ".log"
