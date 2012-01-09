@@ -106,6 +106,9 @@ class RemoteSearchManager:
             else:
                 startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,))
     
+    def showSearchSuggestions(self, keywords):
+        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, wargs=(keywords, 3))
+    
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
             item = self.list.GetItem(infohash)
@@ -123,6 +126,8 @@ class RemoteSearchManager:
             else:
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
+                
+    
 
 class LocalSearchManager:
     def __init__(self, list):
@@ -1061,11 +1066,37 @@ class SearchList(GenericSearchList):
             title += ' for "%s"'%self.keywords
         self.footer.SetLabel(title, self.total_channels)
             
-    def SetMaxResults(self, max):
-        self.sidebar.SetMaxResults(max)
+    def SetMaxResults(self, max, keywords):
+        self.sidebar.SetMaxResults(max, keywords)
         
     def NewResult(self):
         self.sidebar.NewResult()
+    
+    def SetFinished(self):
+        
+        def db_callback(keywords):
+            self.uelog.addEvent(message="Search: nothing found for query: "+" ".join(keywords), type = 2)
+            self.GetManager().showSearchSuggestions(keywords)
+        
+        if self.total_results == 0:
+            startWorker(None, db_callback, wargs = (self.keywords,))
+    
+    def _ShowSuggestions(self, delayedResult):
+        suggestions = delayedResult.get()
+        
+        suggestionSizer = wx.BoxSizer(wx.VERTICAL)
+        suggestionSizer.Add(StaticText(self.list.messagePanel, -1, "Alternatively, try one of the following suggestions:"))
+        for suggestion, hits in suggestions:
+            label = LinkStaticText(self.list.messagePanel, suggestion)
+            label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
+            suggestionSizer.Add(label)
+            
+        header, message = self.list.GetMessage()
+        self.list.ShowMessage(message, header, suggestionSizer)
+        
+    def OnSearchSuggestion(self, event):
+        label = event.GetEventObject()
+        self.guiutility.dosearch(label.GetLabel())
     
     def toggleFamilyFilter(self):
         GenericSearchList.toggleFamilyFilter(self)

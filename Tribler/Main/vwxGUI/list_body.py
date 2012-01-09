@@ -444,6 +444,8 @@ class AbstractListBody():
         messageVSizer.Add(self.headerText, 0, wx.EXPAND)
         messageVSizer.Add(self.messageText, 0, wx.EXPAND)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
+        self.messageText.sizer = messageVSizer
+        self.messageText.altControl = None
         
         messageSizer = wx.BoxSizer(wx.HORIZONTAL)
         messageSizer.AddStretchSpacer()
@@ -663,7 +665,7 @@ class AbstractListBody():
             self.Scroll(-1, sy)
     
     @warnWxThread
-    def ShowMessage(self, message, header = None):
+    def ShowMessage(self, message, header = None, altControl = None):
         if DEBUG:
             print >> sys.stderr, "ListBody: ShowMessage", message
 
@@ -674,8 +676,19 @@ class AbstractListBody():
             self.headerText.Show()
         else:
             self.headerText.Hide()
-            
+        
         self.messageText.SetLabel(message)
+        
+        if self.messageText.altControl:
+            self.messageText.sizer.Detach(self.messageText.altControl)
+            self.messageText.altControl.ShowItems(False)
+            self.messageText.altControl.Clear(True)
+            self.messageText.altControl = None
+
+        if altControl:
+            self.messageText.altControl = altControl
+            self.messageText.sizer.Insert(2, altControl)
+            
         self.loadNext.Hide()
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
@@ -693,6 +706,7 @@ class AbstractListBody():
         header = message = None
         if self.headerText.IsShown():
             header = self.headerText.GetLabel()
+            
         if self.messageText.IsShown():
             message = self.messageText.GetLabel()
             

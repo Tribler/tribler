@@ -310,8 +310,8 @@ class TorrentManager:
         self.library_manager = library_manager
         self.channel_manager = channel_manager
         
-    def getSearchSuggestion(self, keywords):
-        return self.torrent_db.getSearchSuggestion(keywords)
+    def getSearchSuggestion(self, keywords, limit = 1):
+        return self.torrent_db.getSearchSuggestion(keywords, limit)
     
     def getHitsInCategory(self, categorykey = 'all', sort = 'fulltextmetric'):
         if DEBUG: begintime = time()
