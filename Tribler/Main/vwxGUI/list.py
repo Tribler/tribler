@@ -1294,7 +1294,7 @@ class LibraryList(SizeList):
                 infohash = ds.get_download().get_def().get_infohash()
                 dsdict[infohash] = ds
             
-            for values in self.list.data:
+            for values in self.list.raw_data:
                 infohash = values[0]
                 original_data = values[2]
                 
@@ -1302,7 +1302,9 @@ class LibraryList(SizeList):
                     original_data.ds = dsdict[infohash]
                     del dsdict[infohash]
 
-            if len(dsdict) > 0:            
+            if len(dsdict) > 0:
+                for key in dsdict.keys():
+                    print >> sys.stderr, "Could not find %s in dsdict"%bin2str(key)            
                 self.GetManager().refresh() #new torrent
             
             for infohash, item in self.list.items.iteritems():
