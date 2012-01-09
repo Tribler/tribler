@@ -20,6 +20,13 @@ from traceback import print_exc
 
 DEBUG = False
 
+def is_valid_ipv4_host(address):
+    try:
+        socket.inet_aton(address)
+    except socket.error:
+        return False
+    return True
+
 def get_my_wan_ip():
     try:
         if sys.platform == 'win32':
@@ -95,7 +102,7 @@ def get_my_wan_ip_win32():
 
 
 def get_my_wan_ip_linux():
-    routecmd = '/bin/netstat -nr'         
+    routecmd = '/bin/netstat -nr'
     ifcmd = '/sbin/ifconfig -a'
 
     gwif = None
@@ -118,8 +125,11 @@ def get_my_wan_ip_linux():
                 flag = True
             elif words[0] == 'inet':
                 words2 = words[1].split(':') # "inet addr:130.37.192.1" line
-                if len(words2) == 2 and words2[1] != '127.0.0.1':
+                if len(words2) == 2 and words2[1] != '127.0.0.1' and is_valid_ipv4_host(words2[1]):
                     mywanip = words2[1]
+                    break
+                elif len(words2) == 1 and words2[0] != '127.0.0.1' and is_valid_ipv4_host(words2[0]):
+                    mywanip = words2[0]
                     break
                 else:
                     flag = False
@@ -151,7 +161,7 @@ def get_my_wan_ip_darwin():
         if len(words) >= 2:
             if words[0] == "%s:" % gwif:
                 flag = True
-            elif words[0] == 'inet' and flag:
+            elif words[0] == 'inet' and flag and is_valid_ipv4_host(words[1]):
                 mywanip = words[1] # "inet 130.37.192.1" line
                 break
     return mywanip
