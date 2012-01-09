@@ -136,9 +136,10 @@ class LocalSearchManager:
         self.list.Select(infohash)
     
     def refresh(self):
-        def db_callback():
-            return self.library_manager.getHitsInCategory()
-        startWorker(self._on_data, db_callback, uId = "LocalSearchManager_refresh")
+        startWorker(self._on_data, self.library_manager.getHitsInCategory, uId = "LocalSearchManager_refresh")
+    
+    def refresh_partial(self, infohash):
+        startWorker(self.list.RefreshDelayedData, self.library_manager.getTorrentFromInfohash, cargs=(infohash,), wargs=(infohash,))
 
     @forceWxThread
     def _on_data(self, delayedReslt):
@@ -146,6 +147,10 @@ class LocalSearchManager:
         
         self.list.SetData(data)
         self.list.Layout()
+        
+    def torrentUpdated(self, infohash):
+        if self.list.InList(infohash):
+            self.refresh_partial(infohash)
         
 class ChannelSearchManager:
     def __init__(self, list):
@@ -492,10 +497,10 @@ class List(wx.BoxSizer):
         assert self.isReady, "List not ready"
         self.__check_thread()
         
-    def InList(self, key):
+    def InList(self, key, onlyCreated = True):
         assert self.isReady, "List not ready"
         if self.isReady:
-            return self.list.InList(key)
+            return self.list.InList(key, onlyCreated)
     
     def GetItem(self, key):
         assert self.isReady, "List not ready"
@@ -1187,12 +1192,7 @@ class LibraryList(SizeList):
     
     def OnResume(self, event):
         item = self.list.GetExpandedItem()
-        ds = item.original_data.ds
-        if ds:
-            ds.get_download().restart()
-        else:
-            #TODO: start inactive item?
-            pass
+        self.library_manager.resumeTorrent(item.original_data)
         self.user_download_choice.set_download_state(item.original_data.infohash, "restart")
     
     def OnStop(self, event):
@@ -1257,17 +1257,22 @@ class LibraryList(SizeList):
             
             nr_seeding = 0
             nr_downloading = 0
-            for item in self.list.items.values():
-                item.original_data.ds = None #remote all downloadstates
             
+            dsdict = {}
             for ds in dslist:
                 infohash = ds.get_download().get_def().get_infohash()
-                if infohash in self.list.items:
-                    item = self.list.items[infohash]
-                    item.original_data.ds = ds
-                else:
-                    self.GetManager().refresh() #new torrent
-                    break
+                dsdict[infohash] = ds
+            
+            for values in self.list.data:
+                infohash = values[0]
+                original_data = values[2]
+                
+                if infohash in dsdict:
+                    original_data.ds = dsdict[infohash]
+                    del dsdict[infohash]
+
+            if len(dsdict) > 0:            
+                self.GetManager().refresh() #new torrent
             
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds

@@ -27,7 +27,8 @@ from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
+    LibraryTorrent
 from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
@@ -625,6 +626,7 @@ class TorrentDetails(AbstractDetails):
 
                 elif newState in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD]:
                     self._ShowDownloadProgress(self.buttonPanel, self.buttonSizer)
+                    
                 else:
                     self._ShowTorrentDetails(self.buttonPanel, self.buttonSizer)
 
@@ -1178,7 +1180,12 @@ class TorrentDetails(AbstractDetails):
         if self.isReady:
             if isinstance(data[2], Torrent):
                 #replace current torrent
-                self.torrent.torrent = data[2]
+                self.torrent.name = data[2].name
+                self.torrent.length = data[2].length
+                self.torrent.category_id = data[2].category_id
+                self.torrent.status_id = data[2].status_id
+                self.torrent.num_seeders = data[2].num_seeders
+                self.torrent.num_leechers = data[2].num_leechers
             else:
                 self.torrent.torrent = data[2]['bundle'][0] 
             
@@ -1295,7 +1302,7 @@ class TorrentDetails(AbstractDetails):
                     vod = True
         else:
             progress = self.torrent.get('progress', 0)
-            finished = progress == 100
+            finished = progress >= 100
         
         if finished:
             if active:
@@ -1506,7 +1513,7 @@ class LibraryDetails(TorrentDetails):
             elif state == TorrentDetails.VOD:
                 statestr = "Streaming"
                 
-            elif state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
+            else:
                 statestr = "Downloading"
             
             if state in [TorrentDetails.FINISHED_INACTIVE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.INACTIVE]:
@@ -1524,7 +1531,7 @@ class LibraryDetails(TorrentDetails):
         
         if button.GetLabel().startswith('Start'):
             self.onresume(event)
-        elif button.GetLabel().startswith('Stop'):
+        else:
             self.onstop(event)
         
         button.Enable(False)
@@ -1546,7 +1553,6 @@ class LibraryDetails(TorrentDetails):
             self.overviewSizer.AddStretchSpacer()
             
             if self.saveSpace:
-                
                 self.buttonPanel = self.overviewPanel
                 self._AddButtons(self.overviewPanel, self.overviewSizer)
                 
@@ -1713,11 +1719,7 @@ class LibraryDetails(TorrentDetails):
             if self.pieces:
                 self.pieces.SetLabel("total %d, have %d"%ds.get_pieces_total_complete())
 
-            if ds:
-                progress = ds.get_progress()
-            else:
-                progress = 0
-                
+            progress = ds.get_progress()
             if self.old_progress != progress:
                 completion = ds.get_files_completion()
                 for i in range(self.listCtrl.GetItemCount()):

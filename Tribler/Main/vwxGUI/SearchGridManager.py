@@ -912,6 +912,33 @@ class LibraryManager:
         else:
             videoplayer.play(ds, selectedinfilename)
     
+    def resumeTorrent(self, torrent):
+        download = None
+        if torrent.ds:
+            download = torrent.ds.get_download()
+        
+        if not download:
+            session = self.guiUtility.utility.session
+            for curdownload in session.get_downloads():
+                if curdownload.get_def().get_infohash() == torrent.infohash:
+                    download = curdownload
+                    break
+        
+        if download:
+            download.restart()
+            
+        else:
+            filename = self.torrentsearch_manager.getCollectedFilename(torrent)
+            if filename:
+                tdef = TorrentDef.load(filename)
+                
+                destdirs = self.mypref_db.getMyPrefStats(torrent.torrent_id)
+                destdir = destdirs.get(torrent.torrent_id, None)
+                self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
+            else:
+                callback = lambda infohash, metadata, filename: self.resumeTorrent(torrent)
+                self.torrentsearch_manager.getTorrent(torrent, callback)
+    
     def deleteTorrent(self, torrent, removecontent = False):
         self.deleteTorrentDS(torrent.ds, torrent.infohash, removecontent)
     
@@ -970,6 +997,17 @@ class LibraryManager:
             
         self.hits = self.addDownloadStates(results)
         return [len(self.hits), 0 , self.hits]
+       
+    def getTorrentFromInfohash(self, infohash):
+        dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        if dict:
+            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t.torrent_db = self.torrent_db
+            t.channelcast_db = self.channelcast_db
+            
+            #touch channel to force load
+            t.channel
+            return t
 
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr

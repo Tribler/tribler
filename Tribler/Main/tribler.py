@@ -806,6 +806,9 @@ class ABCApp():
             manager = self.frame.playlist.GetManager()
             manager.torrentUpdated(objectID)
             
+            manager = self.frame.librarylist.GetManager()
+            manager.torrentUpdated(objectID)
+            
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
         

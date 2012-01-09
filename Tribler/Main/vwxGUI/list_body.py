@@ -414,6 +414,8 @@ class AbstractListBody():
         if not list_item_max:
             list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
+        self.list_cur_max = self.list_item_max
+        
         self.hasFilter = hasFilter
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -626,6 +628,8 @@ class AbstractListBody():
         for key in self.items.keys():
             self.items[key].Destroy()
             
+        self.list_cur_max = self.list_item_max
+            
         self.items = {}
         self.data = None
         self.lastData = 0
@@ -637,8 +641,13 @@ class AbstractListBody():
     def IsEmpty(self):
         return len(self.items) == 0
     
-    def InList(self, key):
-        return key in self.items
+    def InList(self, key, onlyCreated = True):
+        if onlyCreated or not self.data:
+            return key in self.items
+        
+        if key in self.items:
+            return True
+        return any(curdata[0] == key for curdata in self.data)
     
     @warnWxThread
     def ScrollToEnd(self, scroll_to_end):
@@ -763,8 +772,8 @@ class AbstractListBody():
         
         self.highlightSet = set()
         if len(self.items) != 0 and highlight:
-            cur_keys = set([curdata[0] for curdata in self.data[:self.list_item_max]])
-            self.highlightSet = set([curdata[0] for curdata in data[:self.list_item_max] if curdata[0] not in cur_keys])
+            cur_keys = set([curdata[0] for curdata in self.data[:self.list_cur_max]])
+            self.highlightSet = set([curdata[0] for curdata in data[:self.list_cur_max] if curdata[0] not in cur_keys])
 
         self.data = data
         self.DoSort()
@@ -806,16 +815,22 @@ class AbstractListBody():
 
     def OnLoadMore(self, event):
         self.loadNext.Disable()
-        wx.CallAfter(self.CreateItems, LIST_ITEM_MAX_SIZE, sys.maxint)
+        self.list_cur_max += LIST_ITEM_MAX_SIZE
+        
+        wx.CallAfter(self.CreateItems)
+        self.Bind(wx.EVT_IDLE, self.OnIdle)
         
     def OnLoadAll(self):
         self.loadNext.Disable()
-        wx.CallAfter(self.CreateItems, sys.maxint, sys.maxint)
-
+        self.list_cur_max = sys.maxint
+        
+        wx.CallAfter(self.CreateItems)
+        self.Bind(wx.EVT_IDLE, self.OnIdle)
+        
     @warnWxThread
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = None):
         if not nr_items_to_add:
-            nr_items_to_add = self.list_item_max
+            nr_items_to_add = self.list_cur_max
         
         if DEBUG:
             print >> sys.stderr, "ListBody: Creating items", time()
@@ -975,7 +990,7 @@ class AbstractListBody():
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE, listRateLimit = LIST_RATE_LIMIT):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max = list_item_max)
         
         homeId = wx.NewId()
         endId = wx.NewId()
