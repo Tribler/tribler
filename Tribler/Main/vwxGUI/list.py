@@ -1292,6 +1292,7 @@ class LibraryList(SizeList):
             nr_seeding = 0
             nr_downloading = 0
             show_seeding_colours = self.statefilter == 'active'
+            
             if show_seeding_colours:
                 orange = LIST_ORANGE
                 orange = rgb_to_hsv(orange.Red()/255.0, orange.Green()/255.0, orange.Blue()/255.0)
@@ -1360,7 +1361,10 @@ class LibraryList(SizeList):
                         ul = stats['total_up']
                         
                         if dl == 0L:
-                            ratio = 0
+                            if ul != 0L:
+                                ratio = 1
+                            else:
+                                ratio = 0
                         else:
                             ratio = 1.0*ul/dl
                             
@@ -1372,7 +1376,10 @@ class LibraryList(SizeList):
                         ul = ds.get_total_transferred(UPLOAD)
                         
                         if dl == 0L:
-                            ratio = 0
+                            if ul != 0L:
+                                ratio = 1
+                            else:
+                                ratio = 0
                         else:
                             ratio = 1.0*ul/dl
                         
@@ -1467,6 +1474,8 @@ class LibraryList(SizeList):
         
         if self.statefilter:
             message += " with state %s"%self.statefilter
+            if self.statefilter == 'active':
+                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of 1.0"
         return message
 
 class ChannelList(List):
