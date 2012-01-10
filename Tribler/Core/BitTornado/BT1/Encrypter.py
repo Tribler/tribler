@@ -83,6 +83,7 @@ if sys.platform == 'win32':
         MAX_INCOMPLETE = 64
 else:
     MAX_INCOMPLETE = 32
+MAX_HISTORY_INCOMPLETE = 100 # allow 100 connections to be initiated every 60s
 
 AUTOCLOSE_TIMEOUT = 15 # secs. Setting this to e.g. 7 causes Video HTTP timeouts
 
@@ -99,18 +100,31 @@ def show(s):
 class IncompleteCounter:
     def __init__(self):
         self.c = 0
+        self.historyc = 0
+        self.taskQueue = None
+        
     def increment(self):
         self.c += 1
+        self.historyc += 1
+        
     def decrement(self):
         #print_stack()
         self.c -= 1
+        
+        if self.taskQueue:
+            self.taskQueue.add_task(self.__decrementHistory, 60)
+        else:
+            self.__decrementHistory()
+    
+    def __decrementHistory(self):
+        self.historyc -= 1
+        
     def toomany(self):
         #print >>sys.stderr,"IncompleteCounter: c",self.c
-        return self.c >= MAX_INCOMPLETE
+        return self.c >= MAX_INCOMPLETE or self.historyc >= MAX_HISTORY_INCOMPLETE
 
 # Arno: This is a global counter!!!!
 incompletecounter = IncompleteCounter()
-
 
 # header, reserved, download id, my id, [length, message]
 
@@ -138,6 +152,8 @@ class Connection:
         self.support_merklehash= False
         self.na_want_internal_conn_from = None
         self.na_address_distance = None
+        
+        incompletecounter.taskQueue = self.Encoder.raw_server
         
         if self.locally_initiated:
             incompletecounter.increment()

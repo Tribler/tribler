@@ -1395,14 +1395,14 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             
             #disable all other tabs
-            for i in range(1, self.notebook.GetPageCount()):
-                page = self.notebook.GetPage(i)
-                page.Show(False)
-                self.notebook.RemovePage(i)
+            if self.notebook.GetPageCount() > 1:
+                for i in range(1, self.notebook.GetPageCount()):
+                    page = self.notebook.GetPage(i)
+                    page.Show(False)
+                    self.notebook.RemovePage(i)
             
             self.fileslist.Reset()
             self.playlistlist.Reset()
-            
                 
     @warnWxThread
     def Reset(self):

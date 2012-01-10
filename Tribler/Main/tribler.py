@@ -671,6 +671,7 @@ class ABCApp():
             
             # Check to see if a download has finished
             newActiveDownloads = []
+            doCheckpoint = False
             for ds in dslist:
                 state = ds.get_status() 
                 safename = ds.get_download().get_def().get_name()
@@ -685,7 +686,11 @@ class ABCApp():
                         notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash)
                         
+                        doCheckpoint = True
+            
             self.prevActiveDownloads = newActiveDownloads
+            if doCheckpoint:
+                self.utility.session.checkpoint()
             
 # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance
