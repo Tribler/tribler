@@ -131,8 +131,7 @@ class TopSearchPanel(bgPanel):
         self._selectPage(pageNames[curPage])
     
     def _selectPage(self, page):
-        if self.guiUtility.guiPage != page:
-            self.guiUtility.ShowPage(page)
+        self.guiUtility.ShowPage(page)
             
     def selectTab(self, tab):
         self.Freeze()

@@ -1170,10 +1170,6 @@ class ChannelManager:
         return self._createTorrent(data, channel)
     
     def getTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
-        hits = self.channelcast_db.getMostPopularTorrentsFromChannel(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, 10)
-        for hit in hits:
-            print >> sys.stderr, 'downloaded', hit
-        
         hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
     
@@ -1182,10 +1178,6 @@ class ChannelManager:
         return self._createTorrents(hits, filterTorrents, {channel.id : channel})
 
     def getTorrentsNotInPlaylist(self, channel, filterTorrents = True):
-        hits = self.channelcast_db.getMostPopularTorrentsFromChannel(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, 10)
-        for hit in hits:
-            print >> sys.stderr, 'downloaded', hit
-        
         hits = self.channelcast_db.getTorrentsNotInPlaylist(channel.id, CHANNEL_REQ_COLUMNS)
         results = self._createTorrents(hits, filterTorrents, {channel.id : channel})
         

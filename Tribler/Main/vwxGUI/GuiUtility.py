@@ -295,7 +295,7 @@ class GUIUtility:
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 
-                wx.CallAfter(self.torrentsearch_manager.refreshGrid())
+                wx.CallAfter(self.torrentsearch_manager.refreshGrid)
                 
                 if len(remotekeywords) > 0:
                     #Start remote search

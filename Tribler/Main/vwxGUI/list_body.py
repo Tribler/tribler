@@ -267,6 +267,11 @@ class ListItem(wx.Panel):
             self.BackgroundColor(self.list_selected)
         else:
             self.BackgroundColor(self.list_deselected)
+            
+    def SetDeselectedColour(self, deselected):
+        if deselected != self.list_deselected:
+            self.list_deselected = deselected
+            self.ShowSelected()
     
     @warnWxThread
     def BackgroundColor(self, color):

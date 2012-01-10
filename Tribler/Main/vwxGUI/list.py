@@ -9,6 +9,7 @@ import wx
 from wx import html
 from time import time
 from datetime import date, datetime
+from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Main.vwxGUI.tribler_topButton import ProgressStaticText
 from Tribler.Core.API import *
@@ -1135,6 +1136,8 @@ class LibraryList(SizeList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.library_manager = self.guiutility.library_manager
+        self.statefilter = None
+        self.prevStates = {}
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'type':'method', 'name':'Completion', 'width': 250, 'method': self.CreateProgress}, \
@@ -1288,24 +1291,44 @@ class LibraryList(SizeList):
             
             nr_seeding = 0
             nr_downloading = 0
+            show_seeding_colours = self.statefilter == 'active'
+            if show_seeding_colours:
+                orange = LIST_ORANGE
+                orange = rgb_to_hsv(orange.Red()/255.0, orange.Green()/255.0, orange.Blue()/255.0)
+                
+                green = LIST_GREEN
+                green = rgb_to_hsv(green.Red()/255.0, green.Green()/255.0, green.Blue()/255.0)
+                
+                colourstep = (green[0] - orange[0], green[1] - orange[1], green[2] - orange[2])
             
             dsdict = {}
             for ds in dslist:
                 infohash = ds.get_download().get_def().get_infohash()
                 dsdict[infohash] = ds
             
-            for values in self.list.raw_data:
-                infohash = values[0]
-                original_data = values[2]
-                
-                if infohash in dsdict:
-                    original_data.ds = dsdict[infohash]
-                    del dsdict[infohash]
+            curStates = {}
+            didStateChange = False
+            if self.list.raw_data: 
+                for values in self.list.raw_data:
+                    infohash = values[0]
+                    original_data = values[2]
+                    
+                    if infohash in dsdict:
+                        original_data.ds = dsdict[infohash]
+                        del dsdict[infohash]
+                        
+                        curStates[infohash] = original_data.state
+                        if curStates[infohash] != self.prevStates.get(infohash, None):
+                            didStateChange = True
+            self.prevStates = curStates
 
             if len(dsdict) > 0:
                 for key in dsdict.keys():
                     print >> sys.stderr, "Could not find %s in dsdict"%bin2str(key)            
                 self.GetManager().refresh() #new torrent
+            
+            if didStateChange and self.statefilter != None:
+                self.list.SetData() #basically this means execute filter again
             
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds
@@ -1356,6 +1379,16 @@ class LibraryList(SizeList):
                         tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio)
                         item.down.SetToolTipString(tooltip)
                         item.up.SetToolTipString(tooltip)
+                    
+                    if show_seeding_colours:
+                        step = min(1, ratio)
+                        
+                        rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
+                        bgcolour = wx.Colour(*rgbTuple)
+                        item.SetDeselectedColour(bgcolour)
+                    else:
+                        item.SetDeselectedColour(LIST_DESELECTED)
+                        
                 else:
                     item.connections.SetToolTipString('')
                     item.down.SetToolTipString('')
