@@ -57,6 +57,10 @@ class VideoPlayer:
             VideoPlayer(*args, **kw)
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
+    
+    def hasInstance():
+        return VideoPlayer.__single is not None
+    hasInstance = staticmethod(hasInstance)
         
     def register(self,utility,preferredplaybackmode=None,closeextplayercallback=None):
         

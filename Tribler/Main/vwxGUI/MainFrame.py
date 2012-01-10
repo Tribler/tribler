@@ -775,14 +775,15 @@ class MainFrame(wx.Frame):
     # minimize to tray bar control
     #######################################
     def onTaskBarActivate(self, event = None):
-        self.Iconize(False)
-        self.Show(True)
-        self.Raise()
-        
-        if self.tbicon is not None:
-            self.tbicon.updateIcon(False)
+        if not self.GUIupdate:
+            self.Iconize(False)
+            self.Show(True)
+            self.Raise()
             
-        self.GUIupdate = True
+            if self.tbicon is not None:
+                self.tbicon.updateIcon(False)
+                
+            self.GUIupdate = True
 
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
@@ -922,8 +923,9 @@ class MainFrame(wx.Frame):
         self.utility.abcquitting = True
         self.GUIupdate = False
         
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.stop_playback()
+        if VideoPlayer.hasInstance():
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.stop_playback()
 
         try:
             # Restore the window before saving size and position
@@ -934,15 +936,13 @@ class MainFrame(wx.Frame):
             print_exc()
 
         try:
-            if self.videoframe is not None:
-                self.videoframe.Destroy()
-        except:
-            print_exc()
-        
-        try:
             if self.tbicon is not None:
                 self.tbicon.RemoveIcon()
                 self.tbicon.Destroy()
+        except:
+            print_exc()
+            
+        try:
             self.Destroy()
         except:
             print_exc()
