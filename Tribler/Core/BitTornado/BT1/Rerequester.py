@@ -307,7 +307,8 @@ class Rerequester:
                         self._dht_rerequest()
                 elif DEBUG_DHT:
                     print >>sys.stderr,"Rerequester: No DHT support loaded"
-
+                
+                trackers_to_try = 10
                 for t in range(len(self.trackerlist)):
                     for tr in range(len(self.trackerlist[t])):
                         tracker  = self.trackerlist[t][tr]
@@ -324,6 +325,11 @@ class Rerequester:
                                 del self.trackerlist[t][tr]
                                 self.trackerlist[t] = [tracker] + self.trackerlist[t]
                             return
+                        
+                        #after trying trackers_to_try trackers return anyways
+                        trackers_to_try -= 1
+                        if trackers_to_try == 0:
+                            return
             else:
                 tracker = self.special
                 self.special = None
@@ -331,9 +337,15 @@ class Rerequester:
                     return
             # no success from any tracker
             self.externalsched(fail)
+            
         except:
-            self.exception(callback)
-
+            print >> sys.stderr, "Exception in _rerequest"
+            print_exc()
+            
+            try:
+                self.exception(callback)
+            except:
+                pass
 
     def _fail(self, callback):
         if ( (self.upratefunc() < 100 and self.downratefunc() < 100)
@@ -372,7 +384,6 @@ class Rerequester:
             self.lock.give_up()
             return True
         return False    # returns true if it wants rerequest() to exit
-
 
     def _rerequest_single(self, t, s, l, callback):
         try:        
@@ -460,10 +471,13 @@ class Rerequester:
             #print >>sys.stderr,"Rerequester: _request_single: scheduling processing of returned",r
             self.externalsched(add)
         except:
-            
+            print >> sys.stderr, "Exception in _rerequest_single"
             print_exc()
             
-            self.exception(callback)
+            try:
+                self.exception(callback)
+            except:
+                pass
 
     def _dht_rerequest(self):
         if DEBUG_DHT:
