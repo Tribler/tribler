@@ -40,7 +40,9 @@ class GlobalSeedingManager:
         filename = os.path.join(self.storage_dir, binascii.hexlify(infohash) + ".pickle")
         if os.path.exists(filename):
             if DEBUG: print >>sys.stderr, "SeedingManager: read_storage", filename
-            storage = cPickle.load(open(filename, "rb"))
+            f = open(filename, "rb")
+            storage = cPickle.load(f)
+            f.close()
             # Any version upgrading must be done here
 
             if storage["version"] == STORAGE_VERSION_CURRENT:
@@ -56,7 +58,9 @@ class GlobalSeedingManager:
     def write_storage(self, infohash, storage):
         filename = os.path.join(self.storage_dir, binascii.hexlify(infohash) + ".pickle")
         if DEBUG: print >>sys.stderr, "SeedingManager: write_storage", filename
-        cPickle.dump(storage, open(filename, "wb"))
+        f = open(filename, "wb")
+        cPickle.dump(storage, f)
+        f.close()
     
     def apply_seeding_policy(self, dslist):
         # Remove stoped seeds
