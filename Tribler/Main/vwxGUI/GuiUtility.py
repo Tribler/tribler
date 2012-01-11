@@ -89,10 +89,12 @@ class GUIUtility:
             xrcResource = os.path.join(self.vwxGUI_path, 'settingsDialog.xrc')
             res = xrc.XmlResource(xrcResource)
             dialog = res.LoadDialog(None, 'settingsDialog')
+            if not dialog: #failed to load dialog
+                return
+
             dialog.Centre()
             dialog.ShowModal()
             dialog.Destroy()
-            
             self.frame.top_bg.selectTab(page)
         
         elif page != self.guiPage:

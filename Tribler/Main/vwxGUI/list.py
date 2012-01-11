@@ -625,6 +625,7 @@ class List(wx.BoxSizer):
         
         if self.rawfilter == '':
             wx.CallAfter(self.list.SetFilter, None, None, False)
+            self.OnFilter('')
             
         else:
             self.OnFilter(self.rawfilter)
@@ -637,13 +638,14 @@ class List(wx.BoxSizer):
         
     def OnFilter(self, keyword):
         self.filter = keyword
-        try:
-            re.compile(self.filter)
-            self.header.FilterCorrect(True)
-            
-        except: #regex incorrect
-            self.filter = ''
-            self.header.FilterCorrect(False)
+        if keyword:
+            try:
+                re.compile(self.filter)
+                self.header.FilterCorrect(True)
+                
+            except: #regex incorrect
+                self.filter = ''
+                self.header.FilterCorrect(False)
     
     def MatchFilter(self, item):
         if self.filter == '':
@@ -694,7 +696,7 @@ class SizeList(List):
                 new_filter = new_filter[:start - 5] + new_filter[end:]
             except:
                 pass
-        
+    
         List.OnFilter(self, new_filter)
     
     def MatchFilter(self, item):
@@ -1443,24 +1445,27 @@ class LibraryList(SizeList):
         self.Show(False)
         
     def OnFilter(self, keyword):
-        new_filter = keyword.lower().strip()
-        
         self.statefilter = None
-        if new_filter.find("state=") > -1:
-            try:
-                start = new_filter.find("state=") + 6
-                end = new_filter.find(" ", start)
-                if end == -1:
-                    end = len(new_filter)
-                
-                state = new_filter[start:end]
-                if state in ['completed','active','stopped','checking','seeding','downloading']: 
-                    self.statefilter = state
-                    new_filter = new_filter[:start - 6] + new_filter[end:]
-            except:
-                pass
-        
-        SizeList.OnFilter(self, new_filter)
+        if keyword:
+            new_filter = keyword.lower().strip()
+            
+            if new_filter.find("state=") > -1:
+                try:
+                    start = new_filter.find("state=") + 6
+                    end = new_filter.find(" ", start)
+                    if end == -1:
+                        end = len(new_filter)
+                    
+                    state = new_filter[start:end]
+                    if state in ['completed','active','stopped','checking','seeding','downloading']: 
+                        self.statefilter = state
+                        new_filter = new_filter[:start - 6] + new_filter[end:]
+                except:
+                    pass
+            
+            SizeList.OnFilter(self, new_filter)
+        else:
+            SizeList.OnFilter(self, keyword)
     
     def MatchFilter(self, item):
         if self.statefilter:
