@@ -119,9 +119,9 @@ class IncompleteCounter:
     def __decrementHistory(self):
         self.historyc -= 1
         
-    def toomany(self):
+    def toomany(self, history = True):
         #print >>sys.stderr,"IncompleteCounter: c",self.c
-        return self.c >= MAX_INCOMPLETE or self.historyc >= MAX_HISTORY_INCOMPLETE
+        return self.c >= MAX_INCOMPLETE or (history and self.historyc >= MAX_HISTORY_INCOMPLETE)
 
 # Arno: This is a global counter!!!!
 incompletecounter = IncompleteCounter()
@@ -368,8 +368,8 @@ class Connection:
             
         if self.complete:
             self.connecter.connection_lost(self)
-        elif self.locally_initiated:
             
+        elif self.locally_initiated:
             hittingLimit = incompletecounter.toomany()
             incompletecounter.decrement()
             
@@ -591,13 +591,20 @@ class Encoder:
                 max_initiate = int(self.config['max_initiate']*1.5)
             cons = len(self.connections)
             
+            #Niels: if we're seeding then call incompletecounter with history = True, else skip history limit  
+            seeding = False
+            try:
+                seeding = self.connecter.downloader.storage.amount_left == 0
+            except:
+                pass
+            
             if DEBUG:
                 print >>sys.stderr,"encoder: conns",cons,"max conns",self.max_connections,"max init",max_initiate
             
             if cons >= self.max_connections or cons >= max_initiate:
                 delay = 60.0
                 
-            elif self.paused or incompletecounter.toomany():
+            elif self.paused or incompletecounter.toomany(seeding):
                 delay = 1.0
                 
             else:
