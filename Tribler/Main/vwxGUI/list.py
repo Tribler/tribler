@@ -1390,7 +1390,7 @@ class LibraryList(SizeList):
                         item.up.SetToolTipString(tooltip)
                     
                     if show_seeding_colours:
-                        step = min(1, ratio)
+                        step = int(min(1, ratio) * 5)/5.0 #rounding to 5 different colours
                         
                         rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
                         bgcolour = wx.Colour(*rgbTuple)
