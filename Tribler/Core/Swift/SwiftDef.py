@@ -44,7 +44,7 @@ class SwiftDef(ContentDefinition):
 
 
     def is_swift_url(url):
-        return url.startswith(SWIFT_URL_SCHEME)
+        return isinstance(url, str) and url.startswith(SWIFT_URL_SCHEME)
     is_swift_url = staticmethod(is_swift_url)
 
 
