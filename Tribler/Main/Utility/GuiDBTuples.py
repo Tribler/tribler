@@ -258,7 +258,7 @@ class CollectedTorrent(Helper):
         if swarminfo:
             self.torrent.num_seeders = swarminfo[1] or 0
             self.torrent.num_leechers = swarminfo[2] or 0
-            self.last_check = swarminfo[4] or -1
+            self.last_check = swarminfo[3] or -1
         return swarminfo
     
     @cacheProperty
