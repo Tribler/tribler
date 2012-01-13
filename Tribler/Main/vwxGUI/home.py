@@ -131,7 +131,8 @@ class Stats(XRCPanel):
         try:
             disp = DispersyPanel(self)
         except:
-            self.SetBackgroundColour(wx.RED)
+            #Dispersy not ready, try again in 1s
+            wx.CallLater(1000, self._DoInit)
             print_exc()
             return
 

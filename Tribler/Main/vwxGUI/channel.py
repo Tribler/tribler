@@ -458,6 +458,10 @@ class SelectedChannelList(GenericSearchList):
     def Reset(self):
         GenericSearchList.Reset(self)
         
+        self.commentList.Reset()
+        self.activityList.Reset()
+        self.moderationList.Reset()
+        
         self.SetId(0)
         self.notebook.SetSelection(0)
         self.state = ChannelCommunity.CHANNEL_CLOSED
@@ -2408,8 +2412,9 @@ class ModificationList(List):
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout 
         
-        why = wx.StaticText(dlg, -1, 'Why do you want to revert this modification?')
+        why = StaticText(dlg, -1, 'Why do you want to revert this modification?')
         _set_font(why, fontweight=wx.FONTWEIGHT_BOLD)
+        ori_why_colour = why.GetForegroundColour()
         vSizer.Add(why, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 7)
         
         reason = wx.TextCtrl(dlg, -1, style = wx.TE_MULTILINE)
@@ -2419,8 +2424,8 @@ class ModificationList(List):
         def canClose(event):
             givenReason = reason.GetValue().strip()
             if givenReason == '':
-                reason.SetBackgroundColour(wx.RED)
-                wx.CallLater(500, reason.SetBackgroundColour, DEFAULT_BACKGROUND)
+                why.SetForegroundColour(wx.RED)
+                wx.CallLater(500, why.SetForegroundColour, ori_why_colour)
             else:
                 button = event.GetEventObject()
                 dlg.EndModal(button.GetId())
