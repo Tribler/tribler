@@ -1611,7 +1611,8 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['creation_time'] = stats[tid][0]
                 torrent['progress'] = stats[tid][1]
                 torrent['destination_path'] = stats[tid][2]
-                
+            else:
+                torrent['myDownloadHistory'] = False
               
         return torrent
 
@@ -2566,6 +2567,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def updateDestDir(self, infohash, destdir, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
+            return
+        
+        if not isinstance(destdir, basestring):
+            print >> sys.stderr, 'DESTDIR IS NOT STRING:', destdir
             return
         self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, commit=commit, destination_path=destdir)
     

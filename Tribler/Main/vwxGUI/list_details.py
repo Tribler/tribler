@@ -995,7 +995,7 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread   
     def OnFilesSelected(self, event):
-        if wx.Platform !="__WXMAC__":
+        if wx.Platform !="__WXMAC__" and getattr(self, 'buttonPanel', False):
             self.buttonPanel.Freeze()
             
             if getattr(self, 'downloadButton', False):

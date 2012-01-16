@@ -146,6 +146,12 @@ class LocalSearchManager:
     
     def refresh_partial(self, infohash):
         startWorker(self.list.RefreshDelayedData, self.library_manager.getTorrentFromInfohash, cargs=(infohash,), wargs=(infohash,))
+        
+    def refresh_if_exists(self, infohashes):
+        def db_call():
+            if self.library_manager.exists(infohashes):
+                self.refresh()
+        startWorker(None, db_call)
 
     @forceWxThread
     def _on_data(self, delayedReslt):
@@ -1326,9 +1332,7 @@ class LibraryList(SizeList):
             self.prevStates = curStates
 
             if len(dsdict) > 0:
-                for key in dsdict.keys():
-                    print >> sys.stderr, "Could not find %s in dsdict"%bin2str(key)            
-                self.GetManager().refresh() #new torrent
+                self.GetManager().refresh_if_exists(dsdict) #new torrent?
             
             if didStateChange and self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again

@@ -1000,7 +1000,7 @@ class LibraryManager:
        
     def getTorrentFromInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
-        if dict:
+        if dict and dict['myDownloadHistory']:
             t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
@@ -1008,6 +1008,13 @@ class LibraryManager:
             #touch channel to force load
             t.channel
             return t
+    
+    def exists(self, infohashes):
+        prefrerences = self.mypref_db.getMyPrefListInfohash()
+        for infohash in infohashes:
+            if infohash not in prefrerences:
+                return False
+        return True
 
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
