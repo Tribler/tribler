@@ -268,7 +268,6 @@ class TriblerLaunchMany(Thread):
 
             # Some author: First Category instantiation requires install_dir, so do it now
             from Tribler.Category.Category import Category
-
             Category.getInstance(config['install_dir'])
 
         # Internal tracker
@@ -702,7 +701,7 @@ class TriblerLaunchMany(Thread):
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
 
-            if DEBUG:
+            if True or DEBUG:
                 print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
                 if pstate['engineresumedata'] is None:
                     print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
