@@ -950,10 +950,15 @@ class LibraryManager:
             if playd == ds.download:
                 self._get_videoplayer(ds).stop_playback()
             
-        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+            self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+        else:
+            self.deleteTorrentDownload(None, infohash, removecontent)
         
     def deleteTorrentDownload(self, download, infohash, removecontent = False, removestate = True):
-        self.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        if download:
+            self.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        else:
+            self.session.remove_download_by_infohash(infohash, removecontent, removestate)
         
         if infohash:
             # Johan, 2009-03-05: we need long download histories for good 

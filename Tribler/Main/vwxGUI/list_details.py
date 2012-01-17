@@ -157,7 +157,7 @@ class TorrentDetails(AbstractDetails):
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
         if filename:
             self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
-            
+
         else:
             #Load/collect torrent using guitaskqueue
             startWorker(None, self.loadTorrent, jobID = "TorrentDetails_loadTorrent")
@@ -233,7 +233,7 @@ class TorrentDetails(AbstractDetails):
         try:
             if not self.isReady:
                 if DEBUG:
-                    print >> sys.stderr, "TorrentDetails: timout on loading", self.torrent.name
+                    print >> sys.stderr, "TorrentDetails: timeout on loading", self.torrent.name
             
                 self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry or wait to allow other peers to respond.")
             
@@ -1402,6 +1402,38 @@ class LibraryDetails(TorrentDetails):
         self.old_progress = -1
         self.startstop = None
         TorrentDetails.__init__(self, parent, torrent)
+        
+    @forceWxThread
+    def _timeout(self):
+        try:
+            if not self.isReady:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentDetails: timeout on loading", self.torrent.name
+            
+                self.Freeze()
+                self.messagePanel.Show(False)
+                
+                vSizer = wx.BoxSizer(wx.VERTICAL)
+                vSizer.AddStretchSpacer()
+                
+                msg = StaticText(self, -1, "Failed loading torrent. Please collapse and expand to retry or wait to allow other peers to respond.\nAlternatively you could remove this torrent from your Downloads.")
+                vSizer.Add(msg)
+                
+                button = wx.Button(self, -1, 'Delete...')
+                button.Bind(wx.EVT_BUTTON, self.OnDelete)
+                vSizer.Add(button, 0, wx.TOP|wx.ALIGN_CENTER_HORIZONTAL, 10)
+                vSizer.AddStretchSpacer()
+                
+                self.details.AddStretchSpacer()
+                self.details.Add(vSizer, 0, wx.ALL, 10)
+                self.details.AddStretchSpacer()
+                        
+                self.Thaw()
+            
+                self.Layout()
+                self.parent.parent_list.OnChange()
+        except wx.PyDeadObjectError:
+            pass
     
     def _addTabs(self, ds, showTab = None):
         if self.saveSpace and showTab == "Files":
