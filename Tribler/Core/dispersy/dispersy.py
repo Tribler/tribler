@@ -2238,8 +2238,13 @@ class Dispersy(Singleton):
                 # small note:  we check if self._candidates contains only one node, this is the
                 # node that was just introduced and added to self._candidates a few lines up
                 if len(self._candidates) == 1 and message.candidate.address in self._bootstrap_candidates and candidate:
-                    if __debug__: dprint("we have no candidates, immediately contact the introduced node")
-                    self.create_introduction_request(community, candidate)
+                    threshold = time() - 30.0
+                    if candidate.timestamp_last_step_in_community(community) <= threshold:
+                        if __debug__: dprint("we have no candidates, immediately contact the introduced node")
+                        self.create_introduction_request(community, candidate)
+
+                    elif __debug__:
+                        dprint("we have no candidates, unable to contact the introduced node again this soon")
 
             else:
                 if __debug__:
@@ -4234,7 +4239,7 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
+                community_info["candidates"] = sorted((candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community))
                 if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
 
         if __debug__: dprint(info, pprint=True)
