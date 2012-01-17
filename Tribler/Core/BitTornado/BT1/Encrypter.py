@@ -15,6 +15,7 @@ from traceback import print_exc
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
 from Tribler.Core.BitTornado.BT1.convert import toint
 from Tribler.Core.Statistics.Status.Status import get_status_holder
+from threading import Lock
 
 try:
     True
@@ -99,25 +100,44 @@ def show(s):
 
 class IncompleteCounter:
     def __init__(self):
+        self.lock = Lock()
+        
         self.c = 0
         self.historyc = 0
         self.taskQueue = None
         
     def increment(self):
-        self.c += 1
-        self.historyc += 1
+        try:
+            self.lock.acquire()
+        
+            self.c += 1
+            self.historyc += 1
+            
+        finally:
+            self.lock.release()
         
     def decrement(self):
-        #print_stack()
-        self.c -= 1
+        try:
+            self.lock.acquire()
+            
+            self.c -= 1
         
-        if self.taskQueue:
-            self.taskQueue.add_task(self.__decrementHistory, 60)
-        else:
-            self.__decrementHistory()
+            if self.taskQueue:
+                self.taskQueue.add_task(self.__decrementHistory, 60)
+            else:
+                self.historyc -= 1
+                
+        finally:
+            self.lock.release()
     
     def __decrementHistory(self):
-        self.historyc -= 1
+        try:
+            self.lock.acquire()
+            
+            self.historyc -= 1
+            
+        finally:
+            self.lock.release()
         
     def toomany(self, history = True):
         #print >>sys.stderr,"IncompleteCounter: c",self.c

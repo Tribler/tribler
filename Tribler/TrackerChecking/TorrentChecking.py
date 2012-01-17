@@ -143,7 +143,7 @@ class TorrentChecking(Thread):
             #see if we have a TorrentTracker entry
             trackers = self.torrentdb.getTracker(torrent['infohash'])
             
-            if len(trackers) > 0:
+            if trackers and len(trackers) > 0:
                 if 'info' not in torrent:
                     torrent["info"] = {}
                     torrent["info"]["announce"] = ''
