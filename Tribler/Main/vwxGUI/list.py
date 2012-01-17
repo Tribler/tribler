@@ -1301,7 +1301,9 @@ class LibraryList(SizeList):
             nr_downloading = 0
             show_seeding_colours = self.statefilter == 'active'
             
-            if show_seeding_colours:
+            if show_seeding_colours and self.utility.config.Read('t4t_option', 'int') == 0:
+                t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
+                
                 orange = LIST_ORANGE
                 orange = rgb_to_hsv(orange.Red()/255.0, orange.Green()/255.0, orange.Blue()/255.0)
                 
@@ -1368,7 +1370,7 @@ class LibraryList(SizeList):
                         
                         if dl == 0L:
                             if ul != 0L:
-                                ratio = 1
+                                ratio = sys.maxint
                             else:
                                 ratio = 0
                         else:
@@ -1383,7 +1385,7 @@ class LibraryList(SizeList):
                         
                         if dl == 0L:
                             if ul != 0L:
-                                ratio = 1
+                                ratio = sys.maxint
                             else:
                                 ratio = 0
                         else:
@@ -1394,7 +1396,9 @@ class LibraryList(SizeList):
                         item.up.SetToolTipString(tooltip)
                     
                     if show_seeding_colours:
-                        step = int(min(1, ratio) * 5)/5.0 #rounding to 5 different colours
+                        #t4t_ratio is goal
+                        step = ratio / t4t_ratio
+                        step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
                         
                         rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
                         bgcolour = wx.Colour(*rgbTuple)

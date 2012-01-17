@@ -64,6 +64,7 @@ class tribler_topButton(wx.Panel):
         self.Bind(wx.EVT_MOVE, self.setParentBitmap)
         self.Bind(wx.EVT_SIZE, self.setParentBitmap)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         self.Refresh()
         self.ready = True
