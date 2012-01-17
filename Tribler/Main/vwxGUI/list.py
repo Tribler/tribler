@@ -1487,8 +1487,9 @@ class LibraryList(SizeList):
         
         if self.statefilter:
             message += " with state %s"%self.statefilter
-            if self.statefilter == 'active':
-                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of 1.0"
+            if self.statefilter == 'active'and self.utility.config.Read('t4t_option', 'int') == 0:
+                t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
+                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f"%t4t_ratio
         return message
 
 class ChannelList(List):
