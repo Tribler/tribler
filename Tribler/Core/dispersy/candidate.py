@@ -20,7 +20,7 @@ class Candidate(object):
     def __init__(self, address, lan_address, wan_address, member=None, community=None, connection_type=u"unknown", is_walk=False, is_stumble=False, is_introduction=False):
         if __debug__:
             from community import Community
-        assert is_address(address)    
+        assert is_address(address)
         assert is_address(lan_address)
         assert is_address(wan_address)
         assert address == lan_address or address == wan_address
@@ -42,11 +42,11 @@ class Candidate(object):
 
     def __str__(self):
         return "Candidate " + ("%s:%d" % self._address if self._address else "" + "" if self._address == self._lan_address else " LAN %s:%d" % self._lan_address + "" if self._address == self._wan_address else " WAN %s:%d" % self._wan_address).strip()
-        
+
     @property
     def address(self):
         return self._address
-        
+
     @property
     def lan_address(self):
         return self._lan_address
@@ -70,23 +70,23 @@ class Candidate(object):
     @property
     def connection_type(self):
         return self._connection_type
-    
+
     @property
     def timestamp_incoming(self):
         return self._timestamp_incoming
 
     def members_in_community(self, community):
         return (member for member, cid in self._timestamp_last_step.iterkeys() if member and cid == community.cid)
-    
+
     def timestamp_last_step_in_community(self, community, default=0.0):
         try:
             return max(timestamp for (_, cid), timestamp in self._timestamp_last_step.iteritems() if cid == community.cid)
         except ValueError:
             return default
-    
+
     def in_community(self, community):
         return any(cid == community.cid for _, cid in self._timestamp_last_step.iterkeys())
-    
+
     def timeout(self, community):
         """
         Called on timeout of a dispersy-introduction-response message
@@ -103,7 +103,7 @@ class Candidate(object):
                                          for (member, cid), timestamp
                                          in self._timestamp_last_step.iteritems())
         self._timestamp_last_step[(None, community.cid)] = time()
-        
+
     def inc_introduction_requests(self, member, community, lan_address, wan_address, connection_type):
         assert is_address(lan_address)
         assert is_address(wan_address)
@@ -133,7 +133,7 @@ class Candidate(object):
 
     def inc_puncture_request(self):
         self._timestamp_incoming = time()
-        
+
     def inc_puncture(self, member, community, address, lan_address, wan_address):
         assert is_address(address)
         assert is_address(lan_address)
@@ -149,7 +149,7 @@ class Candidate(object):
 class LocalhostCandidate(Candidate):
     def __init__(self, dispersy):
         super(LocalhostCandidate, self).__init__(dispersy.lan_address, dispersy.lan_address, dispersy.wan_address)
-        
+
 class BootstrapCandidate(Candidate):
     def __init__(self, wan_address):
         super(BootstrapCandidate, self).__init__(wan_address, wan_address, wan_address, connection_type=u"public")

@@ -438,6 +438,20 @@ class Dispersy(Singleton):
         return self._wan_address
 
     @property
+    def connection_type(self):
+        """
+        The connection type that we believe we have.
+
+        Currently the following types are recognized:
+        - u'unknown': the default value until the actual type can be recognized.
+        - u'public': when the LAN and WAN addresses are determined to be the same.
+        - u'symmetric-NAT': when each remote peer reports different external port numbers.
+
+        @rtype: unicode
+        """
+        return self._connection_type
+
+    @property
     def callback(self):
         return self._callback
 

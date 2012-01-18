@@ -7,6 +7,20 @@ if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
 
 class WalktestCommunity(Community):
+    def __init__(self, *args, **kargs):
+        super(WalktestCommunity, self).__init__(*args, **kargs)
+
+        try:
+            hostname = open("/etc/hostname", "r").readline()
+        except:
+            hostname = "unknown"
+
+        log("walktest.log",
+            "init",
+            mid=self.my_member.mid,
+            hostname=hostname,
+            **self._default_log())
+
     def _initialize_meta_messages(self):
         super(WalktestCommunity, self)._initialize_meta_messages()
 
@@ -32,57 +46,120 @@ class WalktestCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self)]
 
+    def _default_log(self):
+        return dict(lan_address=self._dispersy.lan_address,
+                    wan_address=self._dispersy.wan_address,
+                    connection_type=self._dispersy.connection_type)
+
     def dispersy_start_walk(self):
-        log("walktest.log", "candidates", lan_address=self._dispersy.lan_address, wan_address=self._dispersy.wan_address, candidates=[(candidate.lan_address, candidate.wan_address) for candidate in self._dispersy.yield_all_candidates(self)])
+        log("walktest.log",
+            "start-walk",
+            candidates=[(candidate.lan_address, candidate.wan_address, candidate.connection_type) for candidate in self._dispersy.yield_all_candidates(self)],
+            **self._default_log())
         return self._dispersy.start_walk(self)
 
     def impl_introduction_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
-        log("walktest.log", "out-introduction-request", destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, advice=message.payload.advice, identifier=message.payload.identifier)
+        log("walktest.log",
+            "out-introduction-request",
+            destination_address=message.payload.destination.candidates[0].address,
+            advice=message.payload.advice,
+            identifier=message.payload.identifier,
+            **self._default_log())
         return message
 
     def on_introduction_request(self, meta, messages):
         for message in messages:
             if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1], "  LAN ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], "  WAN ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1])
-            log("walktest.log", "in-introduction-request", member=message.authentication.member.public_key, source=message.candidate.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, advice=message.payload.advice, identifier=message.payload.identifier)
+            log("walktest.log",
+                "in-introduction-request",
+                source_address=message.candidate.address,
+                mid=message.authentication.member.mid,
+                destination_address=message.payload.destination_address,
+                source_lan_address=message.payload.source_lan_address,
+                source_wan_address=message.payload.source_wan_address,
+                advice=message.payload.advice,
+                dentifier=message.payload.identifier,
+                **self._default_log())
         return meta.__origional_handle(messages)
 
     def impl_introduction_response(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.candidates) == 1
         if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
-        log("walktest.log", "out-introduction-response", destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, lan_introduction_address=message.payload.lan_introduction_address, wan_introduction_address=message.payload.wan_introduction_address, identifier=message.payload.identifier)
+        log("walktest.log",
+            "out-introduction-response",
+            destination_address=message.destination.candidates[0].address,
+            lan_introduction_address=message.payload.lan_introduction_address,
+            wan_introduction_address=message.payload.wan_introduction_address,
+            identifier=message.payload.identifier,
+            **self._default_log())
         return message
 
     def on_introduction_response(self, meta, messages):
         for message in messages:
             if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1], " -> ", message.payload.lan_introduction_address[0], ":", message.payload.lan_introduction_address[1], " or ", message.payload.wan_introduction_address[0], ":", message.payload.wan_introduction_address[1])
-            log("walktest.log", "in-introduction-response", member=message.authentication.member.public_key, source=message.candidate.address, destination_address=message.payload.destination_address, source_lan_address=message.payload.source_lan_address, source_wan_address=message.payload.source_wan_address, lan_introduction_address=message.payload.lan_introduction_address, wan_introduction_address=message.payload.wan_introduction_address, identifier=message.payload.identifier)
+            log("walktest.log",
+                "in-introduction-response",
+                member=message.authentication.member.public_key,
+                source_address=message.candidate.address,
+                destination_address=message.payload.destination_address,
+                source_lan_address=message.payload.source_lan_address,
+                source_wan_address=message.payload.source_wan_address,
+                lan_introduction_address=message.payload.lan_introduction_address,
+                wan_introduction_address=message.payload.wan_introduction_address,
+                identifier=message.payload.identifier,
+                **self._default_log())
         return meta.__origional_handle(messages)
 
     def impl_puncture_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.candidates) == 1
         if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
-        log("walktest.log", "out-puncture-request", destination=message.destination.candidates[0].address, lan_walker_address=message.payload.lan_walker_address, wan_walker_address=message.payload.wan_walker_address)
+        log("walktest.log",
+            "out-puncture-request",
+            destination=message.destination.candidates[0].address,
+            lan_walker_address=message.payload.lan_walker_address,
+            wan_walker_address=message.payload.wan_walker_address,
+            identifier=message.payload.identifier,
+            **self._default_log())
         return message
-    
+
     def on_puncture_request(self, meta, messages):
         for message in messages:
             if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1])
-            log("walktest.log", "in-puncture-request", source=message.candidate.address, lan_walker_address=message.payload.lan_walker_address, wan_walker_address=message.payload.wan_walker_address)
+            log("walktest.log",
+                "in-puncture-request",
+                source_address=message.candidate.address,
+                lan_walker_address=message.payload.lan_walker_address,
+                wan_walker_address=message.payload.wan_walker_address,
+                identifier=message.payload.identifier,
+                **self._default_log())
         return meta.__origional_handle(messages)
-    
+
     def impl_puncture(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.candidates) == 1
         if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
-        log("walktest.log", "out-puncture", destination=message.destination.candidates[0].address)
+        log("walktest.log",
+            "out-puncture",
+            destination_address=message.destination.candidates[0].address,
+            source_lan_address=message.payload.source_lan_address,
+            source_wan_address=message.payload.source_wan_address,
+            identifier=message.payload.identifier,
+            **self._default_log())
         return message
 
     def on_puncture(self, meta, messages):
         for message in messages:
             if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1])
-            log("walktest.log", "in-puncture", member=message.authentication.member.public_key, source=message.candidate.address)
+            log("walktest.log",
+                "in-puncture",
+                member=message.authentication.member.mid,
+                source_address=message.candidate.address,
+                source_lan_address=message.payload.source_lan_address,
+                source_wan_address=message.payload.source_wan_address,
+                identifier=message.payload.identifier,
+                **self._default_log())
         return meta.__origional_handle(messages)
