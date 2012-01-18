@@ -63,7 +63,7 @@ class WalktestCommunity(Community):
         if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log",
             "out-introduction-request",
-            destination_address=message.payload.destination.candidates[0].address,
+            destination_address=message.destination.candidates[0].address,
             advice=message.payload.advice,
             identifier=message.payload.identifier,
             **self._default_log())
