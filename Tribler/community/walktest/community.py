@@ -11,7 +11,7 @@ class WalktestCommunity(Community):
         super(WalktestCommunity, self).__init__(*args, **kargs)
 
         try:
-            hostname = open("/etc/hostname", "r").readline()
+            hostname = open("/etc/hostname", "r").readline().strip()
         except:
             hostname = "unknown"
 
