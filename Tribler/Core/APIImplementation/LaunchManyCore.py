@@ -701,7 +701,7 @@ class TriblerLaunchMany(Thread):
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
 
-            if True or DEBUG:
+            if DEBUG:
                 print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
                 if pstate['engineresumedata'] is None:
                     print >>sys.stderr,"tlm: load_checkpoint: resumedata None"

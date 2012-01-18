@@ -1004,7 +1004,7 @@ class ChannelCommunity(Community):
             assert message.name == u"channel", "Expecting a 'channel' message"
             message.packet_id = packet_id
         else:
-            raise RuntimeError("unable to convert packet")
+            raise RuntimeError("Unable to convert packet, could not find channel-message for channel %d"%channel_meta.database_id)
 
         return message
         

@@ -952,7 +952,7 @@ class ABCApp():
         ic.close()
         
         if cmd.startswith('START '):
-            param = cmd[len('START '):]
+            param = cmd[len('START '):].strip()
             torrentfilename = None
             if param.startswith('http:'):
                 # Retrieve from web 

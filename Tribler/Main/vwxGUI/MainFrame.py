@@ -374,7 +374,6 @@ class MainFrame(wx.Frame):
 
     def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
-            print >> sys.stderr, "_" * 80
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
             self.startDownload(tdef=tdef, destdir = destdir)
                 
@@ -382,6 +381,8 @@ class MainFrame(wx.Frame):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
             self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
             return False
+        
+        print >> sys.stderr, "Trying to retrieve metadata for:", url
         return True
     
     def startDownloadFromUrl(self, url, destdir = None):
