@@ -21,6 +21,19 @@ class WalktestCommunity(Community):
             hostname=hostname,
             **self._default_log())
 
+        # redirect introduction-response timeout
+        self._origional__introduction_response_or_timeout = self._dispersy.introduction_response_or_timeout
+        self._dispersy.introduction_response_or_timeout = self._replacement__introduction_response_or_timeout
+
+    def _replacement__introduction_response_or_timeout(self, message, community, intermediary_candidate):
+        if message is None and self == community:
+            log("walktest.log",
+                "timeout",
+                intermediary_lan_address=intermediary_candidate.lan_address,
+                intermediary_wan_address=intermediary_candidate.wan_address,
+                **self._default_log())
+        return self._origional__introduction_response_or_timeout(message, community, intermediary_candidate)
+
     def _initialize_meta_messages(self):
         super(WalktestCommunity, self)._initialize_meta_messages()
 
