@@ -135,9 +135,11 @@ class TotalFooter(TitleFooter):
         self.scrollBar = hSizer.AddSpacer((3,0))
         self.scrollBar.sizer = hSizer
     
-    def SetTotal(self, column, total):
+    def SetTotal(self, column, total, tooltip=None):
         str_data = self.columns[column].get('fmt', str)(total)
         self.totals[column].SetLabel(str_data)
+        if tooltip:
+            self.totals[column].SetToolTipString(tooltip)
                 
 class ChannelResultFooter(ListFooter):
     def GetMidPanel(self, hSizer):

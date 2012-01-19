@@ -99,12 +99,24 @@ def show(s):
     return b2a_hex(s)
 
 class IncompleteCounter:
+    __single = None
+    
     def __init__(self):
+        if IncompleteCounter.__single:
+            raise RuntimeError, "IncompleteCounter is singleton"
+        IncompleteCounter.__single = self
+        
         self.lock = Lock()
         
         self.c = 0
         self.historyc = 0
         self.taskQueue = None
+        
+    def getInstance(*args, **kw):
+        if IncompleteCounter.__single is None:
+            IncompleteCounter(*args, **kw)
+        return IncompleteCounter.__single
+    getInstance = staticmethod(getInstance)
         
     def increment(self):
         try:
@@ -142,9 +154,12 @@ class IncompleteCounter:
     def toomany(self, history = True):
         #print >>sys.stderr,"IncompleteCounter: c",self.c
         return self.c >= MAX_INCOMPLETE or (history and self.historyc >= MAX_HISTORY_INCOMPLETE)
+    
+    def getstats(self):
+        return self.c, MAX_INCOMPLETE, self.historyc, MAX_HISTORY_INCOMPLETE
 
 # Arno: This is a global counter!!!!
-incompletecounter = IncompleteCounter()
+incompletecounter = IncompleteCounter.getInstance()
 
 # header, reserved, download id, my id, [length, message]
 

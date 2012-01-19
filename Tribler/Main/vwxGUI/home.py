@@ -28,6 +28,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.dispersy.dispersy import Dispersy
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
+from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -303,6 +304,7 @@ class NetworkPanel(HomePanel):
         self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
         self.remotequerymsghandler = RemoteQueryMsgHandler.getInstance()
+        self.incompleteCounter = IncompleteCounter.getInstance()
 
         self.timer = None
 
@@ -321,6 +323,7 @@ class NetworkPanel(HomePanel):
         self.queueSize = StaticText(panel)
         self.nrChannels = StaticText(panel)
         self.nrConnected = StaticText(panel)
+        self.incomplete = StaticText(panel)
 
         self.freeMem = None
         try:
@@ -344,6 +347,8 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Connected peers'))
         gridSizer.Add(self.nrConnected, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Incomplete limit (cur, max, history, maxhistory)'))
+        gridSizer.Add(self.incomplete, 0, wx.EXPAND)
         if self.freeMem:
             gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'))
             gridSizer.Add(self.freeMem, 0, wx.EXPAND)
@@ -378,6 +383,8 @@ class NetworkPanel(HomePanel):
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
         self.nrChannels.SetLabel(str(nr_channels))
         self.nrConnected.SetLabel('%d peers'%len(self.remotequerymsghandler.get_connected_peers()))
+        self.incomplete.SetLabel(", ".join(map(str, self.incompleteCounter.getstats())))
+        
         if self.freeMem:
             self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
 
