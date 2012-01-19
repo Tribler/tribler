@@ -59,7 +59,7 @@ class VideoPlayer:
     getInstance = staticmethod(getInstance)
     
     def hasInstance():
-        return VideoPlayer.__single is not None
+        return VideoPlayer.__single and VideoPlayer.__single.vlcwrap and VideoPlayer.__single.vlcwrap.initialized
     hasInstance = staticmethod(hasInstance)
         
     def register(self,utility,preferredplaybackmode=None,closeextplayercallback=None):
