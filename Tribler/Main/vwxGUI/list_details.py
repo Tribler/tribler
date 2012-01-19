@@ -100,14 +100,14 @@ class AbstractDetails(wx.Panel):
         return vSizer
 
 class TorrentDetails(AbstractDetails):
-    FINISHED = 5
-    FINISHED_INACTIVE = 4
+    FINISHED = 6
+    FINISHED_INACTIVE = 5
     
-    INCOMPLETE = 3
-    INCOMPLETE_INACTIVE = 2
+    INCOMPLETE = 4
+    INCOMPLETE_INACTIVE = 3
     
-    VOD = 1
-    INACTIVE = 0
+    VOD = 2
+    INACTIVE = 1
     
     SAVESPACE_THRESHOLD = 800
     MINCOMMENTHEIGHT = 230

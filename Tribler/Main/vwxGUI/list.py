@@ -1299,9 +1299,10 @@ class LibraryList(SizeList):
             
             nr_seeding = 0
             nr_downloading = 0
-            show_seeding_colours = self.statefilter == 'active'
             
-            if show_seeding_colours and self.utility.config.Read('t4t_option', 'int') == 0:
+            show_seeding_colours = False
+            if self.statefilter == 'active' and self.utility.config.Read('t4t_option', 'int') == 0:
+                show_seeding_colours = True
                 t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
                 
                 orange = LIST_ORANGE
