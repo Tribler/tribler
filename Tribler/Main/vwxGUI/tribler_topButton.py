@@ -920,7 +920,6 @@ class TextCtrlAutoComplete(wx.TextCtrl):
     
         wx.TextCtrl.__init__(self , parent , **therest)
 
-        # we need the GUITaskQueue to offload database activity, otherwise we may lock the GUI
         self.text = ""
         self.choices = []
         self.screenheight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
