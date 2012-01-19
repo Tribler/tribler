@@ -729,9 +729,11 @@ class BuddyCastCore:
         recent_peers_ids = self.selectRecentPeers(target_cands_ids, number, 
                                               startfrom=self.bootstrap_time*number)
         
-        for peer_id in recent_peers_ids:
+        recent_perm_ids = self.data_handler.getPeersPermid(recent_peers_ids)
+        for i, peer_id in enumerate(recent_peers_ids):
             last_seen = self.data_handler.getPeerIDLastSeen(peer_id)
-            self.addConnCandidate(self.data_handler.getPeerPermid(peer_id), last_seen)
+            permid = recent_perm_ids[i]
+            self.addConnCandidate(permid, last_seen)
         self.limitConnCandidate()
         
         self.bootstrap_time += 1
@@ -2204,6 +2206,9 @@ class DataHandler:
     
     def getPeerPermid(self, peer_id):
         return self.peer_db.getPermid(peer_id)
+    
+    def getPeersPermid(self, peer_ids):
+        return self.peer_db.getPermids(peer_ids)
 
     def getLocalPeerList(self, max_peers,minoversion=None):
         return self.peer_db.getLocalPeerList(max_peers,minoversion=minoversion)

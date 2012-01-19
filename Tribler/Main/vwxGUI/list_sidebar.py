@@ -263,23 +263,22 @@ class SearchSideBar(wx.Panel):
         if newstate is None:
             auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
             
+            newstate = Bundler.ALG_OFF # default
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
-            try:
-                stored_state = self.bundle_db.getPreference(keywords)
-            except:
-                #if db interaction fails, ignore
-                stored_state = None
+            if keywords != '':
+                try:
+                    stored_state = self.bundle_db.getPreference(keywords)
+                except:
+                    #if db interaction fails, ignore
+                    stored_state = None
                 
-            local_override = stored_state is not None
-            
-            if local_override:
-                newstate = stored_state
+                local_override = stored_state is not None
                 
-            elif auto_guess:
-                newstate = Bundler.ALG_MAGIC
-            
-            else:
-                newstate = Bundler.ALG_OFF # default
+                if local_override:
+                    newstate = stored_state
+                    
+                elif auto_guess:
+                    newstate = Bundler.ALG_MAGIC
         
         self.bundlestate = newstate
         self.selected_bundle_mode = None

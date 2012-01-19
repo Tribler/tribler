@@ -438,7 +438,7 @@ class TriblerLaunchMany(Thread):
 
         self.initComplete = True
 
-    def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
+    def add(self,tdef,dscfg,pstate=None,initialdlstatus=None,commit=True):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -487,11 +487,11 @@ class TriblerLaunchMany(Thread):
                 # through the extra_info dictionary
                 extra_info['filename'] = save_name
 
-                self.torrent_db.addExternalTorrent(tdef, source='',extra_info=extra_info)
+                self.torrent_db.addExternalTorrent(tdef, source='',extra_info=extra_info,commit=commit)
                 dest_path = d.get_dest_dir()
                 # TODO: if user renamed the dest_path for single-file-torrent
                 data = {'destination_path':dest_path}
-                self.mypref_db.addMyPreference(infohash, data)
+                self.mypref_db.addMyPreference(infohash, data,commit=commit)
                 # BuddyCast is now notified of this new Download in our
                 # preferences via the Notifier mechanism. See BC.sesscb_ntfy_myprefs()
             return d
@@ -676,10 +676,11 @@ class TriblerLaunchMany(Thread):
         try:
             dir = self.session.get_downloads_pstate_dir()
             filelist = os.listdir(dir)
-            for basename in filelist:
+            for i, basename in enumerate(filelist):
                 # Make this go on when a torrent fails to start
                 filename = os.path.join(dir,basename)
-                self.resume_download(filename,initialdlstatus)
+                commit = i+1 == len(filelist)
+                self.resume_download(filename,initialdlstatus,commit=commit)
         finally:
             self.sesslock.release()
 
@@ -696,7 +697,7 @@ class TriblerLaunchMany(Thread):
             #self.rawserver_nonfatalerrorfunc(e)
             return None
 
-    def resume_download(self,filename,initialdlstatus=None):
+    def resume_download(self,filename,initialdlstatus=None,commit=True):
         try:
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
@@ -712,7 +713,7 @@ class TriblerLaunchMany(Thread):
 
             # Activate
             dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
-            self.add(tdef,dscfg,pstate,initialdlstatus)
+            self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
         except Exception,e:
             # TODO: remove saved checkpoint?
             self.rawserver_nonfatalerrorfunc(e)

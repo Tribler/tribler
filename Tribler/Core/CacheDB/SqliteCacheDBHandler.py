@@ -3086,7 +3086,7 @@ class VoteCastDBHandler(BasicDBHandler):
         
         self.peer_db = PeerDBHandler.getInstance()
         self.channelcast_db = ChannelCastDBHandler.getInstance()
-        
+        self.my_votes = None
         if DEBUG:
             print >> sys.stderr, "votecast: "
     
@@ -3144,6 +3144,9 @@ class VoteCastDBHandler(BasicDBHandler):
         self._db.execute_write(sql, vote)
         self._updateVotes(vote[0])
         
+        if vote[1] == None:
+            self.my_votes = None
+        
     def addVotes(self, votes):
         sql = "INSERT OR IGNORE INTO _ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
         self._db.executemany(sql, votes)
@@ -3161,6 +3164,7 @@ class VoteCastDBHandler(BasicDBHandler):
         else:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id ISNULL"
             self._db.execute_write(sql, (long(time()), channel_id))
+            self.my_votes = None
         
         self._updateVotes(channel_id)
             
@@ -3242,12 +3246,13 @@ class VoteCastDBHandler(BasicDBHandler):
         return self.getEffectiveVote(channel_id)
     
     def getMyVotes(self):
-        sql = "SELECT channel_id, vote FROM ChannelVotes WHERE voter_id ISNULL"
-        
-        return_dict = {}
-        for channel_id, vote in self._db.fetchall(sql):
-            return_dict[channel_id] = vote
-        return return_dict
+        if not self.my_votes:
+            sql = "SELECT channel_id, vote FROM ChannelVotes WHERE voter_id ISNULL"
+            
+            self.my_votes = {}
+            for channel_id, vote in self._db.fetchall(sql):
+                self.my_votes[channel_id] = vote
+        return self.my_votes
                         
 #end votes
 
