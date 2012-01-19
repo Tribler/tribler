@@ -11,6 +11,7 @@ from __init__ import LIST_GREY, LIST_BLUE, TRIBLER_RED, LIST_HIGHTLIGHT
 from wx.lib.stattext import GenStaticText
 from wx.lib.stattext import GenStaticText
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 DEBUG = False
 
@@ -922,8 +923,6 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         # we need the GUITaskQueue to offload database activity, otherwise we may lock the GUI
         self.text = ""
         self.choices = []
-        self.guiserver = GUITaskQueue.getInstance()
-        
         self.screenheight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
          
         self.dropdown = wx.PopupWindow(self)
@@ -987,10 +986,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             self.text = text
 
             if self.entrycallback:
-                def wx_callback(choices):
-                    """
-                    Will update the gui IF the user did not yet change the input text
-                    """
+                def wx_callback(delayedResult, text):
+                    choices = delayedResult.get()
                     if text == self.text:
                         self.SetChoices(choices)
                         if len(self.choices) == 0:
@@ -998,16 +995,10 @@ class TextCtrlAutoComplete(wx.TextCtrl):
                         else:
                             self.ShowDropDown(True)
     
-                def db_callback():
-                    """
-                    Will try to find completions in the database IF the user did not yet change the
-                    input text
-                    """
+                def db_callback(text):
                     if text == self.text:
-                        choices = self.entrycallback(text)
-                        wx.CallAfter(wx_callback, choices)
-    
-                self.guiserver.add_task(db_callback, id = "DoAutoComplete")
+                        return self.entrycallback(text)
+                startWorker(wx_callback, db_callback, cargs = (text,), wargs = (text, ))
 
     def KeyDown(self, event): 
         skip = True 

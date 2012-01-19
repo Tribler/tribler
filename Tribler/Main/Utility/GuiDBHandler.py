@@ -187,8 +187,9 @@ def startWorker(
     the main thread. This function merely creates a SenderCallAfter (or a
     SenderWxEvent, if consumer derives from wx.EvtHandler), and a Producer,
     and returns immediately after starting the Producer thread. The jobID
-    is used for the Sender and as name for the Producer thread. Returns the 
-    delayedResult created, in case caller needs join/etc.
+    is used for the Sender and as name for the Producer thread. The uId is
+    used to check if such a task is already scheduled, ignores it if it is.
+    Returns the delayedResult created, in case caller needs join/etc.
     """
     if not consumer:
         consumer = exceptionConsumer
