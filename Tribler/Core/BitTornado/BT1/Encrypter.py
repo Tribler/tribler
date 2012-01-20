@@ -131,21 +131,18 @@ class IncompleteCounter:
     def decrement(self):
         try:
             self.lock.acquire()
-            
             self.c -= 1
         
             if self.taskQueue:
                 self.taskQueue.add_task(self.__decrementHistory, 60)
             else:
                 self.historyc -= 1
-                
         finally:
             self.lock.release()
     
     def __decrementHistory(self):
         try:
             self.lock.acquire()
-            
             self.historyc -= 1
             
         finally:
@@ -188,7 +185,8 @@ class Connection:
         self.na_want_internal_conn_from = None
         self.na_address_distance = None
         
-        incompletecounter.taskQueue = self.Encoder.raw_server
+        if self.connecter.overlay_bridge and not incompletecounter.taskQueue:
+            incompletecounter.taskQueue = self.connecter.overlay_bridge  
         
         if self.locally_initiated:
             incompletecounter.increment()

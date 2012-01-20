@@ -1399,11 +1399,14 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             
             #disable all other tabs
-            if self.notebook.GetPageCount() > 1:
+            try:
                 for i in range(1, self.notebook.GetPageCount()):
                     page = self.notebook.GetPage(i)
                     page.Show(False)
                     self.notebook.RemovePage(i)
+            except:
+                #Niels: on windows sometimes the GetPage(i) method results in an assert.
+                print_exc()
             
             self.fileslist.Reset()
             self.playlistlist.Reset()
