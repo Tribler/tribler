@@ -581,15 +581,6 @@ class ABCApp():
         wx.CallLater(10000, self.set_reputation)
     
     def sesscb_states_callback(self, dslist):
-        def guiCall():
-            wx.CallAfter(self._gui_sesscb_states_callback, dslist)
-        
-        #only schedule if a previous task is not being scheduled
-        if not self.guiserver.does_task_exist("DownloadStateCallback"):
-            self.guiserver.add_task(guiCall, id="DownloadStateCallback")
-        return(1.0, True)
-    
-    def _gui_sesscb_states_callback(self, dslist):
         if not self.ready:
             return
         
@@ -706,16 +697,11 @@ class ABCApp():
             # self.seedingcount += 1
             # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(dslist)
-# _SelectiveSeeding            
+# _SelectiveSeeding
             
             # Pass DownloadStates to libaryView
             try:
-                self.guiUtility.library_manager.download_state_gui_callback(dslist)
-            except KeyError:
-                # Apparently libraryMode only has has a 'grid' key when visible
-                print_exc()
-            except AttributeError:
-                print_exc()
+                self.guiUtility.library_manager.download_state_callback(dslist)
             except:
                 print_exc()
             
@@ -742,19 +728,17 @@ class ABCApp():
                 self.seeding_snapshot_count += 1
                 
                 if snapshot_seeding_stats:
-                    def updateSeedingStats():
-                        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                        reputation = bc_db.getMyReputation()
-                    
-                        seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                        seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
-                    
-                    #Niels: using guiserver to do db-stuff
-                    self.guiserver.add_task(updateSeedingStats)
+                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                    reputation = bc_db.getMyReputation()
+                
+                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
+                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
 # _Crawling Seeding Stats
 
         except:
             print_exc()
+        
+        return(1.0, True)
 
     def loadSessionCheckpoint(self):
         self.utility.session.load_checkpoint()

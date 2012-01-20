@@ -38,6 +38,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from wx.lib import delayedresult
 
 DEBUG = False
 
@@ -822,25 +823,28 @@ class LibraryManager:
         self.guiUtility.ShowPlayer(True)
         return videoplayer
         
-    def download_state_gui_callback(self, dslist):
+    def download_state_callback(self, dslist):
         """
-        Called by GUIThread
+        Called by any thread
         """
         self.dslist = dslist
+    
+        startWorker(self._do_gui_callback, self.updateProgressInDB, uId="Refresh Callbacks")
+        
+    def _do_gui_callback(self, delayedResult):
+        delayedResult.get()
         for callback in self.gui_callback:
             try:
-                callback(dslist)
+                callback(self.dslist)
+                
             except:
                 print_exc()
                 self.remove_download_state_callback(callback)
-            
-        #TODO: This seems like the wrong place to do this?
-        self.updateProgressInDB(dslist)
     
-    @forceDBThread
-    def updateProgressInDB(self, dslist):
+    def updateProgressInDB(self):
         updates = False
-        for ds in dslist:
+        
+        for ds in self.dslist:
             infohash = ds.get_download().get_def().get_infohash()
             
             progress = (ds.get_progress() or 0.0) * 100.0

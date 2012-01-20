@@ -19,6 +19,7 @@ from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 
 from Tribler.Video.CachingStream import SmartCachingStream
 from Tribler.Video.Ogg import is_ogg,OggMagicLiveStream
+from Tribler.Main.vwxGUI import forceWxThread
 
 DEBUG = False
 
@@ -767,22 +768,27 @@ class VideoPlayer:
     # Set information about video playback progress that is displayed
     # to the user.
     #
+    @forceWxThread
     def set_content_name(self,name):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentName(name)
 
+    @forceWxThread
     def set_content_image(self,wximg):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentImage(wximg)
-
+    
+    @forceWxThread
     def set_player_status(self,msg):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().SetPlayerStatus(msg)
 
+    @forceWxThread
     def set_player_status_and_progress(self,msg,pieces_complete):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().UpdateStatus(msg,pieces_complete)
-        
+    
+    @forceWxThread
     def set_save_button(self,enable,savebutteneventhandler):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().EnableSaveButton(enable,savebutteneventhandler)
