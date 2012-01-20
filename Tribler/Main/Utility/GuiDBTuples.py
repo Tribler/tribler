@@ -275,8 +275,9 @@ class CollectedTorrent(Helper):
     
     @cacheProperty
     def largestvideofile(self):
-        _, filename = max([(size, filename) for filename, size in self.files if filename in self.videofiles])
-        return filename
+        if len(self.videofiles) > 0:
+            _, filename = max([(size, filename) for filename, size in self.files if filename in self.videofiles])
+            return filename
     
     @cacheProperty
     def subtitlefiles(self):

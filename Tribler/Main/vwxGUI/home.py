@@ -139,7 +139,6 @@ class Stats(XRCPanel):
 
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.AddStretchSpacer()
         
         self.dowserStatus = StaticText(self, -1, 'Dowser is not running')
         dowserButton = wx.Button(self, -1, 'Start dowser')
@@ -149,7 +148,7 @@ class Stats(XRCPanel):
         hSizer.Add(dowserButton)
         vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, 10)
         
-        vSizer.Add(disp, 0, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 10)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)

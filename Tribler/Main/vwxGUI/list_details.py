@@ -895,7 +895,10 @@ class TorrentDetails(AbstractDetails):
     @warnWxThread
     def OnExplore(self, event):
         path = self._GetPath()
-        if path:
+        if path and os.path.exists(path):
+            startfile(path)
+        else:
+            path = DefaultDownloadStartupConfig.getInstance().get_dest_dir()
             startfile(path)
             
         button = event.GetEventObject()
