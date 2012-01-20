@@ -80,10 +80,12 @@ WATCHDOG_PRIORITY = -1
 CANDIDATE_WALKER_PRIORITY = -1
 TRIGGER_CHECK_PRIORITY = -1
 TRIGGER_TIMEOUT_PRIORITY = -2
+MEMBER_CLEANUP_PRIORITY = -3
 assert isinstance(WATCHDOG_PRIORITY, int)
 assert isinstance(CANDIDATE_WALKER_PRIORITY, int)
 assert isinstance(TRIGGER_CHECK_PRIORITY, int)
 assert isinstance(TRIGGER_TIMEOUT_PRIORITY, int)
+assert isinstance(MEMBER_CLEANUP_PRIORITY, int)
 assert TRIGGER_TIMEOUT_PRIORITY < TRIGGER_CHECK_PRIORITY, "an existing trigger should not timeout before being checked"
 
 # the callback identifier for the task that periodically takes a step
@@ -329,6 +331,9 @@ class Dispersy(Singleton):
 
         # commit changes to the database periodically
         self._callback.register(self._watchdog, priority=WATCHDOG_PRIORITY)
+
+        # periodically try to cleanup Member instances
+        self._callback.register(Member.periodically_cleanup_member_instances, priority=MEMBER_CLEANUP_PRIORITY)
 
         # statistics...
         self._statistics = Statistics()
