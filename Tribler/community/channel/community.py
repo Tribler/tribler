@@ -1121,7 +1121,6 @@ class ChannelCommunity(Community):
 
         message = self._dispersy.convert_packet_to_message(str(packet))
         if message:
-            assert not messagename or message.name == messagename, [dispersy_id, messagename, message.name]
             message.packet_id = packet_id
         else:
             raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)
