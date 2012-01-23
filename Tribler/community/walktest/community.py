@@ -68,7 +68,7 @@ class WalktestCommunity(Community):
 
     def create_contact(self, destination, identifier):
         meta = self._meta_messages[u"contact"]
-        message = meta.impl(destination=(destination,), payload=(identifier,))
+        message = meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(identifier,))
         self._dispersy.store_update_forward([message], False, False, True)
 
         log("walktest.log",
