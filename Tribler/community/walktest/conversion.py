@@ -5,7 +5,7 @@ from Tribler.Core.dispersy.message import DropPacket
 
 class WalktestConversion(BinaryConversion):
     def __init__(self, community):
-        super(Conversion, self).__init__(community, "\x01")
+        super(WalktestConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"contact"), self._encode_contact, self._decode_contact)
 
     def _encode_contact(self, message):
