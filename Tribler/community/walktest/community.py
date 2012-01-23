@@ -1,7 +1,14 @@
 from lencoder import log
 
+from Tribler.Core.dispersy.authentication import NoAuthentication
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
+from Tribler.Core.dispersy.destination import CandidateDestination
+from Tribler.Core.dispersy.distribution import DirectDistribution
+from Tribler.Core.dispersy.message import Message
+from Tribler.Core.dispersy.resolution import PublicResolution
+
+from payload import ContactPayload
 
 if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
@@ -54,10 +61,32 @@ class WalktestCommunity(Community):
         return None
 
     def initiate_meta_messages(self):
-        return []
+        return [Message(self, u"contact", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ContactPayload(), self.check_contact, self.on_contact)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self)]
+
+    def create_contact(self, destination, identifier):
+        meta = self._meta_messages[u"contact"]
+        message = meta.impl(destination=(destination,), payload=(identifier,))
+        self._dispersy.store_update_forward([message], False, False, True)
+
+        log("walktest.log",
+            "out-contact",
+            destination_address=destination.address,
+            identifier=identifier,
+            **self._default_log())
+
+    def check_contact(self, messages):
+        return messages
+
+    def on_contact(self, messages):
+        for message in messages:
+            log("walktest.log",
+                "in-contact",
+                source_address=message.candidate.address,
+                identifier=message.payload.identifier,
+                **self._default_log())
 
     def _default_log(self):
         return dict(lan_address=self._dispersy.lan_address,
@@ -93,7 +122,7 @@ class WalktestCommunity(Community):
                 source_lan_address=message.payload.source_lan_address,
                 source_wan_address=message.payload.source_wan_address,
                 advice=message.payload.advice,
-                dentifier=message.payload.identifier,
+                identifier=message.payload.identifier,
                 **self._default_log())
         return meta.__origional_handle(messages)
 
@@ -124,6 +153,11 @@ class WalktestCommunity(Community):
                 wan_introduction_address=message.payload.wan_introduction_address,
                 identifier=message.payload.identifier,
                 **self._default_log())
+
+            # schedule the 'contact' message after one second.  this should give time for the
+            # puncture to complete
+            self._dispersy.callback.register(self.create_contact, (message.candidate, message.payload.identifier), delay=1.0)
+
         return meta.__origional_handle(messages)
 
     def impl_puncture_request(self, meta, *args, **kargs):
