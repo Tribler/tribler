@@ -65,7 +65,7 @@ class WalktestCommunity(Community):
         return [Message(self, u"contact", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ContactPayload(), self.check_contact, self.on_contact)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), WalktestConversion]
+        return [DefaultConversion(self), WalktestConversion(self)]
 
     def create_contact(self, destination, identifier):
         meta = self._meta_messages[u"contact"]
