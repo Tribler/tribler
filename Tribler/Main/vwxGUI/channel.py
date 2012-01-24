@@ -925,7 +925,8 @@ class ManageChannelFilesManager():
         self.channelsearch_manager = self.guiutility.channelsearch_manager
     
     def refreshDirty(self):
-        self._refresh()
+        if self.list.channel:
+            self._refresh()
     
     def refresh_list(self):
         if self.list.IsShownOnScreen():
