@@ -1207,7 +1207,6 @@ class TorrentDetails(AbstractDetails):
     def UpdateStatus(self):
         #touch swarminfo property        
         swarmInfo = self.torrent.swarminfo
-        self.ShowStatus()
         
         if swarmInfo:
             diff = time() - self.torrent.last_check
@@ -1216,22 +1215,29 @@ class TorrentDetails(AbstractDetails):
             
         if diff > 1800:
             TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
+            self.ShowStatus(True)
+        else:
+            self.ShowStatus(False)
 
     @forceWxThread
-    def ShowStatus(self):
+    def ShowStatus(self, updating):
         if getattr(self, 'status', False):
+            updating = ', updating now' if updating else ''
+            
             diff = time() - self.torrent.last_check
             if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
-                self.status.SetLabel("Unknown")
+                self.status.SetLabel("Unknown"+updating)
             else:
                 if diff < 5:
                     self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent.num_seeders, self.torrent.num_leechers))
                 else:
                     updated = self.guiutility.utility.eta_value(diff, 2)
                     if updated == '<unknown>':
-                        self.status.SetLabel("%s seeders, %s leechers"%(self.torrent.num_seeders, self.torrent.num_leechers))
+                        self.status.SetLabel("%s seeders, %s leechers"%(self.torrent.num_seeders, self.torrent.num_leechers)+updating)
                     else:
-                        self.status.SetLabel("%s seeders, %s leechers (updated %s ago)"%(self.torrent.num_seeders, self.torrent.num_leechers ,updated))
+                        self.status.SetLabel("%s seeders, %s leechers (updated %s ago%s)"%(self.torrent.num_seeders, self.torrent.num_leechers ,updated, updating))
+        else:
+            print >> sys.stderr, "No status element to show torrent_status"
     
     def OnMarkingCreated(self, channeltorrent_id):
         if self.torrent.get('channeltorrent_id', False) == channeltorrent_id:

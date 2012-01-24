@@ -150,6 +150,8 @@ class LocalSearchManager:
     def refresh_if_exists(self, infohashes):
         def db_call():
             if self.library_manager.exists(infohashes):
+                print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Library"
+                
                 self.refresh()
         startWorker(None, db_call)
 

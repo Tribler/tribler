@@ -46,6 +46,7 @@ class SettingsDialog(wx.Dialog):
                              'externalplayer',\
                              'batchstart',\
                              'batchstop',\
+                             'batchmove',\
                              'use_bundle_magic',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
                              'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3']
@@ -107,6 +108,7 @@ class SettingsDialog(wx.Dialog):
         
         self.elements['batchstart'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(True))
         self.elements['batchstop'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(False))
+        self.elements['batchmove'].Bind(wx.EVT_BUTTON, self.OnMultipleMove)
         
         self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
         self.Bind(wx.EVT_BUTTON, self.cancelAll, id = xrc.XRCID("wxID_CANCEL"))
@@ -507,6 +509,64 @@ class SettingsDialog(wx.Dialog):
             
         wx.CallAfter(do_gui, choices, dstates, infohashes)
         
+    @forceDBThread
+    def OnMultipleMove(self, event = None):
+        choices = []
+        dstates = []
+        infohashes = []
+        _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
+        
+        def sort_by_name(a, b):
+            return cmp(a.name, b.name)
+        
+        downloads.sort(cmp = sort_by_name)
+        for item in downloads:
+            if item.ds:
+                choices.append(item.name)
+                dstates.append(item.ds)
+                infohashes.append(item.infohash)
+                
+        def do_gui(choices, dstates, infohashes):
+            if len(choices) > 0:
+                message = 'Please select all torrents which should be moved'
+                message += "\nUse ctrl+a to select all/deselect all."
+                
+                def bindAll(control):
+                    control.Bind(wx.EVT_KEY_DOWN, lambda event: self._SelectAll(dlg, event, len(choices)))
+                    func = getattr(control, 'GetChildren', False)
+                    if func:
+                        for child in func():
+                            bindAll(child)
+                
+                dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
+                dlg.allselected = False
+                bindAll(dlg)
+                
+                if dlg.ShowModal() == wx.ID_OK:
+                    dlg2 = wx.DirDialog(self,"Choose a new destination directory", style = wx.DEFAULT_DIALOG_STYLE)
+                    dlg2.SetPath(self.defaultDLConfig.get_dest_dir())
+                    if dlg2.ShowModal() == wx.ID_OK:
+                        dlg3 = wx.MessageDialog(self, 'If a target file exists, overwrite?', 'Please confirm overwrite?', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                        if dlg3.ShowModal() == wx.ID_YES:
+                            ignore = False
+                        else:
+                            ignore = True
+                        dlg3.Destroy()
+                        
+                        selections = dlg.GetSelections()
+                        for selection in selections:
+                            download = dstates[selection].get_download()
+                            self.moveDownload(download, dlg2.GetPath(), ignore)
+                            
+                    dlg2.Destroy()
+            else:
+                message = "No torrents in library which could be moved"
+                dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
+                dlg.ShowModal()
+            dlg.Destroy()
+            
+        wx.CallAfter(do_gui, choices, dstates, infohashes)
+        
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():
             if event.GetKeyCode() == 65: #ctrl + a
@@ -516,7 +576,6 @@ class SettingsDialog(wx.Dialog):
                     select = list(range(nrchoices))
                     dlg.SetSelections(select)
                 dlg.allselected = not dlg.allselected
-                
 
     def saveDefaultDownloadConfig(self):
         # Save DownloadStartupConfig
@@ -539,39 +598,42 @@ class SettingsDialog(wx.Dialog):
                 print_exc()
         scfg.save(cfgfilename)
     
+    #use os.renames as much as possible
+    #use single file/dir copy if target exists
+    def rename_or_merge(self, old, new, ignore = True):
+        if os.path.exists(old):
+            if os.path.exists(new):
+                files = os.listdir(old)
+                for file in files:
+                    oldfile = os.path.join(old, file)
+                    newfile = os.path.join(new, file)
+                    
+                    if os.path.isdir(oldfile):
+                        self.rename_or_merge(oldfile, newfile)
+                        
+                    elif os.path.exists(newfile) and not ignore:
+                        os.remove(newfile)
+                        os.rename(oldfile, newfile)
+                    else:
+                        os.rename(oldfile, newfile)
+            else:
+                os.renames(old, new)
+    
     def moveCollectedTorrents(self, old_dir, new_dir):
         def move(old_dir, new_dir):
-            
-            #use os.renames as much as possible
-            #use single file/dir copy if target exists
-            def rename_or_merge(old, new):
-                if os.path.exists(old):
-                    if os.path.exists(new):
-                        files = os.listdir(old)
-                        for file in files:
-                            oldfile = os.path.join(old, file)
-                            newfile = os.path.join(new, file)
-                            
-                            if os.path.isdir(oldfile):
-                                rename_or_merge(oldfile, newfile)
-                            else:
-                                os.rename(oldfile, newfile)
-                    else:
-                        os.renames(old, new)
-            
             #physical move
             old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
             new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
-            rename_or_merge(old_dirtf, new_dirtf)
+            self.rename_or_merge(old_dirtf, new_dirtf)
             
             old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
             new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
-            rename_or_merge(old_dirsf, new_dirsf)
+            self.rename_or_merge(old_dirsf, new_dirsf)
         
             # ProxyService_
             old_dirdh = os.path.join(old_dir, 'proxyservice')
             new_dirdh = os.path.join(new_dir, 'proxyservice')
-            rename_or_merge(old_dirdh, new_dirdh)
+            self.rename_or_merge(old_dirdh, new_dirdh)
             
         atexit.register(move, old_dir, new_dir)
         
@@ -587,6 +649,33 @@ class SettingsDialog(wx.Dialog):
         self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir, 'collected_torrent_files'))
         
         busyDlg.Destroy()
+        
+    def moveDownload(self, download, new_dir, ignore):
+        destdirs = download.get_dest_files()
+        if len(destdirs) > 1:
+            old = os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
+            _, old_dir = new = os.path.split(old)
+            new = os.path.join(new_dir, old_dir)
+        else:
+            old = destdirs[0][1]
+            _, old_file = os.path.split(old)
+            new = os.path.join(new_dir, old_file)
+        
+        print >> sys.stderr, "Creating new donwloadconfig"
+        tdef = download.get_def()
+        dscfg = DownloadStartupConfig(download.dlconfig)
+        dscfg.set_dest_dir(new_dir)
+        
+        self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+        
+        def after_stop():
+            print >> sys.stderr, "Moving from",old,"to",new,"newdir",new_dir
+            self.rename_or_merge(old, new, ignore)
+        
+            self.utility.session.start_download(tdef, dscfg)
+        
+        #use rawserver as remove is scheduled on rawserver 
+        self.utility.session.lm.rawserver.add_task(after_stop,0.0)
         
     def process_input(self):
         try:

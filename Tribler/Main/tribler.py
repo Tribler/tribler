@@ -558,25 +558,11 @@ class ABCApp():
             manager = self.frame.selectedchannellist.GetManager()
             manager.downloadStarted(objectID)
 
-    def get_reputation(self):
-        """ get the current reputation score"""
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        reputation = bc_db.getMyReputation()
-        #self.utility.session.close_dbhandler(bc_db)
-        return reputation
-
-    def get_total_down(self):
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        return bc_db.total_down
-
-    def get_total_up(self):
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        return bc_db.total_up
-
     def set_reputation(self):
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
-            self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
+            bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+            self.frame.SRstatusbar.set_reputation(bc_db.getMyReputation(), bc_db.total_down, bc_db.total_up)
             
         wx.CallLater(10000, self.set_reputation)
     
