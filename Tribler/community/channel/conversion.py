@@ -306,6 +306,8 @@ class ChannelConversion(BinaryConversion):
         if not "modification-type" in dic:
             raise DropPacket("Missing 'modification-type'")
         modification_type = dic["modification-type"]
+        if not isinstance(modification_type, unicode):
+            raise DropPacket("Invalid 'modification_type' type") 
         
         if not "modification-value" in dic:
             raise DropPacket("Missing 'modification-value'")

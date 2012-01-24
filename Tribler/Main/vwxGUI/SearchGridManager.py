@@ -1478,7 +1478,7 @@ class ChannelManager:
         if not channel:
             channel_id = self.channelcast_db.getMyChannelId()
             if not channel_id:
-                self.createChannel(unicode(self.session.get_nickname()), u'')
+                self.createChannel(self.session.get_nickname(), '')
                 channel_id = self.channelcast_db.getMyChannelId()
         else:
             channel_id = channel.id

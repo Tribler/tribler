@@ -268,8 +268,8 @@ class ChannelCommunity(Community):
 
     @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
-        name = name[:255]
-        description = description[:1023]
+        name = unicode(name[:255])
+        description = unicode(description[:1023])
         
         meta = self.get_meta_message(u"channel")
         message = meta.impl(authentication=(self._my_member,),
@@ -402,8 +402,8 @@ class ChannelCommunity(Community):
 
     @forceDispersyThread
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
-        name = name[:255]
-        description = description[:1023]
+        name = unicode(name[:255])
+        description = unicode(description[:1023])
         
         meta = self.get_meta_message(u"playlist")
         message = meta.impl(authentication=(self._my_member,),
@@ -472,7 +472,7 @@ class ChannelCommunity(Community):
             reply_after_mid = message.authentication.member.mid
             reply_after_global_time = message.distribution.global_time
         
-        text = text[:1024]
+        text = unicode(text[:1023])
         
         meta = self.get_meta_message(u"comment")
         global_time = self.claim_global_time()
@@ -586,13 +586,12 @@ class ChannelCommunity(Community):
         
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
-            type = unicode(type)
-            value = value[:1024]
             timestamp = long(time())
             self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
         
     def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on, latest_modification, store=True, update=True, forward=True):
-        modifcation_value = modifcation_value[:1023]
+        modification_type = unicode(modification_type)
+        modifcation_value = unicode(modifcation_value[:1023])
         
         latest_modification_mid = None
         latest_modification_global_time = None
@@ -859,6 +858,8 @@ class ChannelCommunity(Community):
     def _disp_create_moderation(self, text, timestamp, severity, cause, store=True, update=True, forward=True):
         causemessage = self._get_message_from_dispersy_id(cause, 'modification')
         if causemessage:
+            text = unicode(text[:1023])
+            
             meta = self.get_meta_message(u"moderation")
             global_time = self.claim_global_time()
             current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
