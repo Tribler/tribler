@@ -1146,6 +1146,8 @@ class LibraryList(SizeList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.library_manager = self.guiutility.library_manager
+        self.library_manager.add_download_state_callback(self.RefreshItems)
+        
         self.statefilter = None
         self.prevStates = {}
 
@@ -1444,16 +1446,6 @@ class LibraryList(SizeList):
             message = "Torrents can be found using our integrated search or using channels.\n"
             message += "Additionally you could add any torrent file downloaded from an external source by using the '+ Add' button or dropping it here."
             self.list.ShowMessage(message, header = header)
-
-    def Show(self, show = True):
-        List.Show(self, show)
-        if show:
-            self.library_manager.add_download_state_callback(self.RefreshItems)
-        else:
-            self.library_manager.remove_download_state_callback(self.RefreshItems)
-       
-    def Hide(self):
-        self.Show(False)
         
     def OnFilter(self, keyword):
         self.statefilter = None
