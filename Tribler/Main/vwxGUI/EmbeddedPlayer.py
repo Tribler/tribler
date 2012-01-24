@@ -637,7 +637,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             
     def __check_thread(self):
         if __debug__ and currentThread().getName() != "MainThread":
-            print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+            print  >> sys.stderr,"EmbeddedPlayer: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
 
 class VLCLogoWindow(wx.Panel):

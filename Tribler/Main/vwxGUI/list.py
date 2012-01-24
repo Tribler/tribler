@@ -449,9 +449,9 @@ class List(wx.BoxSizer):
         if self.isReady:
             self.list.OnSort(column, reverse)
     
+    @warnWxThread
     def Reset(self):
         assert self.isReady, "List not ready"
-        self.__check_thread()
 
         if self.isReady:
             self.rawfilter = ''
@@ -470,14 +470,14 @@ class List(wx.BoxSizer):
 
             self.dirty = False
             self.Layout()
-            
+    
+    @warnWxThread
     def OnExpand(self, item):
         assert self.isReady, "List not ready"
-        self.__check_thread()
     
+    @warnWxThread
     def OnCollapse(self, item, panel):
         assert self.isReady, "List not ready"
-        self.__check_thread()
         
         self.OnCollapseInternal(item)
         if panel:
@@ -489,28 +489,28 @@ class List(wx.BoxSizer):
     def GetManager(self):
         pass
     
+    @warnWxThread
     def SetDelayedData(self, delayedResult):
         assert self.isReady, "List not ready"
-        self.__check_thread()
         self.SetData(delayedResult.get())
     
+    @warnWxThread
     def SetData(self, data):
         assert self.isReady, "List not ready"
-        self.__check_thread()
         
+    @warnWxThread
     def RefreshDelayedData(self, delayedResult, key):
         assert self.isReady, "List not ready"
-        self.__check_thread()
         self.RefreshData(key, delayedResult.get())
     
+    @warnWxThread
     def RefreshData(self, key, data):
         assert self.isReady, "List not ready"
-        self.__check_thread()
-        
+
+    @warnWxThread        
     def SetNrResults(self, nr):
         assert self.isReady, "List not ready"
-        self.__check_thread()
-        
+            
     def InList(self, key, onlyCreated = True):
         assert self.isReady, "List not ready"
         if self.isReady:
@@ -536,18 +536,20 @@ class List(wx.BoxSizer):
         if self.isReady:
             return self.list.GetExpandedItem()
     
+    @warnWxThread
     def Focus(self):
         assert self.isReady, "List not ready"
         if self.isReady:
             self.list.SetFocusIgnoringChildren()
-        
+    
+    @warnWxThread    
     def HasFocus(self):
         assert self.isReady, "List not ready"
         focussed = wx.Window.FindFocus()
         return focussed == self.list
-        
+    
+    @warnWxThread
     def SetBackgroundColour(self, colour):
-        self.__check_thread()
         
         if self.header:
             self.header.SetBackgroundColour(colour)
@@ -562,21 +564,25 @@ class List(wx.BoxSizer):
         
         if self.footer:
             self.footer.SetBackgroundColour(colour)
-        
+    
+    @warnWxThread
     def ScrollToEnd(self, scroll_to_end):
         assert self.isReady, "List not ready"
         if self.isReady:
             self.list.ScrollToEnd(scroll_to_end)
     
+    @warnWxThread
     def ScrollToId(self, id):
         assert self.isReady, "List not ready"
         self.list.ScrollToId(id)
     
+    @warnWxThread
     def DeselectAll(self):
         assert self.isReady, "List not ready"
         if self.isReady:
             self.list.DeselectAll()
         
+    @warnWxThread
     def Select(self, key, raise_event = True):
         assert getattr(self, 'list', False), "List not ready"
         if self.isReady:
@@ -621,12 +627,7 @@ class List(wx.BoxSizer):
             
     def ShowFooter(self, show = True):
         self.footer.Show(show)
-        
-    def __check_thread(self):
-        if __debug__ and currentThread().getName() != "MainThread":
-            print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
-            print_stack()
-    
+  
     def GotFilter(self, keyword):
         oldrawfilter = self.rawfilter
         self.rawfilter = keyword.lower().strip()
@@ -670,8 +671,8 @@ class List(wx.BoxSizer):
             return message + ' matching "%s"'%self.filter
         return message
         
+    @warnWxThread
     def Layout(self):
-        self.__check_thread()
         return wx.BoxSizer.Layout(self)
     
 class SizeList(List):
