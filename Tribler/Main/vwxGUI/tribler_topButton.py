@@ -884,6 +884,7 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
 class SelectableListCtrl(BetterListCtrl):
     def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         BetterListCtrl.__init__(self, parent, style, tooltip)
+        self.allselected = False
         self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
     
     def _CopyToClipboard(self, event):
@@ -906,7 +907,11 @@ class SelectableListCtrl(BetterListCtrl):
                 
             elif event.GetKeyCode() == 65: #ctrl + a
                 for index in xrange(self.GetItemCount()):
-                    self.Select(index)
+                    if self.allselected:
+                        self.Select(index, 0)
+                    else:
+                        self.Select(index, 1)
+                self.allselected = not self.allselected
         
 class TextCtrlAutoComplete(wx.TextCtrl):
     def __init__ (self, parent, entrycallback = None, selectcallback = None, **therest):
