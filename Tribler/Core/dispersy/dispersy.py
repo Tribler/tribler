@@ -3348,6 +3348,16 @@ class Dispersy(Singleton):
             assert message.name == u"dispersy-introduction-request", "this method is called in batches, i.e. community and meta message grouped together"
             assert message.community == community, "this method is called in batches, i.e. community and meta message grouped together"
 
+            # 25/01/12 Boudewijn: during all DAS2 NAT node314 often sends requests to herself.  This
+            # results in more candidates (all pointing to herself) being added to the candidate
+            # list.  This converges to only sending requests to herself.  To prevent this we will
+            # drop all requests that have an outstanding identifier.  This is not a perfect
+            # solution, but the change that two nodes select the same identifier and send requests
+            # to each other is relatively small.
+            if message.payload.identifier in self._walk_identifiers:
+                yield DropMessage(message, "Duplicate identifier (most likely received from ourself)")
+                continue
+
             if message.payload.sync:
                 # obtain all subjective sets for the sender of the dispersy-sync message
                 assert isinstance(message.authentication, MemberAuthentication.Implementation)

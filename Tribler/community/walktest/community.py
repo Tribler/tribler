@@ -157,7 +157,7 @@ class WalktestCommunity(Community):
 
             # schedule the 'contact' message after one second.  this should give time for the
             # puncture to complete
-            self._dispersy.callback.register(self.create_contact, (message.candidate, message.payload.identifier), delay=1.0)
+            # self._dispersy.callback.register(self.create_contact, (message.candidate, message.payload.identifier), delay=1.0)
 
         return meta.__origional_handle(messages)
 
