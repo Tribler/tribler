@@ -605,7 +605,7 @@ class List(wx.BoxSizer):
             self.list.OnLoadAll()
             
     def IsShownOnScreen(self):
-        return self.parent.IsShownOnScreen()
+        return self.IsShown(0)
     
     def Freeze(self):
         self.parent.Freeze()
