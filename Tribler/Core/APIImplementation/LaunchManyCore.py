@@ -405,15 +405,13 @@ class TriblerLaunchMany(Thread):
 
         # start dispersy
         config = self.session.sessconfig
-        sqlite_db_path = os.path.join(config['state_dir'], u"sqlite")
-        if not os.path.isdir(sqlite_db_path):
-            os.makedirs(sqlite_db_path)
+        working_directory = config['state_dir']
 
         if sys.argv[0].endswith("dispersy-channel-booster.py"):
             dispersy_cls = __import__("Tribler.Main.dispersy-channel-booster", fromlist=["BoosterDispersy"]).BoosterDispersy
-            self.dispersy = dispersy_cls.get_instance(self.dispersy_thread, sqlite_db_path, singleton_placeholder=Dispersy)
+            self.dispersy = dispersy_cls.get_instance(self.dispersy_thread, working_directory, singleton_placeholder=Dispersy)
         else:
-            self.dispersy = Dispersy.get_instance(self.dispersy_thread, sqlite_db_path)
+            self.dispersy = Dispersy.get_instance(self.dispersy_thread, working_directory)
 
         self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
 

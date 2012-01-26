@@ -37,9 +37,10 @@ supply.  Aside from the four policies, each meta-message also defines the commun
 of, the name it uses as an internal identifier, and the class that will contain the payload.
 """
 
+import os
+
 from hashlib import sha1
 from itertools import groupby, islice, count
-from os.path import abspath
 from random import random, choice, shuffle
 from socket import inet_aton, error as socket_error
 from time import time
@@ -264,10 +265,13 @@ class Dispersy(Singleton):
         self._batch_cache = {}
 
         # where we store all data
-        self._working_directory = abspath(working_directory)
+        self._working_directory = os.path.abspath(working_directory)
 
         # our data storage
-        self._database = DispersyDatabase.get_instance(working_directory)
+        sqlite_directory = os.path.join(self._working_directory, u"sqlite")
+        if not os.path.isdir(sqlite_directory):
+            os.makedirs(sqlite_directory)
+        self._database = DispersyDatabase.get_instance(sqlite_directory)
 
         # peer selection candidates.  address:Candidate pairs (where
         # address is obtained from socket.recv_from)
@@ -305,7 +309,7 @@ class Dispersy(Singleton):
             dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
 
         # bootstrap peers
-        bootstrap_addresses = get_bootstrap_addresses()
+        bootstrap_addresses = get_bootstrap_addresses(self._working_directory)
         self._bootstrap_candidates = dict((address, BootstrapCandidate(address)) for address in bootstrap_addresses if address)
         assert isinstance(self._bootstrap_candidates, dict)
         if not all(bootstrap_addresses):
