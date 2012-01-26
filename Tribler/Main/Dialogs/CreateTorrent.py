@@ -49,9 +49,18 @@ class CreateTorrent(wx.Dialog):
         vSizer.Add(self.foundFilesText, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         self.combineRadio = wx.RadioButton(self, -1, 'Combine files into a single .torrent', style = wx.RB_GROUP)
+        self.combineRadio.Bind(wx.EVT_RADIOBUTTON, self.OnCombine)
         self.sepRadio = wx.RadioButton(self, -1, 'Create separate .torrent for every file')
+        self.sepRadio.Bind(wx.EVT_RADIOBUTTON, self.OnCombine)
         vSizer.Add(self.combineRadio, 0, wx.EXPAND|wx.BOTTOM, 3)
         vSizer.Add(self.sepRadio, 0, wx.EXPAND|wx.BOTTOM, 3)
+        
+        self.specifiedName = wx.TextCtrl(self, -1, '')
+        self.specifiedName.Enable(False)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(wx.StaticText(self, -1, 'Specify a name'), 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer.Add(self.specifiedName, 1, wx.EXPAND)
+        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         vSizer.Add(StaticText(self, -1, 'Trackers'))
         self.trackerList = wx.TextCtrl(self, -1, '', style = wx.TE_MULTILINE)
@@ -133,9 +142,64 @@ class CreateTorrent(wx.Dialog):
         else:
             dlg.Destroy()
             
-    def OnOk(self, event):
-        max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
+    def OnCombine(self, event = None):
+        combine = self.combineRadio.GetValue()
+        self.specifiedName.Enable(combine)
         
+        if combine:
+            path = ''
+            if len(self.selectedPaths) > 1:
+                path = os.path.commonprefix(self.selectedPaths)
+                if path:
+                    path = path[:-1]
+            elif len(self.selectedPaths) > 0:
+                path = self.selectedPaths[0]
+            
+            _, name = os.path.split(path)
+            self.specifiedName.SetValue(name)
+            
+    def OnOk(self, event):
+#            if self.specifyNames.GetValue():
+#                dlg = wx.Dialog(self, -1, 'Please correct the names for the torrents.', size=(750,450))
+#                sizer = wx.BoxSizer(wx.VERTICAL)
+#                header = wx.StaticText(dlg, -1, 'Please modify the names for the .torrents.')
+#                
+#                _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
+#                sizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
+#                
+#                flexSizer =  wx.FlexGridSizer(2,2,3,3)
+#                controls = []
+#                for name in names:
+#                    flexSizer.Add(wx.StaticText(dlg, -1, name), 0, wx.ALIGN_CENTER_VERTICAL)
+#                    control = wx.TextCtrl(dlg,-1, name)
+#                    control.SetMinSize((300,-1))
+#                    flexSizer.Add(control, 1, wx.EXPAND)
+#                    controls.append(control)
+#                    
+#                sizer.Add(flexSizer, 1, wx.EXPAND|wx.BOTTOM, 3)
+#                
+#                cancel = wx.Button(dlg, wx.ID_CANCEL)
+#                ok = wx.Button(dlg, wx.ID_OK)
+#                
+#                bSizer = wx.StdDialogButtonSizer()
+#                bSizer.AddButton(cancel)
+#                bSizer.AddButton(ok)
+#                bSizer.Realize()
+#                sizer.Add(bSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
+#                
+#                bsizer = wx.BoxSizer()
+#                bsizer.Add(sizer, 1, wx.EXPAND|wx.ALL, 10)
+#                dlg.SetSizerAndFit(bsizer)
+#                
+#                if dlg.ShowModal() == wx.ID_OK:
+#                    for i, control in enumerate(controls):
+#                        names[i] = control.GetValue()
+#                    dlg.Destroy()
+#                else:
+#                    dlg.Destroy()
+#                    return
+        
+        max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
         if self.toChannel:
             dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?"%max, "Are you sure?", style = wx.YES_NO|wx.ICON_QUESTION)
         else:
@@ -183,9 +247,10 @@ class CreateTorrent(wx.Dialog):
             
             def create_torrents():
                 if self.combineRadio.GetValue():
+                    params['name'] = self.specifiedName.GetValue()
                     make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
                 else:
-                    for path in self.selectedPaths:
+                    for i, path in enumerate(self.selectedPaths):
                         make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
                         
                 wx.CallAfter(do_gui)
@@ -204,16 +269,18 @@ class CreateTorrent(wx.Dialog):
         self.locationText.SetLabel(label)
         
         if os.path.isdir(paths[0]):
-            paths = [os.path.join(paths[0], file) for file in os.listdir(paths[0]) if (not file.endswith('.torrent')) and os.path.isfile(os.path.join(paths[0], file))]
+            paths = [os.path.join(paths[0], file) for file in os.listdir(paths[0]) if (not file.endswith('.torrent') and not file.lower().endswith('thumbs.db ') and os.path.isfile(os.path.join(paths[0], file)))]
         
         self.selectedPaths = paths
         self.foundFilesText.SetLabel('Selected %d files'%len(paths))
         
         self.combineRadio.Enable(len(paths) > 0)
-        self.sepRadio.Enable(len(paths) > 0)
+        self.sepRadio.Enable(len(paths) > 1)
         
         self.combineRadio.SetValue(len(paths) == 1)
-        self.sepRadio.SetValue(len(paths) > 0)
+        self.sepRadio.SetValue(len(paths) > 1)
+        
+        self.OnCombine()
         
         self.Layout()
     
@@ -251,7 +318,9 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
             tdef.add_content(srcpath,playtime=params['playtime'])
         else:
             tdef.add_content(srcpath)
-            
+    
+    if params['name']:
+        tdef.set_name(params['name'])
     if params['comment']:
         tdef.set_comment(params['comment'])
     if params['created by']:

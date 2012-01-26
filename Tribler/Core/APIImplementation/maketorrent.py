@@ -296,10 +296,13 @@ def makeinfo(input,userabortflag,userprogresscallback):
     else:
         flkey = 'files'
         flval = fs
-
-        outpath = input['files'][0]['outpath']
-        l = filename2pathlist(outpath)
-        name = l[0]
+        
+        if 'name' in input: #allow someone to overrule the default name if multifile
+            name = input['name']
+        else:
+            outpath = input['files'][0]['outpath']
+            l = filename2pathlist(outpath)
+            name = l[0]
         
     infodict =  { 'piece length':num2num(piece_length), flkey: flval, 
             'name': uniconvert(name,encoding),
