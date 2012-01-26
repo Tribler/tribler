@@ -737,7 +737,7 @@ class AbstractListBody():
                 panel.RefreshData(data)
     
     @warnWxThread
-    def SetData(self, data = None, highlight = True):
+    def SetData(self, data = None, highlight = None):
         if DEBUG:
             nr_items = 0
             if data:
@@ -748,6 +748,9 @@ class AbstractListBody():
             data = self.raw_data
         else:
             self.raw_data = data
+            
+        if highlight is None:
+            highlight = not self.IsEmpty()
         
         def doSetData():
             self.lastData = time()
