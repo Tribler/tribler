@@ -5,37 +5,45 @@ import wx
 import os
 import sys
 
-from Tribler.Main.vwxGUI.tribler_topButton import SelectableListCtrl
+from Tribler.Main.vwxGUI.tribler_topButton import CheckSelectableListCtrl,\
+    _set_font
 
 class MoveTorrents(wx.Dialog):
-    def __init__(self, parent, labels, dstates):
-        wx.Dialog.__init__(self, parent, -1, 'Please select the torrents you want to move', size=(600,450))
+    def __init__(self, parent, labels, downloads):
+        wx.Dialog.__init__(self, parent, -1, 'Please select the torrents you want to move', size=(750,450))
         
-        self.dstates = dstates
-        
+        self.downloads = downloads
         vSizer = wx.BoxSizer(wx.VERTICAL)
         message = 'Please select all torrents which should be moved'
         message += "\nUse ctrl+a to select all/deselect all."
         
         firstLine = wx.StaticText(self, -1, message)
-        font = firstLine.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        firstLine.SetFont(font)
+        _set_font(firstLine, fontweight = wx.FONTWEIGHT_BOLD)
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
               
-        self.listCtrl = SelectableListCtrl(self)
+        self.listCtrl = CheckSelectableListCtrl(self)
         self.listCtrl.InsertColumn(0, 'Torrent')
+        self.listCtrl.InsertColumn(1, 'Current Location')
+        
         self.listCtrl.setResizeColumn(0)
         
-        for label in labels:
-            self.listCtrl.InsertStringItem(sys.maxint, label)
+        for i, label in enumerate(labels):
+            row = self.listCtrl.InsertStringItem(sys.maxint, label)
+            
+            download = downloads[i]
+            self.listCtrl.SetStringItem(row, 1, download.get_dest_dir())
+
+        self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
 
         self.destTextCtrl = wx.TextCtrl(self)
         self.browseButton = wx.Button(self, -1, 'Browse')
         self.browseButton.Bind(wx.EVT_BUTTON, self.OnBrowse)
         
-        vSizer.Add(wx.StaticText(self, -1, 'Move to:'))
+        moveTo = wx.StaticText(self, -1, 'Move to:')
+        _set_font(moveTo, fontweight = wx.FONTWEIGHT_BOLD)
+        vSizer.Add(moveTo)
+        vSizer.Add(wx.StaticText(self, -1, 'Please note that all multi-file torrents create a directory themselves.\nYour new destination should specify the base dir for all torrents.'))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.destTextCtrl, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
@@ -75,7 +83,7 @@ class MoveTorrents(wx.Dialog):
         selectedDownloads = []
         for i in range(self.listCtrl.GetItemCount()):
             if self.listCtrl.IsSelected(i):
-                selectedDownloads.append(self.dstates[i])
+                selectedDownloads.append(self.downloads[i])
          
         new_dir = self.destTextCtrl.GetValue()
         moveFiles = self.moveFiles.GetValue()

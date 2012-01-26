@@ -906,12 +906,31 @@ class SelectableListCtrl(BetterListCtrl):
                 wx.TheClipboard.Close()
                 
             elif event.GetKeyCode() == 65: #ctrl + a
-                for index in xrange(self.GetItemCount()):
-                    if self.allselected:
-                        self.Select(index, 0)
-                    else:
-                        self.Select(index, 1)
-                self.allselected = not self.allselected
+                self.doSelectAll()
+    
+    def doSelectAll(self):
+        for index in xrange(self.GetItemCount()):
+            if self.allselected:
+                self.Select(index, 0)
+            else:
+                self.Select(index, 1)
+        self.allselected = not self.allselected
+                
+class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
+    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
+        SelectableListCtrl.__init__(self, parent, style, tooltip)
+        CheckListCtrlMixin.__init__(self)
+        
+    def IsSelected(self, index):
+        return self.IsChecked(index)
+    
+    def doSelectAll(self):
+        for index in xrange(self.GetItemCount()):
+            if self.allselected:
+                self.CheckItem(index, False)
+            else:
+                self.CheckItem(index, True)
+        self.allselected = not self.allselected
         
 class TextCtrlAutoComplete(wx.TextCtrl):
     def __init__ (self, parent, entrycallback = None, selectcallback = None, **therest):
