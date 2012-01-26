@@ -790,9 +790,20 @@ class AbstractListBody():
             data = []
         
         self.highlightSet = set()
-        if len(self.items) != 0 and highlight:
-            cur_keys = set([curdata[0] for curdata in self.data[:self.list_cur_max]])
-            self.highlightSet = set([curdata[0] for curdata in data[:self.list_cur_max] if curdata[0] not in cur_keys])
+        cur_keys = set(self.items.keys())
+        for curdata in data[:self.list_cur_max]:
+            key = curdata[0]
+            if key not in cur_keys:
+                if highlight:
+                    self.highlightSet.add(key)
+            else:
+                cur_keys.discard(key)
+        
+        #cur_keys now contains all removed items
+        for key in cur_keys:
+            self.items[key].Show(False)
+            self.items[key].Destroy()
+            del self.items[key]
 
         self.data = data
         self.DoSort()

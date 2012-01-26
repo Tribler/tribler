@@ -321,27 +321,19 @@ class GUIUtility:
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):
-        if show:
-            self.frame.channellist.Freeze()
-        
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category, True)
         
         if show:
             self.ShowPage('channels')
-            self.frame.channellist.Thaw()
             
     @forceWxThread
     def showLibrary(self, show = True):
-        if show:
-            self.frame.channellist.Freeze()
-        
         manager = self.frame.librarylist.GetManager()
         manager.refresh()
         
         if show:
-            self.ShowPage('channels')
-            self.frame.channellist.Thaw()
+            self.ShowPage('my_files')
     
     def showChannelFromId(self, channel_id):
         def db_callback():
