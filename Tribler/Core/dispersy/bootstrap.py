@@ -21,7 +21,6 @@ def get_bootstrap_hosts(working_directory):
                 host, port = line.split()
                 trackers.append((host.decode("UTF-8"), int(port)))
     except:
-        raise
         pass
 
     if trackers:
