@@ -714,8 +714,8 @@ class TriblerLaunchMany(Thread):
             self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
         except Exception,e:
             # TODO: remove saved checkpoint?
+            print >> sys.stderr, "Could not resume_download",filename
             self.rawserver_nonfatalerrorfunc(e)
-
 
     def checkpoint(self,stop=False,checkpoint=True,gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
