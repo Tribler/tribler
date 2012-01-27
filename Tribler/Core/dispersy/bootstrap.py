@@ -9,11 +9,11 @@ _trackers = [(u"dispersy2.tribler.org", 6422),
 
 def get_bootstrap_hosts(working_directory):
     """
-    Reads WORKING_DIRECTORY/bootstrapdispersy.txt and returns the hosts therein, otherwise it
+    Reads WORKING_DIRECTORY/bootstraptribler.txt and returns the hosts therein, otherwise it
     returns _TRACKERS.
     """
     trackers= []
-    filename = os.path.join(working_directory, "bootstrapdispersy.txt")
+    filename = os.path.join(working_directory, "bootstraptribler.txt")
     try:
         for line in open(filename, "r"):
             line = line.strip()
@@ -33,7 +33,7 @@ def get_bootstrap_addresses(working_directory):
     """
     Returns a list with all known bootstrap peers.
 
-    Bootstrap peers are retrieved from WORKING_DIRECTORY/bootstrapdispersy.txt if it exits.
+    Bootstrap peers are retrieved from WORKING_DIRECTORY/bootstraptribler.txt if it exits.
     Otherwise it is created using the trackers defined in _TRACKERS.
 
     Each bootstrap peer gives either None or a (ip-address, port) tuple.  None values can be caused
