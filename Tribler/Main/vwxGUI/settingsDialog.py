@@ -579,9 +579,10 @@ class SettingsDialog(wx.Dialog):
                     if os.path.isdir(oldfile):
                         self.rename_or_merge(oldfile, newfile)
                         
-                    elif os.path.exists(newfile) and not ignore:
-                        os.remove(newfile)
-                        os.rename(oldfile, newfile)
+                    elif os.path.exists(newfile):
+                        if not ignore:
+                            os.remove(newfile)
+                            os.rename(oldfile, newfile)
                     else:
                         os.rename(oldfile, newfile)
             else:
