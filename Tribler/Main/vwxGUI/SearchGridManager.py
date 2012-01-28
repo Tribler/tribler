@@ -1698,11 +1698,12 @@ class ChannelManager:
     @forceDispersyThread 
     def searchDispersy(self):
         sendSearch = False
-        for community in self.dispersy.get_communities():
-            if isinstance(community, AllChannelCommunity):
-                community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
-                sendSearch = True
-                break
+        if self.dispersy:
+            for community in self.dispersy.get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    sendSearch = True
+                    break
             
         if not sendSearch:
             print >> sys.stderr, "Could not send search, AllChannelCommunity not found?"

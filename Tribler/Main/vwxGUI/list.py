@@ -735,6 +735,7 @@ class GenericSearchList(SizeList):
         List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
         
         self.infohash2key = {} # bundled infohashes
+        self.nr_filtered = 0
     
     def CreateDownloadButton(self, parent, item):
         button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
@@ -768,6 +769,7 @@ class GenericSearchList(SizeList):
     
     def toggleFamilyFilter(self):
         self.guiutility.toggleFamilyFilter()
+        self.SetFF(self.guiutility.getFamilyFilter(),0)
 
         def db_callback():
             self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
@@ -775,6 +777,7 @@ class GenericSearchList(SizeList):
         
     def SetFF(self, family_filter, nr_filtered):
         self.header.SetFF(family_filter, nr_filtered)
+        self.nr_filtered = nr_filtered
         
     def SetData(self, data):
         from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now
@@ -819,9 +822,18 @@ class GenericSearchList(SizeList):
         else:
             header =  'No torrents matching your query are found.'
             message = 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
+            
             if self.guiutility.getFamilyFilter():
-                message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
-            self.list.ShowMessage(message, header = header)
+                message += '\n\nAdditionally, you could disable the "Family Filter".'
+                
+                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
+                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family Filter', None)
+                ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
+                suggestionSizer.Add(ffbutton)
+                
+                self.list.ShowMessage(message, header, suggestionSizer)
+            else:
+                self.list.ShowMessage(message, header)
 
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
@@ -842,6 +854,12 @@ class GenericSearchList(SizeList):
             else:
                 data = (head.infohash, [head.name, head.length, 0, 0], original_data)
             self.list.RefreshData(key, data)
+            
+    def Reset(self):
+        List.Reset(self)
+        
+        self.infohash2key = {}
+        self.nr_filtered = 0
             
     def SetFilteredResults(self, nr):
         self.header.SetFiltered(nr)
@@ -1049,6 +1067,12 @@ class SearchList(GenericSearchList):
         self.keywords = keywords
         self._SetTitles()
         
+    def ShowSuggestions(self, suggestions):
+        if len(suggestions) > 0:
+            header, message = self.list.GetMessage()
+            message += '\n\nAlternatively your could search for %s'%suggestions[0][0]
+            self.list.ShowMessage(message, header = header)
+            
     def _SetTitles(self):
         title = ''
         if self.total_results != None:
@@ -1085,13 +1109,12 @@ class SearchList(GenericSearchList):
         self.sidebar.NewResult()
     
     def SetFinished(self):
-        
         def db_callback(keywords):
             self.uelog.addEvent(message="Search: nothing found for query: "+" ".join(keywords), type = 2)
             self.GetManager().showSearchSuggestions(keywords)
         
-        if self.total_results == 0:
-            startWorker(None, db_callback, wargs = (self.keywords,))
+        if self.total_results == 0 and self.nr_filtered == 0:
+                startWorker(None, db_callback, wargs = (self.keywords,))
     
     def _ShowSuggestions(self, delayedResult):
         suggestions = delayedResult.get()
@@ -1110,7 +1133,7 @@ class SearchList(GenericSearchList):
         label = event.GetEventObject()
         self.guiutility.dosearch(label.GetLabel())
     
-    def toggleFamilyFilter(self):
+    def toggleFamilyFilter(self, event = None):
         GenericSearchList.toggleFamilyFilter(self)
         self.guiutility.dosearch()
     

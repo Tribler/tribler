@@ -2034,7 +2034,7 @@ class TorrentDBHandler(BasicDBHandler):
         connection = cursor.getconnection()
         connection.createcollation("leven", levcollate)
         
-        sql = "SELECT term, freq FROM TermFrequency ORDER By term collate leven ASC, freq DESC LIMIT ?"
+        sql = "SELECT term, freq FROM TermFrequency WHERE term LIKE '%"+match[0]+"'ORDER By term collate leven ASC, freq DESC LIMIT ?"
         result = self._db.fetchall(sql, (limit, ))
         connection.createcollation("leven", None)
         return result
