@@ -458,7 +458,7 @@ class ABCApp():
             install_dir = install_dir[:install_dir.find('library.zip') - 1]
             self.sconfig.set_install_dir(install_dir)
         
-        print >> sys.stderr, "Tribler is using",install_dir,"as working directory"
+        print >> sys.stderr, "Tribler is using",install_dir,"as working directory",module_path()
         
         progress('Creating session')
         s = Session(self.sconfig)
