@@ -6,11 +6,13 @@ Run Dispersy in standalone tracker mode.  Tribler will not be started.
 
 from time import time
 import errno
+import itertools
+import optparse
+import random
 import socket
 import sys
-import traceback
 import threading
-import optparse
+import traceback
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -159,6 +161,16 @@ class TrackerDispersy(Dispersy):
                 yield desync
             for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
+
+    def yield_random_candidates(self, community, limit, blacklist=(), connection_type_blacklist=()):
+        # the regular yield_random_candidates includes a security mechanism where we first choose
+        # the category (walk or stumble) and than a candidate.  this results in a problem with flash
+        # crowds, we solve this by removing the security mechanism.  this mechanism is not useful
+        # for trackers as they will always receive a steady supply of valid connections as well.
+        candidates = [candidate for candidate in self.yield_all_candidates(community, blacklist)
+                      if (candidate.is_walk or candidate.is_stumble) and not candidate.connection_type in connection_type_blacklist]
+        random.shuffle(candidates)
+        return itertools.islice(candidates, limit)
 
     def create_introduction_request(self, community, destination):
         self._logger("CONN_TRY", community.cid.encode("HEX"), destination.address[0], destination.address[1])
