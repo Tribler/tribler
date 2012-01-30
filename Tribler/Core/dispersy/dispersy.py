@@ -4223,7 +4223,8 @@ class Dispersy(Singleton):
 
                 if __debug__: dprint("removing obsolete votes")
                 for voters in self._wan_address_votes.itervalues():
-                    voters.remove(key)
+                    if key in voters:
+                        voters.remove(key)
                 for address in [address for address, voters in self._wan_address_votes.iteritems() if not (voters or address == self._wan_address)]:
                     del self._wan_address_votes[address]
 
