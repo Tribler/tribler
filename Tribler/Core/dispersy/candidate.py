@@ -22,10 +22,14 @@ assert isinstance(CANDIDATE_OBSOLETE, float)
 assert CANDIDATE_ACTIVE == 0.0, "assumed to be 0.0, otherwise code below needs modification"
 assert CANDIDATE_ACTIVE < CANDIDATE_INACTIVE < CANDIDATE_OBSOLETE
 
-CANDIDATE_ELIGIBLE_DELAY = 30.0
-CANDIDATE_WALK_LIFETIME = 60.0
-CANDIDATE_STUMBLE_LIFETIME = 60.0
-CANDIDATE_INTRO_LIFETIME = 30.0
+# delay and lifetime values are chosen to ensure that a candidate will not exceed 60.0 or 30.0
+# seconds.  However, taking into account round trip time and processing delay we to use smaller
+# values without conflicting with the next 5.0 walk cycle.  Hence, we pick 2.5 seconds below the
+# actual cutoff point.
+CANDIDATE_ELIGIBLE_DELAY = 27.5
+CANDIDATE_WALK_LIFETIME = 57.5
+CANDIDATE_STUMBLE_LIFETIME = 57.5
+CANDIDATE_INTRO_LIFETIME = 27.5
 assert isinstance(CANDIDATE_ELIGIBLE_DELAY, float)
 assert isinstance(CANDIDATE_WALK_LIFETIME, float)
 assert isinstance(CANDIDATE_STUMBLE_LIFETIME, float)

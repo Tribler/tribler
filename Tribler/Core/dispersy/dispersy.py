@@ -1893,17 +1893,30 @@ class Dispersy(Singleton):
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "none of the bootstrap candidates may be in self._candidates"
 
         now = time()
-        candidates = [candidate
-                      for candidate
-                      in self._candidates.itervalues()
-                      if candidate.in_community(community, now) and candidate.is_any_active(now)]
-        shuffle(candidates)
+        categories = {u"walk":[], u"stumble":[], u"intro":[], u"sandi":[], u"none":[]}
+        for candidate in self._candidates.itervalues():
+            if candidate.in_community(community, now) and candidate.is_any_active(now):
+                assert isinstance(candidate, WalkCandidate), "currently the only candidate that we can yield"
 
-        # dprint(candidates, "; ", len(self._candidates), force=1, box=1, line=1)
-        # for candidate in self._candidates.itervalues():
-        #     dprint(candidate, "; ", candidate.in_community(community, now), "; ", candidate.is_any_active(now), force=1)
+                if isinstance(candidate, WalkCandidate):
+                    categories[candidate.get_category(community, now)].append(candidate)
 
-        return islice(candidates, limit)
+        W = categories[u"walk"]
+        S = categories[u"stumble"]
+
+        for _ in xrange(limit):
+            if W and S:
+                yield W.pop(int(random() * len(W))) if random() <= .5 else S.pop(int(random() * len(S)))
+
+            elif W:
+                yield W.pop(int(random() * len(W)))
+
+            elif S:
+                yield S.pop(int(random() * len(S)))
+
+            else:
+                # exhausted candidates
+                break
 
     def yield_walk_candidates(self, community, blacklist=()):
         """
