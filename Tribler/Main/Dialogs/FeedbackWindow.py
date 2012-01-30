@@ -127,20 +127,23 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.sendButton = wx.Button(self.frame, -1, 'Send Report')
-        self.restartButton = wx.Button(self.frame, -1, 'Restart')
-        self.closeButton = wx.Button(self.frame, wx.ID_CLOSE)
+        self.sendButton.Bind(wx.EVT_BUTTON, self.OnSend)
         buttonSizer.Add(self.sendButton, 0, wx.RIGHT, 3)
-        buttonSizer.Add(self.restartButton, 0, wx.RIGHT, 3)
+        
+        if self.parent:
+            self.restartButton = wx.Button(self.frame, -1, 'Restart')
+            self.restartButton.Bind(wx.EVT_BUTTON, self.OnRestart)
+            buttonSizer.Add(self.restartButton, 0, wx.RIGHT, 3)
+            
+        self.closeButton = wx.Button(self.frame, wx.ID_CANCEL)
+        self.closeButton.Bind(wx.EVT_BUTTON, self.OnCloseWindow)
         buttonSizer.Add(self.closeButton)
+        
         vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT)
         sizer.Add(vSizer, 1, wx.EXPAND|wx.LEFT, 10)
         
         self._fillRequiredSection(st)
         self._fillOptionalSection()
-        
-        self.closeButton.Bind(wx.EVT_BUTTON, self.OnCloseWindow)
-        self.sendButton.Bind(wx.EVT_BUTTON, self.OnSend)
-        self.restartButton.Bind(wx.EVT_BUTTON, self.OnRestart)
         
         self.frame.Bind(wx.EVT_CHAR, self.OnChar)
         self.frame.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -214,4 +217,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             self.sendButton.SetLabel('Sent')
             
     def Show(self, show = True):
-        self.frame.Show(show)
+        return self.frame.Show(show)
+    
+    def ShowModal(self):
+        return self.frame.ShowModal()

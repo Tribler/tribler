@@ -33,6 +33,8 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
+import traceback
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -144,9 +146,7 @@ class ABCApp():
             self.PostInit()
                 
         except Exception,e:
-            print_exc()
-            self.error = e
-            self.onError()
+            self.onError(e)
             return False
 
     def PostInit(self):
@@ -263,9 +263,7 @@ class ABCApp():
             # _ProxyService 90s Test
 
         except Exception,e:
-            print_exc()
-            self.error = e
-            self.onError()
+            self.onError(e)
             return False
 
         return True
@@ -392,10 +390,12 @@ class ABCApp():
             print >>sys.stderr,"main: Session config",cfgfilename
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
+            
         except:
             print_exc()
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
+            
             # Set default Session params here
             destdir = get_default_dest_dir()
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
@@ -457,7 +457,9 @@ class ABCApp():
         if install_dir.find('library.zip') >= 0:
             install_dir = install_dir[:install_dir.find('library.zip') - 1]
             self.sconfig.set_install_dir(install_dir)
-            
+        
+        print >> sys.stderr, "Tribler is using",install_dir,"as working directory"
+        
         progress('Creating session')
         s = Session(self.sconfig)
         self.utility.session = s
@@ -845,20 +847,19 @@ class ABCApp():
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
         disp = Dispersy.get_instance()
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
-                    
-    def onError(self,source=None):
-        # Don't use language independence stuff, self.utility may not be
-        # valid.
-        msg = "Unfortunately, Tribler ran into an internal error:\n\n"
-        if source is not None:
-            msg += source
-        msg += str(self.error.__class__)+':'+str(self.error)
-        msg += '\n'
-        msg += 'Please see the FAQ on www.tribler.org on how to act.'
-        dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
-        result = dlg.ShowModal()
+               
+    @forceWxThread     
+    def onError(self, e):
         print_exc()
-        dlg.Destroy()
+        type, value, stack = sys.exc_info()
+        backtrace = traceback.format_exception(type, value, stack)
+        
+        win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
+        win.CreateOutputWindow('')
+        for line in backtrace:
+            win.write(line)
+            
+        win.ShowModal()
         
     def MacOpenFile(self, filename): 
         print >> sys.stderr, filename
@@ -904,9 +905,8 @@ class ABCApp():
             print >> sys.stderr, "main: db_exception_handler error", e, type(e)
             print_exc()
             #print_stack()
-        self.error = e
-        onerror_lambda = lambda:self.onError(source="The database layer reported:  ") 
-        wx.CallAfter(onerror_lambda)
+            
+        self.onError(e) 
     
     def getConfigPath(self):
         return self.utility.getConfigPath()
