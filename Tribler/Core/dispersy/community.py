@@ -16,7 +16,7 @@ from random import expovariate, random, Random
 
 from bloomfilter import BloomFilter
 from cache import CacheDict
-from candidate import LocalhostCandidate
+from candidate import LoopbackCandidate
 from conversion import BinaryConversion, DefaultConversion
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from decorator import documentation, runtime_duration_warning
@@ -326,7 +326,7 @@ class Community(object):
             self._subjective_set_clusters = list(set(meta.destination.cluster for meta in self.get_meta_messages() if isinstance(meta.destination, SubjectiveDestination)))
 
             # the messages must come from somewhere
-            candidate = LocalhostCandidate(self._dispersy)
+            candidate = LoopbackCandidate()
 
             # load all subjective sets by self.my_member
             for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
@@ -379,7 +379,7 @@ class Community(object):
             mapping = {authorize.database_id:authorize.handle_callback, revoke.database_id:revoke.handle_callback, dynamic_settings.database_id:dynamic_settings.handle_callback}
 
             # the messages must come from somewhere
-            candidate = LocalhostCandidate(self._dispersy)
+            candidate = LoopbackCandidate()
 
             for meta_message_id, packet in list(self._dispersy.database.execute(u"SELECT meta_message, packet FROM sync WHERE meta_message IN (?, ?, ?) ORDER BY global_time, packet", (authorize.database_id, revoke.database_id, dynamic_settings.database_id))):
                 packet = str(packet)
@@ -1089,7 +1089,7 @@ class Community(object):
                 return None
 
             # the messages must come from somewhere
-            candidate = LocalhostCandidate(self._dispersy)
+            candidate = LoopbackCandidate()
 
             # cache fail... fetch from database.  note that we will add all clusters in the cache
             # regardless of the requested cluster

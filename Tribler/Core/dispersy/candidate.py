@@ -13,39 +13,215 @@ if __debug__:
         assert address[1] >= 0, address[1]
         return True
 
+CANDIDATE_ACTIVE = 0.0
+CANDIDATE_INACTIVE = 60.0
+CANDIDATE_OBSOLETE = 180.0
+assert isinstance(CANDIDATE_ACTIVE, float)
+assert isinstance(CANDIDATE_INACTIVE, float)
+assert isinstance(CANDIDATE_OBSOLETE, float)
+assert CANDIDATE_ACTIVE == 0.0, "assumed to be 0.0, otherwise code below needs modification"
+assert CANDIDATE_ACTIVE < CANDIDATE_INACTIVE < CANDIDATE_OBSOLETE
+
+CANDIDATE_ELIGIBLE_DELAY = 30.0
+CANDIDATE_WALK_LIFETIME = 55.0
+CANDIDATE_STUMBLE_LIFETIME = 55.0
+CANDIDATE_INTRO_LIFETIME = 25.0
+assert isinstance(CANDIDATE_ELIGIBLE_DELAY, float)
+assert isinstance(CANDIDATE_WALK_LIFETIME, float)
+assert isinstance(CANDIDATE_STUMBLE_LIFETIME, float)
+assert isinstance(CANDIDATE_INTRO_LIFETIME, float)
+
 class Candidate(object):
     """
-    A wrapper around the candidate table in the dispersy database.
-    """
-    def __init__(self, address, lan_address, wan_address, member=None, community=None, connection_type=u"unknown", is_walk=False, is_stumble=False, is_introduction=False):
-        if __debug__:
-            from community import Community
-        assert is_address(address)
-        assert is_address(lan_address)
-        assert is_address(wan_address)
-        assert address == lan_address or address == wan_address
-        assert isinstance(is_walk, bool)
-        assert isinstance(is_stumble, bool)
-        assert isinstance(is_introduction, bool)
-#        assert (member is None and community is None) or (isinstance(member, Member) and isinstance(community, Community))
-        assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
-        if __debug__: dprint("discovered ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
-        self._address = address
-        self._lan_address = lan_address
-        self._wan_address = wan_address
-        self._is_walk = is_walk
-        self._is_stumble = is_stumble
-        self._is_introduction = is_introduction
-        self._connection_type = connection_type
-        self._timestamp_incoming = time()
-        self._timestamp_last_step = {(member, community.cid):time() - 30.0} if community else {}
+    A Candidate instance represents a communication endpoint with one or more member/community
+    pairs.
 
-    def __str__(self):
-        return "Candidate " + ("%s:%d" % self._address if self._address else "" + "" if self._address == self._lan_address else " LAN %s:%d" % self._lan_address + "" if self._address == self._wan_address else " WAN %s:%d" % self._wan_address).strip()
+    Each Candidate can be in one of three states:
+
+    - ACTIVE: the candidate is returned by yield_all_candidates.  Viable between CANDIDATE_ACTIVE
+      and CANDIDATE_INACTIVE seconds after receiving any message.
+
+    - INACTIVE: the candidate is not returned by yield_all_candidates but remains available in case
+      the candidate becomes active again.  Viable between CANDIDATE_INACTIVE and CANDIDATE_OBSOLETE
+      seconds after receiving any message.
+
+    - OBSOLETE: the candidate is removed upon the next call to yield_all_candidates, information
+      regarding this candidate is lost.  I.e. the 3-way handshake will need to be performed again.
+      Viable after CANDIDATE_OBSOLETE seconds.
+    """
+    class Timestamps(object):
+        def __init__(self):
+            self.last_active = 0.0
+
+    def __init__(self, key):
+        # key can be anything
+        # - for WalkCandidate's it is sock_addr
+        self._key = key
+        self._associations = set()
+        self._timestamps = dict()
 
     @property
-    def address(self):
-        return self._address
+    def key(self):
+        return self._key
+
+    def _get_or_create_timestamps(self, community):
+        if __debug__:
+            from community import Community
+            assert isinstance(community, Community)
+        timestamps = self._timestamps.get(community.cid)
+        if not timestamps:
+            self._timestamps[community.cid] = timestamps = self.Timestamps()
+        return timestamps
+
+    def in_community(self, community, now):
+        """
+        Returns True if the candidate is not OBSOLETE in COMMUNITY.
+        """
+        if __debug__:
+            from community import Community
+            assert isinstance(community, Community)
+        timestamps = self._timestamps.get(community.cid)
+        if timestamps:
+            return now < timestamps.last_active + CANDIDATE_OBSOLETE
+        else:
+            return False
+
+    def associate(self, community, member):
+        """
+        Once it is confirmed that the candidate is represented by a member, i.e. though a 3-way
+        handshake, the member can be associated with the candidate.
+        """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(member, Member)
+        self._associations.add((community, member))
+
+    def is_associated(self, community, member):
+        """
+        Check if the (community, member) pair is associated with this candidate.
+        """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(member, Member)
+        return (community, member) in self._associations
+
+    def disassociate(self, community, member):
+        """
+        Remove the association with a member.
+        """
+        if __debug__:
+            from community import Community
+        assert isinstance(community, Community)
+        assert isinstance(member, Member)
+        self._associations.remove((community, member))
+
+    def get_members(self, community):
+        return set(member for cid, member in self._associations if community.cid == cid)
+
+    def is_any_active(self, now):
+        """
+        Returns True if any of the associated communities are still active.
+
+        This is used when deciding if this candidate can be used for communication, the assumption
+        is that if any community is still active, that all will still be active.  The exception to
+        this rule is when a node decides to leave one or more communities while remaining active in
+        one or more others.
+        """
+        if self._timestamps:
+            return now <= max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_INACTIVE
+        else:
+            return False
+
+    def is_all_obsolete(self, now):
+        """
+        Returns True when all the associated communities are obsolete.
+        """
+        if self._timestamps:
+            return max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_OBSOLETE < now
+        else:
+            return True
+
+    def age(self, now):
+        return now - max(timestamps.last_active for timestamps in self._timestamps.itervalues())
+
+    def active(self, community, now):
+        """
+        Called when we receive any message from this candidate.
+        """
+        self._get_or_create_timestamps(community).last_active = now
+
+    def inactive(self, community, now):
+        """
+        Called to explicitly set this candidate to inactive.
+        """
+        self._get_or_create_timestamps(community).last_active = now - CANDIDATE_INACTIVE
+
+    def obsolete(self, community, now):
+        self._get_or_create_timestamps(community).last_active = now - CANDIDATE_OBSOLETE
+
+    def all_inactive(self, now):
+        """
+        Sets the state to INACTIVE (or keep it at OBSOLETE) for all associated communities.
+
+        This is used when a timeout occurs while waiting for an introduction-response.  We choose to
+        set all communities to inactive to improve churn handling.  Setting the entire candidate to
+        inactive will not remove it and any associated 3-way handshake information.  This is
+        retained until the entire candidate becomes obsolete.
+        """
+        for timestamps in self._timestamps.itervalues():
+            timestamps.last_active = min(now - CANDIDATE_INACTIVE, timestamps.last_active)
+
+class WalkCandidate(Candidate):
+    """
+    A Candidate representing an IPv4-address endpoint discovered through the Dispersy random walker.
+
+    These candidates are added and removed by the Dispersy random walker.  Each WalkCandidate has
+    the following four markers:
+
+    - WALK: we sent an introduction-request.  Viable up to CANDIDATE_WALK_LIFETIME seconds after the
+      message was sent.
+
+    - STUMBLE: we received an introduction-request.  Viable up to CANDIDATE_STUMBLE_LIFETIME seconds
+      after the message was received.
+
+    - INTRO: we know about this candidate though hearsay.  Viable up to CANDIDATE_INACTIVE seconds
+      after the introduction-response message (talking about the candidate) was received.
+
+    Based on these markers the candidate is placed into one specific category:
+
+    - IS_WALK: when the WALK marker is set.
+
+    - IS_STUMBLE: when the STUMBLE marker is set and neither the WALK nor the INTRO marker are set.
+
+    - IS_INTRO: when the INTRO marker is set and neither the WALK nor the STUMBLE marker are set.
+
+    - IS_SANDI: when both the STUMBLE and the INTRO markers are set and the WALK marker is not set.
+
+    - IS_NONE: when neither the WALK nor the STUMBLE nor the INTRO markers are set.
+    """
+    class Timestamps(object):
+        def __init__(self):
+            self.last_active = 0.0
+            self.last_walk = 0.0
+            self.last_stumble = 0.0
+            self.last_intro = 0.0
+
+    def __init__(self, sock_addr, lan_address, wan_address, connection_type=u"unknown"):
+        super(WalkCandidate, self).__init__(sock_addr)
+
+        assert is_address(sock_addr)
+        assert is_address(lan_address)
+        assert is_address(wan_address)
+        assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
+        self._lan_address = lan_address
+        self._wan_address = wan_address
+        self._connection_type = connection_type
+
+    @property
+    def sock_addr(self):
+        return self._key
 
     @property
     def lan_address(self):
@@ -56,100 +232,147 @@ class Candidate(object):
         return self._wan_address
 
     @property
-    def is_walk(self):
-        return self._is_walk
-
-    @property
-    def is_stumble(self):
-        return self._is_stumble
-
-    @property
-    def is_introduction(self):
-        return self._is_introduction
-
-    @property
     def connection_type(self):
         return self._connection_type
 
-    @property
-    def timestamp_incoming(self):
-        return self._timestamp_incoming
-
-    def members_in_community(self, community):
-        return (member for member, cid in self._timestamp_last_step.iterkeys() if member and cid == community.cid)
-
-    def timestamp_last_step_in_community(self, community, default=0.0):
-        try:
-            return max(timestamp for (_, cid), timestamp in self._timestamp_last_step.iteritems() if cid == community.cid)
-        except ValueError:
-            return default
-
-    def in_community(self, community):
-        return any(cid == community.cid for _, cid in self._timestamp_last_step.iterkeys())
-
-    def timeout(self, community):
+    def is_any_active(self, now):
         """
-        Called on timeout of a dispersy-introduction-response message
+        Returns True if any of the associated communities are still active.
 
-        Returns True if there are communities left where this candidate did not timeout.
+        A WalkCandidate is active if the category is either u"walk", u"stumble", or u"sandi".
         """
-        self._timestamp_last_step = dict((((member, cid), timestamp))
-                                         for (member, cid), timestamp
-                                         in self._timestamp_last_step.iteritems() if not cid == community.cid)
-        return bool(self._timestamp_last_step)
+        return (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
+                now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
 
-    def out_introduction_request(self, community):
-        self._timestamp_last_step = dict((((member, cid), time() if cid == community.cid else timestamp))
-                                         for (member, cid), timestamp
-                                         in self._timestamp_last_step.iteritems())
-        self._timestamp_last_step[(None, community.cid)] = time()
+    def inactive(self, community, now):
+        """
+        Called to explicitly set this candidate to inactive.
+        """
+        timestamps = self._get_or_create_timestamps(community)
+        timestamps.last_active = now - CANDIDATE_INACTIVE
+        timestamps.last_walk = now - CANDIDATE_WALK_LIFETIME
+        timestamps.last_stumble = now - CANDIDATE_STUMBLE_LIFETIME
 
-    def inc_introduction_requests(self, member, community, lan_address, wan_address, connection_type):
+    def all_inactive(self, now):
+        """
+        Sets the state to INACTIVE (or keep it at OBSOLETE) for all associated communities.
+
+        This is used when a timeout occurs while waiting for an introduction-response.  We choose to
+        set all communities to inactive to improve churn handling.  Setting the entire candidate to
+        inactive will not remove it and any associated 3-way handshake information.  This is
+        retained until the entire candidate becomes obsolete.
+        """
+        for timestamps in self._timestamps.itervalues():
+            timestamps.last_active = min(now - CANDIDATE_INACTIVE, timestamps.last_active)
+            timestamps.last_walk = min(now - CANDIDATE_WALK_LIFETIME, timestamps.last_walk)
+            timestamps.last_stumble = min(now - CANDIDATE_STUMBLE_LIFETIME, timestamps.last_stumble)
+
+    def is_eligible_for_walk(self, community, now):
+        """
+        Returns True when the candidate is eligible for taking a step.
+
+        A candidate is eligible when all below is True:
+        - the category is WALK, STUMBLE, INTRO, or SANDI.
+        - it is CANDIDATE_ELIGIBLE_DELAY or more seconds since the previous step.
+        """
+        assert community.cid in self._timestamps
+        timestamps = self._timestamps[community.cid]
+        return (now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY and
+                (now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
+                 now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
+                 now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME))
+
+    def last_walk(self, community):
+        assert community.cid in self._timestamps
+        return self._timestamps[community.cid].last_walk
+
+    def last_stumble(self, community):
+        assert community.cid in self._timestamps
+        return self._timestamps[community.cid].last_stumble
+
+    def last_intro(self, community):
+        assert community.cid in self._timestamps
+        return self._timestamps[community.cid].last_intro
+
+    def last_sandi(self, community):
+        assert community.cid in self._timestamps
+        return self._timestamps[community.cid].last_sandi
+
+    def get_category(self, community, now):
+        """
+        Returns the category (u"walk", u"stumble", u"intro", u"sandi", or u"none") depending on the
+        current time NOW.
+        """
+        assert community.cid in self._timestamps
+        timestamps = self._timestamps[community.cid]
+
+        if now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME:
+            return u"walk"
+
+        if now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME and now >= timestamps.last_intro + CANDIDATE_INTRO_LIFETIME:
+            return u"stumble"
+
+        if now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME and now >= timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME:
+            return u"intro"
+
+        if now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME and now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME:
+            return u"sandi"
+
+        return u"none"
+
+    def walk(self, community, now):
+        """
+        Called when we are about to send an introduction-request to this candidate.
+        """
+        self._get_or_create_timestamps(community).last_walk = now
+
+    def stumble(self, community, now):
+        """
+        Called when we receive an introduction-request from this candidate.
+        """
+        self._get_or_create_timestamps(community).last_stumble = now
+
+    def intro(self, community, now):
+        """
+        Called when we receive an introduction-response introducing this candidate.
+        """
+        self._get_or_create_timestamps(community).last_intro = now
+
+    def update(self, lan_address, wan_address, connection_type):
         assert is_address(lan_address)
         assert is_address(wan_address)
-        if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
-        self._timestamp_last_step.setdefault((member, community.cid), time() - 30)
+        assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
         self._lan_address = lan_address
         self._wan_address = wan_address
-        self._connection_type = connection_type
-        self._is_stumble = True
-        self._timestamp_incoming = time()
+        self._connection_type = u"public" if connection_type == u"unknown" and lan_address == wan_address else connection_type
 
-    def inc_introduction_response(self, lan_address, wan_address, connection_type):
-        assert is_address(lan_address)
-        assert is_address(wan_address)
-        if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
-        self._lan_address = lan_address
-        self._wan_address = wan_address
-        self._connection_type = connection_type
-        self._is_walk = True
-        self._timestamp_incoming = time()
+    def __str__(self):
+        if self._lan_address == self._wan_address:
+            return "%s:%d" % self._lan_address
 
-    def inc_introduced(self, member, community):
-        if __debug__: dprint("updated")
-        self._timestamp_last_step.setdefault((member, community.cid), time() - 30)
-        self._is_introduction = True
-        self._timestamp_incoming = time()
+        else:
+            return "%s:%d (%s:%d)" % (self._lan_address[0], self._lan_address[1], self._wan_address[0], self._wan_address[1])
 
-    def inc_puncture_request(self):
-        self._timestamp_incoming = time()
+class BootstrapCandidate(WalkCandidate):
+    def __init__(self, sock_addr):
+        super(BootstrapCandidate, self).__init__(sock_addr, sock_addr, sock_addr, connection_type=u"public")
 
-    def inc_puncture(self, member, community, address, lan_address, wan_address):
-        assert is_address(address)
-        assert is_address(lan_address)
-        assert is_address(wan_address)
-        assert address == lan_address or address == wan_address
-        if __debug__: dprint("updated ", wan_address[0], ":", wan_address[1], " (", lan_address[0], ":", lan_address[1], ")")
-        self._timestamp_last_step.setdefault((member, community.cid), time() - 30)
-        self._address = address
-        self._lan_address = lan_address
-        self._wan_address = wan_address
-        self._timestamp_incoming = time()
+    def in_community(self, community, now):
+        """
+        Bootstrap nodes are, by definition, in every possible community.
+        """
+        if not community.cid in self._timestamps:
+            self._timestamps[community.cid] = self.Timestamps()
+        return True
 
-class LocalhostCandidate(Candidate):
-    def __init__(self, dispersy):
-        super(LocalhostCandidate, self).__init__(dispersy.lan_address, dispersy.lan_address, dispersy.wan_address)
+    def is_eligible_for_walk(self, community, now):
+        """
+        Bootstrap nodes are, by definition, always online, hence the timeouts do not apply.
+        """
+        assert community.cid in self._timestamps
+        timestamps = self._timestamps[community.cid]
+        return now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY
 
-class BootstrapCandidate(Candidate):
-    def __init__(self, wan_address):
-        super(BootstrapCandidate, self).__init__(wan_address, wan_address, wan_address, connection_type=u"public")
+class LoopbackCandidate(Candidate):
+    def __init__(self):
+        super(LoopbackCandidate, self).__init__(u"loopback")

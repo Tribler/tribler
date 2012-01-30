@@ -1,4 +1,4 @@
-from candidate import LocalhostCandidate
+from candidate import LoopbackCandidate
 from meta import MetaObject
 
 if __debug__:
@@ -376,7 +376,7 @@ class Packet(MetaObject.Implementation):
     packet_id = property(__get_packet_id, __set_packet_id)
 
     def load_message(self):
-        return self._meta.community.get_conversion(self._packet[:22]).decode_message(LocalhostCandidate(self._meta._community.dispersy), self._packet)
+        return self._meta.community.get_conversion(self._packet[:22]).decode_message(LoopbackCandidate(), self._packet)
 
     def __str__(self):
         return "<%s.%s %s %dbytes>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))

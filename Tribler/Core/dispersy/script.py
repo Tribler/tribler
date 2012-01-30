@@ -12,14 +12,14 @@ Run some python code, usually to test one or more features.
 from hashlib import sha1
 from lencoder import log, make_valid_key
 from random import shuffle
-from time import clock, time
+from time import time
 import gc
 import hashlib
 import inspect
 import socket
 
 from bloomfilter import BloomFilter
-from candidate import LocalhostCandidate
+from candidate import LoopbackCandidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from debug import Node
 from dispersy import Dispersy
@@ -142,18 +142,18 @@ class ScenarioScriptBase(ScriptBase):
         return self._members[peername]
 
     def set_online(self):
-        """ Restore on_incoming_packets and _send functions of
+        """ Restore on_socket_endpoint and _send functions of
         dispersy back to normal.
 
         This simulates a node coming online, since it's able to send
         and receive messages.
         """
         log(self._logfile, "Going online")
-        self._dispersy.on_incoming_packets = self.original_on_incoming_packets
+        self._dispersy.on_socket_endpoint = self.original_on_socket_endpoint
         self._dispersy._send = self.original_send
 
     def set_offline(self):
-        """ Replace on_incoming_packets and _sends functions of
+        """ Replace on_socket_endpoint and _sends functions of
         dispersy with dummies
 
         This simulates a node going offline, since it's not able to
@@ -162,7 +162,7 @@ class ScenarioScriptBase(ScriptBase):
         def dummy_function(*params):
             return
         log(self._logfile, "Going offline")
-        self._dispersy.on_incoming_packets = dummy_function
+        self._dispersy.on_socket_endpoint = dummy_function
         self._dispersy._send = dummy_function
 
     def get_commands_from_fp(self, fp, step):
@@ -232,7 +232,7 @@ class ScenarioScriptBase(ScriptBase):
         my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
         dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
-        self.original_on_incoming_packets = self._dispersy.on_incoming_packets
+        self.original_on_socket_endpoint = self._dispersy.on_socket_endpoint
         self.original_send = self._dispersy._send
 
         # join the community with the newly created member
@@ -1447,7 +1447,6 @@ class DispersySyncScript(ScriptBase):
         may be sent back.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -1466,7 +1465,7 @@ class DispersySyncScript(ScriptBase):
 
                 sync = (1, 0, modulo, offset, [])
                 node.drop_packets()
-                node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", sync, 42, 110))
+                node.give_message(node.create_dispersy_introduction_request_message(community.my_candidate, node.lan_address, node.wan_address, False, u"unknown", sync, 42, 110))
 
                 received = []
                 while True:
@@ -1485,7 +1484,6 @@ class DispersySyncScript(ScriptBase):
 
     def in_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"ASC-text")
 
         # create node and ensure that SELF knows the node address
@@ -1504,7 +1502,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_in_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages ASC
-        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(community.my_candidate, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in global_times:
@@ -1517,7 +1515,6 @@ class DispersySyncScript(ScriptBase):
 
     def out_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"DESC-text")
 
         # create node and ensure that SELF knows the node address
@@ -1536,7 +1533,7 @@ class DispersySyncScript(ScriptBase):
             node.give_message(node.create_out_order_text_message("Message #%d" % global_time, global_time))
 
         # send an empty sync message to obtain all messages DESC
-        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
+        node.give_message(node.create_dispersy_introduction_request_message(community.my_candidate, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
         yield 0.1
 
         for global_time in reversed(global_times):
@@ -1549,7 +1546,6 @@ class DispersySyncScript(ScriptBase):
 
     def mixed_order_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         in_order_message = community.get_meta_message(u"ASC-text")
         out_order_message = community.get_meta_message(u"DESC-text")
         # random_order_message = community.get_meta_message(u"random-order-text")
@@ -1594,7 +1590,7 @@ class DispersySyncScript(ScriptBase):
         # lists = []
         for _ in range(5):
             # send an empty sync message to obtain all messages in random-order
-            node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
+            node.give_message(node.create_dispersy_introduction_request_message(community.my_candidate, node.lan_address, node.wan_address, False, u"unknown", (min(global_times), 0, 1, 0, []), 42, max(global_times)))
             yield 0.1
 
             received_times = get_messages_back()
@@ -1624,7 +1620,6 @@ class DispersySyncScript(ScriptBase):
 
     def last_1_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-1-test")
 
         # create node and ensure that SELF knows the node address
@@ -1681,7 +1676,6 @@ class DispersySyncScript(ScriptBase):
 
     def last_9_test(self):
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-9-test")
 
         # create node and ensure that SELF knows the node address
@@ -1773,7 +1767,6 @@ class DispersySyncScript(ScriptBase):
         these options.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-1-multimember-text")
 
         # create node and ensure that SELF knows the node address
@@ -1894,7 +1887,6 @@ class DispersySyncScript(ScriptBase):
         message for each global time.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         message = community.get_meta_message(u"last-1-multimember-text")
 
         # create node and ensure that SELF knows the node address
@@ -2300,7 +2292,6 @@ class DispersySubjectiveSetScript(ScriptBase):
          - messages from a member NOT in the set are NOT sent back
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         meta_message = community.get_meta_message(u"subjective-set-text")
 
         node = DebugNode()
@@ -2321,7 +2312,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert_(times == [global_time])
 
         # a sync MUST return the message that was just sent
-        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
+        node.give_message(node.create_dispersy_introduction_request_message(community.my_candidate, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(message_names=[u"subjective-set-text"])
         assert_(message.distribution.global_time == global_time)
@@ -2343,7 +2334,6 @@ class DispersySubjectiveSetScript(ScriptBase):
            dispersy-subjective-set is received.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
         meta_message = community.get_meta_message(u"subjective-set-text")
 
         node = DebugNode()
@@ -2359,7 +2349,7 @@ class DispersySubjectiveSetScript(ScriptBase):
         assert_(times == [global_time])
 
         # a dispersy-sync message MUST return a dispersy-subjective-set-request message
-        node.give_message(node.create_dispersy_introduction_request_message(localhost, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
+        node.give_message(node.create_dispersy_introduction_request_message(community.my_candidate, node.lan_address, node.wan_address, False, u"unknown", (10, 0, 1, 0, []), 42, 20))
         yield 0.11
         _, message = node.receive_message(message_names=[u"dispersy-missing-subjective-set", u"subjective-set-text"])
         assert_(message.name == u"dispersy-missing-subjective-set", ("should NOT sent back anything other than dispersy-missing-subjective-set", message.name))
@@ -2740,7 +2730,6 @@ class DispersyMissingMessageScript(ScriptBase):
         SELF generates a few messages and NODE requests one of them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
 
         node = DebugNode()
         node.init_socket()
@@ -2757,7 +2746,7 @@ class DispersyMissingMessageScript(ScriptBase):
 
         for message in messages:
             # request messages
-            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, localhost))
+            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, community.my_candidate))
             yield 0.11
 
             # receive response
@@ -2775,7 +2764,6 @@ class DispersyMissingMessageScript(ScriptBase):
         SELF generates a few messages and NODE requests one of them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
 
         node = DebugNode()
         node.init_socket()
@@ -2793,7 +2781,7 @@ class DispersyMissingMessageScript(ScriptBase):
         shuffle(messages)
         for message in messages:
             # request messages
-            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, localhost))
+            node.give_message(node.create_dispersy_missing_message_message(community.my_member, [message.distribution.global_time], 25, community.my_candidate))
             yield 0.11
 
             # receive response
@@ -2811,7 +2799,6 @@ class DispersyMissingMessageScript(ScriptBase):
         SELF generates a few messages and NODE requests three of them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        localhost = LocalhostCandidate(self._dispersy)
 
         node = DebugNode()
         node.init_socket()
@@ -2829,7 +2816,7 @@ class DispersyMissingMessageScript(ScriptBase):
 
         # request messages
         global_times = [messages[index].distribution.global_time for index in [2, 4, 6]]
-        node.give_message(node.create_dispersy_missing_message_message(community.my_member, global_times, 25, localhost))
+        node.give_message(node.create_dispersy_missing_message_message(community.my_member, global_times, 25, community.my_candidate))
         yield 0.11
 
         # receive response

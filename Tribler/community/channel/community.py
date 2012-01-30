@@ -374,7 +374,7 @@ class ChannelCommunity(Community):
         
         permids = set()
         for candidate in candidates:
-            for member in candidate.members_in_community(self):
+            for member in candidate.get_members(self):
                 permids.add(member.public_key)
         
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)

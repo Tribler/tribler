@@ -40,7 +40,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 from hashlib import sha1
 from itertools import groupby, islice, count
 from os.path import abspath
-from random import random, choice, shuffle
+from random import random, shuffle
 from socket import inet_aton, error as socket_error
 from time import time
 
@@ -49,7 +49,7 @@ from authentication import NoAuthentication, MemberAuthentication, MultiMemberAu
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
 from callback import Callback, Idle, Return
-from candidate import BootstrapCandidate, Candidate, LocalhostCandidate
+from candidate import BootstrapCandidate, LoopbackCandidate, WalkCandidate
 from destination import CommunityDestination, CandidateDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
@@ -73,15 +73,18 @@ from trigger import TriggerCallback, TriggerPacket, TriggerMessage
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 
 if __debug__:
+    from candidate import Candidate
     from dprint import dprint
 
 # callback priorities.  note that a lower value is less priority
 WATCHDOG_PRIORITY = -1
 CANDIDATE_WALKER_PRIORITY = -1
+CANDIDATE_CLEANUP_PRIORITY = -1
 TRIGGER_CHECK_PRIORITY = -1
 TRIGGER_TIMEOUT_PRIORITY = -2
 assert isinstance(WATCHDOG_PRIORITY, int)
 assert isinstance(CANDIDATE_WALKER_PRIORITY, int)
+assert isinstance(CANDIDATE_CLEANUP_PRIORITY, int)
 assert isinstance(TRIGGER_CHECK_PRIORITY, int)
 assert isinstance(TRIGGER_TIMEOUT_PRIORITY, int)
 assert TRIGGER_TIMEOUT_PRIORITY < TRIGGER_CHECK_PRIORITY, "an existing trigger should not timeout before being checked"
@@ -270,11 +273,16 @@ class Dispersy(Singleton):
         # peer selection candidates.  address:Candidate pairs (where
         # address is obtained from socket.recv_from)
         self._candidates = {}
+        self._callback.register(self._periodically_cleanup_candidates, priority=CANDIDATE_CLEANUP_PRIORITY)
 
         # random numbers in the range [0:2**16) that are used to match outgoing
-        # introduction-request, incoming introduction-response, and incoming puncture.
-        # identifier:introduced-candidate pairs, where introduced-candidate is None until either the
-        # introduction-response of the puncture is received
+        # introduction-request, incoming introduction-response, and incoming puncture.  it contains
+        # identifier:(response-candidate, puncture-candidate, helper-candidate) pairs, where
+        # response-candidate is the candidate supplied in the introduction-response and
+        # puncture-candidate is the candidate supplied in the puncture message.  Ideally these
+        # should both be set and point to the same candidate, however, packet loss, NAT, and
+        # malicious behavior can prevent this.  Finally, helper-candidate is the node where we send
+        # the introduction-request too.
         self._walk_identifiers = {}
 
         # indicates what our connection type is.  currently it can be u"unknown", u"public", or
@@ -297,7 +305,7 @@ class Dispersy(Singleton):
 
         self._wan_address = (host, port)
         self._wan_address_votes = {self._wan_address:set()}
-        self.wan_address_vote(self._wan_address, ("", -1))
+        self.wan_address_vote(self._wan_address, LoopbackCandidate())
         if __debug__:
             dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1], force=True)
             dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
@@ -335,6 +343,7 @@ class Dispersy(Singleton):
 
         if __debug__:
             self._callback.register(self._stats_candidates)
+            self._callback.register(self._stats_detailed_candidates)
             self._callback.register(self._stats_conversion)
             self._callback.register(self._stats_triggers)
             self._callback.register(self._stats_info)
@@ -403,7 +412,7 @@ class Dispersy(Singleton):
         if self._lan_address in self._candidates:
             del self._candidates[self._lan_address]
 
-        self.wan_address_vote(self._lan_address, ("", -1))
+        self.wan_address_vote(self._lan_address, LoopbackCandidate())
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
 
@@ -766,16 +775,9 @@ class Dispersy(Singleton):
         except StopIteration:
             return None
         else:
-            return community.get_conversion(packet[:22]).decode_message(LocalhostCandidate(self), packet)
+            return community.get_conversion(packet[:22]).decode_message(LoopbackCandidate(), packet)
 
-    def get_candidate(self, address):
-        """
-        Returns a candidate for address
-        """
-        candidate = self._candidates.get(address)
-        return candidate if candidate else Candidate(address, address, address)
-
-    def wan_address_vote(self, address, voter_address):
+    def wan_address_vote(self, address, voter):
         """
         Add one vote and possibly re-determine our wan address.
 
@@ -789,21 +791,18 @@ class Dispersy(Singleton):
         @param address: The wan address that the voter believes us to have.
         @type address: (str, int)
 
-        @param voter_address: The address of the voter.
-        @type voter_address: (str, int)
+        @param voter: The voter candidate.
+        @type voter: Candidate
         """
         assert isinstance(address, tuple)
         assert len(address) == 2
         assert isinstance(address[0], str)
         assert isinstance(address[1], int)
-        assert isinstance(voter_address, tuple)
-        assert len(voter_address) == 2
-        assert isinstance(voter_address[0], str)
-        assert isinstance(voter_address[1], int)
+        assert isinstance(voter, Candidate)
         if self._is_valid_wan_address(address, check_my_wan_address=False):
             if not address in self._wan_address_votes:
                 self._wan_address_votes[address] = set()
-            self._wan_address_votes[address].add(voter_address)
+            self._wan_address_votes[address].add(voter.key)
 
             # change when new vote count equal or higher than old address vote count
             if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
@@ -832,7 +831,11 @@ class Dispersy(Singleton):
                 if self._wan_address in self._candidates:
                     del self._candidates[self._wan_address]
 
-            if __debug__: dprint("got invalid external vote from ", voter_address[0],":",voter_address[1], " received ", address[0], ":", address[1])
+            if self._connection_type == u"unknown" and self._lan_address == self._wan_address:
+                self._connection_type = u"public"
+
+        else:
+            if __debug__: dprint("got invalid external vote from ", voter, " received ", address[0], ":", address[1])
 
     def _check_identical_payload_with_different_signature(self, message):
         """
@@ -1246,11 +1249,22 @@ class Dispersy(Singleton):
         assert all(len(tup) == 2 for tup in packets), packets
         assert all(isinstance(tup[0], tuple) for tup in packets), packets
         assert all(isinstance(tup[1], str) for tup in packets), packets
-        candidates = {}
-        for address, _ in packets:
-            if not address in candidates:
-                candidates[address] = self._candidates[address] if address in self._candidates else Candidate(address, address, address)
-        self._callback.register(self.on_incoming_packets, ([(candidates[address], packet) for address, packet in packets],), {"timestamp":time()})
+        self._callback.register(self.on_socket_endpoint, (packets,), dict(timestamp=time()))
+
+    def on_socket_endpoint(self, packets, cache=True, timestamp=0.0):
+        def get_candidate(address):
+            """
+            Get (or create) a candidate and update its activity flag.
+            """
+            candidate = self._candidates.get(address)
+            if not candidate:
+                candidate = self._bootstrap_candidates.get(address)
+                if not candidate:
+                    self._candidates[address] = candidate = WalkCandidate(address, address, address)
+
+            return candidate
+
+        self._on_incoming_packets([(get_candidate(address), packet) for address, packet in packets], cache, timestamp)
 
     def load_message(self, community, member, global_time):
         """
@@ -1275,7 +1289,7 @@ class Dispersy(Singleton):
             return None
 
         try:
-            message = conversion.decode_message(LocalhostCandidate(self), packet)
+            message = conversion.decode_message(LoopbackCandidate(), packet)
 
         except (DropPacket, DelayPacket), exception:
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (", exception, ")", exception=True, level="warning")
@@ -1312,7 +1326,7 @@ class Dispersy(Singleton):
             return None
 
         try:
-            return conversion.decode_message(LocalhostCandidate(self), packet)
+            return conversion.decode_message(LoopbackCandidate(), packet)
 
         except (DropPacket, DelayPacket), exception:
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (", exception, ")", exception=True, level="warning")
@@ -1325,7 +1339,7 @@ class Dispersy(Singleton):
         """
         return [self.convert_packet_to_message(packet, community, load, auto_load) for packet in packets]
 
-    def on_incoming_packets(self, packets, cache=True, timestamp=0.0):
+    def _on_incoming_packets(self, packets, cache=True, timestamp=0.0):
         """
         Process incoming UDP packets.
 
@@ -1366,6 +1380,11 @@ class Dispersy(Singleton):
         groupby_key = lambda tup: tup[0] # meta, address, packet, conversion
         for meta, iterator in groupby(sorted(self._convert_packets_into_batch(packets), key=sort_key), key=groupby_key):
             batch = [(candidate, packet, conversion) for _, candidate, packet, conversion in iterator]
+
+            # update how active the candidates are
+            if timestamp:
+                for candidate in set(candidate for candidate, _, _ in batch):
+                    candidate.active(meta.community, timestamp)
 
             # schedule batch processing (taking into account the message priority)
             if meta.batch.enabled and cache:
@@ -1611,12 +1630,6 @@ class Dispersy(Singleton):
         assert all(isinstance(packet[1], str) for packet in packets)
 
         for candidate, packet in packets:
-            # is it from a remote source
-            if not self.is_valid_remote_address(candidate.address):
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", candidate, level="warning")
-                self._statistics.drop("_convert_packets_into_batch:invalid source", len(packet))
-                continue
-
             # find associated community
             try:
                 community = self.get_community(packet[2:22])
@@ -1677,7 +1690,7 @@ class Dispersy(Singleton):
                         break
                 else:
                     # create a new Trigger with this pattern
-                    trigger = TriggerPacket(delay.pattern, self.on_incoming_packets, [(candidate, packet)])
+                    trigger = TriggerPacket(delay.pattern, self._on_incoming_packets, [(candidate, packet)])
                     if __debug__: dprint("created a new TriggerPacket")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0, priority=TRIGGER_TIMEOUT_PRIORITY)
@@ -1812,47 +1825,36 @@ class Dispersy(Singleton):
         #     # notify that global times have changed
         #     meta.community.update_sync_range(meta, update_sync_range)
 
-    def yield_all_candidates(self, community, blacklist=()):
-        """
-        Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
+    # # TODO remove yield_all_candidates, since it is no longer removing obsolete candidates it is no longer very useful
+    # def yield_all_candidates(self, community, blacklist=(), now=None):
+    #     """
+    #     Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
 
-        BLACKLIST is a list with Candidate instances.
-        """
-        if __debug__:
-            from community import Community
-        assert isinstance(community, Community)
-        assert isinstance(blacklist, (tuple, list))
-        assert all(isinstance(candidate, Candidate) for candidate in blacklist)
-        assert all(isinstance(candidate, Candidate) for candidate in self._candidates.itervalues())
-        assert not self._lan_address in [candidate.address for candidate in self._candidates.itervalues()], "our address may not be a candidate"
-        assert not self._wan_address in [candidate.address for candidate in self._candidates.itervalues()], "our address may not be a candidate"
-        assert not self._lan_address in [candidate.address for candidate in self._bootstrap_candidates.itervalues()], "our address may not be a bootstrap candidate"
-        assert not self._wan_address in [candidate.address for candidate in self._bootstrap_candidates.itervalues()], "our address may not be a bootstrap candidate"
-        assert all(not candidate in self._bootstrap_candidates for candidate in self._candidates.itervalues()), "non of the candidates may be a bootstrap address"
-        assert all(sock_address == candidate.address for sock_address, candidate in self._candidates.iteritems())
+    #     BLACKLIST is a list with Candidate instances.
+    #     """
+    #     if __debug__:
+    #         from community import Community
+    #     assert isinstance(community, Community)
+    #     assert isinstance(blacklist, (tuple, list))
+    #     assert now is None or isinstance(now, float)
+    #     assert all(isinstance(candidate, Candidate) for candidate in blacklist)
+    #     assert all(isinstance(candidate, Candidate) for candidate in self._candidates.itervalues())
+    #     assert not self._lan_address in [candidate.address for candidate in self._candidates.itervalues()], "our address may not be a candidate"
+    #     assert not self._wan_address in [candidate.address for candidate in self._candidates.itervalues()], "our address may not be a candidate"
+    #     assert not self._lan_address in [candidate.address for candidate in self._bootstrap_candidates.itervalues()], "our address may not be a bootstrap candidate"
+    #     assert not self._wan_address in [candidate.address for candidate in self._bootstrap_candidates.itervalues()], "our address may not be a bootstrap candidate"
+    #     assert all(not candidate in self._bootstrap_candidates for candidate in self._candidates.itervalues()), "non of the candidates may be a bootstrap address"
+    #     assert all(sock_address == candidate.address for sock_address, candidate in self._candidates.iteritems())
 
-        # remove old candidates
-        unverified_threshold = time() - 25.0
-        verified_threshold = time() - 55.0
-        for sock_address in [sock_address for sock_address, candidate in self._candidates.iteritems()
-                             if candidate.timestamp_incoming <= (verified_threshold if candidate.is_walk or candidate.is_stumble else unverified_threshold)]:
-            if __debug__: dprint("removing old candidate at ", sock_address[0], ":", sock_address[1])
-            del self._candidates[sock_address]
+    #     if now is None:
+    #         now = time()
 
-        if __debug__:
-            for counter, (sock_address, candidate) in enumerate(self._candidates.iteritems()):
-                dprint(counter + 1, "/", len(self._candidates), " in_community? ", candidate.in_community(community), " ", candidate)
-
-        # get all viable candidates
-        return (candidate
-                for candidate
-                in self._candidates.itervalues()
-                if candidate.in_community(community) and not candidate in blacklist)
+    #     return (candidate for candidate in self._candidates.itervalues() if candidate.in_community(community) and not candidate in blacklist)
 
     def yield_subjective_candidates(self, community, limit, cluster, blacklist=()):
         """
-        Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, with whom we
-        have interacted before, and who have us in their subjective set CLUSTER.
+        Yields LIMIT active random candidates that are part of COMMUNITY, not in BLACKLIST, and who
+        have us in their subjective set CLUSTER.
         """
         if __debug__:
             from community import Community
@@ -1869,17 +1871,17 @@ class Dispersy(Singleton):
                     return True
             return False
 
+        now = time()
         candidates = [candidate
                       for candidate
-                      in self.yield_all_candidates(community, blacklist)
-                      if (candidate.is_walk or candidate.is_stumble) and in_subjective_set(candidate)]
+                      in self._candidates.itervalues()
+                      if candidate.in_community(community, now) and candidate.is_any_active(now) and in_subjective_set(candidate) and not candidate in blacklist]
         shuffle(candidates)
         return islice(candidates, limit)
 
-    def yield_random_candidates(self, community, limit, blacklist=(), connection_type_blacklist=()):
+    def yield_random_candidates(self, community, limit=1024, blacklist=()):
         """
-        Yields LIMIT random candidates that are part of COMMUNITY, not in BLACKLIST, and with whom
-        we have interacted before.
+        Yields LIMIT active random candidates that are part of COMMUNITY, not in BLACKLIST.
         """
         if __debug__:
             from community import Community
@@ -1887,32 +1889,21 @@ class Dispersy(Singleton):
         assert isinstance(limit, int)
         assert isinstance(blacklist, (tuple, list))
         assert all(isinstance(candidate, Candidate) for candidate in blacklist)
-        assert isinstance(connection_type_blacklist, (tuple, list))
         assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "none of the bootstrap candidates may be in self._candidates"
 
-        candidates = [candidate for candidate in self.yield_all_candidates(community, blacklist)
-                      if (candidate.is_walk or candidate.is_stumble) and not candidate.connection_type in connection_type_blacklist]
-        walks = set(candidate for candidate in candidates if candidate.is_walk)
-        stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
+        now = time()
+        candidates = [candidate
+                      for candidate
+                      in self._candidates.itervalues()
+                      if candidate.in_community(community, now) and candidate.is_any_active(now)]
+        shuffle(candidates)
 
-        if walks or stumbles:
-            W = list(walks)
-            S = list(stumbles.difference(walks))
+        # dprint(candidates, "; ", len(self._candidates), force=1, box=1, line=1)
+        # for candidate in self._candidates.itervalues():
+        #     dprint(candidate, "; ", candidate.in_community(community, now), "; ", candidate.is_any_active(now), force=1)
 
-            for _ in xrange(limit):
-                if W and S:
-                    yield W.pop(int(random() * len(W))) if random() <= .5 else S.pop(int(random() * len(S)))
-
-                elif W:
-                    yield W.pop(int(random() * len(W)))
-
-                elif S:
-                    yield S.pop(int(random() * len(S)))
-
-                else:
-                    # exhausted candidates
-                    break
+        return islice(candidates, limit)
 
     def yield_walk_candidates(self, community, blacklist=()):
         """
@@ -1923,162 +1914,72 @@ class Dispersy(Singleton):
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(blacklist, (tuple, list))
-        assert all(isinstance(candidate, Candidate) for candidate in blacklist)
+        assert all(isinstance(candidate, WalkCandidate) for candidate in blacklist)
 
-        threshold = time() - 30.0
+        # TODO we can optimize by not doing all the sorting until we select where we want to pick a
+        # node.  since we always just need one candidate the other sorts would be useless
 
-        # SECURE 5 WAY SELECTION POOL
-        bootstrap_candidates = [candidate for candidate in self._bootstrap_candidates.itervalues() if candidate.timestamp_last_step_in_community(community) <= threshold and not candidate in blacklist]
-        candidates = [candidate for candidate in self.yield_all_candidates(community, blacklist) if candidate.timestamp_last_step_in_community(community) <= threshold]
-        walks = set(candidate for candidate in candidates if candidate.is_walk)
-        stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
-        introduction = set(candidate for candidate in candidates if candidate.is_introduction)
-        sort_key = lambda candidate: candidate.timestamp_last_step_in_community(community)
+        # TODO we can further optimize by not collecting the bootstrap_candidates until we need one
+        # of those
 
-        if walks or stumbles or introduction:
-            B = sorted(walks, key=sort_key)
-            C = sorted(introduction.difference(walks).difference(stumbles), key=sort_key)
-            D = sorted(stumbles.difference(walks).difference(introduction), key=sort_key)
-            E = sorted(stumbles.intersection(introduction).difference(walks), key=sort_key)
+        now = time()
+        bootstrap_candidates = sorted((candidate
+                                       for candidate
+                                       in self._bootstrap_candidates.itervalues()
+                                       if candidate.in_community(community, now) and candidate.is_eligible_for_walk(community, now)),
+                                      key=lambda candidate: candidate.last_walk)
+        assert all(isinstance(candidate, WalkCandidate) for candidate in bootstrap_candidates)
 
-            if __debug__: dprint(len(candidates), " candidates. B", len(B), " C", len(C), " D", len(D), " E", len(E))
-            assert any([walks, stumbles, introduction])
-            assert any([B, C, D, E]), "at least one of the categories must have one or more candidates"
-            assert all(candidate.is_walk for candidate in B)
-            assert all(not candidate.is_walk and not candidate.is_stumble and candidate.is_introduction for candidate in C)
-            assert all(not candidate.is_walk and candidate.is_stumble and not candidate.is_introduction for candidate in D)
-            assert all(not candidate.is_walk and candidate.is_stumble and candidate.is_introduction for candidate in E)
+        categories = {u"walk":[], u"stumble":[], u"intro":[], u"sandi":[], u"none":[]}
+        for candidate in self._candidates.itervalues():
+            if isinstance(candidate, WalkCandidate) and candidate.in_community(community, now) and candidate.is_eligible_for_walk(community, now):
+                categories[candidate.get_category(community, now)].append(candidate)
 
-            while True:
-                r = random()
+        walks = sorted(categories[u"walk"], key=lambda candidate: candidate.last_walk(community))
+        stumbles = sorted(categories[u"stumble"], key=lambda candidate: candidate.last_stumble(community))
+        intros = sorted(categories[u"intro"], key=lambda candidate: candidate.last_intro(community))
+        sandis = sorted(categories[u"sandi"], key=lambda candidate: min(candidate.last_stumble(community), candidate.last_intro(community)))
 
-                if r <= .495: # 50%
-                    if B:
-                        candidate = B.pop(0)
-                        yield candidate
-                        B.append(candidate)
+        while walks or stumbles or intros or sandis:
+            r = random()
 
-                elif r <= .99: # 50%
+            if r <= .495: # 50%
+                if walks:
+                    if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d walk   ] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), walks[0])
+                    yield walks.pop(0)
 
-                    if C or D or E:
-                        while True:
-                            r = random()
+            elif r <= .99: # 50%
+                if stumbles or intros or sandis:
+                    while True:
+                        r = random()
 
-                            if r <= .3333:
-                                if C:
-                                    candidate = C.pop(0)
-                                    yield candidate
-                                    C.append(candidate)
-                                    break
+                        if r <= .3333:
+                            if stumbles:
+                                if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d stumble] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), stumbles[0])
+                                yield stumbles.pop(0)
+                                break
 
-                            elif r <= .6666:
-                                if D:
-                                    candidate = D.pop(0)
-                                    yield candidate
-                                    D.append(candidate)
-                                    break
+                        elif r <= .6666:
+                            if intros:
+                                if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d intro  ] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), intros[0])
+                                yield intros.pop(0)
+                                break
 
-                            elif r <= .9999:
-                                if E:
-                                    candidate = E.pop(0)
-                                    yield candidate
-                                    E.append(candidate)
-                                    break
+                        elif r <= .9999:
+                            if sandis:
+                                if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d sandi  ] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), sandis[0])
+                                yield sandis.pop(0)
+                                break
 
-                elif bootstrap_candidates: # ~1%
-                    candidate = choice(bootstrap_candidates)
-                    yield candidate
+            elif bootstrap_candidates: # ~1%
+                if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d bootstr] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), bootstrap_candidates[0])
+                yield bootstrap_candidates.pop(0)
 
-        elif bootstrap_candidates:
-            if __debug__: dprint("no candidates available.  yielding bootstrap candidate")
-            while True:
-                candidate = choice(bootstrap_candidates)
-                yield candidate
+        while bootstrap_candidates:
+            if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d bootstr] (no regular candidates available)" % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), bootstrap_candidates[0])
+            yield bootstrap_candidates.pop(0)
 
-        else:
-            if __debug__: dprint("no candidates or bootstrap candidates available")
-
-    def take_step(self, community):
-        if community.cid in self._communities:
-            try:
-                candidate = self.yield_walk_candidates(community).next()
-
-            except StopIteration:
-                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " no candidate to take step")
-                return False
-
-            else:
-                assert community.my_member.private_key
-                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step towards ", candidate)
-                candidate.out_introduction_request(community)
-                self.create_introduction_request(community, candidate)
-                return True
-
-    def create_introduction_request(self, community, destination):
-        assert isinstance(destination, Candidate), [type(destination), destination]
-
-        # claim unique walk identifier
-        while True:
-            identifier = int(random() * 2**16)
-            if not identifier in self._walk_identifiers:
-                self._walk_identifiers[identifier] = None
-                break
-
-        # decide if the requested node should introduce us to someone else
-        # advice = random() < 0.5 or len(self._candidates) <= 5
-        advice = True
-
-        # obtain sync range
-        if destination.address in self._bootstrap_candidates:
-            # do not request a sync when we connecting to a bootstrap candidate
-            sync = None
-        else:
-            sync = community.dispersy_claim_sync_bloom_filter(identifier)
-            if __debug__:
-                assert sync is None or isinstance(sync, tuple), sync
-                if not sync is None:
-                    assert len(sync) == 5, sync
-                    time_low, time_high, modulo, offset, bloom_filter = sync
-                    assert isinstance(time_low, (int, long))
-                    assert isinstance(time_high, (int, long))
-                    assert isinstance(modulo, int)
-                    assert isinstance(offset, int)
-                    assert isinstance(bloom_filter, BloomFilter)
-
-                    # verify that the bloom filter is correct
-                    binary = bloom_filter.bytes
-                    bloom_filter.clear()
-                    counter = 0
-                    for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ?",
-                                                          (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
-                        bloom_filter.add(str(packet))
-                        counter += 1
-                    assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
-
-        meta_request = community.get_meta_message(u"dispersy-introduction-request")
-        request = meta_request.impl(authentication=(community.my_member,),
-                                    distribution=(community.global_time,),
-                                    destination=(destination,),
-                                    payload=(destination.address, self._lan_address, self._wan_address, advice, self._connection_type, sync, identifier))
-
-        # wait for introduction-response
-        meta_response = community.get_meta_message(u"dispersy-introduction-response")
-        footprint = meta_response.generate_footprint(payload=(identifier,))
-        # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
-        timeout = 4.5
-        assert meta_request.batch.max_window + meta_response.batch.max_window < timeout
-        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination,), timeout=timeout)
-
-        # release walk identifier some seconds after timeout expires
-        self._callback.register(self._walk_identifiers.pop, (identifier,), delay=timeout+10.0)
-
-        if __debug__:
-            if sync:
-                dprint(community.cid.encode("HEX"), " sending introduction request to ", destination, " [", sync[0], ":", sync[1], "] %", sync[2], "+", sync[3])
-            else:
-                dprint(community.cid.encode("HEX"), " sending introduction request to ", destination)
-        self.store_update_forward([request], False, False, True)
-        return request
+        if __debug__: dprint("no candidates or bootstrap candidates available")
 
     def _estimate_lan_and_wan_addresses(self, sock_addr, lan_address, wan_address):
         """
@@ -2117,34 +2018,131 @@ class Dispersy(Singleton):
             # we have a different WAN address and the sock address is not WAN, we are probably on the same computer
             return lan_address, wan_address
 
+    def take_step(self, community):
+        if community.cid in self._communities:
+            try:
+                candidate = self.yield_walk_candidates(community).next()
+
+            except StopIteration:
+                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " no candidate to take step")
+                return False
+
+            else:
+                assert community.my_member.private_key
+                if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step towards ", candidate)
+                assert candidate.is_eligible_for_walk(community, time())
+                self.create_introduction_request(community, candidate)
+                assert not candidate.is_eligible_for_walk(community, time())
+                return True
+
+    def create_introduction_request(self, community, destination):
+        assert isinstance(destination, WalkCandidate), [type(destination), destination]
+
+        destination.walk(community, time())
+
+        # claim unique walk identifier
+        while True:
+            identifier = int(random() * 2**16)
+            if not identifier in self._walk_identifiers:
+                self._walk_identifiers[identifier] = [None, None, destination]
+                break
+
+        # decide if the requested node should introduce us to someone else
+        # advice = random() < 0.5 or len(self._candidates) <= 5
+        advice = True
+
+        # obtain sync range
+        if isinstance(destination, BootstrapCandidate):
+            # do not request a sync when we connecting to a bootstrap candidate
+            sync = None
+
+        else:
+            sync = community.dispersy_claim_sync_bloom_filter(identifier)
+            if __debug__:
+                assert sync is None or isinstance(sync, tuple), sync
+                if not sync is None:
+                    assert len(sync) == 5, sync
+                    time_low, time_high, modulo, offset, bloom_filter = sync
+                    assert isinstance(time_low, (int, long))
+                    assert isinstance(time_high, (int, long))
+                    assert isinstance(modulo, int)
+                    assert isinstance(offset, int)
+                    assert isinstance(bloom_filter, BloomFilter)
+
+                    # verify that the bloom filter is correct
+                    binary = bloom_filter.bytes
+                    bloom_filter.clear()
+                    counter = 0
+                    for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ?",
+                                                          (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
+                        bloom_filter.add(str(packet))
+                        counter += 1
+                    assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
+
+        meta_request = community.get_meta_message(u"dispersy-introduction-request")
+        request = meta_request.impl(authentication=(community.my_member,),
+                                    distribution=(community.global_time,),
+                                    destination=(destination,),
+                                    payload=(destination.sock_addr, self._lan_address, self._wan_address, advice, self._connection_type, sync, identifier))
+
+        # wait for introduction-response
+        meta_response = community.get_meta_message(u"dispersy-introduction-response")
+        footprint = meta_response.generate_footprint(payload=(identifier,))
+        # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
+        timeout = 4.5
+        assert meta_request.batch.max_window + meta_response.batch.max_window < timeout
+        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination), timeout=timeout)
+
+        # release walk identifier some seconds after timeout expires
+        self._callback.register(self._walk_identifiers.pop, (identifier,), delay=timeout+10.0)
+
+        if __debug__:
+            if sync:
+                dprint(community.cid.encode("HEX"), " sending introduction request to ", destination, " [", sync[0], ":", sync[1], "] %", sync[2], "+", sync[3])
+            else:
+                dprint(community.cid.encode("HEX"), " sending introduction request to ", destination)
+        self.store_update_forward([request], False, False, True)
+        return request
+
     def on_introduction_request(self, messages):
         community = messages[0].community
         meta_introduction_response = community.get_meta_message(u"dispersy-introduction-response")
         meta_puncture_request = community.get_meta_message(u"dispersy-puncture-request")
         responses = []
         requests = []
+        now = time()
 
-        # modify either the senders LAN or WAN address based on how we perceive that node
-        estimates = [self._estimate_lan_and_wan_addresses(message.candidate.address, message.payload.source_lan_address, message.payload.source_wan_address) + (message,)
-                     for message
-                     in messages]
-
-        for source_lan_address, source_wan_address, message in estimates:
+        for message in messages:
             # apply vote to determine our WAN address
-            self.wan_address_vote(message.payload.destination_address, message.candidate.address)
+            self.wan_address_vote(message.payload.destination_address, message.candidate)
 
-            # add source to candidate pool and mark as a node that stumbled upon us
-            if not (message.candidate.address in self._candidates or message.candidate.address in self._bootstrap_candidates or message.candidate.address == self._lan_address or message.candidate.address == self._wan_address):
-                self._candidates[message.candidate.address] = message.candidate
-            else:
-                if __debug__: dprint("unable to add stumble node ", message.candidate)
-            message.candidate.inc_introduction_requests(message.authentication.member, community, source_lan_address, source_wan_address, message.payload.connection_type)
+            # modify either the senders LAN or WAN address based on how we perceive that node
+            source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
+            if __debug__: dprint("received introduction request from ", message.candidate)
 
-        for source_lan_address, source_wan_address, message in estimates:
+            # until we implement a proper 3-way handshake we are going to assume that the creator of
+            # this message is associated to this candidate
+            message.candidate.associate(community, message.authentication.member)
+
+            # update sender candidate
+            message.candidate.update(source_lan_address, source_wan_address, message.payload.connection_type)
+            message.candidate.stumble(community, now)
+
             if message.payload.advice:
-                try:
-                    candidate = self.yield_random_candidates(community, 1, (message.candidate,), (u"symmetric-NAT" if message.payload.connection_type == u"symmetric-NAT" else u"",)).next()
-                except StopIteration:
+                for candidate in self.yield_random_candidates(community, blacklist=(message.candidate,)):
+                    if not isinstance(candidate, WalkCandidate):
+                        # we can only use WalkCandidates
+                        continue
+
+                    if message.payload.connection_type == u"symmetric-NAT" and candidate.connection_type == u"symmetric-NAT":
+                        # skip
+                        continue
+
+                    # found candidate, break
+                    break
+
+                else:
+                    # did not break, no candidate found
                     candidate = None
             else:
                 if __debug__: dprint("no candidates available to introduce")
@@ -2154,7 +2152,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("telling ", message.candidate, " that ", candidate, " exists")
 
                 # create introduction response
-                responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(message.candidate.address, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, self._connection_type, message.payload.identifier)))
+                responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(message.candidate.sock_addr, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, self._connection_type, message.payload.identifier)))
 
                 # create puncture request
                 requests.append(meta_puncture_request.impl(distribution=(community.global_time,), destination=(candidate,), payload=(source_lan_address, source_wan_address, message.payload.identifier)))
@@ -2163,7 +2161,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("responding to ", message.candidate, " without an introduction")
 
                 none = ("0.0.0.0", 0)
-                responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(message.candidate.address, self._lan_address, self._wan_address, none, none, self._connection_type, message.payload.identifier)))
+                responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(message.candidate.sock_addr, self._lan_address, self._wan_address, none, none, self._connection_type, message.payload.identifier)))
 
         if responses:
             self._forward(responses)
@@ -2174,110 +2172,174 @@ class Dispersy(Singleton):
         for message in messages:
             if not message.payload.identifier in self._walk_identifiers:
                 yield DropMessage(message, "invalid response identifier")
+                continue
 
-            elif message.payload.wan_introduction_address == ("0.0.0.0", 0) or message.payload.lan_introduction_address == ("0.0.0.0", 0):
-                # sender has no clue what her own address is, allow the message.  no introduction
-                # will be given but a response will be sent to allow the sender to figure out her
-                # addresses
-                yield message
+            # check introduced LAN address, if given
+            if not message.payload.lan_introduction_address == ("0.0.0.0", 0):
+                if not self._is_valid_lan_address(message.payload.lan_introduction_address):
+                    yield DropMessage(message, "invalid LAN introduction address [_is_valid_lan_address]")
+                    continue
 
-            elif message.payload.wan_introduction_address == message.candidate.address:
-                yield DropMessage(message, "invalid WAN introduction address [introducing herself]")
+                if message.payload.lan_introduction_address == message.candidate.sock_addr:
+                    yield DropMessage(message, "invalid LAN introduction address [introducing herself]")
+                    continue
 
-            elif message.payload.lan_introduction_address == message.candidate.address:
-                yield DropMessage(message, "invalid LAN introduction address [introducing herself]")
+                if message.payload.lan_introduction_address == self._lan_address:
+                    yield DropMessage(message, "invalid LAN introduction address [introducing myself]")
+                    continue
 
-            elif message.payload.wan_introduction_address == self._wan_address:
-                yield DropMessage(message, "invalid WAN introduction address [introducing myself]")
+                if message.payload.lan_introduction_address in self._bootstrap_candidates:
+                    yield DropMessage(message, "invalid LAN introduction address [introducing bootstrap node]")
+                    continue
 
-            elif message.payload.lan_introduction_address == self._lan_address and message.payload.wan_introduction_address[0] == self._wan_address[0]:
-                yield DropMessage(message, "invalid LAN introduction address [introducing myself]")
+            # check introduced WAN address, if given
+            if not message.payload.wan_introduction_address == ("0.0.0.0", 0):
+                if not self._is_valid_wan_address(message.payload.wan_introduction_address):
+                    yield DropMessage(message, "invalid WAN introduction address [_is_valid_wan_address]")
+                    continue
 
-            else:
-                yield message
+                if message.payload.wan_introduction_address == message.candidate.sock_addr:
+                    yield DropMessage(message, "invalid WAN introduction address [introducing herself]")
+                    continue
+
+                if message.payload.wan_introduction_address == self._wan_address:
+                    yield DropMessage(message, "invalid WAN introduction address [introducing myself]")
+                    continue
+
+                if message.payload.wan_introduction_address in self._bootstrap_candidates:
+                    yield DropMessage(message, "invalid WAN introduction address [introducing bootstrap node]")
+                    continue
+
+            yield message
+
+    def _received_introduction(self, index, community, now, identifier, lan_introduction_address, wan_introduction_address):
+        """
+        Called when a response to an introduction-request is received.
+
+        A response can be an introduction-response, or puncture, or both.  In any case the
+        identifier will match the responses to the introduction-request.  If the responses are
+        contradictory the response from the puncture will be leading, as this should contain the
+        most recent information.
+
+        INDEX point to the entry in self._walk_identifiers, hence 0 for an introduction-response and
+        1 for a puncture.
+        """
+        assert isinstance(index, int)
+        assert 0 <= index <= 1
+        assert isinstance(identifier, int)
+        assert identifier in self._walk_identifiers, "Must be a valid identifier, should be checked in the check_... handler"
+        candidate_tuple = self._walk_identifiers[identifier]
+        # [0] : None or candidate from introduction-response
+        # [1] : None or candidate from puncture
+        # [2] : helper candidate
+
+        # we can ignore an introduction if we already received the puncture
+        if candidate_tuple[1]:
+            return
+
+        # we can ignore multiple introduction responses
+        if index == 0 and candidate_tuple[0]:
+            return
+
+        # get or create the introduced candidate
+        sock_introduction_addr = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
+        candidate = self._candidates.get(sock_introduction_addr)
+        if not candidate:
+            # safety check, may not point to a bootstrap peer
+            candidate = self._bootstrap_candidates.get(sock_introduction_addr)
+            if candidate:
+                return
+
+            # create candidate but set its state to inactive to ensure that it will not be used
+            # except by yield_walk_candidates
+            self._candidates[sock_introduction_addr] = candidate = WalkCandidate(sock_introduction_addr, lan_introduction_address, wan_introduction_address)
+            candidate.inactive(community, now)
+
+        # reset the 'I have been introduced' timer
+        candidate.intro(community, now)
+        if __debug__: dprint("received introduction to ", candidate)
+
+        # update the _walk_identifiers
+        candidate_tuple[index] = candidate
+
+        # 13/10/11 Boudewijn: when we had no candidates and we received this response from a
+        # bootstrap node, we will immediately take an additional step towards the introduced node
+        if isinstance(candidate_tuple[2], BootstrapCandidate):
+            # we need to count the number of WalkCandidates for this community.  If the total number
+            # of candidates is one and this candidate has category u"intro" we will directly create
+            # a new introduction request to this node.
+            iterator = (c for c in self._candidates.itervalues() if c.in_community(community, now) and c.is_any_active(now))
+            try:
+                iterator.next()
+                iterator.next()
+            except StopIteration:
+                # there are very few candidates that are active.  if the candidate that was just
+                # introduced is eligible we should connect to it.
+                if candidate.is_eligible_for_walk(community, now):
+                    if __debug__: dprint("we have no candidates, immediately contact the introduced node")
+                    self.create_introduction_request(community, candidate)
+                    assert not candidate.is_eligible_for_walk(community, now)
 
     def on_introduction_response(self, messages):
         community = messages[0].community
+        now = time()
 
         for message in messages:
             # apply vote to determine our WAN address
-            self.wan_address_vote(message.payload.destination_address, message.candidate.address)
+            self.wan_address_vote(message.payload.destination_address, message.candidate)
+
+            # until we implement a proper 3-way handshake we are going to assume that the creator of
+            # this message is associated to this candidate
+            message.candidate.associate(community, message.authentication.member)
 
             # modify either the senders LAN or WAN address based on how we perceive that node
-            source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.candidate.address, message.payload.source_lan_address, message.payload.source_wan_address)
+            source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
             if __debug__: dprint("received introduction response from ", message.candidate)
 
-            # add source to the candidate pool and mark as a node that is part of our walk
-            message.candidate.inc_introduction_response(source_lan_address, source_wan_address, message.payload.connection_type)
-            if not (message.candidate.address in self._candidates or message.candidate.address in self._bootstrap_candidates or message.candidate.address == self._lan_address or message.candidate.address == self._wan_address):
-                self._candidates[message.candidate.address] = message.candidate
-            else:
-                if __debug__: dprint("unable to add walker node ", message.candidate)
+            # update sender candidate
+            message.candidate.update(source_lan_address, source_wan_address, message.payload.connection_type)
 
-            lan_introduction_address = message.payload.lan_introduction_address
-            wan_introduction_address = message.payload.wan_introduction_address
-            if __debug__: dprint("received introduction to ", "LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1])
+            # handle the introduction
+            if not (message.payload.lan_introduction_address == ("0.0.0.0", 0) or message.payload.wan_introduction_address == ("0.0.0.0", 0)):
+                self._received_introduction(0, community, now, message.payload.identifier, message.payload.lan_introduction_address, message.payload.wan_introduction_address)
 
-            # add introduced node to the candidate pool and mark as an introduced node
-            if self._is_valid_lan_address(lan_introduction_address) and self._is_valid_wan_address(wan_introduction_address):
-                sock_address = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
-
-                candidate = self._candidates.get(sock_address)
-                if candidate:
-                    self._walk_identifiers[message.payload.identifier] = candidate
-                    candidate.inc_introduced(message.authentication.member, community)
-
-                else:
-                    candidate = self._walk_identifiers.get(message.payload.identifier)
-                    if candidate and candidate.address == sock_address:
-                        if not (sock_address in self._candidates or sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
-                            self._candidates[sock_address] = candidate
-                        else:
-                            if __debug__: dprint("unable to add walker node ", message.candidate)
-                        candidate.inc_introduced(message.authentication.member, community)
-
-                    elif not (sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
-                        candidate = Candidate(sock_address, lan_introduction_address, wan_introduction_address, community=community, is_introduction=True)
-                        self._walk_identifiers[message.payload.identifier] = candidate
-                        if not (sock_address in self._candidates or sock_address in self._bootstrap_candidates or sock_address == self._lan_address or sock_address == self._wan_address):
-                            self._candidates[sock_address] = candidate
-                        else:
-                            if __debug__: dprint("unable to add walker node ", message.candidate)
-
-                # 13/10/11 Boudewijn: when we had no candidates and we received this response
-                # from a bootstrap node, we will immediately take an additional step towards the
-                # introduced node
-                #
-                # small note:  we check if self._candidates contains only one node, this is the
-                # node that was just introduced and added to self._candidates a few lines up
-                if len(self._candidates) == 1 and message.candidate.address in self._bootstrap_candidates and candidate:
-                    if __debug__: dprint("we have no candidates, immediately contact the introduced node")
-                    self.create_introduction_request(community, candidate)
-
-            else:
-                if __debug__:
-                    level = "normal" if lan_introduction_address == ("0.0.0.0", 0) and wan_introduction_address == ("0.0.0.0", 0) else "warning"
-                    dprint("unable to add introduced node. LAN: ", lan_introduction_address[0], ":", lan_introduction_address[1], " (", ("valid" if self._is_valid_lan_address(lan_introduction_address) else "invalid"), ")  WAN: ", wan_introduction_address[0], ":", wan_introduction_address[1], " (", ("valid" if self._is_valid_wan_address(wan_introduction_address) else "invalid"), ")", level=level)
-
-    def introduction_response_or_timeout(self, message, community, intermediary_candidate):
+    def introduction_response_or_timeout(self, message, community, helper_candidate):
         if message is None:
-            # intermediary_candidate is no longer online
-            if intermediary_candidate.address in self._candidates:
-                if __debug__: dprint("removing candidate ", intermediary_candidate, " (timeout)")
-                if not self._candidates[intermediary_candidate.address].timeout(community):
-                    del self._candidates[intermediary_candidate.address]
+            # helper_candidate did not respond to a request message in this community.  after some
+            # time inactive candidates become obsolete and will be removed by
+            # _periodically_cleanup_candidates
+
+            # we choose to set the entire helper to inactive instead of just the community where the
+            # timeout occurred.  this will allow us to quickly respond to nodes going offline, while
+            # the downside is that one dropped packet will cause us to invalidly inactivate all
+            # communities of the candidate.
+            now = time()
+            helper_candidate.obsolete(community, now)
+            helper_candidate.all_inactive(now)
 
     def on_puncture_request(self, messages):
         community = messages[0].community
         meta_puncture = community.get_meta_message(u"dispersy-puncture")
         punctures = []
+        now = time()
         for message in messages:
-            message.candidate.inc_puncture_request()
+            # update sender candidate
+            # TODO we need a new category for this or simply ignore it as we do now
+            # message.candidate.stumble(community, now)
 
-            # determine if we are in the same LAN as the walker node
-            destination = self.get_candidate(message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address)
-            punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(destination,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
-            if __debug__: dprint(message.candidate, " asked us to send a puncture to ", destination)
+            # we are asked to send a message to a -possibly- unknown node
+            # get or create the candidate
+            sock_addr = message.payload.lan_walker_address if message.payload.wan_walker_address[0] == self._wan_address[0] else message.payload.wan_walker_address
+            candidate = self._candidates.get(sock_addr)
+            if not candidate:
+                candidate = self._bootstrap_candidates.get(sock_addr)
+                if not candidate:
+                    # create candidate but set its state to inactive to ensure that it is not used
+                    self._candidates[sock_addr] = candidate = WalkCandidate(sock_addr, message.payload.lan_walker_address, message.payload.wan_walker_address)
+                    candidate.inactive(community, now)
+
+            punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(candidate,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
+            if __debug__: dprint(message.candidate, " asked us to send a puncture to ", candidate)
 
         self.store_update_forward(punctures, False, False, True)
 
@@ -2285,36 +2347,22 @@ class Dispersy(Singleton):
         for message in messages:
             if not message.payload.identifier in self._walk_identifiers:
                 yield DropMessage(message, "invalid response identifier")
+                continue
 
-            else:
-                yield message
+            yield message
 
     def on_puncture(self, messages):
+        now = time()
+
         for message in messages:
             # when the sender is behind a symmetric NAT and we are not, we will not be able to get
-            # through using the port that the intermediary node gave us (symmetric NAT will give a
+            # through using the port that the helper node gave us (symmetric NAT will give a
             # different port for each destination address).
 
-            # we can match this source address (message.candidate.address) to the candidate and
+            # we can match this source address (message.candidate.sock_addr) to the candidate and
             # modify the LAN or WAN address that has been proposed.
-            assert message.payload.identifier in self._walk_identifiers, "must be checked in check_puncture"
-
-            candidate = self._walk_identifiers.get(message.payload.identifier)
-            if candidate:
-                if not candidate.address == message.candidate.address:
-                    self._candidates.pop(candidate.address, None)
-                lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.address, candidate.lan_address, candidate.wan_address)
-                candidate.inc_puncture(message.authentication.member, message.community, message.candidate.address, lan_address, wan_address)
-                if not (candidate.address in self._bootstrap_candidates or candidate.address == self._lan_address or candidate.address == self._wan_address):
-                    self._candidates[candidate.address] = candidate
-
-            else:
-                lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.address, message.payload.source_lan_address, message.payload.source_wan_address)
-                message.candidate.inc_puncture(message.authentication.member, message.community, message.candidate.address, lan_address, wan_address)
-                self._walk_identifiers[message.payload.identifier] = message.candidate
-
-                if not (message.candidate.address in self._bootstrap_candidates or message.candidate.address == self._lan_address or message.candidate.address == self._wan_address):
-                    self._candidates[message.candidate.address] = message.candidate
+            lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
+            self._received_introduction(1, message.community, now, message.payload.identifier, lan_address, wan_address)
 
     def store_update_forward(self, messages, store, update, forward):
         """
@@ -2387,7 +2435,10 @@ class Dispersy(Singleton):
             self._database.commit()
 
         if forward:
-            self._forward(messages)
+            if not self._forward(messages):
+                return False
+
+        return True
 
     def _forward(self, messages):
         """
@@ -2423,30 +2474,32 @@ class Dispersy(Singleton):
         if isinstance(meta.destination, CommunityDestination):
             # CommunityDestination.node_count is allowed to be zero
             if meta.destination.node_count > 0:
-                for message in messages:
-                    self._send(list(self.yield_random_candidates(meta.community, meta.destination.node_count)), [message.packet], meta.name)
+                return all(self._send(list(self.yield_random_candidates(meta.community, meta.destination.node_count)), [message.packet], meta.name) for message in messages)
 
         elif isinstance(meta.destination, SubjectiveDestination):
             # SubjectiveDestination.node_count is allowed to be zero
             if meta.destination.node_count > 0:
-                for message in messages:
-                    self._send(list(self.yield_subjective_candidates(meta.community, meta.destination.node_count, meta.destination.cluster)), [message.packet], meta.name)
+                return all(self._send(list(self.yield_subjective_candidates(meta.community, meta.destination.node_count, meta.destination.cluster)), [message.packet], meta.name) for message in messages)
 
         elif isinstance(meta.destination, CandidateDestination):
-            for message in messages:
-                self._send(message.destination.candidates, [message.packet], meta.name)
+            return all(self._send(message.destination.candidates, [message.packet], meta.name) for message in messages)
 
         elif isinstance(meta.destination, MemberDestination):
-            for message in messages:
-                self._send([candidate
-                            for candidate
-                            in self.yield_all_candidates(meta.community)
-                            if any(member in message.destination.members for member in candidate.members_in_community(meta.community))],
-                           [message.packet],
-                           meta.name)
+            return all(self._send([candidate
+                                   for candidate
+                                   in self._candidates.itervalues()
+                                   if any(candidate.is_associated(message.community, member)
+                                          for member
+                                          in message.destination.members)],
+                                  [message.packet],
+                                  meta.name)
+                       for message
+                       in messages)
 
         else:
             raise NotImplementedError(meta.destination)
+
+        return False
 
     def _send(self, candidates, packets, key=u"unspecified"):
         """
@@ -2479,15 +2532,19 @@ class Dispersy(Singleton):
 
         # send packets
         for candidate in candidates:
-            if not self.is_valid_remote_address(candidate.address):
-                # this is a programming bug.  apparently an invalid address is being used
-                if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
-                continue
+            assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
+            assert self.is_valid_remote_address(candidate.sock_addr), candidate
+            # if not self.is_valid_remote_address(candidate.sock_addr):
+            #     # this is a programming bug.  apparently an invalid address is being used
+            #     if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
+            #     return False
 
             for packet in packets:
-                self._socket.send(candidate.address, packet)
-            self._statistics.outgoing(candidate.address, key, sum(len(packet) for packet in packets), len(packets))
+                self._socket.send(candidate.sock_addr, packet)
+            self._statistics.outgoing(candidate.sock_addr, key, sum(len(packet) for packet in packets), len(packets))
             if __debug__: dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
+
+        return True
 
     def _check_triggers(self):
         assert self._untriggered_messages, "should not check if there are no messages"
@@ -2628,10 +2685,9 @@ class Dispersy(Singleton):
         member identifier, and global time.  This message requests a unique dispersy message from
         another peer.
 
-        If the peer at CANDIDATE.address (1) receives the request, (2) has the requested message,
-        and (3) is willing to upload, the optional RESPONSE_FUNC will be called.  Note that if there
-        is a callback for the requested message, that will always be called regardless of
-        RESPONSE_FUNC.
+        If the peer at CANDIDATE (1) receives the request, (2) has the requested message, and (3) is
+        willing to upload, the optional RESPONSE_FUNC will be called.  Note that if there is a
+        callback for the requested message, that will always be called regardless of RESPONSE_FUNC.
 
         If RESPONSE_FUNC is given and there is no response withing TIMEOUT seconds, the
         RESPONSE_FUNC will be called but the message parameter will be None.
@@ -3302,7 +3358,7 @@ class Dispersy(Singleton):
 
             else:
                 packet = str(packet)
-                msg = community.get_conversion(packet[:22]).decode_message(LocalhostCandidate(self), packet)
+                msg = community.get_conversion(packet[:22]).decode_message(LoopbackCandidate(), packet)
                 allowed, proofs = community._timeline.check(msg)
                 if allowed and proofs:
                     if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)")
@@ -4153,14 +4209,61 @@ class Dispersy(Singleton):
             desync = (yield delay)
             self._statistics.increment_busy_time(desync)
 
+    def _periodically_cleanup_candidates(self):
+        """
+        Periodically remove Candidate instance where all communities are obsolete.
+        """
+        while True:
+            yield 5 * 60.0
+
+            now = time()
+            for key in [key for key, candidate in self._candidates.iteritems() if candidate.is_all_obsolete(now)]:
+                if __debug__: dprint("removing obsolete candidate ", self._candidates[key])
+                del self._candidates[key]
+
+                if __debug__: dprint("removing obsolete votes")
+                for voters in self._wan_address_votes.itervalues():
+                    voters.remove(key)
+                for address in [address for address, voters in self._wan_address_votes.iteritems() if not (voters or address == self._wan_address)]:
+                    del self._wan_address_votes[address]
+
     if __debug__:
         def _stats_candidates(self):
             while True:
                 yield 10.0
+                now = time()
                 dprint("---")
                 for community in sorted(self._communities.itervalues(), key=lambda community: community.cid):
-                    candidates = list(self.yield_all_candidates(community))
-                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), " candidates[:5] ", ", ".join("%s:%d" % candidate.address for candidate in candidates[:5]))
+                    candidates = [candidate for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
+                    dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), "" if community.dispersy_enable_candidate_walker else "*", " candidates[:5] ", ", ".join(str(candidate) for candidate in candidates[:5]))
+
+        def _stats_detailed_candidates(self):
+            while True:
+                yield 10.0
+                now = time()
+                dprint("---")
+                for community in sorted(self._communities.itervalues(), key=lambda community: community.cid):
+                    # if community.get_classification() == u"PreviewChannelCommunity":
+                    #     continue
+
+                    categories = {u"walk":[], u"stumble":[], u"intro":[], u"sandi":[], u"none":[]}
+                    for candidate in self._candidates.itervalues():
+                        if isinstance(candidate, WalkCandidate) and candidate.in_community(community, now):
+                            categories[candidate.get_category(community, now)].append(candidate)
+
+                    dprint("--- ", community.cid.encode("HEX"), " ", community.get_classification(), " ---")
+                    dprint("--- [%2d:%2d:%2d:%2d:%2d]" % (len(categories[u"walk"]), len(categories[u"stumble"]), len(categories[u"intro"]), len(categories[u"sandi"]), len(self._bootstrap_candidates)))
+
+                    for category, candidates in categories.iteritems():
+                        for candidate in candidates:
+                            dprint("%4ds " % (-1 if candidate.age(now) > 9999 else candidate.age(now)),
+                                   "A " if candidate.is_any_active(now) else " I",
+                                   "O" if candidate.is_all_obsolete(now) else " ",
+                                   "E" if candidate.is_eligible_for_walk(community, now) else " ",
+                                   "B" if isinstance(candidate, BootstrapCandidate) else " ",
+                                   " %-7s" % category,
+                                   " %-13s" % candidate.connection_type,
+                                   " ", candidate)
 
         def _stats_conversion(self):
             # pylint: disable-msg=W0404
@@ -4223,8 +4326,10 @@ class Dispersy(Singleton):
         #      "dispersy_enable_candidate_walker" attribute
         # 2.2: community["candidates"] is again always a list, new
         #      "dispersy_enable_candidate_walker_responses" attribute
+        # 2.3: added info["timestamp"]
 
-        info = {"version":2.2, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        now = time()
+        info = {"version":2.3, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "timestamp":now}
 
         if statistics:
             info["statistics"] = self._statistics.info()
@@ -4253,7 +4358,7 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
+                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
                 if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
 
         if __debug__: dprint(info, pprint=True)

@@ -166,7 +166,7 @@ class SetupScript(ScriptBase):
                     yield 1.0
                 else:
                     dprint("use existing permissions from disk")
-                    self._community.dispersy.on_incoming_packets([(("130.161.158.222", 6711), packet)])
+                    self._community.dispersy.on_socket_endpoint([(("130.161.158.222", 6711), packet)])
                     break
             else:
                 dprint("creating authorizations")

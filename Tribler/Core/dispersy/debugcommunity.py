@@ -1,6 +1,7 @@
 from struct import pack, unpack_from
 
 from authentication import MultiMemberAuthentication, MemberAuthentication
+from candidate import WalkCandidate
 from community import Community
 from conversion import BinaryConversion
 from debug import Node
@@ -141,6 +142,10 @@ class DebugCommunity(Community):
     """
     Community to debug Dispersy related messages and policies.
     """
+    @property
+    def my_candidate(self):
+        return WalkCandidate(self._dispersy.lan_address, self._dispersy.lan_address, self._dispersy.wan_address)
+
     @property
     def dispersy_candidate_request_initial_delay(self):
         # disable candidate

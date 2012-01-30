@@ -1,11 +1,12 @@
 import socket
 
 from bloomfilter import BloomFilter
-from candidate import Candidate, LocalhostCandidate
+from candidate import Candidate, WalkCandidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from dprint import dprint
 from member import Member
 from message import Message
+from time import time
 
 class DebugOnlyMember(Member):
     _singleton_instances = {}
@@ -89,8 +90,7 @@ class Node(object):
             # update candidate information
             assert self._socket, "Socket needs to be set to candidate"
             assert self._community, "Community needs to be set to candidate"
-            destination = LocalhostCandidate(self._dispersy)
-            message = self.create_dispersy_introduction_request_message(destination, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
+            message = self.create_dispersy_introduction_request_message(self._community.my_candidate, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
             self.give_message(message)
 
     @property
@@ -117,8 +117,7 @@ class Node(object):
         assert isinstance(verbose, bool)
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", len(packet), " bytes")
-        address = self.socket.getsockname()
-        self._dispersy.on_incoming_packets([(Candidate(address, address, address), packet)], cache=cache)
+        self._dispersy.on_socket_endpoint([(self.lan_address, packet)], cache=cache, timestamp=time())
         return packet
 
     def give_packets(self, packets, verbose=False, cache=False):
@@ -126,9 +125,7 @@ class Node(object):
         assert isinstance(verbose, bool)
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", sum(len(packet) for packet in packets), " bytes")
-        address = self.socket.getsockname()
-        candidate = Candidate(address, address, address)
-        self._dispersy.on_incoming_packets([(candidate, packet) for packet in packets], cache=cache)
+        self._dispersy.on_socket_endpoint([(self.lan_address, packet) for packet in packets], cache=cache, timestamp=time())
         return packets
 
     def give_message(self, message, verbose=False, cache=False):
@@ -194,7 +191,7 @@ class Node(object):
             if not (packets is None or packet in packets):
                 continue
 
-            candidate = Candidate(address, address, address)
+            candidate = WalkCandidate(address, address, address)
             dprint(len(packet), " bytes from ", candidate)
             return candidate, packet
 
@@ -323,7 +320,7 @@ class Node(object):
 
     def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, connection_type, sync, identifier, global_time):
         # TODO assert other arguments
-        assert isinstance(destination, Candidate)
+        assert isinstance(destination, WalkCandidate), destination
         if sync:
             assert isinstance(sync, tuple)
             assert len(sync) == 5
@@ -342,5 +339,5 @@ class Node(object):
         return meta.impl(authentication=(self._my_member,),
                          destination=(destination,),
                          distribution=(global_time,),
-                         payload=(destination.address, source_lan, source_wan, advice, connection_type, sync, identifier))
+                         payload=(destination.sock_addr, source_lan, source_wan, advice, connection_type, sync, identifier))
 
