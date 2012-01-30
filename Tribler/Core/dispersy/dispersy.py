@@ -1936,11 +1936,11 @@ class Dispersy(Singleton):
         # of those
 
         now = time()
-        bootstrap_candidates = sorted((candidate
-                                       for candidate
-                                       in self._bootstrap_candidates.itervalues()
-                                       if candidate.in_community(community, now) and candidate.is_eligible_for_walk(community, now)),
-                                      key=lambda candidate: candidate.last_walk)
+        bootstrap_candidates = [candidate
+                                for candidate
+                                in self._bootstrap_candidates.itervalues()
+                                if candidate.in_community(community, now) and candidate.is_eligible_for_walk(community, now)]
+        shuffle(bootstrap_candidates)
         assert all(isinstance(candidate, WalkCandidate) for candidate in bootstrap_candidates)
 
         categories = {u"walk":[], u"stumble":[], u"intro":[], u"sandi":[], u"none":[]}
