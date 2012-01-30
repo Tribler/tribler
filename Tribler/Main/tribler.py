@@ -885,9 +885,10 @@ class ABCApp():
         # see Tribler/Main/Dialogs/abcoption.py
         self.utility.session.shutdown(hacksessconfcheckpoint=False) 
 
-        while not self.utility.session.has_shutdown() or (time() - session_shutdown_start) > 300:
-            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown"
-            sleep(1)
+        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
+            diff = time() - session_shutdown_start
+            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
+            sleep(3)
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
