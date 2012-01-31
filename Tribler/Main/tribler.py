@@ -451,14 +451,12 @@ class ABCApp():
             even if we are frozen using py2exe"""
             if we_are_frozen():
                 return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
-            return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
-
-        install_dir = module_path()
-        if install_dir.find('library.zip') >= 0:
-            install_dir = install_dir[:install_dir.find('library.zip') - 1]
-            self.sconfig.set_install_dir(install_dir)
+            
+            filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+            return os.path.abspath(os.path.join(filedir, '..', '..'))
         
-        print >> sys.stderr, "Tribler is using",install_dir,"as working directory",module_path()
+        print >> sys.stderr, "Tribler is using", module_path(), "as working directory"
+        self.sconfig.set_install_dir(module_path())
         
         progress('Creating session')
         s = Session(self.sconfig)
