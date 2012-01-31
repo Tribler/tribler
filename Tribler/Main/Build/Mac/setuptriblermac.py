@@ -98,11 +98,6 @@ def filterincludes( l, f ):
     return [(x,y) for (x,y) in l if f(y[0])]
 
 # ----- build the app bundle
-optimize = 
-if not __debug__:
-    optimize = '-O2'
-
-
 mainfile = os.path.join(LIBRARYNAME,'Main','tribler.py')
 setup(
     setup_requires=['py2app'],
