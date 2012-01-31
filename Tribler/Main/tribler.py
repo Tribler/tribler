@@ -441,22 +441,25 @@ class ABCApp():
         
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
-        def we_are_frozen():
-            """Returns whether we are frozen via py2exe.
-            This will affect how we find out where we are located."""
-            return hasattr(sys, "frozen")
-
-        def module_path():
-            """ This will get us the program's directory,
-            even if we are frozen using py2exe"""
-            if we_are_frozen():
-                return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
+        # Niels, 2012-01-31: py2exe should only apply to windows
+        if sys.platform == 'win32':
+            def we_are_frozen():
+                """Returns whether we are frozen via py2exe.
+                This will affect how we find out where we are located."""
+                return hasattr(sys, "frozen")
+    
+            def module_path():
+                """ This will get us the program's directory,
+                even if we are frozen using py2exe"""
+                if we_are_frozen():
+                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
+                
+                filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+                return os.path.abspath(os.path.join(filedir, '..', '..'))
             
-            filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
-            return os.path.abspath(os.path.join(filedir, '..', '..'))
-        
-        print >> sys.stderr, "Tribler is using", module_path(), "as working directory"
-        self.sconfig.set_install_dir(module_path())
+            self.sconfig.set_install_dir(module_path())
+            
+        print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
         
         progress('Creating session')
         s = Session(self.sconfig)

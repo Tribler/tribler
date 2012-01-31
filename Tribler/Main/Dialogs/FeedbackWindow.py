@@ -139,7 +139,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.closeButton.Bind(wx.EVT_BUTTON, self.OnCloseWindow)
         buttonSizer.Add(self.closeButton)
         
-        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT)
+        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT|wx.TOP, 10)
         sizer.Add(vSizer, 1, wx.EXPAND|wx.LEFT, 10)
         
         self._fillRequiredSection(st)
