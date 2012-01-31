@@ -74,7 +74,7 @@ class WalktestCommunity(Community):
 
         log("walktest.log",
             "out-contact",
-            destination_address=destination.address,
+            destination_address=destination.sock_addr,
             identifier=identifier,
             **self._default_log())
 
@@ -85,7 +85,7 @@ class WalktestCommunity(Community):
         for message in messages:
             log("walktest.log",
                 "in-contact",
-                source_address=message.candidate.address,
+                source_address=message.candidate.sock_addr,
                 identifier=message.payload.identifier,
                 **self._default_log())
 
@@ -103,10 +103,9 @@ class WalktestCommunity(Community):
 
     def impl_introduction_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
-        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log",
             "out-introduction-request",
-            destination_address=message.destination.candidates[0].address,
+            destination_address=message.destination.candidates[0].sock_addr,
             advice=message.payload.advice,
             identifier=message.payload.identifier,
             **self._default_log())
@@ -114,10 +113,9 @@ class WalktestCommunity(Community):
 
     def on_introduction_request(self, meta, messages):
         for message in messages:
-            if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1], "  LAN ", message.payload.source_lan_address[0], ":", message.payload.source_lan_address[1], "  WAN ", message.payload.source_wan_address[0], ":", message.payload.source_wan_address[1])
             log("walktest.log",
                 "in-introduction-request",
-                source_address=message.candidate.address,
+                source_address=message.candidate.sock_addr,
                 mid=message.authentication.member.mid,
                 destination_address=message.payload.destination_address,
                 source_lan_address=message.payload.source_lan_address,
@@ -130,10 +128,9 @@ class WalktestCommunity(Community):
     def impl_introduction_response(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.candidates) == 1
-        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log",
             "out-introduction-response",
-            destination_address=message.destination.candidates[0].address,
+            destination_address=message.destination.candidates[0].sock_addr,
             lan_introduction_address=message.payload.lan_introduction_address,
             wan_introduction_address=message.payload.wan_introduction_address,
             identifier=message.payload.identifier,
@@ -142,11 +139,10 @@ class WalktestCommunity(Community):
 
     def on_introduction_response(self, meta, messages):
         for message in messages:
-            if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1], " -> ", message.payload.lan_introduction_address[0], ":", message.payload.lan_introduction_address[1], " or ", message.payload.wan_introduction_address[0], ":", message.payload.wan_introduction_address[1])
             log("walktest.log",
                 "in-introduction-response",
                 member=message.authentication.member.public_key,
-                source_address=message.candidate.address,
+                source_address=message.candidate.sock_addr,
                 destination_address=message.payload.destination_address,
                 source_lan_address=message.payload.source_lan_address,
                 source_wan_address=message.payload.source_wan_address,
@@ -164,10 +160,9 @@ class WalktestCommunity(Community):
     def impl_puncture_request(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.candidates) == 1
-        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log",
             "out-puncture-request",
-            destination=message.destination.candidates[0].address,
+            destination=message.destination.candidates[0].sock_addr,
             lan_walker_address=message.payload.lan_walker_address,
             wan_walker_address=message.payload.wan_walker_address,
             identifier=message.payload.identifier,
@@ -176,10 +171,9 @@ class WalktestCommunity(Community):
 
     def on_puncture_request(self, meta, messages):
         for message in messages:
-            if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1])
             log("walktest.log",
                 "in-puncture-request",
-                source_address=message.candidate.address,
+                source_address=message.candidate.sock_addr,
                 lan_walker_address=message.payload.lan_walker_address,
                 wan_walker_address=message.payload.wan_walker_address,
                 identifier=message.payload.identifier,
@@ -189,10 +183,9 @@ class WalktestCommunity(Community):
     def impl_puncture(self, meta, *args, **kargs):
         message = meta.__origional_impl(*args, **kargs)
         assert len(message.destination.candidates) == 1
-        if __debug__: dprint("create ", message.destination.candidates[0].address[0], ":", message.destination.candidates[0].address[1])
         log("walktest.log",
             "out-puncture",
-            destination_address=message.destination.candidates[0].address,
+            destination_address=message.destination.candidates[0].sock_addr,
             source_lan_address=message.payload.source_lan_address,
             source_wan_address=message.payload.source_wan_address,
             identifier=message.payload.identifier,
@@ -201,11 +194,10 @@ class WalktestCommunity(Community):
 
     def on_puncture(self, meta, messages):
         for message in messages:
-            if __debug__: dprint("from ", message.candidate.address[0], ":", message.candidate.address[1])
             log("walktest.log",
                 "in-puncture",
                 member=message.authentication.member.mid,
-                source_address=message.candidate.address,
+                source_address=message.candidate.sock_addr,
                 source_lan_address=message.payload.source_lan_address,
                 source_wan_address=message.payload.source_wan_address,
                 identifier=message.payload.identifier,
