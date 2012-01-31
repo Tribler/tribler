@@ -109,7 +109,7 @@ setup(
         'excludes': ["Tkinter","Tkconstants","tcl"],
         'iconfile': LIBRARYNAME+'/Main/Build/Mac/tribler.icns',
         'plist': Plist.fromFile(LIBRARYNAME+'/Main/Build/Mac/Info.plist'),
-        'optimize': '-O0' if __debug__ else '-O2',
+        'optimize': 0 if __debug__ else 2,
         'resources':
             [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
              (LIBRARYNAME+"/Core", [LIBRARYNAME+"/Core/superpeer.txt"]),
