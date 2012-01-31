@@ -536,7 +536,7 @@ class Dispersy(Singleton):
         if community.dispersy_enable_candidate_walker_responses:
             messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, batch=BatchConfiguration(max_window=0.1, max_age=5.0)),
                              Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, batch=BatchConfiguration(max_window=0.1, max_age=5.0)),
-                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, batch=BatchConfiguration(max_window=0.1, max_age=4.0)),
+                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self.check_puncture_request, self.on_puncture_request, batch=BatchConfiguration(max_window=0.1, max_age=4.0)),
                              Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, batch=BatchConfiguration(max_window=0.1, max_age=5.0))])
 
         return messages
@@ -2329,6 +2329,26 @@ class Dispersy(Singleton):
             now = time()
             helper_candidate.obsolete(community, now)
             helper_candidate.all_inactive(now)
+
+    def check_puncture_request(self, messages):
+        for message in messages:
+            if message.payload.lan_walker_address == message.candidate.sock_addr:
+                yield DropMessage(message, "invalid LAN walker address [puncture herself]")
+                continue
+
+            if not self._is_valid_lan_address(message.payload.lan_walker_address):
+                yield DropMessage(message, "invalid LAN walker address [_is_valid_lan_address]")
+                continue
+
+            if message.payload.wan_walker_address == message.candidate.sock_addr:
+                yield DropMessage(message, "invalid WAN walker address [puncture herself]")
+                continue
+
+            if not self._is_valid_wan_address(message.payload.wan_walker_address):
+                yield DropMessage(message, "invalid WAN walker address [_is_valid_wan_address]")
+                continue
+
+            yield message
 
     def on_puncture_request(self, messages):
         community = messages[0].community
