@@ -2296,6 +2296,11 @@ class MyPreferenceDBHandler(BasicDBHandler):
             torrent_id,creation_time,progress,destination_path = pref
             mypref_stats[torrent_id] = (creation_time,progress,destination_path)
         return mypref_stats
+    
+    def getMyPrefStatsInfohash(self, infohash):
+        torrent_id = self._db.getTorrentID(infohash)
+        if torrent_id is not None:
+            return self.getMyPrefStats(torrent_id)[torrent_id]
         
     def getCreationTime(self, infohash):
         torrent_id = self._db.getTorrentID(infohash)

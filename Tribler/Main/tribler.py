@@ -271,7 +271,6 @@ class ABCApp():
     def PostInit2(self):
         self.frame.Raise()
         self.startWithRightView()
-        self.loadSessionCheckpoint()
         self.set_reputation()
         
         s = self.utility.session
@@ -300,8 +299,10 @@ class ABCApp():
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                
         startWorker(None, db_thread)
+        
+        # initialize torrents using guiserverthread
+        self.guiserver.add_task(self.loadSessionCheckpoint)
 
     # ProxyService 90s Test_
 #    def start_90s_dl(self, subject, changeType, objectID, *args):

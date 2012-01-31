@@ -35,6 +35,7 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -675,10 +676,11 @@ class TriblerLaunchMany(Thread):
             dir = self.session.get_downloads_pstate_dir()
             filelist = os.listdir(dir)
             for i, basename in enumerate(filelist):
-                # Make this go on when a torrent fails to start
-                filename = os.path.join(dir,basename)
-                commit = i+1 == len(filelist)
-                self.resume_download(filename,initialdlstatus,commit=commit)
+                if basename.endswith('.pickle'):
+                    # Make this go on when a torrent fails to start
+                    filename = os.path.join(dir,basename)
+                    commit = i+1 == len(filelist)
+                    self.resume_download(filename,initialdlstatus,commit=commit)
         finally:
             self.sesslock.release()
 
@@ -696,26 +698,45 @@ class TriblerLaunchMany(Thread):
             return None
 
     def resume_download(self,filename,initialdlstatus=None,commit=True):
+        tdef = dscfg = pstate = None
+        
         try:
-            # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
-
-            if DEBUG:
-                print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-                if pstate['engineresumedata'] is None:
-                    print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
-                else:
-                    print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
-
+            
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
-
-            # Activate
             dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
-            self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
-        except Exception,e:
-            # TODO: remove saved checkpoint?
-            print >> sys.stderr, "Could not resume_download",filename
-            self.rawserver_nonfatalerrorfunc(e)
+            
+        except:
+            # pstate is invalid or non-existing
+            _, file = os.path.split(filename)
+            infohash = binascii.unhexlify(file[:-7])
+                
+            torrent_dir = self.session.get_torrent_collecting_dir()
+            torrentfile = os.path.join(torrent_dir, get_collected_torrent_filename(infohash))
+            if os.path.isfile(torrentfile):
+                tdef = TorrentDef.load(torrentfile)
+            
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                dscfg = defaultDLConfig.copy()
+            
+                if self.mypref_db != None:
+                    preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
+                    if preferences:
+                        dscfg.set_dest_dir(preferences[2])
+            
+        if DEBUG:
+            print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
+            if pstate['engineresumedata'] is None:
+                print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
+            else:
+                print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
+        
+        if tdef and dscfg:
+            try:
+                self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
+                
+            except Exception,e:
+                self.rawserver_nonfatalerrorfunc(e)
 
     def checkpoint(self,stop=False,checkpoint=True,gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
