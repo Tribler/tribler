@@ -1956,12 +1956,12 @@ class Dispersy(Singleton):
         while walks or stumbles or intros or sandis:
             r = random()
 
-            if r <= .4995: # 50%
+            if r <= .499: # 50%
                 if walks:
                     if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d walk   ] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), walks[0])
                     yield walks.pop(0)
 
-            elif r <= .999: # 50%
+            elif r <= .99: # 50%
                 if stumbles or intros or sandis:
                     while True:
                         r = random()
@@ -1984,7 +1984,7 @@ class Dispersy(Singleton):
                                 yield sandis.pop(0)
                                 break
 
-            elif bootstrap_candidates: # ~0.1%
+            elif bootstrap_candidates: # ~1%
                 if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d bootstr] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), bootstrap_candidates[0])
                 yield bootstrap_candidates.pop(0)
 
