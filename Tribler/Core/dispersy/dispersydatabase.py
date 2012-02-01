@@ -93,9 +93,6 @@ class DispersyDatabase(Database):
             # setup new database with current database_version
             self.executescript(schema)
 
-            # # Add bootstrap members
-            # self.bootstrap()
-
         else:
             # upgrade an older version
 
