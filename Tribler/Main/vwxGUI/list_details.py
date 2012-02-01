@@ -1205,17 +1205,20 @@ class TorrentDetails(AbstractDetails):
     
     @forceDBThread
     def UpdateStatus(self):
-        #touch swarminfo property        
-        swarmInfo = self.torrent.swarminfo
-        
-        if swarmInfo:
-            diff = time() - self.torrent.last_check
-        else:
-            diff = 1801
+        if self.torrent.trackers and len(self.torrent.trackers) > 0:
+            #touch swarminfo property        
+            swarmInfo = self.torrent.swarminfo
             
-        if diff > 1800:
-            TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
-            self.ShowStatus(True)
+            if swarmInfo:
+                diff = time() - self.torrent.last_check
+            else:
+                diff = 1801
+                
+            if diff > 1800:
+                TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
+                self.ShowStatus(True)
+            else:
+                self.ShowStatus(False)
         else:
             self.ShowStatus(False)
 

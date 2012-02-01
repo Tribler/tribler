@@ -344,7 +344,7 @@ class DownloadState(Serializable):
         if len(self.download.get_selected_files()) > 0:
             files = self.download.get_selected_files()
         else:
-            files = tdef.get_files_as_unicode()
+            files = None
         return tdef.get_length(files)
         
     def get_availability(self):

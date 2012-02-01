@@ -132,7 +132,8 @@ class RssParser(Thread):
             
             if dowrite:
                 self.writefile()
-                
+            
+            self.doStart()
         finally:
             self.key_url_lock.release()
             
@@ -155,8 +156,7 @@ class RssParser(Thread):
     def addCallback(self, key, callback):
         self.key_callbacks.setdefault(key, set()).add(callback)
         
-        if not self.isAlive():
-            self.start()
+        self.doStart()
             
     def getUrls(self, key):
         return list(self.key_url.get(key, set()))
@@ -164,15 +164,20 @@ class RssParser(Thread):
     def doRefresh(self):
         if DEBUG:
             print >> sys.stderr, "RssParser: refresh"
+        
+        self.doStart()
+            
+    def doStart(self):
         if not self.isAlive():
-            self.start()
+            if len(self.key_url) and len(self.key_callbacks):
+                self.start()
         else:
             self.urls_changed.set()
             
     def run(self):
         self.urls_changed.wait(60) # Let other Tribler components, in particular, Session startup
         
-        while self.isRegistered:
+        while self.isRegistered and len(self.key_url) and len(self.key_callbacks):
             if DEBUG:
                 print >> sys.stderr, "RssParser: running"
             
