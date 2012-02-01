@@ -1815,6 +1815,7 @@ class ProgressPanel(wx.BoxSizer):
     def Update(self, ds = None):
         #return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
         return_val = 0
+        anyChange = False
         
         if ds == None:
             ds = self.item.original_data.get('ds', None)
@@ -1851,10 +1852,21 @@ class ProgressPanel(wx.BoxSizer):
             
         progress = max(0, min(1, progress)) #progress has to be between 0 and 1
         
-        self.item.data[1] = status
-        self.item.data[2] = [seeds, peers]
-        self.item.data[3] = dls
-        self.item.data[4] = uls
+        if status != self.item.data[1]:
+            self.item.data[1] = status
+            anyChange = True
+        
+        if [seeds, peers] != self.item.data[2]:
+            self.item.data[2] = [seeds, peers]
+            anyChange = True
+            
+        if dls != self.item.data[3]:
+            self.item.data[3] = dls
+            anyChange = True
+        
+        if uls != self.item.data[4]:
+            self.item.data[4] = uls
+            anyChange = True
             
         finished = progress == 1.0
         if finished:
@@ -1912,6 +1924,7 @@ class ProgressPanel(wx.BoxSizer):
         
         #Update eta
         if self.status.GetLabel() != eta:
+            anyChange = True
             self.status.SetLabel(eta)
             self.status.Refresh()
             
@@ -1931,7 +1944,7 @@ class ProgressPanel(wx.BoxSizer):
                 self.pb.reset(colour=0) # Show as having none
             self.pb.Refresh()
             
-        return return_val
+        return return_val, anyChange
     
 class StringProgressPanel(wx.BoxSizer):
     def __init__(self, parent, torrent):

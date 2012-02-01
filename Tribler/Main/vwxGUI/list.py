@@ -1365,6 +1365,7 @@ class LibraryList(SizeList):
                         curStates[infohash] = original_data.state
                         if curStates[infohash] != self.prevStates.get(infohash, None):
                             didStateChange = True
+                            
             self.prevStates = curStates
 
             if len(dsdict) > 0:
@@ -1375,7 +1376,7 @@ class LibraryList(SizeList):
             
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds
-                status = item.progressPanel.Update(ds)
+                status, anyChange = item.progressPanel.Update(ds)
                 
                 if status == 1:
                     nr_downloading += 1
@@ -1386,64 +1387,65 @@ class LibraryList(SizeList):
                 totals[3] = totals[3] + item.data[3]
                 totals[4] = totals[4] + item.data[4]
                 
-                nr_connections = str(item.data[2][0] + item.data[2][1])
-                item.connections.SetLabel(nr_connections)
-                
-                down = self.utility.speed_format_new(item.data[3])
-                item.down.SetLabel(down)
-                
-                up = self.utility.speed_format_new(item.data[4])
-                item.up.SetLabel(up)
-                
-                if ds:
-                    item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))
-                    if ds.get_seeding_statistics():
-                        stats = ds.get_seeding_statistics()
-                        dl = stats['total_down']
-                        ul = stats['total_up']
-                        
-                        if dl == 0L:
-                            if ul != 0L:
-                                ratio = sys.maxint
-                            else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0*ul/dl
-                            
-                        tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f\nTime seeding: %s"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio, self.utility.eta_value(stats['time_seeding']))
-                        item.down.SetToolTipString(tooltip)
-                        item.up.SetToolTipString(tooltip)
-                    else:
-                        dl = ds.get_total_transferred(DOWNLOAD)
-                        ul = ds.get_total_transferred(UPLOAD)
-                        
-                        if dl == 0L:
-                            if ul != 0L:
-                                ratio = sys.maxint
-                            else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0*ul/dl
-                        
-                        tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio)
-                        item.down.SetToolTipString(tooltip)
-                        item.up.SetToolTipString(tooltip)
+                if anyChange:
+                    nr_connections = str(item.data[2][0] + item.data[2][1])
+                    item.connections.SetLabel(nr_connections)
                     
-                    if show_seeding_colours:
-                        #t4t_ratio is goal
-                        step = ratio / t4t_ratio
-                        step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
+                    down = self.utility.speed_format_new(item.data[3])
+                    item.down.SetLabel(down)
+                    
+                    up = self.utility.speed_format_new(item.data[4])
+                    item.up.SetLabel(up)
+                    
+                    if ds:
+                        item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))
+                        if ds.get_seeding_statistics():
+                            stats = ds.get_seeding_statistics()
+                            dl = stats['total_down']
+                            ul = stats['total_up']
+                            
+                            if dl == 0L:
+                                if ul != 0L:
+                                    ratio = sys.maxint
+                                else:
+                                    ratio = 0
+                            else:
+                                ratio = 1.0*ul/dl
+                                
+                            tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f\nTime seeding: %s"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio, self.utility.eta_value(stats['time_seeding']))
+                            item.down.SetToolTipString(tooltip)
+                            item.up.SetToolTipString(tooltip)
+                        else:
+                            dl = ds.get_total_transferred(DOWNLOAD)
+                            ul = ds.get_total_transferred(UPLOAD)
+                            
+                            if dl == 0L:
+                                if ul != 0L:
+                                    ratio = sys.maxint
+                                else:
+                                    ratio = 0
+                            else:
+                                ratio = 1.0*ul/dl
+                            
+                            tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio)
+                            item.down.SetToolTipString(tooltip)
+                            item.up.SetToolTipString(tooltip)
                         
-                        rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
-                        bgcolour = wx.Colour(*rgbTuple)
-                        item.SetDeselectedColour(bgcolour)
+                        if show_seeding_colours:
+                            #t4t_ratio is goal
+                            step = ratio / t4t_ratio
+                            step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
+                            
+                            rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
+                            bgcolour = wx.Colour(*rgbTuple)
+                            item.SetDeselectedColour(bgcolour)
+                        else:
+                            item.SetDeselectedColour(LIST_DESELECTED)
+                            
                     else:
-                        item.SetDeselectedColour(LIST_DESELECTED)
-                        
-                else:
-                    item.connections.SetToolTipString('')
-                    item.down.SetToolTipString('')
-                    item.down.SetToolTipString('')
+                        item.connections.SetToolTipString('')
+                        item.down.SetToolTipString('')
+                        item.down.SetToolTipString('')
                         
             if len(self.list.items) > 0:
                 totalStr = "Totals: %d items ("%len(self.list.items)
