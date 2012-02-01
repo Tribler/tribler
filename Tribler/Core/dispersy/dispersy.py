@@ -1406,7 +1406,7 @@ class Dispersy(Singleton):
         if __debug__:
             dprint("processing  ", len(batch), "x ", meta.name, " batched messages")
 
-        if id(self._batch_cache[meta][2]) == id(batch):
+        if meta in self._batch_cache and id(self._batch_cache[meta][2]) == id(batch):
             self._batch_cache.pop(meta)
 
         if not self._communities.get(meta.community.cid, None) == meta.community:
