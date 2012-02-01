@@ -243,6 +243,8 @@ def parse(filename, interests=[]):
             yield parse_line(stream, lineno, interests)
         except NotInterested:
             pass
+        except Exception, exception:
+            print "#", exception
 
 def parse_frequencies(filename, select=None):
     """
