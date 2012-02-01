@@ -193,64 +193,79 @@ class Parameterized1Singleton(object):
         """
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instances"):
-                return [(len(get_referrers(instance)) - 2, instance) for instance in sample(getattr(cls, "_singleton_instances").itervalues(), size)]
+                instances = getattr(cls, "_singleton_instances")
+                if len(instances) < size:
+                    # sample larger than population
+                    return [(len(get_referrers(instance)) - 2, instance) for instance in instances.itervalues()]
+
+                else:
+                    return [(len(get_referrers(instance)) - 2, instance) for instance in (instances[arg] for arg in sample(instances, size))]
+
         return []
 
-if __debug__:
-    if __name__ == "__main__":
-        from dprint import dprint
+if __name__ == "__main__":
+    from dprint import dprint
 
-        class Foo(Singleton):
-            def __init__(self, message):
-                self.message = message
+    def assert_(value, *args):
+        if not value:
+            raise AssertionError(*args)
 
-        assert not Foo.referenced_instance()
+    class Foo(Singleton):
+        def __init__(self, message):
+            self.message = message
 
-        foo = Foo.get_instance("foo")
-        assert foo.message == "foo"
-        assert foo.referenced_instance()
+    assert_(not Foo.referenced_instance())
 
-        del foo
-        foo = Foo.get_instance("bar")
-        assert foo.message == "foo"
-        assert foo.referenced_instance()
+    foo = Foo.get_instance("foo")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance())
 
-        del foo
-        assert not Foo.referenced_instance()
+    del foo
+    foo = Foo.get_instance("bar")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance())
 
-        Foo.del_instance()
-        assert not Foo.referenced_instance()
+    del foo
+    assert_(not Foo.referenced_instance())
 
-        #
-        #
-        #
+    Foo.del_instance()
+    assert_(not Foo.referenced_instance())
 
-        class Foo(Parameterized1Singleton):
-            def __init__(self, key, message):
-                self.message = message
+    #
+    #
+    #
 
-            def __eq__(self, other):
-                return id(self) == id(other) if isinstance(other, Foo) else self.message == other
+    class Foo(Parameterized1Singleton):
+        def __init__(self, key, message):
+            self.message = message
 
-        assert not Foo.referenced_instance(1)
-        assert Foo.reference_instances() == []
+        def __eq__(self, other):
+            return id(self) == id(other) if isinstance(other, Foo) else self.message == other
 
-        Foo.get_instance(1, "foo")
-        assert Foo.reference_instances() == [(0, "foo")]
+    assert_(not Foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [])
+    assert_(Foo.sample_reference_instances(10) == [])
 
-        foo = Foo.get_instance(1, "foo")
-        assert foo.message == "foo"
-        assert foo.referenced_instance(1)
-        assert Foo.reference_instances() == [(1, "foo")]
+    Foo.get_instance(1, "foo")
+    assert_(Foo.reference_instances() == [(0, "foo")])
+    assert_(Foo.sample_reference_instances(10) == [(0, "foo")])
 
-        foo = Foo.get_instance(1, "bar")
-        assert foo.message == "foo"
-        assert foo.referenced_instance(1)
-        del foo
+    foo = Foo.get_instance(1, "foo")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [(1, "foo")])
+    assert_(Foo.sample_reference_instances(10) == [(1, "foo")])
 
-        assert not Foo.referenced_instance(1)
-        assert Foo.reference_instances() == [(0, "foo")]
+    foo = Foo.get_instance(1, "bar")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance(1))
+    del foo
 
-        Foo.del_instance(1)
-        assert not Foo.referenced_instance(1)
-        assert Foo.reference_instances() == []
+    assert_(not Foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [(0, "foo")])
+    assert_(Foo.sample_reference_instances(10) == [(0, "foo")])
+
+    Foo.del_instance(1)
+    assert_(not Foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [])
+    assert_(Foo.sample_reference_instances(10) == [])
