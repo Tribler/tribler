@@ -32,23 +32,23 @@ class Member(Parameterized1Singleton):
         The cleanup will increase the unreferenced counter of each instance that is unreferenced.
         The unreferenced counter is set to zero whenever it is referenced.
 
-        Instances will be removed when more that max_instances exists and instances with a positive
-        unreferenced counter are available.  Instances with higher unreferenced counters are removed
-        first.
+        Because reference counting is very expensive, we only count the references of a sample.
+        This will ensure that each call will only block for a reasonable time while still allowing
+        eventual member cleanup.
         """
         while True:
-            # this is very expensive.  only count references every 30 minutes
-            yield 30 * 60.0
+            # this is very expensive.  only count references every 10 minutes
+            yield 10 * 60.0
 
-            for references, member in cls.reference_instances():
+            for references, member in cls.sample_reference_instances(10):
                 if references:
                     member._unreferenced = 0
                 else:
                     member._unreferenced += 1
 
                     # when a member has been seen unreferenced 3 times we will remove it.  since we
-                    # perform the check once every 30 minutes, an unused member will be in memory at
-                    # most 2 hours
+                    # perform the check once every 10 minutes, an unused member can be removed after
+                    # 30 minutes IF it is selected in the sample every time.
                     if member._unreferenced > 3:
                         cls.del_instance(member._public_key)
                         cls.del_instance(member._mid)

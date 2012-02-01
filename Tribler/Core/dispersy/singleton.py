@@ -6,6 +6,7 @@ Helper class to easily and cleanly use singleton objects
 """
 
 from gc import get_referrers
+from random import sample
 from threading import RLock
 
 class Singleton(object):
@@ -180,6 +181,19 @@ class Parameterized1Singleton(object):
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instances"):
                 return [(len(get_referrers(instance)) - 2, instance) for instance in getattr(cls, "_singleton_instances").itervalues()]
+        return []
+
+    @classmethod
+    def sample_reference_instances(cls, size):
+        """
+        Returns a list with at most SIZE randomly chosen (reference-count, instance) tuples.
+
+        Warning: this method uses the GC.get_referrers to determine the number of references.  This
+        method is very expensive to use!
+        """
+        with cls._singleton_lock:
+            if hasattr(cls, "_singleton_instances"):
+                return [(len(get_referrers(instance)) - 2, instance) for instance in sample(getattr(cls, "_singleton_instances").itervalues(), size)]
         return []
 
 if __debug__:
