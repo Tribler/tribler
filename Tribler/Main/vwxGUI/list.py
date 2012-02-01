@@ -136,7 +136,8 @@ class LocalSearchManager:
         
         guiutility = GUIUtility.getInstance()
         self.guiserver = guiutility.frame.guiserver
-        self.library_manager = guiutility.library_manager 
+        self.library_manager = guiutility.library_manager
+        self.prev_refresh_if = 0
     
     def expand(self, infohash):
         self.list.Select(infohash)
@@ -153,7 +154,11 @@ class LocalSearchManager:
                 print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Library"
                 
                 self.refresh()
-        startWorker(None, db_call)
+        
+        diff = time() - self.prev_refresh_if        
+        if diff > 30:
+            self.prev_refresh_if = time()
+            startWorker(None, db_call, uId="refresh_if_exists")
 
     @forceWxThread
     def _on_data(self, delayedReslt):

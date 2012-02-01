@@ -1019,7 +1019,7 @@ class LibraryManager:
             return t
     
     def exists(self, infohashes):
-        prefrerences = self.mypref_db.getMyPrefListInfohash()
+        prefrerences = self.mypref_db.getMyPrefListInfohash(returnDeleted = False)
         for infohash in infohashes:
             if infohash not in prefrerences:
                 return False

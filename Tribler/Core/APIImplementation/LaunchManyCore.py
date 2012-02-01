@@ -622,7 +622,8 @@ class TriblerLaunchMany(Thread):
         Called by network thread """
         if DEBUG:
             print >>sys.stderr,"tlm: hashcheck_done, success",success
-        if success:
+        #Niels, 2012-02-01: sdownloadtohashcheck could be none and throw an error here
+        if success and self.sdownloadtohashcheck:
             self.sdownloadtohashcheck.hashcheck_done()
         if self.hashcheck_queue:
             self.dequeue_and_start_hashcheck()
@@ -710,9 +711,16 @@ class TriblerLaunchMany(Thread):
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
             infohash = binascii.unhexlify(file[:-7])
-                
             torrent_dir = self.session.get_torrent_collecting_dir()
             torrentfile = os.path.join(torrent_dir, get_collected_torrent_filename(infohash))
+            
+            #normal torrentfile is not present, see if readable torrent is there
+            if not os.path.isfile(torrentfile):
+                torrent = self.torrent_db.getTorrent(infohash, keys = ['name'])
+                if torrent:
+                    save_name = get_readable_torrent_name(infohash, torrent['name'])
+                    torrentfile = os.path.join(torrent_dir, save_name)
+                
             if os.path.isfile(torrentfile):
                 tdef = TorrentDef.load(torrentfile)
             
@@ -721,7 +729,7 @@ class TriblerLaunchMany(Thread):
             
                 if self.mypref_db != None:
                     preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
-                    if preferences:
+                    if preferences and os.path.isdir(preferences[2]):
                         dscfg.set_dest_dir(preferences[2])
             
         if DEBUG:

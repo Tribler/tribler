@@ -2278,8 +2278,11 @@ class MyPreferenceDBHandler(BasicDBHandler):
         res = self.getAll('torrent_id', order_by=order_by)
         return [p[0] for p in res]
 
-    def getMyPrefListInfohash(self):
-        sql = 'select infohash from Torrent where torrent_id in (select torrent_id from MyPreference)'
+    def getMyPrefListInfohash(self, returnDeleted = True):
+        if returnDeleted:
+            sql = 'select infohash from Torrent where torrent_id in (select torrent_id from MyPreference)'
+        else:
+            sql = 'select infohash from Torrent where torrent_id in (select torrent_id from MyPreference where destination_path != "")'
         res = self._db.fetchall(sql)
         return [str2bin(p[0]) for p in res]
     
