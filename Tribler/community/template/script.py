@@ -1,7 +1,7 @@
 """
 Example file
 
-python Tribler/Main/dispersy.py --script simpledispersytest-generate-messages
+python Tribler/Main/dispersy.py --script template
 """
 
 from Tribler.Core.dispersy.dprint import dprint

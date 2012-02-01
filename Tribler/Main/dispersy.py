@@ -7,7 +7,6 @@ Run Dispersy in standalone mode.  Tribler will not be started.
 import errno
 import socket
 import sys
-import time
 import traceback
 import threading
 import optparse
@@ -121,11 +120,6 @@ def main():
                 script.add("dispersy-timeline", DispersyTimelineScript)
                 script.add("dispersy-undo", DispersyUndoScript)
 
-            if not opt.disable_simple_dispersy_test_script:
-                from Tribler.community.simpledispersytest.script import GenerateMessagesScript, KillCommunityScript
-                script.add("simpledispersytest-generate-messages", GenerateMessagesScript, script_kargs, include_with_all=False)
-                script.add("simpledispersytest-destroy-community", KillCommunityScript, script_kargs, include_with_all=False)
-
             if not opt.disable_allchannel_script:
                 # from Tribler.Community.allchannel.script import AllChannelScript
                 # script.add("allchannel", AllChannelScript, include_with_all=False)
@@ -157,7 +151,6 @@ def main():
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
     command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
     command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
-    command_line_parser.add_option("--disable-simple-dispersy-test-script", action="store_true", help="Include simple-dispersy-test scripts", default=False)
     command_line_parser.add_option("--disable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
     command_line_parser.add_option("--disable-walktest-script", action="store_true", help="Include walktest scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")

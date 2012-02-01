@@ -1,7 +1,7 @@
 """
 Example file
 
-python Tribler/Main/dispersy.py --script simpledispersytest-generate-messages
+python Tribler/Main/dispersy.py --script walktest-scenario
 """
 
 import sys
@@ -69,7 +69,7 @@ def main(filename):
                 return "%s:%d" % candidate[0]
             else:
                 return "%s:%d (%s:%d)" % (candidate[1][0], candidate[1][1], candidate[0][0], candidate[0][1])
-        
+
         now_online = set(to_string(candidate) for candidate in candidates)
         if not now_online == current_online:
             online.append((datetime, now_online))
@@ -83,7 +83,7 @@ def main(filename):
     #     check_public_address(datetime, public_address)
     #     check_candidates(datetime, candidates)
     #     outgoing["introduction-request"] += 1
-        
+
     #     key = "%s:%d" % introduction_request
     #     if key in out_intro_req:
     #         out_intro_req[key] += 1
@@ -138,7 +138,7 @@ def main(filename):
     #     check_candidates(datetime, candidates)
     #     incoming["introduction-response-unused"] += 1
     #     all_addresses.add(source)
-        
+
     def init(lineno, datetime, message, candidates):
         assert len(candidates) == 0
         online.insert(0, (datetime, set()))
@@ -149,7 +149,7 @@ def main(filename):
         incoming["introduction-request"] += 1
         if advice:
             incoming["introduction-request-with-advice"] += 1
-        
+
     def out_introduction_request(lineno, datetime, message, destination_address, source_lan_address, source_wan_address, advice, identifier):
         outgoing["introduction-request"] += 1
         if advice:
@@ -162,7 +162,7 @@ def main(filename):
             out_intro_req[key] = 1
 
         walk.append(("request", key))
-            
+
     def in_introduction_response(lineno, datetime, message, member, source, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         all_addresses.add(source)
         all_members.add(member)
@@ -175,10 +175,10 @@ def main(filename):
             in_intro_res[key] = 1
 
         walk.append(("response", key))
-        
+
     def out_introduction_response(lineno, datetime, message, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, identifier):
         outgoing["introduction-response"] += 1
-        
+
     def in_puncture_request(lineno, datetime, message, source, lan_walker_address, wan_walker_address):
         incoming["puncture-request"] += 1
 
@@ -191,13 +191,13 @@ def main(filename):
     def out_puncture(lineno, datetime, message, destination):
         outgoing["puncture"] += 1
 
-    def introduction_response_timeout(lineno, datetime, message, intermediary, advice): 
+    def introduction_response_timeout(lineno, datetime, message, intermediary, advice):
         key = "%s:%d" % intermediary
         if key in in_intro_timeout:
             in_intro_timeout[key] += 1
         else:
             in_intro_timeout[key] = 1
-       
+
     # public address
     public_addresses = []
 
@@ -269,7 +269,7 @@ def main(filename):
                 print count, "???", last_key, "->", key
 
         last_type, last_key = type_, key
-    
+
     # for count, key in sorted((count, key) for key, count in in_intro_res.iteritems()):
     #     print "incoming introduction response", "%4d" % count, key
     # print
