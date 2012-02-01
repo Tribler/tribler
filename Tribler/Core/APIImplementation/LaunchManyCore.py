@@ -720,6 +720,15 @@ class TriblerLaunchMany(Thread):
                 if torrent:
                     save_name = get_readable_torrent_name(infohash, torrent['name'])
                     torrentfile = os.path.join(torrent_dir, save_name)
+            
+            #still not found, using dht as fallback
+            if not os.path.isfile(torrentfile):
+                def retrieved_tdef(tdef):
+                    tdef.save(os.path.join(torrent_dir, get_collected_torrent_filename(infohash)))
+                    self.resume_download(filename, initialdlstatus, commit)
+                    
+                TorrentDef.retrieve_from_magnet_infohash(infohash, retrieved_tdef)
+                return
                 
             if os.path.isfile(torrentfile):
                 tdef = TorrentDef.load(torrentfile)
@@ -729,8 +738,13 @@ class TriblerLaunchMany(Thread):
             
                 if self.mypref_db != None:
                     preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
-                    if preferences and os.path.isdir(preferences[2]):
-                        dscfg.set_dest_dir(preferences[2])
+                    if preferences:
+                        if preferences[2] == '':
+                            #this is a removed download, ignoring
+                            return
+                        
+                        elif os.path.isdir(preferences[2]):
+                            dscfg.set_dest_dir(preferences[2])
             
         if DEBUG:
             print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']

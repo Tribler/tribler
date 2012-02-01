@@ -7,6 +7,7 @@ import copy
 import math
 from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType,LongType
+from binascii import hexlify
 
 import Tribler
 from Tribler.Core.simpledefs import *
@@ -156,6 +157,11 @@ class TorrentDef(Serializable,Copyable):
             print >> sys.stderr, "Exception within magnet link"
             print >> sys.stderr, e
             return False
+    
+    @staticmethod
+    def retrieve_from_magnet_infohash(self, infohash, callback, timeout=30.0):
+        magnetlink = "magnet:?xt=urn:btih:"+hexlify(infohash)
+        return TorrentDef.retrieve_from_magnet(magnetlink, callback, timeout)
 
     def load_from_url(url):
         """
