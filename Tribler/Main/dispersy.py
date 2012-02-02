@@ -129,7 +129,7 @@ def main():
 
             if not opt.disable_walktest_script:
                 from Tribler.community.walktest.script import ScenarioScript
-                script.add("walktest-scenario", ScenarioScript, include_with_all=False)
+                script.add("walktest-scenario", ScenarioScript, script_kargs, include_with_all=False)
 
             # if not opt.disable_barter_script:
             #     from Tribler.Community.barter.script import BarterScript, BarterScenarioScript

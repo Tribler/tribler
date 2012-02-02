@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from bz2 import BZ2File
 from string import digits, letters, punctuation
 from time import strftime
 import re
@@ -99,6 +100,39 @@ def log(filename, _message, **kargs):
     # save to file
     open(filename, "a+").write(s)
 
+def bz2log(filename, _message, **kargs):
+    assert isinstance(_message, str)
+    assert ";" not in _message
+
+    global _cache
+    handle = _cache.get(filename)
+    if handle:
+        l = [strftime("%Y%m%d%H%M%S"), _seperator]
+    else:
+        l = ["################################################################################", "\n",
+             strftime("%Y%m%d%H%M%S"), _seperator, "s6:logger", _seperator, "event:s5:start", "\n",
+             strftime("%Y%m%d%H%M%S"), _seperator]
+        handle = BZ2File(filename, "w", 8*1024, 9)
+        _cache[filename] = handle
+
+    _encode_str(l, _message)
+    for key in sorted(kargs.keys()):
+        l.append(_seperator)
+        l.extend((key, ":"))
+        _encode(l, kargs[key])
+    l.append("\n")
+    s = "".join(l)
+
+    # write to file
+    handle.write(s)
+
+    return handle
+
+def close(filename):
+    global _cache
+    _cache[filename].close()
+    del _cache[filename]
+
 def to_string(datetime, _message, **kargs):
     assert isinstance(_message, str)
     assert ";" not in _message
@@ -116,6 +150,7 @@ def make_valid_key(key):
 _printable = "".join((digits, letters, punctuation, " "))
 _seperator = "   "
 _valid_key_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+_cache = {}
 _encode_initiated = False
 _encode_mapping = {str:_encode_str,
                    unicode:_encode_unicode,

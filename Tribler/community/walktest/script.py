@@ -4,6 +4,8 @@ Example file
 python Tribler/Main/dispersy.py --script walktest-scenario
 """
 
+import time
+import itertools
 import sys
 
 from community import WalktestCommunity
@@ -40,10 +42,17 @@ class ScenarioScript(ScriptBase):
         # community._bootstrap_addresses = [("130.161.211.245", 6422)]
         # community.start_walk()
 
-        total = 60 * 60 * 5
-        for i in xrange(total):
-            dprint(total - i)
-            yield 1.0
+        # runtime
+        if "endstamp" in self._kargs:
+            while True:
+                remaining = max(0.0, float(self._kargs["endstamp"]) - time.time())
+                if remaining:
+                    yield min(10.0, max(1.0, remaining))
+                else:
+                    break
+        else:
+            while True:
+                yield 60.0
 
 def main(filename):
     def ignore(lineno, datetime, message, **kargs):
@@ -236,7 +245,10 @@ def main(filename):
         if first_datetime is None:
             first_datetime = datetime
         last_datetime = datetime
-        mapping.get(message, ignore)(lineno, datetime, message, **kargs)
+        try:
+            mapping.get(message, ignore)(lineno, datetime, message, **kargs)
+        except Exception, exception:
+            print "#", exception
 
     duration = last_datetime - first_datetime
     assert duration.days == 0
@@ -258,17 +270,20 @@ def main(filename):
 
     last_type = ""
     last_key = ""
-    for count, (type_, key) in enumerate(walk):
+    for type_, key in walk:
         if last_type == "request" and type_ == "request":
-            print count, last_key, "->", "timeout"
+            print last_key, "->", "timeout"
 
         if type_ == "response":
             if key.startswith(last_key):
-                print count, key
+                print key
             else:
-                print count, "???", last_key, "->", key
+                print "???", last_key, "->", key
 
         last_type, last_key = type_, key
+
+    # performed walk summary
+    print "walk-sum:", " ".join(key for type_, key in walk if type_ == "request")
 
     # for count, key in sorted((count, key) for key, count in in_intro_res.iteritems()):
     #     print "incoming introduction response", "%4d" % count, key
