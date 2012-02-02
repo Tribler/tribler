@@ -1825,7 +1825,10 @@ class Dispersy(Singleton):
         #     # notify that global times have changed
         #     meta.community.update_sync_range(meta, update_sync_range)
 
-    # # TODO remove yield_all_candidates, since it is no longer removing obsolete candidates it is no longer very useful
+    @property
+    def candidates(self):
+        return self._candidates.itervalues()
+
     # def yield_all_candidates(self, community, blacklist=(), now=None):
     #     """
     #     Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
@@ -1837,14 +1840,6 @@ class Dispersy(Singleton):
     #     assert isinstance(community, Community)
     #     assert isinstance(blacklist, (tuple, list))
     #     assert now is None or isinstance(now, float)
-    #     assert all(isinstance(candidate, Candidate) for candidate in blacklist)
-    #     assert all(isinstance(candidate, Candidate) for candidate in self._candidates.itervalues())
-    #     assert not self._lan_address in [candidate.address for candidate in self._candidates.itervalues()], "our address may not be a candidate"
-    #     assert not self._wan_address in [candidate.address for candidate in self._candidates.itervalues()], "our address may not be a candidate"
-    #     assert not self._lan_address in [candidate.address for candidate in self._bootstrap_candidates.itervalues()], "our address may not be a bootstrap candidate"
-    #     assert not self._wan_address in [candidate.address for candidate in self._bootstrap_candidates.itervalues()], "our address may not be a bootstrap candidate"
-    #     assert all(not candidate in self._bootstrap_candidates for candidate in self._candidates.itervalues()), "non of the candidates may be a bootstrap address"
-    #     assert all(sock_address == candidate.address for sock_address, candidate in self._candidates.iteritems())
 
     #     if now is None:
     #         now = time()

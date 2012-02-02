@@ -52,6 +52,14 @@ class Candidate(object):
     - OBSOLETE: the candidate is removed upon the next call to yield_all_candidates, information
       regarding this candidate is lost.  I.e. the 3-way handshake will need to be performed again.
       Viable after CANDIDATE_OBSOLETE seconds.
+
+                                    ---------------> obsolete() --------------->
+                                   /                                             \
+                                  / --> inactive() --> \  / <--- inactive() <---- \
+    (initial)                    /                      \/                         \
+    OBSOLETE -> active() -> ACTIVE -> time-passes -> INACTIVE -> time-passes -> OBSOLETE
+                 \             /                        /                          /
+                   <------------------------- active() ----------------------------
     """
     class Timestamps(object):
         def __init__(self):
@@ -122,6 +130,9 @@ class Candidate(object):
         self._associations.remove((community, member))
 
     def get_members(self, community):
+        """
+        Returns all unique Member instances in COMMUNITY associated to this candidate.
+        """
         return set(member for cid, member in self._associations if community.cid == cid)
 
     def is_any_active(self, now):
@@ -146,6 +157,29 @@ class Candidate(object):
             return max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_OBSOLETE < now
         else:
             return True
+
+    # def get_state(self, now):
+    #     """
+    #     Returns the state of this candidate.
+
+    #     - u"active" when NOW <= last-active + CANDIDATE_INACTIVE
+    #     - u"inactive" when last-active + CANDIDATE_INACTIVE < NOW <= last-active + CANDIDATE_OBSOLETE
+    #     - u"obsolete" when last-active + CANDIDATE_OBSOLETE < NOW
+
+    #     Or u"obsolete" when none of the above applies, i.e. we have not had any activity on this
+    #     candidate yet.
+    #     """
+    #     if self._timestamps:
+    #         if now <= max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_INACTIVE:
+    #             return u"active"
+
+    #         elif max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_OBSOLETE < now:
+    #             return u"obsolete"
+
+    #         else:
+    #             return u"inactive"
+
+    #     return u"obsolete"
 
     def age(self, now):
         return now - max(timestamps.last_active for timestamps in self._timestamps.itervalues())

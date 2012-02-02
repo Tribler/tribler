@@ -14,7 +14,7 @@ from time import sleep, time
 from types import GeneratorType
 
 if __debug__:
-    from itertools import islice, groupby
+    from itertools import islice
     from atexit import register as atexit_register
     # dprint warning when registered call, or generator call, takes more than N seconds
     CALL_DELAY_FOR_WARNING = 0.5
@@ -604,7 +604,7 @@ class Callback(object):
                 continue
 
         # send GeneratorExit exceptions to remaining generators
-        for _, _, _, call, _ in expired + requests:
+        for _, _, _, call, _ in chain(expired, requests):
             if isinstance(call[0], GeneratorType):
                 if __debug__: dprint("raise Shutdown in ", call[0])
                 try:

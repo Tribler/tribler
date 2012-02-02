@@ -64,7 +64,7 @@ class WalktestCommunity(Community):
             advice(u"dispersy-puncture-request", self.impl_puncture_request, self.on_puncture_request)
             advice(u"dispersy-puncture", self.impl_puncture, self.on_puncture)
 
-        
+
         # ENABLED ON DAS4
         if DAS4SCENARIO:
             self._dispersy.callback.register(self._watchdog)
@@ -73,13 +73,13 @@ class WalktestCommunity(Community):
         # disable sync bloom filter
         return None
 
-    def initiate_meta_messages(self):
-        return [Message(self, u"contact", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ContactPayload(), self.check_contact, self.on_contact)]
-
     def initiate_conversions(self):
         return [DefaultConversion(self), WalktestConversion(self)]
 
     if DAS4SCENARIO:
+        def initiate_meta_messages(self):
+            return []
+
         def _watchdog(self):
             try:
                 while True:
@@ -94,8 +94,11 @@ class WalktestCommunity(Community):
             addresses = [(candidate.lan_address, candidate.get_category(self, now)) for candidate in self._dispersy._candidates.itervalues() if candidate.in_community(self, now)]
             log("walktest.log", "candidates", lan_address=self._dispersy.lan_address, candidates=addresses)
             return super(WalktestCommunity, self).dispersy_take_step()
-    
+
     if DAS2SCENARIO:
+        def initiate_meta_messages(self):
+            return [Message(self, u"contact", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ContactPayload(), self.check_contact, self.on_contact)]
+
         def create_contact(self, destination, identifier):
             meta = self._meta_messages[u"contact"]
             message = meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(identifier,))
