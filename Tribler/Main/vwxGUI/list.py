@@ -877,6 +877,7 @@ class GenericSearchList(SizeList):
     def OnCollapseInternal(self, item):
         item.button.Show()
     
+    @forceWxThread
     def StartDownload(self, torrent, files = None):
         from Tribler.Main.vwxGUI.channel import SelectedChannelList
         from list_bundle import BundleListView
@@ -938,7 +939,7 @@ class GenericSearchList(SizeList):
             
             self.uelog.addEvent(message=relevance_msg, type = 4)
         
-        self.guiutility.frame.guiserver.add_task(db_callback)
+        startWorker(None, db_callback)
         self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):

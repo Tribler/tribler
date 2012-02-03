@@ -685,14 +685,19 @@ class SelectedChannelList(GenericSearchList):
         self.notebook.SetSelection(0)
         self.ScrollToId(key)
     
-    @forceDBThread
     def StartDownload(self, torrent, files = None):
-        if not self.channel.isFavorite():
-            nrdownloaded = self.channelsearch_manager.getNrTorrentsDownloaded(self.id) + 1
-            if  nrdownloaded > 1:
-                wx.CallAfter(self._ShowFavoriteDialog, nrdownloaded)
+        def do_gui(delayedResult):
+            nrdownloaded = delayedResult.get()
+            self._ShowFavoriteDialog(nrdownloaded)
+            GenericSearchList.StartDownload(self, torrent, files)
         
-        GenericSearchList.StartDownload(self, torrent, files)
+        def do_db():
+            return self.channelsearch_manager.getNrTorrentsDownloaded(self.id) + 1
+        
+        if not self.channel.isFavorite():
+            startWorker(do_gui, do_db)
+        else:
+            GenericSearchList.StartDownload(self, torrent, files)
         
     def _ShowFavoriteDialog(self, nrdownloaded):
         dial = wx.MessageDialog(None, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
@@ -979,7 +984,7 @@ class ManageChannelFilesManager():
         try:
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
-                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None))
+                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
 
             return self.AddTDef(tdef)
         except:
@@ -993,7 +998,7 @@ class ManageChannelFilesManager():
                 try:
                     tdef = TorrentDef.load(torrentfilename)
                     if 'fixtorrent' not in kwargs:
-                        self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None))
+                        self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
     
                     torrentdefs.append(tdef)
                 except:

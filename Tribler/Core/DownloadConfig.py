@@ -93,6 +93,17 @@ class DownloadConfigInterface:
         @param show Boolean to show a dialog
         """
         self.dlconfig['showsaveas'] = show
+        
+    def get_corrected_filename(self):
+        """ Gets the directory name where to save this torrent
+        """
+        return self.dlconfig['correctedfilename']
+    
+    def set_corrected_filename(self, correctedfilename):
+        """ Sets the directory name where to save this torrent
+        @param correctedfilename name for multifile directory
+        """
+        self.dlconfig['correctedfilename'] = correctedfilename
 
     def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Download the torrent in Video-On-Demand mode or as live stream.

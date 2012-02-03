@@ -397,7 +397,7 @@ class MainFrame(wx.Frame):
         return False
 
     @forceWxThread
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
         
@@ -412,10 +412,17 @@ class MainFrame(wx.Frame):
             cancelDownload = False
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
-                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
+                defaultname = correctedFilename
+                if not correctedFilename and tdef.is_multifile_torrent():
+                    defaultname = tdef.get_name_as_unicode()
+                    
+                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 dlg.CenterOnParent()
                 if dlg.ShowModal() == wx.ID_OK:
-                    destdir = dlg.GetPath()
+                    if tdef.is_multifile_torrent():
+                        destdir, correctedFilename = os.path.split(dlg.GetPath())
+                    else:
+                        destdir = dlg.GetPath()
                 else:
                     cancelDownload = True
                 dlg.Destroy()
@@ -423,6 +430,9 @@ class MainFrame(wx.Frame):
             if not cancelDownload:
                 if destdir is not None:
                     dscfg.set_dest_dir(destdir)
+                    
+                if correctedFilename:
+                    dscfg.set_corrected_filename(correctedFilename)
             
                 # ProxyService 90s Test_
 #                if doemode is not None:

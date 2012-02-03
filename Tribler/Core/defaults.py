@@ -161,7 +161,8 @@ sessdefaults.update(trackerdefaults)
 #  Version 2: as released in Tribler 4.5.0
 #  Version 3: 
 #  Version 4: allow users to specify a download directory every time
-DLDEFAULTS_VERSION = 5
+#  Version 6: allow users to overwrite the multifile destination
+DLDEFAULTS_VERSION = 6
 dldefaults = {}
 dldefaults['version'] = DLDEFAULTS_VERSION
 dldefaults['max_uploads'] = 7
@@ -233,6 +234,8 @@ dldefaults['ut_pex_max_addrs_from_peer'] = 50
 # Version 3:
 dldefaults['same_nat_try_internal'] = 0
 dldefaults['unchoke_bias_for_internal'] = 0
+# Version 6: add correctedfilename option
+dldefaults['correctedfilename'] = None
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

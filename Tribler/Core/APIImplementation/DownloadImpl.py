@@ -51,8 +51,6 @@ class DownloadImpl:
 
             torrentdef = self.get_def()
             metainfo = torrentdef.get_metainfo()
-            # H4xor this so the 'name' field is safe
-            self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
 
             if DEBUG:
                 print >>sys.stderr,"Download: setup: piece size",metainfo['info']['piece length']
@@ -96,6 +94,12 @@ class DownloadImpl:
                 cdcfg.updateToCurrentVersion()
             self.dlconfig = copy.copy(cdcfg.dlconfig)
             
+            # H4xor this so the 'name' field is safe
+            self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
+            
+            # Allow correctinfoname to be overwritten for multifile torrents only
+            if 'files' in metainfo['info'] and dcfg.get_corrected_filename():
+                self.correctedinfoname = dcfg.get_corrected_filename()
 
             # Copy sessconfig into dlconfig, such that BitTornado.BT1.Connecter, etc.
             # knows whether overlay is on, etc.

@@ -1859,7 +1859,7 @@ class ProgressPanel(wx.BoxSizer):
             self.item.data[1] = status
             anyChange = True
         
-        if [seeds, peers] != self.item.data[2]:
+        if not self.item.data[2] or seeds != self.item.data[2][0] or peers != self.item.data[2][1]:
             self.item.data[2] = [seeds, peers]
             anyChange = True
             

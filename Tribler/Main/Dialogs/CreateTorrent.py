@@ -269,7 +269,7 @@ class CreateTorrent(wx.Dialog):
         self.locationText.SetLabel(label)
         
         if os.path.isdir(paths[0]):
-            paths = [os.path.join(paths[0], file) for file in os.listdir(paths[0]) if (not file.endswith('.torrent') and not file.lower().endswith('thumbs.db ') and os.path.isfile(os.path.join(paths[0], file)))]
+            paths = [os.path.join(paths[0], file) for file in os.listdir(paths[0]) if (not file.endswith('.torrent') and not file.lower().endswith('thumbs.db') and os.path.isfile(os.path.join(paths[0], file)))]
         
         self.selectedPaths = paths
         self.foundFilesText.SetLabel('Selected %d files'%len(paths))
@@ -285,24 +285,25 @@ class CreateTorrent(wx.Dialog):
         self.Layout()
     
     @forceWxThread
-    def _torrentCreated(self, paths, torrentfilename):
+    def _torrentCreated(self, path, correctedfilename, torrentfilename):
         self.progressDlg.cur += 1
         keepGoing, _ = self.progressDlg.Update(self.progressDlg.cur)
         if not keepGoing:
             self.cancelEvent.Set()
         
-        self.createdTorrents.append((paths, torrentfilename))
+        self.createdTorrents.append((path, correctedfilename, torrentfilename))
         
 def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfilenameCallback):
     tdef = TorrentDef()
     
+    basedir = None
     if len(srcpaths) > 1:
         basepath = []
         for srcpath in srcpaths:
             path, filename = os.path.split(srcpath)
             basepath.append(path)
-            
-        basepath, _ = os.path.split(os.path.commonprefix(basepath))
+        
+        basepath, basedir = os.path.split(os.path.commonprefix(basepath))
         for srcpath in srcpaths:
             outpath = os.path.relpath(srcpath, basepath)
             
@@ -360,15 +361,11 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     else:
         postfix = '.torrent'
     
-    if 'target' in params and params['target']:
+    if params.get('target', False):
         torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)
     else:
-        a, b = os.path.split(srcpaths[0])
-        if b == '':
-            torrentfilename = a + postfix
-        else:
-            torrentfilename = os.path.join(a, b + postfix)
+        torrentfilename = os.path.join(basepath, tdef.get_name()+postfix)
     tdef.save(torrentfilename)
     
     # Inform higher layer we created torrent
-    torrentfilenameCallback(basepath, torrentfilename)
+    torrentfilenameCallback(basepath, basedir, torrentfilename)

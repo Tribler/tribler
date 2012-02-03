@@ -5,9 +5,9 @@ import wx
 import os
 
 class SaveAs(wx.Dialog):
-    def __init__(self, parent, torrentdef, defaultdir, configfile):
+    def __init__(self, parent, torrentdef, defaultdir, defaultname, configfile):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600,450))
-        
+        self.defaultdir = defaultdir
         self.filehistory = wx.FileHistory(10)
         self.config = wx.FileConfig(appName = "Tribler", localFilename = configfile)
         self.filehistory.Load(self.config)
@@ -42,7 +42,7 @@ class SaveAs(wx.Dialog):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(wx.StaticText(self, -1, 'Save to:'), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, style = wx.CB_DROPDOWN)
+        self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(lastUsed, defaultname), style = wx.CB_DROPDOWN)
         self.dirTextCtrl.Bind(wx.EVT_COMBOBOX, self.OnComboChange)
         self.dirTextCtrl.Bind(wx.EVT_TEXT, self.OnComboChange)
         for i in range(self.filehistory.GetCount()):
@@ -77,14 +77,25 @@ class SaveAs(wx.Dialog):
         return self.dirTextCtrl.GetValue().strip()
 
     def OnDirChange(self, event):
-        samefile = os.path.abspath(self.dirTextCtrl.GetValue()) == os.path.abspath(self.dirCtrl.GetPath())
-        if not os.path.isdir(self.dirTextCtrl.GetValue()) or not samefile:
-            self.dirTextCtrl.SetValue(self.dirCtrl.GetPath())
+        #dirCtrl changed, strip dir from dirTextCtrl is not existing
+        newDir = self.dirCtrl.GetPath()
+        if not os.path.isdir(self.dirTextCtrl.GetValue()):
+            curDir, self.defaultdir = os.path.split(self.dirTextCtrl.GetValue())
+        else:
+            curDir = self.dirTextCtrl.GetValue()
+        
+        samefile = os.path.abspath(curDir) == os.path.abspath(newDir)
+        if not samefile:
+            self.dirTextCtrl.SetValue(os.path.join(newDir, self.defaultdir))
         
     def OnComboChange(self, event):
         path = self.dirTextCtrl.GetValue()
         if os.path.isdir(path):
             self.dirCtrl.SetPath(path)
+        else:
+            path,_ = os.path.split(path)
+            if os.path.isdir(path):
+                self.dirCtrl.SetPath(path)
         
     def OnOk(self, event = None):
         self.filehistory.AddFileToHistory(self.GetPath())
