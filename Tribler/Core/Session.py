@@ -152,7 +152,7 @@ class Session(SessionRuntimeConfig):
         
         # 3. tracker
         trackerdir = self.get_internal_tracker_dir()
-        if not os.path.isdir(trackerdir):
+        if not os.path.exists(trackerdir):
             os.mkdir(trackerdir)
 
         if self.sessconfig['tracker_dfile'] is None:
