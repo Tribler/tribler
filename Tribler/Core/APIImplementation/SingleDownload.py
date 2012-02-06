@@ -354,10 +354,11 @@ class SingleDownload:
             return
         self.repexer = None
         if self.dow is not None:
-            #BUG? AttributeError: BT1Download instance has no attribute 'connecter'
-            connecter, encoder = self.dow.connecter, self.dow.encoder
-            connecter.repexer = None
-            encoder.repexer = None
+            if self.dow.started:
+                connecter, encoder = self.dow.connecter, self.dow.encoder
+                connecter.repexer = None
+                encoder.repexer = None
+                
             self.dow.startRerequester() # not started, so start it.
             self.dow.Unpause()
         return repexer

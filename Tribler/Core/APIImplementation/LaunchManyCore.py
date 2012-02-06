@@ -463,19 +463,24 @@ class TriblerLaunchMany(Thread):
             d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback)
 
             if self.torrent_db != None and self.mypref_db != None:
-                raw_filename = tdef.get_name_as_unicode()
-                save_name = get_readable_torrent_name(infohash, raw_filename)
-                #print >> sys.stderr, 'tlm: add', save_name, self.session.sessconfig
-                torrent_dir = self.session.sessconfig['torrent_collecting_dir']
-                save_path = os.path.join(torrent_dir, save_name)
-                if not os.path.exists(save_path):    # save the torrent to the common torrent dir
-                    tdef.save(save_path)
-
-                #Niels: 30-09-2011 additionally save in collectingdir as collected filename
-                normal_name = get_collected_torrent_filename(infohash)
-                save_path = os.path.join(torrent_dir, normal_name)
-                if not os.path.exists(save_path):    # save the torrent to the common torrent dir
-                    tdef.save(save_path)
+                
+                try:
+                    raw_filename = tdef.get_name_as_unicode()
+                    save_name = get_readable_torrent_name(infohash, raw_filename)
+                    #print >> sys.stderr, 'tlm: add', save_name, self.session.sessconfig
+                    torrent_dir = self.session.sessconfig['torrent_collecting_dir']
+                    save_path = os.path.join(torrent_dir, save_name)
+                    if not os.path.exists(save_path):    # save the torrent to the common torrent dir
+                        tdef.save(save_path)
+    
+                    #Niels: 30-09-2011 additionally save in collectingdir as collected filename
+                    normal_name = get_collected_torrent_filename(infohash)
+                    save_path = os.path.join(torrent_dir, normal_name)
+                    if not os.path.exists(save_path):    # save the torrent to the common torrent dir
+                        tdef.save(save_path)
+                except:
+                    #Niels: 06-02-2012 lets make sure this will not crash the start download
+                    print_exc()
 
                 # hack, make sure these torrents are always good so they show up
                 # in TorrentDBHandler.getTorrents()
