@@ -60,6 +60,7 @@ class GlobalSeedingManager:
         if DEBUG: print >>sys.stderr, "SeedingManager: write_storage", filename
         f = open(filename, "wb")
         cPickle.dump(storage, f)
+        f.flush()
         f.close()
     
     def apply_seeding_policy(self, dslist):
