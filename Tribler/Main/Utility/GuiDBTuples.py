@@ -315,6 +315,9 @@ class LibraryTorrent(Torrent):
     __slots__ = ()
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, progress):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, None)
+        if progress > 1:
+            progress = progress / 100.0
+            
         self.progress = progress
     
 class ChannelTorrent(Torrent):

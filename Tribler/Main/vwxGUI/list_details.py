@@ -1701,9 +1701,18 @@ class LibraryDetails(TorrentDetails):
                     stats = ds.get_seeding_statistics()
                     dl = stats['total_down']
                     ul = stats['total_up']
+                    
+                    progress = ds.get_progress()
+                    size = ds.get_length()
                 else:
                     dl = ds.get_total_transferred(DOWNLOAD)
                     ul = ds.get_total_transferred(UPLOAD)
+                    
+                    progress = self.torrent.progress or 0
+                    size = self.torrent.length or 0
+            
+                size_progress = size*progress
+                dl = max(dl, size_progress)
                 
                 self.downloaded.SetLabel(self.utility.size_format(dl))
                 self.uploaded.SetLabel(self.utility.size_format(ul))
@@ -1839,7 +1848,6 @@ class ProgressPanel(wx.BoxSizer):
             progress = self.item.original_data.get('progress')
             if progress == None:
                 progress = 0
-            
             size = self.item.original_data.get('length', False)
             
             seeds = peers = None

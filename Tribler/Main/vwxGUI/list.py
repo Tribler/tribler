@@ -1362,10 +1362,12 @@ class LibraryList(SizeList):
                     if infohash in dsdict:
                         original_data.ds = dsdict[infohash]
                         del dsdict[infohash]
+                    else:
+                        original_data.ds = None
                         
-                        curStates[infohash] = original_data.state
-                        if curStates[infohash] != self.prevStates.get(infohash, None):
-                            didStateChange = True
+                    curStates[infohash] = original_data.state
+                    if curStates[infohash] != self.prevStates.get(infohash, None):
+                        didStateChange = True
                             
             self.prevStates = curStates
 
@@ -1405,6 +1407,10 @@ class LibraryList(SizeList):
                             dl = stats['total_down']
                             ul = stats['total_up']
                             
+                            #set dl at min progress*length
+                            size_progress = ds.get_length()*ds.get_progress()
+                            dl = max(dl, size_progress)                 
+                            
                             if dl == 0L:
                                 if ul != 0L:
                                     ratio = sys.maxint
@@ -1419,6 +1425,12 @@ class LibraryList(SizeList):
                         else:
                             dl = ds.get_total_transferred(DOWNLOAD)
                             ul = ds.get_total_transferred(UPLOAD)
+                            
+                            #set dl at min progress*length
+                            progress = item.original_data.progress or 0
+                            size = item.original_data.length or 0
+                            size_progress = size*progress
+                            dl = max(dl, size_progress)
                             
                             if dl == 0L:
                                 if ul != 0L:
