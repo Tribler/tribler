@@ -46,6 +46,7 @@ class ScenarioScript(ScriptBase):
         pass
 
     def scenario(self):
+        self.get_or_create_community()
         for deadline, call, args in self.yield_events():
             while True:
                 remaining = deadline - time.time()
