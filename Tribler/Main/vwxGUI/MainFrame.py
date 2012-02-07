@@ -419,6 +419,7 @@ class MainFrame(wx.Frame):
                 dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 dlg.CenterOnParent()
                 if dlg.ShowModal() == wx.ID_OK:
+                    #for multifile we enabled correctedFilenames, use split to remove the filename from the path
                     if tdef.is_multifile_torrent():
                         destdir, correctedFilename = os.path.split(dlg.GetPath())
                     else:
