@@ -42,9 +42,18 @@ class WalktestCommunity(Community):
         self._origional__introduction_response_or_timeout = self._dispersy.introduction_response_or_timeout
         self._dispersy.introduction_response_or_timeout = self._replacement__introduction_response_or_timeout
 
+    def _default_log(self):
+        return dict(lan_address=self._dispersy.lan_address,
+                    wan_address=self._dispersy.wan_address,
+                    connection_type=self._dispersy.connection_type)
+
     def _replacement__introduction_response_or_timeout(self, message, community, intermediary_candidate):
         if message is None and self == community:
-            log("walktest.log", "timeout", lan_address=self._dispersy.lan_address, intermediary_lan_address=intermediary_candidate.lan_address)
+            log("walktest.log",
+                "timeout",
+                intermediary_lan_address=intermediary_candidate.lan_address,
+                intermediary_wan_address=intermediary_candidate.wan_address,
+                **self._default_log())
         return self._origional__introduction_response_or_timeout(message, community, intermediary_candidate)
 
     def _initialize_meta_messages(self):
@@ -120,11 +129,6 @@ class WalktestCommunity(Community):
                     source_address=message.candidate.sock_addr,
                     identifier=message.payload.identifier,
                     **self._default_log())
-
-        def _default_log(self):
-            return dict(lan_address=self._dispersy.lan_address,
-                        wan_address=self._dispersy.wan_address,
-                        connection_type=self._dispersy.connection_type)
 
         def impl_introduction_request(self, meta, *args, **kargs):
             message = meta.__origional_impl(*args, **kargs)
