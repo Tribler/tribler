@@ -191,6 +191,8 @@ class Parameterized1Singleton(object):
         Warning: this method uses the GC.get_referrers to determine the number of references.  This
         method is very expensive to use!
         """
+        assert isinstance(size, int)
+        assert 0 < size
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instances"):
                 instances = getattr(cls, "_singleton_instances")
