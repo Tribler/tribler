@@ -572,7 +572,7 @@ class ABCApp():
     
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return
+            return (5.0, True)
         
         """ Called by GUITHREAD  """
         if DEBUG: 
@@ -728,7 +728,7 @@ class ABCApp():
         except:
             print_exc()
         
-        return(1.0, True)
+        return (1.0, True)
 
     def loadSessionCheckpoint(self):
         self.utility.session.load_checkpoint()
