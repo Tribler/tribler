@@ -604,6 +604,13 @@ class SingleDownload():
             if DEBUGBF:
                 print >>sys.stderr,"Downloader: got_have_field: live: Filtering bitfield",activerangeiterators 
 
+            def TEMP_PRINT_INFO(text):
+                print >>sys.stderr, "Downloader: got_have_field: investigation message --", text
+                print >>sys.stderr, "Downloader: got_have_field: i", i
+                print >>sys.stderr, "Downloader: got_have_field: connection", self.ip
+                print >>sys.stderr, "Downloader: got_have_field: infohash", self.downloader.infohash.encode("HEX")
+                print >>sys.stderr, "Downloader: got_have_field: torrent", self.downloader.bt1dl.info.get("name")
+                
             if not self.downloader.picker.videostatus or self.downloader.picker.videostatus.live_streaming:
                 if DEBUGBF:
                     print >>sys.stderr,"Downloader: got_have_field: live or normal filter"
@@ -613,7 +620,12 @@ class SingleDownload():
                     for i in iterator:
                         if have[i]:
                             validhave[i] = True
-                            self.downloader.picker.got_have(i,self.connection)
+                            try:
+                                self.downloader.picker.got_have(i,self.connection)
+                            except IndexError:
+                                TEMP_PRINT_INFO("activeiterators")
+                                raise
+
             else: # VOD
                 if DEBUGBF:
                     print >>sys.stderr,"Downloader: got_have_field: VOD filter" 
@@ -622,7 +634,11 @@ class SingleDownload():
                 for i in xrange(first,last):
                     if have[i]:
                         validhave[i] = True
-                        self.downloader.picker.got_have(i,self.connection)
+                        try:
+                            self.downloader.picker.got_have(i,self.connection)
+                        except IndexError:
+                            TEMP_PRINT_INFO("vod")
+                            raise
             # ProxyService_
             #
             # Aggregate the haves bitfields and send them to the doe nodes
