@@ -2038,7 +2038,6 @@ class Dispersy(Singleton):
             else:
                 assert community.my_member.private_key
                 if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step towards ", candidate)
-                assert candidate.is_eligible_for_walk(community, time())
                 self.create_introduction_request(community, candidate)
                 assert not candidate.is_eligible_for_walk(community, time())
                 return True
