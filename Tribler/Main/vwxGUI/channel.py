@@ -2147,23 +2147,21 @@ class CommentManager:
     def refreshDirty(self):
         self.refresh()
     
-    @forceDBThread
     def refresh(self):
-        self.list.dirty = False
-        
-        if self.playlist:
-            comments = self.channelsearch_manager.getCommentsFromPlayList(self.playlist)
-        elif self.channeltorrent:
-            comments = self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
-        else:
-            comments = self.channelsearch_manager.getCommentsFromChannel(self.channel)
+        def db_callback():
+            self.list.dirty = False
             
-        self.list.SetData(comments)
-        
+            if self.playlist:
+                return self.channelsearch_manager.getCommentsFromPlayList(self.playlist)
+            if self.channeltorrent:
+                return self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
+            return self.channelsearch_manager.getCommentsFromChannel(self.channel)
+
+        startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+            
     def new_comment(self):
         self.do_or_schedule_refresh()
     
-    @forceDBThread
     def addComment(self, comment):
         item = self.list.GetExpandedItem()
         if item:
@@ -2175,13 +2173,15 @@ class CommentManager:
         items = self.list.GetItems().values()
         if len(items) > 0:
             reply_after = items[-1].original_data.dispersy_id
-        
-        if self.playlist:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, playlist = self.playlist)
-        elif self.channeltorrent:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
-        else:
-            self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
+            
+        def db_callback():
+            if self.playlist:
+                self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, playlist = self.playlist)
+            elif self.channeltorrent:
+                self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
+            else:
+                self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
+        startWorker(workerFn=db_callback, retryOnBusy=True)
             
     def removeComment(self, comment):
         self.channelsearch_manager.removeComment(comment, self.channel)
@@ -2284,27 +2284,34 @@ class ActivityManager:
     def refreshDirty(self):
         self.refresh()
     
-    @forceDBThread
+    
     def refresh(self):
-        self.list.dirty = False
+        def db_callback():
+            self.list.dirty = False
+            
+            if self.playlist:
+                commentList = self.channelsearch_manager.getCommentsFromPlayList(self.playlist, limit = 10)
+                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist, limit = 10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist, limit = 10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist, limit = 10)
+                recentModerations = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, limit = 10)
+            else:
+                commentList = self.channelsearch_manager.getCommentsFromChannel(self.channel, limit = 10)
+                nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.channel, limit = 10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentReceivedTorrentsFromChannel(self.channel, limit = 10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit = 10)
+                recentModerations = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, limit = 10)
+            
+            return torrentList, recentTorrentList, commentList, recentModifications, recentModerations
         
-        if self.playlist:
-            commentList = self.channelsearch_manager.getCommentsFromPlayList(self.playlist, limit = 10)
-            nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist, limit = 10)
-            nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist, limit = 10)
-            recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist, limit = 10)
-            recentModerations = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, limit = 10)
+        def do_gui(delayedResult):
+            torrentList, recentTorrentList, commentList, recentModifications, recentModerations = delayedResult.get()
             
-        else:
-            commentList = self.channelsearch_manager.getCommentsFromChannel(self.channel, limit = 10)
-            nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.channel, limit = 10)
-            nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentReceivedTorrentsFromChannel(self.channel, limit = 10)
-            recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit = 10)
-            recentModerations = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, limit = 10)
-            
-        self.channelsearch_manager.populateWithPlaylists(torrentList)
-        self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
-        self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations)
+            self.channelsearch_manager.populateWithPlaylists(torrentList)
+            self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
+            self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations)
+        
+        startWorker(do_gui, db_callback, retryOnBusy=True)
         
     def new_activity(self):
         self.do_or_schedule_refresh()
@@ -2495,15 +2502,14 @@ class ModerationManager:
     def refreshDirty(self):
         self.refresh()
     
-    @forceDBThread
     def refresh(self):
-        self.list.dirty = False
+        def db_callback():
+            self.list.dirty = False
+            if self.playlist:
+                return self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
+            return self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         
-        if self.playlist:
-            data = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
-        else:
-            data = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
-        self.list.SetData(data)
+        startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
         
     def new_moderation(self):
         self.do_or_schedule_refresh()
