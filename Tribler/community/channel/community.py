@@ -17,7 +17,7 @@ from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDes
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
-from traceback import print_stack
+from traceback import print_stack, print_exc
 import sys
 from Tribler.Core.dispersy.dispersy import Dispersy
 from time import time
@@ -1084,12 +1084,15 @@ class ChannelCommunity(Community):
             conflicting_messages = []
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
-                    message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
-                    if message:
-                        message = message.load_message()
-                        conflicting_messages.append(message)
-                    
-                        max_global_time = prev_global_time
+                    try:
+                        message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
+                        if message:
+                            message = message.load_message()
+                            conflicting_messages.append(message)
+                        
+                            max_global_time = prev_global_time
+                    except RuntimeError:
+                        pass
                 else:
                     break
             
