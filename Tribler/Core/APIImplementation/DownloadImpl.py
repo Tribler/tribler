@@ -391,8 +391,9 @@ class DownloadImpl:
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
-                contentdest = self.get_content_dest() 
-                self.session.uch.perform_removestate_callback(infohash,contentdest,removecontent)
+                dest_files = self.get_dest_files()
+                contentdests = [filename for _,filename in dest_files]
+                self.session.uch.perform_removestate_callback(infohash,contentdests,removecontent)
             
             return (infohash,pstate)
         finally:

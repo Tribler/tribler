@@ -35,7 +35,7 @@ class SaveAs(wx.Dialog):
         
         self.dirCtrl = wx.GenericDirCtrl(self, -1, style = wx.DIRCTRL_DIR_ONLY|wx.SUNKEN_BORDER)
         self.dirCtrl.SetDefaultPath(defaultdir)
-        self.dirCtrl.SetPath(defaultdir)
+        self.dirCtrl.SetPath(lastUsed)
         
         self.dirCtrl.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnDirChange)
         
@@ -97,7 +97,11 @@ class SaveAs(wx.Dialog):
                 self.dirCtrl.SetPath(path)
         
     def OnOk(self, event = None):
-        self.filehistory.AddFileToHistory(self.GetPath())
+        path = self.GetPath()
+        if not os.path.exists(path):
+            path, _ = os.path.split(path)
+        self.filehistory.AddFileToHistory(path)
+        
         self.filehistory.Save(self.config)
         self.config.Flush()
         

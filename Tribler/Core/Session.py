@@ -333,7 +333,7 @@ class Session(SessionRuntimeConfig):
                 self.remove_download(download,removecontent,removestate)
                 return
         
-        self.uch.perform_removestate_callback(infohash,'', False)
+        self.uch.perform_removestate_callback(infohash, [], False)
 
     def set_download_states_callback(self,usercallback,getpeerlist=False):
         """
