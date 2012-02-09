@@ -762,9 +762,9 @@ class PlaylistManager():
     def SetPlaylist(self, playlist):
         if playlist.id != self.list.id:
             self.list.Reset()
+            
             self.list.id = playlist.id
             self.list.playlist = playlist
-            
             self.list.SetChannel(playlist.channel)
         
         self._refresh_list()
@@ -2120,23 +2120,28 @@ class CommentManager:
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
     def SetIds(self, channel = None, playlist = None, channeltorrent = None):
+        changed = False
+        
         if channel != self.channel:
             self.channel = channel
-            self.list.dirty = True
-            
             self.list.header.SetTitle('Comments for this channel')
+            
+            changed = True
         
         if playlist != self.playlist:
             self.playlist = playlist
-            self.list.dirty = True
-            
             self.list.header.SetTitle('Comments for this playlist')
+            
+            changed = True
             
         elif channeltorrent != self.channeltorrent:
             self.channeltorrent = channeltorrent
-            self.list.dirty = True
-            
             self.list.header.SetTitle('Comments for this torrent')
+            
+            changed = True
+        
+        if changed: 
+            self.do_or_schedule_refresh()
     
     def do_or_schedule_refresh(self, force_refresh = False):
         if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
@@ -2370,6 +2375,13 @@ class ModificationManager:
     def SetId(self, channeltorrent):
         if channeltorrent != self.torrent:
             self.torrent = channeltorrent
+            
+            self.do_or_schedule_refresh()
+    
+    def do_or_schedule_refresh(self, force_refresh = False):
+        if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
+            self.refresh()
+        else:
             self.list.dirty = True
     
     def refreshDirty(self):
@@ -2383,10 +2395,7 @@ class ModificationManager:
         startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
         
     def new_modification(self):
-        if self.list.ShouldGuiUpdate():
-            self.refresh()
-        else:
-            self.list.dirty = True
+        self.do_or_schedule_refresh()
     
     def OnRevertModification(self, modification, reason, warning = False):
         severity = 1 if warning else 0
@@ -2481,17 +2490,21 @@ class ModerationManager:
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
     def SetIds(self, channel = None, playlist = None):
+        changed = False
         if channel != self.channel:
             self.channel = channel
-            self.list.dirty = True
-            
             self.list.header.SetTitle('Recent moderations for this Channel')
+            
+            changed = True
         
         if playlist != self.playlist:
             self.playlist = playlist
-            self.list.dirty = True
-            
             self.list.header.SetTitle('Recent moderations for this Playlist')
+            
+            changed = True
+        
+        if changed:    
+            self.do_or_schedule_refresh()
     
     def do_or_schedule_refresh(self, force_refresh = False):
         if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
