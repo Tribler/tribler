@@ -3520,8 +3520,9 @@ class ChannelCastDBHandler(object):
             sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
             infohash = self._db.fetchone(sql, (channeltorrent_id, ))
             
-            infohash = str2bin(infohash)
-            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+            if infohash:
+                infohash = str2bin(infohash)
+                self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
 
     def addOrGetChannelTorrentID(self, channel_id, infohash):
         torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
