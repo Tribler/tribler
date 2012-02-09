@@ -2273,6 +2273,8 @@ class ActivityManager:
         self.list = list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
+        self.Reset()
+        
     def Reset(self):
         self.list.id = 0
         
@@ -2384,6 +2386,8 @@ class ModificationManager:
     def __init__(self, list):
         self.list = list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+        self.Reset()
         
     def Reset(self):
         self.list.id = 0
@@ -2504,6 +2508,8 @@ class ModerationManager:
     def __init__(self, list):
         self.list = list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+        self.Reset()
         
     def Reset(self):
         self.list.id = 0
