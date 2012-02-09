@@ -13,6 +13,8 @@ from traceback import print_exc
 import time
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 import re
+from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
+from Tribler.Core.BitTornado.bencode import bdecode, bencode
 
 URLHIST_TIMEOUT = 7*24*3600.0   # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30*60    # reload a rss source every n seconds
@@ -208,7 +210,7 @@ class RssParser(Thread):
                 if key in self.key_callbacks:
                     for url in urls:
                         if DEBUG:
-                            print >> sys.stderr, "RssParser: getting rss ", url, len(urls)
+                            print >> sys.stderr, "RssParser: getting rss", url, len(urls)
                         
                         historyfile = self.gethistfilename(url, key)
                         urls_already_seen = URLHistory(historyfile)
@@ -222,11 +224,15 @@ class RssParser(Thread):
                                 
                                 try:
                                     if DEBUG:
-                                        print >> sys.stderr, "RssParser: trying ", new_url
+                                        print >> sys.stderr, "RssParser: trying", new_url
                                     
-                                    torrent = TorrentDef.load_from_url(new_url)
+                                    stream = urlOpenTimeout(new_url)
+                                    bdata = stream.read()
+                                    stream.close()
+                                    
+                                    bddata = bdecode(bdata, 1)
+                                    torrent = TorrentDef._create(bddata)
                                     torrent.save(self.gettorrentfilename(torrent))
-                                    
                                     for callback in self.key_callbacks[key]:
                                         try:
                                             callback(key, torrent, extraInfo = {'title':title, 'description': description, 'thumbnail': thumbnail})
@@ -235,6 +241,8 @@ class RssParser(Thread):
                                             
                                     break
                                 except:
+                                    if DEBUG:
+                                        print >> sys.stderr, "RssParser: could not download", new_url
                                     pass
                                 
                                 
@@ -282,3 +290,24 @@ class RssParser(Thread):
                 newItems.append((title, new_urls, description, thumbnail))
         
         return newItems
+    
+    
+if __name__ == '__main__':
+    DEBUG = True
+    
+    def callback(key, torrent, extraInfo):
+        print >> sys.stderr, "RssParser: Found torrent", key, torrent, extraInfo
+    
+    class FakeSession:
+        def get_state_dir(self):
+            return os.path.dirname(__file__)
+        
+        def get_torrent_collecting_dir(self):
+            return self.get_state_dir()
+    
+    r = RssParser.getInstance()
+    r.register(FakeSession(), 'test')
+    r.addCallback('test', callback)
+    r.addURL('http://www.vodo.net/feeds/public', 'test', dowrite=False)
+    
+    r.join()
