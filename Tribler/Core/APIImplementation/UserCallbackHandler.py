@@ -114,9 +114,11 @@ class UserCallbackHandler:
         if removecontent:
             if DEBUG:
                 print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdests
-                
+            
+            contentdirs = set()
             for filename in contentdests:
                 os.remove(filename)
+                contentdirs.add(os.path.dirname(filename))
             
             #multifile, see if we need to remove any empty dirs
             if len(contentdests) > 1:
@@ -125,13 +127,13 @@ class UserCallbackHandler:
                     files = os.listdir(basedir)
                     for filename in files:
                         absfilename = os.path.join(basedir, filename)
-                        if os.path.isdir(absfilename):
-                            remove_if_empty(basedir)
+                        if os.path.isdir(absfilename) and absfilename in contentdirs:
+                            remove_if_empty(absfilename)
                     
                     #see if we are empty
                     files = os.listdir(basedir)
                     if len(files) == 0:
-                        os.remove(basedir)
+                        os.rmdir(basedir)
                 
                 basedir = os.path.commonprefix(contentdests)
                 remove_if_empty(basedir)
