@@ -45,9 +45,9 @@ class SaveAs(wx.Dialog):
         hSizer.Add(wx.StaticText(self, -1, 'Save to:'), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
         if defaultname:
-            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(defaultdir, defaultname), style = wx.CB_DROPDOWN)
+            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(lastUsed, defaultname), style = wx.CB_DROPDOWN)
         else:
-            self.dirTextCtrl = wx.ComboBox(self, -1, defaultdir, style = wx.CB_DROPDOWN)
+            self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, style = wx.CB_DROPDOWN)
         self.dirTextCtrl.Bind(wx.EVT_COMBOBOX, self.OnComboChange)
         self.dirTextCtrl.Bind(wx.EVT_TEXT, self.OnComboChange)
         for i in range(self.filehistory.GetCount()):

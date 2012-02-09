@@ -42,6 +42,11 @@ class DownloadConfigInterface:
     def __init__(self,dlconfig=None):
         
         if dlconfig is not None: # copy constructor
+            
+            #modify/fix incorrectly saved dlconfigs
+            if isinstance(dlconfig['saveas'], tuple):
+                dlconfig['saveas'] = dlconfig['saveas'][-1]
+            
             self.dlconfig = dlconfig
             return
         
@@ -76,6 +81,7 @@ class DownloadConfigInterface:
         """ Sets the directory where to save this Download.
         @param path A path of a directory.
         """
+        assert isinstance(path, basestring), path 
         self.dlconfig['saveas'] = path
 
     def get_dest_dir(self):

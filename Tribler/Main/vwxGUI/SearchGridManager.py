@@ -585,7 +585,7 @@ class TorrentManager:
         avoid blocking the GUI because of the database queries.
         """
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True)
 
     def _gotRemoteHits(self, permid, kws, answers):
         refreshGrid = False
@@ -829,7 +829,7 @@ class LibraryManager:
         """
         self.dslist = dslist
     
-        startWorker(self._do_gui_callback, self.updateProgressInDB, uId="Refresh Callbacks")
+        startWorker(self._do_gui_callback, self.updateProgressInDB, uId="Refresh Callbacks", retryOnBusy=True)
         
     def _do_gui_callback(self, delayedResult):
         delayedResult.get()
@@ -1758,7 +1758,7 @@ class ChannelManager:
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True)
 
     def _gotRemoteHits(self, permid, kws, answers):
         # @param permid: the peer who returned the answer to the query

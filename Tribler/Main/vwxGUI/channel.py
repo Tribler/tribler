@@ -95,7 +95,7 @@ class ChannelManager():
                 
             self._on_data(total_items, nrfiltered, torrentList, playlists)
         
-        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list")
+        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list", retryOnBusy=True)
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -320,7 +320,7 @@ class SelectedChannelList(GenericSearchList):
         self.SetNrResults(nr_torrents)
         
         if channel.isDispersy():
-            startWorker(self.SetState, self.channel.getState)
+            startWorker(self.SetState, self.channel.getState, retryOnBusy=True)
         else:
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
         self.Thaw()
@@ -695,7 +695,7 @@ class SelectedChannelList(GenericSearchList):
             return self.channelsearch_manager.getNrTorrentsDownloaded(self.id) + 1
         
         if not self.channel.isFavorite():
-            startWorker(do_gui, do_db)
+            startWorker(do_gui, do_db, retryOnBusy=True)
         else:
             GenericSearchList.StartDownload(self, torrent, files)
         
@@ -784,7 +784,7 @@ class PlaylistManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist)
             
-        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list")
+        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list", retryOnBusy=True)
         
     @forceDBThread
     def _refresh_partial(self, ids):
@@ -944,7 +944,7 @@ class ManageChannelFilesManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
         
-        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh")
+        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh", retryOnBusy=True)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -1078,10 +1078,10 @@ class ManageChannelPlaylistsManager():
             _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
             return playlistList
         
-        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh")
+        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh", retryOnBusy=True)
        
     def _refresh_partial(self, playlist_id):
-        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.list.channel, playlist_id), cargs = (playlist_id,))
+        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.list.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True)
     
     def SetChannel(self, channel):
         if channel != self.list.channel:
@@ -1094,23 +1094,23 @@ class ManageChannelPlaylistsManager():
                 self.list.id = None
     
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.list.channel,), wkwargs = {'filterTorrents' : False})
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.list.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
         
     def GetTorrentsFromPlaylist(self, playlist):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist,), wkwargs = {'filterTorrents' : False})
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
     
     def createPlaylist(self, name, description, infohashes):
-        startWorker(None, self.channelsearch_manager.createPlaylist, wargs = (self.list.id, name, description, infohashes))
+        startWorker(None, self.channelsearch_manager.createPlaylist, wargs = (self.list.id, name, description, infohashes), retryOnBusy=True)
     
     def savePlaylist(self, playlist_id, name, description):
-        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs = (self.list.id, playlist_id, name, description))
+        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs = (self.list.id, playlist_id, name, description), retryOnBusy=True)
     
     def savePlaylistTorrents(self, playlist_id, infohashes):
-        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.list.id, playlist_id, infohashes))
+        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.list.id, playlist_id, infohashes), retryOnBusy=True)
     
     def playlistUpdated(self, playlist_id):
         if self.list.InList(playlist_id):
@@ -1384,7 +1384,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 self.Refresh()
                 #self.CreateJoinChannelFile()
                     
-            startWorker(update_panel, db_call)
+            startWorker(update_panel, db_call, retryOnBusy=True)
             
         else:
             self.channel = None
@@ -1542,7 +1542,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             state = 2
         elif state == 2:
             state = 0
-        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state))
+        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state), retryOnBusy=True)
         
         button = event.GetEventObject()
         button.Enable(False)
@@ -2373,7 +2373,7 @@ class ModificationManager:
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
-        startWorker(self.list.SetDelayedData, db_callback)
+        startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
         
     def new_modification(self):
         if self.list.ShouldGuiUpdate():

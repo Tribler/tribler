@@ -46,7 +46,7 @@ class GUIDBProducer():
     def onSameThread(self):
         return get_ident() == self.database_thread._thread_ident
     
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread.
         """
@@ -72,13 +72,19 @@ class GUIDBProducer():
                 pass
             
             except Exception, exc:
-                originalTb = format_exc() 
-                sender.sendException(exc, originalTb)
+                if str(exc).startswith("BusyError") and retryOnBusy:
+                    print >> sys.stderr, "BusyError, retrying Task(%s) in 0.5s"%name
+                    self.database_thread.register(wrapper, delay=0.5, id_=name)
+                    
+                    return
                 
+                originalTb = format_exc()
+                sender.sendException(exc, originalTb)
             else:
                 try:
                     sender.sendResult(result)
                 except:
+                    
                     print_exc()
                     print >> sys.stderr, "Could not send result of Task(%s)"%name
             t3 = time()
@@ -180,7 +186,7 @@ def startWorker(
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
-    uId=None):
+    uId=None, retryOnBusy=False):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -214,7 +220,7 @@ def startWorker(
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-                name=jobID, delay=delay, uId=uId)
+                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy)
 
     return result
 
