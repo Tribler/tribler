@@ -338,9 +338,14 @@ class SelectedChannelList(GenericSearchList):
             
             manager = self.moderationList.GetManager()
             manager.SetIds(channel = self.channel)
+            
         else:
             self.my_channel = False
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, False)
+            
+            manager = self.commentList.Reset()
+            manager = self.activityList.Reset()
+            manager = self.moderationList.Reset()
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
@@ -2112,12 +2117,14 @@ class ModerationItem(AvantarItem):
 class CommentManager:
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
+        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        self.Reset()
         
+    def Reset(self):
+        self.list.id = 0
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
     
     def SetIds(self, channel = None, playlist = None, channeltorrent = None):
         changed = False
@@ -2213,6 +2220,10 @@ class CommentList(List):
             self.manager = CommentManager(self) 
         return self.manager
     
+    def Reset(self):
+        List.Reset(self)
+        self.GetManager().Reset()
+    
     @forceWxThread
     def SetData(self, data):
         List.SetData(self, data)
@@ -2260,12 +2271,14 @@ class CommentList(List):
 class ActivityManager:
     def __init__(self, list):
         self.list = list
+        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+    def Reset(self):
         self.list.id = 0
         
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
     def SetIds(self, channel = None, playlist = None):
         if channel != self.channel:
@@ -2288,7 +2301,6 @@ class ActivityManager:
     
     def refreshDirty(self):
         self.refresh()
-    
     
     def refresh(self):
         def db_callback():
@@ -2338,6 +2350,10 @@ class ActivityList(List):
             self.manager = ActivityManager(self) 
         return self.manager
     
+    def Reset(self):
+        List.Reset(self)
+        self.GetManager().Reset()
+    
     @forceWxThread
     def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications, recent_moderations):
         List.SetData(self, recent_torrents)
@@ -2367,10 +2383,11 @@ class ActivityList(List):
 class ModificationManager:
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
-        
-        self.torrent = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+    def Reset(self):
+        self.list.id = 0
+        self.torrent = None
         
     def SetId(self, channeltorrent):
         if channeltorrent != self.torrent:
@@ -2416,6 +2433,10 @@ class ModificationList(List):
         if getattr(self, 'manager', None) == None:
             self.manager = ModificationManager(self) 
         return self.manager
+    
+    def Reset(self):
+        List.Reset(self)
+        self.GetManager().Reset()
     
     @forceWxThread
     def SetData(self, data):
@@ -2482,12 +2503,13 @@ class ModificationList(List):
 class ModerationManager:
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
+        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
+    def Reset(self):
+        self.list.id = 0
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
-        self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
         
     def SetIds(self, channel = None, playlist = None):
         changed = False
@@ -2542,6 +2564,10 @@ class ModerationList(List):
         if getattr(self, 'manager', None) == None:
             self.manager = ModerationManager(self) 
         return self.manager
+    
+    def Reset(self):
+        List.Reset(self)
+        self.GetManager().Reset()
     
     @forceWxThread
     def SetData(self, data):

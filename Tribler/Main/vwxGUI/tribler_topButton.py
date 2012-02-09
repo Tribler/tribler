@@ -826,6 +826,7 @@ class NotebookPanel(wx.Panel):
     
     def SetList(self, list):
         self.list = list
+        self.list.IsShownOnScreen = self.IsShownOnScreen
         self.sizer.Add(list, 1, wx.EXPAND)
     
     def IsShownOnScreen(self):
