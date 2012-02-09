@@ -95,7 +95,7 @@ class ChannelManager():
                 
             self._on_data(total_items, nrfiltered, torrentList, playlists)
         
-        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list", retryOnBusy=True)
+        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True)
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -784,7 +784,7 @@ class PlaylistManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist)
             
-        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list", retryOnBusy=True)
+        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
         
     @forceDBThread
     def _refresh_partial(self, ids):
@@ -944,7 +944,7 @@ class ManageChannelFilesManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
         
-        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh", retryOnBusy=True)
+        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh_%d"%self.list.channel.id, retryOnBusy=True)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -1078,7 +1078,7 @@ class ManageChannelPlaylistsManager():
             _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
             return playlistList
         
-        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh", retryOnBusy=True)
+        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh_%d"%self.list.channel.id, retryOnBusy=True)
        
     def _refresh_partial(self, playlist_id):
         startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.list.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True)

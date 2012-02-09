@@ -94,7 +94,7 @@ class RemoteSearchManager:
             [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return total_channels
         
-        startWorker(self._on_refresh_channel, db_callback, uId = "RemoteSearchManager_refresh_channel", retryOnBusy=True)
+        startWorker(self._on_refresh_channel, db_callback, uId = "RemoteSearchManager_refresh_channel_%s"%self.oldkeywords, retryOnBusy=True)
     
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
@@ -158,7 +158,7 @@ class LocalSearchManager:
         diff = time() - self.prev_refresh_if        
         if diff > 30:
             self.prev_refresh_if = time()
-            startWorker(None, db_call, uId="refresh_if_exists", retryOnBusy=True)
+            startWorker(None, db_call, uId="LocalSearchManager_refresh_if_exists", retryOnBusy=True)
 
     @forceWxThread
     def _on_data(self, delayedReslt):
@@ -237,7 +237,7 @@ class ChannelSearchManager:
                     total_items, data = self.channelsearch_manager.getMySubscriptions()
                 return data, category
             
-            startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh", retryOnBusy=True)
+            startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True)
 
         else:
             if search_results:
