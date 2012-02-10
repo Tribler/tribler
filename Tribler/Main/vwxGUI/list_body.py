@@ -509,19 +509,7 @@ class AbstractListBody():
         self.sortcolumn = column
         self.sortreverse = reverse
         
-        if self.data:
-            if self.sortcolumn >= 0:
-                self.Freeze()
-                
-                self.DoSort()
-                
-                self.vSizer.ShowItems(False)
-                self.vSizer.Clear()
-                self.CreateItems()
-            
-                self.Thaw()
-            else:
-                self.SetData()
+        self.SetData(highlight = False, force = True)
                         
     def DoSort(self):
         def sortby(b, a):
@@ -737,7 +725,7 @@ class AbstractListBody():
                 panel.RefreshData(data)
     
     @warnWxThread
-    def SetData(self, data = None, highlight = None):
+    def SetData(self, data = None, highlight = None, force = False):
         if DEBUG:
             nr_items = 0
             if data:
@@ -758,15 +746,20 @@ class AbstractListBody():
             
             self.__SetData(highlight)
         
-        diff = time() - (self.listRateLimit + self.lastData)
-        call_in = -diff * 1000
-        if call_in <= 0:
+        if force:
+            if self.dataTimer:
+                self.dataTimer.Stop()
             doSetData()
         else:
-            if self.dataTimer == None:
-                self.dataTimer = wx.CallLater(call_in, doSetData) 
+            diff = time() - (self.listRateLimit + self.lastData)
+            call_in = -diff * 1000
+            if call_in <= 0:
+                doSetData()
             else:
-                self.dataTimer.Restart(call_in)
+                if self.dataTimer == None:
+                    self.dataTimer = wx.CallLater(call_in, doSetData) 
+                else:
+                    self.dataTimer.Restart(call_in)
         
     def __SetData(self, highlight = True):
         if DEBUG:
