@@ -38,7 +38,6 @@ from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
 from threading import currentThread
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -3300,25 +3299,9 @@ class ChannelCastDBHandler(object):
         self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
         self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
         
-        def db_call():    
-            self._channel_id = self.getMyChannelId()
-            if DEBUG:
-                print >> sys.stderr, "Channels: my channel is", self._channel_id
-        
-        def updateNrTorrents():
-            rows = self.getChannelNrTorrents()
-            update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
-            self._db.executemany(update, rows, commit = False)
-            
-            rows = self.getChannelNrTorrentsLatestUpdate()
-            update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
-            self._db.executemany(update, rows, commit = self.shouldCommit)
-            
-            #schedule a call for in 5 minutes
-            startWorker(None, updateNrTorrents, delay = 300.0)
-            
-        startWorker(None, db_call)
-        startWorker(None, updateNrTorrents, delay = 120.0)
+        self._channel_id = self.getMyChannelId()
+        if DEBUG:
+            print >> sys.stderr, "Channels: my channel is", self._channel_id
     
     def commit(self):
         self._db.commit()
@@ -3334,6 +3317,23 @@ class ChannelCastDBHandler(object):
     
     def registerSession(self, session):
         self.session = session
+        
+        def updateNrTorrents():
+            while True:
+                rows = self.getChannelNrTorrents()
+                update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
+                self._db.executemany(update, rows, commit = False)
+                
+                #schedule a call for in 5 minutes
+                yield 300.0
+                
+                rows = self.getChannelNrTorrentsLatestUpdate()
+                update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
+                self._db.executemany(update, rows, commit = self.shouldCommit)
+                
+                #schedule a call for in 5 minutes
+                yield 300.0
+        self.session.lm.database_thread.register(updateNrTorrents, delay = 120.0)
             
     #dispersy helper functions
     def _get_my_dispersy_cid(self):
