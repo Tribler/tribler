@@ -117,7 +117,8 @@ class UserCallbackHandler:
             
             contentdirs = set()
             for filename in contentdests:
-                os.remove(filename)
+                if os.path.isfile(filename):
+                    os.remove(filename)
                 contentdirs.add(os.path.dirname(filename))
             
             #multifile, see if we need to remove any empty dirs
@@ -132,6 +133,9 @@ class UserCallbackHandler:
                     
                     #see if we are empty
                     files = os.listdir(basedir)
+                    #ignore thumbs.db files
+                    files = [file for file in files if not file.lower().endswith('thumbs.db')]
+                    
                     if len(files) == 0:
                         os.rmdir(basedir)
                 
