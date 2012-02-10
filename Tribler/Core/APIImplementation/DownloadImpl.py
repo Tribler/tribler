@@ -98,7 +98,7 @@ class DownloadImpl:
             self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
             
             # Allow correctinfoname to be overwritten for multifile torrents only
-            if 'files' in metainfo['info'] and dcfg.get_corrected_filename():
+            if 'files' in metainfo['info'] and dcfg.get_corrected_filename() and dcfg.get_corrected_filename() != '':
                 self.correctedinfoname = dcfg.get_corrected_filename()
 
             # Copy sessconfig into dlconfig, such that BitTornado.BT1.Connecter, etc.

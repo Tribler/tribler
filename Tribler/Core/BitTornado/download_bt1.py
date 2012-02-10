@@ -176,7 +176,7 @@ class BT1Download:
         def make(f, forcedir = False):
             if not forcedir:
                 f = path.split(f)[0]
-            if f != '' and not path.exists(f):
+            if f and f != '' and not path.exists(f):
                 makedirs(f)
 
         if self.info.has_key('length'):

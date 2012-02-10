@@ -1416,6 +1416,8 @@ class ChannelManager:
             dispersy_cid = str(dispersy_cid)
 
             return self._disp_get_community_from_cid(dispersy_cid)
+        
+        print >> sys.stderr, "Could not find channel",channel_id
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):
