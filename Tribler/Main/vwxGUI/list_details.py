@@ -274,8 +274,6 @@ class TorrentDetails(AbstractDetails):
         self._addOverview(self.overview, self.torrentSizer)
 
         if self.canEdit:
-            self.UpdateMarkings()
-        
             #Create edit tab
             edit, editSizer = self._create_tab(self.notebook, 'Edit', 'Modify Details')
             
@@ -576,10 +574,12 @@ class TorrentDetails(AbstractDetails):
             _, value = self._add_row(panel, vSizer, column, overviewColumns[column])
             if column == "Status":
                 self.status = value
-    
         sizer.Add(vSizer, 1, wx.EXPAND)
-        self.UpdateStatus()
         
+        if self.canComment:
+            self.UpdateMarkings()
+        
+        self.UpdateStatus()
         panel.OnChange()
     
     @warnWxThread
@@ -701,7 +701,7 @@ class TorrentDetails(AbstractDetails):
                     channelcast = BuddyCastFactory.getInstance().channelcast_core
                     channelcast.updateAChannel(self.torrent.channel.id, self.torrent.channel.permid, self.torrent.query_permids)
         
-        elif self.canEdit:
+        elif self.canComment:
             wrong = LinkStaticText(panel, 'Have an opinion? Signal it to other users:')
             wrong.Bind(wx.EVT_LEFT_UP, self.OnMark)
             sizer.Add(wrong, 0, wx.ALL|wx.EXPAND, 3)
