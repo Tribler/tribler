@@ -1127,7 +1127,7 @@ class TorrentDetails(AbstractDetails):
         text = wx.StaticText(self.markWindow, -1, "Mark this torrent as being: ")
         _set_font(text, size_increment = 1, fontweight = wx.FONTWEIGHT_BOLD)
         
-        markChoices = wx.Choice(self.markWindow, choices = ['Good', 'Corrupt', 'Fake', 'Spam'])
+        markChoices = wx.Choice(self.markWindow, choices = ['Good', 'High-Quality', 'Mid-Quality', 'Low-Quality', 'Corrupt', 'Fake', 'Spam'])
         hSizer.Add(text, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 3)
         hSizer.Add(markChoices)
         
