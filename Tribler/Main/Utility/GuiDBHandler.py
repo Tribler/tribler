@@ -99,7 +99,7 @@ class GUIDBProducer():
             if uId:
                 try:
                     self.uIdsLock.acquire()
-                    self.uIds.remove(uId)
+                    self.uIds.discard(uId)
                 finally:
                     self.uIdsLock.release()
                 
@@ -119,7 +119,7 @@ class GUIDBProducer():
             
             try:
                 self.uIdsLock.acquire()
-                self.uIds.remove(uId)
+                self.uIds.discard(uId)
             finally:
                 self.uIdsLock.release()
                 
