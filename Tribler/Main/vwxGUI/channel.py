@@ -273,12 +273,15 @@ class SelectedChannelList(GenericSearchList):
         
         self.commentList = NotebookPanel(self.notebook)
         self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
-        
+        self.commentList.Show(False)
+                
         self.activityList = NotebookPanel(self.notebook)
         self.activityList.SetList(ActivityList(self.activityList, self))
+        self.activityList.Show(False)
         
         self.moderationList = NotebookPanel(self.notebook)
         self.moderationList.SetList(ModerationList(self.moderationList, self))
+        self.moderationList.Show(False)
         
         self.leftLine = wx.Panel(self.parent, size=(1,-1))
         self.rightLine = wx.Panel(self.parent, size=(1,-1))
@@ -295,7 +298,6 @@ class SelectedChannelList(GenericSearchList):
         self.SetBackgroundColour(self.background)
         
         self.Layout()
-        
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
     @warnWxThread
@@ -339,7 +341,6 @@ class SelectedChannelList(GenericSearchList):
             else:
                 self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
         else:
-            self.SetTitle('','')
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, False)
             
         self.Thaw()
