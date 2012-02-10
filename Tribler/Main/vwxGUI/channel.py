@@ -443,7 +443,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def SetNrResults(self, nr):
-        if self.channel.isFavorite() or self.channel.isMyChannel():
+        if self.channel and (self.channel.isFavorite() or self.channel.isMyChannel()):
             header = 'Discovered'
         else:
             header = 'Previewing'
@@ -451,7 +451,7 @@ class SelectedChannelList(GenericSearchList):
         if nr == 1:
             self.header.SetSubTitle(header+ ' %d torrent'%nr)
         else:
-            if self.channel.isFavorite():
+            if self.channel and self.channel.isFavorite():
                 self.header.SetSubTitle(header+' %d torrents'%nr)
             else:
                 self.header.SetSubTitle(header+' %d torrents'%nr)
