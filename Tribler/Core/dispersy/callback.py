@@ -493,7 +493,8 @@ class Callback(object):
                 if actual_time - deadline >= MAX_DESYNC_TIME:
                     if __debug__:
                         # sort and group by call[0].__name__
-                        debug_key = lambda debug_tup: debug_tup[3][0].__name__
+                        # 10/02/12 Boudewijn: in python 2.5 generators do not have .__name__
+                        debug_key = lambda debug_tup: debug_tup[3][0].__name__ if hasattr(debug_tup[3][0], "__name__") else str(debug_tup[3][0])
                         for debug_call_name, debug_iterator in groupby(sorted(expired, key=debug_key), key=debug_key):
                             debug_list = list(debug_iterator)
                             dprint("%3dx expired " % len(debug_list), debug_call_name, level="warning")
@@ -503,7 +504,8 @@ class Callback(object):
 
                 while True:
                     if __debug__:
-                        debug_call_name = call[0].__name__
+                        # 10/02/12 Boudewijn: in python 2.5 generators do not have .__name__
+                        debug_call_name = call[0].__name__ if hasattr(call[0], "__name__") else str(call[0])
                         debug_call_start = time()
 
                     # call can be either:
