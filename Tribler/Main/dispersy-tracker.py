@@ -21,10 +21,8 @@ from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.dprint import dprint
 from Tribler.Core.dispersy.member import Member
-
-if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -159,7 +157,9 @@ class TrackerDispersy(Dispersy):
             desync = (yield 120.0)
             if desync > 0.1:
                 yield desync
-            for community in [community for community in self._communities.itervalues() if not is_active(community)]:
+            inactive = [community for community in self._communities.itervalues() if not is_active(community)]
+            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")
+            for community in inactive:
                 community.unload_community()
 
     def yield_random_candidates(self, community, limit, blacklist=(), connection_type_blacklist=()):
