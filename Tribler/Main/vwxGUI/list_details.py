@@ -323,7 +323,7 @@ class TorrentDetails(AbstractDetails):
             self.modificationList = NotebookPanel(self.notebook)
             self.modificationList.SetList(ModificationList(self.modificationList))
             modificationManager = self.modificationList.GetManager()
-            modificationManager.SetId(self.torrent)
+            modificationManager.SetIds(self.torrent)
             
             def updateTitle(nrmodifications):
                 for i in range(self.notebook.GetPageCount()):

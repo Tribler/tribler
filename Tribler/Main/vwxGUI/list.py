@@ -28,7 +28,7 @@ from list_footer import *
 from list_header import *
 from list_sidebar import *
 
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 
@@ -38,17 +38,23 @@ DEBUG_RELEVANCE = False
 class RemoteSearchManager:
     def __init__(self, list):
         self.list = list
-        self.oldkeywords = ''
-        self.data_channels = []
-        
         self.dirtyset = set()
+        self.oldkeywords = ''
         
         self.guiutility = GUIUtility.getInstance()
         self.guiserver = self.guiutility.frame.guiserver
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.channelsearch_manager = self.guiutility.channelsearch_manager
+        
+        self.Reset()
    
     def Reset(self):
+        if self.oldkeywords:
+            cancelWorker("RemoteSearchManager_refresh_%s"%self.oldkeywords)
+            cancelWorker("RemoteSearchManager_refresh_channel_%s"%self.oldkeywords)
+        
+        self.oldkeywords = ''
+        self.data_channels = []
         self.dirtyset.clear()
         
     def SetKeywords(self, keywords):
@@ -127,8 +133,6 @@ class RemoteSearchManager:
             else:
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
-                
-    
 
 class LocalSearchManager:
     def __init__(self, list):
@@ -174,14 +178,19 @@ class LocalSearchManager:
 class ChannelSearchManager:
     def __init__(self, list):
         self.list = list
-        self.category = ''
         self.dirtyset = set()
+        self.category = ''
         
         guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = guiutility.channelsearch_manager
-        self.guiserver = guiutility.frame.guiserver
+        
+        self.Reset()
     
     def Reset(self):
+        if self.category:
+            cancelWorker("ChannelSearchManager_refresh_%s"%self.category)
+
+        self.category = ''
         self.dirtyset.clear()
     
     def do_or_schedule_refresh(self, force_refresh = False):
@@ -276,9 +285,9 @@ class ChannelSearchManager:
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:
-            self.category = category
             self.list.Reset()
-            
+
+            self.category = category
             if category != 'searchresults':
                 self.do_or_schedule_refresh(force_refresh)
         else:
@@ -384,8 +393,6 @@ class List(wx.BoxSizer):
         self.rawfilter = ''
         self.filter = ''
         self.footer = self.header = self.list = None
-
-        self.id = 0
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
@@ -778,7 +785,7 @@ class GenericSearchList(SizeList):
 
         def db_callback():
             self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
-        self.guiutility.frame.guiserver.add_task(db_callback)
+        startWorker(None, db_callback, retryOnBusy=True)
         
     def SetFF(self, family_filter, nr_filtered):
         self.header.SetFF(family_filter, nr_filtered)
@@ -1162,7 +1169,7 @@ class SearchList(GenericSearchList):
         
         def db_callback():
             self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)
-        self.guiutility.frame.guiserver.add_task(db_callback)  
+        startWorker(None, db_callback, retryOnBusy=True)
         
     def OnSize(self, event):
         diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]

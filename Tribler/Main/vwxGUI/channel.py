@@ -11,7 +11,7 @@ from list_header import *
 from list_body import *
 from list_details import *
 from __init__ import *
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
@@ -28,16 +28,21 @@ DEBUG = False
 class ChannelManager():
     def __init__(self, list):
         self.list = list
-        self.list.SetId(0)
         self.dirtyset = set()
         
         self.guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.library_manager = self.guiutility.library_manager
+        
+        self.Reset()
     
     def Reset(self):
+        if self.list.channel:
+            cancelWorker("ChannelManager_refresh_list_%d"%self.list.channel.id)
+
+        self.list.SetChannel(None)
         self.dirtyset.clear()
-    
+        
     def refreshDirty(self):
         if 'COMPLETE_REFRESH_STATE' in self.dirtyset:
             self._refresh_list(stateChanged = True)
@@ -158,10 +163,10 @@ class ChannelManager():
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
              
-    def channelUpdated(self, id, stateChanged = False, modified = False):
-        if self.list.id == id:
+    def channelUpdated(self, channel_id, stateChanged = False, modified = False):
+        if self.list.channel == channel_id:
             if modified:
-                self.reload(id)
+                self.reload(channel_id)
             else:
                 if self.list.ShouldGuiUpdate():
                     self._refresh_list(stateChanged)
@@ -173,7 +178,7 @@ class ChannelManager():
                     self.list.dirty = True
     
     def playlistCreated(self, channel_id):
-        if self.list.id == channel_id:
+        if self.list.channel == channel_id:
             if self.list.ShouldGuiUpdate():
                 self._refresh_list()
             else:
@@ -302,50 +307,60 @@ class SelectedChannelList(GenericSearchList):
         footer = ChannelFooter(parent)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote, self.OnManage)
         return footer
+    
+    @warnWxThread
+    def Reset(self):
+        GenericSearchList.Reset(self)
+        
+        self.commentList.Reset()
+        self.activityList.Reset()
+        self.moderationList.Reset()
 
     @warnWxThread
     def SetChannel(self, channel):
         self.channel = channel
         
         self.Freeze()
-        self.SetId(channel.id)
-        self.SetTitle(channel.name, channel.description)
+        self.SetIds(channel)
         
-        if __debug__:
-            self.header.SetToolTip(str(channel))
+        if channel:
+            self.SetTitle(channel.name, channel.description)
         
-        nr_torrents = channel.nr_torrents
-        if not channel.isFavorite() and not channel.isMyChannel():
-            nr_torrents = min(nr_torrents, 50)
-        self.SetNrResults(nr_torrents)
+            if __debug__:
+                self.header.SetToolTip(str(channel))
         
-        if channel.isDispersy():
-            startWorker(self.SetState, self.channel.getState, retryOnBusy=True)
+            nr_torrents = channel.nr_torrents
+            if not channel.isFavorite() and not channel.isMyChannel():
+                nr_torrents = min(nr_torrents, 50)
+            self.SetNrResults(nr_torrents)
+            
+            if channel.isDispersy():
+                startWorker(self.SetState, self.channel.getState, retryOnBusy=True)
+            else:
+                self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
         else:
-            self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
-        self.Thaw()
-    
-    def SetId(self, id):
-        self.id = id
-        if id > 0:
-            self.my_channel = self.channel.isMyChannel()
-        
-            manager = self.commentList.GetManager()
-            manager.SetIds(channel = self.channel)
-            
-            manager = self.activityList.GetManager()
-            manager.SetIds(channel = self.channel)
-            
-            manager = self.moderationList.GetManager()
-            manager.SetIds(channel = self.channel)
-            
-        else:
-            self.my_channel = False
+            self.SetTitle('','')
             self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, False)
             
-            manager = self.commentList.Reset()
-            manager = self.activityList.Reset()
-            manager = self.moderationList.Reset()
+        self.Thaw()
+    
+    def SetIds(self, channel):
+        if channel:
+            self.my_channel = channel.isMyChannel()
+        
+            manager = self.commentList.GetManager()
+            manager.SetIds(channel = channel)
+            
+            manager = self.activityList.GetManager()
+            manager.SetIds(channel = channel)
+            
+            manager = self.moderationList.GetManager()
+            manager.SetIds(channel = channel)
+        else:
+            self.my_channel = False
+            
+        #Always switch to page 1 after new id
+        self.notebook.SetSelection(0)
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
@@ -371,11 +386,9 @@ class SelectedChannelList(GenericSearchList):
                 self.notebook.AddPage(self.activityList, "Activity")
                 self.notebook.AddPage(self.moderationList, "Moderations")
         else:
-            self.commentList.Show(False)
-            self.activityList.Show(False)
-            self.moderationList.Show(False)
-            
             for i in range(self.notebook.GetPageCount(), 1, -1):
+                page = self.notebook.GetPage(i-1)
+                page.Show(False)
                 self.notebook.RemovePage(i-1)
 
         if self.channel:
@@ -460,18 +473,6 @@ class SelectedChannelList(GenericSearchList):
         manager.do_or_schedule_refresh()
     
     @warnWxThread
-    def Reset(self):
-        GenericSearchList.Reset(self)
-        
-        self.commentList.Reset()
-        self.activityList.Reset()
-        self.moderationList.Reset()
-        
-        self.SetId(0)
-        self.notebook.SetSelection(0)
-        self.state = ChannelCommunity.CHANNEL_CLOSED
-    
-    @warnWxThread
     def OnExpand(self, item):
         if isinstance(item, PlaylistItem):
             self.guiutility.showPlaylist(item.original_data)
@@ -541,17 +542,16 @@ class SelectedChannelList(GenericSearchList):
         
     @forceDBThread    
     def _DoFavorite(self):
-        #Set self.id to None to prevent updating twice
-        id = self.id
-        self.id = None
-        
-        self.channelsearch_manager.favorite(id)
-        
         #Request all items from connected peers
         if not self.channel.isDispersy():
             permid = self.channelsearch_manager.getPermidFromChannel(id)
             channelcast = BuddyCastFactory.getInstance().channelcast_core
             channelcast.updateAChannel(id, permid)
+        
+        #Set self.channel to None to prevent updating twice
+        id = self.channel.id
+        self.channel = None
+        self.channelsearch_manager.favorite(id)
 
         self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
@@ -577,11 +577,11 @@ class SelectedChannelList(GenericSearchList):
         
     @forceDBThread
     def _DoSpam(self):
-        #Set self.id to None to prevent updating twice
-        id = self.id
-        self.id = None
-        
+        #Set self.channel to None to prevent updating twice
+        id = self.channel.id
+        self.channel = None
         self.channelsearch_manager.spam(id)
+        
         self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
             
         manager = self.GetManager()
@@ -593,7 +593,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def OnBack(self, event):
-        self.guiutility.GoBack(self.id)
+        self.guiutility.GoBack(self.channel.id)
     
     @warnWxThread
     def OnSize(self, event):
@@ -629,7 +629,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread    
     def OnCommentCreated(self, channel_id):
-        if channel_id == self.id:
+        if self.channel == channel_id:
             manager = self.commentList.GetManager()
             manager.new_comment()
             
@@ -645,7 +645,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread   
     def OnModificationCreated(self, channel_id):
-        if channel_id == self.id:
+        if self.channel == channel_id:
             manager = self.activityList.GetManager()
             manager.new_activity()
             
@@ -658,7 +658,7 @@ class SelectedChannelList(GenericSearchList):
                     
     @warnWxThread
     def OnModerationCreated(self, channel_id):
-        if channel_id == self.id:
+        if self.channel == channel_id:
             manager = self.moderationList.GetManager()
             manager.new_moderation()
     
@@ -672,7 +672,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread   
     def OnMarkTorrent(self, infohash, type):
-        self.channelsearch_manager.markTorrent(self.id, infohash, type)
+        self.channelsearch_manager.markTorrent(self.channel.id, infohash, type)
     
     @warnWxThread
     def Select(self, key, raise_event = True):
@@ -697,7 +697,7 @@ class SelectedChannelList(GenericSearchList):
             GenericSearchList.StartDownload(self, torrent, files)
         
         def do_db():
-            return self.channelsearch_manager.getNrTorrentsDownloaded(self.id) + 1
+            return self.channelsearch_manager.getNrTorrentsDownloaded(self.channel.id) + 1
         
         if not self.channel.isFavorite():
             startWorker(do_gui, do_db, retryOnBusy=True)
@@ -757,7 +757,6 @@ class TorrentDT(wx.PyDropTarget):
 class PlaylistManager():
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
         self.dirtyset = set()   
         
         self.guiutility = GUIUtility.getInstance()
@@ -765,10 +764,9 @@ class PlaylistManager():
         self.channelsearch_manager = self.guiutility.channelsearch_manager
     
     def SetPlaylist(self, playlist):
-        if playlist.id != self.list.id:
+        if self.list.playlist != playlist:
             self.list.Reset()
             
-            self.list.id = playlist.id
             self.list.playlist = playlist
             self.list.SetChannel(playlist.channel)
         
@@ -776,6 +774,9 @@ class PlaylistManager():
     
     def Reset(self):
         self.dirtyset.clear()
+        
+        if self.list.playlist:
+            cancelWorker("PlaylistManager_refresh_list_%d"%self.list.playlist.id)
     
     def refreshDirty(self):
         if 'COMPLETE_REFRESH' in self.dirtyset:
@@ -819,7 +820,7 @@ class PlaylistManager():
                 self.list.dirty = True
         
     def playlistUpdated(self, playlist_id):
-        if self.list.id == playlist_id:
+        if self.list.playlist == playlist_id:
             if self.list.ShouldGuiUpdate():
                 self._refresh_list()
             else:
@@ -848,16 +849,16 @@ class Playlist(SelectedChannelList):
         self.header.SetStyle(self.playlist.description)
         self.Layout()
     
-    def SetId(self, id):
-        if id != 0:
+    def SetIds(self, channel):
+        if channel:
             manager = self.commentList.GetManager()
-            manager.SetIds(channel = self.playlist.channel, playlist = self.playlist)
+            manager.SetIds(channel = channel, playlist = self.playlist)
             
             manager = self.activityList.GetManager()
-            manager.SetIds(channel = self.playlist.channel, playlist = self.playlist)
+            manager.SetIds(channel = channel, playlist = self.playlist)
             
             manager = self.moderationList.GetManager()
-            manager.SetIds(channel = self.playlist.channel, playlist = self.playlist)
+            manager.SetIds(channel = channel, playlist = self.playlist)
             
     def OnCommentCreated(self, key):
         SelectedChannelList.OnCommentCreated(self, key)
@@ -868,6 +869,10 @@ class Playlist(SelectedChannelList):
             
     def CreateFooter(self, parent):
         return PlaylistFooter(parent)
+    
+    @warnWxThread
+    def OnBack(self, event):
+        self.guiutility.GoBack(self.playlist.id)
         
 class PlaylistItem(ListItem):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
@@ -930,12 +935,20 @@ class PlaylistItem(ListItem):
 class ManageChannelFilesManager():
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
+        self.channel = None
         self.guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
+        
+        self.Reset()
+        
+    def Reset(self):
+        if self.channel:
+            cancelWorker("ManageChannelFilesManager_refresh_%d"%self.channel.id)
+            
+        self.channel = None
     
     def refreshDirty(self):
-        if self.list.channel:
+        if self.channel:
             self._refresh()
     
     def refresh_list(self):
@@ -947,30 +960,26 @@ class ManageChannelFilesManager():
     def _refresh(self):
         def db_call():
             self.list.dirty = False
-            return self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
+            return self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents = False)
         
-        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh_%d"%self.list.channel.id, retryOnBusy=True)
+        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh_%d"%self.channel.id, retryOnBusy=True)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
         self.list.SetData(torrentList)
     
     def SetChannel(self, channel):
-        if channel != self.list.channel:
-            self.list.channel = channel
+        if self.channel != channel:
+            self.channel = channel
+
             self.list.dirty = True
             
-            if channel:
-                self.list.id = channel.id
-            else:
-                self.list.id = None
-    
     def RemoveItems(self, infohashes):
         for infohash in infohashes:
-            self.channelsearch_manager.removeTorrent(self.list.channel, infohash)
+            self.channelsearch_manager.removeTorrent(self.channel, infohash)
                 
     def RemoveAllItems(self):
-        self.channelsearch_manager.removeAllTorrents(self.list.channel)
+        self.channelsearch_manager.removeAllTorrents(self.channel)
         
     def startDownloadFromUrl(self, url, *args, **kwargs):
         try:
@@ -1016,14 +1025,14 @@ class ManageChannelFilesManager():
         return True 
         
     def startDownloadFromTorrent(self, torrent):
-        self.channelsearch_manager.createTorrent(self.list.channel, torrent)
+        self.channelsearch_manager.createTorrent(self.channel, torrent)
         return True
         
     def AddTDef(self, tdef):
         if tdef:
-            self.channelsearch_manager.createTorrentFromDef(self.list.id, tdef)
-            if not self.list.channel.isMyChannel():
-                notification = "New torrent added to %s's channel"%self.list.channel.name
+            self.channelsearch_manager.createTorrentFromDef(self.channel.id, tdef)
+            if not self.channel.isMyChannel():
+                notification = "New torrent added to %s's channel"%self.channel.name
             else:
                 notification = 'New torrent added to My Channel'
             self.guiutility.frame.top_bg.Notify(notification, wx.ART_INFORMATION)
@@ -1033,9 +1042,9 @@ class ManageChannelFilesManager():
 
     def AddTDefs(self, tdefs):
         if tdefs:
-            self.channelsearch_manager.createTorrentsFromDefs(self.list.id, tdefs)
-            if not self.list.channel.isMyChannel():
-                notification = "%d new torrents added to %s's channel"%(len(tdefs),self.list.channel.name)
+            self.channelsearch_manager.createTorrentsFromDefs(self.channel.id, tdefs)
+            if not self.channel.isMyChannel():
+                notification = "%d new torrents added to %s's channel"%(len(tdefs),self.channel.name)
             else:
                 notification = '%d new torrents added to My Channel'%len(tdefs)
             self.guiutility.frame.top_bg.Notify(notification, wx.ART_INFORMATION)
@@ -1046,7 +1055,7 @@ class ManageChannelFilesManager():
     def DoExport(self, target_dir):
         if os.path.isdir(target_dir):
             torrent_dir = self.channelsearch_manager.session.get_torrent_collecting_dir()
-            _,_,torrents = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, filterTorrents = False)
+            _,_,torrents = self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents = False)
             
             nr_torrents_exported = 0
             for torrent in torrents:
@@ -1065,8 +1074,16 @@ class ManageChannelPlaylistsManager():
     
     def __init__(self, list):
         self.list = list
-        self.list.id = 0
+        self.channel = None
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
+        self.Reset()
+        
+    def Reset(self):
+        if self.channel:
+            cancelWorker("ManageChannelPlaylistsManager_refresh_%d"%self.channel.id)
+            
+        self.channel = None
     
     def refreshDirty(self):
         self._refresh()
@@ -1080,26 +1097,21 @@ class ManageChannelPlaylistsManager():
     def _refresh(self):
         def db_call():
             self.list.dirty = False
-            _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
+            _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.channel)
             return playlistList
         
-        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh_%d"%self.list.channel.id, retryOnBusy=True)
+        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh_%d"%self.channel.id, retryOnBusy=True)
        
     def _refresh_partial(self, playlist_id):
-        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.list.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True)
+        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True)
     
     def SetChannel(self, channel):
-        if channel != self.list.channel:
-            self.list.channel = channel
+        if channel != self.channel:
+            self.channel = channel
             self.list.dirty = True
-            
-            if channel:
-                self.list.id = channel.id
-            else:
-                self.list.id = None
     
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.list.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
         
@@ -1109,13 +1121,13 @@ class ManageChannelPlaylistsManager():
         return torrentList
     
     def createPlaylist(self, name, description, infohashes):
-        startWorker(None, self.channelsearch_manager.createPlaylist, wargs = (self.list.id, name, description, infohashes), retryOnBusy=True)
+        startWorker(None, self.channelsearch_manager.createPlaylist, wargs = (self.channel.id, name, description, infohashes), retryOnBusy=True)
     
     def savePlaylist(self, playlist_id, name, description):
-        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs = (self.list.id, playlist_id, name, description), retryOnBusy=True)
+        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs = (self.channel.id, playlist_id, name, description), retryOnBusy=True)
     
     def savePlaylistTorrents(self, playlist_id, infohashes):
-        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.list.id, playlist_id, infohashes), retryOnBusy=True)
+        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.channel.id, playlist_id, infohashes), retryOnBusy=True)
     
     def playlistUpdated(self, playlist_id):
         if self.list.InList(playlist_id):
@@ -1125,7 +1137,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
 
     def _PostInit(self):
         self.channel = None
-        self.channel_id = 0
         
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
@@ -1325,22 +1336,14 @@ class ManageChannel(XRCPanel, AbstractDetails):
     
     @forceWxThread
     def SetChannel(self, channel):
-        self.fileslist.GetManager().SetChannel(channel)
-        self.playlistlist.GetManager().SetChannel(channel)
+        self.channel = channel
         
         if channel:
-            self.channel = channel
-            self.channel_id = channel.id
+            self.fileslist.GetManager().SetChannel(channel)
+            self.playlistlist.GetManager().SetChannel(channel)
             
             if channel.isMyChannel():
-                self.torrentfeed.register(self.guiutility.utility.session, self.channel_id)
-            
-            def db_call():
-                channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
-                return channel_state, iamModerator
-            
-            def update_panel(delayedResult):
-                channel_state, iamModerator = delayedResult.get() 
+                self.torrentfeed.register(self.guiutility.utility.session, channel.id)
                 
                 name = channel.name
                 self.name.SetValue(name)
@@ -1356,7 +1359,21 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 self.createText.Hide()
                 self.saveButton.SetLabel('Save Changes')
                 
+                self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+            else:
+                #Best to removepage, will be added if we're moderator
+                self.RemovePage(self.notebook, "Overview")
+
+            
+            def db_call():
+                channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
+                return channel_state, iamModerator
+            
+            def update_panel(delayedResult):
+                channel_state, iamModerator = delayedResult.get() 
+                
                 if iamModerator:
+                    #If this is not mychannel, but I am moderator add overview panel
                     self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
                     
                     selection = channel_state
@@ -1392,9 +1409,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
             startWorker(update_panel, db_call, retryOnBusy=True)
             
         else:
-            self.channel = None
-            self.channel_id = 0
-            
             self.name.SetValue('')
             self.name.originalValue = ''
             
@@ -1409,18 +1423,17 @@ class ManageChannel(XRCPanel, AbstractDetails):
             
             self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             
-            #disable all other tabs
-            try:
-                for i in range(1, self.notebook.GetPageCount()):
-                    page = self.notebook.GetPage(i)
-                    page.Show(False)
-                    self.notebook.RemovePage(i)
-            except:
-                #Niels: on windows sometimes the GetPage(i) method results in an assert.
-                print_exc()
+            #disable all other tabs, do it in reverse as pageindexes change
+            for i in range(self.notebook.GetPageCount(), 1, -1):
+                page = self.notebook.GetPage(i-1)
+                page.Show(False)
+                self.notebook.RemovePage(i-1)
             
             self.fileslist.Reset()
             self.playlistlist.Reset()
+        
+        #Always switch to page 1 after new id
+        self.notebook.SetSelection(0)
                 
     @warnWxThread
     def Reset(self):
@@ -1474,7 +1487,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         item = event.GetEventObject()
         url = item.url.GetValue().strip()
         if len(url) > 0:
-            self.torrentfeed.addURL(url, self.channel_id)
+            self.torrentfeed.addURL(url, self.channel.id)
             self.RebuildRssPanel()
             
             self.uelog.addEvent(message="MyChannel: rssfeed added", type = 2)
@@ -1482,7 +1495,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def OnDeleteRss(self, event):
         item = event.GetEventObject()
         
-        self.torrentfeed.deleteURL(item.url, self.channel_id)
+        self.torrentfeed.deleteURL(item.url, self.channel.id)
         self.RebuildRssPanel()
         
         self.uelog.addEvent(message="MyChannel: rssfeed removed", type = 2)
@@ -1503,7 +1516,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
     
     def _import_torrents(self, files):
         tdefs = [TorrentDef.load(file) for file in files if file.endswith(".torrent")]
-        self.channelsearch_manager.createTorrentsFromDefs(self.channel_id, tdefs)
+        self.channelsearch_manager.createTorrentsFromDefs(self.channel.id, tdefs)
         nr_imported = len(tdefs)
         
         if nr_imported > 0:
@@ -1522,14 +1535,14 @@ class ManageChannel(XRCPanel, AbstractDetails):
         XRCPanel.Show(self, show)
     
     def Save(self, event = None):
-        if self.channel_id:
+        if self.channel:
             changes = {}
             if self.name.IsChanged():
                 changes['name'] = self.name.GetValue()
             if self.description.IsChanged():
                 changes['description'] = self.description.GetValue()
             
-            self.channelsearch_manager.modifyChannel(self.channel_id, changes)
+            self.channelsearch_manager.modifyChannel(self.channel.id, changes)
         else:
             self.channelsearch_manager.createChannel(self.name.GetValue(), self.description.GetValue())
         
@@ -1547,14 +1560,14 @@ class ManageChannel(XRCPanel, AbstractDetails):
             state = 2
         elif state == 2:
             state = 0
-        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel_id, state), retryOnBusy=True)
+        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel.id, state), retryOnBusy=True)
         
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
     
     def playlistCreated(self, channel_id):
-        if channel_id == self.channel_id:
+        if self.channel == channel_id:
             manager = self.playlistlist.GetManager()
             manager.refresh_list()
         
@@ -1563,19 +1576,18 @@ class ManageChannel(XRCPanel, AbstractDetails):
         manager.playlistUpdated(playlist_id)
         
     def channelUpdated(self, channel_id, created = False, modified = False):
-        if channel_id == self.channel_id:
+        if self.channel == channel_id:
             manager = self.fileslist.GetManager()
             manager.refresh_list()
             
             if modified:
                 self.SetChannelId(channel_id)
                 
-        elif not self.channel_id and created:
+        elif not self.channel and created:
             self.SetChannelId(channel_id)
             
 class ManageChannelFilesList(List):
     def __init__(self, parent):
-        self.channel = None
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
                    {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}]
    
@@ -1610,7 +1622,6 @@ class ManageChannelFilesList(List):
         
     def OnExpand(self, item):
         return True
-        #return MyChannelDetails(item, item.original_data, self.id)
     
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(None, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
@@ -1641,7 +1652,6 @@ class ManageChannelFilesList(List):
         
 class ManageChannelPlaylistList(ManageChannelFilesList):
     def __init__(self, parent):
-        self.channel = None
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}]
         
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
@@ -2118,10 +2128,10 @@ class CommentManager:
     def __init__(self, list):
         self.list = list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        
         self.Reset()
         
     def Reset(self):
-        self.list.id = 0
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
@@ -2220,10 +2230,6 @@ class CommentList(List):
             self.manager = CommentManager(self) 
         return self.manager
     
-    def Reset(self):
-        List.Reset(self)
-        self.GetManager().Reset()
-    
     @forceWxThread
     def SetData(self, data):
         List.SetData(self, data)
@@ -2276,8 +2282,6 @@ class ActivityManager:
         self.Reset()
         
     def Reset(self):
-        self.list.id = 0
-        
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
@@ -2352,10 +2356,6 @@ class ActivityList(List):
             self.manager = ActivityManager(self) 
         return self.manager
     
-    def Reset(self):
-        List.Reset(self)
-        self.GetManager().Reset()
-    
     @forceWxThread
     def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications, recent_moderations):
         List.SetData(self, recent_torrents)
@@ -2390,10 +2390,9 @@ class ModificationManager:
         self.Reset()
         
     def Reset(self):
-        self.list.id = 0
         self.torrent = None
         
-    def SetId(self, channeltorrent):
+    def SetIds(self, channeltorrent):
         if channeltorrent != self.torrent:
             self.torrent = channeltorrent
             
@@ -2437,10 +2436,6 @@ class ModificationList(List):
         if getattr(self, 'manager', None) == None:
             self.manager = ModificationManager(self) 
         return self.manager
-    
-    def Reset(self):
-        List.Reset(self)
-        self.GetManager().Reset()
     
     @forceWxThread
     def SetData(self, data):
@@ -2512,7 +2507,6 @@ class ModerationManager:
         self.Reset()
         
     def Reset(self):
-        self.list.id = 0
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
@@ -2570,10 +2564,6 @@ class ModerationList(List):
         if getattr(self, 'manager', None) == None:
             self.manager = ModerationManager(self) 
         return self.manager
-    
-    def Reset(self):
-        List.Reset(self)
-        self.GetManager().Reset()
     
     @forceWxThread
     def SetData(self, data):

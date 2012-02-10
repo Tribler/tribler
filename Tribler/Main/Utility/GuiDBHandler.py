@@ -55,12 +55,16 @@ class GUIDBProducer():
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
                     if DEBUG:
-                        print >> sys.stderr, "Task(%s) already scheduled in queue, ignoring uId = %s"%(name, uId)
+                        print >> sys.stderr, "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s"%(name, uId)
                     return
                 else:
                     self.uIds.add(uId)
             finally:    
                 self.uIdsLock.release()
+                
+            callbackId = uId
+        else:
+            callbackId = name
         
         t1 = time()
         def wrapper():
@@ -73,7 +77,7 @@ class GUIDBProducer():
             
             except Exception, exc:
                 if str(exc).startswith("BusyError") and retryOnBusy:
-                    print >> sys.stderr, "BusyError, retrying Task(%s) in 0.5s"%name
+                    print >> sys.stderr, "GUIDBHandler: BusyError, retrying Task(%s) in 0.5s"%name
                     self.database_thread.register(wrapper, delay=0.5, id_=name)
                     
                     return
@@ -86,11 +90,11 @@ class GUIDBProducer():
                 except:
                     
                     print_exc()
-                    print >> sys.stderr, "Could not send result of Task(%s)"%name
+                    print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)"%name
             t3 = time()
             
             if DEBUG:
-                print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
+                print >> sys.stderr, "GUIDBHandler: Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
                 
             if uId:
                 try:
@@ -102,11 +106,24 @@ class GUIDBProducer():
         wrapper.__name__ = name
         
         if not self.onSameThread() or delay:
-            self.database_thread.register(wrapper, delay=delay, id_=name)
+            self.database_thread.register(wrapper, delay=delay, id_=callbackId)
         else:
             if __debug__:
-                print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
+                print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately"%name
             wrapper()
+            
+    def Remove(self, uId):
+        if uId in self.uIds:
+            if DEBUG:
+                print >> sys.stderr, "GUIDBHandler: removing Task(%s)"%uId
+            
+            try:
+                self.uIdsLock.acquire()
+                self.uIds.remove(uId)
+            finally:
+                self.uIdsLock.release()
+                
+            self.database_thread.unregister(uId)
         
 #Wrapping Senders for new delayedResult impl  
 class MySender():
@@ -223,6 +240,10 @@ def startWorker(
                 name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy)
 
     return result
+
+def cancelWorker(uId):
+    thread = GUIDBProducer.getInstance()
+    thread.Remove(uId)
 
 def onWorkerThread():
     dbProducer = GUIDBProducer.getInstance()

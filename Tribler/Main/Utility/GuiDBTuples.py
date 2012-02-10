@@ -422,8 +422,11 @@ class Channel(Helper):
                     return torrent
                 
     def __eq__(self, other):
-        if other and isinstance(other, Channel):
-            return self.id == other.id
+        if other:
+            if isinstance(other, Channel):
+                return self.id == other.id
+            if isinstance(other, int):
+                return self.id == other
         return False
     
     def __str__(self):
@@ -517,6 +520,15 @@ class Playlist(Helper):
             return "Contents: '"+"'    '".join(names)+"'"
         else:
             return 'This playlist is currently empty, drag and drop any .torrent to add it to this playlist.'
+    
+    def __eq__(self, other):
+        if other:
+            if isinstance(other, Playlist):
+                return self.id == other.id
+            
+            if isinstance(other, int):
+                return self.id == other
+        return False
                 
 class Modification(Helper):
     __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')
