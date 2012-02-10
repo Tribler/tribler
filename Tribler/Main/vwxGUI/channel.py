@@ -499,7 +499,7 @@ class SelectedChannelList(GenericSearchList):
     def OnSaveTorrent(self, panel):
         changes = panel.GetChanged()
         if len(changes)>0:
-            self.channelsearch_manager.modifyTorrent(self.id, panel.torrent.channeltorrent_id, changes)
+            self.channelsearch_manager.modifyTorrent(self.channel.id, panel.torrent.channeltorrent_id, changes)
             panel.Saved()
     
     @forceDBThread  
@@ -522,14 +522,13 @@ class SelectedChannelList(GenericSearchList):
     
     @forceDBThread    
     def _DoRemoveVote(self):
-        #Set self.id to None to prevent updating twice
-        id = self.id
-        self.id = None
-        
+        #Set self.channel to None to prevent updating twice
+        id = self.channel.id
+        self.channel = None
         self.channelsearch_manager.remove_vote(id)
         
         manager = self.GetManager()
-        wx.CallAfter(manager.reload,id)
+        wx.CallAfter(manager.reload, id)
     
     @warnWxThread
     def OnFavorite(self, event = None):
@@ -562,10 +561,6 @@ class SelectedChannelList(GenericSearchList):
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
-            #Set self.id to None to prevent updating twice
-            id = self.id
-            self.id = None
-            
             self._DoSpam()
         
         if event:
