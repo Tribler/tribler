@@ -334,13 +334,14 @@ class ChannelTorrent(Torrent):
         self.inserted = inserted
         self.playlist = playlist
         
-    @property
-    def name(self):
+    # @property
+    def __get_name(self):
         return self.chant_name or self.colt_name
-    
-    @name.setter
-    def name(self, name):
+    # @property
+    def __set_name(self, name):
         pass
+    # .setter was introduced in Python 2.6
+    name = property(__get_name, __set_name)
     
     #Required for drag and drop
     def __getstate__(self):
