@@ -744,11 +744,7 @@ class TriblerLaunchMany(Thread):
                 if self.mypref_db != None:
                     preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
                     if preferences:
-                        if preferences[2] == '':
-                            #this is a removed download, ignoring
-                            return
-                        
-                        elif os.path.isdir(preferences[2]):
+                        if os.path.isdir(preferences[2]):
                             dscfg.set_dest_dir(preferences[2])
             
         if DEBUG:
@@ -758,12 +754,14 @@ class TriblerLaunchMany(Thread):
             else:
                 print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
         
-        if tdef and dscfg and dscfg.get_dest_dir() != '':
-            try:
-                self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
-                
-            except Exception,e:
-                self.rawserver_nonfatalerrorfunc(e)
+        if tdef and dscfg:
+            if dscfg.get_dest_dir() != '': #removed torrent ignoring
+                try:
+                    self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
+                except Exception,e:
+                    self.rawserver_nonfatalerrorfunc(e)
+            else:
+                os.remove(filename)
 
     def checkpoint(self,stop=False,checkpoint=True,gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
