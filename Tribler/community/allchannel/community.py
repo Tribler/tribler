@@ -92,6 +92,7 @@ class AllChannelCommunity(Community):
         
         self._register_task = self.dispersy.callback.register
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
+        self._register_task(self.unload_preview, priority=-128)
         
         self._blocklist = {}
         self._searchCallbacks = {}
@@ -323,6 +324,19 @@ class AllChannelCommunity(Community):
                     
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no callback found"
+                
+    def unload_preview(self):
+        while True:
+            desync = (yield 300.0)
+            if desync > 0.1:
+                yield desync
+                
+            inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity)]
+            if __debug__:
+                print("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
+                
+            for community in inactive:
+                community.unload_community()
 
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community
