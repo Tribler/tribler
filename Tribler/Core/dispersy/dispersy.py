@@ -1920,10 +1920,13 @@ class Dispersy(Singleton):
         assert isinstance(blacklist, (tuple, list))
         assert all(isinstance(candidate, Candidate) for candidate in blacklist)
 
+        # 13/02/12 Boudewijn: normal peers can not be visited multiple times within 30 seconds,
+        # bootstrap peers can not be visited multiple times within 55 seconds
+        bootstrap_threshold = time() - 55.0
         threshold = time() - 30.0
 
         # SECURE 5 WAY SELECTION POOL
-        bootstrap_candidates = [candidate for candidate in self._bootstrap_candidates.itervalues() if candidate.timestamp_last_step_in_community(community) <= threshold and not candidate in blacklist]
+        bootstrap_candidates = [candidate for candidate in self._bootstrap_candidates.itervalues() if candidate.timestamp_last_step_in_community(community) <= bootstrap_threshold and not candidate in blacklist]
         candidates = [candidate for candidate in self.yield_all_candidates(community, blacklist) if candidate.timestamp_last_step_in_community(community) <= threshold]
         walks = set(candidate for candidate in candidates if candidate.is_walk)
         stumbles = set(candidate for candidate in candidates if candidate.is_stumble)
@@ -1947,13 +1950,14 @@ class Dispersy(Singleton):
             while True:
                 r = random()
 
-                if r <= .495: # 50%
+                # 13/02/12 Boudewijn: we decrease the 1% chance to contact a bootstrap peer to .5%
+                if r <= .4975: # 50%
                     if B:
                         candidate = B.pop(0)
                         yield candidate
                         B.append(candidate)
 
-                elif r <= .99: # 50%
+                elif r <= .995: # 50%
 
                     if C or D or E:
                         while True:
@@ -1980,7 +1984,7 @@ class Dispersy(Singleton):
                                     E.append(candidate)
                                     break
 
-                elif bootstrap_candidates: # ~1%
+                elif bootstrap_candidates: # ~.5%
                     candidate = choice(bootstrap_candidates)
                     yield candidate
 
@@ -4218,8 +4222,9 @@ class Dispersy(Singleton):
         #      "dispersy_enable_candidate_walker" attribute
         # 2.2: community["candidates"] is again always a list, new
         #      "dispersy_enable_candidate_walker_responses" attribute
+        # 2.3: community["candidates"] is no longer sorted
 
-        info = {"version":2.2, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        info = {"version":2.3, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
 
         if statistics:
             info["statistics"] = self._statistics.info()
@@ -4248,7 +4253,7 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                community_info["candidates"] = sorted((candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community))
+                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
                 if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
 
         if __debug__: dprint(info, pprint=True)

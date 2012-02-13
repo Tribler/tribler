@@ -523,7 +523,7 @@ class DispersyPanel(HomePanel):
             self.summary_tree.DeleteAllItems()
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
-                for community in sorted(info["communities"], key=lambda community: community["hex_cid"]):
+                for community in sorted(info["communities"], key=lambda community: (community["classification"], community["hex_cid"])):
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         candidates = str(len(community["candidates"]))
                     else:
@@ -532,8 +532,10 @@ class DispersyPanel(HomePanel):
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
-                        for lan_address, wan_address in community["candidates"]:
-                            self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
+                        for address in sorted(("%s:%d" % wan_address if lan_address == wan_address else "%s:%d, %s:%d" % (wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
+                                        for lan_address, wan_address
+                                        in community["candidates"]):
+                            self.summary_tree.AppendItem(sub_parent, address)
                     sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
                     for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
                         self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
