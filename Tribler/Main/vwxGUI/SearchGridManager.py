@@ -784,6 +784,7 @@ class LibraryManager:
             raise RuntimeError, "LibraryManager is singleton"
         LibraryManager.__single = self
         self.guiUtility = guiUtility
+        self.guiserver = GUITaskQueue.getInstance()
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
@@ -828,18 +829,15 @@ class LibraryManager:
         Called by any thread
         """
         self.dslist = dslist
-    
-        startWorker(self._do_gui_callback, self.updateProgressInDB, uId="Refresh Callbacks", retryOnBusy=True)
+        self.guiserver.add_task(self._do_gui_callback, id = "LibraryManager_refresh_callbacks")
+        startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
         
-    def _do_gui_callback(self, delayedResult):
-        delayedResult.get()
+    def _do_gui_callback(self):
         for callback in self.gui_callback:
             try:
                 callback(self.dslist)
-                
             except:
                 print_exc()
-                self.remove_download_state_callback(callback)
     
     def updateProgressInDB(self):
         updates = False
