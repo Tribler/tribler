@@ -1885,12 +1885,17 @@ class ProgressPanel(wx.BoxSizer):
                 return_val = 2
             elif status == DLSTATUS_REPEXING:
                 eta += ", repexing"
-            elif status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
+            elif status == DLSTATUS_WAITING4HASHCHECK:
+                eta += ', waiting for hashcheck'
+            elif status == DLSTATUS_HASHCHECKING:
                 eta += ', checking'
             else:
                 eta += ", inactive"
         else:
-            if status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
+            if status == DLSTATUS_WAITING4HASHCHECK:
+                eta = 'Waiting for hashcheck'
+                
+            elif status == DLSTATUS_HASHCHECKING:
                 eta = 'Checking'
                 if progress > 0:
                     eta += "(%0.1f%%)"%(progress*100)

@@ -159,8 +159,10 @@ class GUIUtility:
             
             if page == 'playlist':
                 self.frame.playlist.Show()
+                
             elif self.guiPage == 'playlist':
                 self.frame.playlist.Show(False)
+                self.frame.playlist.Reset()
                 
             if page == 'my_files':
                 #Open infohash
