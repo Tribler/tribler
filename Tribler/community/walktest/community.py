@@ -85,6 +85,14 @@ class WalktestCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), WalktestConversion(self)]
 
+    def dispersy_take_step(self):
+        now = time()
+        log("walktest.log",
+            "candidates",
+            candidates=[(candidate.lan_address, candidate.get_category(self, now)) for candidate in self._dispersy._candidates.itervalues() if candidate.in_community(self, now)],
+            **self._default_log())
+        return super(WalktestCommunity, self).dispersy_take_step()
+
     if DAS4SCENARIO:
         def initiate_meta_messages(self):
             return []
@@ -97,12 +105,6 @@ class WalktestCommunity(Community):
                 print "GeneratorExit"
                 log("walktest.log", "stopiteration")
                 close("walktest.log")
-
-        def dispersy_take_step(self):
-            now = time()
-            addresses = [(candidate.lan_address, candidate.get_category(self, now)) for candidate in self._dispersy._candidates.itervalues() if candidate.in_community(self, now)]
-            log("walktest.log", "candidates", lan_address=self._dispersy.lan_address, candidates=addresses)
-            return super(WalktestCommunity, self).dispersy_take_step()
 
     if DAS2SCENARIO:
         def initiate_meta_messages(self):
