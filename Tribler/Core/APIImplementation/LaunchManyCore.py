@@ -758,7 +758,7 @@ class TriblerLaunchMany(Thread):
             else:
                 print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
         
-        if tdef and dscfg:
+        if tdef and dscfg and dscfg.get_dest_dir() != '':
             try:
                 self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
                 
