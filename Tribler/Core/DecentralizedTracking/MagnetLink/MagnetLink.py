@@ -14,6 +14,7 @@ finished all connections are closed and a regular download will begin.
 """
 import sys
 from binascii import unhexlify
+from base64 import b32decode
 from urlparse import urlsplit
 from traceback import print_exc
 from threading import Lock
@@ -210,7 +211,12 @@ class MagnetLink:
                     dn = value.decode()
 
                 elif key == "xt" and value.startswith("urn:btih:"):
-                    xt = unhexlify(value[9:49])
+                    #vliegendhart: Adding support for base32 in magnet links (BEP 0009)
+                    encoded_infohash = value[9:49]
+                    if len(encoded_infohash) == 32:
+                        xt = b32decode(encoded_infohash)
+                    else:
+                        xt = unhexlify(encoded_infohash)
 
                 elif key == "tr":
                     if not value.startswith('udp:'): #Niels: ignoring udp trackers                    
