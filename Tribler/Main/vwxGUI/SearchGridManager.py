@@ -792,6 +792,7 @@ class LibraryManager:
         
         #current progress of download states
         self.cache_progress = {}
+        self.last_progress_update = time()
         self.rerankingStrategy = DefaultTorrentReranker()
         
         # For asking for a refresh when remote results came in
@@ -830,8 +831,12 @@ class LibraryManager:
         """
         self.dslist = dslist
         self.guiserver.add_task(self._do_gui_callback, id = "LibraryManager_refresh_callbacks")
-        startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
         
+        if time() - self.last_progress_update > 10:
+            self.last_progress_update = time()
+            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
+    
+    @forceWxThread
     def _do_gui_callback(self):
         for callback in self.gui_callback:
             try:
