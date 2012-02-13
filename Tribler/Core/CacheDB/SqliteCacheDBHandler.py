@@ -3988,6 +3988,12 @@ class ChannelCastDBHandler(object):
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (channel_id,))
+
+    def getRecentMarkingsFromChannel(self, channel_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM TorrentMarkings, ChannelTorrents WHERE TorrentMarkings.channeltorrent_id = ChannelTorrents.id AND ChannelTorrents.channel_id = ? ORDER BY TorrentMarkings.time_stamp DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        return self._db.fetchall(sql, (channel_id,))
     
     def getMostPopularTorrentsFromChannel(self, channel_id, isDispersy, keys, limit = None):
         if isDispersy:
@@ -4047,7 +4053,13 @@ class ChannelCastDBHandler(object):
         return data
     
     def getRecentModerationsFromPlaylist(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM Moderations, MetaDataTorrent, ChannelMetaData, PlaylistTorrents WHERE Moderations.cause = ChannelMetaData.dispersy_id AND ChannelMetaData.id = MetaDataTorrent.metadata_id AND MetaDataTorrent.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND Moderations.channel_id = ? ORDER BY Moderations.inserted DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM Moderations, MetaDataTorrent, ChannelMetaData, PlaylistTorrents WHERE Moderations.cause = ChannelMetaData.dispersy_id AND ChannelMetaData.id = MetaDataTorrent.metadata_id AND MetaDataTorrent.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND PlaylistTorrents.playlist_id = ? ORDER BY Moderations.inserted DESC"
+        if limit:
+            sql += " LIMIT %d"%limit
+        return self._db.fetchall(sql, (playlist_id,))
+    
+    def getRecentMarkingsFromPlaylist(self, playlist_id, keys, limit = None):
+        sql = "SELECT " + ", ".join(keys) +" FROM TorrentMarkings, PlaylistTorrents WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND PlaylistTorrents.playlist_id = ? ORDER BY TorrentMarkings.time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (playlist_id,))

@@ -204,7 +204,7 @@ class ChannelSearchManager:
         if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > 5:
             self.refresh()
         else:
-            self.refresh_partial(self.dirtyset)
+            self.refresh_partial()
             self.list.dirty = False
         self.dirtyset.clear()
     
@@ -268,20 +268,26 @@ class ChannelSearchManager:
             if DEBUG:
                 print >> sys.stderr, "ChannelManager complete refresh done"
             
-    def refresh_partial(self, ids):
-        def mergeChannel(delayedResult, id):
-            newChannel = delayedResult.get()
+    def refresh_partial(self):
+        def do_db():
+            ids = self.dirtyset
+            self.dirtyset.clear()
             
-            if self.list.InList(id):
-                item = self.list.GetItem(id)
-                oldChannel = item.original_data
-                if oldChannel.torrents:
-                    newChannel.torrents = oldChannel.torrents
+            return self.channelsearch_manager.getChannels(ids)
+        
+        def do_gui(delayedResult):
+            newChannels = delayedResult.get()
             
-            self.list.RefreshData(id, newChannel)
+            for channel in newChannels:
+                id = channel.id
+                if self.list.InList(id):
+                    item = self.list.GetItem(id)
+                    oldChannel = item.original_data
+                    if oldChannel.torrents:
+                        channel.torrents = oldChannel.torrents
             
-        for id in ids:
-            startWorker(mergeChannel, self.channelsearch_manager.getChannel, wargs=(id,),cargs=(id,), uId = "ChannelSearchManager_refresh_partial_%s"%id, retryOnBusy=True)
+                self.list.RefreshData(id, channel)
+        startWorker(do_gui, do_db, uId = "ChannelSearchManager_refresh_partial", retryOnBusy=True)
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:
@@ -298,7 +304,8 @@ class ChannelSearchManager:
             #only update when shown
             if self.list.IsShownOnScreen():
                 if self.list.InList(id):
-                    self.refresh_partial((id,))
+                    self.dirtyset.add(id)
+                    self.refresh_partial()
                     
                 elif self.category in ['All', 'New']:
                     #Show new channel, but only if we are not showing search results
@@ -1333,6 +1340,57 @@ class LibraryList(SizeList):
             self.SetData([])
         
         dlg.Destroy()
+        
+    def __ds__eq__(self, ds1, ds2):
+        if ds1 and not ds2:
+            return False
+        if ds2 and not ds1:
+            return False
+        
+        #compare status
+        if ds1.get_status() != ds2.get_status():
+            return False
+        
+        #compare connections
+        if ds1.get_num_con_initiated() != ds2.get_num_con_initiated():
+            return False
+        if ds1.get_num_con_candidates() != ds2.get_num_con_candidates():
+            return False
+        
+        seeds1, peers1 = ds1.get_num_seeds_peers()
+        seeds2, peers2 = ds2.get_num_seeds_peers()
+        if seeds1 != seeds2:
+            return False
+        if peers1 != peers2:
+            return False
+
+        #compare upload/download        
+        def get_up_down(ds):
+            if ds.get_seeding_statistics():
+                stats = ds.get_seeding_statistics()
+                dl = stats['total_down']
+                ul = stats['total_up']
+            else:                
+                dl = ds.get_total_transferred(DOWNLOAD)
+                ul = ds.get_total_transferred(UPLOAD)
+            
+            return dl, ul
+        
+        dl1, ul1 = get_up_down(ds1)
+        dl2, ul2 = get_up_down(ds2)
+        
+        if dl1 != dl2:
+            return False
+        if ul1 != ul2:
+            return False
+        
+        #compare size
+        if ds1.get_length() != ds2.get_length():
+            return False 
+        if ds1.get_progress() != ds2.get_progress():
+            return False
+    
+        return True
             
     def RefreshItems(self, dslist):
         if self.isReady and self.ShouldGuiUpdate():
@@ -1355,16 +1413,18 @@ class LibraryList(SizeList):
                 colourstep = (green[0] - orange[0], green[1] - orange[1], green[2] - orange[2])
             
             dsdict = {}
+            old_dsdict = {}
             for ds in dslist:
                 infohash = ds.get_download().get_def().get_infohash()
                 dsdict[infohash] = ds
-            
+                        
             curStates = {}
             didStateChange = False
             if self.list.raw_data: 
                 for values in self.list.raw_data:
                     infohash = values[0]
                     original_data = values[2]
+                    old_dsdict[infohash] = original_data.ds
                     
                     if infohash in dsdict:
                         original_data.ds = dsdict[infohash]
@@ -1386,7 +1446,7 @@ class LibraryList(SizeList):
             
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds
-                status, anyChange = item.progressPanel.Update(ds)
+                status = item.progressPanel.Update(ds)
                 
                 if status == 1:
                     nr_downloading += 1
@@ -1397,7 +1457,7 @@ class LibraryList(SizeList):
                 totals[3] = totals[3] + item.data[3]
                 totals[4] = totals[4] + item.data[4]
                 
-                if anyChange:
+                if not self.__ds__eq__(ds, old_dsdict.get(infohash, None)):
                     nr_connections = str(item.data[2][0] + item.data[2][1])
                     item.connections.SetLabel(nr_connections)
                     

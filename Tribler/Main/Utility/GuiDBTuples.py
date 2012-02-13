@@ -587,3 +587,26 @@ class Moderation(Helper):
         if self.by_peer_id == None:
             return self.get_nickname()
         return 'Peer %d'%self.by_peer_id
+    
+class Marking(Helper):
+    __slots__ = ('dispersy_id', 'channeltorrent_id', 'peer_id', 'type', 'time_stamp', 'get_nickname')
+    def __init__(self, dispersy_id, channeltorrent_id, peer_id, type, time_stamp):
+        self.dispersy_id = dispersy_id
+        self.channeltorrent_id = channeltorrent_id
+        self.peer_id = peer_id
+        self.type = type
+        self.time_stamp = time_stamp
+    
+    @cacheProperty
+    def peer_name(self):
+        if self.peer_id == None:
+            return self.get_nickname()
+        return 'Peer %d'%self.peer_id
+    
+    @cacheProperty
+    def torrent(self):
+        if self.channeltorrent_id:
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            
+            searchManager = ChannelManager.getInstance()
+            return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)

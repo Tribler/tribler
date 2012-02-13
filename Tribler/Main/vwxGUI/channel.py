@@ -492,15 +492,15 @@ class SelectedChannelList(GenericSearchList):
                 if len(changes)>0:
                     dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg.ShowModal() == wx.ID_YES:
-                        self.OnSaveTorrent(panel)
+                        self.OnSaveTorrent(self.channel, panel)
                     dlg.Destroy()
             GenericSearchList.OnCollapse(self, item, panel)
     
     @warnWxThread
-    def OnSaveTorrent(self, panel):
+    def OnSaveTorrent(self, channel, panel):
         changes = panel.GetChanged()
         if len(changes)>0:
-            self.channelsearch_manager.modifyTorrent(self.channel.id, panel.torrent.channeltorrent_id, changes)
+            self.channelsearch_manager.modifyTorrent(channel.id, panel.torrent.channeltorrent_id, changes)
             panel.Saved()
     
     @forceDBThread  
@@ -667,8 +667,8 @@ class SelectedChannelList(GenericSearchList):
                 torDetails.OnMarkingCreated(channeltorrent_id)
     
     @warnWxThread   
-    def OnMarkTorrent(self, infohash, type):
-        self.channelsearch_manager.markTorrent(self.channel.id, infohash, type)
+    def OnMarkTorrent(self, channel, infohash, type):
+        self.channelsearch_manager.markTorrent(channel.id, infohash, type)
     
     @warnWxThread
     def Select(self, key, raise_event = True):
@@ -2119,6 +2119,26 @@ class ModerationItem(AvantarItem):
     def ShowTorrent(self, event):
         if self.original_data:
             self.parent_list.parent_list.OnShowTorrent(self.original_data.modification.torrent)
+            
+class MarkingActivityItem(AvantarItem):
+    
+    def AddComponents(self, leftSpacer, rightSpacer):
+        marking = self.original_data
+
+        self.header = "Discovered an opinion %s"%(format_time(marking.time_stamp).lower())
+        self.body = "%s was marked as '%s'"%(marking.torrent.name, marking.type)
+        
+        button = wx.Button(self, -1, 'Open Torrent', style = wx.BU_EXACTFIT)
+        button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
+        self.additionalButtons.append(button)
+        
+        im = IconsManager.getInstance()
+        self.avantar = im.get_default('MARKING',SMALL_ICON_MAX_DIM)
+        AvantarItem.AddComponents(self, leftSpacer, rightSpacer)       
+        
+    def ShowTorrent(self, event):
+        if self.original_data:
+            self.parent_list.parent_list.OnShowTorrent(self.original_data.torrent)     
 
 class CommentManager:
     def __init__(self, list):
@@ -2314,21 +2334,23 @@ class ActivityManager:
                 nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist, limit = 10)
                 recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist, limit = 10)
                 recentModerations = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, limit = 10)
+                recent_markings = self.channelsearch_manager.getRecentMarkingsFromPlaylist(self.playlist, limit = 10)
             else:
                 commentList = self.channelsearch_manager.getCommentsFromChannel(self.channel, limit = 10)
                 nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.channel, limit = 10)
                 nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentReceivedTorrentsFromChannel(self.channel, limit = 10)
                 recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit = 10)
                 recentModerations = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, limit = 10)
+                recent_markings = self.channelsearch_manager.getRecentMarkingsFromChannel(self.channel, limit = 10)
             
-            return torrentList, recentTorrentList, commentList, recentModifications, recentModerations
+            return torrentList, recentTorrentList, commentList, recentModifications, recentModerations, recent_markings
         
         def do_gui(delayedResult):
-            torrentList, recentTorrentList, commentList, recentModifications, recentModerations = delayedResult.get()
+            torrentList, recentTorrentList, commentList, recentModifications, recentModerations, recent_markings = delayedResult.get()
             
             self.channelsearch_manager.populateWithPlaylists(torrentList)
             self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
-            self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations)
+            self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations, recent_markings)
         
         startWorker(do_gui, db_callback, retryOnBusy=True)
         
@@ -2353,7 +2375,7 @@ class ActivityList(List):
         return self.manager
     
     @forceWxThread
-    def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications, recent_moderations):
+    def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications, recent_moderations, recent_markings):
         List.SetData(self, recent_torrents)
         
         #remove duplicates
@@ -2366,6 +2388,7 @@ class ActivityList(List):
         data += [(torrent.inserted, (torrent.infohash, (), torrent, TorrentActivityItem)) for torrent in recent_received_torrents]
         data += [(modification.inserted, ("MODIFICATION_%d"%modification.id, (), modification, ModificationActivityItem)) for modification in recent_modifications]
         data += [(modification.inserted, ("MODERATION_%d"%moderation.id, (), moderation, ModerationActivityItem)) for moderation in recent_moderations]
+        data += [(marking.time_stamp, (marking.dispersy_id, (), marking, MarkingActivityItem)) for marking in recent_markings]
         data.sort(reverse = True)
         
         #removing timestamp

@@ -146,6 +146,7 @@ class TorrentDetails(AbstractDetails):
         self.doSave = self.guiutility.frame.selectedchannellist.OnSaveTorrent
         self.canEdit = False
         self.canComment = False
+        self.canMark = False
         self.markWindow = None
         
         self.isEditable = {}
@@ -201,11 +202,14 @@ class TorrentDetails(AbstractDetails):
                 if showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
                     showTab = "Files"
                 
-                if self.noChannel and self.torrent.hasChannel():
+                if self.torrent.hasChannel():
                     state, iamModerator = self.torrent.channel.getState()
                     
-                    self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
-                    self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+                    if isinstance(self, LibraryDetails):
+                        self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+                    else:
+                        self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
+                        self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
             
                 self.Freeze()
                 self.messagePanel.Show(False)
@@ -289,7 +293,7 @@ class TorrentDetails(AbstractDetails):
             editSizer.Add(vSizer, 1, wx.EXPAND)
             
             def save(event):
-                self.doSave(self)
+                self.doSave(self.torrent.channel, self)
                 
                 button = event.GetEventObject()
                 button.Enable(False)
@@ -576,7 +580,7 @@ class TorrentDetails(AbstractDetails):
                 self.status = value
         sizer.Add(vSizer, 1, wx.EXPAND)
         
-        if self.canComment:
+        if self.canMark:
             self.UpdateMarkings()
         
         self.UpdateStatus()
@@ -701,7 +705,7 @@ class TorrentDetails(AbstractDetails):
                     channelcast = BuddyCastFactory.getInstance().channelcast_core
                     channelcast.updateAChannel(self.torrent.channel.id, self.torrent.channel.permid, self.torrent.query_permids)
         
-        elif self.canComment:
+        elif self.canMark:
             wrong = LinkStaticText(panel, 'Have an opinion? Signal it to other users:')
             wrong.Bind(wx.EVT_LEFT_UP, self.OnMark)
             sizer.Add(wrong, 0, wx.ALL|wx.EXPAND, 3)
@@ -787,6 +791,12 @@ class TorrentDetails(AbstractDetails):
                 sizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
                 
                 if self.torrent.hasChannel():
+                    if self.canMark:
+                        wrong = LinkStaticText(parent, 'Signal your opinion to other users')
+                        wrong.Bind(wx.EVT_LEFT_UP, self.OnMark)
+                        wrong.SetMinSize((1, -1))
+                        sizer.Add(wrong, 0, wx.ALL|wx.EXPAND, 3)
+                    
                     channeltext = LinkStaticText(parent, "Click to see more from %s's Channel."%self.torrent.channel.name)
                     channeltext.SetToolTipString("Click to go to %s's Channel."%self.torrent.channel.name)
                     channeltext.SetMinSize((1, -1))
@@ -1141,7 +1151,7 @@ class TorrentDetails(AbstractDetails):
             if selected != wx.NOT_FOUND:
                 type = markChoices.GetString(selected)
                 
-                self.doMark(self.torrent.infohash, type)
+                self.doMark(self.torrent.channel, self.torrent.infohash, type)
                 self.markWindow.Show(False)
                 self.markWindow.Destroy()
                 self.markWindow = None
@@ -1827,7 +1837,6 @@ class ProgressPanel(wx.BoxSizer):
     def Update(self, ds = None):
         #return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
         return_val = 0
-        anyChange = False
         
         if ds == None:
             ds = self.item.original_data.get('ds', None)
@@ -1863,21 +1872,10 @@ class ProgressPanel(wx.BoxSizer):
             
         progress = max(0, min(1, progress)) #progress has to be between 0 and 1
         
-        if status != self.item.data[1]:
-            self.item.data[1] = status
-            anyChange = True
-        
-        if not self.item.data[2] or seeds != self.item.data[2][0] or peers != self.item.data[2][1]:
-            self.item.data[2] = [seeds, peers]
-            anyChange = True
-            
-        if dls != self.item.data[3]:
-            self.item.data[3] = dls
-            anyChange = True
-        
-        if uls != self.item.data[4]:
-            self.item.data[4] = uls
-            anyChange = True
+        self.item.data[1] = status
+        self.item.data[2] = [seeds, peers]
+        self.item.data[3] = dls
+        self.item.data[4] = uls
             
         finished = progress == 1.0
         if finished:
@@ -1937,7 +1935,6 @@ class ProgressPanel(wx.BoxSizer):
         
         #Update eta
         if self.status.GetLabel() != eta:
-            anyChange = True
             self.status.SetLabel(eta)
             self.status.Refresh()
             
@@ -1956,8 +1953,8 @@ class ProgressPanel(wx.BoxSizer):
             else:
                 self.pb.reset(colour=0) # Show as having none
             self.pb.Refresh()
-            
-        return return_val, anyChange
+        
+        return return_val
     
 class StringProgressPanel(wx.BoxSizer):
     def __init__(self, parent, torrent):

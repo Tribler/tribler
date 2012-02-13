@@ -34,7 +34,7 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation,\
-    RemoteChannelTorrent
+    RemoteChannelTorrent, Marking
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
@@ -1312,6 +1312,27 @@ class ChannelManager:
                 
                 mod.modification = modification
             returnList.append(mod)
+            
+        return returnList
+    
+    def getRecentMarkingsFromChannel(self, channel, limit = None):
+        data = self.channelcast_db.getRecentMarkingsFromChannel(channel.id, MARKING_REQ_COLUMNS, limit)
+        return self._createMarkings(data)
+
+    def getRecentMarkingsFromPlaylist(self, playlist, limit = None):
+        data = self.channelcast_db.getRecentMarkingsFromPlaylist(playlist.id, MARKING_REQ_COLUMNS, limit)
+        return self._createMarkings(data)
+    
+    def _createMarkings(self, hits):
+        returnList = []
+        for hit in hits:
+            mar = Marking(*hit[:5])
+            mar.get_nickname = self.session.get_nickname
+            
+            #touch torrent property to load torrent
+            mar.torrent
+            
+            returnList.append(mar)
             
         return returnList
     
