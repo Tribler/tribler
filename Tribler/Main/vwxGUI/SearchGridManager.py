@@ -838,16 +838,18 @@ class LibraryManager:
     
     @forceWxThread
     def _do_gui_callback(self):
+        dslist = self.dslist[:]
+        
         for callback in self.gui_callback:
             try:
-                callback(self.dslist)
+                callback(dslist)
             except:
                 print_exc()
     
     def updateProgressInDB(self):
         updates = False
         
-        for ds in self.dslist:
+        for ds in self.dslist[:]:
             infohash = ds.get_download().get_def().get_infohash()
             
             progress = (ds.get_progress() or 0.0) * 100.0
