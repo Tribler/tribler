@@ -208,7 +208,7 @@ class AddTorrent(wx.Dialog):
         dlg.Destroy()
     
     def _GetDestPath(self):
-        dlg = SaveAs(self, None, self.defaultDLConfig.get_dest_dir(), os.path.join(self.frame.utility.session.get_state_dir(), 'recent_download_history'))
+        dlg = SaveAs(self, None, self.defaultDLConfig.get_dest_dir(), None, os.path.join(self.frame.utility.session.get_state_dir(), 'recent_download_history'))
         id = dlg.ShowModal()
         
         if id == wx.ID_OK:
