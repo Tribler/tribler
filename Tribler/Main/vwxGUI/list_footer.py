@@ -393,6 +393,11 @@ class ManageChannelPlaylistFooter(ListFooter):
         hSizer.Add(self.removesel, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)
         
+    def SetState(self, canDelete, canAdd):
+        self.addnew.Show(canDelete)
+        self.removesel.Show(canDelete)
+        self.removeall.Show(canDelete)
+        
 class CommentFooter(ListFooter, AbstractDetails):
     def __init__(self, parent, createnew, quickPost):
         self.quickPost = quickPost

@@ -13,7 +13,8 @@ from list_details import *
 from __init__ import *
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
-from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity,\
+    forceAndReturnDispersyThread
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
@@ -361,7 +362,8 @@ class SelectedChannelList(GenericSearchList):
             self.my_channel = False
             
         #Always switch to page 1 after new id
-        self.notebook.SetSelection(0)
+        if self.notebook.GetPageCount() > 0:
+            self.notebook.SetSelection(0)
     
     @warnWxThread
     def SetFooter(self, vote, channelstate, iamModerator):
@@ -683,7 +685,8 @@ class SelectedChannelList(GenericSearchList):
 
         GenericSearchList.Select(self, key, raise_event)
         
-        self.notebook.SetSelection(0)
+        if self.notebook.GetPageCount() > 0:
+            self.notebook.SetSelection(0)
         self.ScrollToId(key)
     
     def StartDownload(self, torrent, files = None):
@@ -821,7 +824,6 @@ class PlaylistManager():
                 self._refresh_list()
             else:
                 self.list.dirty = True
-    
 
 class Playlist(SelectedChannelList):
     def __init__(self, *args, **kwargs):
@@ -836,7 +838,8 @@ class Playlist(SelectedChannelList):
     def Set(self, playlist):
         manager = self.GetManager()
         manager.SetPlaylist(playlist)
-        self.notebook.SetSelection(0)
+        if self.notebook.GetPageCount() > 0:
+            self.notebook.SetSelection(0)
     
     def SetTitle(self, title, description):
         header = u"%s's channel \u2192 %s"%(self.channel.name, self.playlist.name) 
@@ -1110,6 +1113,11 @@ class ManageChannelPlaylistsManager():
         delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
+    
+    def GetTorrentsNotInPlaylist(self):
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
+        total_items, nrfiltered, torrentList = delayedResult.get()
+        return torrentList
         
     def GetTorrentsFromPlaylist(self, playlist):
         delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
@@ -1338,6 +1346,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.fileslist.GetManager().SetChannel(channel)
             self.playlistlist.GetManager().SetChannel(channel)
             
+            self.header.SetName('Management interface for %s\'s Channel'%channel.name)
+            self.header.SetNrTorrents(channel.nr_torrents, channel.nr_favorites)
+            
             if channel.isMyChannel():
                 self.torrentfeed.register(self.guiutility.utility.session, channel.id)
                 
@@ -1348,9 +1359,6 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 description = channel.description
                 self.description.SetValue(description)
                 self.description.originalValue = description
-                
-                self.header.SetName('Management interface for %s\'s Channel'%name)
-                self.header.SetNrTorrents(channel.nr_torrents, channel.nr_favorites)
                 
                 self.createText.Hide()
                 self.saveButton.SetLabel('Save Changes')
@@ -1387,16 +1395,17 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
                     self.fileslist.SetFooter(channel_state, iamModerator)
                     self.AddPage(self.notebook, self.fileslist, "Manage torrents", 2)
+                    
+                    self.playlistlist.SetFooter(channel_state, iamModerator)
+                    self.AddPage(self.notebook, self.playlistlist, "Manage playlists", 3)
                 else:
                     self.RemovePage(self.notebook, "Manage torrents")
+                    self.RemovePage(self.notebook, "Manage playlists")
                 
                 if iamModerator:
-                    self.AddPage(self.notebook, self.playlistlist, "Manage playlists", 3)
-                    
                     self.RebuildRssPanel()
                     self.AddPage(self.notebook, self.managepage, "Manage", 4)
                 else:
-                    self.RemovePage(self.notebook, "Manage playlists")
                     self.RemovePage(self.notebook, "Manage")
                 
                 self.Refresh()
@@ -1429,7 +1438,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.playlistlist.Reset()
         
         #Always switch to page 1 after new id
-        self.notebook.SetSelection(0)
+        if self.notebook.GetPageCount() > 0:
+            self.notebook.SetSelection(0)
                 
     @warnWxThread
     def Reset(self):
@@ -1611,10 +1621,10 @@ class ManageChannelFilesList(List):
         self.SetNrResults(len(data))
         
     def SetFooter(self, state, iamModerator):
-        canDelete = iamModerator
-        canAdd = (state == ChannelCommunity.CHANNEL_OPEN) or iamModerator
+        self.canDelete = iamModerator
+        self.canAdd = (state == ChannelCommunity.CHANNEL_OPEN) or iamModerator
         
-        self.footer.SetState(canDelete, canAdd)
+        self.footer.SetState(self.canDelete, self.canAdd)
         
     def OnExpand(self, item):
         return True
@@ -1677,7 +1687,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         self.SetNrResults(len(data))
     
     def OnExpand(self, item):
-        return MyChannelPlaylist(item, self.OnEdit, self.OnSave, item.original_data)
+        return MyChannelPlaylist(item, self.OnEdit, self.canDelete, self.OnSave, item.original_data)
 
     def OnCollapse(self, item, panel):
         playlist_id = item.original_data.get('id', False)
@@ -1721,6 +1731,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         manager = self.GetManager()
         available = manager.GetTorrentsFromChannel()
+        not_in_playlist = manager.GetTorrentsNotInPlaylist()
         if playlist.get('id', False):
             dlg.selected = manager.GetTorrentsFromPlaylist(playlist)
         else:
@@ -1728,6 +1739,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
 
         selected_infohashes = [data.infohash for data in dlg.selected]
         dlg.available = [data for data in available if data.infohash not in selected_infohashes]
+        dlg.not_in_playlist = [data for data in not_in_playlist]
         dlg.filtered_available = None
         
         selected_names = [torrent.name for torrent in dlg.selected]
@@ -1778,11 +1790,25 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         sizer.Add(vSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         
         sizer.Add(dlg.availableList, 1, wx.EXPAND)
+        sizer.AddSpacer((1,1))
+        sizer.AddSpacer((1,1))
         
-        sizer.AddSpacer(1)
-        sizer.AddSpacer(1)
-        sizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK|wx.CANCEL), 0, wx.EXPAND|wx.ALL, 3)
-        dlg.SetSizer(sizer)
+        self.all = wx.RadioButton(dlg, -1, "Show all available torrents", style = wx.RB_GROUP )
+        self.all.Bind(wx.EVT_RADIOBUTTON, self.OnRadio)
+        self.all.dlg = dlg
+        self.playlist = wx.RadioButton(dlg, -1, "Show only torrent not yet in a playlist" )
+        self.playlist.Bind(wx.EVT_RADIOBUTTON, self.OnRadio)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.all)
+        vSizer.Add(self.playlist)
+        sizer.Add(vSizer)
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(sizer, 1, wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
+        vSizer.AddSpacer((1,3))
+        vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK|wx.CANCEL), 0, wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT, 10)
+        
+        dlg.SetSizer(vSizer)
         
         if dlg.ShowModal() == wx.ID_OK:
             return_val = [data.infohash for data in dlg.selected]
@@ -1805,10 +1831,15 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             to_be_removed.append(dlg.selected[i])
             
         dlg.available.extend(to_be_removed)
+        dlg.not_in_playlist.extend(to_be_removed)
         for item in to_be_removed:
             dlg.selected.remove(item)
         
         self._rebuildLists(dlg)
+    
+    def OnRadio(self, event):
+        dlg = self.all.dlg
+        self._filterAvailable(dlg)
     
     def OnAdd(self, event):
         dlg = event.GetEventObject().GetParent()
@@ -1818,12 +1849,17 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         for i in selected:
             if dlg.filtered_available:
                 to_be_removed.append(dlg.filtered_available[i])
-            else:
+            elif self.all.GetValue():
                 to_be_removed.append(dlg.available[i])
+            else:
+                to_be_removed.append(dlg.not_in_playlist[i])
             
         dlg.selected.extend(to_be_removed)
         for item in to_be_removed:
-            dlg.available.remove(item)
+            if self.all.GetValue():
+                dlg.available.remove(item)
+            else:
+                dlg.not_in_playlist.remove(item)
         
         self._rebuildLists(dlg)
     
@@ -1837,10 +1873,18 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         if len(keyword) > 0:
             def match(item):
                 return re.search(keyword, item.name.lower())
-            filtered_contents = filter(match, dlg.available)
+            
+            if self.all.GetValue():
+                filtered_contents = filter(match, dlg.available)
+            else:
+                filtered_contents = filter(match, dlg.not_in_playlist)
             dlg.filtered_available = filtered_contents
-        else:
+            
+        elif self.all.GetValue():
             filtered_contents = dlg.available
+            dlg.filtered_available =  None
+        else:
+            filtered_contents = dlg.not_in_playlist
             dlg.filtered_available =  None
             
         names = [torrent.name for torrent in filtered_contents]

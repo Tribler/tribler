@@ -2121,7 +2121,7 @@ class MyChannelDetails(wx.Panel):
         dlg.Destroy()
         
 class MyChannelPlaylist(AbstractDetails):
-    def __init__(self, parent, on_manage, on_save = None, playlist = {}):
+    def __init__(self, parent, on_manage, can_edit = False, on_save = None, playlist = {}):
         self.on_manage = on_manage
         self.on_save = on_save
         self.playlist = playlist
@@ -2143,10 +2143,12 @@ class MyChannelPlaylist(AbstractDetails):
         self._add_row(self, gridSizer, 'Description', self.description)
         vSizer.Add(gridSizer, 1, wx.EXPAND|wx.ALL, 3)
         
+        self.name.Enable(can_edit)
+        self.description.Enable(can_edit)
+        
         manage = wx.Button(self, -1, 'Manage Torrents')
         manage.Bind(wx.EVT_BUTTON, self.OnManage)
-        if playlist.get('id', False):
-            
+        if can_edit and playlist.get('id', False):
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             save = wx.Button(self, -1, 'Save Playlist')
             save.Bind(wx.EVT_BUTTON, self.OnSave)
@@ -2155,7 +2157,6 @@ class MyChannelPlaylist(AbstractDetails):
             
             vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
         else:
-            
             vSizer.Add(manage, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
         
         self.SetSizer(vSizer)
