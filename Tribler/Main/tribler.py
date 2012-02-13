@@ -882,18 +882,22 @@ class ABCApp():
         
         self.torrentfeed.shutdown()
         
-        
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()
         
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
-        self.utility.session.shutdown(hacksessconfcheckpoint=False) 
+        self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
         while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
             diff = time() - session_shutdown_start
             print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
             sleep(3)
+            
+#        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"
+#        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+#        peerdb._db.execute_read('VACUUM')
+#        print >> sys.stderr, long(time()), "main: Finished running SQLite vacuum" 
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
