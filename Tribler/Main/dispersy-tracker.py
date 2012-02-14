@@ -14,6 +14,7 @@ import optparse
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.Statistics.Logger import OverlayLogger
+from Tribler.Core.dispersy.candidate import WalkCandidate
 from Tribler.Core.dispersy.callback import Callback, Idle
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
@@ -94,6 +95,8 @@ class TrackerDispersy(Dispersy):
         # logger
         overlaylogpostfix = "dp" + str(port) + ".log"
         self._logger = OverlayLogger.getInstance(overlaylogpostfix, statedir)
+        self._candidates_status = {}
+        callback.register(self._candidate_logger, priority=-128)
 
         # generate a new my-member
         ec = ec_generate_key(u"very-low")
@@ -129,32 +132,29 @@ class TrackerDispersy(Dispersy):
             for community in [community for community in self._communities.itervalues() if not is_active(community)]:
                 community.unload_community()
 
-    def create_introduction_request(self, community, destination):
-        self._logger("CONN_TRY", community.cid.encode("HEX"), destination.address[0], destination.address[1])
-        return super(TrackerDispersy, self).create_introduction_request(community, destination)
+    def _candidate_logger(self):
+        logger = self._logger
+        candidate_status = self._candidates_status
+        iter_candidates = self._candidates.iteritems
+        cid_hex = "0" * 40
 
-    def on_introduction_request(self, messages):
-        for message in messages:
-            if not (message.candidate.is_walk or message.candidate.is_stumble):
-                self._logger("CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX") + message.conversion.community_version.encode("HEX"))
-        return super(TrackerDispersy, self).on_introduction_request(messages)
+        while True:
+            yield 1.0
+            now = time()
 
-    def on_introduction_response(self, messages):
-        for message in messages:
-            if not (message.candidate.is_walk or message.candidate.is_stumble):
-                self._logger("CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX") + message.conversion.community_version.encode("HEX"))
-        return super(TrackerDispersy, self).on_introduction_response(messages)
+            for key, candidate in iter_candidates():
+                if isinstance(candidate, WalkCandidate):
+                    current_status = candidate_status.get(key, "new")
+                    new_status = "active" if candidate.is_any_active(now) else "inactive"
 
-    def introduction_response_or_timeout(self, message, community, intermediary_candidate):
-        if message is None:
-            self._logger("CONN_DEL", community.cid.encode("HEX"), intermediary_candidate.address[0], intermediary_candidate.address[1])
-        return super(TrackerDispersy, self).introduction_response_or_timeout(message, community, intermediary_candidate)
+                    if not current_status == new_status:
+                        if current_status == "new":
+                            logger("CONN_ADD", cid_hex, key[0], key[1])
+                            candidate_status[key] = "active"
 
-    def on_puncture(self, messages):
-        for message in messages:
-            if not (message.candidate.is_walk or message.candidate.is_stumble):
-                self._logger("CONN_ADD", message.community.cid.encode("HEX"), message.candidate.address[0], message.candidate.address[1], message.authentication.member.public_key.encode("HEX"), message.conversion.dispersy_version.encode("HEX") + message.conversion.community_version.encode("HEX"))
-        return super(TrackerDispersy, self).on_puncture(messages)
+                        elif new_status == "inactive":
+                            logger("CONN_DEL", cid_hex, key[0], key[1])
+                            del candidate_status[key]
 
 class DispersySocket(object):
     def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
