@@ -1194,6 +1194,7 @@ class LibraryList(SizeList):
         self.library_manager.add_download_state_callback(self.RefreshItems)
         
         self.statefilter = None
+        self.newfilter = False
         self.prevStates = {}
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
@@ -1463,7 +1464,7 @@ class LibraryList(SizeList):
                 totals[3] = totals[3] + item.data[3]
                 totals[4] = totals[4] + item.data[4]
                 
-                if not self.__ds__eq__(ds, old_dsdict.get(infohash, None)):
+                if self.newfilter or not self.__ds__eq__(ds, old_dsdict.get(infohash, None)):
                     nr_connections = str(item.data[2][0] + item.data[2][1])
                     item.connections.SetLabel(nr_connections)
                     
@@ -1551,6 +1552,8 @@ class LibraryList(SizeList):
             
             for key in totals.keys():
                 self.footer.SetTotal(key, totals[key])
+            
+            self.newfilter = False
         
     def SetData(self, data):
         List.SetData(self, data)
@@ -1579,6 +1582,8 @@ class LibraryList(SizeList):
                     state = new_filter[start:end]
                     if state in ['completed','active','stopped','checking','seeding','downloading']: 
                         self.statefilter = state
+                        self.newfilter = True
+                        
                         new_filter = new_filter[:start - 6] + new_filter[end:]
                 except:
                     pass
