@@ -928,6 +928,8 @@ class MainFrame(wx.Frame):
                     dialog.Destroy()
                     if result != wx.ID_OK:
                         event.Veto()
+                        
+                        print >>sys.stderr, "mainframe: Not closing messagebox did not return OK"
                         return
             except:
                 print_exc()

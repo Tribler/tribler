@@ -277,7 +277,7 @@ class ChannelSearchManager:
             return self.channelsearch_manager.getChannels(ids)
         
         def do_gui(delayedResult):
-            newChannels = delayedResult.get()
+            _,_,newChannels = delayedResult.get()
             
             for channel in newChannels:
                 id = channel.id

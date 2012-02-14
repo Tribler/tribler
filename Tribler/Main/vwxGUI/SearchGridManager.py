@@ -1247,7 +1247,7 @@ class ChannelManager:
     def _createTorrents(self, hits, filterTorrents, channel_dict = {}, playlist = None):
         fetch_channels = set(hit[0] for hit in hits if hit[0] not in channel_dict)
         if len(fetch_channels) > 0:
-            for channel in self.getChannels(fetch_channels):
+            for _,_,channel in self.getChannels(fetch_channels):
                 channel_dict[channel.id] = channel
         
         torrents = []
@@ -1770,7 +1770,7 @@ class ChannelManager:
         hits = self.channelcast_db.searchChannels(self.searchkeywords)
         channels = self._createChannels(hits)
         
-        for channel in channels:
+        for _,_,channel in channels:
             self.hits[channel.id] = channel
         return True
     
@@ -1781,7 +1781,7 @@ class ChannelManager:
             try:
                 self.remoteLock.acquire()
                 
-                for channel in dispersyChannels:
+                for _,_,channel in dispersyChannels:
                     self.remoteHits.append((channel, -1))
                     
             finally:
