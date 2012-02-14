@@ -622,38 +622,40 @@ class ABCApp():
             
             # Apply status displaying from SwarmPlayer
             if playds:
-                videoplayer_mediastate = self.videoplayer.get_state()
-
-                totalhelping = 0
-                totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
-                for ds in dslist:
-                    totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
-                    totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
-                    totalhelping += ds.get_num_peers()
-
-                [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
-                # Update status msg and progress bar
-                if topmsg != '':
-                    
-                    if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
-                        # In SwarmPlayer we would display "Decoding: N secs" 
-                        # when VLC was playing but the video was not yet
-                        # being displayed (because VLC was looking for an
-                        # I-frame). We would display it in the area where
-                        # VLC would paint if it was ready to display.
-                        # Hence, our text would be overwritten when the
-                        # video was ready. We write the status text to
-                        # its own area here, so trick doesn't work.
-                        # For now: just hide.
-                        text = msg
+                def do_video():
+                    videoplayer_mediastate = self.videoplayer.get_state()
+    
+                    totalhelping = 0
+                    totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
+                    for ds in dslist:
+                        totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
+                        totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
+                        totalhelping += ds.get_num_peers()
+    
+                    [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
+                    # Update status msg and progress bar
+                    if topmsg != '':
+                        
+                        if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
+                            # In SwarmPlayer we would display "Decoding: N secs" 
+                            # when VLC was playing but the video was not yet
+                            # being displayed (because VLC was looking for an
+                            # I-frame). We would display it in the area where
+                            # VLC would paint if it was ready to display.
+                            # Hence, our text would be overwritten when the
+                            # video was ready. We write the status text to
+                            # its own area here, so trick doesn't work.
+                            # For now: just hide.
+                            text = msg
+                        else:
+                            text = topmsg
                     else:
-                        text = topmsg
-                else:
-                    text = msg
-                    
-                #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
-                playds.vod_status_msg = text
-                self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+                        text = msg
+                        
+                    #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
+                    playds.vod_status_msg = text
+                    self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+                wx.CallAfter(do_video)
             
             # Check to see if a download has finished
             newActiveDownloads = []
