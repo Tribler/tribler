@@ -383,10 +383,12 @@ class SelectedChannelList(GenericSearchList):
             if self.notebook.GetPageCount() == 1:
                 self.commentList.Show(True)
                 self.activityList.Show(True)
-                self.moderationList.Show(True)
                 
                 self.notebook.AddPage(self.commentList, "Comments")
                 self.notebook.AddPage(self.activityList, "Activity")
+                
+            if state >= ChannelCommunity.CHANNEL_OPEN and self.notebook.GetPageCount() == 3:
+                self.moderationList.Show(True)
                 self.notebook.AddPage(self.moderationList, "Moderations")
         else:
             for i in range(self.notebook.GetPageCount(), 1, -1):
