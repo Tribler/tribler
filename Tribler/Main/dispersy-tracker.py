@@ -124,13 +124,17 @@ class TrackerDispersy(Dispersy):
             # the community is inactive
             return False
 
-        while True:
-            yield 300.0
-            now = time()
-            inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
-            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")
-            for community in inactive:
-                community.unload_community()
+        try:
+            while True:
+                yield 180.0
+                now = time()
+                inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
+                dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")
+                for community in inactive:
+                    community.unload_community()
+        except:
+            dprint("ERROR", exception=1, force=1)
+            raise
 
     def _candidate_logger(self):
         logger = self._logger
