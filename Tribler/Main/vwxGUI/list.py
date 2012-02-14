@@ -181,8 +181,8 @@ class ChannelSearchManager:
         self.dirtyset = set()
         self.category = ''
         
-        guiutility = GUIUtility.getInstance()
-        self.channelsearch_manager = guiutility.channelsearch_manager
+        self.guiutility = GUIUtility.getInstance()
+        self.channelsearch_manager = self.guiutility.channelsearch_manager
         
         self.Reset()
     
@@ -235,16 +235,16 @@ class ChannelSearchManager:
                 total_items = 0
                 
                 if category == 'New':
-                    total_items, data = self.channelsearch_manager.getNewChannels()
+                    total_items, nrfiltered, data = self.channelsearch_manager.getNewChannels()
                 elif category == 'Popular':
-                    total_items, data = self.channelsearch_manager.getPopularChannels()
+                    total_items, nrfiltered, data = self.channelsearch_manager.getPopularChannels()
                 elif category == 'Updated':
-                    total_items, data = self.channelsearch_manager.getUpdatedChannels()
+                    total_items, nrfiltered, data = self.channelsearch_manager.getUpdatedChannels()
                 elif category == 'All':
-                    total_items, data = self.channelsearch_manager.getAllChannels()
+                    total_items, nrfiltered, data = self.channelsearch_manager.getAllChannels()
                 elif category == 'Favorites':
-                    total_items, data = self.channelsearch_manager.getMySubscriptions()
-                return data, category
+                    total_items, nrfiltered, data = self.channelsearch_manager.getMySubscriptions()
+                return data, nrfiltered, category
             
             startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True)
 
@@ -253,17 +253,18 @@ class ChannelSearchManager:
                 total_items = len(search_results)
                 keywords = ' '.join(self.channelsearch_manager.searchkeywords)
                 self.list.SetTitle('Search results for "%s"'%keywords)
-                self._on_data(search_results, self.category)
+                self._on_data(search_results, 0, self.category)
     
     def _on_data_delayed(self, delayedResult):
-        data, category = delayedResult.get()
-        self._on_data(data, category)
+        data, nrfiltered, category = delayedResult.get()
+        self._on_data(data, nrfiltered, category)
     
-    def _on_data(self, data, category):
+    def _on_data(self, data, nrfiltered, category):
         if category == self.category:
             if category != 'searchresults': #if we filter empty channels from search we will never see them
                 data = [channel for channel in data if not channel.isEmpty()]
                 
+            self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
             self.list.SetData(data)
             if DEBUG:
                 print >> sys.stderr, "ChannelManager complete refresh done"
@@ -1342,16 +1343,21 @@ class LibraryList(SizeList):
         dlg.Destroy()
         
     def __ds__eq__(self, ds1, ds2):
-        if ds1 and not ds2:
+        #Exact same objects or both None
+        if ds1 == ds2:
+            return True
+        
+        #Check if one of the two is None
+        if not ds1:
             return False
-        if ds2 and not ds1:
+        if not ds2:
             return False
         
-        #compare status
+        #Compare status
         if ds1.get_status() != ds2.get_status():
             return False
         
-        #compare connections
+        #Compare connections
         if ds1.get_num_con_initiated() != ds2.get_num_con_initiated():
             return False
         if ds1.get_num_con_candidates() != ds2.get_num_con_candidates():
@@ -1364,7 +1370,7 @@ class LibraryList(SizeList):
         if peers1 != peers2:
             return False
 
-        #compare upload/download        
+        #Compare upload/download        
         def get_up_down(ds):
             if ds.get_seeding_statistics():
                 stats = ds.get_seeding_statistics()
@@ -1384,7 +1390,7 @@ class LibraryList(SizeList):
         if ul1 != ul2:
             return False
         
-        #compare size
+        #Compare size
         if ds1.get_length() != ds2.get_length():
             return False 
         if ds1.get_progress() != ds2.get_progress():
@@ -1672,6 +1678,19 @@ class ChannelList(List):
             self.manager = ChannelSearchManager(self) 
         return self.manager
 
+    def SetFF(self, family_filter, nr_filtered):
+        self.header.SetFF(family_filter, nr_filtered)
+        self.nr_filtered = nr_filtered
+        
+    def toggleFamilyFilter(self):
+        self.guiutility.toggleFamilyFilter()
+        self.SetFF(self.guiutility.getFamilyFilter(), 0)
+        self.GetManager().refresh()
+
+        def db_callback():
+            self.uelog.addEvent(message="Channellist: user toggled family filter", type = 2)
+        startWorker(None, db_callback, retryOnBusy=True)
+
     def SetData(self, data):
         List.SetData(self, data)
         
@@ -1705,25 +1724,25 @@ class ChannelList(List):
         
         if self.total_results:
             if self.title == 'Popular Channels':
-                self.header.SetSubTitle("Showing the %d most popular channels" % self.total_results)
+                self.header.SetSubTitle("Showing the %d most popular channels." % self.total_results)
                 
             elif self.title == 'Your Favorites':
-                self.header.SetSubTitle("You marked %d channels as a favorite" % self.total_results)
+                self.header.SetSubTitle("You marked %d channels as a favorite." % self.total_results)
                 
             elif self.title == 'Updated Channels':
-                self.header.SetSubTitle("Showing the %d latest updated channels" % self.total_results)
+                self.header.SetSubTitle("Showing the %d latest updated channels." % self.total_results)
                 
             elif self.title == 'New Channels':
-                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)"% self.total_results)
+                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)."% self.total_results)
                 
             else:
                 if self.total_results == 1:
-                    self.header.SetSubTitle("Discovered %d channel" % self.total_results)
+                    self.header.SetSubTitle("Discovered %d channel." % self.total_results)
                 else:
-                    self.header.SetSubTitle("Discovered %d channels" % self.total_results)
+                    self.header.SetSubTitle("Discovered %d channels." % self.total_results)
         else:
             if self.title == 'New Channels':
-                self.header.SetSubTitle('No new channels discovered (not marked as a favorite by anyone and updated within the last 2 months)')
+                self.header.SetSubTitle('No new channels discovered (not marked as a favorite by anyone and updated within the last 2 months).')
             else:
                 self.header.SetSubTitle('')
         

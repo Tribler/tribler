@@ -385,18 +385,6 @@ class SubTitleHeader(TitleHeader):
             self.subtitle.Refresh()
             
             self.Thaw()
-            
-class SubTitleSeachHeader(SearchHeaderHelper, SubTitleHeader):
-    
-    def SetSubTitle(self, subtitle):
-        SubTitleHeader.SetSubTitle(self, subtitle)
-        self.curSubtitle = subtitle
-    
-    def SetNrResults(self, nr = None):
-        if nr is not None:
-            SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
-        else:
-            SubTitleHeader.SetSubTitle(self, self.curSubtitle)
        
 class ManageChannelHeader(SubTitleHeader):
     def __init__(self, parent, parent_list):
@@ -495,6 +483,27 @@ class FamilyFilterHeader(TitleHeader):
             self.ffbutton.SetLabel('turn on')
         self.Layout()
         self.Thaw()
+
+class SubTitleSeachHeader(SubTitleHeader, FamilyFilterHeader):
+    
+    def GetSubTitlePanel(self, parent):
+        sizer = FamilyFilterHeader.GetSubTitlePanel(self, parent)
+        subtitle = SubTitleHeader.GetSubTitlePanel(self, parent)
+        sizer.Insert(0, subtitle, 0, wx.RIGHT, 3)
+        sizer.Layout()
+        
+        return sizer
+    
+    def SetSubTitle(self, subtitle):
+        SubTitleHeader.SetSubTitle(self, subtitle)
+        self.Layout()
+        self.curSubtitle = subtitle
+    
+    def SetNrResults(self, nr = None):
+        if nr is not None:
+            SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
+        else:
+            SubTitleHeader.SetSubTitle(self, self.curSubtitle)        
 
 class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
     

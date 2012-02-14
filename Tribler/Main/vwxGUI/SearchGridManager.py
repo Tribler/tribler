@@ -1146,34 +1146,37 @@ class ChannelManager:
         two_months = time() - 5259487
         
         newchannels = self.channelcast_db.getNewChannels(two_months)
-        return len(newchannels), self._createChannels(newchannels)
+        return self._createChannels(newchannels)
 
     def getAllChannels(self):
         allchannels = self.channelcast_db.getAllChannels()
-        return len(allchannels), self._createChannels(allchannels)
+        return self._createChannels(allchannels)
  
     def getMySubscriptions(self):
         subscriptions = self.channelcast_db.getMySubscribedChannels(includeDispsersy=True)
-        return len(subscriptions), self._createChannels(subscriptions)
+        return self._createChannels(subscriptions)
 
     def getPopularChannels(self):
         pchannels = self.channelcast_db.getMostPopularChannels()
-        return len(pchannels), self._createChannels(pchannels)
+        return self._createChannels(pchannels)
     
     def getUpdatedChannels(self):
         lchannels = self.channelcast_db.getLatestUpdated()
-        return len(lchannels), self._createChannels(lchannels)
+        return self._createChannels(lchannels)
     
     def _createChannel(self, hit):
         return Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
     
-    def _createChannels(self, hits):
+    def _createChannels(self, hits, filterTorrents = True):
         channels = []
         for hit in hits:
             channel = Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
             channels.append(channel)
-            
-        return channels
+        
+        self.filteredResults = 0
+        if filterTorrents:
+            channels = self._applyChannelFF(channels)
+        return len(channels), self.filteredResults, channels
     
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
@@ -1406,7 +1409,7 @@ class ChannelManager:
         return self.channelcast_db.getSubscribersCount(channel.id)
     
     def _applyFF(self, hits):
-        enabled_category_keys = [key.lower() for key in self.category.getCategoryKeys()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         enabled_category_ids = set()
         for key, id in self.torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
@@ -1428,8 +1431,20 @@ class ChannelManager:
             
             okGood = torrent.status_id != deadstatus_id
             return okCategory and okGood
-        #return filter(torrentFilter, hits)
-        return hits
+        
+        return filter(torrentFilter, hits)
+    
+    def _applyChannelFF(self, channels):
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
+        
+        #only check XXX category
+        if 'xxx' in enabled_category_keys:
+            return channels
+        
+        def channelFilter(channel):
+            isXXX = self.category.xxx_filter.isXXX(channel.name, False)
+            return not isXXX
+        return filter(channelFilter, channels) 
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_channel_id(self, channel_id):

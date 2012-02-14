@@ -859,6 +859,11 @@ class Playlist(SelectedChannelList):
             manager = self.moderationList.GetManager()
             manager.SetIds(channel = channel, playlist = self.playlist)
             
+    @warnWxThread
+    def toggleFamilyFilter(self):
+        GenericSearchList.toggleFamilyFilter(self)
+        self.Set(self.playlist)
+            
     def OnCommentCreated(self, key):
         SelectedChannelList.OnCommentCreated(self, key)
         
