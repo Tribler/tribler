@@ -120,7 +120,7 @@ class RemoteTorrentHandler:
         for requester in self.requesters.values():
             nr_sources += len(requester.sources)
             for infohash in requester.sources.keys():
-                nr_requests += len(requester.sources[infohash])
+                nr_requests += len(requester.sources.get(infohash, []))
         return nr_sources, nr_requests
             
 class TorrentRequester():
