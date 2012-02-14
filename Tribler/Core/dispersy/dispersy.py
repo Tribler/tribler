@@ -2578,7 +2578,7 @@ class Dispersy(Singleton):
         # send packets
         for candidate in candidates:
             assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
-            assert self.is_valid_remote_address(candidate.sock_addr), candidate
+            assert self.is_valid_remote_address(candidate.sock_addr), candidate.sock_addr
             # if not self.is_valid_remote_address(candidate.sock_addr):
             #     # this is a programming bug.  apparently an invalid address is being used
             #     if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
