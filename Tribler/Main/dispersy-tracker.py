@@ -125,7 +125,7 @@ class TrackerDispersy(Dispersy):
             return False
 
         while True:
-            yield Idle(300.0)
+            yield Idle(300.0, 900.0)
             now = time()
             inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
             dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")
