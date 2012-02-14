@@ -484,7 +484,13 @@ class FamilyFilterHeader(TitleHeader):
         self.Layout()
         self.Thaw()
 
-class SubTitleSeachHeader(SubTitleHeader, FamilyFilterHeader):
+class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
+    
+    def Reset(self):
+        FamilyFilterHeader.Reset(self)
+        SearchHeaderHelper.Reset(self)
+        
+class SubTitleSeachHeader(SubTitleHeader, SearchHeader):
     
     def GetSubTitlePanel(self, parent):
         sizer = FamilyFilterHeader.GetSubTitlePanel(self, parent)
@@ -503,13 +509,7 @@ class SubTitleSeachHeader(SubTitleHeader, FamilyFilterHeader):
         if nr is not None:
             SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
         else:
-            SubTitleHeader.SetSubTitle(self, self.curSubtitle)        
-
-class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
-    
-    def Reset(self):
-        FamilyFilterHeader.Reset(self)
-        SearchHeaderHelper.Reset(self)
+            SubTitleHeader.SetSubTitle(self, self.curSubtitle)      
         
 class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
     def GetRightTitlePanel(self, parent):
