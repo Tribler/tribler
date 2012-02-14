@@ -502,7 +502,8 @@ class Callback(object):
 
                 while True:
                     if __debug__:
-                        debug_call_name = call[0].__name__
+                        # 10/02/12 Boudewijn: in python 2.5 generators do not have .__name__
+                        debug_call_name = call[0].__name__ if hasattr(call[0], "__name__") else str(call[0])
                         debug_call_start = time()
 
                     # call can be either:
