@@ -279,8 +279,8 @@ class WalkCandidate(Candidate):
 
         A WalkCandidate is active if the category is either u"walk", u"stumble", or u"sandi".
         """
-        return (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
-                now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
+        return self._timestamps and (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
+                                     now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
 
     def inactive(self, community, now):
         """
