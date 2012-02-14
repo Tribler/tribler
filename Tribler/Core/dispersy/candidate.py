@@ -146,8 +146,15 @@ class Candidate(object):
         """
         if self._timestamps:
             return now <= max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_INACTIVE
-        else:
-            return False
+        return False
+
+    def is_active(self, community, now):
+        """
+        Returns True if COMMUNITY is still active.
+        """
+        if community.cid in self._timestamps:
+            return now <= self._timestamps[community.cid].last_active + CANDIDATE_INACTIVE
+        return False
 
     def is_all_obsolete(self, now):
         """
@@ -155,8 +162,7 @@ class Candidate(object):
         """
         if self._timestamps:
             return max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_OBSOLETE < now
-        else:
-            return True
+        return True
 
     # def get_state(self, now):
     #     """
@@ -279,8 +285,19 @@ class WalkCandidate(Candidate):
 
         A WalkCandidate is active if the category is either u"walk", u"stumble", or u"sandi".
         """
-        return self._timestamps and (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
-                                     now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
+        if self._timestamps:
+            return (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
+                    now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
+        return False
+
+    def is_active(self, community, now):
+        """
+        Returns True if COMMUNITY is still active.
+        """
+        if community.cid in self._timestamps:
+            return (now <= self._timestamps[community.cid].last_walk + CANDIDATE_WALK_LIFETIME or
+                    now <= self._timestamps[community.cid].last_stumble + CANDIDATE_STUMBLE_LIFETIME)
+        return False
 
     def inactive(self, community, now):
         """
