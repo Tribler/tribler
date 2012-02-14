@@ -14,16 +14,14 @@ import optparse
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.Statistics.Logger import OverlayLogger
-from Tribler.Core.dispersy.candidate import WalkCandidate
 from Tribler.Core.dispersy.callback import Callback, Idle
+from Tribler.Core.dispersy.candidate import WalkCandidate
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.dprint import dprint
 from Tribler.Core.dispersy.member import Member
-
-if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -112,24 +110,26 @@ class TrackerDispersy(Dispersy):
             return self._communities[cid]
 
     def _unload_communities(self):
-        def is_active(community):
-            # check 1: does the community have any candidates
-            try:
-                self.yield_all_candidates(community).next()
-                return True
-            except StopIteration:
+        def is_active(community, now):
+            # check 1: does the community have any active candidates
+            for candidate in self._candidates.itervalues():
+                if candidate.is_any_active(now):
+                    return True
 
-                # check 2: does the community have any cached messages waiting to be processed
-                for meta in self._batch_cache.iterkeys():
-                    if meta.community == community:
-                        return True
+            # check 2: does the community have any cached messages waiting to be processed
+            for meta in self._batch_cache.iterkeys():
+                if meta.community == community:
+                    return True
 
             # the community is inactive
             return False
 
         while True:
-            yield Idle(120.0)
-            for community in [community for community in self._communities.itervalues() if not is_active(community)]:
+            yield Idle(300.0)
+            now = time()
+            inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
+            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")
+            for community in inactive:
                 community.unload_community()
 
     def _candidate_logger(self):

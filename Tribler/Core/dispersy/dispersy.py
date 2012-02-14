@@ -1846,16 +1846,16 @@ class Dispersy(Singleton):
 
     #     return (candidate for candidate in self._candidates.itervalues() if candidate.in_community(community) and not candidate in blacklist)
 
-    def yield_subjective_candidates(self, community, limit, cluster, blacklist=()):
+    def yield_subjective_candidates(self, community, cluster):
         """
-        Yields LIMIT active random candidates that are part of COMMUNITY, not in BLACKLIST, and who
-        have us in their subjective set CLUSTER.
+        Yields unique active random candidates that are part of COMMUNITY and who have us in their
+        subjective set CLUSTER.
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        assert isinstance(blacklist, (tuple, list))
-        assert all(isinstance(candidate, Candidate) for candidate in blacklist)
+        assert isinstance(limit, (int, long))
+        assert isinstance(cluster, int)
 
         def in_subjective_set(candidate):
             for member in candidate.members:
@@ -1870,59 +1870,55 @@ class Dispersy(Singleton):
         candidates = [candidate
                       for candidate
                       in self._candidates.itervalues()
-                      if candidate.in_community(community, now) and candidate.is_any_active(now) and in_subjective_set(candidate) and not candidate in blacklist]
+                      if candidate.in_community(community, now) and candidate.is_any_active(now) and in_subjective_set(candidate)]
         shuffle(candidates)
-        return islice(candidates, limit)
+        return iter(candidates)
 
-    def yield_random_candidates(self, community, limit=1024, blacklist=()):
+    def yield_random_candidates(self, community):
         """
-        Yields LIMIT active random candidates that are part of COMMUNITY, not in BLACKLIST.
+        Yields unique active random candidates that are part of COMMUNITY.
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        assert isinstance(limit, int)
-        assert isinstance(blacklist, (tuple, list))
-        assert all(isinstance(candidate, Candidate) for candidate in blacklist)
-        assert isinstance(self._bootstrap_candidates, dict), type(self._bootstrap_candidates)
         assert all(not sock_address in self._candidates for sock_address in self._bootstrap_candidates.iterkeys()), "none of the bootstrap candidates may be in self._candidates"
 
         now = time()
-        categories = {u"walk":[], u"stumble":[], u"intro":[], u"sandi":[], u"none":[]}
+        W = []
+        S = []
         for candidate in self._candidates.itervalues():
             if candidate.in_community(community, now) and candidate.is_any_active(now):
-                assert isinstance(candidate, WalkCandidate), "currently the only candidate that we can yield"
-
                 if isinstance(candidate, WalkCandidate):
-                    categories[candidate.get_category(community, now)].append(candidate)
+                    category = candidate.get_category(community, now)
+                    if category == u"walk":
+                        W.append(candidate)
+                    elif category == u"stumble":
+                        S.append(candidate)
+                    elif category == u"sandi":
+                        if random() <= .5:
+                            W.append(candidate)
+                        else:
+                            S.append(candidate)
+                else:
+                    assert False, "currently we can only handle WalkCandidate instances"
 
-        W = categories[u"walk"]
-        S = categories[u"stumble"]
-
-        for _ in xrange(limit):
-            if W and S:
+            while W and S:
                 yield W.pop(int(random() * len(W))) if random() <= .5 else S.pop(int(random() * len(S)))
 
-            elif W:
+            while W:
                 yield W.pop(int(random() * len(W)))
 
-            elif S:
+            while S:
                 yield S.pop(int(random() * len(S)))
 
-            else:
-                # exhausted candidates
-                break
-
-    def yield_walk_candidates(self, community, blacklist=()):
+    def yield_walk_candidates(self, community):
         """
-        Yields a mixture of all candidates that we could get our hands on that are part of COMMUNITY
-        and not in BLACKLIST.
+        Yields a mixture of all candidates that we could get our hands on that are part of
+        COMMUNITY.
         """
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        assert isinstance(blacklist, (tuple, list))
-        assert all(isinstance(candidate, WalkCandidate) for candidate in blacklist)
 
         # TODO we can optimize by not doing all the sorting until we select where we want to pick a
         # node.  since we always just need one candidate the other sorts would be useless
@@ -2112,12 +2108,30 @@ class Dispersy(Singleton):
         return request
 
     def on_introduction_request(self, messages):
+        def is_valid_candidate(message, candidate):
+            # we can only use WalkCandidates
+            if not isinstance(candidate, WalkCandidate):
+                return False
+
+            if message.candidate == candidate:
+                # must not introduce someone to herself
+                return False
+
+            if message.payload.connection_type == u"symmetric-NAT" and candidate.connection_type == u"symmetric-NAT":
+                # must not introduce two symmetric NAT nodes to each other
+                return False
+
+            return True
+
         community = messages[0].community
         meta_introduction_response = community.get_meta_message(u"dispersy-introduction-response")
         meta_puncture_request = community.get_meta_message(u"dispersy-puncture-request")
         responses = []
         requests = []
         now = time()
+
+        random_candidate_iterator = self.yield_random_candidates(community)
+        random_candidate_stack = []
 
         for message in messages:
             # apply vote to determine our WAN address
@@ -2136,21 +2150,25 @@ class Dispersy(Singleton):
             message.candidate.stumble(community, now)
 
             if message.payload.advice:
-                for candidate in self.yield_random_candidates(community, blacklist=(message.candidate,)):
-                    if not isinstance(candidate, WalkCandidate):
-                        # we can only use WalkCandidates
-                        continue
+                for candidate in random_candidate_iterator:
+                    if is_valid_candidate(message, candidate):
+                        # found candidate, break
+                        break
 
-                    if message.payload.connection_type == u"symmetric-NAT" and candidate.connection_type == u"symmetric-NAT":
-                        # skip
-                        continue
-
-                    # found candidate, break
-                    break
+                    else:
+                        random_candidate_stack.append(candidate)
 
                 else:
-                    # did not break, no candidate found
-                    candidate = None
+                    # did not break, no candidate found in iterator.  try the stack
+                    for index, candidate in enumerate(random_candidate_stack):
+                        if is_valid_candidate(message, candidate):
+                            # found candidate, break
+                            del random_candidate_stack[index]
+                            break
+
+                    else:
+                        # did not break, no candidate found
+                        candidate = None
             else:
                 if __debug__: dprint("no candidates available to introduce")
                 candidate = None
@@ -2501,12 +2519,12 @@ class Dispersy(Singleton):
         if isinstance(meta.destination, CommunityDestination):
             # CommunityDestination.node_count is allowed to be zero
             if meta.destination.node_count > 0:
-                return all(self._send(list(self.yield_random_candidates(meta.community, meta.destination.node_count)), [message.packet], meta.name) for message in messages)
+                return all(self._send(list(islice(self.yield_random_candidates(meta.community), meta.destination.node_count)), [message.packet], meta.name) for message in messages)
 
         elif isinstance(meta.destination, SubjectiveDestination):
             # SubjectiveDestination.node_count is allowed to be zero
             if meta.destination.node_count > 0:
-                return all(self._send(list(self.yield_subjective_candidates(meta.community, meta.destination.node_count, meta.destination.cluster)), [message.packet], meta.name) for message in messages)
+                return all(self._send(list(islice(self.yield_subjective_candidates(meta.community, meta.destination.cluster), meta.destination.node_count)), [message.packet], meta.name) for message in messages)
 
         elif isinstance(meta.destination, CandidateDestination):
             return all(self._send(message.destination.candidates, [message.packet], meta.name) for message in messages)
