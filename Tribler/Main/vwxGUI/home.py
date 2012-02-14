@@ -402,7 +402,7 @@ class DispersyPanel(HomePanel):
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
-        self.timer.Start(1000, False)
+        self.timer.Start(5000, False)
         self.UpdateStats()
 
     def CreatePanel(self):
